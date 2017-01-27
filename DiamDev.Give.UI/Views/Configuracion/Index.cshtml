@@ -1,0 +1,110 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Configuracion>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Configuracion Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Configuracion")">
+        Nueva
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Configuracion
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover" id="sample-table-1">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Identificador</th>
+                            <th>Valor</th>                        
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Configuracion in Model)
+                        {
+                            <tr>
+                                <td>@Configuracion.Nombre</td>
+                                <td>@Configuracion.Identificador</td>
+                                <td>@Configuracion.Valor</td>                            
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        <a href="@Url.Action("Editar", "Configuracion", new { id = Configuracion.ConfiguracionId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>                                        
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Configuracion", new { id = Configuracion.ConfiguracionId })">
+                                                        <i class="icon-edit"></i> Editar
+                                                    </a>
+                                                </li>                                                
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { search = ViewBag.Search, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if ('@TempData["Configuracion-Success"]' == "OK")
+            {
+                toastr.success('La configuracion se guardó exitosamente');
+            }
+        });
+    </script>
+}
+
+
+

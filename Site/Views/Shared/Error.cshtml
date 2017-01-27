@@ -1,0 +1,29 @@
+﻿@model System.Web.Mvc.HandleErrorInfo
+
+@{
+    ViewBag.Title = "Error";
+}
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+		<title>Error en la aplicaci&oacute;n</title>
+	</head>
+	<body>
+		<div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="error-container">
+                        <h2>Existe un error, intente de nuevo o contacte al administrador del sistema.</h2>
+                        <div class="error-details">
+                            @ViewBag.Error
+                        </div>
+                    </div>
+                    <div class="error-actions">
+
+                    </div>
+                </div>
+            </div>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,22 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.Menu>
+
+@if (Model != null && Model.Count() > 0)
+{
+    foreach (var Item in Model)
+    {
+        <li>
+		    <a href="javascript:void(0)"><i class="@(Item.IconName)"></i>
+			    <span class="title"> @(Item.Titulo) </span><i class="icon-arrow"></i>
+			    <span class="selected"></span>
+		    </a>
+
+            @if (Item.Items != null)
+            {
+                <ul class="sub-menu">
+                    @Html.Partial("_SubMenu", Item.Items)
+                </ul>
+            }
+            
+	    </li>
+    }
+}

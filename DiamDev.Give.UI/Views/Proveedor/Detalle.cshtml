@@ -1,0 +1,302 @@
+﻿@model DiamDev.Give.Entities.Proveedor
+
+@{
+    ViewBag.Title = "Detalle Proveedor";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Proveedor
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="ProveedorId" name="ProveedorId" value="@Html.Raw(Model.ProveedorId)" />
+                    </div>                    
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nit
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Nit) ? "No contiene nit" : Model.Nit)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Nombre
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre de Emisi&oacute;n de Cheque
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NombreCheque) ? Model.Nombre : Model.NombreCheque)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Direcci&oacute;n
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Direccion
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. de Telefono
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NoTelefonoOficina) ? "No Disponible" : Model.NoTelefonoOficina)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. Patente
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Patente) ? "No Disponible" : Model.Patente)                                    
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Correo Electrónico
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.EmailProveedor) ? "No Disponible" : Model.EmailProveedor)                                  
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Contacto</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre<span class="symbol required"></span>
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Contacto) ? "No Disponible" : Model.Contacto)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. de Telefono <span class="symbol required"></span>
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NoTelefonoContacto) ? "No Disponible" : Model.NoTelefonoContacto)
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Correo Electrónico
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.EmailContacto) ? "No Disponible" : Model.EmailContacto)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Estado</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Activo
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Activo == true ? "Sí" : "No")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>  
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Historial de Compras
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Descripci&oacute;n</th>
+                                        <th>Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.IngresoHistorial != null && Model.IngresoHistorial.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.IngresoHistorial)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @Detalle.Fecha.ToString("dd/MM/yyyy")
+                                                </td>
+                                                <td>
+                                                    @(string.IsNullOrWhiteSpace(Detalle.Descripcion) ? "No Disponible" : Detalle.Descripcion)
+                                                </td>
+                                                <td>
+                                                    @string.Format("{0:C}", Detalle.Precio)
+                                                </td>
+                                                <td class="center">
+                                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                                        <a href="@Url.Action("Detalle", "Producto_Ingreso", new { id = Detalle.MovimientoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Ingreso"><i class="clip-stack-empty"></i></a>
+                                                    </div>
+                                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                                        <div class="btn-group">
+                                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                                            </a>
+                                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                                <li role="presentation">
+                                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Producto_Ingreso", new { id = Detalle.MovimientoId })">
+                                                                        <i class="clip-stack-empty"></i> Detalle del Ingreso
+                                                                    </a>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene compras</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th> 
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Productos != null && Model.Productos.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.Productos)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, Detalle.Producto.Nombre))
+                                                </td> 
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="1">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Proveedor")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+

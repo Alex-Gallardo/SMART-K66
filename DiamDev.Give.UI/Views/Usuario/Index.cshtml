@@ -1,0 +1,105 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Usuario>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Usuario Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Usuario")">
+        Nuevo
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Usuario
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover" id="sample-table-1">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Nombre</th>
+                            <th>F. Ultima Actividad</th>
+                            <th>Roles</th>
+                            <th>Agencias</th>
+                            <th>Autenticar Site</th>
+                            <th>Autenticar Android</th>
+                            <th>Activo</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Usuario in Model)
+                        {
+                            <tr>
+                                <td>@Usuario.Login</td>
+                                <td>@Usuario.Nombre</td>
+                                <td>@(Usuario.FechaUltimaActividad == null ? "Sin Registro" : Usuario.FechaUltimaActividad.Value.ToString("dd/MM/yyyy hh:mm tt"))</td>
+                                <td>@(Usuario.Roles == null ? 0 : Usuario.Roles.Count())</td>
+                                <td>@(Usuario.Agencias == null ? 0 : Usuario.Agencias.Count())</td>
+                                <td>@(Usuario.AutenticarSite ? "Sí" : "No")</td>
+                                <td>@(Usuario.AutenticarAndroid ? "Sí" : "No")</td>
+                                <td>@(Usuario.Activo ? "Sí" : "No")</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        <a href="@Url.Action("Editar", "Usuario", new { id = Usuario.UsuarioId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Usuario", new { id = Usuario.UsuarioId })">
+                                                        <i class="icon-edit"></i> Editar
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function ()
+        {
+            if ('@TempData["Usuario-Success"]' == "OK")
+            {
+                toastr.success('El usuario se guardó exitosamente');
+            }
+        });
+    </script>
+}
+

@@ -1,0 +1,119 @@
+﻿@model DiamDev.Give.Entities.Proveedor
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Nit (-)<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nit, new { @class = "form-control", @placeholder = "Nit del Proveedor", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Nombre<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre del Proveedor", required = "required", autocomplete = "off"})
+        </div>     
+        <div class="form-group">
+            <label class="control-label">
+                Nombre de Emisi&oacute;n de Cheque
+            </label>
+            @Html.TextBoxFor(model => model.NombreCheque, new { @class = "form-control", @placeholder = "Nombre de Emisión de Cheque", autocomplete = "off" })
+        </div>  
+        <div class="form-group">
+            <label class="control-label">
+                Direcci&oacute;n<span class="symbol required"></span>
+            </label>
+            @Html.TextAreaFor(model => model.Direccion, new { @class = "form-control", @placeholder = "Dirección del Proveedor", required = "required", autocomplete = "off" })
+        </div>             
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                No. de Telefono <span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.NoTelefonoOficina, new { @class = "form-control input-mask-phone", @placeholder = "No. de Telefono", required = "required", autocomplete = "off" })
+        </div>        
+        <div class="form-group">
+            <label class="control-label">
+                No. Patente
+            </label>
+            @Html.TextBoxFor(model => model.Patente, new { @class = "form-control", @placeholder = "No. Patente", autocomplete = "off" })
+        </div>     
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Correo Electrónico
+            </label>
+            @Html.TextBoxFor(model => model.EmailProveedor, new { @class = "form-control", @placeholder = "Correo Electrónico", autocomplete = "off" })
+        </div>        
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Contacto</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Nombre<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Contacto, new { @class = "form-control", @placeholder = "Nombre del Contacto", required = "required", autocomplete = "off" })
+        </div>     
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                No. de Telefono <span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.NoTelefonoContacto, new { @class = "form-control input-mask-phone", @placeholder = "No. de Telefono", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Correo Electrónico
+            </label>
+            @Html.TextBoxFor(model => model.EmailContacto, new { @class = "form-control", @placeholder = "Correo Electrónico", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Estado</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Activo
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.activoSi name="activo" id="activoSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.activoNo name="activo" id="activoNo">
+                    No
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+

@@ -1,0 +1,230 @@
+﻿@model DiamDev.Give.Entities.Producto
+
+@{
+    ViewBag.Title = "Nuevo Producto";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nuevo Producto
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nuevo Producto</h2>
+                <p>
+                    Crea un nuevo producto.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    @Html.Partial("_CreateOrEdit")
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Producto")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="precio_tr_template">
+        <tr>
+            <td>{{precio}}</td>
+            <td>Q{{valor_id}}</td>          
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="precioIds" value="{{precio_id}}" />
+                <input type="hidden" name="valorIds" value="{{valor_id}}" />              
+            </td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">
+
+        var precioSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioIds))');
+        var valorSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.valorIds))');
+
+        $(function ()
+        {
+            $('#MarcaId').change(function (evt)
+            {
+                var ProductoSelect = $("#ProductoPadreId");
+                ProductoSelect.empty();
+                ProductoSelect.append('<option value="0">--Seleccione un Producto Principal--</option>');
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerProductoPorCategoriaIdYMarcaId", "Producto")',
+                    data: { 'categoriaId': $('#CategoriaId').val(), 'marcaId': $('#MarcaId').val() },
+                    traditional: true,
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        $.each(data, function (j)
+                        {
+                            ProductoSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                        });
+                    }
+                });
+            });
+
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            function cargaPrecio(precio_id, precio, valor_id)
+            {
+                var plantilla = $('#precio_tr_template').html();
+
+                var modelo =
+                {
+                    precio_id: precio_id,
+                    precio: precio,
+                    valor_id: valor_id
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#precio_tbody').append(filaHtml);
+            }
+
+            renderizarPreciosIniciales();
+
+            $('#btn-agregar').click(function (e)
+            {
+                e.preventDefault();
+
+                var precio_id = $('#PrecioId').val();
+                var precio = $('#PrecioId option:selected').text();
+
+                if (precio_id === "" || precio === "")
+                {
+                    error("Seleccione un precio");
+                    return;
+                }
+
+                var valor_id = $('#Precio').val();
+             
+                if (valor_id === "")
+                {
+                    error("Ingrese el precio del producto seleccionado");
+                    return;
+                }
+
+                cargaPrecio(precio_id, precio, valor_id);              
+
+                $("#PrecioId").val(0);
+                $("#Precio").val(0);            
+                $("#PrecioId").focus();
+            });
+
+            $('#precio_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+                $(this).parent().parent().remove();                
+            });
+
+            function renderizarPreciosIniciales()
+            {
+                if (precioSeleccionados == null)
+                {
+                    return;
+                }
+
+                // recorremos los precios que haya ingresado el usuario
+                for (var i = 0; i < precioSeleccionados.length; i++)
+                {
+                    var precio_id = precioSeleccionados[i];
+                    var precio = $('#PrecioId option[value=' + precio_id + ']').text();
+
+                    var valor_id = valorSeleccionados[i];                  
+
+                    cargaPrecio(precio_id, precio, valor_id);
+                }
+            }
+
+            var correlativo = 0;
+
+            $('#btn-agregar-imagen').click(function (e)
+            {
+                e.preventDefault();
+
+                var $fila = $('<tr/>');
+                var $celdaA = $('<td />');
+                var $celdaB = $('<td />');
+
+                var prefijo = 'archivos[' + correlativo + ']';
+
+                var $hidden = $('<input />', { type: 'hidden', value: correlativo, name: 'archivos.Crear' });
+                var $inputFile = $('<input />', { name: prefijo + '.archivo', type: 'file', class: 'file-input' });
+                var $delete = $('<button />', { type: 'button', class: 'btn btn-danger' }).text('Eliminar');
+
+                $celdaB.append($delete);
+                $celdaA.append($inputFile);
+
+                $fila.append([$celdaA, $celdaB]);
+
+                $('#tbl-archivos').append($fila);
+
+                $delete.click(function (_e)
+                {
+                    _e.preventDefault();
+                    $fila.remove();
+                })
+
+                correlativo++;
+                $inputFile.click();
+            });
+        });
+
+    </script>
+}
+
+
+

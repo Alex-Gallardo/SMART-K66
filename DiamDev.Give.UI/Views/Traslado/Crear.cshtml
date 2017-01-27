@@ -1,0 +1,281 @@
+﻿@model DiamDev.Give.Entities.Traslado
+
+@{
+    ViewBag.Title = "Nuevo Traslado";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nuevo Traslado
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nuevo Traslado</h2>
+                <p>
+                    Crea un nuevo traslado.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>                        
+                    </div>
+                    @Html.Partial("_CreateOrEdit")                    
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Traslado")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+   <script src="~/Scripts/mustache.js"></script>
+   <script type="text/html" id="producto_tr_template">
+    <tr>
+        <td>{{producto}}</td>
+        <td>{{presentacion}}</td>
+        <td>{{cantidad}}</td>      
+        <td>
+            <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+            <input type="hidden" name="productoIds" value="{{producto_id}}" />
+            <input type="hidden" name="presentacionIds" value="{{presentacion_id}}" />
+            <input type="hidden" name="cantidadIds" value="{{cantidad_id}}" />            
+        </td>
+    </tr>
+</script>
+
+    <script type="text/javascript">
+
+        var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
+        var presentacionSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.presentacionIds))');
+        var cantidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.cantidadIds))');       
+
+        $(function ()
+        {
+
+            $('#ProductoId').change(function (evt)
+            {
+                var PresentacionSelect = $("#PresentacionId");
+                PresentacionSelect.empty();
+                PresentacionSelect.append('<option value="0">--Seleccione una Unidad--</option>');
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerPresentacionPorProducto", "Producto_Ingreso")',
+                    data: { 'id': $('#ProductoId').val() },
+                    traditional: true,
+                    async: false,
+                    type: 'GET',
+                    success: function (data) {
+                        $.each(data, function (j) {
+                            PresentacionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                        });
+                    }
+                });
+            });
+
+            $('#PresentacionId').change(function (evt)
+            {
+                $.ajax({
+                    url: '@Url.Action("ObtenerProducto", "Producto")',
+                    traditional: true,
+                    data: { 'agenciaId': $('#AgenciaOrigenId').val(), 'productoId': $('#ProductoId').val(), 'presentacionId': $('#PresentacionId').val() },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
+                                $('#Existencia').val(resultData.Data.Existencia);
+                                $('#Cantidad').focus();
+                            }
+                            else
+                            {
+                                toastr.error('Ocurrió un error, al visualizar el producto');
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al visualizar el producto');
+                        }
+                    }
+                });
+            });
+
+            $('#AgenciaOrigenId').change(function (evt)
+            {
+                var AgenciaSelect = $("#AgenciaDestinoId");
+                AgenciaSelect.empty();
+                AgenciaSelect.append('<option value="0">--Seleccione una Agencia--</option>');
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerAgenciaPorId", "Traslado")',
+                    data: { 'id': $('#AgenciaOrigenId').val() },
+                    traditional: true,
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        $.each(data, function (j)
+                        {
+                            AgenciaSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                        });
+                    }
+                });
+            });
+
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            function cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id)
+            {
+                var plantilla = $('#producto_tr_template').html();
+
+                var modelo =
+                {
+                    producto_id: producto_id,
+                    producto: producto,
+                    presentacion_id: presentacion_id,
+                    presentacion: presentacion,
+                    cantidad_id: cantidad_id,
+                    cantidad: cantidad_id                  
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#producto_tbody').append(filaHtml);
+            }
+
+            renderizarProductosIniciales();         
+
+            $('#btn-agregar').click(function (e)
+            {
+                e.preventDefault();
+
+                var producto_id = $('#ProductoId').val();
+                var producto = $('#ProductoId option:selected').text();
+
+                if (producto_id === "" || producto === "")
+                {
+                    error("Seleccione un producto");
+                    return;
+                }
+
+                var presentacion_id = $('#PresentacionId').val();
+                var presentacion = $('#PresentacionId option:selected').text();
+
+                if (presentacion_id === "" || presentacion === "")
+                {
+                    error("Seleccione una presentacion");
+                    return;
+                }
+
+                var cantidad_id = $('#Cantidad').val();
+
+                if (cantidad_id === "")
+                {
+                    error("Ingrese la cantidad del producto");
+                    return;
+                }               
+
+                var existencia_id = parseFloat($('#Existencia').val());
+                cantidad_id = parseFloat(cantidad_id);
+
+                if (cantidad_id <= 0)
+                {
+                    error("La cantidad ingresada no puede ser 0");
+                    return;
+                }
+
+                if (cantidad_id > existencia_id)
+                {
+                    error("La cantidad ingresada es mayor a la existencia");
+                    return;
+                }
+
+                cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id);
+              
+                $("#ProductoId").val(0);
+                $("#Cantidad").val(0);
+                $("#Existencia").val(0);              
+                $("#ProductoId").focus();
+            });
+
+            $('#producto_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+                $(this).parent().parent().remove();               
+            });     
+
+            function renderizarProductosIniciales()
+            {
+                if (productoSeleccionados == null)
+                {
+                    return;
+                }
+
+                // recorremos los productos que haya ingresado el usuario
+                for (var i = 0; i < productoSeleccionados.length; i++)
+                {
+                    var producto_id = productoSeleccionados[i];
+                    var producto = $('#ProductoId option[value=' + producto_id + ']').text();
+
+                    var presentacion_id = presentacionSeleccionados[i];
+                    var presentacion = $('#PresentacionId option[value=' + presentacion_id + ']').text();
+
+                    var cantidad_id = cantidadSeleccionados[i];                  
+
+                    cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id);
+                }               
+            }           
+        });
+
+    </script>
+}
+
+

@@ -1,0 +1,151 @@
+﻿@model DiamDev.Give.Entities.Usuario
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Nombre<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre del Usuario", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Usuario<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Login, new { @class = "form-control", @placeholder = "Usuario", required = "required", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Autenticar Site
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.AutenticarSiteSi name="autenticarSite" id="AutenticarSiteSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.AutenticarSiteNo name="autenticarSite" id="AutenticarSiteNo">
+                    No
+                </label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Usuario Activo
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.ActivoSi name="activo" id="ActivoSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.ActivoNo name="activo" id="ActivoNo">
+                    No
+                </label>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Password<span class="symbol required"></span>
+            </label>
+            @Html.PasswordFor(model => model.Password, new { @class = "form-control", @placeholder = "Password", required = "required" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Autenticar Android
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.AutenticarAndroidSi name="autenticarAndroid" id="AutenticarAndroidSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.AutenticarAndroidNo name="autenticarAndroid" id="AutenticarAndroidNo">
+                    No
+                </label>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Reiniciar Password
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.ReiniciarPasswordSi name="reiniciarPassword" id="ReiniciarPasswordSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.ReiniciarPasswordNo name="reiniciarPassword" id="ReiniciarPasswordNo">
+                    No
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Roles</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Rol
+            </label>
+            @Html.DropDownList("RolId", (SelectList)ViewBag.Roles, "--Seleccione un Rol--", new { @class = "form-control search-select" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+        <table class="table table-hover" id="sample-table-1">
+            <thead>
+                <tr>
+                    <th>Rol</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="rol_tbody"></tbody>
+        </table>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Agencias</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Agencia
+            </label>
+            @Html.DropDownList("AgenciaId", (SelectList)ViewBag.Agencias, "--Seleccione una Agencia--", new { @class = "form-control search-select" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-agencia">Agregar</button></p>
+        <table class="table table-hover" id="sample-table-1">
+            <thead>
+                <tr>
+                    <th>Agencia</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="agencia_tbody"></tbody>
+        </table>        
+    </div>
+</div>
+

@@ -1,0 +1,132 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.Movimiento>
+
+@{
+    ViewBag.Title = "Egresos Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Producto_Egreso")">
+        Nuevo
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Egresos
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover" id="sample-table-1">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Movimiento in Model)
+                        {
+                            <tr>
+                                <td>@Movimiento.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@(Movimiento.Cliente == null ? "No Disponible" : Movimiento.Cliente.Nombre)</td>
+                                <td>@(Movimiento.Detalles == null ? 0 : Movimiento.Detalles.Count())</td>
+                                <td>@(Movimiento.Detalles == null ? "Q0.00" : Movimiento.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C"))</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        <a href="@Url.Action("Detalle", "Producto_Egreso", new { id = Movimiento.MovimientoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Egreso"><i class="clip-stack-empty"></i></a>
+                                        <a href="@Url.Action("Boleta", "Producto_Egreso", new { id = Movimiento.MovimientoId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Producto_Egreso", new { id = Movimiento.MovimientoId })">
+                                                        <i class="clip-stack-empty"></i> Detalle del Egreso
+                                                    </a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Producto_Egreso", new { id = Movimiento.MovimientoId })" target="_blank">
+                                                        <i class="clip-file-pdf"></i> Ver Boleta
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function ()
+        {
+            if ('@TempData["Producto-Egreso-Success"]' == "OK")
+            {
+                toastr.success('El egreso se guardó exitosamente');
+            }
+        });
+    </script>
+}
+
+
+
+
+
+
+
+

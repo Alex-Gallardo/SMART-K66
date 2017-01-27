@@ -1,0 +1,186 @@
+﻿@model DiamDev.Give.Entities.Proveedor
+
+@{
+    ViewBag.Title = "Editar Proveedor";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Editar Proveedor
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Editar Proveedor</h2>
+                <p>
+                    Editar un proveedor.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="ProveedorId" name="ProveedorId" value="@Html.Raw(Model.ProveedorId)" />
+                    </div>
+                    @Html.Partial("_CreateOrEdit")
+                    <h2>
+                        <i class="icon-edit-sign teal"></i> Productos
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Producto
+                                </label>
+                                @Html.DropDownList("ProductoId", (SelectList)ViewBag.Productos, "--Seleccione un Producto--", new { @class = "form-control search-select" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover" id="sample-table-1">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>                                     
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="producto_tbody"></tbody>
+                            </table>
+                            <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Proveedor")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="producto_tr_template">
+        <tr>
+            <td>{{producto}}</td>          
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="productoIds" value="{{producto_id}}" />              
+            </td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">
+
+        var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');  
+
+        $(function ()
+        {
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            function cargaProducto(producto_id, producto)
+            {
+                var plantilla = $('#producto_tr_template').html();
+
+                var modelo =
+                {
+                    producto_id: producto_id,
+                    producto: producto                  
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#producto_tbody').append(filaHtml);
+            }
+
+            renderizarProductosIniciales();
+
+            $('#btn-agregar').click(function (e)
+            {
+                e.preventDefault();
+
+                var producto_id = $('#ProductoId').val();
+                var producto = $('#ProductoId option:selected').text();
+
+                if (producto_id === "" || producto === "")
+                {
+                    error("Seleccione un producto");
+                    return;
+                }                
+
+                cargaProducto(producto_id, producto);               
+
+                $("#ProductoId").val(0);          
+                $("#ProductoId").focus();
+            });
+
+            $('#producto_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+                $(this).parent().parent().remove();               
+            });
+
+            function renderizarProductosIniciales()
+            {
+                if (productoSeleccionados == null)
+                {
+                    return;
+                }
+
+                // recorremos los productos que haya ingresado el usuario
+                for (var i = 0; i < productoSeleccionados.length; i++)
+                {
+                    var producto_id = productoSeleccionados[i];
+                    var producto = $('#ProductoId option[value=' + producto_id + ']').text();               
+
+                    cargaProducto(producto_id, producto);
+                }               
+            }         
+
+        });
+    </script>
+}

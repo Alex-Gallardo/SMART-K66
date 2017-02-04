@@ -239,7 +239,7 @@ namespace DiamDev.Give.BLL
                 return ProductoActual;
             }
 
-            public Producto ObtenerExistenciaPorAgenciaYProducto(long agenciaId, string productoId, long unidadId, bool precioVigente = false)
+            public Producto ObtenerExistenciaPorAgenciaYProducto(long agenciaId, string productoId, long unidadId, bool precioVigente = false, bool empleado = false)
             {
                 Producto ProductoActual = new Producto();
 
@@ -272,10 +272,28 @@ namespace DiamDev.Give.BLL
 
                         if (precioVigente)
                         {
-                            ProductoPrecio PrecioActual = db.Set<ProductoPrecio>().Where(x => x.ProductoId == productoId && x.PrecioId == 5).FirstOrDefault();
-                            if (PrecioActual != null)
+                            if (empleado)
                             {
-                                Precio = PrecioActual.Valor;
+                                ProductoPrecioCosto PrecioActual = db.Set<ProductoPrecioCosto>().Where(x => x.ProductoId == productoId).FirstOrDefault();
+                                if (PrecioActual != null)
+                                {
+                                    decimal IncrementoCompraEmpleado = 1;
+                                    Configuracion ConfiguracionActual = db.Set<Configuracion>().Where(x => x.Identificador.Equals("CompraColaborador")).FirstOrDefault();
+                                    if (ConfiguracionActual != null)
+                                    {
+                                        IncrementoCompraEmpleado = decimal.Parse(ConfiguracionActual.Valor);                                       
+                                    }
+
+                                    Precio = PrecioActual.PrecioCosto + IncrementoCompraEmpleado;
+                                }
+                            }
+                            else
+                            {
+                                ProductoPrecio PrecioActual = db.Set<ProductoPrecio>().Where(x => x.ProductoId == productoId && x.PrecioId == 5).FirstOrDefault();
+                                if (PrecioActual != null)
+                                {
+                                    Precio = PrecioActual.Valor;
+                                }
                             }
 
                             ProductoActual.Precios = new List<ProductoPrecio>();

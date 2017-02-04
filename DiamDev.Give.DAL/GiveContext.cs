@@ -89,6 +89,10 @@ namespace DiamDev.Give.DAL
         public DbSet<SerieAgencia> SerieAgencias { get; set; }
 
         public DbSet<SerieAgenciaFactura> SerieAgenciaFacturas { get; set; }
+
+        public DbSet<Personal> Personals { get; set; }
+
+        public DbSet<PersonalHorario> PersonalHorarios { get; set; }
         
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {

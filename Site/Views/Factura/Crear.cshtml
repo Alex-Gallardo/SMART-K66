@@ -77,7 +77,7 @@
         <h4 class="modal-title">Nuevo Cliente</h4>
     </div>
     <div class="modal-body">
-        @Html.Partial("~/Views/Cliente/_CreateOrEdit.cshtml", new DiamDev.Give.Entities.Cliente() { Nit = "C/F", Direccion = "CIUDAD", EmailCliente = "info@give.com.gt" })
+        @Html.Partial("~/Views/Cliente/_CreateOrEdit.cshtml", new DiamDev.Give.Entities.Cliente() { Direccion = "CIUDAD" })
     </div>
     <div class="modal-footer">
         <button id="btn-save-up-cliente" class="btn btn-primary">Guardar</button>
@@ -133,7 +133,8 @@
         var pagarSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.pagarIds))');
         var notaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.notaIds))');
 
-    $(function () {
+        $(function ()
+        {
         //Se selecciona por default al cliente: Consumidor Final
         $("#ClienteId").val("20170115001").trigger("change");
 
@@ -378,7 +379,8 @@
             }
         }
 
-        function totalizarPagar() {
+        function totalizarPagar()
+        {
             var pagarArray = new Array();
             $('input[name=pagarIds]').each(function () {
                 pagarArray.push(parseFloat($(this).val()));
@@ -406,7 +408,8 @@
             }
         }
 
-        $("#btn-save-up-cliente").click(function () {
+        $("#btn-save-up-cliente").click(function ()
+        {
             var Nit = $("#new-cliente-form").find("#Nit").val();
             var Nombre = $("#new-cliente-form").find("#Nombre").val();
             var Direccion = $("#new-cliente-form").find("#Direccion").val();
@@ -473,22 +476,27 @@
 
         });
 
-        $('#PresentacionId').change(function (evt) {
-            if ($('#ProductoId').val() === "") {
+        $('#PresentacionId').change(function (evt)
+        {
+            if ($('#ProductoId').val() === "")
+            {
                 error("Seleccionar un producto");
                 return;
             }
 
-            if ($('#PresentacionId').val() === "") {
+            if ($('#PresentacionId').val() === "")
+            {
                 error("Seleccionar una presentacion");
                 return;
             }
 
+            var empleado = $('#EmpleadoSi').is(":checked");
+           
             $.ajax({
                 url: '@Url.Action("ObtenerProducto", "Producto")',
                 traditional: true,
                 async: false,
-                data: { 'agenciaId': $('#AgenciaId').val(), 'productoId': $('#ProductoId').val(), 'presentacionId': $('#PresentacionId').val() },
+                data: { 'agenciaId': $('#AgenciaId').val(), 'productoId': $('#ProductoId').val(), 'presentacionId': $('#PresentacionId').val(), 'empleado': empleado },
                 type: 'GET',
                 success: function (resultData) {
                     if (resultData !== null) {
@@ -508,7 +516,8 @@
             });
         });
 
-        $('#SerieId').change(function (evt) {
+        $('#SerieId').change(function (evt)
+        {
             if ($('#SerieId').val() === "") {
                 error("Seleccionar una serie");
                 return;
@@ -520,9 +529,12 @@
                 data: { 'serieId': $('#SerieId').val() },
                 async: false,
                 type: 'GET',
-                success: function (resultData) {
-                    if (resultData !== null) {
-                        if (resultData.Operacion) {
+                success: function (resultData)
+                {
+                    if (resultData !== null)
+                    {
+                        if (resultData.Operacion)
+                        {
                             $('#NoFacturaA').val(resultData.Data.Factura);
                             $('#NoFactura').val(resultData.Data.Factura);
                         }
@@ -564,10 +576,13 @@
             }
         });
 
-        $('#formaprincipal').keydown(function (evt) {
-            if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13) {
+        $('#formaprincipal').keydown(function (evt)
+        {
+            if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13)
+            {
                 evt.preventDefault();
-                if ($('#Barra').val() === "") {
+                if ($('#Barra').val() === "")
+                {
                     error("Ingresar codigo de barra");
                     $('#Barra').focus();
                     return;
@@ -579,9 +594,12 @@
                     data: { 'barra': $('#Barra').val() },
                     async: false,
                     type: 'GET',
-                    success: function (resultData) {
-                        if (resultData !== null) {
-                            if (resultData.Operacion) {
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
                                 $('#Producto').val(resultData.Data.Nombre);
                                 $('#ProductoId').val(resultData.Data.ProductoId);
 
@@ -595,8 +613,10 @@
                                     traditional: true,
                                     async: false,
                                     type: 'GET',
-                                    success: function (data) {
-                                        $.each(data, function (j) {
+                                    success: function (data)
+                                    {
+                                        $.each(data, function (j)
+                                        {
                                             PresentacionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
                                         });
 
@@ -607,7 +627,8 @@
 
                                 $('#Cantidad').focus();
                             }
-                            else {
+                            else
+                            {
                                 toastr.error('La barra del producto ingresada no es correcta');
                                 $('#Barra').val("");
                                 $('#Barra').focus();

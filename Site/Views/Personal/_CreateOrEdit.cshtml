@@ -1,0 +1,85 @@
+﻿@model DiamDev.Give.Entities.Personal
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Nombre<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre del Personal", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>  
+        <div class="form-group">
+            <label class="control-label">
+                Direcci&oacute;n<span class="symbol required"></span>
+            </label>
+            @Html.TextAreaFor(model => model.Direccion, new { @class = "form-control", @placeholder = "Dirección del Personal", required = "required", autocomplete = "off" })
+        </div>             
+    </div>
+</div>
+<div class="row">  
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Correo Electrónico
+            </label>
+            @Html.TextBoxFor(model => model.Email, new { @class = "form-control", @placeholder = "Correo Electrónico", autocomplete = "off" })
+        </div>        
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                No. de Telefono Principal<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.NoTelefono, new { @class = "form-control input-mask-phone", @placeholder = "No. de Telefono Principal", required = "required", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                No. de Celular Principal
+            </label>
+            @Html.TextBoxFor(model => model.NoCelularPrincipal, new { @class = "form-control input-mask-phone", @placeholder = "No. de Celular Principal", autocomplete = "off" })
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                No. de Telefono Alterno
+            </label>
+            @Html.TextBoxFor(model => model.NoTelefonoAlterno, new { @class = "form-control input-mask-phone", @placeholder = "No. de Telefono Alterno", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                No. de Celular Alterno
+            </label>
+            @Html.TextBoxFor(model => model.NoCelularAlterno, new { @class = "form-control input-mask-phone", @placeholder = "No. de Celular Alterno", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Estado</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Personal Activo
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.ActivoSi name="activo" id="ActivoSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.ActivoNo name="activo" id="ActivoNo">
+                    No
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+

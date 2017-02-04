@@ -340,11 +340,11 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [ActionName("ObtenerProducto")]
-        public JsonResult ObtenerProducto(long agenciaId, string productoId, long presentacionId)
+        public JsonResult ObtenerProducto(long agenciaId, string productoId, long presentacionId, bool empleado)
         {
             if (!string.IsNullOrWhiteSpace(productoId))
             {
-                Producto ProductoActual = new ProductoBL().ObtenerExistenciaPorAgenciaYProducto(agenciaId, productoId, presentacionId, true);
+                Producto ProductoActual = new ProductoBL().ObtenerExistenciaPorAgenciaYProducto(agenciaId, productoId, presentacionId, true, empleado);
                 if (ProductoActual != null)
                 {
                     return Json(new { Operacion = true, Data = ProductoActual }, JsonRequestBehavior.AllowGet);

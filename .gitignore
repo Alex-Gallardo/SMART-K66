@@ -7,6 +7,10 @@
 *.sln.docstates
 
 # Build results
+
+src/client/node_modules/
+
+
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/

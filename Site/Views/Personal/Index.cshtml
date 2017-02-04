@@ -1,0 +1,115 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Personal>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Personal Listado";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Personal
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover" id="sample-table-1">
+                    <thead>
+                        <tr>  
+                            <th>Nombre</th>                           
+                            <th>No. T. Principal</th>
+                            <th>No. T. Alterno</th>
+                            <th>No. C. Principal</th>
+                            <th>No. C. Alterno</th>                           
+                            <th>Activo</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Personal in Model)
+                        {
+
+                            <tr> 
+                                <td>@Personal.Nombre</td>                               
+                                <td>@(string.IsNullOrWhiteSpace(Personal.NoTelefono) ? "0000-0000" : Personal.NoTelefono)</td>
+                                <td>@(string.IsNullOrWhiteSpace(Personal.NoTelefonoAlterno) ? "0000-0000" : Personal.NoTelefonoAlterno)</td>
+                                <td>@(string.IsNullOrWhiteSpace(Personal.NoCelularPrincipal) ? "0000-0000" : Personal.NoCelularPrincipal)</td>
+                                <td>@(string.IsNullOrWhiteSpace(Personal.NoCelularAlterno) ? "0000-0000" : Personal.NoCelularAlterno)</td>                               
+                                <td>@(Personal.Activo == true ? "Sí" : "No")</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        <a href="@Url.Action("Editar", "Personal", new { id = Personal.PersonalId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                        <a href="@Url.Action("Detalle", "Personal", new { id = Personal.PersonalId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Personal"><i class="clip-stack-empty"></i></a>
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Cliente", new { id = Personal.PersonalId })">
+                                                        <i class="icon-edit"></i> Editar
+                                                    </a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Cliente", new { id = Personal.PersonalId })">
+                                                        <i class="clip-stack-empty"></i> Detalle del Cliente
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { search = ViewBag.Search, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if ('@TempData["Personal-Success"]' == "OK") {
+                toastr.success('El personal se guardó exitosamente');
+            }
+        });
+    </script>
+}
+
+
+

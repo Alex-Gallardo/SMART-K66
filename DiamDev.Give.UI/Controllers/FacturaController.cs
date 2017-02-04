@@ -110,7 +110,12 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso("Control.Factura.Crear")]
         public ActionResult Crear()
         {
-            CustomHelper.setTitle("Factura", "Nueva");         
+            CustomHelper.setTitle("Factura", "Nueva");
+
+            string strAtributo = "checked='checked'";
+
+            ViewBag.EmpleadoSi = "";
+            ViewBag.EmpleadoNo = strAtributo;
 
             this.CargaControles();
             return View();
@@ -118,7 +123,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [Permiso("Control.Factura.Crear")]
         [HttpPost]
-        public ActionResult Crear(Factura modelo, string[] productoIds, string[] nombreProductoIds, long[] presentacionIds, string[] nombrePresentacionIds, decimal[] cantidadIds, decimal[] precioIds, long[] formaIds, decimal[] pagarIds, string[] notaIds)
+        public ActionResult Crear(Factura modelo, bool empleado, string[] productoIds, string[] nombreProductoIds, long[] presentacionIds, string[] nombrePresentacionIds, decimal[] cantidadIds, decimal[] precioIds, long[] formaIds, decimal[] pagarIds, string[] notaIds)
         {
             if (productoIds == null || productoIds.Length == 0)
             {
@@ -148,6 +153,7 @@ namespace DiamDev.Give.UI.Controllers
                 ModelState.AddModelError("", "Para realizar una venta debe de asignar un no. de factura");
             }
 
+            modelo.Empleado = empleado;
             modelo.AgenciaId = CustomHelper.getAgenciaId();
             modelo.UsrCreo = CustomHelper.getUserId();
             modelo.FacturaElectronica = false;
@@ -188,7 +194,12 @@ namespace DiamDev.Give.UI.Controllers
             ViewBag.formaIds = formaIds;
             ViewBag.pagarIds = pagarIds;
             ViewBag.notaIds = notaIds;
-            
+
+            string strAtributo = "checked='checked'";
+
+            ViewBag.EmpleadoSi = empleado == true ? strAtributo : "";
+            ViewBag.EmpleadoNo = empleado == false ? strAtributo : "";
+
             this.CargaControles();
             return View(modelo);
         }

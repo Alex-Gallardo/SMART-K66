@@ -54,6 +54,8 @@ namespace DiamDev.Give.Entities
         public long NoFactura { get; set; }
 
         public bool Anulada { get; set; }
+        
+        public bool Empleado { get; set; }
 
         [Column("Usr_Creo")]
         public long UsrCreo { get; set; }

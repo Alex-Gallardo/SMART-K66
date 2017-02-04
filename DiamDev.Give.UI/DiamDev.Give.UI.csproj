@@ -647,6 +647,7 @@
     <Compile Include="Controllers\Forma_PagoController.cs" />
     <Compile Include="Controllers\InicioController.cs" />
     <Compile Include="Controllers\MarcaController.cs" />
+    <Compile Include="Controllers\PersonalController.cs" />
     <Compile Include="Controllers\ProductoController.cs" />
     <Compile Include="Controllers\Producto_CategoriaController.cs" />
     <Compile Include="Controllers\Producto_EgresoController.cs" />
@@ -712,6 +713,11 @@
     <Content Include="Views\Serie\Detalle.cshtml" />
     <Content Include="Views\Serie\Editar.cshtml" />
     <Content Include="Views\Serie\Index.cshtml" />
+    <Content Include="Views\Personal\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Personal\Crear.cshtml" />
+    <Content Include="Views\Personal\Detalle.cshtml" />
+    <Content Include="Views\Personal\Editar.cshtml" />
+    <Content Include="Views\Personal\Index.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

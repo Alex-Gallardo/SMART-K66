@@ -66,6 +66,8 @@
     <Compile Include="MenuBL.cs" />
     <Compile Include="MovimientoBL.cs" />
     <Compile Include="MovimientoTipoBL.cs" />
+    <Compile Include="PersonalBL.cs" />
+    <Compile Include="PersonalHorarioBL.cs" />
     <Compile Include="PrecioBL.cs" />
     <Compile Include="ProductoBL.cs" />
     <Compile Include="ProductoCategoriaBL.cs" />

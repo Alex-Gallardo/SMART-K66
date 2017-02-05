@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLectorHuella = new System.Windows.Forms.ToolStripStatusLabel();
@@ -37,6 +38,7 @@
             this.lblHora = new System.Windows.Forms.Label();
             this.lblFecha = new System.Windows.Forms.Label();
             this.btnOpciones = new System.Windows.Forms.Button();
+            this.Tiempo = new System.Windows.Forms.Timer(this.components);
             this.statusStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel1.SuspendLayout();
@@ -145,6 +147,10 @@
             this.btnOpciones.UseVisualStyleBackColor = true;
             this.btnOpciones.Click += new System.EventHandler(this.btnOpciones_Click);
             // 
+            // Tiempo
+            // 
+            this.Tiempo.Tick += new System.EventHandler(this.Tiempo_Tick);
+            // 
             // frmPrincipal
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -179,6 +185,7 @@
         private System.Windows.Forms.Label lblFecha;
         private System.Windows.Forms.Button btnOpciones;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel2;
+        private System.Windows.Forms.Timer Tiempo;
     }
 }
 

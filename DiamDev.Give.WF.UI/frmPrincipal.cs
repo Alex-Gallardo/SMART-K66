@@ -19,12 +19,15 @@ namespace DiamDev.Give.WF.UI
     public partial class frmPrincipal : Form, DPFP.Capture.EventHandler
     {
         #region Propiedades Privadas    
-            delegate void Function();
+                    
             private DPFP.Capture.Capture Capturer;
             private DPFP.Processing.Enrollment Enroller;
             private DPFP.Template Template;
             private DPFP.Verification.Verification Verificator;
             private DPFP.Sample MemSample;
+
+            private List<Personal> Empleados;
+
         #endregion
 
         #region Constructores
@@ -37,6 +40,10 @@ namespace DiamDev.Give.WF.UI
                 this.lblTitulo.Text = ConfigurationManager.AppSettings["Agencia"];
 
                 Verificator = new DPFP.Verification.Verification();
+                this.CargaEmpleados();
+
+                this.Tiempo.Enabled = true;
+                this.Tiempo.Interval = 1000;
             }
         #endregion
 
@@ -78,80 +85,114 @@ namespace DiamDev.Give.WF.UI
                 else
                     return null;
             }
+        
+            private void CargaEmpleados()
+            {
+                try
+                {
+                    Empleados = new List<Personal>();
+                    using (var client = new HttpClient())
+                    {
+                        using (var response = client.GetAsync(String.Format("{0}/api/personal", ConfigurationManager.AppSettings["Url"])).Result)
+                        {
+                            if (response.IsSuccessStatusCode)
+                            {
+                                var personalJsonString = response.Content.ReadAsStringAsync().Result;
+                                Empleados = JsonConvert.DeserializeObject<Personal[]>(personalJsonString).ToList();
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("Ocurrio un error, por favor verificar su conexión a internet.", "Monitor", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+
+            }
+
+            private void Tiempo_Tick(object sender, EventArgs e)
+            {
+                this.ActualizarTiempo();
+            }
+
+            private void ActualizarTiempo()
+            {
+                this.lblFecha.Text = DateTime.Today.ToLongDateString();
+                this.lblHora.Text = DateTime.Now.ToShortTimeString();
+            }
 
        #endregion
 
        #region Eventos del Lector
 
         public void OnComplete(object Capture, string ReaderSerialNumber, DPFP.Sample Sample)
-        {  
+        {
+            MakeReport("Se ha capturado la huella digital");
             Process(Sample);
-                       
-            using (var client = new HttpClient())
+            MakeReport("Identificando al empleado");
+
+            if (Empleados != null && Empleados.Count() > 0)
             {
-                using (var response = client.GetAsync(String.Format("{0}/api/personal",ConfigurationManager.AppSettings["Url"])).Result)
+                foreach (Personal item in Empleados)
                 {
-                    if (response.IsSuccessStatusCode)
+                    MemoryStream ms = new MemoryStream(item.TemplateBytes);
+                    Template template = new DPFP.Template(ms);
+
+                    try
                     {
-                        var personalJsonString = response.Content.ReadAsStringAsync().Result;
-                        List<Personal> Personals = JsonConvert.DeserializeObject<Personal[]>(personalJsonString).ToList();
-                        if (Personals != null && Personals.Count() > 0)
+                        DPFP.FeatureSet features = ExtractFeatures(MemSample, DPFP.Processing.DataPurpose.Verification);
+
+                        if (features != null)
                         {
-                            foreach (Personal item in Personals)
+                            DPFP.Verification.Verification.Result result = new DPFP.Verification.Verification.Result();
+                            Verificator.Verify(features, template, ref result);
+
+                            if (result.Verified)
                             {
-                                MemoryStream ms = new MemoryStream(item.TemplateBytes);
-                                Template template = new DPFP.Template(ms);
-
-                                try
-                                {
-                                    // Process the sample and create a feature set for the enrollment purpose.                  
-                                    DPFP.FeatureSet features = ExtractFeatures(MemSample, DPFP.Processing.DataPurpose.Verification);
-
-                                    // Check quality of the sample and start verification if it's good
-                                    // TODO: move to a separate task
-                                    if (features != null)
-                                    {
-                                        // Compare the feature set with our template
-                                        DPFP.Verification.Verification.Result result = new DPFP.Verification.Verification.Result();
-                                        Verificator.Verify(features, template, ref result);
-                                        //UpdateStatus(result.FARAchieved);
-                                        if (result.Verified)
-                                        {
-                                            Mensaje(item);
-                                            break;
-                                        }                                    
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    MakeReport(ex.Message);
-                                }
-                            }                            
+                                Mensaje(item);
+                                break;
+                            }
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        MakeReport(ex.Message);
                     }
                 }
             }
+
+            MakeReport("El empleado realizo su marcaje con exito");
         }
 
-        private void Mensaje(Personal empleado) 
+        public delegate void MensajeDelegado(Personal empleado);
+        private void Mensaje(Personal empleado)
         {
-            this.Invoke(new Function(delegate()
+            if (this.InvokeRequired)
             {
-                PersonalHorario p = new PersonalHorario();
-                p.PersonalId = empleado.PersonalId;
-                p.Fecha = DateTime.Today;
-                p.Entrada = new TimeSpan(DateTime.Today.Hour,DateTime.Today.Minute, DateTime.Today.Second);
-                p.Salida = new TimeSpan(DateTime.Today.Hour, DateTime.Today.Minute, DateTime.Today.Second);
+                var delegado = new MensajeDelegado(Mensaje);
+                this.Invoke(delegado, empleado);
+                return;
+            }
 
-                using (var client = new HttpClient())
+            PersonalHorario p = new PersonalHorario();
+            p.PersonalId = empleado.PersonalId;
+            p.Fecha = DateTime.Today;
+
+            using (var client = new HttpClient())
+            {
+                var serializedProduct = JsonConvert.SerializeObject(p);
+                var content = new StringContent(serializedProduct, Encoding.UTF8, "application/json");
+                var result = client.PostAsync(string.Format("{0}/api/horario", ConfigurationManager.AppSettings["Url"]), content).Result;
+
+                if (result.IsSuccessStatusCode)
                 {
-                    var serializedProduct = JsonConvert.SerializeObject(p);
-                    var content = new StringContent(serializedProduct, Encoding.UTF8, "application/json");
-                    var result = client.PostAsync(string.Format("{0}/api/horario", ConfigurationManager.AppSettings["Url"]), content).Result;                 
-                }   
-
-                MessageBox.Show(string.Format("Gracias por realizar su marcaje: {0}!", empleado.Nombre), "Monitor", MessageBoxButtons.OK, MessageBoxIcon.Information);
-            }));            
+                    MessageBox.Show(string.Format("Gracias por realizar su marcaje: {0}!", empleado.Nombre), "Monitor", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show(string.Format("Ocurrio un error en el marcaje de: {0} intente de nuevo", empleado.Nombre), "Monitor", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
 
         public void OnFingerGone(object Capture, string ReaderSerialNumber)
@@ -190,6 +231,8 @@ namespace DiamDev.Give.WF.UI
 
             frmMenu Menu = new frmMenu();
             Menu.ShowDialog();
+
+            this.CargaEmpleados();
 
             Capturer.StartCapture();
         }

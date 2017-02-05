@@ -20,8 +20,8 @@ namespace DiamDev.Give.Entities
         [Key, Column(name: "Fecha", Order = 1)]
         public DateTime Fecha { get; set; }
 
-        public TimeSpan Entrada { get; set; }
+        public DateTime Entrada { get; set; }
 
-        public TimeSpan? Salida { get; set; }
+        public DateTime? Salida { get; set; }
     }
 }

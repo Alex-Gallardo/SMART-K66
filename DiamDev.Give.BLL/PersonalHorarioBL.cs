@@ -26,13 +26,14 @@ namespace DiamDev.Give.BLL
         #endregion
 
         #region Metodos Privados
-         
+
             private bool Agregar(PersonalHorario entidad)
             {
                 bool HorarioAgregar = false;
 
                 try
                 {
+                    entidad.Entrada = DateTime.Now;
                     db.Set<PersonalHorario>().Add(entidad);
                     db.SaveChanges();
                     HorarioAgregar = true;
@@ -54,9 +55,17 @@ namespace DiamDev.Give.BLL
 
                     if (HorarioActual.PersonalId > 0)
                     {
-                        HorarioActual.Salida = entidad.Salida;
-                     
-                        db.SaveChanges();
+                        if (HorarioActual.Salida == null)
+                        {
+                            TimeSpan duracion = DateTime.Now - HorarioActual.Entrada;
+
+                            if (duracion.Minutes >= 5)
+                            {
+                                HorarioActual.Salida = DateTime.Now;
+                                db.SaveChanges();
+                            }
+                        }
+
                         HorarioActualizar = true;
                     }
                 }
@@ -67,7 +76,7 @@ namespace DiamDev.Give.BLL
                 return HorarioActualizar;
             }
 
-            private bool Existe(long personalId, DateTime fechaActual) 
+            private bool Existe(long personalId, DateTime fechaActual)
             {
                 return db.Set<PersonalHorario>().Where(x => x.PersonalId == personalId && x.Fecha == fechaActual).Count() > 0;
             }
@@ -98,6 +107,6 @@ namespace DiamDev.Give.BLL
                 return Mensaje;
             }
 
-        #endregion
+      #endregion
     }
 }

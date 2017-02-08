@@ -158,5 +158,29 @@ namespace DiamDev.Give.UI.Controllers
 
             return View(PersonalActual);
         }
+
+        [Permiso("Control.Personal.Ver_Listado_Horario")]
+        public ActionResult Horario(DateTime? FechaInicial, DateTime? FechaFinal)
+        {
+            CustomHelper.setTitle("Horarios", "Listado");
+
+            List<HorarioModel> Horarios = new List<HorarioModel>();
+
+            if (!FechaInicial.HasValue && !FechaFinal.HasValue)
+            {
+                FechaInicial = DateTime.Today;
+                FechaFinal = DateTime.Today;
+            }
+
+            try
+            {
+                Horarios = new PersonalBL().ObtenerHorarioPersonalPorFecha(FechaInicial.Value, FechaFinal.Value).ToList();
+            }
+            catch (Exception)
+            {
+            }
+
+            return View(Horarios);
+        }
     }
 }

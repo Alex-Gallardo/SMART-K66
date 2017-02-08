@@ -20,35 +20,42 @@ namespace DiamDev.Give.UI.Controllers
 
         #region Metodos Privados
 
-        private void CargaControles()
-        {
-            var Centros = new AgenciaBL().ObtenerListado(false, CustomHelper.getUserId());
-
-            if (Centros != null && Centros.Count() > 0)
+            private void CargaControles()
             {
-                Centros.Insert(0, new Agencia() { AgenciaId = 0, Nombre = "General" });
+                var Centros = new AgenciaBL().ObtenerListado(false, CustomHelper.getUserId());
+
+                if (Centros != null && Centros.Count() > 0)
+                {
+                    Centros.Insert(0, new Agencia() { AgenciaId = 0, Nombre = "General" });
+                }
+
+                ViewBag.Centros = new SelectList(Centros, "AgenciaId", "Nombre");
             }
 
-            ViewBag.Centros = new SelectList(Centros, "AgenciaId", "Nombre");
-        }
+            private void CargaPrecios()
+            {
+                var Precios = new PrecioBL().ObtenerListado();
+                ViewBag.Precios = new SelectList(Precios, "PrecioId", "Nombre");
+            }
 
-        private void CargaPrecios()
-        {
-            var Precios = new PrecioBL().ObtenerListado();
-            ViewBag.Precios = new SelectList(Precios, "PrecioId", "Nombre");
-        }
+            private void CargaProveedores()
+            {
+                var Proveedores = new ProveedorBL().ObtenerListado(false);
+                ViewBag.Proveedores = new SelectList(Proveedores, "ProveedorId", "Nombre");
+            }
 
-        private void CargaProveedores()
-        {
-            var Proveedores = new ProveedorBL().ObtenerListado(false);
-            ViewBag.Proveedores = new SelectList(Proveedores, "ProveedorId", "Nombre");
-        }
+            private void CargaProductos()
+            {
+                var Productos = new ProductoBL().ObtenerListado(true, false, true);
+                ViewBag.Productos = new SelectList(Productos, "ProductoId", "Nombre");
+            }
 
-        private void CargaProductos()
-        {
-            var Productos = new ProductoBL().ObtenerListado(true, false, true);
-            ViewBag.Productos = new SelectList(Productos, "ProductoId", "Nombre");
-        }
+            private void CargaPersonal()
+            {
+                var Personals = new PersonalBL().ObtenerListado(true, false);
+
+                ViewBag.Personals = new SelectList(Personals, "PersonalId", "Nombre");
+            }
 
         #endregion
 
@@ -170,6 +177,22 @@ namespace DiamDev.Give.UI.Controllers
             CustomHelper.setTitle("Balance de Saldos", "Reporte");
 
             this.CargaControles();
+            return View();
+        }
+
+        [Permiso("Control.Reporte.Personal_Horario_General")]
+        public ActionResult Horario_General()
+        {
+            CustomHelper.setTitle("Horario General del Personal", "Reporte");
+            return View();
+        }
+
+        [Permiso("Control.Reporte.Personal_Horario")]
+        public ActionResult Horario()
+        {
+            CustomHelper.setTitle("Horario Personal", "Reporte");
+
+            this.CargaPersonal();
             return View();
         }
     }

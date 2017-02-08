@@ -108,6 +108,26 @@ namespace RDLCInASPNetMVC3.Reports
 
             return DTCuentas;
         }
+
+        private DataTable GenerarHorario(List<HorarioModel> Horarios)
+        {
+            DataTable DTHorarios = new DataTable("Inventario");
+            DTHorarios.Columns.Add(new DataColumn("PersonalId", typeof(long)));
+            DTHorarios.Columns.Add(new DataColumn("Nombre", typeof(string)));           
+            DTHorarios.Columns.Add(new DataColumn("Fecha", typeof(string)));
+            DTHorarios.Columns.Add(new DataColumn("Entrada", typeof(string)));
+            DTHorarios.Columns.Add(new DataColumn("Salida", typeof(string)));
+
+            if (Horarios != null && Horarios.Count() > 0)
+            {
+                foreach (var Horario in Horarios)
+                {
+                    DTHorarios.Rows.Add(Horario.PersonaId, Horario.Nombre, Horario.Fecha.ToString("dd/MM/yyyy"), Horario.Entrada.ToShortTimeString(), Horario.Salida == null ? "0:00" : Horario.Salida.Value.ToShortTimeString());
+                }
+            }
+
+            return DTHorarios;
+        }
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!Page.IsPostBack)
@@ -119,9 +139,11 @@ namespace RDLCInASPNetMVC3.Reports
                   
                         string strReportID = Request.QueryString["ReportID"].ToString();                        
                         string Reports = "~/Reports/ReportKardex.rdlc";
-                        
-                        string strCentroId = string.Empty;
-                        long CentroId = 0;
+
+                        string strAgenciaId = string.Empty;
+                        string strPersonalId = string.Empty;
+                        long AgenciaId = 0;
+                        long PersonalId = 0;
                         long PrecioId = 0;
                         long ProveedorId = 0;
                         string ProductoId = string.Empty;
@@ -142,14 +164,14 @@ namespace RDLCInASPNetMVC3.Reports
                                 try
                                 {
 
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
-                                    Inventarios = new ProductoBL().ObtenerExistenciaPorPresentacion(CentroId, CustomHelper.getUserId(), PrecioId, false, false, false).Select(x =>
+                                    Inventarios = new ProductoBL().ObtenerExistenciaPorPresentacion(AgenciaId, CustomHelper.getUserId(), PrecioId, false, false, false).Select(x =>
                                                          new ProductoInventarioModel
                                                          {
                                                              ProductoId = x.ProductoId, 
@@ -177,14 +199,14 @@ namespace RDLCInASPNetMVC3.Reports
                                 try
                                 {
 
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
-                                    Inventarios = new ProductoBL().ObtenerExistenciaPorPresentacion(CentroId, CustomHelper.getUserId(), PrecioId, true, false, false).Select(x =>
+                                    Inventarios = new ProductoBL().ObtenerExistenciaPorPresentacion(AgenciaId, CustomHelper.getUserId(), PrecioId, true, false, false).Select(x =>
                                                          new ProductoInventarioModel
                                                          {
                                                              ProductoId = x.ProductoId,
@@ -212,14 +234,14 @@ namespace RDLCInASPNetMVC3.Reports
                                 try
                                 {
 
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
-                                    Inventarios = new ProductoBL().ObtenerExistenciaPorPresentacion(CentroId, CustomHelper.getUserId(), PrecioId, true, true, false).Select(x =>
+                                    Inventarios = new ProductoBL().ObtenerExistenciaPorPresentacion(AgenciaId, CustomHelper.getUserId(), PrecioId, true, true, false).Select(x =>
                                                          new ProductoInventarioModel
                                                          {
                                                              ProductoId = x.ProductoId,
@@ -247,12 +269,12 @@ namespace RDLCInASPNetMVC3.Reports
                                 try
                                 {
 
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
-                                    string strPrecioId = Request.QueryString["PrecioId"].ToString();                                    
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
+                                    string strPrecioId = Request.QueryString["PrecioId"].ToString();
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
                                     if (!string.IsNullOrWhiteSpace(strPrecioId))
@@ -260,7 +282,7 @@ namespace RDLCInASPNetMVC3.Reports
                                         PrecioId = Convert.ToInt64(strPrecioId);
                                     }
 
-                                    Inventarios = new ProductoBL().ObtenerExistenciaPorPresentacion(CentroId, CustomHelper.getUserId(), PrecioId, true, false, true).Select(x =>
+                                    Inventarios = new ProductoBL().ObtenerExistenciaPorPresentacion(AgenciaId, CustomHelper.getUserId(), PrecioId, true, false, true).Select(x =>
                                                          new ProductoInventarioModel
                                                          {
                                                              ProductoId = x.ProductoId,
@@ -289,7 +311,7 @@ namespace RDLCInASPNetMVC3.Reports
                                 {
                                     string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
                                     string strFechaFinal = Request.QueryString["FechaFinal"].ToString();
-                                    strCentroId = Request.QueryString["CentroId"].ToString(); 
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString(); 
 
                                     DateTime FechaInicial = DateTime.Today;
                                     DateTime FechaFinal = DateTime.Today;
@@ -300,13 +322,13 @@ namespace RDLCInASPNetMVC3.Reports
                                         FechaFinal = Convert.ToDateTime(strFechaFinal);
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
                                     //Detalle del Cierre
-                                    Facturas = new FacturaBL().ObtenerFactura(FechaInicial, FechaFinal, CentroId, CustomHelper.getUserId()).Select(x =>
+                                    Facturas = new FacturaBL().ObtenerFactura(FechaInicial, FechaFinal, AgenciaId, CustomHelper.getUserId()).Select(x =>
                                                          new FacturaModel
                                                          {
                                                             FacturaId = x.FacturaId,
@@ -322,7 +344,7 @@ namespace RDLCInASPNetMVC3.Reports
                                                      ).ToList();
 
                                     //Resumen de Forma de Pago
-                                    List<FormaPago> Formas = new FacturaBL().ObtenerFacturaPorFormaPago(FechaInicial, FechaFinal, CentroId, CustomHelper.getUserId()).ToList();
+                                    List<FormaPago> Formas = new FacturaBL().ObtenerFacturaPorFormaPago(FechaInicial, FechaFinal, AgenciaId, CustomHelper.getUserId()).ToList();
                                     long FacturaId = 0;
 
                                     DataTable DTCierre = new DataTable("Cierre");                                    
@@ -381,7 +403,7 @@ namespace RDLCInASPNetMVC3.Reports
                                 {
                                     string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
                                     string strFechaFinal = Request.QueryString["FechaFinal"].ToString();                                 
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
 
                                     DateTime FechaInicial = DateTime.Today;
                                     DateTime FechaFinal = DateTime.Today;
@@ -392,12 +414,12 @@ namespace RDLCInASPNetMVC3.Reports
                                         FechaFinal = Convert.ToDateTime(strFechaFinal);
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
-                                    Movimientos = new MovimientoBL().ObtenerMovimientoPorTipo(FechaInicial, FechaFinal, 1, CentroId, CustomHelper.getUserId(), ProveedorId, ProductoId).Select(x =>
+                                    Movimientos = new MovimientoBL().ObtenerMovimientoPorTipo(FechaInicial, FechaFinal, 1, AgenciaId, CustomHelper.getUserId(), ProveedorId, ProductoId).Select(x =>
                                                         new MovimientoModel
                                                         {
                                                             MovimientoId = x.MovimientoId,
@@ -424,7 +446,7 @@ namespace RDLCInASPNetMVC3.Reports
                                 {
                                     string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
                                     string strFechaFinal = Request.QueryString["FechaFinal"].ToString();
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
                                     string strProveedorId = Request.QueryString["ProveedorId"].ToString();
 
                                     DateTime FechaInicial = DateTime.Today;
@@ -436,9 +458,9 @@ namespace RDLCInASPNetMVC3.Reports
                                         FechaFinal = Convert.ToDateTime(strFechaFinal);
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
                                     if (!string.IsNullOrWhiteSpace(strProveedorId))
@@ -446,7 +468,7 @@ namespace RDLCInASPNetMVC3.Reports
                                         ProveedorId = Convert.ToInt64(strProveedorId);
                                     }
 
-                                    Movimientos = new MovimientoBL().ObtenerMovimientoPorTipo(FechaInicial, FechaFinal, 1, CentroId, CustomHelper.getUserId(), ProveedorId, ProductoId).Select(x =>
+                                    Movimientos = new MovimientoBL().ObtenerMovimientoPorTipo(FechaInicial, FechaFinal, 1, AgenciaId, CustomHelper.getUserId(), ProveedorId, ProductoId).Select(x =>
                                                         new MovimientoModel
                                                         {
                                                             MovimientoId = x.MovimientoId,
@@ -473,7 +495,7 @@ namespace RDLCInASPNetMVC3.Reports
                                 {
                                     string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
                                     string strFechaFinal = Request.QueryString["FechaFinal"].ToString();
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
                                     string strProductoId = Request.QueryString["ProductoId"].ToString();
 
                                     DateTime FechaInicial = DateTime.Today;
@@ -485,9 +507,9 @@ namespace RDLCInASPNetMVC3.Reports
                                         FechaFinal = Convert.ToDateTime(strFechaFinal);
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
                                     if (!string.IsNullOrWhiteSpace(strProductoId))
@@ -495,7 +517,7 @@ namespace RDLCInASPNetMVC3.Reports
                                         ProductoId = strProductoId;
                                     }
 
-                                    Movimientos = new MovimientoBL().ObtenerMovimientoPorTipo(FechaInicial, FechaFinal, 1, CentroId, CustomHelper.getUserId(), ProveedorId, ProductoId).Select(x =>
+                                    Movimientos = new MovimientoBL().ObtenerMovimientoPorTipo(FechaInicial, FechaFinal, 1, AgenciaId, CustomHelper.getUserId(), ProveedorId, ProductoId).Select(x =>
                                                         new MovimientoModel
                                                         {
                                                             MovimientoId = x.MovimientoId,
@@ -522,7 +544,7 @@ namespace RDLCInASPNetMVC3.Reports
                                 {
                                     string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
                                     string strFechaFinal = Request.QueryString["FechaFinal"].ToString();
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
 
                                     DateTime FechaInicial = DateTime.Today;
                                     DateTime FechaFinal = DateTime.Today;
@@ -533,12 +555,12 @@ namespace RDLCInASPNetMVC3.Reports
                                         FechaFinal = Convert.ToDateTime(strFechaFinal);
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
-                                    Movimientos = new MovimientoBL().ObtenerMovimientoPorTipo(FechaInicial, FechaFinal, 2, CentroId, CustomHelper.getUserId(), ProveedorId, ProductoId).Select(x =>
+                                    Movimientos = new MovimientoBL().ObtenerMovimientoPorTipo(FechaInicial, FechaFinal, 2, AgenciaId, CustomHelper.getUserId(), ProveedorId, ProductoId).Select(x =>
                                                         new MovimientoModel
                                                         {
                                                             MovimientoId = x.MovimientoId,
@@ -576,7 +598,7 @@ namespace RDLCInASPNetMVC3.Reports
                                     }
 
                                     //Resumen de Forma de Pago
-                                    List<FormaPago> Formas = new MovimientoBL().ObtenerMovimientoPorFormaPago(FechaInicial, FechaFinal, CentroId, CustomHelper.getUserId()).ToList();
+                                    List<FormaPago> Formas = new MovimientoBL().ObtenerMovimientoPorFormaPago(FechaInicial, FechaFinal, AgenciaId, CustomHelper.getUserId()).ToList();
 
                                     DataTable DTMovimientoForma = new DataTable("MovimientoForma");
 
@@ -608,7 +630,7 @@ namespace RDLCInASPNetMVC3.Reports
                                 {
                                     string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
                                     string strFechaFinal = Request.QueryString["FechaFinal"].ToString();
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
 
                                     DateTime FechaInicial = DateTime.Today;
                                     DateTime FechaFinal = DateTime.Today;
@@ -619,12 +641,12 @@ namespace RDLCInASPNetMVC3.Reports
                                         FechaFinal = Convert.ToDateTime(strFechaFinal);
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
-                                    Ganancias = new ProductoBL().ObtenerGananciaPorProductoVenta(FechaInicial, FechaFinal, CentroId, CustomHelper.getUserId()).Select(x =>
+                                    Ganancias = new ProductoBL().ObtenerGananciaPorProductoVenta(FechaInicial, FechaFinal, AgenciaId, CustomHelper.getUserId()).Select(x =>
                                                         new ProductoModel
                                                         {
                                                             ProductoId = x.ProductoId,
@@ -651,7 +673,7 @@ namespace RDLCInASPNetMVC3.Reports
                                 {
                                     string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
                                     string strFechaFinal = Request.QueryString["FechaFinal"].ToString();
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
 
                                     DateTime FechaInicial = DateTime.Today;
                                     DateTime FechaFinal = DateTime.Today;
@@ -662,12 +684,12 @@ namespace RDLCInASPNetMVC3.Reports
                                         FechaFinal = Convert.ToDateTime(strFechaFinal);
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
-                                    Diarios = new DiarioBL().ObtenerDiarioPorFecha(FechaInicial, FechaFinal, CentroId, CustomHelper.getUserId(), false, false).Select(x =>
+                                    Diarios = new DiarioBL().ObtenerDiarioPorFecha(FechaInicial, FechaFinal, AgenciaId, CustomHelper.getUserId(), false, false).Select(x =>
                                                         new DiarioModel
                                                         {
                                                            DiarioId = x.DiarioId,
@@ -695,7 +717,7 @@ namespace RDLCInASPNetMVC3.Reports
                                 {
                                     string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
                                     string strFechaFinal = Request.QueryString["FechaFinal"].ToString();
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
 
                                     DateTime FechaInicial = DateTime.Today;
                                     DateTime FechaFinal = DateTime.Today;
@@ -706,12 +728,12 @@ namespace RDLCInASPNetMVC3.Reports
                                         FechaFinal = Convert.ToDateTime(strFechaFinal);
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
-                                    Diarios = new DiarioBL().ObtenerDiarioPorFecha(FechaInicial, FechaFinal, CentroId, CustomHelper.getUserId(), true, false).Select(x =>
+                                    Diarios = new DiarioBL().ObtenerDiarioPorFecha(FechaInicial, FechaFinal, AgenciaId, CustomHelper.getUserId(), true, false).Select(x =>
                                                         new DiarioModel
                                                         {
                                                             DiarioId = x.DiarioId,
@@ -739,7 +761,7 @@ namespace RDLCInASPNetMVC3.Reports
                                 {
                                     string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
                                     string strFechaFinal = Request.QueryString["FechaFinal"].ToString();
-                                    strCentroId = Request.QueryString["CentroId"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
 
                                     DateTime FechaInicial = DateTime.Today;
                                     DateTime FechaFinal = DateTime.Today;
@@ -750,12 +772,12 @@ namespace RDLCInASPNetMVC3.Reports
                                         FechaFinal = Convert.ToDateTime(strFechaFinal);
                                     }
 
-                                    if (!string.IsNullOrWhiteSpace(strCentroId))
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
                                     {
-                                        CentroId = Convert.ToInt64(strCentroId);
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
                                     }
 
-                                    Diarios = new DiarioBL().ObtenerDiarioPorFecha(FechaInicial, FechaFinal, CentroId, CustomHelper.getUserId(), false, true).Select(x =>
+                                    Diarios = new DiarioBL().ObtenerDiarioPorFecha(FechaInicial, FechaFinal, AgenciaId, CustomHelper.getUserId(), false, true).Select(x =>
                                                         new DiarioModel
                                                         {
                                                             DiarioId = x.DiarioId,
@@ -771,6 +793,66 @@ namespace RDLCInASPNetMVC3.Reports
 
                                     dt = GenerarDiario(Diarios);
                                     Reports = "~/Reports/ReportBalanceSaldo.rdlc";
+                                }
+                                catch (Exception)
+                                {
+                                }
+
+                                break;
+                            case "ReportHorarios":
+
+                                try
+                                {
+
+                                    string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
+                                    string strFechaFinal = Request.QueryString["FechaFinal"].ToString();
+
+                                    DateTime FechaInicial = DateTime.Today;
+                                    DateTime FechaFinal = DateTime.Today;
+
+                                    if (!string.IsNullOrWhiteSpace(strFechaInicial) && !string.IsNullOrWhiteSpace(strFechaFinal))
+                                    {
+                                        FechaInicial = Convert.ToDateTime(strFechaInicial);
+                                        FechaFinal = Convert.ToDateTime(strFechaFinal);
+                                    }
+
+                                    List<HorarioModel> Horarios = new PersonalBL().ObtenerHorarioPersonalPorFecha(FechaInicial, FechaFinal);
+
+                                    dt = GenerarHorario(Horarios);
+                                    Reports = "~/Reports/ReportHorarios.rdlc";
+
+                                }
+                                catch (Exception)
+                                {
+                                }
+
+                                break;
+                            case "ReportHorario":
+
+                                try
+                                {
+                                    string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
+                                    string strFechaFinal = Request.QueryString["FechaFinal"].ToString();
+                                    strPersonalId = Request.QueryString["PersonalId"].ToString();
+
+                                    DateTime FechaInicial = DateTime.Today;
+                                    DateTime FechaFinal = DateTime.Today;
+
+                                    if (!string.IsNullOrWhiteSpace(strFechaInicial) && !string.IsNullOrWhiteSpace(strFechaFinal))
+                                    {
+                                        FechaInicial = Convert.ToDateTime(strFechaInicial);
+                                        FechaFinal = Convert.ToDateTime(strFechaFinal);
+                                    }
+
+                                    if (!string.IsNullOrWhiteSpace(strPersonalId))
+                                    {
+                                        PersonalId = Convert.ToInt64(strPersonalId);
+                                    }
+
+                                    List<HorarioModel> Horarios = new PersonalBL().ObtenerHorarioPersonalPorFecha(FechaInicial, FechaFinal, PersonalId);
+
+                                    dt = GenerarHorario(Horarios);
+                                    Reports = "~/Reports/ReportHorario.rdlc";
                                 }
                                 catch (Exception)
                                 {

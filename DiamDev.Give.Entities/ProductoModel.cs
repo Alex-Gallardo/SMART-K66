@@ -10,6 +10,10 @@ namespace DiamDev.Give.Entities
     {
         public long SolicitudId { get; set; }
 
+        public string Tipo { get; set; }
+
+        public string Documento { get; set; }
+
         public string ProductoId { get; set; }
 
         public string Agencia { get; set; }

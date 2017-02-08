@@ -532,22 +532,21 @@ namespace DiamDev.Give.BLL
                 List<ProductoModel> ProductoFacturas = new List<ProductoModel>();
                 List<ProductoModel> ProductoEgresos = new List<ProductoModel>();
 
-                List<long> CentroIds = new List<long>();
+                List<long> AgenciaIds = new List<long>();
 
                 try
                 {
-
                     if (agenciaId == 0)
                     {
-                        CentroIds = db.Set<UsuarioAgencia>().Where(x => x.UsuarioId == usuarioId).Select(x => x.AgenciaId).ToList();
+                        AgenciaIds = db.Set<UsuarioAgencia>().Where(x => x.UsuarioId == usuarioId).Select(x => x.AgenciaId).ToList();
                     }
                     else
                     {
-                        CentroIds.Add(agenciaId);
+                        AgenciaIds.Add(agenciaId);
                     }
 
-                    ProductoFacturas = db.Set<Factura>().Include("Agencia").Where(x => x.Fecha >= fechaInicial && x.Fecha <= fechaFinal && x.Anulada == false && CentroIds.Contains(x.AgenciaId)).AsEnumerable().Select( x => new ProductoModel() { SolicitudId = x.FacturaId, Agencia = x.Agencia.Nombre, Fecha = x.Fecha }).AsEnumerable().Select(x => x).Join(db.Set<FacturaDetalle>().Include("Producto"), E => E.SolicitudId, FD => FD.FacturaId, (E, FD) => new ProductoModel() { ProductoId = FD.ProductoId, Agencia = E.Agencia, Fecha = E.Fecha, Nombre = FD.Producto.Nombre, PrecioCosto = FD.PrecioCosto, PrecioVenta = FD.Precio, Cantidad = FD.Cantidad }).ToList();
-                    ProductoEgresos = db.Set<Movimiento>().Include("Agencia").Where(x => x.Fecha >= fechaInicial && x.Fecha <= fechaFinal && CentroIds.Contains(x.AgenciaId) && x.MovimientoTipoId == 2).Join(db.Set<MovimientoDetalle>().Include("Producto"), M => M.MovimientoId, MD => MD.MovimientoId, (M, MD) => new ProductoModel() { ProductoId = MD.ProductoId, Agencia = M.Agencia.Nombre, Nombre = MD.Producto.Nombre, PrecioVenta = MD.Precio, PrecioCosto = MD.PrecioCosto, Fecha = M.Fecha, Cantidad = MD.Cantidad }).ToList();
+                    ProductoFacturas = db.Set<Factura>().Include("Agencia").Where(x => x.Fecha >= fechaInicial && x.Fecha <= fechaFinal && x.Anulada == false && AgenciaIds.Contains(x.AgenciaId)).AsEnumerable().Select( x => new ProductoModel() { SolicitudId = x.FacturaId, Agencia = x.Agencia.Nombre, Fecha = x.Fecha }).AsEnumerable().Select(x => x).Join(db.Set<FacturaDetalle>().Include("Producto"), E => E.SolicitudId, FD => FD.FacturaId, (E, FD) => new ProductoModel() { ProductoId = FD.ProductoId, Agencia = E.Agencia, Fecha = E.Fecha, Nombre = FD.Producto.Nombre, PrecioCosto = FD.PrecioCosto, PrecioVenta = FD.Precio, Cantidad = FD.Cantidad }).ToList();
+                    ProductoEgresos = db.Set<Movimiento>().Include("Agencia").Where(x => x.Fecha >= fechaInicial && x.Fecha <= fechaFinal && AgenciaIds.Contains(x.AgenciaId) && x.MovimientoTipoId == 2).Join(db.Set<MovimientoDetalle>().Include("Producto"), M => M.MovimientoId, MD => MD.MovimientoId, (M, MD) => new ProductoModel() { ProductoId = MD.ProductoId, Agencia = M.Agencia.Nombre, Nombre = MD.Producto.Nombre, PrecioVenta = MD.Precio, PrecioCosto = MD.PrecioCosto, Fecha = M.Fecha, Cantidad = MD.Cantidad }).ToList();
 
                     if (ProductoFacturas != null && ProductoFacturas.Count() > 0)
                     {
@@ -565,6 +564,54 @@ namespace DiamDev.Give.BLL
                         if (GanaciaTotales != null && GanaciaTotales.Count() > 0)
                         {
                             ProductoVentas = GanaciaTotales.Join(db.Set<Producto>(), G => G.Key.ProductoId, P => P.ProductoId, (G, P) => new ProductoModel() { ProductoId = P.ProductoId, Agencia = G.Key.Agencia, Nombre = P.Nombre, Fecha = G.Key.Fecha, Cantidad = G.Cantidad, PrecioCosto = G.Key.PrecioCosto, PrecioVenta = G.Key.PrecioVenta }).ToList();
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                }
+
+                return ProductoVentas;
+            }
+
+            public List<ProductoModel> ObtenerGananciaPorProductoVentaDetalle(DateTime fechaInicial, DateTime fechaFinal, long agenciaId, long usuarioId)
+            {
+                List<ProductoModel> ProductoVentas = new List<ProductoModel>();
+                List<ProductoModel> ProductoFacturas = new List<ProductoModel>();
+                List<ProductoModel> ProductoEgresos = new List<ProductoModel>();
+
+                List<long> AgenciaIds = new List<long>();
+
+                try
+                {
+                    if (agenciaId == 0)
+                    {
+                        AgenciaIds = db.Set<UsuarioAgencia>().Where(x => x.UsuarioId == usuarioId).Select(x => x.AgenciaId).ToList();
+                    }
+                    else
+                    {
+                        AgenciaIds.Add(agenciaId);
+                    }
+
+                    ProductoFacturas = db.Set<Factura>().Include("Serie").Include("Agencia").Where(x => x.Fecha >= fechaInicial && x.Fecha <= fechaFinal && x.Anulada == false && AgenciaIds.Contains(x.AgenciaId)).AsEnumerable().Select(x => new ProductoModel() { SolicitudId = x.FacturaId, Agencia = x.Agencia.Nombre, Tipo = "Factura", Documento = string.Format("{0} - {1}", x.Serie.Nombre, x.NoFactura), Fecha = x.Fecha }).AsEnumerable().Select(x => x).Join(db.Set<FacturaDetalle>().Include("Producto"), E => E.SolicitudId, FD => FD.FacturaId, (E, FD) => new ProductoModel() { ProductoId = FD.ProductoId, Agencia = E.Agencia, Tipo = E.Tipo, Documento = E.Documento, Fecha = E.Fecha, Nombre = FD.Producto.Nombre, PrecioCosto = FD.PrecioCosto, PrecioVenta = FD.Precio, Cantidad = FD.Cantidad }).ToList();
+                    ProductoEgresos = db.Set<Movimiento>().Include("Agencia").Where(x => x.Fecha >= fechaInicial && x.Fecha <= fechaFinal && AgenciaIds.Contains(x.AgenciaId) && x.MovimientoTipoId == 2).Join(db.Set<MovimientoDetalle>().Include("Producto"), M => M.MovimientoId, MD => MD.MovimientoId, (M, MD) => new ProductoModel() { ProductoId = MD.ProductoId, Agencia = M.Agencia.Nombre, Tipo = "Egreso", Documento = M.MovimientoId.ToString(), Nombre = MD.Producto.Nombre, PrecioVenta = MD.Precio, PrecioCosto = MD.PrecioCosto, Fecha = M.Fecha, Cantidad = MD.Cantidad }).ToList();
+
+                    if (ProductoFacturas != null && ProductoFacturas.Count() > 0)
+                    {
+                        ProductoVentas.AddRange(ProductoFacturas);
+                    }
+
+                    if (ProductoEgresos != null && ProductoEgresos.Count() > 0)
+                    {
+                        ProductoVentas.AddRange(ProductoEgresos);
+                    }
+
+                    if (ProductoVentas != null && ProductoVentas.Count() > 0)
+                    {
+                        var GanaciaTotales = ProductoVentas.AsEnumerable().GroupBy(r => new { r.ProductoId, r.Agencia, r.Tipo, r.Documento, r.Fecha, r.PrecioCosto, r.PrecioVenta }).Select(g => new { g.Key, Cantidad = g.Sum(X => X.Cantidad) }).ToList();
+                        if (GanaciaTotales != null && GanaciaTotales.Count() > 0)
+                        {
+                            ProductoVentas = GanaciaTotales.Join(db.Set<Producto>(), G => G.Key.ProductoId, P => P.ProductoId, (G, P) => new ProductoModel() { ProductoId = P.ProductoId, Agencia = G.Key.Agencia, Tipo = G.Key.Tipo, Documento = G.Key.Documento, Nombre = P.Nombre, Fecha = G.Key.Fecha, Cantidad = G.Cantidad, PrecioCosto = G.Key.PrecioCosto, PrecioVenta = G.Key.PrecioVenta }).ToList();
                         }
                     }
                 }

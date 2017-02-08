@@ -73,12 +73,14 @@ namespace RDLCInASPNetMVC3.Reports
             DTProductos.Columns.Add(new DataColumn("Cantidad", typeof(decimal)));
             DTProductos.Columns.Add(new DataColumn("Costo", typeof(decimal)));
             DTProductos.Columns.Add(new DataColumn("Precio", typeof(decimal)));
+            DTProductos.Columns.Add(new DataColumn("Tipo", typeof(string)));
+            DTProductos.Columns.Add(new DataColumn("Documento", typeof(string)));
 
             if (Productos != null && Productos.Count() > 0)
             {
                 foreach (var Producto in Productos)
                 {
-                    DTProductos.Rows.Add(Producto.ProductoId, Producto.Agencia, Producto.Nombre, Producto.Fecha, Producto.Cantidad, Producto.PrecioCosto, Producto.PrecioVenta);
+                    DTProductos.Rows.Add(Producto.ProductoId, Producto.Agencia, Producto.Nombre, Producto.Fecha, Producto.Cantidad, Producto.PrecioCosto, Producto.PrecioVenta, Producto.Tipo, Producto.Documento);
                 }
             }
 
@@ -661,6 +663,51 @@ namespace RDLCInASPNetMVC3.Reports
 
                                     dt = GenerarGanancia(Ganancias);
                                     Reports = "~/Reports/ReportGanancia.rdlc";
+                                }
+                                catch (Exception)
+                                {
+                                }
+
+                                break;
+                            case "ReportGananciaDetalle":
+
+                                try
+                                {
+                                    string strFechaInicial = Request.QueryString["FechaInicial"].ToString();
+                                    string strFechaFinal = Request.QueryString["FechaFinal"].ToString();
+                                    strAgenciaId = Request.QueryString["CentroId"].ToString();
+
+                                    DateTime FechaInicial = DateTime.Today;
+                                    DateTime FechaFinal = DateTime.Today;
+
+                                    if (!string.IsNullOrWhiteSpace(strFechaInicial) && !string.IsNullOrWhiteSpace(strFechaFinal))
+                                    {
+                                        FechaInicial = Convert.ToDateTime(strFechaInicial);
+                                        FechaFinal = Convert.ToDateTime(strFechaFinal);
+                                    }
+
+                                    if (!string.IsNullOrWhiteSpace(strAgenciaId))
+                                    {
+                                        AgenciaId = Convert.ToInt64(strAgenciaId);
+                                    }
+
+                                    Ganancias = new ProductoBL().ObtenerGananciaPorProductoVentaDetalle(FechaInicial, FechaFinal, AgenciaId, CustomHelper.getUserId()).Select(x =>
+                                                        new ProductoModel
+                                                        {
+                                                            ProductoId = x.ProductoId,
+                                                            Agencia = x.Agencia,
+                                                            Tipo = x.Tipo,
+                                                            Documento = x.Documento,
+                                                            Nombre = x.Nombre,
+                                                            Fecha = x.Fecha,
+                                                            Cantidad = x.Cantidad,
+                                                            PrecioCosto = x.PrecioCosto,
+                                                            PrecioVenta = x.PrecioVenta
+                                                        }
+                                                    ).ToList();
+
+                                    dt = GenerarGanancia(Ganancias);
+                                    Reports = "~/Reports/ReportGananciaDetalle.rdlc";
                                 }
                                 catch (Exception)
                                 {

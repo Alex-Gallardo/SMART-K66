@@ -721,6 +721,7 @@
     <Content Include="Views\Personal\Horario.cshtml" />
     <Content Include="Views\Reporte\Horario.cshtml" />
     <Content Include="Views\Reporte\Horario_General.cshtml" />
+    <Content Include="Views\Reporte\Ganancia_Detalle.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
@@ -746,6 +747,7 @@
     <EmbeddedResource Include="Reports\ReportCierre.rdlc" />
     <EmbeddedResource Include="Reports\ReportDiario.rdlc" />
     <EmbeddedResource Include="Reports\ReportEgreso.rdlc" />
+    <EmbeddedResource Include="Reports\ReportGananciaDetalle.rdlc" />
     <EmbeddedResource Include="Reports\ReportGanancia.rdlc" />
     <EmbeddedResource Include="Reports\ReportHorario.rdlc" />
     <EmbeddedResource Include="Reports\ReportHorarios.rdlc" />

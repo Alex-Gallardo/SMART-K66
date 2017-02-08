@@ -3567,6 +3567,10 @@ namespace DiamDev.Give.UI.Reports {
             
             private global::System.Data.DataColumn columnPrecio;
             
+            private global::System.Data.DataColumn columnTipo;
+            
+            private global::System.Data.DataColumn columnDocumento;
+            
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
             public GananciaDataTable() {
@@ -3658,6 +3662,22 @@ namespace DiamDev.Give.UI.Reports {
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
+            public global::System.Data.DataColumn TipoColumn {
+                get {
+                    return this.columnTipo;
+                }
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
+            public global::System.Data.DataColumn DocumentoColumn {
+                get {
+                    return this.columnDocumento;
+                }
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
             [global::System.ComponentModel.Browsable(false)]
             public int Count {
                 get {
@@ -3693,7 +3713,7 @@ namespace DiamDev.Give.UI.Reports {
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
-            public GananciaRow AddGananciaRow(string ProductoId, string Agencia, string Nombre, System.DateTime Fecha, decimal Cantidad, decimal Costo, decimal Precio) {
+            public GananciaRow AddGananciaRow(string ProductoId, string Agencia, string Nombre, System.DateTime Fecha, decimal Cantidad, decimal Costo, decimal Precio, string Tipo, string Documento) {
                 GananciaRow rowGananciaRow = ((GananciaRow)(this.NewRow()));
                 object[] columnValuesArray = new object[] {
                         ProductoId,
@@ -3702,7 +3722,9 @@ namespace DiamDev.Give.UI.Reports {
                         Fecha,
                         Cantidad,
                         Costo,
-                        Precio};
+                        Precio,
+                        Tipo,
+                        Documento};
                 rowGananciaRow.ItemArray = columnValuesArray;
                 this.Rows.Add(rowGananciaRow);
                 return rowGananciaRow;
@@ -3732,6 +3754,8 @@ namespace DiamDev.Give.UI.Reports {
                 this.columnCantidad = base.Columns["Cantidad"];
                 this.columnCosto = base.Columns["Costo"];
                 this.columnPrecio = base.Columns["Precio"];
+                this.columnTipo = base.Columns["Tipo"];
+                this.columnDocumento = base.Columns["Documento"];
             }
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
@@ -3751,6 +3775,10 @@ namespace DiamDev.Give.UI.Reports {
                 base.Columns.Add(this.columnCosto);
                 this.columnPrecio = new global::System.Data.DataColumn("Precio", typeof(decimal), null, global::System.Data.MappingType.Element);
                 base.Columns.Add(this.columnPrecio);
+                this.columnTipo = new global::System.Data.DataColumn("Tipo", typeof(string), null, global::System.Data.MappingType.Element);
+                base.Columns.Add(this.columnTipo);
+                this.columnDocumento = new global::System.Data.DataColumn("Documento", typeof(string), null, global::System.Data.MappingType.Element);
+                base.Columns.Add(this.columnDocumento);
             }
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
@@ -6369,6 +6397,38 @@ namespace DiamDev.Give.UI.Reports {
             
             [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
+            public string Tipo {
+                get {
+                    try {
+                        return ((string)(this[this.tableGanancia.TipoColumn]));
+                    }
+                    catch (global::System.InvalidCastException e) {
+                        throw new global::System.Data.StrongTypingException("El valor de la columna \'Tipo\' de la tabla \'Ganancia\' es DBNull.", e);
+                    }
+                }
+                set {
+                    this[this.tableGanancia.TipoColumn] = value;
+                }
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
+            public string Documento {
+                get {
+                    try {
+                        return ((string)(this[this.tableGanancia.DocumentoColumn]));
+                    }
+                    catch (global::System.InvalidCastException e) {
+                        throw new global::System.Data.StrongTypingException("El valor de la columna \'Documento\' de la tabla \'Ganancia\' es DBNull.", e);
+                    }
+                }
+                set {
+                    this[this.tableGanancia.DocumentoColumn] = value;
+                }
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
             public bool IsProductoIdNull() {
                 return this.IsNull(this.tableGanancia.ProductoIdColumn);
             }
@@ -6449,6 +6509,30 @@ namespace DiamDev.Give.UI.Reports {
             [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
             public void SetPrecioNull() {
                 this[this.tableGanancia.PrecioColumn] = global::System.Convert.DBNull;
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
+            public bool IsTipoNull() {
+                return this.IsNull(this.tableGanancia.TipoColumn);
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
+            public void SetTipoNull() {
+                this[this.tableGanancia.TipoColumn] = global::System.Convert.DBNull;
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
+            public bool IsDocumentoNull() {
+                return this.IsNull(this.tableGanancia.DocumentoColumn);
+            }
+            
+            [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+            [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Data.Design.TypedDataSetGenerator", "4.0.0.0")]
+            public void SetDocumentoNull() {
+                this[this.tableGanancia.DocumentoColumn] = global::System.Convert.DBNull;
             }
         }
         

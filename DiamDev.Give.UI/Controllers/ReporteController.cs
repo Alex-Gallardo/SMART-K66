@@ -153,6 +153,15 @@ namespace DiamDev.Give.UI.Controllers
             return View();
         }
 
+        [Permiso("Control.Reporte.Ganancia")]
+        public ActionResult Ganancia_Detalle()
+        {
+            CustomHelper.setTitle("Ganancia Detalle", "Reporte");
+
+            this.CargaControles();
+            return View();
+        }
+
         [Permiso("Control.Reporte.Diario")]
         public ActionResult Diario()
         {

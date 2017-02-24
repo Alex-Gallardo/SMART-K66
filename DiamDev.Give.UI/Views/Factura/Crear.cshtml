@@ -607,7 +607,12 @@
 
         $('#formaprincipal').keydown(function (evt)
         {
-            if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13)
+            if ($('#Descuento').is(":focus") && (evt.which || evt.keyCode) == 13)
+            {
+                evt.preventDefault();
+                $('#Barra').focus();
+            }
+            else if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13)
             {
                 evt.preventDefault();
                 if ($('#Barra').val() === "")

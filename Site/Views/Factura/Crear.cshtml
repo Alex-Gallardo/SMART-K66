@@ -121,6 +121,19 @@
     </script>  
 
     <script type="text/javascript">
+        $("input[name='Descuento']")
+             .TouchSpin({
+                 min: 0,
+                 max: 100,
+                 step: 1,
+                 decimals: 0,
+                 boostat: 5,
+                 maxboostedstep: 10
+             });
+    </script>
+
+
+    <script type="text/javascript">
 
         var productoIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
         var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombreProductoIds))');
@@ -250,7 +263,8 @@
             $("#PrecioActual").val(0);
             $("#Producto").val("");
             $("#Barra").val("");
-            $("#Barra").focus();
+            $("#Descuento").val(0);
+            $("#Descuento").focus();
         });
 
         $('#btn-agregar-forma').click(function (e)
@@ -500,9 +514,24 @@
                 type: 'GET',
                 success: function (resultData) {
                     if (resultData !== null) {
-                        if (resultData.Operacion) {
+                        if (resultData.Operacion)
+                        {
                             $('#Existencia').val(resultData.Data.Existencia);
-                            $('#PrecioActual').val(resultData.Data.PrecioActual);
+
+                            var precioActual = 0;
+                            var descuento = $('#Descuento').val();
+
+                            if (descuento > 0)
+                            {
+                                var aplicaDescuento = resultData.Data.PrecioActual * (descuento / 100);
+                                precioActual = resultData.Data.PrecioActual - aplicaDescuento;
+                            }
+                            else
+                            {
+                                precioActual = resultData.Data.PrecioActual;
+                            }
+
+                            $('#PrecioActual').val(precioActual);
                             $('#Cantidad').focus();
                         }
                         else {
@@ -578,7 +607,12 @@
 
         $('#formaprincipal').keydown(function (evt)
         {
-            if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13)
+            if ($('#Descuento').is(":focus") && (evt.which || evt.keyCode) == 13)
+            {
+                evt.preventDefault();
+                $('#Barra').focus();
+            }
+            else if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13)
             {
                 evt.preventDefault();
                 if ($('#Barra').val() === "")

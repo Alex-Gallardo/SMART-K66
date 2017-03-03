@@ -3,6 +3,7 @@ using DiamDev.Give.Entities;
 using Sistema.Seguridad;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -394,8 +395,9 @@ namespace DiamDev.Give.BLL
                 {
                     UsuarioActual = db.Set<Usuario>().Include("Roles").Include("Agencias").Include("Agencias.Agencia").Where(x => x.Login.Equals(usuario)).FirstOrDefault();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Trace.TraceError("Ocurrió un error: {0}", ex);
                 }
 
                 return UsuarioActual;

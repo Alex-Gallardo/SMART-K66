@@ -40,7 +40,7 @@
     </Reference>
     <Reference Include="Sistema.Seguridad, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Debug\Sistema.Seguridad.dll</HintPath>
+      <HintPath>..\libs\Sistema.Seguridad.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />

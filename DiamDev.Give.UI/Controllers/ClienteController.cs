@@ -197,5 +197,24 @@ namespace DiamDev.Give.UI.Controllers
 
             return Json(new { Operacion = false }, JsonRequestBehavior.AllowGet);
         }
+
+        [Permiso("Control.Cliente.Crear")]
+        [ActionName("ObtenerPorNit")]
+        public JsonResult ObtenerPorNit(string nit)
+        {
+            if (string.IsNullOrWhiteSpace(nit))
+            {
+                return Json(new { Operacion = false }, JsonRequestBehavior.AllowGet);
+            }
+
+            var cliente = new ClienteBL().ObtenerPorNit(nit);
+
+            if (cliente == null)
+            {
+                return Json(new { Operacion = true, Data = (object)null }, JsonRequestBehavior.AllowGet);
+            }
+
+            return Json(new { Operacion = true, Data = new { cliente.ClienteId, cliente.Nit, cliente.Nombre, cliente.Direccion, cliente.DPI, cliente.NoTelefono, cliente.EmailCliente, cliente.Vip, cliente.Activo } }, JsonRequestBehavior.AllowGet);
+        }
     }
 }

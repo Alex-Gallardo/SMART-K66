@@ -86,7 +86,7 @@
                                         <a href="@Url.Action("Detalle", "Factura", new { id = Factura.FacturaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle de la Factura"><i class="clip-stack-empty"></i></a>
                                         @if (!Factura.Anulada)
                                         {
-                                            <a href="@Url.Action("Boleta", "Factura", new { id = Factura.FacturaId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Factura"><i class="clip-file-pdf"></i></a>
+                                            <a style="display:none" data-license-required="true" href="@Url.Action("Boleta", "Factura", new { id = Factura.FacturaId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Factura"><i class="clip-file-pdf"></i></a>
                                         }
                                     </div>
                                     <div class="visible-xs visible-sm hidden-md hidden-lg">
@@ -111,7 +111,7 @@
                                                 @if (!Factura.Anulada)
                                                 {
                                                     <li role="presentation">
-                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Factura", new { id = Factura.FacturaId })" target="_blank">
+                                                        <a role="menuitem" tabindex="-1" style="display:none" data-license-required="true" href="@Url.Action("Boleta", "Factura", new { id = Factura.FacturaId })" target="_blank">
                                                             <i class="clip-file-pdf"></i> Ver Factura
                                                         </a>
                                                     </li>
@@ -133,16 +133,32 @@
 @section Scripts
 {
     <script type="text/javascript">
-        $(document).ready(function ()
-        {
-            if ('@TempData["Factura-Success"]' == "OK")
-            {
+        var facturaSuccess = '@TempData["Factura-Success"]';
+        var facturaAnularSuccess = '@TempData["Factura_Anular-Success"]';
+
+        function boleta() {
+            var self = this;
+
+            $.post("http://localhost:10000/api/license", function (guid) {
+                console.log("license: " + guid);
+                console.log(self);
+            }, "json")
+
+            return false;
+        }
+
+        $(function () {
+
+            if (facturaSuccess == "OK") {
                 toastr.success('La factura se guardó exitosamente');
             }
-            else if ('@TempData["Factura_Anular-Success"]' == "OK")
-            {
+            else if (facturaAnularSuccess == "OK") {
                 toastr.success('La factura fue anulada exitosamente');
             }
+
+            $.post("http://localhost:10000/api/license", function (guid) {
+                $('[data-license-required]').show();
+            }, "json")
         });
     </script>
 }

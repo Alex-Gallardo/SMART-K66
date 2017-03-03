@@ -23,11 +23,9 @@ namespace DiamDev.Give.UI.Controllers
 
             private void CargaControles()
             {              
-                var Clientes = new ClienteBL().ObtenerListado(false, true);
                 var Vendedores = new VendedorBL().ObtenerVendedoresPorAgencia(CustomHelper.getAgenciaId());
                 var Series = new SerieBL().ObtenerSeriesPorAgencia(CustomHelper.getAgenciaId());
 
-                ViewBag.Clientes = new SelectList(Clientes, "ClienteId", "Nombre");
                 ViewBag.Vendedores = new SelectList(Vendedores, "VendedorId", "Nombre");
                 ViewBag.Series = new SelectList(Series, "SerieId", "Nombre");
                               
@@ -123,7 +121,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [Permiso("Control.Factura.Crear")]
         [HttpPost]
-        public ActionResult Crear(Factura modelo, bool empleado, string[] productoIds, string[] nombreProductoIds, long[] presentacionIds, string[] nombrePresentacionIds, decimal[] cantidadIds, decimal[] precioIds, long[] formaIds, decimal[] pagarIds, string[] notaIds)
+        public ActionResult Crear(Factura modelo, bool empleado, string[] productoIds, string[] nombreProductoIds, long[] presentacionIds, string[] nombrePresentacionIds, decimal[] cantidadIds, decimal[] precioIds, long[] formaIds, decimal[] pagarIds, string[] notaIds, int[] descuentoIds)
         {
             if (productoIds == null || productoIds.Length == 0)
             {
@@ -167,7 +165,10 @@ namespace DiamDev.Give.UI.Controllers
                     Detalle.ProductoId = productoIds[i];
                     Detalle.UnidadId = presentacionIds[i];
                     Detalle.Cantidad = cantidadIds[i];
-                    Detalle.Precio = precioIds[i];
+
+                    //Detalle.PrecioOriginal = precioIds[i];
+                    //Detalle.Descuento = descuentoIds[i];
+                    Detalle.Precio = precioIds[i] - precioIds[i] * descuentoIds[i] / 100;
 
                     modelo.Detalles.Add(Detalle);
                 }

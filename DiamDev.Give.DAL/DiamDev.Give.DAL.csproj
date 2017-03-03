@@ -49,6 +49,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GiveContext.cs" />
+    <Compile Include="Migrations\201701311301040_InitialCreate.cs" />
+    <Compile Include="Migrations\201701311301040_InitialCreate.Designer.cs">
+      <DependentUpon>201701311301040_InitialCreate.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201702091829381_PrimerosCambios.cs" />
+    <Compile Include="Migrations\201702091829381_PrimerosCambios.Designer.cs">
+      <DependentUpon>201702091829381_PrimerosCambios.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -59,6 +68,14 @@
       <Project>{58830095-0940-4008-9495-2b71ec41758e}</Project>
       <Name>DiamDev.Give.Entities</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\201701311301040_InitialCreate.resx">
+      <DependentUpon>201701311301040_InitialCreate.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201702091829381_PrimerosCambios.resx">
+      <DependentUpon>201702091829381_PrimerosCambios.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

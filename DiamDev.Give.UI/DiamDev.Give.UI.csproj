@@ -19,6 +19,7 @@
     <IISExpressAnonymousAuthentication />
     <IISExpressWindowsAuthentication />
     <IISExpressUseClassicPipelineMode />
+    <UseGlobalApplicationHostFile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -40,7 +41,7 @@
   <ItemGroup>
     <Reference Include="BinarioDrawingTools, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\BinarioDrawingTools.dll</HintPath>
+      <HintPath>..\libs\BinarioDrawingTools.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
@@ -55,11 +56,15 @@
     </Reference>
     <Reference Include="Microsoft.ReportViewer.Common, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Microsoft.ReportViewer.Common.dll</HintPath>
+      <HintPath>..\libs\Microsoft.ReportViewer.Common.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.ReportViewer.WebForms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>bin\Microsoft.ReportViewer.WebForms.dll</HintPath>
+      <HintPath>..\libs\Microsoft.ReportViewer.WebForms.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="PagedList, Version=1.17.0.0, Culture=neutral, PublicKeyToken=abbb863e9397c5e1, processorArchitecture=MSIL">
       <HintPath>..\packages\PagedList.1.17.0.0\lib\net40\PagedList.dll</HintPath>
@@ -147,9 +152,6 @@
     </Reference>
     <Reference Include="System.Web.Mvc">
       <HintPath>..\packages\Microsoft.AspNet.Mvc.5.2.3\lib\net45\System.Web.Mvc.dll</HintPath>
-    </Reference>
-    <Reference Include="Newtonsoft.Json">
-      <HintPath>..\packages\Newtonsoft.Json.6.0.4\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System.Net.Http.Formatting">
       <HintPath>..\packages\Microsoft.AspNet.WebApi.Client.5.2.3\lib\net45\System.Net.Http.Formatting.dll</HintPath>
@@ -442,7 +444,94 @@
     <Content Include="Content\assets\plugins\select2\select2.min.js" />
     <Content Include="Content\assets\plugins\select2\select2.png" />
     <Content Include="Content\assets\plugins\select2\select2x2.png" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ar-AR.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ar-AR.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-bg-BG.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-bg-BG.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ca-ES.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ca-ES.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-cs-CZ.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-cs-CZ.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-da-DK.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-da-DK.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-de-DE.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-de-DE.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-es-ES.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-es-ES.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-es-EU.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-es-EU.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-fa-IR.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-fa-IR.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-fi-FI.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-fi-FI.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-fr-FR.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-fr-FR.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-gl-ES.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-gl-ES.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-he-IL.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-he-IL.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-hr-HR.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-hr-HR.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-hu-HU.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-hu-HU.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-id-ID.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-id-ID.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-it-IT.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-it-IT.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ja-JP.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ja-JP.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ko-KR.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ko-KR.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-lt-LT.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-lt-LT.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-lt-LV.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-lt-LV.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-nb-NO.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-nb-NO.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-nl-NL.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-nl-NL.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-pl-PL.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-pl-PL.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-pt-BR.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-pt-BR.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-pt-PT.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-pt-PT.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ro-RO.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ro-RO.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ru-RU.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-ru-RU.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-sk-SK.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-sk-SK.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-sl-SI.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-sl-SI.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-sr-RS-Latin.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-sr-RS-Latin.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-sr-RS.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-sr-RS.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-sv-SE.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-sv-SE.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-th-TH.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-th-TH.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-tr-TR.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-tr-TR.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-uk-UA.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-uk-UA.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-vi-VN.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-vi-VN.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-zh-CN.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-zh-CN.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-zh-TW.js" />
+    <Content Include="Content\assets\plugins\summernote\build\lang\summernote-zh-TW.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\plugin\databasic\summernote-ext-databasic.css" />
+    <Content Include="Content\assets\plugins\summernote\build\plugin\databasic\summernote-ext-databasic.js" />
+    <Content Include="Content\assets\plugins\summernote\build\plugin\databasic\summernote-ext-databasic.min.css" />
+    <Content Include="Content\assets\plugins\summernote\build\plugin\databasic\summernote-ext-databasic.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\plugin\hello\summernote-ext-hello.js" />
+    <Content Include="Content\assets\plugins\summernote\build\plugin\hello\summernote-ext-hello.min.js" />
+    <Content Include="Content\assets\plugins\summernote\build\plugin\specialchars\summernote-ext-specialchars.js" />
+    <Content Include="Content\assets\plugins\summernote\build\plugin\specialchars\summernote-ext-specialchars.min.js" />
     <Content Include="Content\assets\plugins\summernote\build\summernote.css" />
+    <Content Include="Content\assets\plugins\summernote\build\summernote.js" />
     <Content Include="Content\assets\plugins\summernote\build\summernote.min.js" />
     <Content Include="Content\bootstrap.css" />
     <Content Include="Content\bootstrap.min.css" />
@@ -513,6 +602,9 @@
     <Content Include="Reports\Inventario.xsc">
       <DependentUpon>Inventario.xsd</DependentUpon>
     </Content>
+    <Content Include="Content\assets\plugins\summernote\build\font\summernote.eot" />
+    <Content Include="Content\assets\plugins\summernote\build\font\summernote.ttf" />
+    <Content Include="Content\assets\plugins\summernote\build\font\summernote.woff" />
     <None Include="Properties\PublishProfiles\Site.pubxml" />
     <None Include="Reports\Inventario.xsd">
       <Generator>MSDataSetGenerator</Generator>
@@ -539,7 +631,9 @@
     <Content Include="Scripts\spin.min.js" />
     <Content Include="Scripts\toastr.js" />
     <Content Include="Scripts\toastr.min.js" />
-    <Content Include="Web.config" />
+    <Content Include="Web.config">
+      <SubType>Designer</SubType>
+    </Content>
     <Content Include="Views\Seguridad\Login.cshtml" />
     <Content Include="Views\Seguridad\NoAccess.cshtml" />
     <Content Include="Views\Seguridad\ReiniciarPassword.cshtml" />

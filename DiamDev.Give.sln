@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.40629.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiamDev.Give.Entities", "DiamDev.Give.Entities\DiamDev.Give.Entities.csproj", "{58830095-0940-4008-9495-2B71EC41758E}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiamDev.Give.Servicio", "DiamDev.Give.Servicio\DiamDev.Give.Servicio.csproj", "{E1E004BB-8BF8-4A20-BEC8-6AE92FE9A5EE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiamDev.Give.WF.UI", "DiamDev.Give.WF.UI\DiamDev.Give.WF.UI.csproj", "{EFADE6D6-2493-4BC5-9A34-06CF6135B4E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiamDev.Give.LicenseManager", "DiamDev.Give.LicenseManager\DiamDev.Give.LicenseManager.csproj", "{891815EE-9AC1-4478-8F92-B4541F0020B6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{EFADE6D6-2493-4BC5-9A34-06CF6135B4E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EFADE6D6-2493-4BC5-9A34-06CF6135B4E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EFADE6D6-2493-4BC5-9A34-06CF6135B4E8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{891815EE-9AC1-4478-8F92-B4541F0020B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{891815EE-9AC1-4478-8F92-B4541F0020B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{891815EE-9AC1-4478-8F92-B4541F0020B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{891815EE-9AC1-4478-8F92-B4541F0020B6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

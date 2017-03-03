@@ -202,18 +202,11 @@ namespace DiamDev.Give.WF.UI
                 var content = new StringContent(serializedProduct, Encoding.UTF8, "application/json");
                 var result = client.PostAsync(string.Format("{0}/api/personal", ConfigurationManager.AppSettings["Url"]), content).Result;
 
-                if (result.IsSuccessStatusCode)
-                {
-                    this.Cursor = Cursors.Arrow;
+                this.Cursor = Cursors.Arrow;
 
-                    if (Capturer != null)
-                        Capturer.StopCapture();
-                    this.Close();
-                }
-                else
-                {
-                    MessageBox.Show("Se le informa que existe un error en la información ingresada.", "Empleado", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }  
+                if (Capturer != null)
+                    Capturer.StopCapture();
+                this.Close();
             }                      
         }
 

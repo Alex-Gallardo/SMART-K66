@@ -183,10 +183,10 @@ namespace DiamDev.Give.BLL
                 {
                     if (huella)
                     {
-                        Personals = db.Set<Personal>().Where(x => x.Activo == true).AsEnumerable().Select(x => new Personal() { PersonalId = x.PersonalId,Nombre = x.Nombre, Fecha = x.Fecha, TemplateBytes = x.TemplateBytes }).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.PersonalId).ToList();
-                    }
-                    else
-                    {
+                    Personals = db.Set<Personal>().Where(x => x.Activo == true).AsEnumerable().Select(x => new Personal() { PersonalId = x.PersonalId, Nombre = x.Nombre, Fecha = x.Fecha, TemplateBytes = x.TemplateBytes }).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.PersonalId).ToList();
+                }
+                else
+                {
                         Personals = db.Set<Personal>().Where(x => x.Activo == true).AsEnumerable().Select(x => new Personal() { PersonalId = x.PersonalId, Nombre = x.Nombre, Fecha = x.Fecha }).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.PersonalId).ToList();
                     }
                 }
@@ -201,7 +201,6 @@ namespace DiamDev.Give.BLL
 
             return Personals;
         }
-
 
         public List<Personal> Buscar(string search)
         {

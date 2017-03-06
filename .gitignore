@@ -196,3 +196,5 @@ ModelManifest.xml
 .vs/
 
 !DiamDev.Give.UI/Content/assets/plugins/summernote/build/
+
+DiamDev.Give.UI/App_Data/Productos/

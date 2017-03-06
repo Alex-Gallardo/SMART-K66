@@ -593,6 +593,7 @@
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
     <Content Include="Reports\ReportViewer.aspx" />
+    <Content Include="Scripts\App\ProductosCargaMasiva-Index.js" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
     <Content Include="Scripts\data.js" />
@@ -605,6 +606,7 @@
     <Content Include="Content\assets\plugins\summernote\build\font\summernote.eot" />
     <Content Include="Content\assets\plugins\summernote\build\font\summernote.ttf" />
     <Content Include="Content\assets\plugins\summernote\build\font\summernote.woff" />
+    <Content Include="Content\Formatos\ProductosCargaMasiva.xlsx" />
     <None Include="Properties\PublishProfiles\Site.pubxml" />
     <None Include="Reports\Inventario.xsd">
       <Generator>MSDataSetGenerator</Generator>
@@ -743,6 +745,7 @@
     <Compile Include="Controllers\MarcaController.cs" />
     <Compile Include="Controllers\PersonalController.cs" />
     <Compile Include="Controllers\ProductoController.cs" />
+    <Compile Include="Controllers\ProductosCargaMasivaController.cs" />
     <Compile Include="Controllers\Producto_CategoriaController.cs" />
     <Compile Include="Controllers\Producto_EgresoController.cs" />
     <Compile Include="Controllers\Producto_IngresoController.cs" />
@@ -816,6 +819,7 @@
     <Content Include="Views\Reporte\Horario.cshtml" />
     <Content Include="Views\Reporte\Horario_General.cshtml" />
     <Content Include="Views\Reporte\Ganancia_Detalle.cshtml" />
+    <Content Include="Views\ProductosCargaMasiva\Index.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

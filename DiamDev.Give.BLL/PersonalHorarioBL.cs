@@ -33,7 +33,6 @@ namespace DiamDev.Give.BLL
 
                 try
                 {
-                    entidad.Entrada = DateTime.Now;
                     db.Set<PersonalHorario>().Add(entidad);
                     db.SaveChanges();
                     HorarioAgregar = true;
@@ -55,17 +54,9 @@ namespace DiamDev.Give.BLL
 
                     if (HorarioActual.PersonalId > 0)
                     {
-                        if (HorarioActual.Salida == null)
-                        {
-                            TimeSpan duracion = DateTime.Now - HorarioActual.Entrada;
+                        HorarioActual.Salida = entidad.Salida;
                      
-                            if (duracion.Minutes >= 5)
-                            {
-                                HorarioActual.Salida = DateTime.Now;
                         db.SaveChanges();
-                            }
-                        }
-
                         HorarioActualizar = true;
                     }
                 }

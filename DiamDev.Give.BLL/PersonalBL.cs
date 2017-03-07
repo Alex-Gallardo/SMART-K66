@@ -173,7 +173,7 @@ namespace DiamDev.Give.BLL
             return PersonalActual;
         }
 
-        public List<Personal> ObtenerListado(bool activo, bool huella = true)
+        public List<Personal> ObtenerListado(bool activo)
         {
             List<Personal> Personals = new List<Personal>();
 
@@ -181,14 +181,7 @@ namespace DiamDev.Give.BLL
             {
                 if (activo)
                 {
-                    if (huella)
-                    {
                     Personals = db.Set<Personal>().Where(x => x.Activo == true).AsEnumerable().Select(x => new Personal() { PersonalId = x.PersonalId, Nombre = x.Nombre, Fecha = x.Fecha, TemplateBytes = x.TemplateBytes }).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.PersonalId).ToList();
-                }
-                else
-                {
-                        Personals = db.Set<Personal>().Where(x => x.Activo == true).AsEnumerable().Select(x => new Personal() { PersonalId = x.PersonalId, Nombre = x.Nombre, Fecha = x.Fecha }).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.PersonalId).ToList();
-                    }
                 }
                 else
                 {
@@ -215,28 +208,6 @@ namespace DiamDev.Give.BLL
             }
 
             return Personals;
-        }
-
-        public List<HorarioModel> ObtenerHorarioPersonalPorFecha(DateTime fechaInicial, DateTime fechaFinal, long personalId = 0)
-        {
-            List<HorarioModel> Horarios = new List<HorarioModel>();
-
-            try
-            {
-                if (personalId == 0)
-                {
-                    Horarios = db.Set<PersonalHorario>().Include("Personal").Where(x => x.Fecha >= fechaInicial && x.Fecha <= fechaFinal).AsEnumerable().Select(x => new HorarioModel() { PersonaId = x.PersonalId, Nombre = x.Personal.Nombre, Fecha = x.Fecha, Entrada = x.Entrada, Salida = x.Salida }).ToList();
-                }
-                else
-                {
-                    Horarios = db.Set<PersonalHorario>().Include("Personal").Where(x => x.Fecha >= fechaInicial && x.Fecha <= fechaFinal && x.PersonalId == personalId).AsEnumerable().Select(x => new HorarioModel() { PersonaId = x.PersonalId, Nombre = x.Personal.Nombre, Fecha = x.Fecha, Entrada = x.Entrada, Salida = x.Salida }).ToList();
-                }
-            }
-            catch (Exception)
-            {
-            }
-
-            return Horarios;
         }
 
         #endregion

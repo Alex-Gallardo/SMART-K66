@@ -22,7 +22,7 @@ namespace DiamDev.Give.WF.UI
             delegate void Function();
             private DPFP.Capture.Capture Capturer;
             private DPFP.Processing.Enrollment Enroller;
-            //private DPFP.Template Template;
+            private DPFP.Template Template;
             private DPFP.Verification.Verification Verificator;
             private DPFP.Sample MemSample;
         #endregion
@@ -140,8 +140,8 @@ namespace DiamDev.Give.WF.UI
                 PersonalHorario p = new PersonalHorario();
                 p.PersonalId = empleado.PersonalId;
                 p.Fecha = DateTime.Today;
-                p.Entrada = new DateTime(DateTime.Today.Hour,DateTime.Today.Minute, DateTime.Today.Second);
-                p.Salida = new DateTime(DateTime.Today.Hour, DateTime.Today.Minute, DateTime.Today.Second);
+                p.Entrada = new TimeSpan(DateTime.Today.Hour,DateTime.Today.Minute, DateTime.Today.Second);
+                p.Salida = new TimeSpan(DateTime.Today.Hour, DateTime.Today.Minute, DateTime.Today.Second);
 
                 using (var client = new HttpClient())
                 {

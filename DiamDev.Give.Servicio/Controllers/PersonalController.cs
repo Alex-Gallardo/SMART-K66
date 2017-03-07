@@ -15,7 +15,7 @@ namespace DiamDev.Give.Servicio.Controllers
     {
         public IEnumerable<Personal> GetAll()
         {
-            return new PersonalBL().ObtenerListado(true,true);
+            return new PersonalBL().ObtenerListado(true);
         }
 
         public IHttpActionResult Get(long id) 

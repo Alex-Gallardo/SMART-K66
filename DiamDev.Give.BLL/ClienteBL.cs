@@ -2,7 +2,6 @@
 using DiamDev.Give.Entities;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -224,7 +223,6 @@ namespace DiamDev.Give.BLL
             }
             catch (Exception ex)
             {
-                Trace.TraceError("Error: {0}", ex);
             }
 
             return Clientes;

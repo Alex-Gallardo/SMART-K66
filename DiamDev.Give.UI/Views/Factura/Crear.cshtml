@@ -1,5 +1,6 @@
 ﻿<p>
-    &nbsp;</p>
+    &nbsp;
+</p>
 @model DiamDev.Give.Entities.Factura
 
 @{
@@ -569,6 +570,15 @@
                                 $('#Existencia').val(resultData.Data.Existencia);
                                 $('#PrecioActual').val(resultData.Data.PrecioActual);
                                 $('#Cantidad').focus();
+                                if(parseFloat(resultData.Data.Existencia) === 0)
+                                {
+
+                                    document.getElementById('Existencia').style.backgroundColor = "#F78181";
+                                }
+                                else
+                                {
+                                    document.getElementById('Existencia').removeAttribute("style");
+                                }
                             }
                             else {
                                 toastr.error('Ocurrió un error, al visualizar el producto');
@@ -653,99 +663,6 @@
 
                     $.ajax({
                         url: '@Url.Action("ObtenerProductoxBarra", "Producto")',
-                        traditional: true,
-                        data: { 'barra': $('#Barra').val() },
-                        async: false,
-                        type: 'GET',
-                        success: function (resultData) {
-                            if (resultData !== null) {
-                                if (resultData.Operacion) {
-                                    $('#Producto').val(resultData.Data.Nombre);
-                                    $('#ProductoId').val(resultData.Data.ProductoId);
-
-                                    var PresentacionSelect = $("#PresentacionId");
-                                    PresentacionSelect.empty();
-                                    PresentacionSelect.append('<option value="0">--Seleccione una Unidad--</option>');
-
-                                    $.ajax({
-                                        url: '@Url.Action("ObtenerPresentacionPorProducto", "Producto_Ingreso")',
-                                        data: { 'id': $('#ProductoId').val() },
-                                        traditional: true,
-                                        async: false,
-                                        type: 'GET',
-                                        success: function (data) {
-                                            $.each(data, function (j) {
-                                                PresentacionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
-                                            });
-
-                                            //Se selecciona por default a la unidad de medida: Unidad
-                                            $("#PresentacionId").val("20170114001").trigger("change");
-                                        }
-                                    });
-
-                                    $('#Cantidad').focus();
-                                }
-                                else {
-                                    toastr.error('La barra del producto ingresada no es correcta');
-                                    $('#Barra').val("");
-                                    $('#Barra').focus();
-                                }
-                            }
-                            else {
-                                toastr.error('Ocurrió un error, al visualizar el producto');
-                                $('#Barra').val("");
-                                $('#Barra').focus();
-                            }
-                        }
-                    });*/
-                }
-                else if ($('#Cantidad').is(":focus") && (evt.which || evt.keyCode) == 13) {
-                    evt.preventDefault();
-                    if ($('#Cantidad').val() === "") {
-                        error("Ingresar cantidad de producto");
-                        $('#Cantidad').focus();
-                        return;
-                    }
-                    $('#PrecioActual').focus();
-                }
-                else if ($('#PrecioActual').is(":focus") && (evt.which || evt.keyCode) == 13) {
-                    evt.preventDefault();
-                    if ($('#PrecioActual').val() === "") {
-                        error("Ingresar precio del producto");
-                        $('#PrecioActual').focus();
-                        return;
-                    }
-                    $('#btn-agregar').focus();
-                }
-            });
-
-            /*
-            Evento click para el boton de busqueda de productos */
-            $('#btnBarra').click(function (evt) {
-               
-                cargaBusquedaProducto(evt);
-            });
-
-            /*
-            Función para la busqueda de productos */
-            function cargaBusquedaProducto(evt) {
-               
-                evt.preventDefault();
-                
-                
-                if ($('#Barra').val() === "") {
-                    error("Ingresar codigo de barra");
-                    $('#Barra').focus(); 
-                    return;
-                }
-                if (vCodBarra === $('#Barra').val()) {
-                    vAumentaCantidad = parseInt($('#Cantidad').val()) + 1;
-                    $('#Cantidad').val(vAumentaCantidad);
-                   
-                    return;
-                }
-                $.ajax({
-                    url: '@Url.Action("ObtenerProductoxBarra", "Producto")',
                     traditional: true,
                     data: { 'barra': $('#Barra').val() },
                     async: false,
@@ -775,11 +692,8 @@
                                         $("#PresentacionId").val("20170114001").trigger("change");
                                     }
                                 });
-                               
-                                
-                                $('#Barra').focus();
-                                vCodBarra = $('#Barra').val();
-                               
+
+                                $('#Cantidad').focus();
                             }
                             else {
                                 toastr.error('La barra del producto ingresada no es correcta');
@@ -793,8 +707,106 @@
                             $('#Barra').focus();
                         }
                     }
-                });
+                });*/
             }
+            else if ($('#Cantidad').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#Cantidad').val() === "") {
+                    error("Ingresar cantidad de producto");
+                    $('#Cantidad').focus();
+                    return;
+                }
+                $('#PrecioActual').focus();
+            }
+        else if ($('#PrecioActual').is(":focus") && (evt.which || evt.keyCode) == 13) {
+            evt.preventDefault();
+            if ($('#PrecioActual').val() === "") {
+                error("Ingresar precio del producto");
+                $('#PrecioActual').focus();
+                return;
+            }
+            $('#btn-agregar').focus();
+        }
+        });
+
+        /*
+        Evento click para el boton de busqueda de productos */
+        $('#btnBarra').click(function (evt) {
+
+            cargaBusquedaProducto(evt);
+        });
+
+        /*
+        Función para la busqueda de productos */
+        function cargaBusquedaProducto(evt) {
+
+            evt.preventDefault();
+
+            if ($('#Barra').val() === "") {
+
+                error("Ingresar codigo de barra");
+                $('#Barra').focus();
+
+                return;
+            }
+            if (vCodBarra === $('#Barra').val()) {
+                vAumentaCantidad = parseInt($('#Cantidad').val()) + 1;
+                $('#Cantidad').val(vAumentaCantidad);
+
+                
+            }
+            else{$('#Cantidad').val(1);}
+            $.ajax({
+                url: '@Url.Action("ObtenerProductoxBarra", "Producto")',
+                traditional: true,
+                data: { 'barra': $('#Barra').val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            $('#Producto').val(resultData.Data.Nombre);
+                            $('#ProductoId').val(resultData.Data.ProductoId);
+
+                            var PresentacionSelect = $("#PresentacionId");
+                            PresentacionSelect.empty();
+                            PresentacionSelect.append('<option value="0">--Seleccione una Unidad--</option>');
+
+                            $.ajax({
+                                url: '@Url.Action("ObtenerPresentacionPorProducto", "Producto_Ingreso")',
+                                data: { 'id': $('#ProductoId').val() },
+                                traditional: true,
+                                async: false,
+                                type: 'GET',
+                                success: function (data) {
+                                    $.each(data, function (j) {
+                                        PresentacionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                                    });
+
+                                    //Se selecciona por default a la unidad de medida: Unidad
+                                    $("#PresentacionId").val("20170114001").trigger("change");
+                                }
+                            });
+
+
+                            $('#Barra').focus();
+                            vCodBarra = $('#Barra').val();
+
+                        }
+                        else {
+                            toastr.error('La barra del producto ingresada no es correcta');
+                            $('#Barra').val("");
+                            $('#Barra').focus();
+                        }
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al visualizar el producto');
+                        $('#Barra').val("");
+                        $('#Barra').focus();
+                    }
+                }
+            });
+        }
 
         });
 

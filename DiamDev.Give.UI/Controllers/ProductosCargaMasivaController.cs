@@ -1,4 +1,6 @@
-﻿using System;
+﻿using DiamDev.Give.BLL.Excel;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -51,8 +53,88 @@ namespace DiamDev.Give.UI.Controllers
             
             archivo.SaveAs(fileName);
 
-            // TODO: validar Formato
+            var nombresColumnas = new[] {"ID", "CODIGO", "BODEGA", "NOMBRE", "MARCA", "CANTIDAD", "COSTO", "P VENTA", "MIN", "MAX", "RENT Q.", "RENT %", "MODIFICACION"};
+            var rowsCount = 0;
+
+            var filas = new List<ProductoCargaMasivaDetalle>();
+
+            foreach (var worksheet in Workbook.Worksheets(fileName))
+            {
+                foreach (var row in worksheet.Rows)
+                {
+                    rowsCount++;
+
+                    if (rowsCount == 1)
+                    {
+                        var nombresEnArchivo = row.Cells.Select(x => x.Text.Trim()).ToArray();
+                        for (int i = 0; i < nombresColumnas.Length; i++)
+                        {
+                            if (nombresColumnas[i]!= nombresEnArchivo[i])
+                            {
+                                error = "la primer linea del archivo debe contener el nombre de las columnas: " +
+                                    "[" + string.Join(", ", nombresColumnas) + "]";
+                                return Resultado(success, error);
+                            }
+                        }
+                        continue;
+                    }
+                    string rowId;
+                    string codigo;
+                    string bodega;
+                    string marca;
+                    double cantidad;
+                    double costo;
+                    double precioVenta;
+                    double min;
+                    double max;
+                    double rentQ;
+                    double rentP;
+                    string modificacion;
+
+                    var cells = row.Cells;
+                    rowId = cells[0].Text.Trim();
+                    codigo = cells[1].Text.Trim();
+                    bodega = cells[2].Text.Trim();
+                    marca = cells[3].Text.Trim();
+                    cantidad = cells[4].Amount;
+                    costo = cells[5].Amount;
+                    precioVenta = cells[6].Amount;
+                    min = cells[7].Amount;
+                    max = cells[8].Amount;
+                    rentQ = cells[9].Amount;
+                    rentP = cells[10].Amount;
+                    modificacion = cells.Length > 11 ? cells[11].Text.Trim() : "";
+
+                    filas.Add(new ProductoCargaMasivaDetalle {
+                        Id = rowId,
+                        Codigo = codigo,
+                        Bodega = bodega,
+                        Marca = marca,
+                        Cantidad = cantidad,
+                        Costo = costo,
+                        PrecioVenta = precioVenta,
+                        Min = min,
+                        Max = max,
+                        RentQ = rentQ,
+                        RentP = rentP,
+                        Modificacion = modificacion
+                    });
+                }
+            }
+
+            if (filas.Count == 0)
+            {
+                error = "El archivo está vacío.";
+                return Resultado(success, error);
+            }
+
+            var jsonName = Path.Combine(fileDir, Path.GetFileNameWithoutExtension(fileName) + ".json");
+            var json = JsonConvert.SerializeObject(filas);
+
+            System.IO.File.WriteAllText(jsonName, json);
+
             success = true;
+
             return Resultado(success, error);
         }
 
@@ -69,6 +151,22 @@ namespace DiamDev.Give.UI.Controllers
                 ViewBag.UploadError = error;
                 return View();
             }
+        }
+
+        private class ProductoCargaMasivaDetalle
+        {
+            public string Bodega { get; set; }
+            public double Cantidad { get; set; }
+            public string Codigo { get; set; }
+            public double Costo { get; set; }
+            public string Id { get; set; }
+            public string Marca { get; set; }
+            public double Max { get; set; }
+            public double Min { get; set; }
+            public string Modificacion { get; set; }
+            public double PrecioVenta { get; set; }
+            public double RentP { get; set; }
+            public double RentQ { get; set; }
         }
     }
 }

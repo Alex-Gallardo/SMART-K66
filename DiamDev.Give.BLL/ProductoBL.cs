@@ -24,6 +24,11 @@ namespace DiamDev.Give.BLL
                 this.db = new GiveContext();
             }
 
+            public ProductoBL(GiveContext db)
+            {
+                this.db = db;
+            }
+
         #endregion
 
         #region Metodos Privados

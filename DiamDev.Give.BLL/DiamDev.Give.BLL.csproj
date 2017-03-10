@@ -45,6 +45,8 @@
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -58,6 +60,11 @@
     <Compile Include="CuentaContableBL.cs" />
     <Compile Include="CuentaContableTipoBL.cs" />
     <Compile Include="DiarioBL.cs" />
+    <Compile Include="Excel\Cell.cs" />
+    <Compile Include="Excel\Row.cs" />
+    <Compile Include="Excel\SharedStrings.cs" />
+    <Compile Include="Excel\Workbook.cs" />
+    <Compile Include="Excel\Worksheet.cs" />
     <Compile Include="FacturaBL.cs" />
     <Compile Include="FormaPagoBL.cs" />
     <Compile Include="Herramienta.cs" />

@@ -103,6 +103,7 @@
                     success: function (data) {
                         $form.addClass(data.success === true ? 'is-success' : 'is-error');
                         if (!data.success) $errorMsg.text(data.error);
+                        if (data.success === true) redirect(data.fileName);
                     },
                     error: function () {
                         alert('Error. Please, contact the webmaster!');
@@ -122,6 +123,7 @@
                     $form.removeClass('is-uploading').addClass(data.success === true ? 'is-success' : 'is-error').removeAttr('target');
                     if (!data.success) $errorMsg.text(data.error);
                     $iframe.remove();
+                    if (data.success === true) redirect(data.fileName);
                 });
             }
         });
@@ -139,6 +141,10 @@
         $input
         .on('focus', function () { $input.addClass('has-focus'); })
         .on('blur', function () { $input.removeClass('has-focus'); });
+
+        function redirect(fileName) {
+            window.location.href = '/ProductosCargaMasiva/Verificar/' + fileName;
+        }
     });
 
 })(jQuery, window, document);

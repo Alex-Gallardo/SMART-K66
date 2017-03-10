@@ -192,7 +192,7 @@
 
 
                     <div class="upload-uploading">Cargando&hellip;</div>
-                    <div class="upload-success" @if (ViewBag.UploadSuccess == true) { <text>style="display: block;"</text> }>&iexcl;Completado! <a href="@Url.Action("Index", "ProductosCargaMasiva")" class="upload-restart" role="button">&iquest;Cargar otro?</a></div>
+                    <div class="upload-success" @if (ViewBag.UploadSuccess == true) { <text>style="display: block;"</text> }>&iexcl;Completado! <a href="@Url.Action("Verificar", "ProductosCargaMasiva", new { id = ViewBag.UploadFileName })" class="upload-restart" role="button">Verificar antes de enviar</a></div>
                     <div class="upload-error" @if (ViewBag.UploadSuccess == false) { <text>style="display: block;"</text> }>&iexcl;Error! <span>@ViewBag.UploadError</span>. <a href="@Url.Action("Index", "ProductosCargaMasiva")" class="upload-restart" role="button">&iexcl;Intentar de nuevo!</a></div>
                 </form>
             </div>

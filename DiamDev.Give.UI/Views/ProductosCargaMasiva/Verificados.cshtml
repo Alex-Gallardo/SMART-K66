@@ -1,0 +1,35 @@
+﻿@model List<DiamDev.Give.UI.Models.ProductoCargaMasivaArchivo>
+@{
+    ViewBag.Title = "Cargas Por Aprobar";
+}
+
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                Cargas por aprobar
+            </div>
+            <div class="panel-body">
+
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Carga</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Fecha.ToShortDateString()</td>
+                                <td><a href="@Url.Action("Revisar", "ProductosCargaMasiva", new { id = item.Id })">@item.Correlativo</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

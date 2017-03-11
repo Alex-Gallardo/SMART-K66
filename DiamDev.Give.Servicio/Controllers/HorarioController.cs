@@ -13,9 +13,9 @@ namespace DiamDev.Give.Servicio.Controllers
 {
     public class HorarioController : ApiController
     {
-        public string Post(PersonalHorario horario)
+        public string Post(PersonalHorario item)
         {
-            return new PersonalHorarioBL().Guardar(horario);
+            return new PersonalHorarioBL().Guardar(item);
         }
     }
 }

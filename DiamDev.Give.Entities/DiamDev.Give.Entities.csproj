@@ -59,7 +59,6 @@
     <Compile Include="DiarioModel.cs" />
     <Compile Include="Factura.cs" />
     <Compile Include="FacturaDetalle.cs" />
-    <Compile Include="HorarioModel.cs" />
     <Compile Include="Personal.cs" />
     <Compile Include="PersonalHorario.cs" />
     <Compile Include="Serie.cs" />

@@ -493,6 +493,12 @@ namespace DiamDev.Give.UI.Controllers
                                 PrecioCosto = Convert.ToDecimal(item.Costo)
                             };
                             db.ProductoPrecioCostos.Add(productoPrecioCosto);
+                            db.ProductoInventarios.Add(new ProductoInventario
+                            {
+                                AgenciaId = agencia.AgenciaId,
+                                ProductoId = producto.ProductoId,
+                                Cantidad = Convert.ToDecimal(item.Cantidad)
+                            });
                         }
                     }
 

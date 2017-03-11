@@ -109,35 +109,40 @@ namespace DiamDev.Give.UI.Controllers
                     string modificacion;
 
                     
-                    rowId = cells[0].Amount;
-                    codigo = cells[1].Text.Trim();
-                    bodega = cells[2].Text.Trim();
-                    nombre = cells[3].Text.Trim();
-                    marca = cells[4].Text.Trim();
-                    cantidad = cells[5].Amount;
-                    costo = cells[6].Amount;
-                    precioVenta = cells[7].Amount;
-                    min = cells[8].Amount;
-                    max = cells[9].Amount;
-                    rentQ = cells[10].Amount;
-                    rentP = cells[11].Amount;
-                    modificacion = cells.Length > 12 ? cells[12].Text.Trim() : "";
+                    rowId = cells[0]?.Amount ?? 0;
+                    codigo = cells[1]?.Text?.Trim() ?? "";
+                    bodega = cells[2]?.Text?.Trim() ?? "";
+                    nombre = cells[3]?.Text?.Trim() ?? "";
+                    marca = cells[4]?.Text?.Trim() ?? "";
+                    cantidad = cells[5]?.Amount ?? 0;
+                    costo = cells[6]?.Amount ?? 0;
+                    precioVenta = cells[7]?.Amount ?? 0;
+                    min = cells[8]?.Amount ?? 0;
+                    max = cells[9]?.Amount ?? 0;
+                    rentQ = cells[10]?.Amount ?? 0;
+                    rentP = cells[11]?.Amount ?? 0;
+                    modificacion = cells.Length > 12 ? cells[12]?.Text?.Trim() ?? "" : "";
 
-                    filas.Add(new ProductoCargaMasivaDetalle {
-                        Id = rowId,
-                        Codigo = codigo,
-                        Bodega = bodega,
-                        Nombre = nombre,
-                        Marca = marca,
-                        Cantidad = cantidad,
-                        Costo = costo,
-                        PrecioVenta = precioVenta,
-                        Min = min,
-                        Max = max,
-                        RentQ = rentQ,
-                        RentP = rentP,
-                        Modificacion = modificacion
-                    });
+                    if (rowId > 0 || !string.IsNullOrWhiteSpace(codigo))
+                    {
+                        filas.Add(new ProductoCargaMasivaDetalle
+                        {
+                            Id = rowId,
+                            Codigo = codigo,
+                            Bodega = bodega,
+                            Nombre = nombre,
+                            Marca = marca,
+                            Cantidad = cantidad,
+                            Costo = costo,
+                            PrecioVenta = precioVenta,
+                            Min = min,
+                            Max = max,
+                            RentQ = rentQ,
+                            RentP = rentP,
+                            Modificacion = modificacion
+                        });
+                    }
+                    
                 }
             }
 

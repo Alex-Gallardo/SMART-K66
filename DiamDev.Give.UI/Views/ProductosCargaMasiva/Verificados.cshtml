@@ -17,6 +17,7 @@
                         <tr>
                             <th>Fecha</th>
                             <th>Carga</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -24,7 +25,14 @@
                         {
                             <tr>
                                 <td>@item.Fecha.ToShortDateString()</td>
-                                <td><a href="@Url.Action("Revisar", "ProductosCargaMasiva", new { id = item.Id })">@item.Correlativo</a></td>
+                                <td>
+                                    <a href="@Url.Action("Revisar", "ProductosCargaMasiva", new { id = item.Id })">@item.Correlativo</a>
+                                </td>
+                                <td>
+                                    <form method="post" action="@Url.Action("Eliminar", "ProductosCargaMasiva", new { id = item.Id })" class="form-inline" onsubmit="return confirm('&iquest;Seguro que desea rechazar la carga?')">
+                                        <button type="submit" class="btn btn-default btn-xs"><i class="glyphicon glyphicon-trash"></i> Rechazar</button>
+                                    </form>
+                                </td>
                             </tr>
                         }
                     </tbody>

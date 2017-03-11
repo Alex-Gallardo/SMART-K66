@@ -210,6 +210,21 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpPost]
+        public ActionResult Eliminar(string id)
+        {
+            var fileDir = Server.MapPath("~/App_Data/Productos/Verificados");
+
+            var valid = ValidarId(id, fileDir);
+            if (valid != null) return valid;
+
+            var archivo = Path.Combine(fileDir, id + ".json");
+
+            System.IO.File.Delete(archivo);
+
+            return RedirectToAction("Verificados");
+        }
+
+        [HttpPost]
         public ActionResult Aprobar(string id)
         {
             var fileDir = Server.MapPath("~/App_Data/Productos/Verificados");

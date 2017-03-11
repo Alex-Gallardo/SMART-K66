@@ -11,6 +11,7 @@ using System.Net;
 using System.Web;
 using System.Web.Mvc;
 using System.Data.Entity;
+using System.Globalization;
 
 namespace DiamDev.Give.UI.Controllers
 {
@@ -28,7 +29,7 @@ namespace DiamDev.Give.UI.Controllers
 
             bool success = false;
             string error = null;
-            
+
 
             if (archivos == null || archivos.Count < 1)
             {
@@ -60,7 +61,7 @@ namespace DiamDev.Give.UI.Controllers
             var fileName = Path.Combine(fileDir, $"{anio}-{mes:00}-{dia:00}-{correlativo}.xlsx");
             archivo.SaveAs(fileName);
 
-            var nombresColumnas = new[] {"ID", "CODIGO", "BODEGA", "NOMBRE", "MARCA", "CANTIDAD", "COSTO", "P VENTA", "MIN", "MAX", "RENT Q.", "RENT %", "MODIFICACION"};
+            var nombresColumnas = new[] { "ID", "CODIGO", "BODEGA", "NOMBRE", "MARCA", "CANTIDAD", "COSTO", "P VENTA", "MIN", "MAX", "RENT Q.", "RENT %", "MODIFICACION" };
             var rowsCount = 0;
 
             var filas = new List<ProductoCargaMasivaDetalle>();
@@ -76,7 +77,7 @@ namespace DiamDev.Give.UI.Controllers
                         var nombresEnArchivo = row.Cells.Select(x => x.Text.Trim()).ToArray();
                         for (int i = 0; i < nombresColumnas.Length; i++)
                         {
-                            if (nombresColumnas[i]!= nombresEnArchivo[i])
+                            if (nombresColumnas[i] != nombresEnArchivo[i])
                             {
                                 error = "la primer linea del archivo debe contener el nombre de las columnas: " +
                                     "[" + string.Join(", ", nombresColumnas) + "]";
@@ -108,7 +109,7 @@ namespace DiamDev.Give.UI.Controllers
                     double rentP;
                     string modificacion;
 
-                    
+
                     rowId = cells[0]?.Amount ?? 0;
                     codigo = cells[1]?.Text?.Trim() ?? "";
                     bodega = cells[2]?.Text?.Trim() ?? "";
@@ -142,7 +143,7 @@ namespace DiamDev.Give.UI.Controllers
                             Modificacion = modificacion
                         });
                     }
-                    
+
                 }
             }
 
@@ -190,7 +191,11 @@ namespace DiamDev.Give.UI.Controllers
             var json = System.IO.File.ReadAllText(archivo);
             var productos = JsonConvert.DeserializeObject<ProductoCargaMasivaDetalle[]>(json);
 
+            var errores = PersistirCambios(productos, commit: false);
+            errores.ForEach(error => ModelState.AddModelError("", error));
+
             ViewBag.Id = id;
+            ViewBag.IsValid = ModelState.IsValid;
             return View(productos);
         }
 
@@ -237,6 +242,28 @@ namespace DiamDev.Give.UI.Controllers
             var productos = JsonConvert.DeserializeObject<ProductoCargaMasivaDetalle[]>(json);
             ViewBag.Id = id;
 
+            var errores = PersistirCambios(productos, commit: true);
+
+            if (errores.Count > 0)
+            {
+                errores.ForEach(error => ModelState.AddModelError("", error));
+                return View("Revisar", productos);
+            }
+
+            System.IO.File.Delete(archivo);
+            return RedirectToAction("Verificados");
+        }
+
+        private List<string> PersistirCambios(ProductoCargaMasivaDetalle[] productos, bool commit)
+        {
+            var errores = new List<string>();
+            var error = "";
+
+            int correlativo = 0;
+            var hoy = DateTime.Now;
+
+
+
             using (var db = new GiveContext())
             {
 
@@ -249,8 +276,11 @@ namespace DiamDev.Give.UI.Controllers
                         var agencia = db.Agencias.FirstOrDefault(x => x.Nombre.ToLower() == item.Bodega.ToLower());
                         if (agencia == null)
                         {
-                            ModelState.AddModelError("", "No existe la bodega '" + item.Bodega + "'.");
-                            return View("Revisar", productos);
+                            error = "No existe la bodega '" + item.Bodega + "'.";
+                            if (!errores.Contains(error))
+                                errores.Add(error);
+
+                            continue;
                         }
 
                         if (string.IsNullOrWhiteSpace(item.Modificacion))
@@ -260,8 +290,11 @@ namespace DiamDev.Give.UI.Controllers
 
                             if (producto == null)
                             {
-                                ModelState.AddModelError("", "No existe el producto con id '" + item.Id + "' ni con codigo '" + item.Codigo + "'.");
-                                return View("Revisar", productos);
+                                error = "No existe el producto con id '" + item.Id + "' ni con codigo '" + item.Codigo + "'.";
+                                if (!errores.Contains(error))
+                                    errores.Add(error);
+
+                                continue;
                             }
 
                             var marca = db.Marcas.Where(x => x.Nombre.ToLower().Trim() == item.Marca.ToLower().Trim()).FirstOrDefault();
@@ -316,7 +349,7 @@ namespace DiamDev.Give.UI.Controllers
                             {
                                 productoPrecioCosto = new ProductoPrecioCosto
                                 {
-                                    ProductoId = producto.ProductoId,
+                                    Producto = producto,
                                     PrecioCosto = Convert.ToDecimal(item.Costo)
                                 };
                                 db.ProductoPrecioCostos.Add(productoPrecioCosto);
@@ -337,6 +370,7 @@ namespace DiamDev.Give.UI.Controllers
                                 producto.Precios.Add(new ProductoPrecio
                                 {
                                     PrecioId = 5,
+                                    Producto = producto,
                                     Valor = Convert.ToDecimal(item.PrecioVenta)
                                 });
                             }
@@ -349,20 +383,22 @@ namespace DiamDev.Give.UI.Controllers
 
                             if (producto != null)
                             {
-                                ModelState.AddModelError("", "Ya existe un producto con id '" + item.Id + "' o con codigo '" + item.Codigo + "'.");
-                                return View("Revisar", productos);
+                                error = "Ya existe un producto con id '" + item.Id + "' o con codigo '" + item.Codigo + "'.";
+                                if (!errores.Contains(error))
+                                    errores.Add(error);
+
+                                continue;
                             }
 
-                            var fecha = DateTime.Now;
                             var marca = db.Marcas.Where(x => x.Nombre.ToLower().Trim() == item.Marca.ToLower().Trim()).FirstOrDefault();
 
                             if (marca == null)
                             {
-                                var marcaCorrelativo = db.Marcas.Where(x => x.Fecha.Year == fecha.Year && x.Fecha.Month == fecha.Month && x.Fecha.Day == fecha.Day).OrderByDescending(x => x.Correlativo).Select(x => x.Correlativo).FirstOrDefault();
+                                var marcaCorrelativo = db.Marcas.Where(x => x.Fecha.Year == hoy.Year && x.Fecha.Month == hoy.Month && x.Fecha.Day == hoy.Day).OrderByDescending(x => x.Correlativo).Select(x => x.Correlativo).FirstOrDefault();
 
                                 marcaCorrelativo = marcaCorrelativo > 0 ? marcaCorrelativo + 1 : 1;
 
-                                var marcaId = long.Parse(string.Format("{0:yyyyMMdd}{1:000}", fecha, marcaCorrelativo));
+                                var marcaId = long.Parse(string.Format("{0:yyyyMMdd}{1:000}", hoy, marcaCorrelativo));
 
                                 marca = new Marca
                                 {
@@ -374,13 +410,61 @@ namespace DiamDev.Give.UI.Controllers
                                 };
                             }
 
+                            DateTime productoFecha;
+                            int productoCorrelativo;
+                            string productoId = item.Id.ToString();
 
-                            var productoCorrelativo = db.Productos.Where(x => x.Fecha.Year == fecha.Year && x.Fecha.Month == fecha.Month && x.Fecha.Day == fecha.Day).OrderByDescending(x => x.Correlativo).Select(x => x.Correlativo).FirstOrDefault();
+                            if (item.Id > 0)
+                            {
+                                try
+                                {
+                                    productoFecha = DateTime.ParseExact(productoId.Substring(0, 8), "yyyyMMdd", CultureInfo.CurrentCulture);
+                                    productoCorrelativo = int.Parse(productoId.Substring(8, 3));
 
-                            productoCorrelativo = productoCorrelativo > 0 ? productoCorrelativo + 1 : 1;
+                                    if (productoFecha.Year == hoy.Year && productoFecha.Month == hoy.Month && productoFecha.Day == hoy.Day)
+                                    {
+                                        if (correlativo < productoCorrelativo)
+                                        {
+                                            correlativo = productoCorrelativo;
+                                        }
+                                    }
 
-                            var productoId = string.Format("{0:yyyyMMdd}{1:000}", fecha, productoCorrelativo);
+                                }
+                                catch (Exception)
+                                {
+                                    error = "El id " + item.Id + " no es válido";
+                                    if (!errores.Contains(error))
+                                        errores.Add(error);
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                productoFecha = hoy;
 
+                                if (correlativo > 0)
+                                {
+                                    productoCorrelativo = correlativo;
+                                }
+                                else
+                                {
+                                    int correlativoDb = db.Productos.Where(x => x.Fecha.Year == hoy.Year && x.Fecha.Month == hoy.Month && x.Fecha.Day == hoy.Day).OrderByDescending(x => x.Correlativo).Select(x => x.Correlativo).FirstOrDefault();
+                                    if (correlativo < correlativoDb)
+                                    {
+                                        productoCorrelativo = correlativoDb;
+                                    }
+                                    else
+                                    {
+                                        productoCorrelativo = correlativo;
+                                    }
+                                }
+
+                                productoCorrelativo = productoCorrelativo > 0 ? productoCorrelativo + 1 : 1;
+
+                                correlativo = productoCorrelativo;
+
+                                productoId = string.Format("{0:yyyyMMdd}{1:000}", hoy, productoCorrelativo);
+                            }
 
                             producto = new Producto
                             {
@@ -395,7 +479,7 @@ namespace DiamDev.Give.UI.Controllers
                                 CategoriaId = 20170114001,
                                 Cantidad = Convert.ToDecimal(item.Cantidad),
                                 UnidadId = 20170114001,
-                                Fecha = DateTime.Now,
+                                Fecha = productoFecha,
                                 Precios = new List<ProductoPrecio> { new ProductoPrecio { PrecioId = 5, Valor = Convert.ToDecimal(item.PrecioVenta) } },
                                 Marca = marca,
                                 PrecioActual = Convert.ToDecimal(item.PrecioVenta)
@@ -405,20 +489,29 @@ namespace DiamDev.Give.UI.Controllers
 
                             var productoPrecioCosto = new ProductoPrecioCosto
                             {
-                                ProductoId = producto.ProductoId,
+                                Producto = producto,
                                 PrecioCosto = Convert.ToDecimal(item.Costo)
                             };
                             db.ProductoPrecioCostos.Add(productoPrecioCosto);
                         }
                     }
 
-                    db.SaveChanges();
-                    trx.Commit();
+                    try
+                    {
+                        db.SaveChanges();
+                        if (commit)
+                        {
+                            trx.Commit();
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        errores.Add(ex.Message);
+                    }
                 }
             }
 
-            System.IO.File.Delete(archivo);
-            return RedirectToAction("Verificados");
+            return errores;
         }
 
         [HttpPost]
@@ -462,12 +555,13 @@ namespace DiamDev.Give.UI.Controllers
                     var dia = int.Parse(parts[2]);
                     var correlativo = int.Parse(parts[3]);
 
-                    modelo.Add(new ProductoCargaMasivaArchivo {
+                    modelo.Add(new ProductoCargaMasivaArchivo
+                    {
                         Id = id,
                         Fecha = new DateTime(anio, mes, dia),
                         Correlativo = correlativo
                     });
-                    
+
                 }
                 catch (Exception)
                 {

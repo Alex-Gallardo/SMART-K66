@@ -410,7 +410,7 @@ namespace DiamDev.Give.UI.Controllers
                                 };
                             }
 
-                            DateTime productoFecha;
+                            DateTime productoFecha = hoy;
                             int productoCorrelativo;
                             string productoId = item.Id.ToString();
 
@@ -418,16 +418,16 @@ namespace DiamDev.Give.UI.Controllers
                             {
                                 try
                                 {
-                                    productoFecha = DateTime.ParseExact(productoId.Substring(0, 8), "yyyyMMdd", CultureInfo.CurrentCulture);
+                                    //productoFecha = DateTime.ParseExact(productoId.Substring(0, 8), "yyyyMMdd", CultureInfo.CurrentCulture);
                                     productoCorrelativo = int.Parse(productoId.Substring(8, 3));
 
-                                    if (productoFecha.Year == hoy.Year && productoFecha.Month == hoy.Month && productoFecha.Day == hoy.Day)
-                                    {
+                                    //if (productoFecha.Year == hoy.Year && productoFecha.Month == hoy.Month && productoFecha.Day == hoy.Day)
+                                    //{
                                         if (correlativo < productoCorrelativo)
                                         {
                                             correlativo = productoCorrelativo;
                                         }
-                                    }
+                                    //}
 
                                 }
                                 catch (Exception)

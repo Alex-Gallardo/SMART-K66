@@ -12,6 +12,8 @@ using PagedList;
 using System.Collections;
 using System.Data;
 using Microsoft.Reporting.WebForms;
+using DiamDev.Give.DAL;
+using System.Data.Entity;
 
 namespace DiamDev.Give.UI.Controllers
 {
@@ -158,6 +160,43 @@ namespace DiamDev.Give.UI.Controllers
                 string strMensaje = new MovimientoBL().Guardar(modelo);
                 if (strMensaje.Equals("OK"))
                 {
+                    using (var db = new GiveContext())
+                    {
+                        var agencia = db.Agencias.FirstOrDefault(a => a.AgenciaId == modelo.AgenciaId);
+
+                        if (agencia != null)
+                        {
+                            foreach (var p in modelo.Detalles)
+                            {
+                                var productoId = p.ProductoId;
+                                var producto = db.Productos.Include(pr => pr.Marca).FirstOrDefault(pr => pr.ProductoId == productoId);
+
+
+                                if (producto == null) continue;
+
+
+                                db.RegistrosKardex.Add(new RegistroKardex
+                                {
+                                    FechaHora = DateTime.Now,
+                                    Fecha = DateTime.Today,
+                                    ProductoId = p.ProductoId,
+                                    ProductoCodigo = producto.Codigo,
+                                    ProductoNombre = producto.Nombre,
+                                    ProductoDescripcion = producto.Descripcion,
+                                    MarcaId = producto.MarcaId,
+                                    MarcaNombre = producto.Marca.Nombre,
+                                    DocumentoNumero = modelo.MovimientoId.ToString(),
+                                    AgenciaId = modelo.AgenciaId,
+                                    AgenciaNombre = agencia.Nombre,
+                                    TipoRegistro = "Egreso",
+                                    SalidaCantidadTienda = p.Cantidad,
+                                    SalidaCostoTienda = p.Precio
+                                });
+                            }
+
+                            db.SaveChanges();
+                        }
+                    }
                     TempData["Producto-Egreso-Success"] = strMensaje;
                     return RedirectToAction("Index");
                 }

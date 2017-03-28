@@ -7,7 +7,9 @@ namespace DiamDev.Give.Entities
     [Table("Kardex")]
     public class RegistroKardex
     {
-        public int Id { get; set; }
+        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public Guid Id { get; set; }
 
         public DateTime FechaHora { get; set; }
 
@@ -17,6 +19,10 @@ namespace DiamDev.Give.Entities
 
         [StringLength(250)]
         public string ProductoCodigo { get; set; }
+
+        public string ProductoNombre { get; set; }
+
+        public string ProductoDescripcion { get; set; }
 
         public long MarcaId { get; set; }
 
@@ -42,35 +48,15 @@ namespace DiamDev.Give.Entities
         [StringLength(50)]
         public string TipoRegistro { get; set; }
 
-        public decimal IngresoBodega { get; set; }
-
-        public decimal IngresoTienda { get; set; }
-
-        public decimal IngresoTotal { get; set; }
-
-        public decimal IngresoCostoBodega { get; set; }
+        public decimal IngresoCantidadTienda { get; set; }
 
         public decimal IngresoCostoTienda { get; set; }
 
-        public decimal IngresoCostoTotal { get; set; }
-
-        public decimal SalidaCostoBodega { get; set; }
+        public decimal SalidaCantidadTienda { get; set; }
 
         public decimal SalidaCostoTienda { get; set; }
 
-        public decimal SalidaCostoTotal { get; set; }
-
-        public decimal SalodaCantidadBodega { get; set; }
-
-        public decimal SalidaCantidadTienda { get; set; }
-
-        public decimal SalidaCantidadTotal { get; set; }
-
-        public decimal ExistenciaFinalBodega { get; set; }
-
         public decimal ExistenciaFinalTienda { get; set; }
-
-        public decimal ExistenciaFinalTotal { get; set; }
 
     }
 }

@@ -13,7 +13,7 @@ namespace DiamDev.Give.DAL.Migrations
         
         string IMigrationMetadata.Id
         {
-            get { return "201703280407017_Kardex"; }
+            get { return "201703280444148_Kardex"; }
         }
         
         string IMigrationMetadata.Source

@@ -11,10 +11,12 @@ namespace DiamDev.Give.DAL.Migrations
                 "dbo.Kardex",
                 c => new
                     {
-                        Id = c.Int(nullable: false, identity: true),
+                        Id = c.Guid(nullable: false, identity: true),
                         FechaHora = c.DateTime(nullable: false),
                         ProductoId = c.String(nullable: false, maxLength: 50),
                         ProductoCodigo = c.String(maxLength: 250),
+                        ProductoNombre = c.String(),
+                        ProductoDescripcion = c.String(),
                         MarcaId = c.Long(nullable: false),
                         MarcaNombre = c.String(maxLength: 300),
                         Descripcion = c.String(maxLength: 500),
@@ -24,21 +26,11 @@ namespace DiamDev.Give.DAL.Migrations
                         AgenciaId = c.Long(nullable: false),
                         AgenciaNombre = c.String(maxLength: 300),
                         TipoRegistro = c.String(maxLength: 50),
-                        IngresoBodega = c.Decimal(nullable: false, precision: 18, scale: 2),
-                        IngresoTienda = c.Decimal(nullable: false, precision: 18, scale: 2),
-                        IngresoTotal = c.Decimal(nullable: false, precision: 18, scale: 2),
-                        IngresoCostoBodega = c.Decimal(nullable: false, precision: 18, scale: 2),
+                        IngresoCantidadTienda = c.Decimal(nullable: false, precision: 18, scale: 2),
                         IngresoCostoTienda = c.Decimal(nullable: false, precision: 18, scale: 2),
-                        IngresoCostoTotal = c.Decimal(nullable: false, precision: 18, scale: 2),
-                        SalidaCostoBodega = c.Decimal(nullable: false, precision: 18, scale: 2),
-                        SalidaCostoTienda = c.Decimal(nullable: false, precision: 18, scale: 2),
-                        SalidaCostoTotal = c.Decimal(nullable: false, precision: 18, scale: 2),
-                        SalodaCantidadBodega = c.Decimal(nullable: false, precision: 18, scale: 2),
                         SalidaCantidadTienda = c.Decimal(nullable: false, precision: 18, scale: 2),
-                        SalidaCantidadTotal = c.Decimal(nullable: false, precision: 18, scale: 2),
-                        ExistenciaFinalBodega = c.Decimal(nullable: false, precision: 18, scale: 2),
+                        SalidaCostoTienda = c.Decimal(nullable: false, precision: 18, scale: 2),
                         ExistenciaFinalTienda = c.Decimal(nullable: false, precision: 18, scale: 2),
-                        ExistenciaFinalTotal = c.Decimal(nullable: false, precision: 18, scale: 2),
                     })
                 .PrimaryKey(t => t.Id);
             

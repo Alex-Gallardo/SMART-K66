@@ -12,6 +12,8 @@ using PagedList;
 using System.Collections;
 using System.Data;
 using Microsoft.Reporting.WebForms;
+using DiamDev.Give.DAL;
+using System.Data.Entity;
 
 namespace DiamDev.Give.UI.Controllers
 {
@@ -138,6 +140,62 @@ namespace DiamDev.Give.UI.Controllers
 
                 if (strMensaje.Equals("OK"))
                 {
+                    using (var db = new GiveContext())
+                    {
+                        var agenciaOrigen = db.Agencias.FirstOrDefault(a => a.AgenciaId == modelo.AgenciaOrigenId);
+                        var agenciaDestino = db.Agencias.FirstOrDefault(a => a.AgenciaId == modelo.AgenciaDestinoId);
+
+                        if (agenciaOrigen != null && agenciaDestino != null)
+                        {
+                            foreach (var p in modelo.Detalles)
+                            {
+                                var productoId = p.ProductoId;
+                                var producto = db.Productos.Include(pr => pr.Marca).FirstOrDefault(pr => pr.ProductoId == productoId);
+
+                                if (producto == null) continue;
+
+                                var fechaHora = DateTime.Now;
+                                db.RegistrosKardex.Add(new RegistroKardex
+                                {
+                                    FechaHora = fechaHora,
+                                    Fecha = DateTime.Today,
+                                    ProductoId = p.ProductoId,
+                                    ProductoCodigo = producto.Codigo,
+                                    ProductoNombre = producto.Nombre,
+                                    ProductoDescripcion = producto.Descripcion,
+                                    MarcaId = producto.MarcaId,
+                                    MarcaNombre = producto.Marca.Nombre,
+                                    DocumentoNumero = modelo.TrasladoId.ToString(),
+                                    AgenciaId = agenciaOrigen.AgenciaId,
+                                    AgenciaNombre = agenciaOrigen.Nombre,
+                                    TipoRegistro = "Taslado",
+                                    SalidaCantidadTienda = p.Cantidad,
+                                    SalidaCostoTienda = producto.PrecioActual
+                                });
+
+                                db.RegistrosKardex.Add(new RegistroKardex
+                                {
+                                    FechaHora = fechaHora,
+                                    Fecha = DateTime.Today,
+                                    ProductoId = p.ProductoId,
+                                    ProductoCodigo = producto.Codigo,
+                                    ProductoNombre = producto.Nombre,
+                                    ProductoDescripcion = producto.Descripcion,
+                                    MarcaId = producto.MarcaId,
+                                    MarcaNombre = producto.Marca.Nombre,
+                                    DocumentoNumero = modelo.TrasladoId.ToString(),
+                                    AgenciaId = agenciaDestino.AgenciaId,
+                                    AgenciaNombre = agenciaDestino.Nombre,
+                                    TipoRegistro = "Taslado",
+                                    IngresoCantidadTienda = p.Cantidad,
+                                    IngresoCostoTienda = producto.PrecioActual
+                                });
+                            }
+
+                            db.SaveChanges();
+                        }
+                    }
+
                     TempData["Traslado-Success"] = strMensaje;
                     return RedirectToAction("Index");
                 }

@@ -4,6 +4,7 @@ using OfficeOpenXml;
 using OfficeOpenXml.Style;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -37,7 +38,7 @@ namespace DiamDev.Give.UI.Controllers
                 var ws = pck.Workbook.Worksheets.Add("Kardex");
 
                 ws.Cells["A3"].Value = "Proyecto Give Guatemala, S.A.";
-                ws.Cells["A3:D4"].Merge = true;
+                ws.Cells["A3:E3"].Merge = true;
 
                 ws.Cells["A4"].Value = $"Kardex de inventario al {hasta:dd/MM/yyyy}";
                 ws.Cells["A4:E4"].Merge = true;
@@ -95,6 +96,12 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     columna = agenciasIndex[item.AgenciaId] + 8;
 
+                    ws.Cells[fila, 2].Value = item.ProductoCodigo?.Trim();
+                    ws.Cells[fila, 3].Value = item.MarcaNombre?.Trim();
+                    ws.Cells[fila, 4].Value = item.ProductoDescripcion?.Trim();
+                    ws.Cells[fila, 5].Value = Fecha(item.FechaHora);
+                    ws.Cells[fila, 5].Style.Numberformat.Format = "dd/mm/yyyy";
+                    
                     // ingresos
                     var cantidadI = ExcelCellBase.GetAddress(fila, columna);
                     var costoI = ExcelCellBase.GetAddress(fila, columna + 1);
@@ -107,8 +114,6 @@ namespace DiamDev.Give.UI.Controllers
                         ws.Cells[costoI].Value = item.IngresoCostoTienda;
 
                     ws.Cells[totalI].Formula = $"{cantidadI}*{costoI}";
-                    //ws.Cells[totalI].Style.Numberformat.Format = "Q#,##0.00";
-                    //ws.Cells[totalI].Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
 
                     // egreso
                     var cantidadE = ExcelCellBase.GetAddress(fila, columna + 3);
@@ -155,6 +160,10 @@ namespace DiamDev.Give.UI.Controllers
                     finale = ExcelCellBase.GetAddress(ultimaFila, columna + 2);
                     ws.Cells[fila, columna + 2].Formula = $"SUM({inicio}:{finale})";
 
+                    ColocarFormatoNumero(ws, primerFila, columna + 0, fila, columna + 0);
+                    ColocarFormatoMoneda(ws, primerFila, columna + 1, fila, columna + 1);
+                    ColocarFormatoMoneda(ws, primerFila, columna + 2, fila, columna + 2);
+
                     // Egresos
 
                     // Cantidad
@@ -166,6 +175,10 @@ namespace DiamDev.Give.UI.Controllers
                     inicio = ExcelCellBase.GetAddress(primerFila, columna + 5);
                     finale = ExcelCellBase.GetAddress(ultimaFila, columna + 5);
                     ws.Cells[fila, columna + 5].Formula = $"SUM({inicio}:{finale})";
+
+                    ColocarFormatoNumero(ws, primerFila, columna + 3, fila, columna + 3);
+                    ColocarFormatoMoneda(ws, primerFila, columna + 4, fila, columna + 4);
+                    ColocarFormatoMoneda(ws, primerFila, columna + 5, fila, columna + 5);
 
                     // Existencias
 
@@ -179,11 +192,80 @@ namespace DiamDev.Give.UI.Controllers
                     finale = ExcelCellBase.GetAddress(ultimaFila, columna + 8);
                     ws.Cells[fila, columna + 8].Formula = $"SUM({inicio}:{finale})";
 
+                    ColocarFormatoNumero(ws, primerFila, columna + 6, fila, columna + 6);
+                    ColocarFormatoMoneda(ws, primerFila, columna + 7, fila, columna + 7);
+                    ColocarFormatoMoneda(ws, primerFila, columna + 8, fila, columna + 8);
+
+
+                    columna++;
                    
                 }
 
+                columna--;
+                ColocarFondoAzul(ws, 7, 1, 9, columna + 8);
+                ColocarFondoAzul(ws, fila, 1, fila, columna + 8);
+                ColocarBordes(ws, 7, 1, fila, columna + 8);
+
                 ws.Calculate();
-                return File(pck.GetAsByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+                AjustarAncho(ws, 7, 1, fila, columna + 8);
+
+                return File(pck.GetAsByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"kardex_{desde:yyMMdd}_{hasta:yyMMdd}.xlsx");
+            }
+        }
+
+        private static void ColocarFondoAzul(ExcelWorksheet ws, int filaInicio, int columnaInicio, int filaFin, int columnaFin)
+        {
+            using (var range = ws.Cells[filaInicio, columnaInicio, filaFin, columnaFin])
+            {
+                range.Style.Font.Bold = true;
+                range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
+                range.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+                range.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                range.Style.Fill.BackgroundColor.SetColor(Color.FromArgb(142, 180, 227));
+            }
+        }
+
+        private static void ColocarBordes(ExcelWorksheet ws, int filaInicio, int columnaInicio, int filaFin, int columnaFin)
+        {
+            using (var range = ws.Cells[filaInicio, columnaInicio, filaFin, columnaFin])
+            {
+                range.Style.Border.Left.Style = ExcelBorderStyle.Thin;
+                range.Style.Border.Top.Style = ExcelBorderStyle.Thin;
+                range.Style.Border.Right.Style = ExcelBorderStyle.Thin;
+                range.Style.Border.Bottom.Style = ExcelBorderStyle.Thin;
+            }
+        }
+
+        private static void ColocarFormatoMoneda(ExcelWorksheet ws, int filaInicio, int columnaInicio, int filaFin, int columnaFin)
+        {
+            using (var range = ws.Cells[filaInicio, columnaInicio, filaFin, columnaFin])
+            {
+                range.Style.Numberformat.Format = "[$Q-100A]#,##0.00;[RED]([$Q-100A]#,##0.00)";
+                range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            }
+        }
+        private static void ColocarFormatoNumero(ExcelWorksheet ws, int filaInicio, int columnaInicio, int filaFin, int columnaFin)
+        {
+            using (var range = ws.Cells[filaInicio, columnaInicio, filaFin, columnaFin])
+            {
+                range.Style.Numberformat.Format = "#,##0.00";
+                range.Style.HorizontalAlignment = ExcelHorizontalAlignment.Right;
+            }
+        }
+
+        private static int Fecha(DateTime fecha)
+        {
+            DateTime start = new DateTime(1900, 1, 1);
+            TimeSpan diff = fecha - start;
+            return diff.Days + 2;
+        }
+
+        private static void AjustarAncho(ExcelWorksheet ws, int filaInicio, int columnaInicio, int filaFin, int columnaFin)
+        {
+            using (var range = ws.Cells[filaInicio, columnaInicio, filaFin, columnaFin])
+            {
+                range.AutoFitColumns();
             }
         }
     }

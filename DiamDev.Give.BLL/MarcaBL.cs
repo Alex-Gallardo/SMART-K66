@@ -137,7 +137,7 @@ namespace DiamDev.Give.BLL
 
                 try
                 {
-                    MarcaActual = db.Set<Marca>().Where(x => x.MarcaId == id).FirstOrDefault();
+                    MarcaActual = db.Set<Marca>().Where(x => x.MarcaId == id && x.Activo == true).FirstOrDefault();
                 }
                 catch (Exception)
                 {

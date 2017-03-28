@@ -319,7 +319,7 @@ namespace DiamDev.Give.BLL
 
                 try
                 {
-                    ProductoActual = db.Set<Producto>().Where(x => x.ProductoId.Equals(barra) || x.Codigo.Equals(barra)).AsEnumerable().Select(x => new Producto() { ProductoId = x.ProductoId, Nombre = string.Format("{0} - {1}",x.Codigo,x.Nombre) }).FirstOrDefault();
+                    ProductoActual = db.Set<Producto>().Where(x => x.ProductoId.Equals(barra) && x.Activo == true || x.Codigo.Equals(barra)).AsEnumerable().Select(x => new Producto() { ProductoId = x.ProductoId, Nombre = string.Format("{0} - {1}",x.Codigo,x.Nombre) }).FirstOrDefault();
                 }
                 catch (Exception)
                 {

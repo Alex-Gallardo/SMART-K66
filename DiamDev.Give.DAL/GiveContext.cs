@@ -93,6 +93,8 @@ namespace DiamDev.Give.DAL
         public DbSet<Personal> Personals { get; set; }
 
         public DbSet<PersonalHorario> PersonalHorarios { get; set; }
+
+        public DbSet<RegistroKardex> RegistrosKardex { get; set; }
         
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {

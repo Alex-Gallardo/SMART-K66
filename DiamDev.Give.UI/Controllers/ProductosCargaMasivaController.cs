@@ -283,10 +283,15 @@ namespace DiamDev.Give.UI.Controllers
                             continue;
                         }
 
+                        Producto producto;
+                        Marca marca;
+                        decimal cantidad;
+                        decimal costo;
+
                         if (string.IsNullOrWhiteSpace(item.Modificacion))
                         {
                             // editar
-                            var producto = db.Productos.Include(x => x.Precios).FirstOrDefault(x => x.ProductoId == item.Id.ToString() || x.Codigo == item.Codigo);
+                            producto = db.Productos.Include(x => x.Precios).FirstOrDefault(x => x.ProductoId == item.Id.ToString() || x.Codigo == item.Codigo);
 
                             if (producto == null)
                             {
@@ -297,7 +302,7 @@ namespace DiamDev.Give.UI.Controllers
                                 continue;
                             }
 
-                            var marca = db.Marcas.Where(x => x.Nombre.ToLower().Trim() == item.Marca.ToLower().Trim()).FirstOrDefault();
+                            marca = db.Marcas.Where(x => x.Nombre.ToLower().Trim() == item.Marca.ToLower().Trim()).FirstOrDefault();
 
                             if (marca == null)
                             {
@@ -323,19 +328,20 @@ namespace DiamDev.Give.UI.Controllers
 
                             var productoBodega = db.ProductoInventarios.FirstOrDefault(x => x.AgenciaId == agencia.AgenciaId && x.ProductoId == producto.ProductoId);
 
+                            cantidad = Convert.ToDecimal(item.Cantidad);
                             if (productoBodega == null)
                             {
                                 productoBodega = new ProductoInventario
                                 {
                                     AgenciaId = agencia.AgenciaId,
                                     ProductoId = producto.ProductoId,
-                                    Cantidad = Convert.ToDecimal(item.Cantidad)
+                                    Cantidad = cantidad
                                 };
                                 db.ProductoInventarios.Add(productoBodega);
                             }
                             else
                             {
-                                productoBodega.Cantidad += Convert.ToDecimal(item.Cantidad);
+                                productoBodega.Cantidad += cantidad;
                             }
 
 
@@ -345,18 +351,19 @@ namespace DiamDev.Give.UI.Controllers
 
                             var productoPrecioCosto = db.ProductoPrecioCostos.FirstOrDefault(x => x.ProductoId == producto.ProductoId);
 
+                            costo = Convert.ToDecimal(item.Costo);
                             if (productoPrecioCosto == null)
                             {
                                 productoPrecioCosto = new ProductoPrecioCosto
                                 {
                                     Producto = producto,
-                                    PrecioCosto = Convert.ToDecimal(item.Costo)
+                                    PrecioCosto = costo
                                 };
                                 db.ProductoPrecioCostos.Add(productoPrecioCosto);
                             }
                             else
                             {
-                                productoPrecioCosto.PrecioCosto = Convert.ToDecimal(item.Costo);
+                                productoPrecioCosto.PrecioCosto = costo;
                             }
 
                             producto.PrecioActual = Convert.ToDecimal(item.PrecioVenta);
@@ -374,12 +381,13 @@ namespace DiamDev.Give.UI.Controllers
                                     Valor = Convert.ToDecimal(item.PrecioVenta)
                                 });
                             }
+
                         }
                         else
                         {
                             // crear
 
-                            var producto = db.Productos.FirstOrDefault(x => x.ProductoId == item.Id.ToString() || x.Codigo == item.Codigo);
+                            producto = db.Productos.FirstOrDefault(x => x.ProductoId == item.Id.ToString() || x.Codigo == item.Codigo);
 
                             if (producto != null)
                             {
@@ -390,7 +398,7 @@ namespace DiamDev.Give.UI.Controllers
                                 continue;
                             }
 
-                            var marca = db.Marcas.Where(x => x.Nombre.ToLower().Trim() == item.Marca.ToLower().Trim()).FirstOrDefault();
+                            marca = db.Marcas.Where(x => x.Nombre.ToLower().Trim() == item.Marca.ToLower().Trim()).FirstOrDefault();
 
                             if (marca == null)
                             {
@@ -487,17 +495,40 @@ namespace DiamDev.Give.UI.Controllers
 
                             db.Productos.Add(producto);
 
+                            costo = Convert.ToDecimal(item.Costo);
+                            cantidad = Convert.ToDecimal(item.Cantidad);
+
                             var productoPrecioCosto = new ProductoPrecioCosto
                             {
                                 Producto = producto,
-                                PrecioCosto = Convert.ToDecimal(item.Costo)
+                                PrecioCosto = costo
                             };
                             db.ProductoPrecioCostos.Add(productoPrecioCosto);
                             db.ProductoInventarios.Add(new ProductoInventario
                             {
                                 AgenciaId = agencia.AgenciaId,
                                 ProductoId = producto.ProductoId,
-                                Cantidad = Convert.ToDecimal(item.Cantidad)
+                                Cantidad = cantidad
+                            });
+                        }
+
+                        if (commit)
+                        {
+                            db.RegistrosKardex.Add(new RegistroKardex
+                            {
+                                FechaHora = DateTime.Now,
+                                Fecha = DateTime.Today,
+                                ProductoId = producto.ProductoId,
+                                ProductoCodigo = producto.Codigo,
+                                ProductoNombre = producto.Nombre,
+                                ProductoDescripcion = producto.Descripcion,
+                                MarcaId = marca.MarcaId,
+                                MarcaNombre = marca.Nombre,
+                                AgenciaId = agencia.AgenciaId,
+                                AgenciaNombre = agencia.Nombre,
+                                TipoRegistro = "Ingreso Masivo",
+                                IngresoCantidadTienda = cantidad,
+                                IngresoCostoTienda = costo
                             });
                         }
                     }

@@ -11,6 +11,8 @@ using DiamDev.Give.UI.Models;
 using PagedList;
 using System.Data;
 using Microsoft.Reporting.WebForms;
+using DiamDev.Give.DAL;
+using System.Data.Entity;
 
 namespace DiamDev.Give.UI.Controllers
 {
@@ -176,6 +178,44 @@ namespace DiamDev.Give.UI.Controllers
                 string strMensaje = new FacturaBL().Guardar(modelo);
                 if (strMensaje.Equals("OK"))
                 {
+
+                    using (var db = new GiveContext())
+                    {
+                        var agencia = db.Agencias.FirstOrDefault(a => a.AgenciaId == modelo.AgenciaId);
+                        var serie = db.Series.FirstOrDefault(x => x.SerieId == modelo.SerieId);
+
+                        if (agencia != null && serie != null)
+                        {
+                            foreach (var p in modelo.Detalles)
+                            {
+                                var productoId = p.ProductoId;
+                                var producto = db.Productos.Include(pr => pr.Marca).FirstOrDefault(pr => pr.ProductoId == productoId);
+
+                                if (producto == null) continue;
+
+                                db.RegistrosKardex.Add(new RegistroKardex
+                                {
+                                    FechaHora = DateTime.Now,
+                                    Fecha = DateTime.Today,
+                                    ProductoId = p.ProductoId,
+                                    ProductoCodigo = producto.Codigo,
+                                    ProductoNombre = producto.Nombre,
+                                    ProductoDescripcion = producto.Descripcion,
+                                    MarcaId = producto.MarcaId,
+                                    MarcaNombre = producto.Marca.Nombre,
+                                    DocumentoNumero = serie.Nombre + "-" + modelo.NoFactura,
+                                    AgenciaId = modelo.AgenciaId,
+                                    AgenciaNombre = agencia.Nombre,
+                                    TipoRegistro = "Factura",
+                                    SalidaCantidadTienda = p.Cantidad,
+                                    SalidaCostoTienda = p.Precio
+                                });
+                            }
+
+                            db.SaveChanges();
+                        }
+                    }
+
                     TempData["Factura-Success"] = strMensaje;
                     return RedirectToAction("Index");
                 }

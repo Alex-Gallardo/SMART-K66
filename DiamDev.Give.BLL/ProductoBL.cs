@@ -126,6 +126,7 @@ namespace DiamDev.Give.BLL
                         ProductoActual.Maximo = entidad.Maximo;
                         ProductoActual.Cantidad = entidad.Cantidad;
                         ProductoActual.Activo = entidad.Activo;
+                       
 
                         if (entidad.Precios != null && entidad.Precios.Count() > 0)
                         {
@@ -163,6 +164,12 @@ namespace DiamDev.Give.BLL
                                 db.Set<ProductoFotografia>().Add(item);
                             }
                         }
+
+                    if (ProductoActual.Costo != entidad.Costo)
+                    {
+                        ProductoPrecioCosto productoCosto = db.Set<ProductoPrecioCosto>().Where(x => x.ProductoId == ProductoActual.ProductoId).FirstOrDefault();
+                        productoCosto.PrecioCosto = entidad.Costo;
+                    }
 
                         db.SaveChanges();
                         ProductoActualizar = true;
@@ -206,6 +213,9 @@ namespace DiamDev.Give.BLL
             {
                 Producto ProductoActual = new Producto();
 
+            var costoProducto = ObtenerCosto(id);
+
+            
                 try
                 {
                     if (todos)
@@ -235,14 +245,21 @@ namespace DiamDev.Give.BLL
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+               
                 }
-
-                return ProductoActual;
+            ProductoActual.Costo = costoProducto;
+            return ProductoActual;
             }
 
-            public Producto ObtenerExistenciaPorAgenciaYProducto(long agenciaId, string productoId, long unidadId, bool precioVigente = false, bool empleado = false)
+        public Decimal ObtenerCosto(string productoId)
+        {
+            var Costo = db.ProductoPrecioCostos.Where(x => x.ProductoId == productoId).Select(x => x.PrecioCosto).FirstOrDefault();
+            return Costo;
+        }
+
+        public Producto ObtenerExistenciaPorAgenciaYProducto(long agenciaId, string productoId, long unidadId, bool precioVigente = false, bool empleado = false)
             {
                 Producto ProductoActual = new Producto();
 

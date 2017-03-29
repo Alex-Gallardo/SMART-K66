@@ -192,6 +192,7 @@ namespace DiamDev.Give.UI.Controllers
 
             ViewBag.activoSi = ProductoActual.Activo == true ? strAtributo : "";
             ViewBag.activoNo = ProductoActual.Activo == false ? strAtributo : "";
+           
 
             this.CargaControles();
             return View(ProductoActual);

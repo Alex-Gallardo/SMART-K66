@@ -68,6 +68,9 @@ namespace DiamDev.Give.Entities
         public List<ProductoPrecio> Precios { get; set; }
 
         [NotMapped]
+        public decimal Costo { get; set; }
+
+        [NotMapped]
         public List<Producto> Productos { get; set; }
 
         public List<ProductoFotografia> Imagenes { get; set; }

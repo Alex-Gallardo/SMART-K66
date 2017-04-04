@@ -72,9 +72,17 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     rowsCount++;
 
+                    var cells = row.Cells;
+
+                    if (cells.Length < 12)
+                    {
+                        error = $"Error en fila {filas.Count + 1}, debe tener al menos 12 columnas.";
+                        return Resultado(success, error);
+                    }
+
                     if (rowsCount == 1)
                     {
-                        var nombresEnArchivo = row.Cells.Select(x => x.Text.Trim()).ToArray();
+                        var nombresEnArchivo = cells.Select(x => x.Text.Trim()).ToArray();
                         for (int i = 0; i < nombresColumnas.Length; i++)
                         {
                             if (nombresColumnas[i] != nombresEnArchivo[i])
@@ -85,14 +93,6 @@ namespace DiamDev.Give.UI.Controllers
                             }
                         }
                         continue;
-                    }
-
-                    var cells = row.Cells;
-
-                    if (cells.Length < 12)
-                    {
-                        error = $"Error en fila {filas.Count + 1}, debe tener al menos 12 columnas.";
-                        return Resultado(success, error);
                     }
 
                     double rowId;

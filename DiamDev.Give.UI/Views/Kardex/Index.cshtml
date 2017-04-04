@@ -6,7 +6,7 @@
 
 <form action="@Url.Action("Generar")" method="get" class="form-inline">
     <div class="row">
-        <div class="col-md-5">
+        <div class="col-md-3">
             <div class="form-group">
                 <label class="control-label">
                     Fecha Inicial<span class="symbol required"></span>
@@ -17,7 +17,7 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-5">
+        <div class="col-md-3">
             <div class="form-group">
                 <label class="control-label">
                     Fecha Final<span class="symbol required"></span>
@@ -28,7 +28,17 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="control-label">
+                    Producto:
+                </label>
+                <div class="input-group">
+                    @Html.DropDownList("producto", ViewBag.Productos as IEnumerable<SelectListItem>, new { @class = "form-control" })
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
             <div class="form-group">
                 <label class="control-label">
                     &nbsp;

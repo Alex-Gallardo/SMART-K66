@@ -18,16 +18,23 @@ namespace DiamDev.Give.UI.Controllers
         
         public ActionResult Index()
         {
+            SelectListItem[] productos;
+            using (var db = new GiveContext())
+            {
+                productos = db.Productos.Where(x => x.Activo).OrderBy(x => x.Nombre).Select(x => new SelectListItem { Text = x.Nombre, Value = x.ProductoId.ToString() }).ToArray();
+            }
+
+            ViewBag.Productos = productos;
             return View();
         }
 
-        public ActionResult Generar(DateTime desde, DateTime hasta)
+        public ActionResult Generar(DateTime desde, DateTime hasta, string producto)
         {
 
             RegistroKardex[] kardex;
             using (var db = new GiveContext())
             {
-                kardex = db.RegistrosKardex.Where(x => x.Fecha >= desde && x.Fecha <= hasta).OrderBy(x => x.FechaHora).ToArray();
+                kardex = db.RegistrosKardex.Where(x => x.Fecha >= desde && x.Fecha <= hasta && x.ProductoId == producto).OrderBy(x => x.FechaHora).ToArray();
             }
 
             var agencias = kardex.Select(x => new { x.AgenciaId, x.AgenciaNombre }).Distinct().ToArray();

@@ -86,7 +86,7 @@ namespace DiamDev.Give.UI.Controllers
                     ws.Cells[8, columna + 3, 8, columna + 5].Merge = true;
                     ws.Cells[8, columna + 6, 8, columna + 8].Merge = true;
                     
-                    columna++;
+                    columna += 9;
 
                 }
 
@@ -94,7 +94,7 @@ namespace DiamDev.Give.UI.Controllers
 
                 foreach (var item in kardex)
                 {
-                    columna = agenciasIndex[item.AgenciaId] + 8;
+                    columna = (agenciasIndex[item.AgenciaId] * 9) + 8;
 
                     ws.Cells[fila, 2].Value = item.ProductoCodigo?.Trim();
                     ws.Cells[fila, 3].Value = item.MarcaNombre?.Trim();
@@ -109,9 +109,13 @@ namespace DiamDev.Give.UI.Controllers
 
                     if (item.IngresoCantidadTienda > 0)
                         ws.Cells[cantidadI].Value = item.IngresoCantidadTienda;
+                    else
+                        ws.Cells[cantidadI].Value = 0;
 
                     if (item.IngresoCostoTienda > 0)
                         ws.Cells[costoI].Value = item.IngresoCostoTienda;
+                    else
+                        ws.Cells[costoI].Value = 0;
 
                     ws.Cells[totalI].Formula = $"{cantidadI}*{costoI}";
 
@@ -122,9 +126,13 @@ namespace DiamDev.Give.UI.Controllers
 
                     if (item.SalidaCantidadTienda > 0)
                         ws.Cells[cantidadE].Value = item.SalidaCantidadTienda;
+                    else
+                        ws.Cells[cantidadE].Value = 0;
 
                     if (item.SalidaCostoTienda > 0)
                         ws.Cells[costoE].Value = item.SalidaCostoTienda;
+                    else
+                        ws.Cells[costoE].Value = 0;
 
                     ws.Cells[totalE].Formula = $"{cantidadE}*{costoE}";
 
@@ -197,11 +205,11 @@ namespace DiamDev.Give.UI.Controllers
                     ColocarFormatoMoneda(ws, primerFila, columna + 8, fila, columna + 8);
 
 
-                    columna++;
+                    columna += 9;
                    
                 }
 
-                columna--;
+                columna -= 9;
                 ColocarFondoAzul(ws, 7, 1, 9, columna + 8);
                 ColocarFondoAzul(ws, fila, 1, fila, columna + 8);
                 ColocarBordes(ws, 7, 1, fila, columna + 8);

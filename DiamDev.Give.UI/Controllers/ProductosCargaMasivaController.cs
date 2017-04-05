@@ -82,7 +82,7 @@ namespace DiamDev.Give.UI.Controllers
 
                     if (rowsCount == 1)
                     {
-                        var nombresEnArchivo = cells.Select(x => x.Text.Trim()).ToArray();
+                        var nombresEnArchivo = cells.Select(x => x?.Text?.Trim()).ToArray();
                         for (int i = 0; i < nombresColumnas.Length; i++)
                         {
                             if (nombresColumnas[i] != nombresEnArchivo[i])

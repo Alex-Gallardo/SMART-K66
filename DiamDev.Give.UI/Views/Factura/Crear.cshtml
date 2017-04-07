@@ -179,7 +179,9 @@
             function cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, precio_id, descuento_id) {
                 var plantilla = $('#producto_tr_template').html();
 
-                var precioDescuento = precio_id - precio_id * descuento_id / 100;
+                var descId = parseFloat(descuento_id); 
+
+                var precioDescuento = precio_id - precio_id * descId / 100;
                 var modelo =
                 {
                     producto_id: producto_id,
@@ -270,7 +272,7 @@
                     return;
                 }
 
-                var descuento_id = parseInt($("#Descuento").val(), 10);
+                var descuento_id = parseFloat($("#Descuento").val(), 10);
 
                 cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, precio_id, descuento_id);
                 totalizarProducto();

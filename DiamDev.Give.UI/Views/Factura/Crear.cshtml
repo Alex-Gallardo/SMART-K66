@@ -192,8 +192,8 @@
                     cantidad: cantidad_id,
                     precio_id: precio_id,
                     precio: precio_id,
-                    descuento: descuento_id,
-                    descuento_id: descuento_id,
+                    descuento: descId,
+                    descuento_id: descId,
                     sub_total: precioDescuento * cantidad_id
                 };
 
@@ -383,7 +383,7 @@
 
                 var descuentoArray = new Array();
                 $('input[name=descuentoIds]').each(function () {
-                    descuentoArray.push(parseInt($(this).val(), 10));
+                    descuentoArray.push(parseFloat($(this).val(), 10));
                 });
 
                 var total = 0;

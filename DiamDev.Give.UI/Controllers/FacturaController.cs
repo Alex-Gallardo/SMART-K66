@@ -123,7 +123,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [Permiso("Control.Factura.Crear")]
         [HttpPost]
-        public ActionResult Crear(Factura modelo, bool empleado, string[] productoIds, string[] nombreProductoIds, long[] presentacionIds, string[] nombrePresentacionIds, decimal[] cantidadIds, decimal[] precioIds, long[] formaIds, decimal[] pagarIds, string[] notaIds, int[] descuentoIds)
+        public ActionResult Crear(Factura modelo, bool empleado, string[] productoIds, string[] nombreProductoIds, long[] presentacionIds, string[] nombrePresentacionIds, decimal[] cantidadIds, decimal[] precioIds, long[] formaIds, decimal[] pagarIds, string[] notaIds, decimal[] descuentoIds)
         {
             if (productoIds == null || productoIds.Length == 0)
             {

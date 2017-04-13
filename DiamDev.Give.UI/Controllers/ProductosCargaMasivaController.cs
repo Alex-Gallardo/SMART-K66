@@ -273,7 +273,7 @@ namespace DiamDev.Give.UI.Controllers
 
                     foreach (var item in productos)
                     {
-                        var agencia = db.Agencias.FirstOrDefault(x => x.Nombre.ToLower() == item.Bodega.ToLower());
+                        var agencia = db.Agencias.FirstOrDefault(x => x.Nombre.ToLower().Trim() == item.Bodega.ToLower().Trim());
                         if (agencia == null)
                         {
                             error = "No existe la bodega '" + item.Bodega + "'.";
@@ -291,7 +291,7 @@ namespace DiamDev.Give.UI.Controllers
                         if (string.IsNullOrWhiteSpace(item.Modificacion))
                         {
                             // editar
-                            producto = db.Productos.Include(x => x.Precios).FirstOrDefault(x => x.ProductoId == item.Id.ToString() || x.Codigo == item.Codigo);
+                            producto = db.Productos.Include(x => x.Precios).FirstOrDefault(x => x.ProductoId.Trim() == item.Id.ToString().Trim() || x.Codigo.Trim() == item.Codigo.Trim());
 
                             if (producto == null)
                             {
@@ -387,7 +387,7 @@ namespace DiamDev.Give.UI.Controllers
                         {
                             // crear
 
-                            producto = db.Productos.FirstOrDefault(x => x.ProductoId == item.Id.ToString() || x.Codigo == item.Codigo);
+                            producto = db.Productos.FirstOrDefault(x => x.ProductoId.Trim() == item.Id.ToString().Trim() || x.Codigo.Trim() == item.Codigo.Trim());
 
                             if (producto != null)
                             {

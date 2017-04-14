@@ -302,6 +302,8 @@ namespace DiamDev.Give.UI.Controllers
                         Detalles = new List<MovimientoDetalle>()
                     };
 
+                    int movimientoDetalleId = 1;
+
                     foreach (var item in productos)
                     {
                         var agencia = db.Agencias.FirstOrDefault(x => x.Nombre.ToLower().Trim() == item.Bodega.ToLower().Trim());
@@ -547,10 +549,13 @@ namespace DiamDev.Give.UI.Controllers
                         {
 
                             movimiento.Detalles.Add(new MovimientoDetalle {
+                                DetalleId = movimientoDetalleId++,
+                                MovimientoId = movimiento.MovimientoId,
                                 ProductoId = producto.ProductoId,
                                 UnidadId = producto.UnidadId,
                                 Cantidad = cantidad,
-                                Precio = costo
+                                Precio = costo,
+                                PrecioCosto = decimal.Round(cantidad * costo, 2)
                             });
 
                             db.RegistrosKardex.Add(new RegistroKardex

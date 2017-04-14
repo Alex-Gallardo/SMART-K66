@@ -12,6 +12,7 @@ using System.Web;
 using System.Web.Mvc;
 using System.Data.Entity;
 using System.Globalization;
+using DiamDev.Give.UI.App_Start;
 
 namespace DiamDev.Give.UI.Controllers
 {
@@ -270,6 +271,36 @@ namespace DiamDev.Give.UI.Controllers
                 using (var trx = db.Database.BeginTransaction())
                 {
 
+                    var proveedor = db.Proveedores.FirstOrDefault(x => x.ProveedorId == 20170413001) ?? new Proveedor {
+                        ProveedorId = 20170403001,
+                        Nombre = "Carga Masiva",
+                        Direccion = "Guatemala",
+                        NoTelefonoOficina = "12345678",
+                        Activo = false,
+                        Fecha = DateTime.Now,
+                        Correlativo = 1
+                    };
+
+                    int movimientoCorrelativo = db.Movimientos.Where(x => x.Fecha.Year == hoy.Year && x.Fecha.Month == hoy.Month && x.Fecha.Day == hoy.Day).OrderByDescending(x => x.Correlativo).Select(x => x.Correlativo).FirstOrDefault();
+
+                    if (movimientoCorrelativo == 0)
+                    {
+                        movimientoCorrelativo = 1;
+                    }
+
+                    var movimiento = new Movimiento
+                    {
+                        MovimientoId = long.Parse(string.Format("{0:yyyyMMdd}{1:000}", hoy, movimientoCorrelativo)),
+                        Correlativo = movimientoCorrelativo,
+                        AgenciaId = CustomHelper.getAgenciaId(),
+                        UsrCreo = CustomHelper.getUserId(),
+                        MovimientoTipoId = 1,
+                        Operado = true,
+                        Fecha = DateTime.Now,
+                        Descripcion = "Carga Masiva",
+                        Proveedor = proveedor,
+                        Detalles = new List<MovimientoDetalle>()
+                    };
 
                     foreach (var item in productos)
                     {
@@ -514,6 +545,14 @@ namespace DiamDev.Give.UI.Controllers
 
                         if (commit)
                         {
+
+                            movimiento.Detalles.Add(new MovimientoDetalle {
+                                ProductoId = producto.ProductoId,
+                                UnidadId = producto.UnidadId,
+                                Cantidad = cantidad,
+                                Precio = costo
+                            });
+
                             db.RegistrosKardex.Add(new RegistroKardex
                             {
                                 FechaHora = DateTime.Now,
@@ -535,6 +574,7 @@ namespace DiamDev.Give.UI.Controllers
 
                     try
                     {
+                        db.Movimientos.Add(movimiento);
                         db.SaveChanges();
                         if (commit)
                         {

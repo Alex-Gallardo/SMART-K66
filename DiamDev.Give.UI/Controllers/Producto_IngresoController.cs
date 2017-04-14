@@ -14,6 +14,7 @@ using System.Data;
 using Microsoft.Reporting.WebForms;
 using DiamDev.Give.DAL;
 using System.Data.Entity;
+using OfficeOpenXml;
 
 namespace DiamDev.Give.UI.Controllers
 {
@@ -206,6 +207,44 @@ namespace DiamDev.Give.UI.Controllers
             CustomHelper.setTitle("Producto Ingreso", "Detalle");
 
             return View(MovimientoActual);
+        }
+
+        [Permiso("Control.Producto_Ingreso.Detalle")]
+        public ActionResult Excel(long id)
+        {
+            Movimiento MovimientoActual = new MovimientoBL().ObtenerPorId(id);
+
+            if (MovimientoActual == null)
+            {
+                return HttpNotFound();
+            }
+
+            using (var pck = new ExcelPackage())
+            {
+                var ws = pck.Workbook.Worksheets.Add("Etiquetas");
+                ws.Cells["A1"].Value = "Codigo";
+                ws.Cells["B1"].Value = "Descripcion";
+                ws.Cells["C1"].Value = "Precio";
+                ws.Cells["D1"].Value = "Copia";
+
+                var fila = 1;
+                foreach (var item in MovimientoActual.Detalles)
+                {
+                    fila++;
+                    ws.Cells[fila, 1].Value = item.Producto.Codigo;
+                    ws.Cells[fila, 2].Value = item.Producto.Nombre;
+                    ws.Cells[fila, 3].Value = item.Precio;
+                    ws.Cells[fila, 4].Value = item.Cantidad;
+                }
+
+                using (var range = ws.Cells[1, 1, fila, 4])
+                {
+                    range.AutoFitColumns();
+                }
+
+                return File(pck.GetAsByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"etiquetas_{id}.xlsx");
+            }
+
         }
 
         [Permiso("Control.Reporte.Boleta_Ingreso")]

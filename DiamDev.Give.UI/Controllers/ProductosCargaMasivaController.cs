@@ -296,7 +296,7 @@ namespace DiamDev.Give.UI.Controllers
                         UsrCreo = CustomHelper.getUserId(),
                         MovimientoTipoId = 1,
                         Operado = true,
-                        Fecha = DateTime.Now,
+                        Fecha = DateTime.Today,
                         Descripcion = "Carga Masiva",
                         Proveedor = proveedor,
                         Detalles = new List<MovimientoDetalle>()

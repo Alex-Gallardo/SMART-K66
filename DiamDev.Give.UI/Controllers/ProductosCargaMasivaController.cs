@@ -271,7 +271,7 @@ namespace DiamDev.Give.UI.Controllers
                 using (var trx = db.Database.BeginTransaction())
                 {
 
-                    var proveedor = db.Proveedores.FirstOrDefault(x => x.ProveedorId == 20170413001) ?? new Proveedor {
+                    var proveedor = db.Proveedores.FirstOrDefault(x => x.ProveedorId == 20170403001) ?? new Proveedor {
                         ProveedorId = 20170403001,
                         Nombre = "Carga Masiva",
                         Direccion = "Guatemala",
@@ -287,6 +287,8 @@ namespace DiamDev.Give.UI.Controllers
                     {
                         movimientoCorrelativo = 1;
                     }
+
+                    movimientoCorrelativo++;
 
                     var movimiento = new Movimiento
                     {

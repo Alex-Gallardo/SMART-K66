@@ -830,6 +830,7 @@
     <Content Include="Views\ProductosCargaMasiva\Verificados.cshtml" />
     <Content Include="Views\ProductosCargaMasiva\Revisar.cshtml" />
     <Content Include="Views\Kardex\Index.cshtml" />
+    <Content Include="Views\SerieFactura\Index.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

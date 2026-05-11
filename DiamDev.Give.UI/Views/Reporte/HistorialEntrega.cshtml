@@ -130,12 +130,15 @@
         });
 
         function GenerarReporte(FechaInicial, FechaFinal, CentroId) {
-            // ⚠️ ReportID debe coincidir con el nombre exacto del .rdlc que crees
-            document.getElementById("myReport").src =
-                "@Url.Content("~/Reports/ReportViewer.aspx?ReportID=ReportHistorialEntrega")"
-                + "&FechaInicial=" + FechaInicial
-                + "&FechaFinal="   + FechaFinal
-                + "&CentroId="     + CentroId;
+            var ssrsBase   = "http://K66-APPS:80/ReportServer/Pages/ReportViewer.aspx";
+            // ⚠️ Cambia por la ruta exacta que veas en SSRS
+            var reportPath = "?/NombreCarpeta/HistorialEntregas";
+            var params = "&rs:Command=Render"
+                        + "&FechaInicial=" + FechaInicial
+                        + "&FechaFinal="   + FechaFinal
+                        + "&AgenciaId="    + CentroId;
+
+            document.getElementById("myReport").src = ssrsBase + reportPath + params;
         }
     </script>
 }

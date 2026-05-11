@@ -2,161 +2,766 @@
     ViewBag.Title = "Reportes";
 }
 
+@* ── BASE URL SSRS ── ajusta si cambias de red ──────────────── *@
+@{
+    var ssrs = "http://K66-APPS:80/ReportServer/Pages/ReportViewer.aspx";
+}
+
 <h2><i class="icon-edit-sign teal"></i> Reportes</h2>
 <hr />
 
-<div class="row">
+@* ════════════════════════════════════════════════════════════
+    COLLAPSE 1 — GERENCIA
+    ════════════════════════════════════════════════════════════ *@
+<div class="panel panel-default">
+    <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseGerencia">
+        <h4 class="panel-title">
+            <i class="icon-briefcase teal"></i>
+            <strong> Gerencia</strong>
+            <span class="pull-right"><i class="icon-angle-down"></i></span>
+        </h4>
+    </div>
+    <div id="collapseGerencia" class="panel-collapse collapse in">
+        <div class="panel-body">
 
-    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario"))
-    {
-        <div class="col-md-3">
-            <div class="core-box">
-                <div class="heading">
-                    <i class="clip-archive circle-icon circle-teal"></i>
-                    <h2>Inventario</h2>
+            @* ── Sub-carpeta: Inventarios ── *@
+            <h5 style="color:#777; border-bottom:1px solid #eee; padding-bottom:5px">
+                <i class="icon-folder-open"></i> Inventarios
+            </h5>
+            <div class="row" style="margin-bottom:15px">
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-archive circle-icon circle-teal"></i>
+                            <h2>Inventario General</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/Gerencia/Inventarios/Inventario General&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
                 </div>
-                <a href="@Url.Action("Inventario", "Reporte")" class="view-more">
-                    Ver Reporte <i class="clip-arrow-right-2"></i>
-                </a>
-            </div>
-        </div>
-    }
-
-    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Cierre"))
-    {
-        <div class="col-md-3">
-            <div class="core-box">
-                <div class="heading">
-                    <i class="clip-stats circle-icon circle-bricky"></i>
-                    <h2>Cierre del Día</h2>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-archive circle-icon circle-teal"></i>
+                            <h2>Inventario General FGB</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/Gerencia/Inventarios/Inventario General FGB&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
                 </div>
-                <a href="@Url.Action("Cierre", "Reporte")" class="view-more">
-                    Ver Reporte <i class="clip-arrow-right-2"></i>
-                </a>
             </div>
-        </div>
-    }
 
-    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.CierreDiarioResumen"))
-    {
-        <div class="col-md-3">
-            <div class="core-box">
-                <div class="heading">
-                    <i class="clip-stats circle-icon circle-red"></i>
-                    <h2>Corte Diario</h2>
+            @* ── Sub-carpeta: Ventas ── *@
+            <h5 style="color:#777; border-bottom:1px solid #eee; padding-bottom:5px">
+                <i class="icon-folder-open"></i> Ventas
+            </h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stats circle-icon circle-bricky"></i>
+                            <h2>VTA GEN Diarias</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/Gerencia/Ventas/VTA_GEN_DIARIAS&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
                 </div>
-                <a href="@Url.Action("CierreDiarioResumen", "Reporte")" class="view-more">
-                    Ver Reporte <i class="clip-arrow-right-2"></i>
-                </a>
-            </div>
-        </div>
-    }
-
-    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.ventasdesp"))
-    {
-        <div class="col-md-3">
-            <div class="core-box">
-                <div class="heading">
-                    <i class="clip-truck circle-icon circle-green"></i>
-                    <h2>Ventas Despachadas</h2>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stats circle-icon circle-bricky"></i>
+                            <h2>VTA GEN Mensual</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/Gerencia/Ventas/VTA_GEN_MENSUAL&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
                 </div>
-                <a href="@Url.Action("VentasDespachadas", "Reporte")" class="view-more">
-                    Ver Reporte <i class="clip-arrow-right-2"></i>
-                </a>
-            </div>
-        </div>
-    }
-
-    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.LibroVenta"))
-    {
-        <div class="col-md-3">
-            <div class="core-box">
-                <div class="heading">
-                    <i class="clip-book circle-icon circle-teal"></i>
-                    <h2>Libro de Venta</h2>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stats circle-icon circle-bricky"></i>
+                            <h2>VTA Quincena</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/Gerencia/Ventas/VTA_QUINCE&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
                 </div>
-                <a href="@Url.Action("LibroVenta", "Reporte")" class="view-more">
-                    Ver Reporte <i class="clip-arrow-right-2"></i>
-                </a>
             </div>
+
         </div>
-    }
-
-    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Ganancia"))
-    {
-        <div class="col-md-3">
-            <div class="core-box">
-                <div class="heading">
-                    <i class="clip-coins circle-icon circle-green"></i>
-                    <h2>Ganancia</h2>
-                </div>
-                <a href="@Url.Action("Ganancia", "Reporte")" class="view-more">
-                    Ver Reporte <i class="clip-arrow-right-2"></i>
-                </a>
-            </div>
-        </div>
-    }
-
-    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.kpidel"))
-    {
-        <div class="col-md-3">
-            <div class="core-box">
-                <div class="heading">
-                    <i class="clip-speedometer circle-icon circle-bricky"></i>
-                    <h2>KPI Entrega</h2>
-                </div>
-                <a href="@Url.Action("KpiDelivery", "Reporte")" class="view-more">
-                    Ver Reporte <i class="clip-arrow-right-2"></i>
-                </a>
-            </div>
-        </div>
-    }
-
-    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.recanula"))
-    {
-        <div class="col-md-3">
-            <div class="core-box">
-                <div class="heading">
-                    <i class="clip-ban-circle circle-icon circle-red"></i>
-                    <h2>Recibos Anulados</h2>
-                </div>
-                <a href="@Url.Action("RecibosAnulados", "Reporte")" class="view-more">
-                    Ver Reporte <i class="clip-arrow-right-2"></i>
-                </a>
-            </div>
-        </div>
-    }
-
-    @* ─── NUEVOS REPORTES ──────────────────────────────── *@
-
-    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.HistorialVenta"))
-    {
-        <div class="col-md-3">
-            <div class="core-box">
-                <div class="heading">
-                    <i class="clip-stats circle-icon circle-teal"></i>
-                    <h2>Historial de Venta</h2>
-                </div>
-                <a href="@Url.Action("HistorialVenta", "Reporte")" class="view-more">
-                    Ver Reporte <i class="clip-arrow-right-2"></i>
-                </a>
-            </div>
-        </div>
-    }
-
-    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.HistorialEntrega"))
-    {
-        <div class="col-md-3">
-            <div class="core-box">
-                <div class="heading">
-                    <i class="clip-truck circle-icon circle-bricky"></i>
-                    <h2>Historial de Entrega</h2>
-                </div>
-                <a href="@Url.Action("HistorialEntrega", "Reporte")" class="view-more">
-                    Ver Reporte <i class="clip-arrow-right-2"></i>
-                </a>
-            </div>
-        </div>
-    }
-
+    </div>
 </div>
+
+@* ════════════════════════════════════════════════════════════
+    COLLAPSE 2 — RUTAS
+    ════════════════════════════════════════════════════════════ *@
+<div class="panel panel-default">
+    <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseRutas">
+        <h4 class="panel-title">
+            <i class="icon-truck teal"></i>
+            <strong> Rutas</strong>
+            <span class="pull-right"><i class="icon-angle-down"></i></span>
+        </h4>
+    </div>
+    <div id="collapseRutas" class="panel-collapse collapse">
+        <div class="panel-body">
+            <div class="row">
+
+                @* Sin agente *@
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-truck circle-icon circle-green"></i>
+                            <h2>Despachos En Ruta Por Día</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/Rutas/Despachos En Ruta Por Dia&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-truck circle-icon circle-green"></i>
+                            <h2>Despachos Fin de Semana</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/Rutas/Despachos Fin de Semana&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-truck circle-icon circle-green"></i>
+                            <h2>Despachos Por Día</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/Rutas/Despachos Por Dia&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+
+                @* Con agente — abre modal *@
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-user circle-icon circle-bricky"></i>
+                            <h2>Despachos Diarios por Agente</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="pedirAgente('@ssrs?/Rutas/Despachos Diarios por Agente&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-user circle-icon circle-bricky"></i>
+                            <h2>Despachos En Ruta Por Día Agente</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="pedirAgente('@ssrs?/Rutas/Despachos En Ruta Por Dia Agente&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-user circle-icon circle-bricky"></i>
+                            <h2>Despachos Finde por Agente</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="pedirAgente('@ssrs?/Rutas/Despachos Finde por Agente&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ════════════════════════════════════════════════════════════
+    COLLAPSE 3 — SAP
+    ════════════════════════════════════════════════════════════ *@
+<div class="panel panel-default">
+    <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseSAP">
+        <h4 class="panel-title">
+            <i class="icon-cogs teal"></i>
+            <strong> SAP</strong>
+            <span class="pull-right"><i class="icon-angle-down"></i></span>
+        </h4>
+    </div>
+    <div id="collapseSAP" class="panel-collapse collapse">
+        <div class="panel-body">
+
+            @* ── Reportes directos en /SAP ── *@
+            <h5 style="color:#777; border-bottom:1px solid #eee; padding-bottom:5px">
+                <i class="icon-folder-open"></i> General
+            </h5>
+            <div class="row" style="margin-bottom:15px">
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-user circle-icon circle-bricky"></i>
+                            <h2>PE Ingresados Por Agente</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="pedirAgente('@ssrs?/SAP/PE Ingresados Por Agente&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stats circle-icon circle-teal"></i>
+                            <h2>Backorder Bolik General</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/Backorder Bolik General&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stats circle-icon circle-teal"></i>
+                            <h2>Backorder FAES General</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/Backorder FAES General&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stats circle-icon circle-teal"></i>
+                            <h2>Backorder GRACO General</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/Backorder GRACO General&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-archive circle-icon circle-green"></i>
+                            <h2>Inventario Bolik</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/Inventario Bolik&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-archive circle-icon circle-green"></i>
+                            <h2>Inventario Mensual Graco</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/InventarioMensual_Graco&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stack-2 circle-icon circle-green"></i>
+                            <h2>Pedidos Generales Ingresados</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/Pedidos Generales Ingresados&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @* ── Sub-carpeta: INVENTARIOS ── *@
+            <h5 style="color:#777; border-bottom:1px solid #eee; padding-bottom:5px">
+                <i class="icon-folder-open"></i> Inventarios
+            </h5>
+            <div class="row" style="margin-bottom:15px">
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-archive circle-icon circle-teal"></i>
+                            <h2>Inventario Bolik</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/INVENTARIOS/Inventario Bolik&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-archive circle-icon circle-teal"></i>
+                            <h2>Inventario Bolik PP</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/INVENTARIOS/Inventario Bolik PP&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-archive circle-icon circle-teal"></i>
+                            <h2>Inventario Faes</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/INVENTARIOS/Inventario Faes&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @* ── Sub-carpeta: Backorder2026 ── *@
+            <h5 style="color:#777; border-bottom:1px solid #eee; padding-bottom:5px">
+                <i class="icon-folder-open"></i> Backorder 2026
+            </h5>
+            <div class="row" style="margin-bottom:15px">
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stats circle-icon circle-red"></i>
+                            <h2>Backorder Bolik</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/Backorder2026/Backorder Bolik&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stats circle-icon circle-red"></i>
+                            <h2>Backorder Faes</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/Backorder2026/Backorder Faes&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stats circle-icon circle-red"></i>
+                            <h2>Backorder Graco</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/Backorder2026/Backorder Graco&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stats circle-icon circle-red"></i>
+                            <h2>Backorder Graco General</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirReporte('@ssrs?/SAP/Backorder2026/Backorder Graco General&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @* ── Sub-carpeta: Backorder2026/Backorder Agentes ── *@
+            <h5 style="color:#777; border-bottom:1px solid #eee; padding-bottom:5px">
+                <i class="icon-folder-open"></i> Backorder 2026 — Por Agente
+            </h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-user circle-icon circle-bricky"></i>
+                            <h2>Backorder Bolik Agente</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="pedirAgente('@ssrs?/SAP/Backorder2026/Backorder Agentes/Backorder Bolik Agente&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-user circle-icon circle-bricky"></i>
+                            <h2>Backorder Faes Agente</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="pedirAgente('@ssrs?/SAP/Backorder2026/Backorder Agentes/Backorder Faes Agente&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-user circle-icon circle-bricky"></i>
+                            <h2>Backorder Graco Agente</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="pedirAgente('@ssrs?/SAP/Backorder2026/Backorder Agentes/Backorder Graco Agente&rs:Command=Render')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+    @* ════════════════════════════════════════════════════════════
+        COLLAPSE 4 — CRYSTAL REPORTS SAP (HANA)
+        ════════════════════════════════════════════════════════════ *@
+    <div class="panel panel-default">
+        <div class="panel-heading" style="cursor:pointer"
+             data-toggle="collapse" data-target="#collapseCrystal">
+            <h4 class="panel-title">
+                <i class="icon-bar-chart teal"></i>
+                <strong> Crystal Reports</strong>
+                <span class="label label-warning"
+                      style="font-size:11px; margin-left:6px">SAP</span>
+                <span class="pull-right"><i class="icon-angle-down"></i></span>
+            </h4>
+        </div>
+        <div id="collapseCrystal" class="panel-collapse collapse in">
+            <div class="panel-body">
+
+                @* ── Pedidos SAP ── *@
+                <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
+                    <i class="icon-folder-open"></i> Pedidos SAP
+                </h5>
+                <div class="row" style="margin-bottom:15px">
+                    <div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-stack-2 circle-icon circle-teal"></i>
+                                <h2>Pedidos No Sincronizados</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="abrirCrystalDirecto('@Url.Action("PedidosNoSincronizados","Reporte")')"
+                               class="view-more">
+                                Ver Reporte <i class="clip-arrow-right-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                @* ── Rutas ── *@
+                <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
+                    <i class="icon-folder-open"></i> Rutas
+                </h5>
+                <div class="row" style="margin-bottom:15px">
+                    <div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-truck circle-icon circle-green"></i>
+                                <h2>Revisión de Rutas</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirFechasCrystal(
+                               '@Url.Action("RevisionRutas","Reporte")',
+                               'Revisión de Rutas')"
+                               class="view-more">
+                                Ver Reporte <i class="clip-arrow-right-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                @* ── Clientes SAP ── *@
+                <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
+                    <i class="icon-folder-open"></i> Clientes SAP
+                </h5>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-archive circle-icon circle-teal"></i>
+                                <h2>Estado De Cuenta</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirFechasYCliente(
+                               '@Url.Action("EstadoDeCuenta","Reporte")',
+                               'Estado de Cuenta Clientes')"
+                               class="view-more">
+                                Ver Reporte <i class="clip-arrow-right-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+@* ════════════════════════════════════════════════════════════
+    MODAL — Ingreso de ID de Agente
+    ════════════════════════════════════════════════════════════ *@
+<div class="modal fade" id="modalAgente" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">
+                    <i class="icon-user teal"></i> Ingresar ID de Agente
+                </h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="control-label">ID Agente</label>
+                    <input type="text"
+                           id="inputIdAgente"
+                           class="form-control"
+                           placeholder="Ej: ACODEX"
+                           min="1" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="btnVerReporte">
+                    <i class="icon-ok"></i> Ver Reporte
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ════════════════════════════════════════════════════════════
+    MODAL — Filtros para reportes Crystal Reports
+    ════════════════════════════════════════════════════════════ *@
+<div class="modal fade" id="modalCrystal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">
+                    <i class="icon-bar-chart teal"></i>
+                    <span id="modalCrystalTitulo">Generar Reporte</span>
+                </h4>
+            </div>
+            <div class="modal-body">
+
+                <div class="form-group">
+                    <label class="control-label">Fecha Inicial</label>
+                    <input type="text" id="crystalFechaInicial"
+                           class="form-control date-picker"
+                           data-date-format="yyyy-mm-dd"
+                           placeholder="yyyy-mm-dd"
+                           value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="form-group">
+                    <label class="control-label">Fecha Final</label>
+                    <input type="text" id="crystalFechaFinal"
+                           class="form-control date-picker"
+                           data-date-format="yyyy-mm-dd"
+                           placeholder="yyyy-mm-dd"
+                           value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                </div>
+
+                @* Solo visible cuando el reporte necesita CardCode *@
+                <div id="filaCrystalCardCode" class="form-group" style="display:none">
+                    <label class="control-label">
+                        Código Cliente SAP
+                        <small class="text-muted">(vacío = todos)</small>
+                    </label>
+                    <input type="text" id="crystalCardCode"
+                           class="form-control"
+                           placeholder="Ej: CL0001" />
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default"
+                        data-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-primary"
+                        id="btnVerCrystal">
+                    <i class="icon-file-pdf-alt"></i> Ver PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ════════════════════════════════════════════════════════════
+    IFRAME — donde se muestra el reporte seleccionado
+    ════════════════════════════════════════════════════════════ *@
+<div id="contenedorReporte" style="display:none; margin-top:20px">
+    <hr />
+    <h4 id="tituloReporte" style="color:#555"></h4>
+    <table width="100%" height="100%">
+        <tr>
+            <td>
+                <iframe id="iframeReporte"
+                        width="100%"
+                        height="800px"
+                        frameborder="0">
+                </iframe>
+            </td>
+        </tr>
+    </table>
+</div>
+
+@* ════════════════════════════════════════════════════════════
+    JAVASCRIPT — Funciones para SSRS + Crystal Reports
+    Nota: va directo aquí, NO en @section Scripts
+    ════════════════════════════════════════════════════════════ *@
+@section Scripts {
+    <script type="text/javascript">
+
+        // ─── Variables de estado ────────────────────────────────────────
+        var _urlReporteActual = "";     // SSRS
+        var _urlCrystalBase = "";     // Crystal con filtros
+
+        // ═══════════════════════════════════════════════════════════════
+        // SSRS
+        // ═══════════════════════════════════════════════════════════════
+        function abrirReporte(url) { window.open(url, "_blank"); }
+
+        function pedirAgente(url) {
+            _urlReporteActual = url;
+            $("#inputIdAgente").val("");
+            $("#modalAgente").modal("show");
+            setTimeout(function () { $("#inputIdAgente").focus(); }, 500);
+        }
+
+        $("#btnVerReporte").on("click", function () {
+            var id = $("#inputIdAgente").val().trim();
+            if (!id) { toastr.error("Ingrese un ID de agente válido"); return; }
+            $("#modalAgente").modal("hide");
+            window.open(_urlReporteActual + "&IdAgente=" + id, "_blank");
+        });
+
+        $("#inputIdAgente").on("keypress", function (e) {
+            if (e.which === 13) $("#btnVerReporte").click();
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // CRYSTAL REPORTS — Sin parámetros (abre PDF directo)
+        // ═══════════════════════════════════════════════════════════════
+        function abrirCrystalDirecto(url) {
+            window.open(url, "_blank");
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // CRYSTAL REPORTS — Solo fechas (Revisión de Rutas, etc.)
+        // ═══════════════════════════════════════════════════════════════
+        function pedirFechasCrystal(urlBase, titulo) {
+            _urlCrystalBase = urlBase;
+            $("#modalCrystalTitulo").text(titulo || "Generar Reporte");
+            $("#filaCrystalCardCode").hide();   // ocultamos campo CardCode
+            $("#modalCrystal").modal("show");
+            setTimeout(function () { $("#crystalFechaInicial").focus(); }, 400);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // CRYSTAL REPORTS — Fechas + CardCode (Estado de Cuenta)
+        // ═══════════════════════════════════════════════════════════════
+        function pedirFechasYCliente(urlBase, titulo) {
+            _urlCrystalBase = urlBase;
+            $("#modalCrystalTitulo").text(titulo || "Generar Reporte");
+            $("#filaCrystalCardCode").show();   // mostramos campo CardCode
+            $("#crystalCardCode").val("");
+            $("#modalCrystal").modal("show");
+            setTimeout(function () { $("#crystalFechaInicial").focus(); }, 400);
+        }
+
+        // Botón "Ver PDF" en el modal Crystal
+        $("#btnVerCrystal").on("click", function () {
+            var fi = $("#crystalFechaInicial").val().trim();
+            var ff = $("#crystalFechaFinal").val().trim();
+            var cc = $("#crystalCardCode").val().trim();
+
+            if (!fi || !ff) {
+                toastr.error("Selecciona ambas fechas"); return;
+            }
+            if (fi > ff) {
+                toastr.error("Fecha inicial mayor que fecha final"); return;
+            }
+
+            var url = _urlCrystalBase
+                + "?fechaInicial=" + encodeURIComponent(fi)
+                + "&fechaFinal=" + encodeURIComponent(ff);
+
+            if (cc) url += "&cardCode=" + encodeURIComponent(cc);
+
+            $("#modalCrystal").modal("hide");
+            window.open(url, "_blank");
+        });
+
+    </script>
+}

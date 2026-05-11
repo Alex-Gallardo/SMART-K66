@@ -4,11 +4,17 @@ using System.Linq;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.Security;
-using DiamDev.Give.BLL;
 using DiamDev.Give.Entities;
 using DiamDev.Give.UI.App_Start;
 using DiamDev.Give.UI.Models;
 using PagedList;
+using CrystalDecisions.CrystalReports.Engine;
+using CrystalDecisions.Shared;
+using DiamDev.Give.BLL;
+using System.IO;
+using System.Configuration;
+using System.Data; 
+
 
 namespace DiamDev.Give.UI.Controllers
 {
@@ -135,6 +141,255 @@ namespace DiamDev.Give.UI.Controllers
 
             this.CargaControles(true);
             return View();
+        }
+
+
+        // ════════════════════════════════════════════════════════════════════════
+        //  REGIÓN: CRYSTAL REPORTS — HANA
+        //  Patrón A: Los .rpt tienen SQL embebido con conexión B1CRHPROXY.
+        //  Solo cambiamos las credenciales en runtime, conservando el driver.
+        // ════════════════════════════════════════════════════════════════════════
+
+        #region Crystal Reports — Utilitarios
+
+        /// <summary>
+        /// Aplica las credenciales HANA a todas las tablas del .rpt
+        /// SIN reemplazar el objeto ConnectionInfo completo.
+        /// Reemplazarlo borra el tipo de driver (B1CRHPROXY) y Crystal falla.
+        /// </summary>
+        private void AplicarConexionHana(ReportDocument reporte)
+        {
+            string servidor = ConfigurationManager.AppSettings["HANA_Server"];
+            string baseDatos = ConfigurationManager.AppSettings["HANA_Database"];
+            string usuario = ConfigurationManager.AppSettings["HANA_User"];
+            string password = ConfigurationManager.AppSettings["HANA_Password"];
+
+            SetCredenciales(reporte, servidor, baseDatos, usuario, password);
+
+            foreach (ReportDocument sub in reporte.Subreports)
+                SetCredenciales(sub, servidor, baseDatos, usuario, password);
+        }
+
+        private void SetCredenciales(ReportDocument rpt,
+            string servidor, string db, string user, string pwd)
+        {
+            foreach (CrystalDecisions.CrystalReports.Engine.Table tabla in rpt.Database.Tables)
+            {
+                TableLogOnInfo logOn = tabla.LogOnInfo;
+
+                // ⚠️ Asignamos propiedad por propiedad — NO reemplazamos el objeto.
+                //    Esto conserva el driver B1CRHPROXY que el .rpt trae embebido.
+                logOn.ConnectionInfo.ServerName = servidor;   // sapserver:30013
+                logOn.ConnectionInfo.DatabaseName = db;         // SBOESCOCESA
+                logOn.ConnectionInfo.UserID = user;       // SYSTEM
+                logOn.ConnectionInfo.Password = pwd;
+
+                tabla.ApplyLogOnInfo(logOn);
+            }
+        }
+
+        /// <summary>
+        /// Exporta el ReportDocument a PDF y lo devuelve inline en el browser.
+        /// Llama a Close/Dispose siempre para evitar leaks de memoria en IIS.
+        /// </summary>
+        private FileResult ExportarPdf(ReportDocument rpt, string nombreArchivo)
+        {
+            Stream stream = rpt.ExportToStream(
+                CrystalDecisions.Shared.ExportFormatType.PortableDocFormat);
+
+            rpt.Close();
+            rpt.Dispose();
+
+            Response.AddHeader("Content-Disposition",
+                $"inline; filename={nombreArchivo}_{DateTime.Now:yyyyMMdd_HHmm}.pdf");
+
+            return File(stream, "application/pdf");
+        }
+
+        #endregion
+
+        // ════════════════════════════════════════════════════════════════════════
+        //  ACCIONES PÚBLICAS — Una por cada .rpt existente en Reports/Crystal/
+        //  Los 3 reportes usan B1CRHPROXY con SQL Command embebido.
+        //  No se usa SetDataSource; solo se sobreescriben las credenciales HANA.
+        // ════════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Pedidos no Sincronizados.rpt
+        /// URL: /Reporte/PedidosNoSincronizados
+        /// </summary>
+        [Permiso("Control.Reporte.VerReporteHana")]
+        public ActionResult PedidosNoSincronizados()
+        {
+            ReportDocument rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Pedidos no Sincronizados.rpt"));
+                AplicarConexionHana(rpt);
+                return ExportarPdf(rpt, "Pedidos_No_Sincronizados");
+            }
+            catch (Exception ex)
+            {
+                rpt.Close(); rpt.Dispose();
+                return ContenidoError(ex, "Pedidos No Sincronizados");
+            }
+        }
+
+        /// <summary>
+        /// REVISION DE RUTAS.rpt
+        /// URL: /Reporte/RevisionRutas?fechaInicial=2026-01-01&fechaFinal=2026-05-11
+        ///
+        /// Si el .rpt tiene Crystal Parameter Fields definidos con esos nombres,
+        /// SetParameterValue los inyecta. Si el SQL no usa parámetros Crystal,
+        /// ignóralos y el reporte cargará sin filtro de fecha.
+        /// </summary>
+        [Permiso("Control.Reporte.VerReporteHana")]
+        public ActionResult RevisionRutas(string fechaInicial = "", string fechaFinal = "")
+        {
+            ReportDocument rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/REVISION DE RUTAS.rpt"));
+                AplicarConexionHana(rpt);
+
+                // Intentar pasar fechas si el .rpt declara parámetros Crystal.
+                // Si el reporte no los tiene, estas líneas se ignoran sin error.
+                if (!string.IsNullOrWhiteSpace(fechaInicial) &&
+                    !string.IsNullOrWhiteSpace(fechaFinal))
+                {
+                    TrySetParametro(rpt, "FechaInicial", Convert.ToDateTime(fechaInicial));
+                    TrySetParametro(rpt, "FechaFinal", Convert.ToDateTime(fechaFinal));
+                }
+
+                return ExportarPdf(rpt, "Revision_Rutas");
+            }
+            catch (Exception ex)
+            {
+                rpt.Close(); rpt.Dispose();
+                return ContenidoError(ex, "Revisión de Rutas");
+            }
+        }
+
+        /// <summary>
+        /// Estado de Cuenta.rpt
+        /// URL: /Reporte/EstadoDeCuenta?fechaInicial=2026-01-01&fechaFinal=2026-05-11&cardCode=CL0001
+        ///
+        /// El reporte está agrupado por CardCode (cliente SAP).
+        /// Si cardCode viene vacío, genera para todos los clientes.
+        /// </summary>
+        [Permiso("Control.Reporte.VerReporteHana")]
+        public ActionResult EstadoDeCuenta(string fechaInicial = "",
+                                            string fechaFinal = "",
+                                            string cardCode = "")
+        {
+            ReportDocument rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Estado de Cuenta.rpt"));
+                AplicarConexionHana(rpt);
+
+                if (!string.IsNullOrWhiteSpace(fechaInicial) &&
+                    !string.IsNullOrWhiteSpace(fechaFinal))
+                {
+                    TrySetParametro(rpt, "FechaInicial", Convert.ToDateTime(fechaInicial));
+                    TrySetParametro(rpt, "FechaFinal", Convert.ToDateTime(fechaFinal));
+                }
+
+                if (!string.IsNullOrWhiteSpace(cardCode))
+                    TrySetParametro(rpt, "CardCode", cardCode);
+
+                string sufijo = string.IsNullOrWhiteSpace(cardCode) ? "General" : cardCode;
+                return ExportarPdf(rpt, $"Estado_Cuenta_{sufijo}");
+            }
+            catch (Exception ex)
+            {
+                rpt.Close(); rpt.Dispose();
+                return ContenidoError(ex, "Estado de Cuenta");
+            }
+        }
+
+        // ── Helpers internos ──────────────────────────────────────────────────
+
+        /// <summary>
+        /// Intenta setear un parámetro Crystal sin explotar si no existe.
+        /// Útil porque no siempre sabemos qué Parameter Fields tiene el .rpt.
+        /// </summary>
+        private void TrySetParametro(ReportDocument rpt, string nombre, object valor)
+        {
+            try { rpt.SetParameterValue(nombre, valor); }
+            catch { /* El .rpt no declara ese parámetro — se ignora */ }
+        }
+
+        /// <summary>
+        /// Devuelve un ContentResult con el error en HTML legible.
+        /// Solo para desarrollo; en producción conectar con tu logger.
+        /// </summary>
+        private ContentResult ContenidoError(Exception ex, string reporte)
+        {
+            return Content(
+                $"<h3 style='color:red;font-family:sans-serif'>" +
+                $"Error al generar: {reporte}</h3>" +
+                $"<pre style='font-size:12px'>{ex}</pre>",
+                "text/html");
+        }
+
+        // Quitar en producción — solo para diagnóstico
+        public ActionResult TestHana()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append("<style>body{font-family:monospace;padding:20px}</style>");
+            sb.Append("<h2>Diagnóstico HANA</h2><hr/>");
+
+            string driver = ConfigurationManager.AppSettings["HANA_Driver"] ?? "(no definido)";
+            string server = ConfigurationManager.AppSettings["HANA_Server"] ?? "(no definido)";
+            string tenant = ConfigurationManager.AppSettings["HANA_TenantDB"] ?? "(no definido)";
+            string schema = ConfigurationManager.AppSettings["HANA_Database"] ?? "(no definido)";
+            string user = ConfigurationManager.AppSettings["HANA_User"] ?? "(no definido)";
+
+            sb.Append("<h4>Configuración</h4><ul>");
+            sb.Append($"<li><b>Driver:</b>   {driver}</li>");
+            sb.Append($"<li><b>Server:</b>   {server}</li>");
+            sb.Append($"<li><b>TenantDB:</b> {tenant}  ← HANA database name</li>");
+            sb.Append($"<li><b>Schema:</b>   {schema}  ← SAP B1 schema (va en el SQL)</li>");
+            sb.Append($"<li><b>User:</b>     {user}</li>");
+            sb.Append("</ul>");
+            sb.Append($"<p><b>Proceso IIS:</b> {(Environment.Is64BitProcess ? "64-bit" : "32-bit")}</p>");
+
+            // Test 1: Conectar
+            string error;
+            bool ok = DiamDev.Give.DAL.HanaHelper.ProbarConexion(out error);
+
+            if (ok)
+            {
+                sb.Append("<h3 style='color:green'>✓ Conexión al tenant HANA OK</h3>");
+
+                // Test 2: Leer una tabla SAP B1 con schema explícito
+                try
+                {
+                    var dt = DiamDev.Give.DAL.HanaHelper.EjecutarConsulta(
+                        $@"SELECT COUNT(*) AS TOTAL FROM ""{schema}"".""OITM"" WHERE ""Canceled"" = 'N'");
+
+                    sb.Append($"<h3 style='color:green'>✓ Lectura schema '{schema}' OK — " +
+                              $"{dt.Rows[0]["TOTAL"]} artículos activos</h3>");
+                }
+                catch (Exception ex2)
+                {
+                    sb.Append($"<h3 style='color:orange'>⚠ Conexión OK pero error leyendo schema</h3>" +
+                              $"<pre>{ex2.Message}</pre>");
+                }
+            }
+            else
+            {
+                sb.Append($"<h3 style='color:red'>✗ Fallo conexión HANA</h3><pre>{error}</pre>");
+                sb.Append("<hr/><h4>Posibles causas:</h4><ul>");
+                sb.Append($"<li>HANA_TenantDB '<b>{tenant}</b>' no existe → verifica el nombre real del tenant</li>");
+                sb.Append($"<li>Puerto incorrecto en HANA_Server '<b>{server}</b>'</li>");
+                sb.Append("<li>Firewall bloqueando el puerto HANA</li>");
+                sb.Append("<li>Credenciales incorrectas</li>");
+                sb.Append("</ul>");
+            }
+
+            return Content(sb.ToString(), "text/html");
         }
 
 
@@ -666,6 +921,13 @@ namespace DiamDev.Give.UI.Controllers
         {
             CustomHelper.setTitle("Historial de Entrega", "Reporte");
             this.CargaControles(true);
+            return View();
+        }
+
+        // GET: /Reporte/Index
+        public ActionResult Index()
+        {
+            CustomHelper.setTitle("Reportes", "Listado");
             return View();
         }
     }

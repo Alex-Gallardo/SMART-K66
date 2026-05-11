@@ -16,6 +16,12 @@ namespace DiamDev.Give.Entities
         [Column("Proveedor_Id")]
         public long ProveedorId { get; set; }
 
+        [Column("Tipo_Id")]
+        public int? TipoId { get; set; }
+
+        [ForeignKey("TipoId")]
+        public ProveedorTipo Tipo { get; set; }
+        
         [StringLength(20)]
         public string Nit { get; set; }
 
@@ -54,13 +60,21 @@ namespace DiamDev.Give.Entities
         [StringLength(100)]
         public string EmailContacto { get; set; }
 
+        public decimal Credito { get; set; }
+
+        public decimal Abono { get; set; }
+
         public bool Activo { get; set; }
 
         public DateTime Fecha { get; set; }
 
         public int Correlativo { get; set; }
 
+        public List<ProveedorCuentaBancaria> Cuentas { get; set; }
+
         public List<ProveedorProducto> Productos { get; set; }
+
+        public List<ProveedorMovimiento> Movimientos { get; set; }
 
         [NotMapped]
         public List<MovimientoHistorial> IngresoHistorial { get; set; }

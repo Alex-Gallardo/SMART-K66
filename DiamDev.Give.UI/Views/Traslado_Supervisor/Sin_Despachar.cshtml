@@ -1,0 +1,112 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.Traslado>
+
+@{
+    ViewBag.Title = "Traslado x Despachar Listado";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Traslado
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>                            
+                            <th>Agencia Origen</th>
+                            <th>Agencia Destino</th>
+                            <th>Fecha</th>                            
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Traslado in Model)
+                        {
+                            <tr>
+                                <td>@(Traslado.AgenciaOrigen == null ? "No Disponible" : Traslado.AgenciaOrigen.Nombre)</td>
+                                <td>@(Traslado.AgenciaDestino == null ? "No Disponible" : Traslado.AgenciaDestino.Nombre)</td>
+                                <td>@Traslado.Fecha.ToString("dd/MM/yyyy")</td>                              
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        <a href="@Url.Action("Detalle", "Traslado_Supervisor", new { id = Traslado.TrasladoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Traslado"><i class="clip-stack-empty"></i></a>
+                                        <a href="javascript:void(0);" onclick="despachar('@Traslado.TrasladoId');" class="despachar btn btn-teal tooltips" data-placement="top" data-original-title="Despachar"><i class="clip-checkmark"></i></a>                                        
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Traslado_Supervisor", new { id = Traslado.TrasladoId })">
+                                                        <i class="clip-stack-empty"></i> Detalle del Traslado
+                                                    </a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="javascript:void(0);" onclick="despachar('@Traslado.TrasladoId');" class="despachar">
+                                                        <i class="clip-checkmark"></i> Despachar Traslado
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function ()
+        {             
+        });
+
+        function despachar(id)
+        {
+            if (confirm("¿Desea despachar el traslado?")) {
+                $.ajax({
+                    url: '@Url.Action("ActualizarTrasladoDespachado", "Traslado_Supervisor")?trasladoId=' + encodeURI(id),
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        if (!data.Operacion)
+                        {
+                            toastr.error('Ocurrió un error, al despachar el traslado');
+                            return;
+                        }
+
+                        toastr.success('El traslado se despacho exitosamente');
+                        window.location = '@Url.Action("Sin_Despachar", "Traslado_Supervisor")';
+                    },
+                    fail: function (data) {
+                        console.error(data);
+                        toastr.error('Ocurrió un error, al despachar el traslado');
+                    }
+                });
+            }
+        }
+    </script>
+}
+
+

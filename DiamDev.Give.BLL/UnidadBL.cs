@@ -2,13 +2,13 @@
 using DiamDev.Give.Entities;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 
 namespace DiamDev.Give.BLL
 {
     public class UnidadBL
     {
-
         #region Variables Globales
 
             private GiveContext db;
@@ -51,9 +51,9 @@ namespace DiamDev.Give.BLL
                 return Id;
             }
 
-            private bool Agregar(Unidad entidad)
+            private string Agregar(Unidad entidad)
             {
-                bool UnidadAgregar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -71,22 +71,22 @@ namespace DiamDev.Give.BLL
                             entidad.Fecha = DateTime.Today;
 
                             db.Set<Unidad>().Add(entidad);
-                            db.SaveChanges();
-                            UnidadAgregar = true;
+                            db.SaveChanges();                           
                         }
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return UnidadAgregar;
+                return Mensaje;
             }
 
-            private bool Actualizar(Unidad entidad)
+            private string Actualizar(Unidad entidad)
             {
-                bool UnidadActualizar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -97,18 +97,19 @@ namespace DiamDev.Give.BLL
                     {
                         UnidadActual.Codigo = entidad.Codigo;
                         UnidadActual.Nombre = entidad.Nombre;
+                        UnidadActual.Cantidad = entidad.Cantidad;
                         UnidadActual.Activo = entidad.Activo;
 
-                        db.SaveChanges();
-                        UnidadActualizar = true;
+                        db.SaveChanges();                       
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return UnidadActualizar;
+                return Mensaje;
             }
 
 
@@ -119,22 +120,16 @@ namespace DiamDev.Give.BLL
             public string Guardar(Unidad entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
-
+               
                 if (entidad.UnidadId > 0)
                 {
-                    OperacionExitosa = Actualizar(entidad);
+                    Mensaje = Actualizar(entidad);
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
+                    Mensaje = Agregar(entidad);
                 }
-
-                if (!OperacionExitosa)
-                {
-                    Mensaje = "La información ingresada no es valida";
-                }
-
+          
                 return Mensaje;
             }
 
@@ -169,13 +164,103 @@ namespace DiamDev.Give.BLL
                     }
                 }
                 catch (Exception)
-                {
-                }
+                {}
 
                 return Unidades;
             }
 
-        #endregion
+            public List<UnidadK66> ObtenerUnidadxConversion(string conversion, long usuarioId, long empresaId)
+            {
+                List<UnidadK66> Unidades = new List<UnidadK66>();
 
+                try
+                {
+                    UsuarioEmpresa UsuarioEmpresaActual = db.Set<UsuarioEmpresa>().Include("Empresa").AsNoTracking().Where(x => x.UsuarioId == usuarioId && x.EmpresaId == empresaId).FirstOrDefault();
+                    if (UsuarioEmpresaActual != null)
+                    {
+                        if (empresaId == 20210705001)
+                        {
+                            using (var dbK66 = new VMBOLIKContext())
+                            {
+                                Unidades = dbK66.Database.SqlQuery<UnidadK66>("dbo.sp_obtener_unidad_medida_x_conversion @Conversion", new SqlParameter("@Conversion", conversion)).ToList();
+                            }
+                        }
+                        else if (empresaId == 20210705002)
+                        {
+                            using (var dbK66 = new VMEMPAQUESContext())
+                            {
+                                Unidades = dbK66.Database.SqlQuery<UnidadK66>("dbo.sp_obtener_unidad_medida_x_conversion @Conversion", new SqlParameter("@Conversion", conversion)).ToList();
+                            }
+                        }
+                        else if (empresaId == 20210705003)
+                        {
+                            using (var dbK66 = new VMFAESContext())
+                            {
+                                Unidades = dbK66.Database.SqlQuery<UnidadK66>("dbo.sp_obtener_unidad_medida_x_conversion @Conversion", new SqlParameter("@Conversion", conversion)).ToList();
+                            }
+                        }
+                        else if (empresaId == 20210705004)
+                        {
+                            using (var dbK66 = new VMGRACOContext())
+                            {
+                                Unidades = dbK66.Database.SqlQuery<UnidadK66>("dbo.sp_obtener_unidad_medida_x_conversion @Conversion", new SqlParameter("@Conversion", conversion)).ToList();
+                            }
+                        }
+
+                        Unidades.Add(new UnidadK66() { UnidadId = 0, Unidad = conversion });
+                    }
+                }
+                catch (Exception)
+                { }
+
+                return Unidades;
+            }
+
+            public UnidadK66 ObtenerUnidadxID(int id, long usuarioId, long empresaId)
+            {
+                UnidadK66 UnidadActual = new UnidadK66();
+
+                try
+                {
+                    UsuarioEmpresa UsuarioEmpresaActual = db.Set<UsuarioEmpresa>().Include("Empresa").AsNoTracking().Where(x => x.UsuarioId == usuarioId && x.EmpresaId == empresaId).FirstOrDefault();
+                    if (UsuarioEmpresaActual != null)
+                    {
+                        if (empresaId == 20210705001)
+                        {
+                            using (var dbK66 = new VMBOLIKContext())
+                            {
+                                UnidadActual = dbK66.Database.SqlQuery<UnidadK66>("dbo.sp_obtener_unidad_medida_x_id @ROWID", new SqlParameter("@ROWID", id)).FirstOrDefault();
+                            }
+                        }
+                        else if (empresaId == 20210705002)
+                        {
+                            using (var dbK66 = new VMEMPAQUESContext())
+                            {
+                                UnidadActual = dbK66.Database.SqlQuery<UnidadK66>("dbo.sp_obtener_unidad_medida_x_id @ROWID", new SqlParameter("@ROWID", id)).FirstOrDefault();
+                            }
+                        }
+                        else if (empresaId == 20210705003)
+                        {
+                            using (var dbK66 = new VMFAESContext())
+                            {
+                                UnidadActual = dbK66.Database.SqlQuery<UnidadK66>("dbo.sp_obtener_unidad_medida_x_id @ROWID", new SqlParameter("@ROWID", id)).FirstOrDefault();
+                            }
+                        }
+                        else if (empresaId == 20210705004)
+                        {
+                            using (var dbK66 = new VMGRACOContext())
+                            {
+                                UnidadActual = dbK66.Database.SqlQuery<UnidadK66>("dbo.sp_obtener_unidad_medida_x_id @ROWID", new SqlParameter("@ROWID", id)).FirstOrDefault();
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                { }
+
+                return UnidadActual;
+            }
+
+        #endregion
     }
 }

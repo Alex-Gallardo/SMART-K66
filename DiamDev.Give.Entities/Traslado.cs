@@ -37,10 +37,25 @@ namespace DiamDev.Give.Entities
         [ForeignKey("UsrInicial")]
         public Usuario UsuarioInicial { get; set; }
 
+        [Column("Usr_Despacho")]
+        public long? UsrDespacho { get; set; }
+
+        [ForeignKey("UsrDespacho")]
+        public Usuario UsuarioDespacho { get; set; }
+        
+        public bool Despachado { get; set; }
+
+        public bool Supervisor { get; set; }
+        
         public DateTime Fecha { get; set; }
+
+        [Column("Fecha_Hora_Despacho")]
+        public DateTime? FechaHoraDespacho { get; set; }
 
         public int Correlativo { get; set; }
 
         public List<TrasladoDetalle> Detalles { get; set; }
+
+        public List<TrasladoDetalleDestino> DetallesDestino { get; set; }
     }
 }

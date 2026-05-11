@@ -45,6 +45,43 @@
                     </div>
                     @Html.Partial("_CreateOrEdit")
                     <h2>
+                        <i class="icon-edit-sign teal"></i> Cuentas Bancarias
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Banco
+                                </label>
+                                @Html.DropDownList("BancoId", (SelectList)ViewBag.Bancos, "--Seleccione un Banco--", new { @class = "form-control search-select" })
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    # Cuenta
+                                </label>
+                                <input type="text" placeholder="# Cuenta" class="form-control" id="Cuenta" name="Cuenta" value="" autocomplete="off" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-cuenta">Agregar</button></p>
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Banco</th>
+                                        <th># Cuenta</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cuenta_tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>    
+                    <h2>
                         <i class="icon-edit-sign teal"></i> Productos
                     </h2>
                     <hr>
@@ -60,18 +97,18 @@
                     </div>
                     <div class="row">
                         <div class="col-md-12">
-                            <table class="table table-hover" id="sample-table-1">
+                            <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+                            <table class="table table-hover">
                                 <thead>
                                     <tr>
-                                        <th>Producto</th>                                     
+                                        <th>Producto</th>
                                         <th></th>
                                     </tr>
                                 </thead>
                                 <tbody id="producto_tbody"></tbody>
                             </table>
-                            <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
                         </div>
-                    </div>
+                    </div>    
                     <div class="row">
                         <p>
                             <div class="col-md-6">
@@ -100,6 +137,17 @@
 @section Scripts
 {
     <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="cuenta_tr_template">
+        <tr>
+            <td>{{banco}}</td>
+            <td>{{cuenta}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="bancoIds" value="{{banco_id}}" />
+                <input type="hidden" name="cuentaIds" value="{{cuenta}}" />
+            </td>
+        </tr>
+    </script>
     <script type="text/html" id="producto_tr_template">
         <tr>
             <td>{{producto}}</td>          
@@ -112,6 +160,9 @@
 
     <script type="text/javascript">
 
+        var bancoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.bancoIds))');
+        var cuentaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.cuentaIds))');
+
         var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');  
 
         $(function ()
@@ -119,6 +170,23 @@
             function error(texto)
             {
                 toastr.error(texto);
+            }
+
+            function cargaCuenta(banco_id, banco, cuenta)
+            {
+                var plantilla = $('#cuenta_tr_template').html();
+
+                var modelo =
+                {
+                    banco_id: banco_id,
+                    banco: banco,
+                    cuenta: cuenta
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#cuenta_tbody').append(filaHtml);
             }
 
             function cargaProducto(producto_id, producto)
@@ -137,7 +205,36 @@
                 $('#producto_tbody').append(filaHtml);
             }
 
+            renderizarCuentasIniciales();
             renderizarProductosIniciales();
+
+            $('#btn-agregar-cuenta').click(function (e)
+            {
+                e.preventDefault();
+
+                var banco_id = $('#BancoId').val();
+                var banco = $('#BancoId option:selected').text();
+
+                if (banco_id === "" || banco === "")
+                {
+                    error("Seleccione un banco");
+                    return;
+                }
+
+                var cuenta = $('#Cuenta').val();
+
+                if (cuenta === "")
+                {
+                    error("Ingrese un #cuenta");
+                    return;
+                }
+
+                cargaCuenta(banco_id, banco, cuenta);
+
+                $("#BancoId").val(0);
+                $("#Cuenta").val("");
+                $("#BancoId").focus();
+            });
 
             $('#btn-agregar').click(function (e)
             {
@@ -158,11 +255,36 @@
                 $("#ProductoId").focus();
             });
 
+            $('#cuenta_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+            });
+
             $('#producto_tbody').delegate("a", "click", function (e)
             {
                 e.preventDefault();
                 $(this).parent().parent().remove();               
             });
+
+            function renderizarCuentasIniciales()
+            {
+                if (bancoSeleccionados == null)
+                {
+                    return;
+                }
+
+                // recorremos las cuentas bancarias que haya ingresado el usuario
+                for (var i = 0; i < bancoSeleccionados.length; i++)
+                {
+                    var banco_id = bancoSeleccionados[i];
+                    var banco = $('#BancoId option[value=' + banco_id + ']').text();
+
+                    var cuenta = cuentaSeleccionados[i];
+
+                    cargaCuenta(banco_id, banco, cuenta);
+                }
+            }
 
             function renderizarProductosIniciales()
             {

@@ -1,0 +1,134 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Recibo>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Comandas Despachar";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+     
+           
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>         
+                            <th>Recibo</th>
+                            
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Comentarios</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="recibo_seleccionado_tbody">
+                        @foreach (var Recibo in Model)
+                        {
+                            <tr>
+                                <td>@Recibo.ReciboId</td>
+                               
+                                <td>@Recibo.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@(Recibo.FechaHoraRecibo == null ? "00:00" : Recibo.FechaHoraRecibo.Value.ToString("hh:mm tt"))</td>     
+                                <td>@(Recibo.Cliente == null ? "No Disponible" : Recibo.Cliente.Nombre)</td>
+                                <td>@(Recibo.ComentarioPedido == null ? "Sin Comentarios." : Recibo.ComentarioPedido)</td>
+                                <td>@(Recibo.Detalles == null ? "Q0.0000" : (Recibo.Anulada ? "Q0.0000" : Recibo.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4")))</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+ <a href="@Url.Action("FinalizarCocina", "Recibo", new { id = Recibo.ReciboId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Finalizar Cocina"><i class="clip-checkmark"></i></a>
+                                        <a href="@Url.Action("Boleta", "Recibo", new { id = Recibo.ReciboId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Recibo"><i class="clip-file-pdf"></i></a>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td>
+                                    <ul>
+                                        @foreach (var Detalle in Recibo.Detalles)
+                                        {
+                                            <li>  @Detalle.Cantidad- @Detalle.Nombre</li>
+                                        }
+
+
+
+                                    </ul>
+                                </td>
+                            </tr>
+                         
+                        }
+                    </tbody>
+                </table>
+            </div>
+    
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Sin_Despachar", new { page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+  if ('@TempData["Recibo_Asignar_Transporte-Success"]' == "OK")
+            {
+                toastr.success('La Comanda finalizo exitosamente');
+            }
+            else if ('@TempData["Recibo_Lote-Success"]' == "OK")
+            {
+                toastr.success('El lote fue asignado exitosamente');
+            }
+           setTimeout(function(){
+   window.location.reload();
+}, 5000);
+           
+        });
+
+     
+
+        function cache_clear() {
+            window.location.reload();
+            // window.location.reload(); use this if you do not remove cache
+        }
+        function despachar(id)
+        {
+            if (confirm("¿Desea despachar el recibo?"))
+            {
+                $.ajax({
+                    url: '@Url.Action("ActualizarReciboDespachado", "Recibo")?reciboId=' + encodeURI(id),
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        if (!data.Operacion)
+                        {
+                            toastr.error('Ocurrió un error, al despachar el recibo');
+                            return;
+                        }
+
+                        toastr.success('El recibo se despacho exitosamente');
+                        window.location = '@Url.Action("Sin_Despachar", "Recibo")';
+                    },
+                    fail: function (data)
+                    {
+                        console.error(data);
+                        toastr.error('Ocurrió un error, al despachar el recibo');
+                    }
+                });
+            }
+        }
+    </script>
+}
+
+
+
+

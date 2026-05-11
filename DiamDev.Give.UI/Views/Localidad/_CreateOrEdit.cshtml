@@ -1,0 +1,71 @@
+﻿@model DiamDev.Give.Entities.Localidad
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Municipio <span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("MunicipioId", (SelectList)ViewBag.Municipios, "--Seleccione un Municipio--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Agencia Donde Llegara Pedido de APP <span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("AgenciaId", (SelectList)ViewBag.Agencias, "--Seleccione una Agencia--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Nombre<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre ", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Descripcion<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Descripcion, new { @class = "form-control", @placeholder = "Descripcion", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Costo Envío<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.CostoEnvio, new { @class = "form-control",@type="number",  @placeholder = "Costo Envío", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Activo
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.activoSi name="activo" id="activoSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.activoNo name="activo" id="activoNo">
+                    No
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+
+

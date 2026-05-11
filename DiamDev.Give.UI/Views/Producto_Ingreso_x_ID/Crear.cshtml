@@ -1,0 +1,730 @@
+﻿@model DiamDev.Give.Entities.Movimiento
+
+@{
+    ViewBag.Title = "Nuevo Ingreso x ID";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nuevo Ingreso x ID
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nuevo Ingreso x ID</h2>
+                <p>
+                    Crea un nuevo ingreso.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>                        
+                    </div>
+                    @Html.Partial("_CreateOrEdit")
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Producto_Ingreso_x_ID")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="new-proveedor-form" class="modal fade" tabindex="-1" data-focus-on="input:first" data-width="760" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Nuevo Proveedor</h4>
+    </div>
+    <div class="modal-body">
+        @Html.Partial("~/Views/Proveedor/_CreateOrEdit.cshtml", new DiamDev.Give.Entities.Proveedor())
+    </div>
+    <div class="modal-footer">
+        <button id="btn-save-up-proveedor" class="btn btn-primary">Guardar</button>
+        <button id="btn-close-up-proveedor" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<div id="visualizar-imagen-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Fotografia</h4>
+    </div>
+    <div class="modal-body">
+        <center>
+            <img alt="" id="fotografia" src="@Url.Content("~/Content/assets/images/producto-sin-foto.jpg")" style="height:50%; width:50%" class="img-responsive" />
+        </center>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-imagen-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="producto_tr_template">
+        <tr>
+            <td>{{producto}}</td>
+            <td>{{presentacion}}</td>
+            <td>{{cantidad}}</td>
+            <td>{{minimo}}</td>
+            <td>{{maximo}}</td>
+            <td>{{id}}</td>
+            <td>Q{{precio_costo}}</td>
+            <td>Q{{precio_venta}}</td>
+            <td>Q{{sub_total}}</td> 
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="productoIds" value="{{producto_id}}" />
+                <input type="hidden" name="presentacionIds" value="{{presentacion_id}}" />
+                <input type="hidden" name="cantidadIds" value="{{cantidad_id}}" />
+                <input type="hidden" name="minimoIds" value="{{minimo}}" />
+                <input type="hidden" name="maximoIds" value="{{maximo}}" />
+                <input type="hidden" name="IDIds" value="{{id}}" />
+                <input type="hidden" name="precioCostoIds" value="{{precio_costo}}" />
+                <input type="hidden" name="precioVentaIds" value="{{precio_venta}}" />
+            </td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">
+
+    var vCodBarra = "";
+    var vAumentaCantidad = 0;
+    var productoIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
+    var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombreProductoIds))');
+    var presentacionIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.presentacionIds))');
+    var presentacionSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombrePresentacionIds))');
+    var cantidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.cantidadIds))');
+    var minimoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.minimoIds))');
+    var maximoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.maximoIds))');
+    var IDIdsSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.IDIds))');
+    var precioCostoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioCostoIds))');
+    var precioVentaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioVentaIds))');
+
+    $(function () {
+        //Se oculta el boton de visualizar imagen
+        $('#imagen').css("display", "none");
+
+        $("#divCredito").hide();
+
+        function error(texto) {
+            toastr.error(texto);
+        }
+
+        function cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, minimo, maximo, id, precio_costo, precio_venta)
+        {
+            var plantilla = $('#producto_tr_template').html();
+
+            var modelo =
+            {
+                producto_id: producto_id,
+                producto: producto,
+                presentacion_id: presentacion_id,
+                presentacion: presentacion,
+                cantidad_id: cantidad_id,
+                cantidad: cantidad_id,
+                minimo: minimo,
+                maximo: maximo,
+                id: id,
+                precio_costo: precio_costo,
+                precio_venta: precio_venta,
+                sub_total: cantidad_id * precio_costo
+            };
+
+            var filaHtml = Mustache.render(plantilla, modelo);
+
+            // agregamos la nueva fila a la tabla.
+            $('#producto_tbody').append(filaHtml);
+        }
+
+        renderizarProductosIniciales();
+
+        $('#btn-agregar').click(function (e) {
+            e.preventDefault();
+
+            var producto_id = $('#ProductoId').val();
+            var producto = $('#Producto').val();
+
+            if (producto_id === "" || producto === "") {
+                error("Seleccione un producto");
+                return;
+            }
+
+            var presentacion_id = $('#PresentacionId').val();
+            var presentacion = $('#PresentacionId option:selected').text();
+
+            if (presentacion_id === "" || presentacion === "") {
+                error("Seleccione una presentacion");
+                return;
+            }
+
+            var cantidad_id = $('#Cantidad').val();
+
+            if (cantidad_id === "") {
+                error("Ingrese la cantidad del producto");
+                return;
+            }
+
+            var minimo = $('#Minimo').val();
+
+            if (minimo === "") {
+                error("Ingrese la cantidad minima del producto");
+                return;
+            }
+
+            var maximo = $('#Maximo').val();
+
+            if (maximo === "") {
+                error("Ingrese la cantidad maxima del producto");
+                return;
+            }
+
+            var id = $('#IDs').val();
+
+            if (id === "")
+            {
+                error("Ingrese el ID del producto");
+                return;
+            }
+
+            var precio_costo = $('#PrecioCosto').val();
+
+            if (precio_costo === "") {
+                error("Ingrese el precio costo del producto");
+                return;
+            }
+
+            var precio_venta = $('#PrecioVenta').val();
+
+            if (precio_venta === "") {
+                error("Ingrese el precio venta del producto");
+                return;
+            }
+
+            cantidad_id = parseFloat(cantidad_id);
+
+            if (cantidad_id <= 0) {
+                error("La cantidad ingresada no puede ser 0");
+                return;
+            }
+
+            var agregar = 1;
+
+            var res = id.split(',');
+            var totalIDs = res.length;
+
+            if (cantidad_id !== totalIDs)
+            {
+                agregar = 0;
+                alert("Se le informa que los IDs no corresponden con la cantidad");
+                return;
+            }
+
+            var idArray = new Array();
+            $('input[name=IDIds]').each(function ()
+            {
+                var res = $(this).val().split(',');
+                for (var i = 0; i < res.length; i++)
+                {
+                    if (res[i] !== "")
+                    {
+                        idArray.push(res[i]);
+                    }                    
+                }
+            });
+
+            if (idArray.length > 0)
+            {
+                for (var x = 0; x < idArray.length; x++)
+                {
+                    if (idArray[x] === id)
+                    {
+                        agregar = 0;
+                        alert("Se le informa que los IDs que quiere ingresar ya existe en el sistema");
+                        return;
+                    }
+                }
+            }
+
+            if (agregar === 1)
+            {
+                idArray.push(id);
+
+                for (var i = 0; i < idArray.length; i++)
+                {
+                    $.ajax({
+                        url: '@Url.Action("ValidarID", "Producto_Ingreso_x_ID")',
+                        traditional: true,
+                        data: { 'ID': idArray[i] },
+                        async: false,
+                        type: 'POST',
+                        success: function (resultData)
+                        {
+                            if (resultData !== null)
+                            {
+                                if (resultData.Operacion)
+                                {
+                                    agregar = 0;
+                                    alert("Se le informa que los IDs que quiere ingresar ya existe en el sistema");
+                                    return;
+                                }
+                            }
+                        }
+                    });
+                }
+            }
+            
+
+            if (agregar === 1)
+            {
+                cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, minimo, maximo, id, precio_costo, precio_venta);
+                totalizarProducto();
+
+                //Se oculta el boton de visualizar imagen
+                $('#imagen').css("display", "none");
+
+                //Se asigna la imagen por default
+                $("#visualizar-imagen-producto-form").find("#fotografia").attr("src", "@Url.Content("~/Content/assets/images/producto-sin-foto.jpg")");
+
+                $("#ProductoId").val(0);
+                $("#Cantidad").val(1);
+                $("#Minimo").val(0);
+                $("#Maximo").val(0);
+                $("#IDs").val("");
+                $("#PrecioCosto").val(0);
+                $("#PrecioVenta").val(0);
+                $("#Producto").val("");
+                $("#Barra").val("");
+                $("#Barra").focus();
+            }           
+        });
+
+        $('#producto_tbody').delegate("a", "click", function (e) {
+            e.preventDefault();
+            $(this).parent().parent().remove();
+
+            totalizarProducto();
+        });
+
+        function renderizarProductosIniciales() {
+            if (productoSeleccionados == null) {
+                return;
+            }
+
+            // recorremos los productos que haya ingresado el usuario
+            for (var i = 0; i < productoSeleccionados.length; i++) {
+                var producto_id = productoIdSeleccionados[i];
+                var producto = productoSeleccionados[i];
+
+                var presentacion_id = presentacionIdSeleccionados[i];
+                var presentacion = presentacionSeleccionados[i];
+
+                var cantidad_id = cantidadSeleccionados[i];
+                var minimo = minimoSeleccionados[i];
+                var maximo = maximoSeleccionados[i];
+                var id = IDIdsSeleccionados[i];
+                var precio_costo = precioCostoSeleccionados[i];
+                var precio_venta = precioVentaSeleccionados[i];
+
+                cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, minimo, maximo, id, precio_Costo, precio_Venta);
+            }
+
+            totalizarProducto();
+        }
+
+        function totalizarProducto() {
+            var cantidadArray = new Array();
+            $('input[name=cantidadIds]').each(function () {
+                cantidadArray.push(parseFloat($(this).val()));
+            });
+
+            var precioArray = new Array();
+            $('input[name=precioCostoIds]').each(function () {
+                precioArray.push(parseFloat($(this).val()));
+            });
+
+            var total = 0;
+
+            if (cantidadArray.length > 0 && precioArray.length > 0) {
+                for (var i = 0; i < cantidadArray.length; i++) {
+                    total += cantidadArray[i] * precioArray[i];
+                }
+
+                $('#Total').html('Q' + total.toFixed(2));
+            }
+            else {
+                $('#Total').html('Q' + total.toFixed(2));
+            }
+        }
+
+        $("#btn-save-up-proveedor").click(function () {
+            var Nit = $("#new-proveedor-form").find("#Nit").val();
+            var Nombre = $("#new-proveedor-form").find("#Nombre").val();
+            var NombreCheque = $("#new-proveedor-form").find("#NombreCheque").val();
+            var Direccion = $("#new-proveedor-form").find("#Direccion").val();
+            var NoTelefono = $("#new-proveedor-form").find("#NoTelefonoOficina").val();
+            var Patente = $("#new-proveedor-form").find("#Patente").val();
+            var EmailProveedor = $("#new-proveedor-form").find("#EmailProveedor").val();
+            var Contacto = $("#new-proveedor-form").find("#Contacto").val();
+            var NoTelefonoContacto = $("#new-proveedor-form").find("#NoTelefonoContacto").val();
+            var EmailContacto = $("#new-proveedor-form").find("#EmailContacto").val();
+            var EmailProveedor = $("#new-proveedor-form").find("#EmailProveedor").val();
+            var Activo = true;
+
+            if (Nit === "") {
+                error("El nit es requerido");
+                return;
+            }
+
+            if (Nombre === "") {
+                error("El nombre es requerido");
+                return;
+            }
+
+            if (Direccion === "") {
+                error("La dirección es requerida");
+                return;
+            }
+
+            if (NoTelefono === "") {
+                error("El numero de telefono es requerido");
+                return;
+            }
+
+            if (Contacto === "") {
+                error("El contacto es requerido");
+                return;
+            }
+
+            if (NoTelefonoContacto === "") {
+                error("El numero de telefono del contacto es requerido");
+                return;
+            }
+
+            var modelo =
+            {
+                'Nit': Nit,
+                'Nombre': Nombre,
+                'NombreCheque': NombreCheque,
+                'Direccion': Direccion,
+                'NoTelefonoOficina': NoTelefono,
+                'Patente': Patente,
+                'EmailProveedor': EmailProveedor,
+                'Contacto': Contacto,
+                'NoTelefonoContacto': NoTelefonoContacto,
+                'EmailContacto': EmailContacto,
+                'Activo': Activo
+            };
+
+            $.ajax({
+                url: '@Url.Action("NuevoProveedor", "Proveedor")',
+                data: { 'modelo': modelo },
+                async: false,
+                type: 'POST',
+                success: function (data) {
+                    if (data == true) {
+                        $('#btn-close-up-proveedor').click();
+                        toastr.success('El nuevo proveedor se guardó exitosamente');
+
+                        location.reload();
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al guardar al nuevo proveedor');
+                    }
+                }
+            });
+
+        });
+
+        $('#PresentacionId').change(function (evt) {
+            if ($('#ProductoId').val() === "") {
+                error("Seleccionar un producto");
+                return;
+            }
+
+            if ($('#PresentacionId').val() === "") {
+                error("Seleccionar una presentacion");
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("ObtenerProducto", "Producto")',
+                traditional: true,
+                async: false,
+                data: { 'agenciaId': $('#AgenciaId').val(), 'productoId': $('#ProductoId').val(), 'presentacionId': $('#PresentacionId').val(), 'empleado': false },
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            $('#Minimo').val(resultData.Data.Minimo);
+                            $('#Maximo').val(resultData.Data.Maximo);
+                            $('#PrecioCosto').val(resultData.Data.Costo);
+                            $('#PrecioVenta').val(resultData.Data.PrecioActual);
+                            $('#Cantidad').focus();
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar el producto');
+                        }
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al visualizar el producto');
+                    }
+                }
+            });
+        });
+
+        $('#formaprincipal').keydown(function (evt) {
+            if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                cargaBusquedaProducto(evt)
+            }
+            else if ($('#Cantidad').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#Cantidad').val() === "") {
+                    error("Ingresar cantidad de producto");
+                    $('#Cantidad').focus();
+                    return;
+                }
+                $('#PrecioActual').focus();
+            }
+            else if ($('#Minimo').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#Minimo').val() === "") {
+                    error("Ingresar el minimo del producto");
+                    $('#Minimo').focus();
+                    return;
+                }
+                $('#Maximo').focus();
+            }
+            else if ($('#Maximo').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#Maximo').val() === "") {
+                    error("Ingresar el maximo del producto");
+                    $('#Maximo').focus();
+                    return;
+                }
+                $('#IDs').focus();
+            }
+            else if ($('#IDs').is(":focus") && (evt.which || evt.keyCode) == 13)
+            {
+                evt.preventDefault();
+                if ($('#IDs').val() === "")
+                {
+                    error("Ingresar el ID del producto");
+                    $('#IDs').focus();
+                    return;
+                }
+                $('#PrecioCosto').focus();
+            }
+            else if ($('#PrecioCosto').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#PrecioCosto').val() === "") {
+                    error("Ingresar el precio costo del producto");
+                    $('#PrecioCosto').focus();
+                    return;
+                }
+                $('#PrecioVenta').focus();
+            }
+            else if ($('#PrecioVenta').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#PrecioVenta').val() === "") {
+                    error("Ingresar precio venta del producto");
+                    $('#PrecioVenta').focus();
+                    return;
+                }
+                $('#btn-agregar').focus();
+            }
+        });
+
+        $("#Barra").autocomplete({
+            source: function (request, response) {
+                $.ajax({
+                    url: '@Url.Action("ConsultaProductoAutocomplementar", "Producto")',
+                    type: "POST",
+                    dataType: "json",
+                    data: { search: request.term, id: true },
+                    success: function (data) {
+                        response($.map(data, function (item) {
+                            return { label: item.Nombre, value: item.Nombre };
+                        }))
+                    }
+                })
+            },
+            messages:
+            {
+                noResults: "", results: ""
+            }
+        });
+
+        /*
+        Evento click para el boton de busqueda de productos */
+        $('#btnBarra').click(function (evt) {
+            cargaBusquedaProducto(evt);
+        });
+
+        /*
+Evento click para el boton de visualizar imagen de productos */
+        $('#btn-visualizar').click(function (evt) {
+            if ($('#ProductoId').val() === "") {
+
+                error("Ingresar codigo de barra");
+                $('#Barra').focus();
+
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("ObtenerFotografiaProducto", "Producto")',
+                traditional: true,
+                data: { 'productoId': $('#ProductoId').val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            $("#visualizar-imagen-producto-form").find("#fotografia").attr("src", resultData.Data);
+                        }
+                    }
+                }
+            });
+
+        });
+
+        /*
+        Función para la busqueda de productos */
+        function cargaBusquedaProducto(evt) {
+            evt.preventDefault();
+
+            if ($('#Barra').val() === "") {
+
+                error("Ingresar codigo de barra");
+                $('#Barra').focus();
+
+                return;
+            }
+            if (vCodBarra === $('#Barra').val()) {
+                vAumentaCantidad = parseInt($('#Cantidad').val()) + 1;
+                $('#Cantidad').val(vAumentaCantidad);
+            }
+            else { $('#Cantidad').val(1); }
+
+            $.ajax({
+                url: '@Url.Action("ObtenerProductoxBarra", "Producto")',
+                traditional: true,
+                data: { 'barra': $('#Barra').val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            //Se activa el boton de visualizar fotografia
+                            $('#imagen').css("display", "block");
+
+                            $('#Producto').val(resultData.Data.Nombre);
+                            $('#ProductoId').val(resultData.Data.ProductoId);
+
+                            var PresentacionSelect = $("#PresentacionId");
+                            PresentacionSelect.empty();
+                            PresentacionSelect.append('<option value="0">--Seleccione una Unidad--</option>');
+
+                            $.ajax({
+                                url: '@Url.Action("ObtenerPresentacionPorProducto", "Producto_Ingreso")',
+                                data: { 'id': $('#ProductoId').val() },
+                                traditional: true,
+                                async: false,
+                                type: 'GET',
+                                success: function (data)
+                                {
+                                    var unidadActualId = 0;
+                                    $.each(data, function (j)
+                                    {
+                                        unidadActualId = data[j]['Value'];
+                                        PresentacionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                                    });
+
+                                    //Se selecciona por default la primera unidad
+                                    $("#PresentacionId").val(unidadActualId).trigger("change");
+                                }
+                            });
+
+
+                            $('#Barra').focus();
+                            vCodBarra = $('#Barra').val();
+
+                        }
+                        else {
+                            toastr.error('La barra del producto ingresada no es correcta');
+                            $('#Barra').val("");
+                            $('#Barra').focus();
+                        }
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al visualizar el producto');
+                        $('#Barra').val("");
+                        $('#Barra').focus();
+                    }
+                }
+            });
+        }
+
+        $('#MovimientoEstadoId').change(function (evt) {
+            if ($('#MovimientoEstadoId').val() === "") {
+                error("Seleccionar el estado del ingreso");
+                return;
+            }
+
+            if ($('#MovimientoEstadoId').val() === "1") {
+                $("#divCredito").hide();
+            }
+            else if ($('#MovimientoEstadoId').val() === "2") {
+                $("#divCredito").show();
+            }
+        });
+
+    });
+
+    </script>  
+}
+

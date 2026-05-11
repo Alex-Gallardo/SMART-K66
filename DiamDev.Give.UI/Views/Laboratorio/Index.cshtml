@@ -1,0 +1,141 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Laboratorio>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Laboratorio Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Laboratorio")">
+        Nuevo
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Laboratorio
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Agencia</th>
+                            <th>Producto Base</th>
+                            <th>Unidad Base</th>
+                            <th>Cantidad Base</th>
+                            <th>Producto Destino</th>
+                            <th>Unidad Destino</th>
+                            <th>Cantidad Destino</th>
+                            <th>Responsable</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Laboratorio in Model)
+                        {
+                            <tr>                                                              
+                                <td>@(Laboratorio.Agencia == null ? "No Disponible" : Laboratorio.Agencia.Nombre)</td>  
+                                <td>@(Laboratorio.ProductoBase == null ? "No Disponible" : Laboratorio.ProductoBase.Nombre)</td>                            
+                                <td>@(Laboratorio.ProductoBase == null ? "No Disponible" : (Laboratorio.ProductoBase.Unidad == null ? "No Disponible" : Laboratorio.ProductoBase.Unidad.Nombre))</td>  
+                                <td>@Laboratorio.CantidadBase</td>
+                                <td>@(Laboratorio.ProductoDestino == null ? "No Disponible" : Laboratorio.ProductoDestino.Nombre)</td>
+                                <td>@(Laboratorio.ProductoDestino == null ? "No Disponible" : (Laboratorio.ProductoDestino.Unidad == null ? "No Disponible" : Laboratorio.ProductoDestino.Unidad.Nombre))</td>
+                                <td>@Laboratorio.CantidadDestino</td>
+                                <td>@(Laboratorio.UsuarioCreo == null ? "No Disponible" : Laboratorio.UsuarioCreo.Nombre)</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">                                      
+                                        <a href="@Url.Action("Detalle", "Laboratorio", new { id = Laboratorio.LaboratorioId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Laboratorio"><i class="clip-stack-empty"></i></a>
+                                        <a href="@Url.Action("Boleta", "Laboratorio", new { id = Laboratorio.LaboratorioId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Laboratorio"><i class="clip-file-pdf"></i></a>
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">                                               
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Laboratorio", new { id = Laboratorio.LaboratorioId })">
+                                                        <i class="clip-stack-empty"></i> Detalle del Laboratorio
+                                                    </a>
+                                                </li>  
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Laboratorio", new { id = Laboratorio.LaboratorioId })" target="_blank">
+                                                        <i class="clip-file-pdf"></i> Ver Laboratorio
+                                                    </a>
+                                                </li>                                           
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            if ('@TempData["Laboratorio-Success"]' == "OK")
+            {
+                toastr.success('El laboratorio se guardó exitosamente');
+            }
+        });
+    </script>
+}
+
+
+
+

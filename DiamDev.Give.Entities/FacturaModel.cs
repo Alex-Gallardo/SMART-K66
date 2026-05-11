@@ -17,11 +17,17 @@ namespace DiamDev.Give.Entities
         public long ClienteId { get; set; }
 
         public string Nombre { get; set; }
-      
+
+        public string Tipo { get; set; }
+
+        public int Dias { get; set; }
+              
         public string Forma { get; set; }
                 
         public string Documento { get; set; }
 
+        public string Usuario { get; set; }
+        
         public decimal Descuento { get; set; }
 
         public decimal Total { get; set; }

@@ -1,0 +1,39 @@
+﻿@model DiamDev.Give.Entities.Nomina
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Tipo<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("TipoId", (SelectList)ViewBag.Tipos, "--Seleccione un Tipo de Nomina--", new { @class = "form-control search-select required", autofocus = "autofocus" })
+        </div>        
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha Inicial<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha Final<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+

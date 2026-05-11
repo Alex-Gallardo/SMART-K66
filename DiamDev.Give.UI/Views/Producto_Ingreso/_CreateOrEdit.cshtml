@@ -1,5 +1,16 @@
 ﻿@model DiamDev.Give.Entities.Movimiento
+@{
+    DateTime _now = DateTime.Now;
+    string _dd = _now.ToString("dd"); //
+    string _mm = _now.ToString("MM");
+    string _yy = _now.ToString("yyyy");
+    string _hh = _now.Hour.ToString();
+    string _min = _now.Minute.ToString();
+    string _ss = _now.Second.ToString();
+    string _ms = _now.Millisecond.ToString();
 
+    string _uniqueId = _dd + _hh + _mm + _min + _ss + _ms + _yy;
+}
 <div class="row">
     <div class="col-md-12">
         <h2><i class="icon-edit-sign teal"></i>Proveedores</h2>
@@ -17,8 +28,92 @@
                 <i class="clip-plus-circle"></i>
             </a>
         </div>
-    </div>    
+    </div>
 </div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Agencias</h2>
+        <hr>
+    </div>
+</div>
+<div class="form-group">
+    <label class="control-label">
+        Agencia<span class="symbol required"></span>
+    </label>
+    @Html.DropDownList("AgenciaId", (SelectList)ViewBag.Agencias, "--Seleccione una Agencia--", new { @class = "form-control search-select required" })
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Categorias</h2>
+        <hr>
+    </div>
+</div>
+<div class="form-group">
+    <label class="control-label">
+        Categoria<span class="symbol required"></span>
+    </label>
+    @Html.DropDownList("MovimientoCategoriaId", (SelectList)ViewBag.Categorias, "--Seleccione una Categoria--", new { @class = "form-control search-select required" })
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Estados</h2>
+        <hr>
+    </div>
+</div>
+<div class="form-group">
+    <label class="control-label">
+        Estado<span class="symbol required"></span>
+    </label>
+    @Html.DropDownList("MovimientoEstadoId", (SelectList)ViewBag.Estados, "--Seleccione un Estado--", new { @class = "form-control search-select required" })
+</div>
+<div id="divFactura">
+    <div class="row">
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha de Documento <span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaDocumento" name="FechaDocumento" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : (Model.FechaDocumento == null ? "" : Model.FechaDocumento.Value.ToString("yyyy-MM-dd")))">
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="control-label">
+                    #Documento<span class="symbol required"></span>
+          
+		  </label>
+		    <input type="text"  class="form-control" id="FacturaNumero" name="FacturaNumero" >
+                  
+             </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha de Vencimiento
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaVencimiento" name="FechaVencimiento" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : (Model.FechaVencimiento == null ? "" : Model.FechaVencimiento.Value.ToString("yyyy-MM-dd")))">
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+		 <input type="hidden"  class="form-control" id="Documento" name="Documento" >
+          
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="control-label">
+                    Dias de Credito
+                </label>
+                @Html.TextBoxFor(model => model.DiasCredito, new { @class = "form-control", @placeholder = "Dias de Credito", autocomplete = "off", Value = 0 })
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <div class="row">
     <div class="col-md-12">
         <h2><i class="icon-edit-sign teal"></i>Descripci&oacute;n</h2>
@@ -32,7 +127,35 @@
                 Descripci&oacute;n<span class="symbol required"></span>
             </label>
             @Html.TextAreaFor(model => model.Descripcion, new { @class = "form-control", @placeholder = "Descripción del Ingreso", required = "required", autocomplete = "off" })
-        </div>                 
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Fotografia</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="fileupload fileupload-new" data-provides="fileupload">
+            <div class="input-group">
+                <div class="form-control uneditable-input">
+                    <i class="icon-file fileupload-exists"></i>
+                    <span class="fileupload-preview"></span>
+                </div>
+                <div class="input-group-btn">
+                    <div class="btn btn-light-grey btn-file">
+                        <span class="fileupload-new"><i class="icon-folder-open-alt"></i>Seleccionar Fotografia</span>
+                        <span class="fileupload-exists"><i class="icon-folder-open-alt"></i>Cambiar</span>
+                        <input type="file" class="file-input" id="fotografiaApp" name="fotografiaApp">
+                    </div>
+                    <a href="#" class="btn btn-light-grey fileupload-exists" data-dismiss="fileupload">
+                        <i class="icon-remove"></i> Eliminar
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 <h2>
@@ -43,40 +166,128 @@
     <div class="col-md-12">
         <div class="form-group">
             <label class="control-label">
+                Barra
+            </label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="imagen">
+    <div class="row">
+        <div class="col-md-12">
+            <button type="button" class="btn btn-med-grey btn-block ladda-button" data-toggle="modal" data-target="#visualizar-imagen-producto-form" id="btn-visualizar">Visualizar Fotografía</button>
+        </div>
+    </div>
+    <br />
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
                 Producto
             </label>
-            @Html.DropDownList("ProductoId", (SelectList)ViewBag.Productos, "--Seleccione un Producto--", new { @class = "form-control search-select" })
+            <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" disabled="disabled" />
+            <input type="hidden" id="ProductoId" name="ProductoId" value="0" />
         </div>
         <div class="form-group">
             <label class="control-label">
                 Unidad
             </label>
             <select id="PresentacionId" name="PresentacionId" class="form-control search-select">
-                <option value="0">--Seleccione una Unidad--</option>
+                <option value="0">--SELECCIONE UNA UNIDAD--</option>
             </select>
         </div>
     </div>
 </div>
 <div class="row">
-    <div class="col-md-6">  
+    <div class="col-md-2">
         <div class="form-group">
             <label class="control-label">
                 Cantidad
             </label>
-            <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" autocomplete="off" />
+            <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" value="1" autocomplete="off" />
         </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-2">
         <div class="form-group">
             <label class="control-label">
-                Precio
+                Existencia
+            </label>
+            <input type="number" placeholder="Existencia" class="form-control" id="Existencia" name="Existencia" autocomplete="off" value="0" disabled="disabled" />
+        </div>
+    </div>
+    <div class="col-md-1">
+        <div class="form-group">
+            <label class="control-label">
+                Minimo
+            </label>
+            <input type="number" placeholder="Minimo" class="form-control" id="Minimo" name="Minimo" value="0" autocomplete="off" />
+        </div>
+    </div>
+    <div class="col-md-1">
+        <div class="form-group">
+            <label class="control-label">
+                Maximo
+            </label>
+            <input type="number" placeholder="Maximo" class="form-control" id="Maximo" name="Maximo" value="0" autocomplete="off" />
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label class="control-label">
+                Precio Costo
             </label>
             <div class="input-group">
                 <span class="input-group-addon">Q</span>
-                <input type="number" placeholder="Precio" class="form-control" id="Precio" name="Precio" autocomplete="off" />
+                <input type="text" placeholder="Precio Costo" class="form-control" id="PrecioCosto" name="PrecioCosto" value="0" autocomplete="off" />
             </div>
         </div>
-    </div>        
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label class="control-label">
+                Precio Venta
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                <input type="text" placeholder="Precio de Venta" class="form-control" id="PrecioVenta" name="PrecioVenta" value="0" autocomplete="off" />
+                <input type="hidden" id="TieneLote" name="TieneLote" value="0" />
+            </div>
+        </div>
+    </div>
+</div>
+<div id="divLote">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    #Lote
+                </label>
+                <input type="text" placeholder="#Lote" class="form-control" id="Lote" name="Lote" value="" autocomplete="off" />
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha de Vencimiento Lote
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaVencimientoLote" name="FechaVencimientoLote" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")">
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div id="divHistorialPrecioCosto"></div>
+    </div>
 </div>
 <div class="row">
     <div class="col-md-12">
@@ -86,14 +297,19 @@
                 <tr>
                     <th>Producto</th>
                     <th>Unidad</th>
-                    <th>Cantidad</th>                   
-                    <th>Precio</th>
+                    <th>Cantidad</th>
+                    <th>Minimo</th>
+                    <th>Maximo</th>
+                    <th>#Lote</th>
+                    <th>Fecha Vencimiento Lote</th>
+                    <th>P. Costo</th>
+                    <th>P. Venta</th>
                     <th>Sub-Total</th>
                     <th></th>
                 </tr>
             </thead>
             <tbody id="producto_tbody"></tbody>
-        </table>       
+        </table>
     </div>
 </div>
 <div class="row">
@@ -105,7 +321,7 @@
         </div>
         <div class="col-md-8">
             <div id="Total" style="text-align: right;font-size:large; font-weight:bold;">
-                Q0.00
+                Q0.0000
             </div>
         </div>
     </div>

@@ -1,0 +1,442 @@
+﻿@model DiamDev.Give.Entities.Recibo
+
+<div class="row" hidden>
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Transporte</h2>
+        <hr>
+    </div>
+</div>
+<div class="row" hidden>
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Reparto<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("RepartoId", (SelectList)ViewBag.Repartos, "--Seleccione Reparto--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+<div id="divTransporte">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Transporte
+                </label>
+                @Html.DropDownList("TransporteId", (SelectList)ViewBag.Transportes, "--Seleccione Transporte--", new { @class = "form-control search-select" })
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Agencias</h2>
+        <hr>
+    </div>
+</div>
+<div class="form-group">
+    <label class="control-label">
+        Agencia<span class="symbol required"></span>
+    </label>
+    @Html.DropDownList("AgenciaId", (SelectList)ViewBag.Agencias, "--Seleccione una Agencia--", new { @class = "form-control search-select required" })
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Clientes</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Cliente
+            </label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="BuscarCliente" name="BuscarCliente" autocomplete="off" placeholder="Buscar Cliente...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="btnBuscarCliente">Buscar</button>
+                    <a href="#new-cliente-form" data-toggle="modal" class="demo btn btn-blue" style="margin-bottom: -1px;">
+                        <i class="clip-plus-circle"></i>
+                    </a>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Cliente<span class="symbol required"></span>
+            </label>
+            <input type="text" placeholder="Cliente" class="form-control" id="NombreCliente" name="NombreCliente" autocomplete="off" disabled="disabled" required />
+            <input type="hidden" id="ClienteId" name="ClienteId" value="0" />
+            <input type="hidden" id="DescuentoGeneralCliente" value="0" />
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Dirección
+            </label>
+            <input type="text" placeholder="Dirección" class="form-control" id="DireccionCliente" name="DireccionCliente" autocomplete="off" disabled="disabled" />
+        </div>
+    </div>
+</div>
+<div class="row" style="visibility:hidden;" id="direcccionmultiples">
+
+    <div class="col-md-8">
+        <div class="form-group">
+            <label class="control-label">
+                Direcciones de Entrega Cliente
+            </label>
+            <select class="form-control" id="DireccionEntregaHoy" name="DireccionEntregaHoy" required></select>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Nueva Direcion
+            </label>
+            <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" onclick="NuevaDireccionCliente();" type="button">
+                <span class="ladda-label">  Nueva Direccion </span>
+                <span class="ladda-spinner"></span>
+                <span class="ladda-progress" style="width: 0px;"></span>
+            </button>
+        </div>
+    </div>
+
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                #Telefono
+            </label>
+            <input type="text" placeholder="#Telefono" class="form-control" id="TelefonoCliente" name="TelefonoCliente" autocomplete="off" disabled="disabled" />
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div id="mensajeVIP" style="text-align:center; font-weight:bold; color:red;"></div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <h2><i class="icon-edit-sign teal"></i>Programada</h2>
+    </div>
+    <p>
+        <div class="col-md-6">
+            <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" onclick="VerProgramaciones();" type="button">
+                <span class="ladda-label"> Programar la Orden </span>
+                <span class="ladda-spinner"></span>
+                <span class="ladda-progress" style="width: 0px;"></span>
+            </button>
+        </div>
+    </p>
+</div>
+<div class="row" style="visibility:hidden;" id="divprogramar">
+
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha Entrega
+            </label>
+            @Html.TextBoxFor(model => model.FechaHoraEntregaProgramada, new { @class = "form-control", @placeholder = "Fecha Programada", value = "DateTime.Today", type = "datetime-local",  autocomplete = "off", autofocus = "autofocus" })
+
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                De parte de:
+            </label>
+            <input type="text" placeholder="Quien Envia " class="form-control" id="QuienEnvia" name="QuienEnvia" autocomplete="off" />
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Dedicatoria o Mensaje:
+            </label>
+            <input type="text" placeholder="Dedicatoria" class="form-control" id="Dedicatoria" name="Dedicatoria" autocomplete="off" />
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Vendedor<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("VendedorId", (SelectList)ViewBag.Vendedores, "--SELECCIONE UN VENDEDOR--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Tipo<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("TipoId", (SelectList)ViewBag.Tipos, "--SELECCIONE UN TIPO DE DOCUMENTO--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+<div id="divProducto" style="visibility:hidden;">
+    <h2>
+        <i class="icon-edit-sign teal"></i> Productos
+    </h2>
+    <hr>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Barra
+                </label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                    <span class="input-group-btn">
+                        <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="imagen">
+        <div class="row">
+            <div class="col-md-12">
+                <button type="button" class="btn btn-med-grey btn-block ladda-button" data-toggle="modal" data-target="#visualizar-imagen-producto-form" id="btn-visualizar">Visualizar Fotografía</button>
+            </div>
+        </div>
+        <br />
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Producto
+                </label>
+                <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" />
+                <input type="hidden" id="ProductoId" name="ProductoId" value="0" />
+                <input type="hidden" id="TieneIDs" name="TieneIDs" value="0" />
+            </div>
+            <div class="form-group">
+                <label class="control-label">
+                    Unidad
+                </label>
+                <select id="PresentacionId" name="PresentacionId" class="form-control search-select">
+                    <option value="0">--SELECCIONE UNA UNIDAD--</option>
+                </select>
+            </div>
+            <div id="divOcultarIDs">
+                <div class="form-group">
+                    <label class="control-label">
+                        IDs
+                    </label>
+                    <select id="ProductoActualIDs" name="ProductoActualIDs" class="form-control search-select">
+                        <option value="0">--SELECCIONE UN IDs--</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="control-label">
+                    Existencia
+                </label>
+                <input type="number" placeholder="Existencia" class="form-control" id="Existencia" name="Existencia" autocomplete="off" disabled="disabled" />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="control-label">
+                    Cantidad
+                </label>
+                <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" value="1" autocomplete="off" />
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="control-label">
+                    Precio
+                </label>
+                <div class="input-group">
+                    <span class="input-group-addon">Q</span>
+                    <input type="text" placeholder="Precio de Venta" class="form-control" id="PrecioActual" name="PrecioActual" value="0" autocomplete="off" disabled="disabled" />
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="form-group">
+                <label class="control-label">
+                    Precio Negociado
+                </label>
+                <div class="input-group">
+                    <span class="input-group-addon">Q</span>
+                    <input type="number" placeholder="Descuento" class="form-control" id="DescuentoActual" name="DescuentoActual" value="0" autocomplete="off" />
+                    <input type="hidden" value="0" id="PrecioVentaMinimo" />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="divPedido">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Pedidos
+                </label>
+                <select id="PedidoId" name="PedidoId" class="form-control search-select">
+                    <option value="0">--SELECCIONE UN PEDIDO--</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="divReserva">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="control-label">
+                    #Reserva
+                </label>
+                @Html.TextBoxFor(model => model.ReservaId, new { @class = "form-control", @placeholder = "#Reserva", autocomplete = "off" })
+            </div>
+        </div>
+        <button class="btn btn-primary" style="margin-bottom: -58px;" id="btn-Reserva" type="button">
+            <i class="clip-search-3"></i> Buscar
+        </button>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Unidad</th>
+                    <th>Cantidad</th>
+                    <th>IDs</th>
+                    <th>Precio</th>
+                    <th>Descuento</th>
+                    <th>Sub-Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="producto_tbody"></tbody>
+        </table>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="col-md-4">
+            <div style="text-align:left; font-size:large; font-weight:bold;">
+                Total:
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div id="Total" style="text-align: right;font-size:large; font-weight:bold;">
+                Q0.0000
+            </div>
+        </div>
+    </div>
+</div>
+<div id="divMostrarEscalaPrecios">
+    <div class="row">
+        <div class="col-md-12">
+            <hr />
+            <div id="divEscalaPrecios"></div>
+        </div>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <button id="btnActualizarTarjeta" data-style="slide-down" target="_blank" class="btn btn-primary btn-block ladda-button" type="button">
+            <span class="ladda-label"> ACTUALIZAR PRECIO PORCENTAJE X TARJETA</span>
+            <span class="ladda-spinner"></span>
+            <span class="ladda-progress" style="width: 0px;"></span>
+        </button>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Observaciones
+            </label>
+            @Html.TextAreaFor(model => model.ComentarioPedido, new { @class = "form-control", @placeholder = "Observaciones", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<h2>
+    <i class="icon-edit-sign teal"></i> Forma de Pago
+</h2>
+<hr>
+<div class="row">
+    <div class="col-md-8">
+        <div class="form-group">
+            <label class="control-label">
+                Forma
+            </label>
+            @Html.DropDownList("PagoId", (SelectList)ViewBag.Formas, "--SELECCIONE UNA FORMA DE PAGO--", new { @class = "form-control search-select" })
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Cantidad
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                <input type="text" placeholder="Cantidad" class="form-control" id="Cantidad_Pagar" name="Cantidad_Pagar" autocomplete="off" />
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Nota
+            </label>
+            <input type="text" placeholder="Nota" class="form-control" id="Nota" name="Nota" autocomplete="off" />
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-forma">Agregar</button></p>
+        <table class="table table-hover" id="sample-table-1">
+            <thead>
+                <tr>
+                    <th>Forma</th>
+                    <th>Cantidad</th>
+                    <th>Nota</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="forma_tbody"></tbody>
+        </table>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="col-md-4">
+            <div style="text-align:left; font-size:large; font-weight:bold;">
+                Total:
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div id="Total_Pagar" style="text-align: right;font-size:large; font-weight:bold;">
+                Q0.0000
+            </div>
+        </div>
+    </div>
+</div>

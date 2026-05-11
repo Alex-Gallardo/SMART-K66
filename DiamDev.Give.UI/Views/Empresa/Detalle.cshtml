@@ -1,0 +1,376 @@
+﻿@model DiamDev.Give.Entities.Empresa
+
+@{
+    ViewBag.Title = "Detalle de la Empresa";
+}
+
+<div class="row">
+    <div class="col-md-12">        
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Empresa
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="EmpresaId" name="EmpresaId" value="@Html.Raw(Model.EmpresaId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre de la Empresa", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre Comercial<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.NombreComercial, new { @class = "form-control", @placeholder = "Nombre Comercial de la Empresa", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre del Contacto<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.NombreContacto, new { @class = "form-control", @placeholder = "Nombre del Contacto de la Empresa", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    #Telefono del Contacto<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.TelefonoContacto, new { @class = "form-control input-mask-phone", @placeholder = "#Telefono del Contacto de la Empresa", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    #Telefono del Contacto #2
+                                </label>
+                                @Html.TextBoxFor(model => model.TelefonoContacto2, new { @class = "form-control input-mask-phone", @placeholder = "#Telefono del Contacto #2 de la Empresa", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Correo Electronico
+                                </label>
+                                @Html.TextBoxFor(model => model.CorreoContacto, new { @class = "form-control", @placeholder = "Correo Electronico del Contacto de la Empresa", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Reporte #1
+                                </label>
+                                @Html.TextBoxFor(model => model.Reporte1, new { @class = "form-control", @placeholder = "Reporte #1", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Reporte #2
+                                </label>
+                                @Html.TextBoxFor(model => model.Reporte2, new { @class = "form-control", @placeholder = "Reporte #2", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Reporte Cotizacion
+                                </label>
+                                @Html.TextBoxFor(model => model.ReporteCotizacion, new { @class = "form-control", @placeholder = "Reporte Cotizacion", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nit Emisor DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.NitEmisorDIGIFACT, new { @class = "form-control", @placeholder = "Nit Emisor DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre Comercial DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.NombreComercialDIGIFACT, new { @class = "form-control", @placeholder = "Nombre Comercial DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre Emisor DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.NombreEmisorDIGIFACT, new { @class = "form-control", @placeholder = "Nombre Emisor DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Direccion Emisor DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.DireccionEmisorDIGIFACT, new { @class = "form-control", @placeholder = "Direccion Emisor DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Codigo Postal Emisor DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.CodigoPostalEmisorDIGIFACT, new { @class = "form-control", @placeholder = "Codigo Postal Emisor DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Departamento Emisor DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.DepartamentoEmisorDIGIFACT, new { @class = "form-control", @placeholder = "Departamento Emisor DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Municipio Emisor DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.MunicipioEmisorDIGIFACT, new { @class = "form-control", @placeholder = "Municipio Emisor DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Pais Emisor DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.PaisEmisorDIGIFACT, new { @class = "form-control", @placeholder = "Pais Emisor DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Codigo de Escenario DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.CodigoEscenarioDIGIFACT, new { @class = "form-control", @placeholder = "Codigo de Escenario DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Tipo de Frase DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.TipoFraseDIGIFACT, new { @class = "form-control", @placeholder = "Tipo de Frase DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Afiliacion de Iva DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.AfiliacionIvaDIGIFACT, new { @class = "form-control", @placeholder = "Afiliacion de Iva DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Usuario DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.UsuarioDIGIFACT, new { @class = "form-control", @placeholder = "Usuario DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Password DIGIFACT<span class="symbol required"></span>
+                                </label>
+                                @Html.TextBoxFor(model => model.PasswordDIGIFACT, new { @class = "form-control", @placeholder = "Password DIGIFACT", required = "required", autocomplete = "off", @readonly = "readonly" })
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Agencias
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Agencia</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Agencias != null && Model.Agencias.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.Agencias)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @Detalle.Nombre
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>No contiene agencias</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Usuarios
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Usuarios != null && Model.Usuarios.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.Usuarios)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @Detalle.Nombre
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td>
+                                                <strong>No contiene usuarios</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Paquetes
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Paquete</th>
+                                        <th>Forma de Pago</th>
+                                        <th>Saldo de Facturas</th>
+                                        <th>Fecha de Vencimiento</th>
+                                        <th>Precio</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Paquetes != null && Model.Paquetes.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.Paquetes)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Detalle.Paquete == null ? "No Disponible": String.Format("Paquete: {0} - Cantidad de Facturas: {1} - Precio: {2:C}", Detalle.Paquete.Nombre, Detalle.Paquete.CantidadDTE, Detalle.Paquete.Precio))
+                                                </td>
+                                                 <td>
+                                                    @(Detalle.FormaPago == null ? "No Disponible": Detalle.FormaPago.Nombre)
+                                                </td>
+                                                <td>
+                                                    @Detalle.SaldoFactura
+                                                </td>
+                                                <td>
+                                                    @Detalle.FechaVencimiento.ToString("dd/MM/yyyy")
+                                                </td>
+                                                 <td>
+                                                    @Detalle.Precio.ToString("C")
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene paquetes</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Empresa")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>        
+    </div>
+</div>

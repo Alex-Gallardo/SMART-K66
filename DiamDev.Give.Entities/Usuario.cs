@@ -2,19 +2,27 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DiamDev.Give.Entities
 {
     [Table("Usuario")]
     public class Usuario
     {
-
         [Key, Column(name: "Usuario_Id")]
-        [DatabaseGenerated(System.ComponentModel.DataAnnotations.Schema.DatabaseGeneratedOption.None)]
+        [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public long UsuarioId { get; set; }
+
+        [Column("Vendedor_Id")]
+        public long? VendedorId { get; set; }
+
+        [ForeignKey("VendedorId")]
+        public Vendedor Vendedor { get; set; }
+
+        [Column("Departamento_Id")]
+        public long? DepartamentoId { get; set; }
+
+        [ForeignKey("DepartamentoId")]
+        public Departamento Departamento { get; set; }        
 
         [Required(ErrorMessage = "El usuario es requerido")]
         [StringLength(50)]
@@ -51,15 +59,32 @@ namespace DiamDev.Give.Entities
         [Column("Autenticar_Android")]
         public bool AutenticarAndroid { get; set; }
 
+        [Column("serie_sap")]
+        public string serie_sap { get; set; }
+
         public bool Activo { get; set; }
+
+        public bool Token { get; set; }
+
+        public string Celular { get; set; }
 
         public int Correlativo { get; set; }
 
         public List<UsuarioRol> Roles { get; set; }
 
-        public List<UsuarioAgencia> Agencias { get; set; } 
+        public List<UsuarioAgencia> Agencias { get; set; }
+
+        public List<UsuarioAgenciaConsulta> AgenciaConsultas { get; set; }
+
+        public List<UsuarioEmpresa> Empresas { get; set; }
 
         [NotMapped]
         public List<RolPermiso> RolesPermiso { get; set; }
+    }
+
+
+    public class ModelSale
+    {
+        public string Codigo { get; set; }
     }
 }

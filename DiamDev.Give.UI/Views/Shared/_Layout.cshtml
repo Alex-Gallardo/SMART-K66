@@ -2,7 +2,7 @@
 <html lang="en" class="no-js">
 <head>
 
-    <title>Give - @ViewBag.Title</title>
+    <title>Smart K66 - @ViewBag.Title</title>
 
     <!-- start: META -->
     <meta charset="utf-8" />
@@ -10,8 +10,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta content="Give" name="description" />
-    <meta content="DiamDev" name="author" />
+    <meta content="SmartK66" name="description" />
+    <meta content="RAGATEC" name="author" />
     <!-- end: META -->
 
     <!--Plantillas CSS-->
@@ -197,7 +197,7 @@
 <!-- start: FOOTER -->
 <div class="footer clearfix">
     <div class="footer-inner">
-        2016 © - Give
+        @DateTime.Now.Year © - GRUPO K66
     </div>
     <div class="footer-items">
         <span class="go-top"><i class="clip-chevron-up"></i></span>
@@ -260,15 +260,83 @@
 <script type="text/javascript" src="~/Content/fancybox/source/helpers/jquery.fancybox-media.js?v=1.0.6"></script>
 <script type="text/javascript">
 
-    $(function () {
-        $("principal").each(function () {
+    $(function ()
+    {
+        $("principal").each(function ()
+        {
             $(this).val() = "";
         });
     });
 
-    $(function () {
+    $(function ()
+    {
         Main.init();
         FormElements.init();
+    });
+
+    $(function ()
+    {
+        $(document).ready(function ()
+        {
+            loadIngresos();
+
+            var timeDelay = 15000;           
+            setTimeout(loadIngresos, timeDelay);
+
+            function loadIngresos()
+            {
+                $.ajax({
+                    url: '@Url.Action("ObtenerIngresosPendientes", "Producto_Ingreso")',
+                    type: 'GET',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion == true)
+                            {
+                                $("#lblContadorIngresos").html(resultData.Data.CantidadIngresos);
+                                $("#lblContadorIngresosxID").html(resultData.Data.CantidadIngresosxID);
+                                $("#lblContadorPedidosSinOperar").html(resultData.Data.CantidadPedidosSinOperar);
+                                $("#lblContadorRecibosSinDespachar").html(resultData.Data.CantidadRecibosSinDespachar);
+                                $("#lblContadorFacturasSinDespachar").html(resultData.Data.CantidadFacturasSinDespachar);
+                                $("#lblContadorCuentaxCobrar").html(resultData.Data.CantidadCuentaxCobrar);
+                                $("#lblContadorRecibosEnvasexRecibir").html(resultData.Data.CantidadEnvasesxRecibir);
+                                $("#lblContadorPedidosReciboCotizacion").html(resultData.Data.CantidadPedidosCotizacion);
+                                $("#lblContadorPedidosFacturaCotizacion").html(resultData.Data.CantidadPedidosCotizacion);
+                            }
+                        }
+                    },
+                    complete: function (data)
+                    {
+                        setTimeout(loadIngresos, 15000);
+                    }
+                });
+            }
+
+            loadReparacionComentarios();
+
+            var timeDelay = 15000;
+            setTimeout(loadReparacionComentarios, timeDelay);
+
+            function loadReparacionComentarios()
+            {
+                $.ajax({
+                    url: '@Url.Action("ObtenerComentariosPendientes", "Reparacion")',
+                    type: 'GET',
+                    success: function (resultData) {
+                        if (resultData !== null) {
+                            if (resultData.Operacion == true) {
+                                $("#lblContadorReparacionComentarioNuevos").html(resultData.Data);
+                            }
+                        }
+                    },
+                    complete: function (data)
+                    {
+                        setTimeout(loadReparacionComentarios, 15000);
+                    }
+                });
+            }
+        });
     });
    
 </script>

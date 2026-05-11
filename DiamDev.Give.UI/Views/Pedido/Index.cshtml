@@ -1,0 +1,283 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Pedido>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Cotizacion Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Pedido")">
+        Nueva
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+<br />
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Cotizacion
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr> 
+                            <th>#Cotizacion</th>    
+                            <th>Tipo</th>         
+                            <th class="hidden-sm hidden-xs">Fecha</th>
+                            <th>Hora</th>                            
+                            <th>Cliente</th>
+                            <th class="hidden-sm hidden-xs">Productos</th>
+                            <th class="hidden-sm hidden-xs" >Total</th>
+                            <th>Operado</th>
+                            <th class="hidden-sm hidden-xs">Hora Operado</th>
+                            <th class="hidden-sm hidden-xs">U. Creo</th>    
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Pedido in Model)
+                        {
+                            <tr>  
+                                <td>@Pedido.PedidoId</td>   
+                                <td>@(Pedido.Cotizacion ? "Cotizacion" : "Pedido")</td>                          
+                                <td class="hidden-sm hidden-xs">@Pedido.Fecha.ToString("dd/MM/yyyy")</td>   
+                                <td>@(Pedido.FechaHoraCreacion == null ? "00:00" : Pedido.FechaHoraCreacion.Value.ToString("hh:mm tt"))</td>                            
+                                <td>@(Pedido.Cliente == null ? "No Disponible" : Pedido.Cliente.Nombre)</td>                            
+                                <td class="hidden-sm hidden-xs">@(Pedido.Detalles == null ? 0 : Pedido.Detalles.Count())</td>
+                                <td class="hidden-sm hidden-xs">@(Pedido.Detalles == null ? "Q0.0000" : Pedido.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4"))</td>
+                                <td>@(Pedido.Operada ? "Sí" : "No")</td>    
+                                <td class="hidden-sm  hidden-xs">@(Pedido.FechaHoraOpero == null ? "00:00" : Pedido.FechaHoraOpero.Value.ToString("hh:mm tt"))</td>  
+                                <td class="hidden-sm  hidden-xs">@(Pedido.UsuarioCreo == null ? "No Disponible" : Pedido.UsuarioCreo.Nombre)</td>    
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        @if (!Pedido.Anulada)
+                                        {
+                                            <a href="@Url.Action("Editar", "Pedido", new { id = Pedido.PedidoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                            <a href="@Url.Action("Duplicar", "Pedido", new { id = Pedido.PedidoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Duplicar"><i class="clip-copy-2"></i></a>
+                                        }
+                                        @if (!Pedido.Operada)
+                                        {
+                                            if (!Pedido.Anulada)
+                                            {
+                                                <a href="@Url.Action("Anular", "Pedido", new { id = Pedido.PedidoId })" class="btn btn-bricky tooltips" data-placement="top" data-original-title="Anular Pedido"><i class="clip-close"></i></a>
+                                            }
+                                        }
+                                        <a href="@Url.Action("Detalle", "Pedido", new { id = Pedido.PedidoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Pedido"><i class="clip-stack-empty"></i></a>
+                                        @if (!Pedido.Anulada)
+                                        {
+                                            <a href="@Url.Action("Boleta", "Pedido", new { id = Pedido.PedidoId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Pedido"><i class="clip-file-pdf"></i></a>
+                                        }
+                                        @if (Pedido.Cotizacion)
+                                        {
+                                            <a href="javascript:void(0);" onclick="convertir('@Pedido.PedidoId');" class="btn btn-teal tooltips" data-placement="top" data-original-title="Convertir Pedido"><i class="clip-checkmark"></i></a>
+                                        }
+                                        @if (Pedido.Operada)
+                                        {
+                                            <a href="javascript:void(0);" onclick="revivir('@Pedido.PedidoId');" class="btn btn-teal tooltips" data-placement="top" data-original-title="Revivir Pedido"><i class="clip-unlocked"></i></a>
+                                        }
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                @if (!Pedido.Anulada)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Pedido", new { id = Pedido.PedidoId })">
+                                                            <i class="icon-edit"></i> Editar
+                                                        </a>
+                                                    </li>
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Duplicar", "Pedido", new { id = Pedido.PedidoId })">
+                                                            <i class="clip-copy-2"></i> Duplicar
+                                                        </a>
+                                                    </li>
+                                                }
+                                                @if (!Pedido.Operada)
+                                                {
+                                                    if (!Pedido.Anulada)
+                                                    {
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Anular", "Pedido", new { id = Pedido.PedidoId })">
+                                                                <i class="clip-close"></i> Anular Pedido
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                }
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Pedido", new { id = Pedido.PedidoId })">
+                                                        <i class="clip-stack-empty"></i> Detalle del Pedido
+                                                    </a>
+                                                </li>
+                                                @if (!Pedido.Anulada)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Pedido", new { id = Pedido.PedidoId })" target="_blank">
+                                                            <i class="clip-file-pdf"></i> Ver Pedido
+                                                        </a>
+                                                    </li>
+                                                }
+                                                @if (Pedido.Cotizacion)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="javascript:void(0);" onclick="convertir('@Pedido.PedidoId');">
+                                                            <i class="clip-checkmark"></i> Convertir Pedido
+                                                        </a>
+                                                    </li>
+                                                }
+                                                @if (Pedido.Operada)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="javascript:void(0);" onclick="revivir('@Pedido.PedidoId');">
+                                                            <i class="clip-unlocked"></i> Revivir Pedido
+                                                        </a>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { search = ViewBag.Search, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            if ('@TempData["Pedido-Success"]' == "OK")
+            {
+                toastr.success('La cotizacion se guardó exitosamente');
+            }
+            else if ('@TempData["Pedido_Anular-Success"]' == "OK")
+            {
+                toastr.success('La cotizacion fue anulada exitosamente');
+            }
+        });
+
+        function convertir(id)
+        {
+            if (confirm("¿Desea convertir la cotización en pedido?"))
+            {
+                $.ajax({
+                    url: '@Url.Action("ConvertirCotizacionPedido", "Pedido")?pedidoId=' + encodeURI(id),
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        if (!data.Operacion)
+                        {
+                            toastr.error('Ocurrió un error, al convertir la cotización en pedido');
+                            return;
+                        }
+
+                        toastr.success('La cotización se convirtio en pedido exitosamente');
+                        window.location.reload();
+                    },
+                    fail: function (data)
+                    {                        
+                        toastr.error('Ocurrió un error, al convertir la cotización en pedido');
+                    }
+                });
+            }
+        }
+
+        function revivir(id)
+        {
+            if (confirm("¿Desea revivir el pedido?")) {
+                $.ajax({
+                    url: '@Url.Action("RevivirPedido", "Pedido")?pedidoId=' + encodeURI(id),
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        if (!data.Operacion)
+                        {
+                            toastr.error('El pedido no se pudo activar');
+                            return;
+                        }
+
+                        toastr.success('El pedido se activo exitosamente');
+                        window.location.reload();
+                    },
+                    fail: function (data)
+                    {
+                        toastr.error('Ocurrió un error, al tratar de activar el pedido');
+                    }
+                });
+            }
+        }
+    </script>
+}
+
+
+
+

@@ -48,11 +48,13 @@
                 <table class="table table-hover" id="sample-table-1">
                     <thead>
                         <tr>
+                            <th>ID</th>
                             <th>Codigo</th>
-                            <th>Nombre</th>
-                            <th>Categoria</th>
+                            <th>Nombre</th>    
+                            <th>Unidad</th>                       
                             <th>Marca</th>
-                            <th>Unidad</th>
+                            <th>P. Venta</th>
+                            <th>Identidicador</th>                            
                             <th>Activo</th>
                             <th></th>
                         </tr>
@@ -61,16 +63,22 @@
                         @foreach (var Producto in Model)
                         {
                             <tr>
+                                <td>@Producto.ProductoId</td>
                                 <td>@Producto.Codigo</td>
-                                <td>@Producto.Nombre</td>
-                                <td>@(Producto.Categoria == null ? "No Disponible" : Producto.Categoria.Nombre)</td>
+                                <td>@Producto.Nombre</td> 
+                                <td>@(Producto.Unidad == null ? "No Disponible" : Producto.Unidad.Nombre)</td>                              
                                 <td>@(Producto.Marca == null ? "No Disponible" : Producto.Marca.Nombre)</td>
-                                <td>@(Producto.Unidad == null ? "No Disponible" : Producto.Unidad.Nombre)</td>
+                                <td>@Producto.PrecioActual.ToString("C")</td>
+                                <td>@(Producto.TieneIdentificador ? "Sí" : "No")</td>                                
                                 <td>@(Producto.Activo ? "Sí" : "No")</td>
                                 <td class="center">
                                     <div class="visible-md visible-lg hidden-sm hidden-xs">
                                         <a href="@Url.Action("Editar", "Producto", new { id = Producto.ProductoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
                                         <a href="@Url.Action("Detalle", "Producto", new { id = Producto.ProductoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Producto"><i class="clip-stack-empty"></i></a>
+                                        @if (Producto.Eliminar)
+                                        {
+                                            <a href="@Url.Action("Eliminar", "Producto", new { id = Producto.ProductoId })" class="btn btn-bricky tooltips" data-placement="top" data-original-title="Eliminar Producto"><i class="clip-close"></i></a>
+                                        }
                                     </div>
                                     <div class="visible-xs visible-sm hidden-md hidden-lg">
                                         <div class="btn-group">
@@ -88,6 +96,14 @@
                                                         <i class="clip-stack-empty"></i> Detalle del Producto
                                                     </a>
                                                 </li>
+                                                @if (Producto.Eliminar)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Eliminar", "Producto", new { id = Producto.ProductoId })">
+                                                            <i class="clip-close"></i> Eliminar Producto
+                                                        </a>
+                                                    </li>
+                                                }
                                             </ul>
                                         </div>
                                     </div>
@@ -109,11 +125,36 @@ Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.Pa
 @section Scripts
 {
     <script type="text/javascript">
-        $(document).ready(function () {
+        $(document).ready(function ()
+        {
             if ('@TempData["Producto-Success"]' == "OK")
             {
                 toastr.success('El producto se guardó exitosamente');
             }
+            else if ('@TempData["Eliminar_Producto-Success"]' == "OK")
+            {
+                toastr.success('Se elimino el producto exitosamente');
+            }
+
+            $("#search").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("ConsultaProductoAutocomplementar", "Producto")',
+                        type: "POST",
+                        dataType: "json",
+                        data: { search: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.Nombre, value: item.Nombre };
+                            }))
+                        }
+                    })
+                },
+                messages:
+                {
+                    noResults: "", results: ""
+                }
+            });
         });
     </script>
 }

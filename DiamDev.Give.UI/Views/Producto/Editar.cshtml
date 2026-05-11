@@ -47,23 +47,17 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="control-label">
-                                    Categor&iacute;a
+                                    Categoria<span class="symbol required"></span>
                                 </label>
-                                <br />
-                                <strong>
-                                    @(Model.Categoria == null ? "No Disponible" : Model.Categoria.Nombre)
-                                </strong>
+                                @Html.DropDownList("CategoriaId", (SelectList)ViewBag.Categorias, "--Seleccione una Categoria--", new { @class = "form-control search-select required" })
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="control-label">
-                                    Marca
+                                    Marca<span class="symbol required"></span>
                                 </label>
-                                <br />
-                                <strong>
-                                    @(Model.Marca == null ? "No Disponible" : Model.Marca.Nombre)
-                                </strong>
+                                @Html.DropDownList("MarcaId", (SelectList)ViewBag.Marcas, "--Seleccione una Marca--", new { @class = "form-control search-select required" })
                             </div>
                         </div>
                     </div>
@@ -71,11 +65,21 @@
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label class="control-label">
-                                    Unidad de Medida
+                                    Unidad de Medida<span class="symbol required"></span>
+                                </label>
+                                @Html.DropDownList("UnidadId", (SelectList)ViewBag.Unidades, "--Seleccione una Unidad de Medida--", new { @class = "form-control search-select required" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    ID
                                 </label>
                                 <br />
                                 <strong>
-                                    @(Model.Unidad == null ? "No Disponible" : Model.Unidad.Nombre)
+                                    @Model.ProductoId
                                 </strong>
                             </div>
                         </div>
@@ -97,6 +101,18 @@
                                     Nombre<span class="symbol required"></span>
                                 </label>
                                 @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre del Producto", required = "required", autocomplete = "off" })
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre Alternativo #1
+                                </label>
+                                @Html.TextBoxFor(model => model.NombreAlternativo1, new { @class = "form-control", @placeholder = "Nombre Alternativo #1", autocomplete = "off" })
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre Alternativo #2
+                                </label>
+                                @Html.TextBoxFor(model => model.NombreAlternativo2, new { @class = "form-control", @placeholder = "Nombre Alternativo #2", autocomplete = "off" })
                             </div>
                             <div class="form-group">
                                 <label class="control-label">
@@ -131,7 +147,41 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Identificador
+                                </label>
+                                <div>
+                                    <label class="radio-inline">
+                                        <input type="radio" class="grey" value="true" @ViewBag.identificadorSi name="identificador" id="identificadorSi">
+                                        Sí
+                                    </label>
+                                    <label class="radio-inline">
+                                        <input type="radio" class="grey" value="false" @ViewBag.identificadorNo name="identificador" id="identificadorNo">
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Lote
+                                </label>
+                                <div>
+                                    <label class="radio-inline">
+                                        <input type="radio" class="grey" value="true" @ViewBag.loteSi name="lote" id="loteSi">
+                                        Sí
+                                    </label>
+                                    <label class="radio-inline">
+                                        <input type="radio" class="grey" value="false" @ViewBag.loteNo name="lote" id="loteNo">
+                                        No
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
                             <div class="form-group">
                                 <label class="control-label">
                                     Activo
@@ -147,6 +197,79 @@
                                     </label>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Tiene Envase<span class="symbol required"></span>
+                                </label>
+                                @Html.DropDownList("EnvaseId", (SelectList)ViewBag.Envases, "--Seleccione Tiene Envase--", new { @class = "form-control search-select required" })
+                            </div>
+                        </div>
+                    </div>
+                    <div id="divTieneEnvase">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Cantidad de Envase
+                                    </label>
+                                    @Html.TextBoxFor(model => model.CantidadEnvase, new { @class = "form-control", @placeholder = "Cantidad de Envases", autocomplete = "off" })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Niveles</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Inicial
+                                </label>
+                                <input type="number" placeholder="Inicial" class="form-control" id="Inicial" name="Inicial" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Final
+                                </label>
+                                <input type="number" placeholder="Final" class="form-control" id="Final" name="Final" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Precio
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-addon">Q</span>
+                                    <input type="number" placeholder="Precio" class="form-control" id="PrecioNivel" name="PrecioNivel" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-nivel">Agregar</button></p>
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Inicial</th>
+                                        <th>Final</th>
+                                        <th>Precio</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="precio_nivel_tbody"></tbody>
+                            </table>
                         </div>
                     </div>
                     <div class="row">
@@ -195,6 +318,34 @@
                     </div>
                     <div class="row">
                         <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Fotografia App</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="fileupload fileupload-new" data-provides="fileupload">
+                                <div class="input-group">
+                                    <div class="form-control uneditable-input">
+                                        <i class="icon-file fileupload-exists"></i>
+                                        <span class="fileupload-preview"></span>
+                                    </div>
+                                    <div class="input-group-btn">
+                                        <div class="btn btn-light-grey btn-file">
+                                            <span class="fileupload-new"><i class="icon-folder-open-alt"></i>Seleccionar Fotografia</span>
+                                            <span class="fileupload-exists"><i class="icon-folder-open-alt"></i>Cambiar</span>
+                                            <input type="file" class="file-input" id="fotografiaApp" name="fotografiaApp">
+                                        </div>
+                                        <a href="#" class="btn btn-light-grey fileupload-exists" data-dismiss="fileupload">
+                                            <i class="icon-remove"></i> Eliminar
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
                             <h2><i class="icon-edit-sign teal"></i>Imagenes</h2>
                             <hr>
                         </div>
@@ -217,8 +368,11 @@
                                             foreach (var Detalle in Model.Imagenes)
                                             {
                                                 <tr>
-                                                    <td colspan="2">
+                                                    <td>
                                                         @Detalle.Nombre
+                                                    </td>
+                                                    <td>
+                                                        <a id="Eliminar" href="@Detalle.FotografiaId" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
                                                     </td>
                                                 </tr>
                                             }
@@ -256,6 +410,19 @@
 @section Scripts
 {
     <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="precio_nivel_tr_template">
+        <tr>
+            <td>{{inicial}}</td>
+            <td>{{final}}</td>
+            <td>Q{{precio}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="inicialIds" value="{{inicial}}" />
+                <input type="hidden" name="finalIds" value="{{final}}" />
+                <input type="hidden" name="precioNivelIds" value="{{precio}}" />
+            </td>
+        </tr>
+    </script>
     <script type="text/html" id="precio_tr_template">
         <tr>
             <td>{{precio}}</td>
@@ -270,14 +437,36 @@
 
     <script type="text/javascript">
 
+        var inicialSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.inicialIds))');
+        var finalSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.finalIds))');
+        var precioNivelSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioNivelIds))');
+
         var precioSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioIds))');
         var valorSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.valorIds))');
 
         $(function ()
         {
+            validarTieneEnvase($("#EnvaseId").val());
+
             function error(texto)
             {
                 toastr.error(texto);
+            }
+
+            function cargaPrecioNivel(inicial, final, precio) {
+                var plantilla = $('#precio_nivel_tr_template').html();
+
+                var modelo =
+                {
+                    inicial: inicial,
+                    final: final,
+                    precio: precio
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#precio_nivel_tbody').append(filaHtml);
             }
 
             function cargaPrecio(precio_id, precio, valor_id)
@@ -297,7 +486,40 @@
                 $('#precio_tbody').append(filaHtml);
             }
 
+            renderizarPreciosNivelIniciales();
             renderizarPreciosIniciales();
+
+            $('#btn-agregar-nivel').click(function (e) {
+                e.preventDefault();
+
+                var inicial = $('#Inicial').val();
+
+                if (inicial === "") {
+                    error("Ingrese rango inicial");
+                    return;
+                }
+
+                var final = $('#Final').val();
+
+                if (final === "") {
+                    error("Ingrese rango final");
+                    return;
+                }
+
+                var precio = $('#PrecioNivel').val();
+
+                if (precio === "") {
+                    error("Ingrese el precio del producto seleccionado");
+                    return;
+                }
+
+                cargaPrecioNivel(inicial, final, precio);
+
+                $("#Inicial").val("");
+                $("#Final").val("");
+                $("#PrecioNivel").val("");
+                $("#Inicial").focus();
+            });
 
             $('#btn-agregar').click(function (e)
             {
@@ -327,11 +549,31 @@
                 $("#PrecioId").focus();
             });
 
+            $('#precio_nivel_tbody').delegate("a", "click", function (e) {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+            });
+
             $('#precio_tbody').delegate("a", "click", function (e)
             {
                 e.preventDefault();
                 $(this).parent().parent().remove();
             });
+
+            function renderizarPreciosNivelIniciales() {
+                if (inicialSeleccionados == null) {
+                    return;
+                }
+
+                // recorremos los precios que haya ingresado el usuario
+                for (var i = 0; i < inicialSeleccionados.length; i++) {
+                    var inicial = inicialSeleccionados[i];
+                    var final = finalSeleccionados[i];
+                    var precio = precioNivelSeleccionados[i];
+
+                    cargaPrecioNivel(inicial, final, precio);
+                }
+            }
 
             function renderizarPreciosIniciales()
             {
@@ -384,6 +626,57 @@
                 correlativo++;
                 $inputFile.click();
             });
+
+            $('#tbl-archivos').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+
+                eliminar = confirm("¿Deseas eliminar este registro?");
+                if (eliminar) {
+                    $.ajax({
+                        url: '@Url.Action("EliminarFotografia", "Producto")',
+                        data: { 'productoId': $("#ProductoId").val(), 'id': $(this).attr("href") },
+                        traditional: true,
+                        async: false,
+                        type: 'POST',
+                        success: function (resultData)
+                        {
+                            if (resultData !== null)
+                            {
+                                if (resultData.Operacion)
+                                {
+                                    toastr.success('La fotografia se elimino exitosamente');
+                                }
+                                else
+                                {
+                                    toastr.error('Ocurrió un error, al eliminar la fotografia');
+                                }
+
+                                window.location.href = '@Url.Action("Editar", "Producto")';
+                            }
+                            else
+                            {
+                                toastr.error('Ocurrió un error, al eliminar la fotografia');
+                            }
+                        }
+                    });
+                }
+            });
+
+            $("#EnvaseId").change(function (evt)
+            {               
+                validarTieneEnvase($(this).val());
+            });
+
+            function validarTieneEnvase(id)
+            {
+                $("#divTieneEnvase").hide();
+
+                if (id === "1")
+                {                   
+                    $("#divTieneEnvase").show();
+                }
+            }
         });
 
     </script>

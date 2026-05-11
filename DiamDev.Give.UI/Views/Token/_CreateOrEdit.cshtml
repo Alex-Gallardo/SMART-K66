@@ -1,0 +1,26 @@
+﻿@model DiamDev.Give.Entities.Token
+
+<div class="row">
+    <div class="col-md-12">
+        <center><h1>Generar Token</h1></center>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Administrativo
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.administrativoSi name="administrativo" id="administrativoSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.administrativoNo name="administrativo" id="administrativoNo">
+                    No
+                </label>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,74 @@
+﻿@model DiamDev.Give.Entities.ContrasenaPago
+
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Proveedores</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Proveedor<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("ProveedorId", (SelectList)ViewBag.Proveedores, "--Seleccione un Proveedor--", new { @class = "form-control search-select required", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                #Documento<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Documento, new { @class = "form-control", @placeholder = "#Documento", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha de Pago<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaPago" name="FechaPago" required autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")">
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Monto<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                @Html.TextBoxFor(model => model.Monto, new { @class = "form-control", @placeholder = "Monto", required = "required", autocomplete = "off" })
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+               Comentario
+            </label>
+            @Html.TextAreaFor(model => model.Comentario, new { @class = "form-control", @placeholder = "Comentario", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<h2>
+    <i class="icon-edit-sign teal"></i> Forma de Pago
+</h2>
+<hr>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Forma<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("FormaId", (SelectList)ViewBag.Formas, "--Seleccione una Forma de Pago--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>

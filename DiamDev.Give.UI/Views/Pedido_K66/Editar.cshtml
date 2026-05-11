@@ -1,0 +1,1435 @@
+﻿@model DiamDev.Give.Entities.PedidoK66
+
+@{
+    ViewBag.Title = "Editar Pedido K66";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Editar Pedido K66
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nuevo Pedido K66</h2>
+                <p>
+                    Crea un nuevo pedido k66.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                            <input type="hidden" id="PedidoId" name="PedidoId" value="@Model.PedidoId" />
+                            <input type="hidden" id="EmpresaId" name="EmpresaId" value="@Model.EmpresaId" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Empresas</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Empresa<span class="symbol required"></span>
+                                </label>
+                                @Html.DropDownList("EmpresaId", (SelectList)ViewBag.Empresas, "--Seleccione una Empresa--", new { @class = "form-control search-select required", @disabled = "disabled" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Generales de Pedido</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Tipo de Pedido<span class="symbol required"></span>
+                                </label>
+                                <select id="TipoPedidoId" name="TipoPedidoId" class="form-control search-select required">
+                                    <option value="">--Seleccione un Tipo de Pedido--</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Entrega Estimada<span class="symbol required"></span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaPrometida" name="FechaPrometida" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : (Model.FechaPrometida == null ? "" : Model.FechaPrometida.Value.ToString("yyyy-MM-dd")))">
+                                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Orden de Compra del Cliente
+                                </label>
+                                @Html.TextBoxFor(model => model.OrdenCompraCliente, new { @class = "form-control", @placeholder = "Orden de Compra del Cliente", autocomplete = "off" })
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Observaciones Generales
+                                </label>
+                                @Html.TextAreaFor(model => model.ObservacionesGenerales, new { @class = "form-control", @placeholder = "Observaciones Generales", autocomplete = "off" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Documento de Respaldo de la Orden de Compra</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="fileupload fileupload-new" data-provides="fileupload">
+                                <div class="input-group">
+                                    <div class="form-control uneditable-input">
+                                        <i class="icon-file fileupload-exists"></i>
+                                        <span class="fileupload-preview"></span>
+                                    </div>
+                                    <div class="input-group-btn">
+                                        <div class="btn btn-light-grey btn-file">
+                                            <span class="fileupload-new"><i class="icon-folder-open-alt"></i>Seleccionar Documento</span>
+                                            <span class="fileupload-exists"><i class="icon-folder-open-alt"></i>Cambiar</span>
+                                            <input type="file" class="file-input" id="documentoApp" name="documentoApp">
+                                        </div>
+                                        <a href="#" class="btn btn-light-grey fileupload-exists" data-dismiss="fileupload">
+                                            <i class="icon-remove"></i> Eliminar
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Clientes</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente<span class="symbol required"></span>
+                                </label>
+                                <input type="text" placeholder="Cliente" class="form-control" id="NombreCliente" name="NombreCliente" autocomplete="off" disabled="disabled" value="@Model.Nombre" required />
+                                <input type="hidden" id="IDK66" name="IDK66" value="@Model.IDK66" />
+                                <input type="hidden" id="Nit" name="Nit" value="@Model.Nit" />
+                                <input type="hidden" id="Nombre" name="Nombre" value="@Model.Nombre" />
+                                <input type="hidden" id="Direccion" name="Direccion" value="@Model.Direccion" />
+                                <input type="hidden" id="DiasCobroSemana" name="DiasCobroSemana" value="" />
+                                <input type="hidden" id="DiasCobroFinSemana" name="DiasCobroFinSemana" value="" />
+                                <input type="hidden" id="E1" name="E1" value="" />
+                                <input type="hidden" id="E2" name="E2" value="" />
+                                <input type="hidden" id="E3" name="E3" value="" />
+                                <input type="hidden" id="E4" name="E4" value="" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Direccion<span class="symbol required"></span>
+                                </label>
+                                <select id="DireccionId" name="DireccionId" class="form-control search-select" disabled>
+                                    <option value="">--Seleccione una Direccion--</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div id="divCredito">ESTADO DEL CREDITO</div>
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Estado Crediticio
+                                </label>
+                                <input type="text" class="form-control" id="EstadoCredito" name="EstadoCredito" value="" readonly />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Limite de Credito
+                                </label>
+                                <input type="text" class="form-control" id="LimiteCredito" name="LimiteCredito" value="0" readonly />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Saldo Actual
+                                </label>
+                                <input type="text" class="form-control" id="SaldoActual" name="SaldoActual" value="0" readonly />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Disponible
+                                </label>
+                                <input type="text" class="form-control" id="CreditoDisponible" name="CreditoDisponible" value="0" readonly />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Pedidos Pendientes de Despacho
+                                </label>
+                                <input type="text" class="form-control" id="TotalPedidoPendientes" name="TotalPedidoPendientes" value="" readonly style="background-color: #E2DDDC; color: #000000; font-weight: bold; " />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    LE Pendientes de Facturacion
+                                </label>
+                                <input type="text" class="form-control" id="TotalListaEmpaque" name="TotalListaEmpaque" value="0" readonly style="background-color: #E2DDDC; color: #000000; font-weight: bold; " />
+                            </div>
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Productos</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div id="divMostrarExistencia">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <button data-style="slide-down" class="btn btn-primary btn-block ladda-button" type="button" id="btnExistencia">
+                                    <span class="ladda-label"> Ver Existencia </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <hr />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Barra
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Producto
+                                </label>
+                                <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" />
+                                <input type="hidden" id="ProductoId" value="0" />
+                                <input type="hidden" id="UnidadOriginal" value="" />
+                                <input type="hidden" id="Unidad" value="" />
+                                <input type="hidden" id="InventarioTotalOriginal" value="0" />
+                                <input type="hidden" id="InventarioComprometidoOriginal" value="0" />
+                                <input type="hidden" id="InventarioDisponibleOriginal" value="0" />
+                                <input type="hidden" id="PrecioOriginal" value="0" />
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Unidad
+                                </label>
+                                <select id="UnidadId" name="UnidadId" class="form-control search-select">
+                                    <option value="">--Seleccione una Unidad--</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cantidad
+                                </label>
+                                <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" value="1" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Inventario Total
+                                </label>
+                                <input type="number" placeholder="Inventario Total" class="form-control" id="InventarioTotal" name="InventarioTotal" autocomplete="off" disabled="disabled" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Inventario Comprometido
+                                </label>
+                                <input type="number" placeholder="Inventario Comprometido" class="form-control" id="InventarioComprometido" name="InventarioComprometido" autocomplete="off" disabled="disabled" />
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Inventario Disponible
+                                </label>
+                                <input type="number" placeholder="Inventario Disponible" class="form-control" id="Existencia" name="Existencia" autocomplete="off" disabled="disabled" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Opcion de Descuento
+                                </label>
+                                <select class="form-control" id="DescuentoK66Id">
+                                    <option value="0">--Seleccione Opcion de Descuento</option>
+                                    <option value="1">Cambio de Precio</option>
+                                    <option value="2">Aplicar Descuento</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Precio
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-addon">Q</span>
+                                    <input type="text" placeholder="Precio de Venta" class="form-control" id="PrecioActual" name="PrecioActual" value="0" autocomplete="off" disabled="disabled" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div id="divPrecioNegociado">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Precio Negociado
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-addon">Q</span>
+                                        <input type="text" placeholder="Precio Negociado de Venta" class="form-control" id="PrecioNegociadoActual" name="PrecioNegociadoActual" value="0" autocomplete="off" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div id="divDescuento">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Descuento %
+                                    </label>
+                                    <input type="text" placeholder="Descuento %" class="form-control" id="DescuentoActual" name="DescuentoActual" value="0" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio</th>
+                                        <th>Sub-Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="producto_tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Total:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div id="Total" style="text-align: right;font-size:large; font-weight:bold;">
+                                    Q0.0000
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Archivos Importantes</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <input title="Documentos" multiple type="file" id="archivo" name="archivo[]" value="">
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="seleccionar-cliente-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Cliente</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="cliente_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-cliente" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<div id="seleccionar-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Producto</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="producto_seleccionado_tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<div id="existencia-producto-form" class="modal fade" tabindex="-1" data-width="750" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Producto</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div id="divExistencias"></div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-existencia-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="producto_tr_template">
+        <tr>
+            <td>{{producto}}</td>
+            <td>{{unidad}}</td>
+            <td>{{cantidad}}</td>
+            <td>Q{{precio}}</td>
+            <td>Q{{sub_total}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="productoIds" value="{{producto_id}}" />
+                <input type="hidden" name="nombreProductoIds" value="{{producto}}" />
+                <input type="hidden" name="unidadIds" value="{{unidad}}" />
+                <input type="hidden" name="existenciaIds" value="{{existencia_id}}" />
+                <input type="hidden" name="cantidadIds" value="{{cantidad_id}}" />
+                <input type="hidden" name="precioIds" value="{{precio_id}}" />
+                <input type="hidden" name="precioOriginalIds" value="{{precio_original_id}}" />
+                <input type="hidden" name="precioCambiadoIds" value="{{precio_cambiado_id}}" />
+                <input type="hidden" name="descuentoIds" value="{{descuento}}" />
+            </td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">
+
+    var vCliente = "";
+    var vCodBarra = "";
+
+    var productoIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
+    var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombreProductoIds))');
+    var unidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.unidadIds))');
+    var existenciaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.existenciaIds))');
+    var cantidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.cantidadIds))');
+    var precioSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioIds))');
+    var precioOriginalSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioOriginalIds))');
+    var precioCambiadoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioCambiadoIds))');
+    var descuentoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.descuentoIds))');
+
+    var clienteIds = "@Html.Raw(ViewBag.ClienteIds)";
+    var direccionIds = "@Html.Raw(ViewBag.DireccionIds)";
+    var tipoPedidoIds = "@Html.Raw(ViewBag.TipoPedidoIds)";
+
+    $(function ()
+    {
+        $("#divFechaEntrega").hide();
+
+        $("#divCredito").hide();
+        $("#divMostrarExistencia").hide();
+
+        $("#DescuentoK66Id").val(0).trigger("change");
+
+        $("#divPrecioNegociado").hide();
+        $("#divDescuento").hide();
+
+        $('#InventarioTotal').val("0");
+        $('#InventarioComprometido').val("0");
+        $("#Existencia").val("0");
+
+        if (clienteIds !== "0")
+        {
+            var modelo =
+            {
+                'ID': clienteIds
+            };
+
+            cargaClienteSeleccionado(modelo);
+        }
+
+         $("#BuscarCliente").autocomplete({
+            source: function (request, response)
+            {
+                $.ajax({
+                    url: '@Url.Action("ConsultaClienteK66", "Cliente")',
+                    type: "POST",
+                    dataType: "json",
+                    data: { search: request.term, 'empresaId': $("#EmpresaId").val() },
+                    success: function (data)
+                    {
+                        response($.map(data, function (item)
+                        {
+                            return { label: item.Nombre, value: item.Nombre };
+                        }))
+                    }
+                })
+            },
+            messages:
+            {
+                noResults: "", results: ""
+            }
+        });
+
+        $('#formaprincipal').keydown(function (evt)
+        {
+            if ($('#BuscarCliente').is(":focus") && (evt.which || evt.keyCode) == 13)
+            {
+                cargaBusquedaCliente(evt)
+            }
+        });
+
+        $('#btnBuscarCliente').click(function (evt)
+        {
+            cargaBusquedaCliente(evt);
+        });
+
+        function cargaBusquedaCliente(evt)
+        {
+            evt.preventDefault();
+
+            if ($('#BuscarCliente').val() === "")
+            {
+                error("Ingresar Nit o Nombre del Cliente");
+                $('#BuscarCliente').focus();
+                return;
+            }
+
+            var clienteActual = $('#BuscarCliente').val();
+            clienteActual = clienteActual.replace(" ", "_");
+
+            $.ajax({
+                url: '@Url.Action("ObtenerClientexTextoLibreK66", "Cliente")',
+                traditional: true,
+                data: { 'search': clienteActual, 'empresaId': $("#EmpresaId").val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData)
+                {
+                    if (resultData !== null)
+                    {
+                        if (resultData.Operacion)
+                        {
+                            if (resultData.Data.length === 1)
+                            {
+                                cargaClienteSeleccionado(resultData.Data[0]);
+                            }
+                            else if (resultData.Data.length > 1)
+                            {
+                                var fila = "";
+                                for (var i = 0; i < resultData.Data.length; i++)
+                                {
+                                    fila += "<tr><td>" + resultData.Data[i].ID + "</td>";
+                                    fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                    fila += "<td><a href='" + resultData.Data[i].ID + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                }
+
+                                $("#seleccionar-cliente-form").modal();
+                                $("#seleccionar-cliente-form").find("#cliente_seleccionado_tbody").html(fila);
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('El cliente ingresado no es correcto');
+                        }
+                    }
+                    else
+                    {
+                        toastr.error('Ocurrió un error, al visualizar al cliente');
+                        $('#BuscarCliente').val("");
+                        $('#BuscarCliente').focus();
+                    }
+                }
+            });
+        }
+
+        $('#cliente_seleccionado_tbody').delegate("a", "click", function (e)
+        {
+            e.preventDefault();
+
+            $('#btn-close-up-seleccionar-cliente').click();
+            var clienteReferencia = $(this).attr("href");
+            var clienteActual = clienteReferencia.split(",");
+
+            var modelo =
+                {
+                    'ID': clienteActual[0],
+                    'Nombre': clienteActual[1]
+                };
+
+            cargaClienteSeleccionado(modelo);
+        });
+
+        function cargaClienteSeleccionado(cliente)
+        {
+            var clienteSeleccionado = obtenerClientexID(cliente.ID);
+
+            if (clienteSeleccionado !== null)
+            {
+                $('#NombreCliente').val(clienteSeleccionado.Nombre);
+                $("#DireccionCliente").val(clienteSeleccionado.Direccion);
+
+                $('#IDK66').val(clienteSeleccionado.ID);
+                $('#Nit').val(clienteSeleccionado.Nit);
+                $('#Nombre').val(clienteSeleccionado.Nombre);
+
+                $('#Direccion').val(clienteSeleccionado.Direccion);
+                $('#DireccionEntrega').val(clienteSeleccionado.Direccion);
+
+                $('#EstadoCredito').val(clienteSeleccionado.EstadoCredito);
+                $('#LimiteCredito').val(clienteSeleccionado.LimiteCredito);
+                $('#SaldoActual').val(clienteSeleccionado.SaldoActual);
+                $('#CreditoDisponible').val(clienteSeleccionado.CreditoDisponible);
+                $('#DiasCobroSemana').val(clienteSeleccionado.DiasCobroSemana);
+                $('#DiasCobroFinSemana').val(clienteSeleccionado.DiasCobroFinSemana);
+
+                $('#TotalPedidoPendientes').val(clienteSeleccionado.E2);
+                $('#TotalListaEmpaque').val(clienteSeleccionado.E3);
+
+                $('#TerminoEntrega').val(clienteSeleccionado.TerminoEntrega);
+                $('#Vendedor').val(clienteSeleccionado.Vendedor);
+                $('#ImpuestoTAX').val(clienteSeleccionado.Impuesto);
+                $('#Moneda').val(clienteSeleccionado.Moneda);
+
+                $('#E1').val(clienteSeleccionado.E1);
+                $('#E2').val(clienteSeleccionado.E2);
+                $('#E3').val(clienteSeleccionado.E3);
+                $('#E4').val(clienteSeleccionado.E4);
+
+                if (clienteSeleccionado.EstadoCredito.trim() == 'APPROVED')
+                {
+                    $('#divCredito').css('color', '#009E08');
+                }
+                else
+                {
+                    $('#divCredito').css('color', '#ED0000');
+                }
+
+                $('#divCredito').css('fontSize', '15px');
+                $('#divCredito').css('text-align', 'center');
+                $("#divCredito").css("font-weight", "bold");
+
+                $("#divCredito").show();
+
+                var DireccionSelect = $("#DireccionId");
+                DireccionSelect.empty();
+                DireccionSelect.append('<option value="">--Seleccione una Direccion--</option>');
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerDireccionxClienteId", "Cliente")',
+                    data: { 'id': $('#IDK66').val(), 'empresaId': $('#EmpresaId').val() },
+                    traditional: true,
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        $.each(data, function (j)
+                        {
+                            DireccionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                        });
+                    }
+                });
+
+                if (direccionIds !== "")
+                {
+                    $("#DireccionId").val(direccionIds).trigger("change");
+                }
+            }
+
+            vCliente = $('#BuscarCliente').val();
+            $('#DireccionId').focus();
+        }
+
+        $("#DireccionId").change(function (evt)
+        {
+            evt.preventDefault();
+
+            $('#DireccionEntrega').val($('#DireccionId option:selected').text());
+
+			 $('#Barra').focus();
+        });
+
+        function obtenerClientexID(id)
+        {
+            var cliente = null;
+
+            $.ajax({
+                url: '@Url.Action("ObtenerPorIDK66", "Cliente")',
+                data: { 'id': id, 'empresaId': $("#EmpresaId").val() },
+                async: false,
+                type: 'GET',
+                success: function (data)
+                {
+                    if (!data.Operacion)
+                    {
+                        toastr.error('Ocurrió un error, al obtener datos del cliente');
+                        return;
+                    }
+
+                    cliente = data.Data;
+                },
+                fail: function (data)
+                {
+                    toastr.error('Ocurrió un error, al obtener datos del cliente');
+                }
+            });
+
+            return cliente;
+        }
+
+        function error(texto)
+        {
+            toastr.error(texto);
+        }
+
+        function cargaProducto(producto_id, producto, unidad, existencia_id, cantidad_id, precio_id, precio_original_id, precio_cambiado_id, descuento)
+        {
+            var plantilla = $('#producto_tr_template').html();
+
+            var modelo =
+            {
+                producto_id: producto_id,
+                producto: producto,
+                unidad: unidad,
+                existencia_id: existencia_id,
+                cantidad_id: cantidad_id,
+                cantidad: cantidad_id,
+                precio_id: precio_id.toFixed(2),
+                precio: precio_id.toFixed(2),
+                precio_original_id: precio_original_id,
+                precio_cambiado_id: precio_cambiado_id,
+                descuento: descuento,
+                sub_total: (precio_id * cantidad_id).toFixed(2)
+            };
+
+            var filaHtml = Mustache.render(plantilla, modelo);
+
+            // agregamos la nueva fila a la tabla.
+            $('#producto_tbody').append(filaHtml);
+        }
+
+        renderizarProductosIniciales();
+
+        $('#btn-agregar').click(function (e)
+        {
+            e.preventDefault();
+
+            var producto_id = $('#ProductoId').val();
+            var producto = $('#Producto').val();
+
+            if (producto_id === "" || producto === "")
+            {
+                error("Seleccione un producto");
+                return;
+            }
+
+            var unidad_id = $('#UnidadId').val();
+            var unidad = $('#Unidad').val();
+
+            if (unidad === "")
+            {
+                error("Seleccione una unidad");
+                return;
+            }
+
+            var cantidad_id = $('#Cantidad').val();
+
+            if (cantidad_id === "")
+            {
+                error("Ingrese la cantidad del producto");
+                return;
+            }
+
+            var precio_id = $('#PrecioActual').val();
+            precio_id = parseFloat(precio_id);
+
+            if (precio_id === 0)
+            {
+                error("Ingrese el precio del producto");
+                return;
+            }
+
+            var existencia_id = parseFloat($('#Existencia').val());
+            cantidad_id = parseFloat(cantidad_id);
+
+            var precioOriginal = precio_id;
+            var precioCambio = false;
+
+            var descuentoK66Id = $('#DescuentoK66Id').val();
+            descuentoK66Id = parseInt(descuentoK66Id);
+
+            var descuentoGeneral = 0;
+
+            if (descuentoK66Id === 1)
+            {
+                var descuentoManual = $('#PrecioNegociadoActual').val();
+                descuentoManual = parseFloat(descuentoManual);
+
+                precioCambio = true;
+                precio_id = descuentoManual;
+            }
+            else if (descuentoK66Id === 2)
+            {
+                var descuentoManual = $('#DescuentoActual').val();
+                descuentoManual = parseFloat(descuentoManual);
+
+                descuentoGeneral = descuentoManual;
+
+                if (descuentoManual !== 0)
+                {
+                    descuentoManual = descuentoManual / 100;
+                }
+
+                precioCambio = true;
+                precio_id = precio_id - (precio_id * descuentoManual);
+            }
+
+            cargaProducto(producto_id, producto, unidad, existencia_id, cantidad_id, precio_id, precioOriginal, precioCambio, descuentoGeneral);
+            totalizarProducto();
+
+            $("#divMostrarExistencia").hide();
+
+            $("#DescuentoK66Id").val(0).trigger("change");
+            $("#divPrecioNegociado").hide();
+            $("#divDescuento").hide();
+
+            $("#UnidadId").empty();
+            $("#UnidadId").append('<option value="0">--Seleccione una Unidad de Empaque--</option>');
+            $("#UnidadId").val(0).trigger("change");
+
+            $("#PrecioNegociadoActual").val("");
+            $("#DescuentoActual").val("");
+
+            $("#ProductoId").val(0);
+            $("#Cantidad").val("1");
+            $('#InventarioTotal').val("0");
+            $('#InventarioComprometido').val("0");
+            $("#Existencia").val("0");
+            $("#PrecioActual").val("");
+            $("#Unidad").val("");
+            $("#UnidadOriginal").val("");
+            $("#Producto").val("");
+            $("#Barra").val("");
+            $("#Barra").focus();
+        });
+
+        $('#producto_tbody').delegate("a", "click", function (e)
+        {
+            e.preventDefault();
+            $(this).parent().parent().remove();
+
+            totalizarProducto();
+        });
+
+        function renderizarProductosIniciales()
+        {
+            if (productoIdSeleccionados == null)
+            {
+                return;
+            }
+
+            // recorremos los productos que haya ingresado el usuario
+            for (var i = 0; i < productoIdSeleccionados.length; i++)
+            {
+                var producto_id = productoIdSeleccionados[i];
+                var producto = productoSeleccionados[i];
+                var unidad = unidadSeleccionados[i];
+
+                var existencia_id = existenciaSeleccionados[i];
+                var cantidad_id = cantidadSeleccionados[i];
+                var precio_id = precioSeleccionados[i];
+
+                var precio_original_id = precioOriginalSeleccionados[i];
+                var precio_cambiado_id = precioCambiadoSeleccionados[i];
+
+                var descuento_id = descuentoSeleccionados[i];
+
+                cargaProducto(producto_id, producto, unidad, existencia_id, cantidad_id, precio_id, precio_original_id, precio_cambiado_id, descuento_id);
+            }
+
+            totalizarProducto();
+        }
+
+        function totalizarProducto()
+        {
+            var cantidadArray = new Array();
+            $('input[name=cantidadIds]').each(function ()
+            {
+                cantidadArray.push(parseFloat($(this).val()));
+            });
+
+            var precioArray = new Array();
+            $('input[name=precioIds]').each(function ()
+            {
+                precioArray.push(parseFloat($(this).val()));
+            });
+
+            var total = 0;
+
+            if (cantidadArray.length > 0 && precioArray.length > 0)
+            {
+                for (var i = 0; i < cantidadArray.length; i++)
+                {
+                    total += cantidadArray[i] * precioArray[i];
+                }
+
+                $('#Total').html('Q' + total.toFixed(4));
+            }
+            else
+            {
+                $('#Total').html('Q' + total.toFixed(4));
+            }
+        }
+
+        $("#Barra").autocomplete({
+            source: function (request, response)
+            {
+                $.ajax({
+                    url: '@Url.Action("ConsultaProductoAutocomplementarK66", "Producto")',
+                    type: "POST",
+                    dataType: "json",
+                    data: { search: request.term, 'clienteId': $("#IDK66").val(), 'empresaId': $("#EmpresaId").val() },
+                    success: function (data)
+                    {
+                        response($.map(data, function (item)
+                        {
+                            return { label: item.Nombre, value: item.Nombre };
+                        }))
+                    }
+                })
+            },
+            messages:
+            {
+                noResults: "", results: ""
+            }
+        });
+
+        $('#formaprincipal').keydown(function (evt)
+        {
+            if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13)
+            {
+                cargaBusquedaProducto(evt)
+            }
+            else if ($('#Cantidad').is(":focus") && (evt.which || evt.keyCode) == 13)
+            {
+                cargaPrecioxCantidad(evt);
+            }
+        });
+
+        /*
+        Evento click para el boton de busqueda de productos */
+        $('#btnBarra').click(function (evt)
+        {
+            cargaBusquedaProducto(evt);
+        });
+
+        $('#producto_seleccionado_tbody').delegate("a", "click", function (e)
+        {
+            e.preventDefault();
+
+            $('#btn-close-up-seleccionar-producto').click();
+            var productoReferencia = $(this).attr("href");
+            var productoActual = productoReferencia.split(",");
+
+            var modelo =
+             {
+                'ID': productoActual[0],
+                'Unidad': productoActual[1],
+                'Nombre': productoActual[2]
+             };
+
+            cargaProductoSeleccionado(modelo);
+        });
+
+        /*
+        Función para la busqueda de productos */
+        function cargaBusquedaProducto(evt)
+        {
+            evt.preventDefault();
+
+            if ($('#Barra').val() === "")
+            {
+               // error("Ingresar codigo de barra");
+                $('#Barra').focus();
+                return;
+            }
+
+            if (vCodBarra === $('#Barra').val())
+            {
+                vAumentaCantidad = parseInt($('#Cantidad').val()) + 1;
+                $('#Cantidad').val(vAumentaCantidad);
+            }
+            else
+            {
+                $('#Cantidad').val(1);
+            }
+
+            var barraActual = $('#Barra').val();
+
+            $.ajax({
+                url: '@Url.Action("ObtenerProductoxTextoLibreK66", "Producto")',
+                traditional: true,
+                data: { 'search': barraActual, 'clienteId': $("#IDK66").val(), 'empresaId': $("#EmpresaId").val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData)
+                {
+                    if (resultData !== null)
+                    {
+                        if (resultData.Operacion)
+                        {
+                            if (resultData.Data.length === 1)
+                            {
+                                cargaProductoSeleccionado(resultData.Data[0]);
+                            }
+                            else if (resultData.Data.length > 1)
+                            {
+                                var fila = "";
+                                for (var i = 0; i < resultData.Data.length; i++)
+                                {
+                                    fila += "<tr><td>" + resultData.Data[i].ID + "</td>";
+                                    fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                    fila += "<td><a href='" + resultData.Data[i].ID + "," + resultData.Data[i].Unidad + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                }
+
+                                $("#seleccionar-producto-form").modal();
+                                $("#seleccionar-producto-form").find("#producto_seleccionado_tbody").html(fila);
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('La barra del producto ingresada no es correcta');
+                            $('#Barra').val("");
+                            $('#Barra').focus();
+                        }
+                    }
+                    else
+                    {
+                        toastr.error('Ocurrió un error, al visualizar el producto');
+                        $('#Barra').val("");
+                        $('#Barra').focus();
+                    }
+                }
+            });
+        }
+
+        function cargaPrecioxCantidad(evt)
+        {
+            evt.preventDefault();
+
+            if ($('#Cantidad').val() === "")
+            {
+                error("Ingresar cantidad de producto");
+                $('#Cantidad').focus();
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("ObtenerPrecioxCantidad", "Producto")',
+                data: { 'id': $('#ProductoId').val(), 'clienteId': $("#IDK66").val(), 'cantidad': $("#Cantidad").val(), 'empresaId': $("#EmpresaId").val() },
+                async: false,
+                type: 'GET',
+                success: function (data)
+                {
+                    if (!data.Operacion)
+                    {
+                        toastr.error('Ocurrió un error, al obtener el precio del producto');
+                        return;
+                    }
+
+                    if (data.Data.Precio > 0)
+                    {
+                        $("#PrecioActual").val(data.Data.Precio);
+                    }
+                },
+                fail: function (data)
+                {
+                    toastr.error('Ocurrió un error, al obtener el precio del producto');
+                }
+            });
+        }
+
+        function cargaProductoSeleccionado(producto)
+        {
+            var productoSeleccionado = obtenerProductoxID(producto.ID, producto.Unidad);
+
+            if (productoSeleccionado !== null)
+            {
+                $("#DescuentoK66Id").val(0).trigger("change");
+                $("#divPrecioNegociado").hide();
+                $("#divDescuento").hide();
+
+                $("#UnidadId").empty();
+                $("#UnidadId").append('<option value="0">--Seleccione una Unidad de Empaque--</option>');
+                $("#UnidadId").val(0).trigger("change");
+
+                $("#PrecioNegociadoActual").val("");
+                $("#DescuentoActual").val("");
+
+                $('#InventarioTotalOriginal').val(productoSeleccionado.InventarioTotal);
+                $('#InventarioComprometidoOriginal').val(productoSeleccionado.InventarioComprometido);
+                $('#InventarioDisponibleOriginal').val(productoSeleccionado.InventarioDisponible);
+                $('#PrecioOriginal').val(productoSeleccionado.Precio);
+
+                $('#UnidadOriginal').val(productoSeleccionado.Unidad);
+                $('#InventarioTotal').val(productoSeleccionado.InventarioTotal);
+                $('#InventarioComprometido').val(productoSeleccionado.InventarioComprometido);
+                $('#Existencia').val(productoSeleccionado.InventarioDisponible);
+                $('#PrecioActual').val(productoSeleccionado.Precio);
+                $('#Producto').val(productoSeleccionado.Descripcion);
+                $('#ProductoId').val(productoSeleccionado.ID);
+
+                var UnidadSelect = $("#UnidadId");
+                UnidadSelect.empty();
+                UnidadSelect.append('<option value="">--Seleccione una Unidad de Empaque--</option>');
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerUnidadxConversion", "Unidad")',
+                    data: { 'id': productoSeleccionado.Unidad, 'empresaId': $('#EmpresaId').val() },
+                    traditional: true,
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        $.each(data, function (j)
+                        {
+                            UnidadSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                        });
+                    }
+                });
+
+                $("#Unidad").val(productoSeleccionado.Unidad);
+                $("#UnidadId").val(0).trigger("change");
+            }
+
+            $('#Barra').focus();
+            vCodBarra = $('#Barra').val();
+
+            $("#divMostrarExistencia").show();
+        }
+
+        $("#UnidadId").change(function (evt)
+        {
+            evt.preventDefault();
+
+            if ($("#UnidadId").val() > 0)
+            {
+                $("#Unidad").val($('#UnidadId option:selected').text());
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerUnidadxId", "Unidad")',
+                    data: { 'id': $("#UnidadId").val(), 'empresaId': $("#EmpresaId").val() },
+                    async: false,
+                    type: 'GET',
+                    success: function (data) {
+                        if (!data.Operacion) {
+                            toastr.error('Ocurrió un error, al obtener datos del conversion');
+                            return;
+                        }
+
+                        let conversion = data.Data;
+                        if (conversion != null) {
+                            if ($("#UnidadOriginal").val() === conversion.FROM_UM) {
+                                $('#InventarioTotal').val(($('#InventarioTotalOriginal').val() * conversion.CONVERSION_FACTOR).toFixed(2));
+                                $('#InventarioComprometido').val(($('#InventarioComprometidoOriginal').val() * conversion.CONVERSION_FACTOR).toFixed(2));
+                                $('#Existencia').val(($('#InventarioDisponibleOriginal').val() * conversion.CONVERSION_FACTOR).toFixed(2));
+
+                                $('#PrecioActual').val(($('#PrecioOriginal').val() / conversion.CONVERSION_FACTOR).toFixed(2));
+                            }
+                            else if ($("#UnidadOriginal").val() === conversion.TO_UM) {
+                                $('#InventarioTotal').val(($('#InventarioTotalOriginal').val() / conversion.CONVERSION_FACTOR).toFixed(2));
+                                $('#InventarioComprometido').val(($('#InventarioComprometidoOriginal').val() / conversion.CONVERSION_FACTOR).toFixed(2));
+                                $('#Existencia').val(($('#InventarioDisponibleOriginal').val() / conversion.CONVERSION_FACTOR).toFixed(2));
+
+                                $('#PrecioActual').val(($('#PrecioOriginal').val() * conversion.CONVERSION_FACTOR).toFixed(2));
+                            }
+                        }
+                    },
+                    fail: function (data) {
+                        toastr.error('Ocurrió un error, al obtener datos del conversion');
+                    }
+                });
+            }
+            else
+            {
+                $('#InventarioTotal').val($('#InventarioTotalOriginal').val());
+                $('#InventarioComprometido').val($('#InventarioComprometidoOriginal').val());
+                $('#Existencia').val($('#InventarioDisponibleOriginal').val());
+
+                $('#PrecioActual').val($('#PrecioOriginal').val());
+            }
+        });
+
+        $('#btn-validar-precio').click(function (evt) {
+            cargaPrecioxCantidad(evt);
+        });
+
+        function obtenerProductoxID(id, unidad)
+        {
+            var producto = null;
+
+            $.ajax({
+                url: '@Url.Action("ObtenerPorIDK66", "Producto")',
+                data: { 'id': id, 'unidad': unidad, 'clienteId': $("#IDK66").val(), 'direccionId': $("#DireccionId").val(), 'empresaId': $("#EmpresaId").val() },
+                async: false,
+                type: 'GET',
+                success: function (data)
+                {
+                    if (!data.Operacion)
+                    {
+                        toastr.error('Ocurrió un error, al obtener datos del producto');
+                        return;
+                    }
+
+                    producto = data.Data;
+                },
+                fail: function (data)
+                {
+                    toastr.error('Ocurrió un error, al obtener datos del producto');
+                }
+            });
+
+            return producto;
+        }
+
+        cargaTipoPedidoxEmpresa($("#EmpresaId").val());
+
+        $("#EmpresaId").change(function (evt)
+        {
+            if ($(this).val() !== "")
+            {
+                cargaTipoPedidoxEmpresa($(this).val());
+            }
+        });
+
+        function cargaTipoPedidoxEmpresa(id)
+        {
+            var TipoPedidoSelect = $("#TipoPedidoId");
+            TipoPedidoSelect.empty();
+            TipoPedidoSelect.append('<option value="">--Seleccione un Tipo de Pedido--</option>');
+
+            $.ajax({
+                url: '@Url.Action("ObtenerTipoPedidoxEmpresa", "Pedido_K66")',
+                data: { 'id': id },
+                traditional: true,
+                async: false,
+                type: 'GET',
+                success: function (data)
+                {
+                    $.each(data, function (j)
+                    {
+                        TipoPedidoSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                    });
+                }
+            });
+
+            if (tipoPedidoIds !== "0")
+            {
+                $("#TipoPedidoId").val(tipoPedidoIds).trigger("change");
+            }
+        }
+
+        $("#btnExistencia").on("click", function (evt)
+        {
+            evt.preventDefault();
+
+            $("#divExistencias").load('@Url.Action("GetExistenciasxProducto", "Producto")?id=' + $('#ProductoId').val() + '&clienteId=' + $("#IDK66").val() + '&empresaId=' + $("#EmpresaId").val(), function ()
+            {
+                $("#existencia-producto-form").modal();
+            });
+        });
+
+        $("#DescuentoK66Id").change(function (evt)
+        {
+            evt.preventDefault();
+
+            $("#divPrecioNegociado").hide();
+            $("#divDescuento").hide();
+
+            if ($("#DescuentoK66Id").val() === "1")
+            {
+                $("#divPrecioNegociado").show();
+                $("#divDescuento").hide();
+            }
+            else if ($("#DescuentoK66Id").val() === "2")
+            {
+                $("#divPrecioNegociado").hide();
+                $("#divDescuento").show();
+            }
+        });
+
+        $("#TipoPedidoId").change(function (evt)
+        {
+            evt.preventDefault();
+
+            if ($("#TipoPedidoId").val() !== "")
+            {
+                $("#divFechaEntrega").hide();
+
+                $.ajax({
+                    url: '@Url.Action("GetPedidoTipoxId", "Pedido_Tipo_K66")',
+                    data: { 'id': $("#TipoPedidoId").val() },
+                    traditional: true,
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        if (data.Operacion)
+                        {
+                            if (data.Data !== null)
+                            {
+                                if (data.Data.CodigoIntregracion1.indexOf("S") !== -1)
+                                {
+                                    $("#divFechaEntrega").show();
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+        $("#FechaEntrega").change(function (evt)
+        {
+            evt.preventDefault();
+
+            if ($("#FechaEntrega").val() !== "")
+            {
+                $("#FechaPrometida").val($("#FechaEntrega").val());
+            }
+        });
+    });
+
+    </script>
+}

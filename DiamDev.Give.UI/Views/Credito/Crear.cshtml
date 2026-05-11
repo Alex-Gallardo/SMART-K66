@@ -1,0 +1,817 @@
+﻿@model DiamDev.Give.Entities.Credito
+
+@{
+    ViewBag.Title = "Nuevo Credito";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nuevo Credito
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nuevo Credito</h2>
+                <p>
+                    Crea un nuevo credito.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>                        
+                    </div>
+                    @Html.Partial("_CreateOrEdit")                    
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Credito")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="new-cliente-form" class="modal fade" tabindex="-1" data-focus-on="input:first" data-width="760" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Nuevo Cliente</h4>
+    </div>
+    <div class="modal-body">
+        @Html.Partial("~/Views/Cliente/_CreateOrEdit.cshtml", new DiamDev.Give.Entities.Cliente())
+    </div>
+    <div class="modal-footer">
+        <button id="btn-save-up-cliente" class="btn btn-primary">Guardar</button>
+        <button id="btn-close-up-cliente" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+<div id="seleccionar-cliente-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Cliente</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="cliente_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-cliente" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+<div id="visualizar-imagen-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Fotografia</h4>
+    </div>
+    <div class="modal-body">
+        <center>
+            <img alt="" id="fotografia" src="@Url.Content("~/Content/assets/images/producto-sin-foto.jpg")" style="height:50%; width:50%" class="img-responsive" />
+        </center>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-imagen-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+<div id="seleccionar-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Producto</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover" id="sample-table-1">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="producto_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="producto_tr_template">
+        <tr>
+            <td>{{producto}}</td>
+            <td>{{presentacion}}</td>
+            <td>{{cantidad}}</td>
+            <td>Q{{precio}}</td>
+            <td>{{descuento}}%</td>
+            <td>Q{{sub_total}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="productoIds" value="{{producto_id}}" />
+                <input type="hidden" name="nombreProductoIds" value="{{producto}}" />
+                <input type="hidden" name="presentacionIds" value="{{presentacion_id}}" />
+                <input type="hidden" name="nombrePresentacionIds" value="{{presentacion}}" />
+                <input type="hidden" name="existenciaIds" value="{{existencia_id}}" />
+                <input type="hidden" name="cantidadIds" value="{{cantidad_id}}" />
+                <input type="hidden" name="precioIds" value="{{precio_id}}" />
+                <input type="hidden" name="descuentoIds" value="{{descuento_id}}" />
+            </td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">
+        $("input[name='Descuento']")
+             .TouchSpin({
+                 min: 0,
+                 max: 100,
+                 step: 5,
+                 decimals: 0,
+                 boostat: 5,
+                 maxboostedstep: 10
+             });
+    </script>
+
+    <script type="text/javascript">
+
+    var vCliente = "";
+    var vCodBarra = "";
+
+    var vAumentaCantidad = 0;
+
+    var productoIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
+    var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombreProductoIds))');
+    var presentacionIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.presentacionIds))');
+    var presentacionSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombrePresentacionIds))');
+    var existenciaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.existenciaIds))');
+    var cantidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.cantidadIds))');
+    var descuentoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.descuentoIds))');
+    var precioSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioIds))');
+
+    $(function () 
+    {
+        //Se oculta el boton de visualizar imagen
+        $('#imagen').css("display", "none");
+
+        //Se selecciona por default al cliente: Consumidor Final
+        $("#ClienteId").val("20170115001").trigger("change");
+
+        $("#BuscarCliente").autocomplete({
+            source: function (request, response)
+            {
+                $.ajax({
+                    url: '@Url.Action("ConsultaCliente", "Cliente")',
+                        type: "POST",
+                        dataType: "json",
+                        data: { search: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.Nombre, value: item.Nombre };
+                            }))
+                        }
+                    })
+                },
+                messages:
+                {
+                    noResults: "", results: ""
+                }
+            });
+
+            $('#formaprincipal').keydown(function (evt)
+            {
+                if ($('#BuscarCliente').is(":focus") && (evt.which || evt.keyCode) == 13)
+                {
+                    cargaBusquedaCliente(evt)
+                }
+            });
+
+            $('#btnBuscarCliente').click(function (evt)
+            {
+                cargaBusquedaCliente(evt);
+            });
+
+            function cargaBusquedaCliente(evt)
+            {
+                evt.preventDefault();
+
+                if ($('#BuscarCliente').val() === "")
+                {
+                    error("Ingresar Nit o Nombre del Cliente");
+                    $('#BuscarCliente').focus();
+                    return;
+                }
+
+                var clienteActual = $('#BuscarCliente').val();
+                clienteActual = clienteActual.replace(" ", "_");
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerClientexTextoLibre", "Cliente")',
+                    traditional: true,
+                    data: { 'search': clienteActual },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData) {
+                        if (resultData !== null) {
+                            if (resultData.Operacion) {
+                                if (resultData.Data.length === 1) {
+                                    cargaClienteSeleccionado(resultData.Data[0]);
+                                }
+                                else if (resultData.Data.length > 1) {
+                                    var fila = "";
+                                    for (var i = 0; i < resultData.Data.length; i++) {
+                                        fila += "<tr><td>" + resultData.Data[i].ClienteId + "</td>";
+                                        fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                        fila += "<td><a href='" + resultData.Data[i].ClienteId + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                    }
+
+                                    $("#seleccionar-cliente-form").modal();
+                                    $("#seleccionar-cliente-form").find("#cliente_seleccionado_tbody").html(fila);
+                                }
+                            }
+                            else {
+                                toastr.error('El cliente ingresado no es correcto');
+                                $('#BuscarCliente').val("");
+                                $('#BuscarCliente').focus();
+                            }
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar al cliente');
+                            $('#BuscarCliente').val("");
+                            $('#BuscarCliente').focus();
+                        }
+                    }
+                });
+            }
+
+            $('#cliente_seleccionado_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+
+                $('#btn-close-up-seleccionar-cliente').click();
+                var clienteReferencia = $(this).attr("href");
+                var clienteActual = clienteReferencia.split(",");
+
+                var modelo =
+                 {
+                     'ClienteId': clienteActual[0],
+                     'Nombre': clienteActual[1]
+                 };
+
+                cargaClienteSeleccionado(modelo);
+            });
+
+            function cargaClienteSeleccionado(cliente)
+            {
+                $('#NombreCliente').val(cliente.Nombre);
+                $('#ClienteId').val(cliente.ClienteId);
+
+                vCliente = $('#BuscarCliente').val();
+            }
+
+         
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            function cargaProducto(producto_id, producto, presentacion_id, presentacion, existencia_id, cantidad_id, precio_id, descuento_id)
+            {
+                var plantilla = $('#producto_tr_template').html();
+
+                var descId = parseFloat(descuento_id);
+
+                var precioDescuento = precio_id - precio_id * descId / 100;
+                var modelo =
+                {
+                    producto_id: producto_id,
+                    producto: producto,
+                    presentacion_id: presentacion_id,
+                    presentacion: presentacion,
+                    existencia_id: existencia_id,
+                    cantidad_id: cantidad_id,
+                    cantidad: cantidad_id,
+                    precio_id: precio_id,
+                    precio: precio_id,
+                    descuento: descId,
+                    descuento_id: descId,
+                    sub_total: precioDescuento * cantidad_id
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#producto_tbody').append(filaHtml);
+            }
+
+            renderizarProductosIniciales();
+
+            $('#btn-agregar').click(function (e) {
+                e.preventDefault();
+
+                var producto_id = $('#ProductoId').val();
+                var producto = $('#Producto').val();
+
+                if (producto_id === "" || producto === "") {
+                    error("Seleccione un producto");
+                    return;
+                }
+
+                var presentacion_id = $('#PresentacionId').val();
+                var presentacion = $('#PresentacionId option:selected').text();
+
+                if (presentacion_id === "" || presentacion === "") {
+                    error("Seleccione una presentacion");
+                    return;
+                }
+
+                var cantidad_id = $('#Cantidad').val();
+
+                if (cantidad_id === "") {
+                    error("Ingrese la cantidad del producto");
+                    return;
+                }
+
+                var precio_id = $('#PrecioActual').val();
+                precio_id = parseFloat(precio_id);
+
+                if (precio_id === 0) {
+                    error("Ingrese el precio del producto");
+                    return;
+                }
+
+                var existencia_id = parseFloat($('#Existencia').val());
+                cantidad_id = parseFloat(cantidad_id);
+
+                if (cantidad_id <= 0) {
+                    error("La cantidad ingresada no puede ser 0");
+                    return;
+                }
+
+                if (cantidad_id > existencia_id) {
+                    error("La cantidad ingresada es mayor a la existencia");
+                    return;
+                }
+
+                var descuento_id = parseFloat($("#Descuento").val(), 10);
+
+                cargaProducto(producto_id, producto, presentacion_id, presentacion, existencia_id, cantidad_id, precio_id, descuento_id);
+                totalizarProducto();
+
+                //Se oculta el boton de visualizar imagen
+                $('#imagen').css("display", "none");
+
+                //Se asigna la imagen por default
+                $("#visualizar-imagen-producto-form").find("#fotografia").attr("src", "@Url.Content("~/Content/assets/images/producto-sin-foto.jpg")");
+
+                $("#ProductoId").val(0);
+                $("#Cantidad").val(1);
+                $("#Existencia").val(0);
+                $("#PrecioActual").val(0);
+                $("#Producto").val("");
+                $("#Barra").val("");
+                $("#Descuento").val("0");
+                $("#Barra").focus();
+            });
+
+            $('#producto_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+
+                totalizarProducto();
+            });
+
+            function renderizarProductosIniciales()
+            {
+                if (productoIdSeleccionados == null) {
+                    return;
+                }
+
+                // recorremos los productos que haya ingresado el usuario
+                for (var i = 0; i < productoIdSeleccionados.length; i++)
+                {
+                    var producto_id = productoIdSeleccionados[i];
+                    var producto = productoSeleccionados[i];
+
+                    var presentacion_id = presentacionIdSeleccionados[i];
+                    var presentacion = presentacionSeleccionados[i];
+
+                    var existencia_id = existenciaSeleccionados[i];
+                    var cantidad_id = cantidadSeleccionados[i];
+                    var descuento_id = descuentoSeleccionados[i];
+                    var precio_id = precioSeleccionados[i];
+
+                    cargaProducto(producto_id, producto, presentacion_id, presentacion, existencia_id, cantidad_id, precio_id, descuento_id);
+                }
+
+                totalizarProducto();
+            }
+
+            function totalizarProducto() {
+                var cantidadArray = new Array();
+                $('input[name=cantidadIds]').each(function () {
+                    cantidadArray.push(parseFloat($(this).val()));
+                });
+
+                var precioArray = new Array();
+                $('input[name=precioIds]').each(function () {
+                    precioArray.push(parseFloat($(this).val()));
+                });
+
+                var descuentoArray = new Array();
+                $('input[name=descuentoIds]').each(function () {
+                    descuentoArray.push(parseFloat($(this).val(), 10));
+                });
+
+                var total = 0;
+
+                if (cantidadArray.length > 0 && precioArray.length > 0) {
+                    for (var i = 0; i < cantidadArray.length; i++) {
+                        var p = precioArray[i];
+                        var d = descuentoArray[i];
+
+                        var precioDescuento = p - p * d / 100;
+                        total += cantidadArray[i] * precioDescuento;
+                    }
+
+                    $('#Total').html('Q' + total.toFixed(2));
+                    $('#Cantidad_Pagar').val(total.toFixed(2));
+                }
+                else {
+                    $('#Total').html('Q' + total.toFixed(2));
+                    $('#Cantidad_Pagar').val(total.toFixed(2));
+                }
+            }
+
+            $("#btn-save-up-cliente").click(function ()
+            {
+                var Nit = $("#new-cliente-form").find("#Nit").val();
+                var Nombre = $("#new-cliente-form").find("#Nombre").val();
+                var Direccion = $("#new-cliente-form").find("#Direccion").val();
+                var DPI = $("#new-cliente-form").find("#DPI").val();
+                var NoTelefono = $("#new-cliente-form").find("#NoTelefono").val();
+                var NoTelefonoAlterno = $("#new-cliente-form").find("#NoTelefonoAlterno").val();
+                var NoCelularPrincipal = $("#new-cliente-form").find("#NoCelularPrincipal").val();
+                var NoCelularAlterno = $("#new-cliente-form").find("#NoCelularAlterno").val();
+                var EmailCliente = $("#new-cliente-form").find("#EmailCliente").val();
+                var Descuento = $("#new-cliente-form").find("#Descuento").val();
+                var Activo = true;
+
+                if (Nit === "") {
+                    error("El nit es requerido");
+                    return;
+                }
+
+                if (Nombre === "") {
+                    error("El nombre es requerido");
+                    return;
+                }
+
+                if (Direccion === "") {
+                    error("La dirección es requerida");
+                    return;
+                }
+
+                if (DPI === "") {
+                    error("El DPI es requerido");
+                    return;
+                }
+
+                if (NoTelefono === "") {
+                    error("El numero de telefono es requerido");
+                    return;
+                }
+
+                if (Descuento === "") {
+                    Descuento = 0;
+                }
+
+                var modelo =
+               {
+                   'TipoId': 2,
+                   'Nit': Nit,
+                   'Nombre': Nombre,
+                   'Direccion': Direccion,
+                   'DPI': DPI,
+                   'NoTelefono': NoTelefono,
+                   'NoTelefonoAlterno': NoTelefonoAlterno,
+                   'NoCelularPrincipal': NoCelularPrincipal,
+                   'NoCelularAlterno': NoCelularAlterno,
+                   'EmailCliente': EmailCliente,
+                   'Descuento': Descuento,
+                   'Activo': Activo
+               };
+
+                $.ajax({
+                    url: '@Url.Action("NuevoCliente", "Cliente")',
+                    data: { 'modelo': modelo },
+                    async: false,
+                    type: 'POST',
+                    success: function (data) {
+                        if (data == true) {
+                            $('#btn-close-up-cliente').click();
+                            toastr.success('El nuevo cliente se guardó exitosamente');
+
+                            location.reload();
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al guardar al nuevo cliente');
+                        }
+                    }
+                });
+
+            });
+
+        $('#PresentacionId').change(function (evt) {
+            if ($('#ProductoId').val() === "") {
+                error("Seleccionar un producto");
+                return;
+            }
+
+            if ($('#PresentacionId').val() === "") {
+                error("Seleccionar una presentacion");
+                return;
+            }           
+
+            $.ajax({
+                url: '@Url.Action("ObtenerProducto", "Producto")',
+                traditional: true,
+                async: false,
+                data: { 'agenciaId': $('#AgenciaId').val(), 'productoId': $('#ProductoId').val(), 'presentacionId': $('#PresentacionId').val(), 'empleado': false },
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            $('#Existencia').val(resultData.Data.Existencia);
+                            $('#PrecioActual').val(resultData.Data.PrecioActual);
+                            $('#Cantidad').focus();
+                            if (parseFloat(resultData.Data.Existencia) === 0) {
+
+                                document.getElementById('Existencia').style.backgroundColor = "#F78181";
+                            }
+                            else {
+                                document.getElementById('Existencia').removeAttribute("style");
+                            }
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar el producto');
+                        }
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al visualizar el producto');
+                    }
+                }
+            });
+        });
+
+        $("#Barra").autocomplete({
+            source: function (request, response) {
+                $.ajax({
+                    url: '@Url.Action("ConsultaProductoAutocomplementar", "Producto")',
+                    type: "POST",
+                    dataType: "json",
+                    data: { search: request.term },
+                    success: function (data) {
+                        response($.map(data, function (item) {
+                            return { label: item.Nombre, value: item.Nombre };
+                        }))
+                    }
+                })
+            },
+            messages:
+            {
+                noResults: "", results: ""
+            }
+        });
+
+        $('#formaprincipal').keydown(function (evt) {
+            if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                cargaBusquedaProducto(evt)
+            }
+            else if ($('#Cantidad').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#Cantidad').val() === "") {
+                    error("Ingresar cantidad de producto");
+                    $('#Cantidad').focus();
+                    return;
+                }
+                $('#PrecioActual').focus();
+            }
+            else if ($('#PrecioActual').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#PrecioActual').val() === "") {
+                    error("Ingresar precio del producto");
+                    $('#PrecioActual').focus();
+                    return;
+                }
+                $('#btn-agregar').focus();
+            }
+        });
+
+        /*
+        Evento click para el boton de busqueda de productos */
+        $('#btnBarra').click(function (evt) {
+            cargaBusquedaProducto(evt);
+        });
+
+        /*
+     Evento click para el boton de visualizar imagen de productos */
+        $('#btn-visualizar').click(function (evt) {
+            if ($('#ProductoId').val() === "") {
+
+                error("Ingresar codigo de barra");
+                $('#Barra').focus();
+
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("ObtenerFotografiaProducto", "Producto")',
+                traditional: true,
+                data: { 'productoId': $('#ProductoId').val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            $("#visualizar-imagen-producto-form").find("#fotografia").attr("src", resultData.Data);
+                        }
+                    }
+                }
+            });
+
+        });
+
+        $('#producto_seleccionado_tbody').delegate("a", "click", function (e) {
+            e.preventDefault();
+
+            $('#btn-close-up-seleccionar-producto').click();
+            var productoReferencia = $(this).attr("href");
+            var productoActual = productoReferencia.split(",");
+
+            var modelo =
+             {
+                 'ProductoId': productoActual[0],
+                 'Nombre': productoActual[1]
+             };
+
+            cargaProductoSeleccionado(modelo);
+        });
+
+        /*
+        Función para la busqueda de productos */
+        function cargaBusquedaProducto(evt) {
+            evt.preventDefault();
+
+            if ($('#Barra').val() === "") {
+                error("Ingresar codigo de barra");
+                $('#Barra').focus();
+                return;
+            }
+
+            if (vCodBarra === $('#Barra').val()) {
+                vAumentaCantidad = parseInt($('#Cantidad').val()) + 1;
+                $('#Cantidad').val(vAumentaCantidad);
+            }
+            else {
+                $('#Cantidad').val(1);
+            }
+
+            var barraActual = $('#Barra').val();
+            barraActual = barraActual.replace(" ", "_");
+
+            $.ajax({
+                url: '@Url.Action("ObtenerProductoxTextoLibre", "Producto")',
+                traditional: true,
+                data: { 'search': barraActual },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            if (resultData.Data.length === 1) {
+                                cargaProductoSeleccionado(resultData.Data[0]);
+                            }
+                            else if (resultData.Data.length > 1) {
+                                var fila = "";
+                                for (var i = 0; i < resultData.Data.length; i++) {
+                                    fila += "<tr><td>" + resultData.Data[i].ProductoId + "</td>";
+                                    fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                    fila += "<td><a href='" + resultData.Data[i].ProductoId + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                }
+
+                                $("#seleccionar-producto-form").modal();
+                                $("#seleccionar-producto-form").find("#producto_seleccionado_tbody").html(fila);
+                            }
+                        }
+                        else {
+                            toastr.error('La barra del producto ingresada no es correcta');
+                            $('#Barra').val("");
+                            $('#Barra').focus();
+                        }
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al visualizar el producto');
+                        $('#Barra').val("");
+                        $('#Barra').focus();
+                    }
+                }
+            });
+        }
+
+        function cargaProductoSeleccionado(producto) {
+            //Se activa el boton de visualizar fotografia
+            $('#imagen').css("display", "block");
+
+            $('#Producto').val(producto.Nombre);
+            $('#ProductoId').val(producto.ProductoId);
+
+            var PresentacionSelect = $("#PresentacionId");
+            PresentacionSelect.empty();
+            PresentacionSelect.append('<option value="0">--Seleccione una Unidad--</option>');
+
+            $.ajax({
+                url: '@Url.Action("ObtenerPresentacionPorProducto", "Producto_Ingreso")',
+                data: { 'id': $('#ProductoId').val() },
+                traditional: true,
+                async: false,
+                type: 'GET',
+                success: function (data)
+                {
+                    var unidadActualId = 0;
+
+                    $.each(data, function (j) {
+                        unidadActualId = data[j]['Value'];
+                        PresentacionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                    });
+
+                    //Se selecciona por default a la unidad de medida: Unidad
+                    $("#PresentacionId").val(unidadActualId).trigger("change");
+                }
+            });
+
+            $('#Barra').focus();
+            vCodBarra = $('#Barra').val();
+        }
+
+    });
+
+    </script>
+}
+
+

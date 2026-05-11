@@ -1,0 +1,125 @@
+﻿<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Agencia<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("AgenciaId", (SelectList)ViewBag.Agencias, "--Seleccione una Agencia--", new { @class = "form-control search-select required" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Cajero<span class="symbol required"></span>
+            </label>
+            <select id="CajeroId" name="CajeroId" class="form-control search-select required">
+                <option value="">--Seleccione un Cajero--</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Responsable<span class="symbol required"></span>
+            </label>
+            <select id="ResponsableId" name="ResponsableId" class="form-control search-select required">
+                <option value="">--Seleccione un Responsable--</option>
+            </select>
+        </div>
+    </div>
+</div>
+<div id="divMontos">
+    <hr />
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="control-label">
+                    Recibos<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <span class="input-group-addon">Q</span>
+                    <input type="text" placeholder="Recibos" class="form-control" id="TotalRecibos" name="TotalRecibos" value="0" autocomplete="off" disabled="disabled" required />
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="control-label">
+                    Abonos<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <span class="input-group-addon">Q</span>
+                    <input type="text" placeholder="Abonos" class="form-control" id="TotalAbonos" name="TotalAbonos" value="0" autocomplete="off" disabled="disabled" required />
+                </div>
+            </div>
+        </div>           
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="control-label">
+                    Retiros<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <span class="input-group-addon">Q</span>
+                    <input type="text" placeholder="Retiros" class="form-control" id="TotalRetiros" name="TotalRetiros" value="0" autocomplete="off" disabled="disabled" required />
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="control-label">
+                    Egresos Efectivo<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <span class="input-group-addon">Q</span>
+                    <input type="text" placeholder="Gastos" class="form-control" id="TotalGastos" name="TotalGastos" value="0" autocomplete="off" disabled="disabled" required />
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="control-label">
+                    Monto Disponible<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <span class="input-group-addon">Q</span>
+                    <input type="text" placeholder="Monto Disponible" class="form-control" id="Disponible" name="Disponible" value="0" autocomplete="off" disabled="disabled" required />
+                </div>
+            </div>
+        </div>
+    </div>
+    <hr />
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Monto a Retirar<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <span class="input-group-addon">Q</span>
+                    <input type="text" placeholder="Monto a Retirar" class="form-control" id="Retirar" name="Retirar" value="0" autocomplete="off" required />
+                </div>
+            </div>
+        </div>      
+    </div>
+    <hr />
+    <div class="row">
+        <div class="col-md-6">
+            <button id="btnGenerarCorte" data-style="slide-down" class="btn btn-primary btn-block ladda-button" type="button">
+                <span class="ladda-label"> Generar Corte </span>
+                <span class="ladda-spinner"></span>
+                <span class="ladda-progress" style="width: 0px;"></span>
+            </button>
+        </div>
+        <div class="col-md-6">
+            <button id="btnGenerarHistorial" data-style="slide-down" class="btn btn-blue btn-block ladda-button" type="button">
+                <span class="ladda-label"> Historial </span>
+                <span class="ladda-spinner"></span>
+                <span class="ladda-progress" style="width: 0px;"></span>
+            </button>            
+        </div>
+    </div>
+    <hr />
+    <div class="row">
+        <div class="col-md-12">
+            <div id="divContenedorCortes"></div>
+        </div>
+    </div>
+</div>

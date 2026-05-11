@@ -28,7 +28,7 @@
                     Crea un nuevo ingreso.
                 </p>
                 <hr>
-                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
                     <div class="row">
                         <div class="col-md-12">
@@ -40,8 +40,7 @@
                                     @Html.ValidationSummary(false)
                                 </div>
                             }
-                        </div>
-                        <input type="hidden" id="AgenciaId" name="AgenciaId" value="@Html.Raw(DiamDev.Give.UI.App_Start.CustomHelper.getAgenciaId())" />
+                        </div>                        
                     </div>
                     @Html.Partial("_CreateOrEdit")
                     <div class="row">
@@ -85,6 +84,23 @@
     </div>
 </div>
 
+<div id="visualizar-imagen-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Fotografia</h4>
+    </div>
+    <div class="modal-body">
+        <center>
+            <img alt="" id="fotografia" src="@Url.Content("~/Content/assets/images/producto-sin-foto.jpg")" style="height:50%; width:50%" class="img-responsive" />
+        </center>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-imagen-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
 @section Scripts
 {
     <script src="~/Scripts/mustache.js"></script>
@@ -93,266 +109,678 @@
             <td>{{producto}}</td>
             <td>{{presentacion}}</td>
             <td>{{cantidad}}</td>
-            <td>Q{{precio}}</td>
+            <td>{{minimo}}</td>
+            <td>{{maximo}}</td>
+            <td>{{lote}}</td>
+            <td>{{fecha_vencimiento_lote}}</td>
+            <td>Q{{precio_costo}}</td>
+            <td>Q{{precio_venta}}</td>
             <td>Q{{sub_total}}</td> 
             <td>
                 <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
                 <input type="hidden" name="productoIds" value="{{producto_id}}" />
                 <input type="hidden" name="presentacionIds" value="{{presentacion_id}}" />
                 <input type="hidden" name="cantidadIds" value="{{cantidad_id}}" />
-                <input type="hidden" name="precioIds" value="{{precio_id}}" />
+                <input type="hidden" name="minimoIds" value="{{minimo}}" />
+                <input type="hidden" name="maximoIds" value="{{maximo}}" />
+                <input type="hidden" name="precioCostoIds" value="{{precio_costo}}" />
+                <input type="hidden" name="precioVentaIds" value="{{precio_venta}}" />
+                <input type="hidden" name="loteIds" value="{{lote}}" />
+                <input type="hidden" name="fechaVencimientoLoteIds" value="{{fecha_vencimiento_lote}}" />
             </td>
         </tr>
     </script>
 
     <script type="text/javascript">
 
-        var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
-        var presentacionSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.presentacionIds))');
-        var cantidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.cantidadIds))');
-        var precioSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioIds))');
+    var vCodBarra = "";
+    var vAumentaCantidad = 0;
 
-        $(function ()
+    var productoIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
+    var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombreProductoIds))');
+    var presentacionIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.presentacionIds))');
+    var presentacionSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombrePresentacionIds))');
+    var cantidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.cantidadIds))');
+    var minimoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.minimoIds))');
+    var maximoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.maximoIds))');
+    var precioCostoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioCostoIds))');
+    var precioVentaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioVentaIds))');
+    var loteSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.loteIds))');
+    var fechaVencimientoLoteSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.fechaVencimientoLoteIds))');
+
+    $(function ()
+    {
+        //Se oculta el boton de visualizar imagen
+        $('#imagen').css("display", "none");
+
+        $("#divCredito").hide();
+
+        //Se oculta el div de lote
+        $("#divLote").hide();
+
+        function error(texto) {
+            toastr.error(texto);
+        }
+
+        function cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, minimo, maximo, precio_costo, precio_venta, lote, fecha_vencimiento_lote)
         {
-            function error(texto)
+            var plantilla = $('#producto_tr_template').html();
+            var total = (cantidad_id * precio_costo).toFixed(4);
+
+            var modelo =
             {
-                toastr.error(texto);
+                producto_id: producto_id,
+                producto: producto,
+                presentacion_id: presentacion_id,
+                presentacion: presentacion,
+                cantidad_id: cantidad_id,
+                cantidad: cantidad_id,
+                minimo: minimo,
+                maximo: maximo,
+                lote: lote,
+                fecha_vencimiento_lote: fecha_vencimiento_lote,
+                precio_costo: precio_costo,
+                precio_venta: precio_venta,
+                sub_total: total
+            };
+
+            var filaHtml = Mustache.render(plantilla, modelo);
+
+            // agregamos la nueva fila a la tabla.
+            $('#producto_tbody').append(filaHtml);
+        }
+
+        renderizarProductosIniciales();
+
+        $('#btn-agregar').click(function (e)
+        {
+            e.preventDefault();
+
+            var producto_id = $('#ProductoId').val();
+            var producto = $('#Producto').val();
+
+            if (producto_id === "" || producto === "") {
+                error("Seleccione un producto");
+                return;
             }
 
-            function cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, precio_id)
-            {
-                var plantilla = $('#producto_tr_template').html();
+            var presentacion_id = $('#PresentacionId').val();
+            var presentacion = $('#PresentacionId option:selected').text();
 
-                var modelo =
-                {
-                    producto_id: producto_id,
-                    producto: producto,
-                    presentacion_id: presentacion_id,
-                    presentacion: presentacion,
-                    cantidad_id: cantidad_id,
-                    cantidad: cantidad_id,
-                    precio_id: precio_id,
-                    precio: precio_id,
-                    sub_total: cantidad_id * precio_id
-                };
-
-                var filaHtml = Mustache.render(plantilla, modelo);
-
-                // agregamos la nueva fila a la tabla.
-                $('#producto_tbody').append(filaHtml);
+            if (presentacion_id === "" || presentacion === "") {
+                error("Seleccione una presentacion");
+                return;
             }
 
-            renderizarProductosIniciales();
+            var cantidad_id = $('#Cantidad').val();
 
-            $('#btn-agregar').click(function (e)
+            if (cantidad_id === "") {
+                error("Ingrese la cantidad del producto");
+                return;
+            }
+
+            var minimo = $('#Minimo').val();
+
+            if (minimo === "") {
+                error("Ingrese la cantidad minima del producto");
+                return;
+            }
+
+            var maximo = $('#Maximo').val();
+
+            if (maximo === "") {
+                error("Ingrese la cantidad maxima del producto");
+                return;
+            }
+
+            var precio_costo = $('#PrecioCosto').val();
+
+            if (precio_costo === "") {
+                error("Ingrese el precio costo del producto");
+                return;
+            }           
+
+            var precio_venta = $('#PrecioVenta').val();
+
+            if (precio_venta === "") {
+                error("Ingrese el precio venta del producto");
+                return;
+            }
+
+            var tiene_lote = $('#TieneLote').val();
+            tiene_lote = parseInt(tiene_lote);
+
+            if (tiene_lote === 1)
             {
-                e.preventDefault();
-
-                var producto_id = $('#ProductoId').val();
-                var producto = $('#ProductoId option:selected').text();
-
-                if (producto_id === "" || producto === "") {
-                    error("Seleccione un producto");
-                    return;
-                }
-
-                var presentacion_id = $('#PresentacionId').val();
-                var presentacion = $('#PresentacionId option:selected').text();
-
-                if (presentacion_id === "" || presentacion === "")
+                if ($("#Lote").val() === "")
                 {
-                    error("Seleccione una presentacion");
+                    error("Ingrese el lote del producto");
                     return;
                 }
 
-                var cantidad_id = $('#Cantidad').val();
-
-                if (cantidad_id === "") {
-                    error("Ingrese la cantidad del producto");
-                    return;
-                }
-
-                var precio_id = $('#Precio').val();
-
-                if (precio_id === "") {
-                    error("Ingrese el precio del producto");
-                    return;
-                }
-
-                cantidad_id = parseFloat(cantidad_id);
-
-                if (cantidad_id <= 0)
+                if ($("#FechaVencimientoLote").val() === "")
                 {
-                    error("La cantidad ingresada no puede ser 0");
+                    error("Ingrese la fecha de vencimiento del producto");
                     return;
                 }
+            }
 
-                cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, precio_id);
-                totalizarProducto();
+            var lote = $("#Lote").val();
+            var fecha_vencimiento_lote = $("#FechaVencimientoLote").val();
 
-                $("#ProductoId").val(0);
-                $("#Cantidad").val(0);
-                $("#Precio").val(0);
-                $("#ProductoId").focus();
+            if (tiene_lote === 0)
+            {
+                lote = "";
+                fecha_vencimiento_lote = "";
+            }
+
+            cantidad_id = parseFloat(cantidad_id);
+
+            if (cantidad_id <= 0) {
+                error("La cantidad ingresada no puede ser 0");
+                return;
+            }
+
+            cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, minimo, maximo, precio_costo, precio_venta, lote, fecha_vencimiento_lote);
+            totalizarProducto();
+
+            //Se oculta el boton de visualizar imagen
+            $('#imagen').css("display", "none");
+
+            //Se asigna la imagen por default
+            $("#visualizar-imagen-producto-form").find("#fotografia").attr("src", "@Url.Content("~/Content/assets/images/producto-sin-foto.jpg")");
+
+            //Se oculta el div de lote
+            $("#divLote").hide();
+
+            $("#ProductoId").val(0);
+            $("#Cantidad").val(1);
+            $("#Existencia").val(0);
+            $("#Minimo").val(0);
+            $("#Maximo").val(0);
+            $("#PrecioCosto").val(0);
+            $("#PrecioVenta").val(0);
+            $("#TieneLote").val(0);
+            $("#Lote").val("");
+            $("#Producto").val("");
+            $("#divHistorialPrecioCosto").html("");
+            $("#Barra").val("");
+            $("#Barra").focus();
+        });
+
+        $('#producto_tbody').delegate("a", "click", function (e) {
+            e.preventDefault();
+            $(this).parent().parent().remove();
+
+            totalizarProducto();
+        });
+
+        function renderizarProductosIniciales() {
+            if (productoSeleccionados == null) {
+                return;
+            }
+
+            // recorremos los productos que haya ingresado el usuario
+            for (var i = 0; i < productoSeleccionados.length; i++) {
+                var producto_id = productoIdSeleccionados[i];
+                var producto = productoSeleccionados[i];
+
+                var presentacion_id = presentacionIdSeleccionados[i];
+                var presentacion = presentacionSeleccionados[i];
+
+                var cantidad_id = cantidadSeleccionados[i];
+                var minimo = minimoSeleccionados[i];
+                var maximo = maximoSeleccionados[i];
+                var precio_costo = precioCostoSeleccionados[i];
+                var precio_venta = precioVentaSeleccionados[i];
+
+                var lote = loteSeleccionados[i];
+                var fecha_vencimiento_lote = fechaVencimientoLoteSeleccionados[i];
+
+                cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, minimo, maximo, precio_Costo, precio_Venta, lote, fecha_vencimiento_lote);
+            }
+
+            totalizarProducto();
+        }
+
+        function totalizarProducto() {
+            var cantidadArray = new Array();
+            $('input[name=cantidadIds]').each(function () {
+                cantidadArray.push(parseFloat($(this).val()));
             });
 
-            $('#producto_tbody').delegate("a", "click", function (e)
-            {
-                e.preventDefault();
-                $(this).parent().parent().remove();
-
-                totalizarProducto();
+            var precioArray = new Array();
+            $('input[name=precioCostoIds]').each(function () {
+                precioArray.push(parseFloat($(this).val()));
             });
 
-            function renderizarProductosIniciales()
-            {
-                if (productoSeleccionados == null)
-                {
-                    return;
+            var total = 0;
+
+            if (cantidadArray.length > 0 && precioArray.length > 0) {
+                for (var i = 0; i < cantidadArray.length; i++) {
+                    total += cantidadArray[i] * precioArray[i];
                 }
 
-                // recorremos los productos que haya ingresado el usuario
-                for (var i = 0; i < productoSeleccionados.length; i++)
-                {
-                    var producto_id = productoSeleccionados[i];
-                    var producto = $('#ProductoId option[value=' + producto_id + ']').text();
+                $('#Total').html('Q' + total.toFixed(4));
+            }
+            else {
+                $('#Total').html('Q' + total.toFixed(4));
+            }
+        }
 
-                    var presentacion_id = presentacionSeleccionados[i];
-                    var presentacion = $('#PresentacionId option[value=' + presentacion_id + ']').text();
+        $("#btn-save-up-proveedor").click(function () {
+            var Nit = $("#new-proveedor-form").find("#Nit").val();
+            var Nombre = $("#new-proveedor-form").find("#Nombre").val();
+            var NombreCheque = $("#new-proveedor-form").find("#NombreCheque").val();
+            var Direccion = $("#new-proveedor-form").find("#Direccion").val();
+            var NoTelefono = $("#new-proveedor-form").find("#NoTelefonoOficina").val();
+            var Patente = $("#new-proveedor-form").find("#Patente").val();
+            var EmailProveedor = $("#new-proveedor-form").find("#EmailProveedor").val();
+            var Contacto = $("#new-proveedor-form").find("#Contacto").val();
+            var NoTelefonoContacto = $("#new-proveedor-form").find("#NoTelefonoContacto").val();
+            var EmailContacto = $("#new-proveedor-form").find("#EmailContacto").val();
+            var EmailProveedor = $("#new-proveedor-form").find("#EmailProveedor").val();
+            var Activo = true;
 
-                    var cantidad_id = cantidadSeleccionados[i];
-                    var precio_id = precioSeleccionados[i];
-
-                    cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, precio_id);
-                }
-
-                totalizarProducto();
+            if (Nit === "") {
+                error("El nit es requerido");
+                return;
             }
 
-            function totalizarProducto()
+            if (Nombre === "") {
+                error("El nombre es requerido");
+                return;
+            }
+
+            if (Direccion === "") {
+                error("La dirección es requerida");
+                return;
+            }
+
+            if (NoTelefono === "") {
+                error("El numero de telefono es requerido");
+                return;
+            }
+
+            if (Contacto === "") {
+                error("El contacto es requerido");
+                return;
+            }
+
+            if (NoTelefonoContacto === "") {
+                error("El numero de telefono del contacto es requerido");
+                return;
+            }
+
+            var modelo =
             {
-                var cantidadArray = new Array();
-                $('input[name=cantidadIds]').each(function () {
-                    cantidadArray.push(parseFloat($(this).val()));
-                });
+                'Nit': Nit,
+                'Nombre': Nombre,
+                'NombreCheque': NombreCheque,
+                'Direccion': Direccion,
+                'NoTelefonoOficina': NoTelefono,
+                'Patente': Patente,
+                'EmailProveedor': EmailProveedor,
+                'Contacto': Contacto,
+                'NoTelefonoContacto': NoTelefonoContacto,
+                'EmailContacto': EmailContacto,
+                'Activo': Activo
+            };
 
-                var precioArray = new Array();
-                $('input[name=precioIds]').each(function () {
-                    precioArray.push(parseFloat($(this).val()));
-                });
+            $.ajax({
+                url: '@Url.Action("NuevoProveedor", "Proveedor")',
+                data: { 'modelo': modelo },
+                async: false,
+                type: 'POST',
+                success: function (data) {
+                    if (data == true) {
+                        $('#btn-close-up-proveedor').click();
+                        toastr.success('El nuevo proveedor se guardó exitosamente');
 
-                var total = 0;
-
-                if (cantidadArray.length > 0 && precioArray.length > 0) {
-                    for (var i = 0; i < cantidadArray.length; i++) {
-                        total += cantidadArray[i] * precioArray[i];
+                        location.reload();
                     }
+                    else {
+                        toastr.error('Ocurrió un error, al guardar al nuevo proveedor');
+                    }
+                }
+            });
 
-                    $('#Total').html('Q' + total.toFixed(2));
-                }
-                else {
-                    $('#Total').html('Q' + total.toFixed(2));
-                }
+        });
+
+        $('#PresentacionId').change(function (evt) {
+            if ($('#ProductoId').val() === "") {
+                error("Seleccionar un producto");
+                return;
             }
 
-            $("#btn-save-up-proveedor").click(function () {
-                var Nit = $("#new-proveedor-form").find("#Nit").val();
-                var Nombre = $("#new-proveedor-form").find("#Nombre").val();
-                var NombreCheque = $("#new-proveedor-form").find("#NombreCheque").val();
-                var Direccion = $("#new-proveedor-form").find("#Direccion").val();
-                var NoTelefono = $("#new-proveedor-form").find("#NoTelefonoOficina").val();
-                var Patente = $("#new-proveedor-form").find("#Patente").val();
-                var EmailProveedor = $("#new-proveedor-form").find("#EmailProveedor").val();
-                var Contacto = $("#new-proveedor-form").find("#Contacto").val();
-                var NoTelefonoContacto = $("#new-proveedor-form").find("#NoTelefonoContacto").val();
-                var EmailContacto = $("#new-proveedor-form").find("#EmailContacto").val();
-                var EmailProveedor = $("#new-proveedor-form").find("#EmailProveedor").val();
-                var Activo = true;
+            if ($('#PresentacionId').val() === "") {
+                error("Seleccionar una presentacion");
+                return;
+            }
 
-                if (Nit === "") {
-                    error("El nit es requerido");
-                    return;
-                }
+            $.ajax({
+                url: '@Url.Action("ObtenerProducto", "Producto")',
+                traditional: true,
+                async: false,
+                data: { 'agenciaId': $('#AgenciaId').val(), 'productoId': $('#ProductoId').val(), 'presentacionId': $('#PresentacionId').val(), 'empleado': false },
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            $('#Existencia').val(resultData.Data.Existencia);
+                            $('#Minimo').val(resultData.Data.Minimo);
+                            $('#Maximo').val(resultData.Data.Maximo);
+                            $('#PrecioCosto').val(resultData.Data.Costo.toFixed(4));
+                            $('#PrecioVenta').val(resultData.Data.PrecioActual.toFixed(4));
 
-                if (Nombre === "") {
-                    error("El nombre es requerido");
-                    return;
-                }
+                            //Se verifica que el producto tenga habilitada la opcion de lote
+                            if (resultData.Data.TieneLote === true) {
+                                $("#divLote").show();
+                                $("#TieneLote").val(1);
+                            }
+                            else {
+                                $("#divLote").hide();
+                                $("#TieneLote").val(0);
+                            }
 
-                if (Direccion === "") {
-                    error("La dirección es requerida");
-                    return;
-                }
-
-                if (NoTelefono === "") {
-                    error("El numero de telefono es requerido");
-                    return;
-                }
-
-                if (Contacto === "") {
-                    error("El contacto es requerido");
-                    return;
-                }
-
-                if (NoTelefonoContacto === "") {
-                    error("El numero de telefono del contacto es requerido");
-                    return;
-                }
-
-                var modelo =
-                {
-                    'Nit': Nit,
-                    'Nombre': Nombre,
-                    'NombreCheque': NombreCheque,
-                    'Direccion': Direccion,
-                    'NoTelefonoOficina': NoTelefono,
-                    'Patente': Patente,
-                    'EmailProveedor': EmailProveedor,
-                    'Contacto': Contacto,
-                    'NoTelefonoContacto': NoTelefonoContacto,
-                    'EmailContacto': EmailContacto,
-                    'Activo': Activo
-                };
-
-                $.ajax({
-                    url: '@Url.Action("NuevoProveedor", "Proveedor")',
-                    data: { 'modelo': modelo },
-                    async: false,
-                    type: 'POST',
-                    success: function (data) {
-                        if (data == true) {
-                            $('#btn-close-up-proveedor').click();
-                            toastr.success('El nuevo proveedor se guardó exitosamente');
-
-                            location.reload();
+                            $('#Cantidad').focus();
                         }
                         else {
-                            toastr.error('Ocurrió un error, al guardar al nuevo proveedor');
+                            toastr.error('Ocurrió un error, al visualizar el producto');
                         }
                     }
-                });
-
-            });
-
-            $('#ProductoId').change(function (evt) {
-                var PresentacionSelect = $("#PresentacionId");
-                PresentacionSelect.empty();
-                PresentacionSelect.append('<option value="0">--Seleccione una Unidad--</option>');
-
-                $.ajax({
-                    url: '@Url.Action("ObtenerPresentacionPorProducto", "Producto_Ingreso")',
-                    data: { 'id': $('#ProductoId').val() },
-                    traditional: true,
-                    async: false,
-                    type: 'GET',
-                    success: function (data) {
-                        $.each(data, function (j) {
-                            PresentacionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
-                        });
+                    else {
+                        toastr.error('Ocurrió un error, al visualizar el producto');
                     }
-                });
+                }
             });
-     });
+        });
+
+        $('#formaprincipal').keydown(function (evt) {
+            if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                cargaBusquedaProducto(evt)
+            }
+            else if ($('#Cantidad').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#Cantidad').val() === "") {
+                    error("Ingresar cantidad de producto");
+                    $('#Cantidad').focus();
+                    return;
+                }
+                $('#PrecioActual').focus();
+            }
+            else if ($('#Minimo').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#Minimo').val() === "") {
+                    error("Ingresar el minimo del producto");
+                    $('#Minimo').focus();
+                    return;
+                }
+                $('#Maximo').focus();
+            }
+            else if ($('#Maximo').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#Maximo').val() === "") {
+                    error("Ingresar el maximo del producto");
+                    $('#Maximo').focus();
+                    return;
+                }
+                $('#PrecioCosto').focus();
+            }
+            else if ($('#PrecioCosto').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#PrecioCosto').val() === "") {
+                    error("Ingresar el precio costo del producto");
+                    $('#PrecioCosto').focus();
+                    return;
+                }
+                $('#PrecioVenta').focus();
+            }
+            else if ($('#PrecioVenta').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#PrecioVenta').val() === "") {
+                    error("Ingresar precio venta del producto");
+                    $('#PrecioVenta').focus();
+                    return;
+                }
+                $('#btn-agregar').focus();
+            }
+        });
+
+        $("#Barra").autocomplete({
+            source: function (request, response) {
+                $.ajax({
+                    url: '@Url.Action("ConsultaProductoAutocomplementarExistencia", "Producto")',
+                    type: "POST",
+                    dataType: "json",
+                    data: { search: request.term, agenciaid: $('#AgenciaId').val() , id: false },
+                    success: function (data) {
+                        response($.map(data, function (item) {
+                            return { label: item.Nombre, value: item.Nombre };
+                        }))
+                    }
+                })
+            },
+            messages:
+            {
+                noResults: "", results: ""
+            }
+        });
+
+        /*
+        Evento click para el boton de busqueda de productos */
+        $('#btnBarra').click(function (evt) {
+            cargaBusquedaProducto(evt);
+        });
+
+        /*
+Evento click para el boton de visualizar imagen de productos */
+        $('#btn-visualizar').click(function (evt) {
+            if ($('#ProductoId').val() === "") {
+
+                error("Ingresar codigo de barra");
+                $('#Barra').focus();
+
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("ObtenerFotografiaProducto", "Producto")',
+                traditional: true,
+                data: { 'productoId': $('#ProductoId').val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            $("#visualizar-imagen-producto-form").find("#fotografia").attr("src", resultData.Data);
+                        }
+                    }
+                }
+            });
+
+        });
+
+        /*
+        Función para la busqueda de productos */
+        function cargaBusquedaProducto(evt) {
+            evt.preventDefault();
+
+            if ($('#Barra').val() === "") {
+
+                error("Ingresar codigo de barra");
+                $('#Barra').focus();
+
+                return;
+            }
+            if (vCodBarra === $('#Barra').val()) {
+                vAumentaCantidad = parseInt($('#Cantidad').val()) + 1;
+                $('#Cantidad').val(vAumentaCantidad);
+            }
+            else { $('#Cantidad').val(1); }
+
+            $.ajax({
+                url: '@Url.Action("ObtenerProductoxBarra", "Producto")',
+                traditional: true,
+                data: { 'barra': $('#Barra').val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            //Se activa el boton de visualizar fotografia
+                            $('#imagen').css("display", "block");
+
+                            $('#Producto').val(resultData.Data.Nombre);
+                            $('#ProductoId').val(resultData.Data.ProductoId);
+
+                            cargaHistorialPrecioCosto();
+
+                            var PresentacionSelect = $("#PresentacionId");
+                            PresentacionSelect.empty();
+                            PresentacionSelect.append('<option value="0">--Seleccione una Unidad--</option>');
+
+                            $.ajax({
+                                url: '@Url.Action("ObtenerPresentacionPorProducto", "Producto_Ingreso")',
+                                data: { 'id': $('#ProductoId').val() },
+                                traditional: true,
+                                async: false,
+                                type: 'GET',
+                                success: function (data) {
+                                    var unidadActualId = 0;
+                                    $.each(data, function (j) {
+                                        unidadActualId = data[j]['Value'];
+                                        PresentacionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                                    });
+
+                                    //Se selecciona por default la primera unidad
+                                    $("#PresentacionId").val(unidadActualId).trigger("change");
+                                }
+                            });
+
+
+                            $('#Barra').focus();
+                            vCodBarra = $('#Barra').val();
+
+                        }
+                        else {
+                            toastr.error('La barra del producto ingresada no es correcta');
+                            $('#Barra').val("");
+                            $('#Barra').focus();
+                        }
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al visualizar el producto');
+                        $('#Barra').val("");
+                        $('#Barra').focus();
+                    }
+                }
+            });
+        }
+
+        $('#MovimientoEstadoId').change(function (evt) {
+            if ($('#MovimientoEstadoId').val() === "") {
+                error("Seleccionar el estado del ingreso");
+                return;
+            }
+
+            if ($('#MovimientoEstadoId').val() === "1") {
+                $("#divCredito").hide();
+            }
+            else if ($('#MovimientoEstadoId').val() === "2") {
+                $("#divCredito").show();
+            }
+        });
+
+        function cargaHistorialPrecioCosto() {
+            $("#divHistorialPrecioCosto").load('@Url.Action("GetHistorial", "Producto_Ingreso")?id=' + $("#ProductoId").val());
+        }
+
+
+
+
+$("#FechaDocumento").change(function(){
+//var factor=document.getElementById("tipogaso").value;
+//var galones=document.getElementById("txt-gallons").value;
+var fechadocumento=document.getElementById("FechaDocumento").value;
+
+var facturanumero=document.getElementById("FacturaNumero").value;
+//alert(fechadocumento);
+//var total=parseFloat(montofactura)-(parseFloat(factor)*parseFloat(galones));
+
+
+document.getElementById("Documento").value=fechadocumento+";"+facturanumero;
+
+});
+
+$("#FacturaNumero").keyup(function(){
+//var factor=document.getElementById("tipogaso").value;
+//var galones=document.getElementById("txt-gallons").value;
+var fechadocumento=document.getElementById("FechaDocumento").value;
+
+var facturanumero=document.getElementById("FacturaNumero").value;
+//alert(fechadocumento);
+//var total=parseFloat(montofactura)-(parseFloat(factor)*parseFloat(galones));
+
+
+document.getElementById("Documento").value=fechadocumento+";"+facturanumero;
+//var total=parseFloat(montofactura)-(parseFloat(factor)*parseFloat(galones));
+//alert(document.getElementById("Documento").value);
+
+//document.getElementById("Monto").value=total.toFixed(2);
+
+});
+
+
+        $('#formaprincipal').keydown(function (evt) {
+            if ($('#Documento').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                cargaBusquedaDocumento(evt)
+            }
+        });
+
+        function cargaBusquedaDocumento(evt) {
+            evt.preventDefault();
+
+            if ($('#Documento').val() === "") {
+                error("Ingresar #Documento");
+                $('#Documento').focus();
+                return;
+            }
+
+            if ($('#ProveedorId').val() === "") {
+                error("Seleccione Proveedor");
+                $('#ProveedorId').focus();
+                return;
+            }
+
+
+            $.ajax({
+                url: '@Url.Action("ValidarDocumentoxProveedor", "Producto_Ingreso")',
+                traditional: true,
+                data: { 'proveedorId': $('#ProveedorId').val(), 'documento': $('#Documento').val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            toastr.error('Se le informa que el documento ingresado ya se encuentra registrado en el sistema');
+                            $('#Documento').val("");
+                            $('#Documento').focus();
+                        }
+                        else {
+                            $('#Descripcion').focus();
+                        }
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al validar el documento');
+                        $('#Documento').val("");
+                        $('#Documento').focus();
+                    }
+                }
+            });
+        }
+
+    });
 
     </script>  
 }

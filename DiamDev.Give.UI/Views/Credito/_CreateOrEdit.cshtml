@@ -1,0 +1,216 @@
+﻿@model DiamDev.Give.Entities.Credito
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Cliente
+            </label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="BuscarCliente" name="BuscarCliente" autocomplete="off" placeholder="Buscar Cliente...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="btnBuscarCliente">Buscar</button>
+                    <a href="#new-cliente-form" data-toggle="modal" class="demo btn btn-blue" style="margin-bottom: -1px;">
+                        <i class="clip-plus-circle"></i>
+                    </a>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Cliente<span class="symbol required"></span>
+            </label>
+            <input type="text" placeholder="Cliente" class="form-control" id="NombreCliente" name="NombreCliente" autocomplete="off" disabled="disabled" required />
+            <input type="hidden" id="ClienteId" name="ClienteId" value="0" />
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Descripci&oacute;n<span class="symbol required"></span>
+            </label>
+            @Html.TextAreaFor(model => model.Descripcion, new { @class = "form-control", @placeholder = "Descripción del Credito", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Tipos de Credito</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Tipo de Credito<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("TipoId", (SelectList)ViewBag.Tipos, "--Seleccione un Tipo de Credito--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Agencias</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Agencia<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("AgenciaId", (SelectList)ViewBag.Agencias, "--Seleccione una Agencia--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha Inicial<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : Model.FechaInicial.ToString("yyyy-MM-dd"))" required>
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha Final<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : Model.FechaFinal.ToString("yyyy-MM-dd"))" required>
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+</div>
+<h2>
+    <i class="icon-edit-sign teal"></i> Productos
+</h2>
+<hr>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Barra
+            </label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="imagen">
+    <div class="row">
+        <div class="col-md-12">
+            <button type="button" class="btn btn-med-grey btn-block ladda-button" data-toggle="modal" data-target="#visualizar-imagen-producto-form" id="btn-visualizar">Visualizar Fotografía</button>
+        </div>
+    </div>
+    <br />
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Producto
+            </label>
+            <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" disabled="disabled" />
+            <input type="hidden" id="ProductoId" name="ProductoId" value="0" />
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Unidad
+            </label>
+            <select id="PresentacionId" name="PresentacionId" class="form-control search-select">
+                <option value="0">--SELECCIONE UNA UNIDAD--</option>
+            </select>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-3">
+        <div class="form-group">
+            <label class="control-label">
+                Cantidad
+            </label>
+            <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" value="1" autocomplete="off" />
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label class="control-label">
+                Existencia
+            </label>
+            <input type="number" placeholder="Existencia" class="form-control" id="Existencia" name="Existencia" autocomplete="off" disabled="disabled" />
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label class="control-label">
+                Precio
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                <input type="text" placeholder="Precio de Venta" class="form-control" id="PrecioActual" name="PrecioActual" value="0" autocomplete="off" disabled="disabled" />
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label class="control-label">
+                Descuento
+            </label>
+            @Html.DropDownList("Descuento", (SelectList)ViewBag.Descuentos, new { @class = "form-control" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+        <table class="table table-hover" id="sample-table-1">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Unidad</th>
+                    <th>Cantidad</th>
+                    <th>Precio</th>
+                    <th>Descuento</th>
+                    <th>Sub-Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="producto_tbody"></tbody>
+        </table>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="col-md-4">
+            <div style="text-align:left; font-size:large; font-weight:bold;">
+                Total:
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div id="Total" style="text-align: right;font-size:large; font-weight:bold;">
+                Q0.00
+            </div>
+        </div>
+    </div>
+</div>
+
+
+

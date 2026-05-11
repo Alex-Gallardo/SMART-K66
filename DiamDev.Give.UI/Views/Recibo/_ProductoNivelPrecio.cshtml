@@ -1,0 +1,28 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.ProductoNivelPrecio>
+
+<table class="table table-hover">
+    <tr>
+        <th>
+            #Nivel
+        </th>
+        <th>
+            C. Inicial
+        </th>
+        <th>
+           C. Final
+        </th>
+        <th>
+            Precio
+        </th>
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@item.NivelId</td>
+            <td>@item.Inicial</td>
+            <td>@item.Final</td>
+            <td>@item.Precio.ToString("C")</td>
+        </tr>
+    }
+</table>

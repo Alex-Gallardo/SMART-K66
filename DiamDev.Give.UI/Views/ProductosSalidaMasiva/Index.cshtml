@@ -1,0 +1,205 @@
+﻿
+@{
+    ViewBag.Title = "Producto - Salida";
+}
+
+<style type="text/css">
+
+    .dragndrop,
+    .upload-icon {
+        display: none;
+    }
+
+    #uploader-form
+    {
+        font-size: 1.25rem; /* 20 */
+        background-color: #c8dadf;
+        position: relative;
+        padding: 100px 20px;
+    }
+
+    #uploader-form.has-advanced-upload {
+        outline: 2px dashed #92b0b3;
+        outline-offset: -10px;
+        -webkit-transition: outline-offset .15s ease-in-out, background-color .15s linear;
+        transition: outline-offset .15s ease-in-out, background-color .15s linear;
+    }
+
+    #uploader-form.has-advanced-upload .dragndrop {
+        display: inline;
+    }
+    #uploader-form.has-advanced-upload .upload-icon
+    {
+        width: 100%;
+        height: 80px;
+        fill: #92b0b3;
+        display: block;
+        margin-bottom: 40px;
+    }
+
+    #uploader-form.is-dragover {
+        outline-offset: -20px;
+        outline-color: #c8dadf;
+        background-color: #fff;
+    }
+
+    .upload-input{
+        text-align: center;
+    }
+
+    .upload-uploading,
+                    .upload-success,
+                    .upload-error
+                    {
+                        display: none;
+                        text-align: center;
+                        margin-top: 25px;
+                    }
+                    #uploader-form.is-uploading .upload-uploading,
+                    #uploader-form.is-success .upload-success,
+                    #uploader-form.is-error .upload-error
+                    {
+                        display: block;
+                        position: absolute;
+                        top: 50%;
+                        right: 0;
+                        left: 0;
+
+                        -webkit-transform: translateY( -50% );
+                        transform: translateY( -50% );
+                    }
+                    .upload-uploading
+                    {
+                        font-style: italic;
+                    }
+                    .upload-success
+                    {
+                        -webkit-animation: appear-from-inside .25s ease-in-out;
+                        animation: appear-from-inside .25s ease-in-out;
+                    }
+                        @@-webkit-keyframes appear-from-inside
+                        {
+                            from	{ -webkit-transform: translateY( -50% ) scale( 0 ); }
+                            75%		{ -webkit-transform: translateY( -50% ) scale( 1.1 ); }
+                            to		{ -webkit-transform: translateY( -50% ) scale( 1 ); }
+                        }
+                        @@keyframes appear-from-inside
+                        {
+                            from	{ transform: translateY( -50% ) scale( 0 ); }
+                            75%		{ transform: translateY( -50% ) scale( 1.1 ); }
+                            to		{ transform: translateY( -50% ) scale( 1 ); }
+                        }
+
+                    .upload-restart
+                    {
+                        font-weight: 700;
+                    }
+                    .upload-restart:focus,
+                    .upload-restart:hover
+                    {
+                        color: #39bfd3;
+                    }
+
+                    .js .upload-file
+                    {
+                        width: 0.1px;
+                        height: 0.1px;
+                        opacity: 0;
+                        overflow: hidden;
+                        position: absolute;
+                        z-index: -1;
+                    }
+                    .js .upload-file + label
+                    {
+                        max-width: 80%;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                        cursor: pointer;
+                        display: inline-block;
+                        overflow: hidden;
+                    }
+                    .js .upload-file + label:hover strong,
+                    .upload-file:focus + label strong,
+                    .upload-file.has-focus + label strong
+                    {
+                        color: #39bfd3;
+                    }
+                    .js .upload-file:focus + label,
+                    .js .upload-file.has-focus + label
+                    {
+                        outline: 1px dotted #000;
+                        outline: -webkit-focus-ring-color auto 5px;
+                    }
+                        .js .upload-file + label *
+                        {
+                            /* pointer-events: none; */ /* in case of FastClick lib use */
+                        }
+
+                    .no-js .upload-file + label
+                    {
+                        display: none;
+                    }
+
+                    .no-js .upload-button
+                    {
+                        display: block;
+                    }
+                    .upload-button
+                    {
+                        font-weight: 700;
+                        color: #e5edf1;
+                        background-color: #39bfd3;
+                        display: none;
+                        padding: 8px 16px;
+                        margin: 40px auto 0;
+                    }
+                        .upload-button:hover,
+                        .upload-button:focus
+                        {
+                            background-color: #0f3c4b;
+                        }
+</style>
+
+<script>(function(e,t,n){var r=e.querySelectorAll("html")[0];r.className=r.className.replace(/(^|\s)no-js(\s|$)/,"$1js$2")})(document,window,0);</script>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                Salida masiva de productos
+            </div>
+            <div class="panel-body">
+                <p>
+                    Haga clic en el cuadro de abajo o arrastre un archivo hacia &eacute;l,
+                    para sacar productos de forma masiva.
+                </p>
+                <p>
+                    El archivo debe ser un libro de excel versi&oacute;n 2013 o superior,
+                    si no cuenta con un archivo compatible puede descargar el formato de ejempo:
+                    <a href="@Url.Content("~/Content/Formatos/ProductosSalidaMasiva.xlsx")" title="Formato de ejemplo para la salida masiva">formato.xlsx</a>.
+                </p>
+
+                <form id="uploader-form" action="@Url.Action("Index", "ProductosSalidaMasiva")" method="post" enctype="multipart/form-data" novalidate>
+                    @if (ViewBag.UploadSuccess == null)
+                    {
+                        <div class="upload-input">
+                            <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" width="50" height="43" viewBox="0 0 50 43"><path d="M48.4 26.5c-.9 0-1.7.7-1.7 1.7v11.6h-43.3v-11.6c0-.9-.7-1.7-1.7-1.7s-1.7.7-1.7 1.7v13.2c0 .9.7 1.7 1.7 1.7h46.7c.9 0 1.7-.7 1.7-1.7v-13.2c0-1-.7-1.7-1.7-1.7zm-24.5 6.1c.3.3.8.5 1.2.5.4 0 .9-.2 1.2-.5l10-11.6c.7-.7.7-1.7 0-2.4s-1.7-.7-2.4 0l-7.1 8.3v-25.3c0-.9-.7-1.7-1.7-1.7s-1.7.7-1.7 1.7v25.3l-7.1-8.3c-.7-.7-1.7-.7-2.4 0s-.7 1.7 0 2.4l10 11.6z" /></svg>
+                            <input type="file" name="archivos" id="archivos" class="upload-file" />
+                            <label for="archivos"><strong>Seleccione un archivo</strong><span class="upload-dragndrop"> o arr&aacute;strelo aqu&iacute;</span>.</label>
+                            <button type="submit" class="upload-button">Cargar</button>
+                        </div>
+                    }
+
+
+                    <div class="upload-uploading">Cargando&hellip;</div>
+                    <div class="upload-success" @if (ViewBag.UploadSuccess == true) { <text>style="display: block;"</text> }>&iexcl;Completado! <a href="@Url.Action("Verificar", "ProductosSalidaMasiva", new { id = ViewBag.UploadFileName })" class="upload-restart" role="button">Verificar antes de enviar</a></div>
+                    <div class="upload-error" @if (ViewBag.UploadSuccess == false) { <text>style="display: block;"</text> }>&iexcl;Error! <span>@ViewBag.UploadError</span>. <a href="@Url.Action("Index", "ProductosSalidaMasiva")" class="upload-restart" role="button">&iexcl;Intentar de nuevo!</a></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Scripts/App/ProductosSalidaMasiva-Index.js"></script>
+}

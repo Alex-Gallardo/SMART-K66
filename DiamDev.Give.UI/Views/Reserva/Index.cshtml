@@ -1,0 +1,147 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Reserva>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Reserva Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Reserva")">
+        Nueva
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Reserva
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#Reserva</th>
+                            <th>Fecha</th>                            
+                            <th>Cliente</th>
+                            <th>#Telefono</th>
+                            <th>Operado</th>
+                            <th>Anulado</th>
+                            <th>Producto(s)</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Reserva in Model)
+                        {
+                            <tr>
+                                <td>@Reserva.ReservaId</td>
+                                <td>@Reserva.Fecha.ToString("dd/MM/yyyy")</td>                                
+                                <td>@(Reserva.Cliente == null ? "No Disponible" : Reserva.Cliente.Nombre)</td>
+                                <td>@(string.IsNullOrWhiteSpace(Reserva.Telefono) ? "No Disponible" : Reserva.Telefono)</td>                              
+                                <td>@(Reserva.Operado == true ? "Sí" : "No")</td>
+                                <td>@(Reserva.Anulada == true ? "Sí" : "No")</td>
+                                <td>@(string.IsNullOrWhiteSpace(Reserva.Productos) ? "No Disponible" : Reserva.Productos)</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">                                                                           
+                                        <a href="@Url.Action("Detalle", "Reserva", new { id = Reserva.ReservaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle de la Reserva"><i class="clip-stack-empty"></i></a>
+                                        @if (!Reserva.Anulada)                                            
+                                        {
+                                            <a href="@Url.Action("Anular", "Reserva", new { id = Reserva.ReservaId })" class="btn btn-bricky tooltips" data-placement="top" data-original-title="Anular Reserva"><i class="clip-close"></i></a>
+                                            <a href="@Url.Action("Boleta", "Reserva", new { id = Reserva.ReservaId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
+                                                <a href="@Url.Action("Boleta_Historial", "Reserva", new { id = Reserva.ReservaId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta Historial"><i class="clip-file-pdf"></i></a>
+                                        }
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">                                                                                       
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Reserva", new { id = Reserva.ReservaId })">
+                                                        <i class="clip-stack-empty"></i> Detalle de la Reserva
+                                                    </a>
+                                                </li>
+                                                @if (!Reserva.Anulada)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Anular", "Reserva", new { id = Reserva.ReservaId })">
+                                                            <i class="clip-close"></i> Anular Reserva
+                                                        </a>
+                                                    </li>
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Reserva", new { id = Reserva.ReservaId })" target="_blank">
+                                                            <i class="clip-file-pdf"></i> Ver Boleta
+                                                        </a>
+                                                    </li>
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta_Historial", "Reserva", new { id = Reserva.ReservaId })" target="_blank">
+                                                            <i class="clip-file-pdf"></i> Ver Boleta Historial
+                                                        </a>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { search = ViewBag.Search, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+      $(document).ready(function ()
+       {
+            if ('@TempData["Reserva-Success"]' == "OK")
+            {
+                toastr.success('La reserva se guardó exitosamente');
+            }
+            else if ('@TempData["Reserva_Anulada-Success"]' == "OK")
+            {
+                toastr.success('La reserva fue anulada exitosamente');
+            }
+        });
+    </script>
+}
+
+
+

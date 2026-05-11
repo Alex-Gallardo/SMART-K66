@@ -1,0 +1,280 @@
+﻿@{
+    ViewBag.Title = "Analisis x Morosidad";
+}
+
+<style>
+    .alert-info, .alert-info > a, .bg-info, .bg-info > a 
+    {
+        color: #fff !important;
+    }
+
+    .alert-success, .alert-success > a, .bg-success, .bg-success > a 
+    {
+        color: #fff !important;
+    }
+
+    .alert-danger, .alert-danger > a, .bg-danger, .bg-danger > a 
+    {
+        color: #fff !important;
+    }
+
+    .alert-warning, .alert-warning > a, .bg-warning, .bg-warning > a 
+    {
+        color: #fff !important;
+    }
+
+    .alert-naranja, .alert-naranja > a, .bg-naranja, .bg-naranja > a 
+    {
+        color: #fff !important;
+    }
+
+    .alert-verde, .alert-verde > a, .bg-verde, .bg-verde > a 
+    {
+        color: #fff !important;
+    }
+
+    .alert-info, .bg-info 
+    {
+        background-color: #17a2b8 !important;
+    }
+
+    .alert-success, .bg-success 
+    {
+        background-color: #28a745 !important;
+    }
+
+    .alert-danger, .alert-error, .bg-danger 
+    {
+        background-color: #dc3545 !important;
+    }
+
+    .alert-warning, .bg-warning 
+    {
+        background-color: #f39c12 !important;
+    }
+
+    .alert-naranja, .bg-naranja 
+    {
+        background-color: #F44611 !important;
+    }
+
+    .alert-verde, .bg-verde 
+    {
+        background-color: #00BB2D !important;
+    }
+
+    .small-box 
+    {
+        border-radius: .25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .callout, .card, .info-box, .mb-3, .my-3, .small-box 
+    {
+        margin-bottom: 1rem !important;
+    }
+
+    .alert-info, .bg-info 
+    {
+        background-color: #17a2b8 !important;
+    }
+
+    .small-box > .inner 
+    {
+        padding: 10px;
+    }
+
+    .small-box h3, .small-box p 
+    {
+        z-index: 5;
+    }
+
+    .small-box h3 
+    {
+        font-size: 4.2rem;
+        font-weight: 800;
+        margin: 0 0 10px 0;
+        padding: 0;
+        white-space: nowrap;
+    }
+
+    .small-box h3, .small-box p 
+    {
+        z-index: 5;
+    }
+
+    .small-box p 
+    {
+        font-size: 2rem;
+    }
+
+    p 
+    {
+        margin-top: 0;
+        margin-bottom: 1rem;
+    }
+
+    .small-box > .small-box-footer 
+    {
+        background: rgba(0,0,0,.1);
+        color: rgba(255,255,255,.8);
+        display: block;
+        padding: 5px 0;
+        position: relative;
+        text-align: center;
+        text-decoration: none;
+        z-index: 10;
+    }
+
+    .alert-info, .alert-info > a, .bg-info, .bg-info > a 
+    {
+        color: #fff !important;
+    }
+
+    .small-box .icon > i 
+    {
+        font-size: 70px;
+        position: absolute;
+        right: 15px;
+        top: 0px;
+        transition: all .3s linear;
+    }
+</style>
+
+<div class="row">
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Consulta_Morosidad_Critica.Ver_Listado"))
+    {
+        <div class="col-md-6">
+            <!-- small box -->
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3 id="lblCantidadMorosidadCritica">0</h3>
+                    <p>Morosidad Critica</p>
+                </div>
+                <div class="icon">
+                    <i class="clip-calendar-2"></i>
+                </div>
+                <a href="@Url.Action("Morosidad_Critica", "Consulta")" class="small-box-footer">Más información <i class="clip-plus-circle"></i></a>
+            </div>
+        </div>
+    }
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Consulta_Morosidad_Alta.Ver_Listado"))
+    {
+        <div class="col-md-6">
+            <!-- small box -->
+            <div class="small-box bg-naranja">
+                <div class="inner">
+                    <h3 id="lblCantidadMorosidadAlta">0</h3>
+                    <p>Morosidad Alta</p>
+                </div>
+                <div class="icon">
+                    <i class="clip-calendar-2"></i>
+                </div>
+                <a href="@Url.Action("Morosidad_Alta", "Consulta")" class="small-box-footer">Más información <i class="clip-plus-circle"></i></a>
+            </div>
+        </div>
+    }
+</div>
+<div class="row">
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Consulta_Morosidad_Media.Ver_Listado"))
+    {
+        <div class="col-md-6">
+            <!-- small box -->
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3 id="lblCantidadMorosidadMedia">0</h3>
+                    <p>Morosidad Media</p>
+                </div>
+                <div class="icon">
+                    <i class="clip-calendar-2"></i>
+                </div>
+                <a href="@Url.Action("Morosidad_Media", "Consulta")" class="small-box-footer">Más información <i class="clip-plus-circle"></i></a>
+            </div>
+        </div>
+    }
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Consulta_Cuenta_x_Cobrar_Al_Dia.Ver_Listado"))
+    {
+        <div class="col-md-6">
+            <!-- small box -->
+            <div class="small-box bg-verde">
+                <div class="inner">
+                    <h3 id="lblCantidadCuentaxCobrar">0</h3>
+                    <p>Cuenta x Cobrar al Dia</p>
+                </div>
+                <div class="icon">
+                    <i class="clip-calendar-2"></i>
+                </div>
+                <a href="@Url.Action("Cuenta_x_Cobrar_al_Dia", "Consulta")" class="small-box-footer">Más información <i class="clip-plus-circle"></i></a>
+            </div>
+        </div>
+    }
+</div>
+
+<script src="~/Scripts/jquery-1.10.2.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function ()
+    {
+        $.ajax({
+            url: '@Url.Action("ObtenerMorosidadCritica", "Consulta")',
+            type: 'GET',
+            success: function (resultData)
+            {
+                if (resultData !== null)
+                {
+                    if (resultData.Operacion)
+                    {
+                        $("#lblCantidadMorosidadCritica").html(resultData.Data);
+                    }
+                }
+            }
+        });
+
+         $.ajax({
+            url: '@Url.Action("ObtenerMorosidadAlta", "Consulta")',
+            type: 'GET',
+            success: function (resultData)
+            {
+                if (resultData !== null)
+                {
+                    if (resultData.Operacion)
+                    {
+                        $("#lblCantidadMorosidadAlta").html(resultData.Data);
+                    }
+                }
+            }
+         });
+
+        $.ajax({
+            url: '@Url.Action("ObtenerMorosidadMedia", "Consulta")',
+            type: 'GET',
+            success: function (resultData)
+            {
+                if (resultData !== null)
+                {
+                    if (resultData.Operacion)
+                    {
+                        $("#lblCantidadMorosidadMedia").html(resultData.Data);
+                    }
+                }
+            }
+        });
+
+        $.ajax({
+            url: '@Url.Action("ObtenerCuentaxCobrar", "Consulta")',
+            type: 'GET',
+            success: function (resultData)
+            {
+                if (resultData !== null)
+                {
+                    if (resultData.Operacion)
+                    {
+                        $("#lblCantidadCuentaxCobrar").html(resultData.Data);
+                    }
+                }
+            }
+        });
+    });
+</script>

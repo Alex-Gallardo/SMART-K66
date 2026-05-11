@@ -8,7 +8,6 @@ namespace DiamDev.Give.BLL
 {
     public class PersonalBL
     {
-
         #region Variables Globales
 
             private GiveContext db;
@@ -51,9 +50,9 @@ namespace DiamDev.Give.BLL
             return Id;
         }
 
-        private bool Agregar(Personal entidad)
+        private string Agregar(Personal entidad)
         {
-            bool PersonalAgregar = false;
+            string Mensaje = "OK";
 
             try
             {
@@ -70,22 +69,22 @@ namespace DiamDev.Give.BLL
                         entidad.Fecha = DateTime.Today;
 
                         db.Set<Personal>().Add(entidad);
-                        db.SaveChanges();
-                        PersonalAgregar = true;
+                        db.SaveChanges();                       
                     }
                 }
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Mensaje = string.Format("Descripción del Error {0}", ex.Message);
             }
 
-            return PersonalAgregar;
+            return Mensaje;
         }
 
-        private bool Actualizar(Personal entidad)
+        private string Actualizar(Personal entidad)
         {
-            bool PersonalActualizar = false;
+            string Mensaje = "OK";
 
             try
             {
@@ -95,24 +94,37 @@ namespace DiamDev.Give.BLL
                 if (PersonalActual.PersonalId > 0)
                 {                    
                     PersonalActual.Nombre = entidad.Nombre;
-                    PersonalActual.Direccion = entidad.Direccion;                    
+                    PersonalActual.Direccion = entidad.Direccion;
+                    PersonalActual.DPI = entidad.DPI;
                     PersonalActual.NoTelefono = entidad.NoTelefono;
                     PersonalActual.NoTelefonoAlterno = entidad.NoTelefonoAlterno;
                     PersonalActual.NoCelularPrincipal = entidad.NoCelularPrincipal;
                     PersonalActual.NoCelularAlterno = entidad.NoCelularAlterno;
                     PersonalActual.Email = entidad.Email;
+                    PersonalActual.FechaNacimiento = entidad.FechaNacimiento;
+                    PersonalActual.LicenciaVehiculo = entidad.LicenciaVehiculo;
+                    PersonalActual.LicenciaMoto = entidad.LicenciaMoto;
+                    PersonalActual.NoAfiliacionIGSS = entidad.NoAfiliacionIGSS;
+                    PersonalActual.FechaIngreso = entidad.FechaIngreso;
+                    PersonalActual.FechaEgreso = entidad.FechaEgreso;
+                    PersonalActual.BancoId = entidad.BancoId;
+                    PersonalActual.Planilla = entidad.Planilla;
+                    PersonalActual.Contrato = entidad.Contrato;                    
+                    PersonalActual.Sueldo = entidad.Sueldo;
+                    PersonalActual.Bonificacion = entidad.Bonificacion;
+                    PersonalActual.IGSS = entidad.IGSS;
+                    PersonalActual.MotivoEgreso = entidad.MotivoEgreso;
                     PersonalActual.Activo = entidad.Activo;
 
-                    db.SaveChanges();
-                    PersonalActualizar = true;
+                    db.SaveChanges();                    
                 }
-
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Mensaje = string.Format("Descripción del Error {0}", ex.Message);
             }
 
-            return PersonalActualizar;
+            return Mensaje;
         }
 
         #endregion
@@ -122,8 +134,7 @@ namespace DiamDev.Give.BLL
         public string Guardar(Personal entidad)
         {
             string Mensaje = "OK";
-            bool OperacionExitosa = false;
-
+           
             if (!string.IsNullOrWhiteSpace(entidad.Email))
             {
                 if (!new Herramienta().ValidarEmail(entidad.Email))
@@ -134,16 +145,11 @@ namespace DiamDev.Give.BLL
 
             if (entidad.PersonalId > 0)
             {
-                OperacionExitosa = Actualizar(entidad);
+                Mensaje = Actualizar(entidad);
             }
             else
             {
-                OperacionExitosa = Agregar(entidad);
-            }
-
-            if (!OperacionExitosa)
-            {
-                Mensaje = "La información ingresada no es valida";
+                Mensaje = Agregar(entidad);
             }
 
             return Mensaje;
@@ -157,7 +163,7 @@ namespace DiamDev.Give.BLL
             {
                 if (todo)
                 {
-                    PersonalActual = db.Set<Personal>().Where(x => x.PersonalId == id).FirstOrDefault();
+                    PersonalActual = db.Set<Personal>().Include("Puesto").Include("Banco").Include("Anotaciones").Include("Anotaciones.Tipo").Where(x => x.PersonalId == id).FirstOrDefault();
                 }
                 else
                 {
@@ -209,6 +215,5 @@ namespace DiamDev.Give.BLL
         }
 
         #endregion
-
     }
 }

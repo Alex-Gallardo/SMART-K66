@@ -1,0 +1,480 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.ProductosxCliente>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Productos x Cliente";
+}
+
+<form action="" id="formaprincipal" method="get">
+    <div class="row">
+        <div class="col-md-12">
+            <h2><i class="icon-edit-sign teal"></i>Clientes</h2>
+            <hr>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Cliente
+                </label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="BuscarCliente" name="BuscarCliente" autocomplete="off" placeholder="Buscar Cliente...">
+                    <span class="input-group-btn">
+                        <button class="btn btn-secondary" type="button" id="btnBuscarCliente">Buscar</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Cliente<span class="symbol required"></span>
+                </label>
+                <input type="text" placeholder="Cliente" class="form-control" id="NombreCliente" name="NombreCliente" autocomplete="off" disabled="disabled" required />
+                <input type="hidden" id="ClienteId" name="ClienteId" value="0" />
+            </div>
+        </div>
+    </div>
+    <h2>
+        <i class="icon-edit-sign teal"></i> Productos
+    </h2>
+    <hr>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Barra
+                </label>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                    <span class="input-group-btn">
+                        <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>.
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Producto
+                </label>
+                <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" disabled="disabled" />
+                <input type="hidden" id="ProductoId" name="ProductoId" value="0" />
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <button data-style="slide-down" class="btn btn-primary btn-block ladda-button" type="submit">
+                <span class="ladda-label"> Buscar </span>
+                <span class="ladda-spinner"></span>
+                <span class="ladda-progress" style="width: 0px;"></span>
+            </button>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Productos x Cliente
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fecha de Compra</th>
+                            <th>Documento de Compra</th>
+                            <th>Cantidad de Compra</th>
+                            <th>Precio de Compra</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Detalle in Model)
+                        {
+                            <tr>
+                                <td>@Detalle.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@(Detalle.Factura ? Detalle.Documento : Detalle.ReciboId.ToString())</td>
+                                <td>@Detalle.Cantidad</td>
+                                <td>@Detalle.Precio.ToString("C")</td>
+                                <td>@string.Format("{0:C}",(Detalle.Cantidad * Detalle.Precio))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Productos_x_Cliente", new { ClienteId = ViewBag.ClienteId, ProductoId = ViewBag.ProductoId, page }))
+
+<div id="seleccionar-cliente-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Cliente</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="cliente_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-cliente" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<div id="seleccionar-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Producto</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover" id="sample-table-1">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="producto_seleccionado_tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        var vCliente = "";
+        var vCodBarra = "";
+
+        $(function ()
+        {
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+             $("#BuscarCliente").autocomplete({
+                 source: function (request, response)
+                 {
+                    $.ajax({
+                        url: '@Url.Action("ConsultaCliente", "Cliente")',
+                        type: "POST",
+                        dataType: "json",
+                        data: { search: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item)
+                            {
+                                return { label: item.Nombre, value: item.Nombre };
+                            }))
+                        }
+                    })
+                },
+                messages:
+                {
+                    noResults: "", results: ""
+                }
+            });
+
+            $('#formaprincipal').keydown(function (evt)
+            {
+                if ($('#BuscarCliente').is(":focus") && (evt.which || evt.keyCode) == 13)
+                {
+                    cargaBusquedaCliente(evt)
+                }
+            });
+
+            $('#btnBuscarCliente').click(function (evt)
+            {
+                cargaBusquedaCliente(evt);
+            });
+
+            function cargaBusquedaCliente(evt)
+            {
+                evt.preventDefault();
+
+                if ($('#BuscarCliente').val() === "")
+                {
+                    error("Ingresar Nit o Nombre del Cliente");
+                    $('#BuscarCliente').focus();
+                    return;
+                }
+
+                var clienteActual = $('#BuscarCliente').val();
+                clienteActual = clienteActual.replace(" ", "_");
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerClientexTextoLibre", "Cliente")',
+                    traditional: true,
+                    data: { 'search': clienteActual },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
+                                if (resultData.Data.length === 1)
+                                {
+                                    cargaClienteSeleccionado(resultData.Data[0]);
+                                }
+                                else if (resultData.Data.length > 1)
+                                {
+                                    var fila = "";
+                                    for (var i = 0; i < resultData.Data.length; i++)
+                                    {
+                                        fila += "<tr><td>" + resultData.Data[i].ClienteId + "</td>";
+                                        fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                        fila += "<td><a href='" + resultData.Data[i].ClienteId + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                    }
+
+                                    $("#seleccionar-cliente-form").modal();
+                                    $("#seleccionar-cliente-form").find("#cliente_seleccionado_tbody").html(fila);
+                                }
+                            }
+                            else
+                            {
+                                toastr.error('El cliente ingresado no es correcto');
+
+                                $("#new-cliente-form").modal();
+                                $("#new-cliente-form").find("#Nit").val($('#BuscarCliente').val());
+                                $("#new-cliente-form").find("#Nombre").focus();
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al visualizar al cliente');
+                            $('#BuscarCliente').val("");
+                            $('#BuscarCliente').focus();
+                        }
+                    }
+                });
+            }
+
+            $('#cliente_seleccionado_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+
+                $('#btn-close-up-seleccionar-cliente').click();
+                var clienteReferencia = $(this).attr("href");
+                var clienteActual = clienteReferencia.split(",");
+
+                var modelo =
+                 {
+                     'ClienteId': clienteActual[0],
+                     'Nombre': clienteActual[1]
+                 };
+
+                cargaClienteSeleccionado(modelo);
+            });
+
+            function cargaClienteSeleccionado(cliente)
+            {
+                var clienteSeleccionado = obtenerClientexID(cliente.ClienteId);
+                $('#NombreCliente').val(clienteSeleccionado.Nombre);
+                $('#ClienteId').val(clienteSeleccionado.ClienteId);
+
+                vCliente = $('#BuscarCliente').val();
+                $('#Barra').focus();
+            }
+
+            function obtenerClientexID(id)
+            {
+                var cliente = null;
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerPorID", "Cliente")?id=' + id,
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+
+                        if (!data.Operacion)
+                        {
+                            toastr.error('Ocurrió un error, al obtener datos del cliente');
+                            return;
+                        }
+
+                        cliente = data.Data;
+
+                    },
+                    fail: function (data)
+                    {
+                        console.error(data);
+                        toastr.error('Ocurrió un error, al obtener datos del cliente');
+                    }
+                });
+
+                return cliente;
+            }
+
+            $("#Barra").autocomplete({
+                source: function (request, response)
+                {
+                    $.ajax({
+                        url: '@Url.Action("ConsultaProductoAutocomplementar", "Producto")',
+                        type: "POST",
+                        dataType: "json",
+                        data: { search: request.term  },
+                        success: function (data)
+                        {
+                            response($.map(data, function (item)
+                            {
+                                return { label: item.Nombre, value: item.Nombre };
+                            }))
+                        }
+                    })
+                },
+                messages:
+                {
+                    noResults: "", results: ""
+                }
+            });
+
+            $('#formaprincipal').keydown(function (evt)
+            {
+                if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13)
+                {
+                    cargaBusquedaProducto(evt)
+                }
+            });
+
+            $('#btnBarra').click(function (evt)
+            {
+                cargaBusquedaProducto(evt);
+            });
+
+            $('#producto_seleccionado_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+
+                $('#btn-close-up-seleccionar-producto').click();
+                var productoReferencia = $(this).attr("href");
+                var productoActual = productoReferencia.split(",");
+
+                var modelo =
+                 {
+                     'ProductoId': productoActual[0],
+                     'Nombre': productoActual[1]
+                 };
+
+                cargaProductoSeleccionado(modelo);
+            });
+
+            /*
+            Función para la busqueda de productos */
+            function cargaBusquedaProducto(evt)
+            {
+                evt.preventDefault();
+
+                if ($('#Barra').val() === "")
+                {
+                    error("Ingresar codigo de barra");
+                    $('#Barra').focus();
+                    return;
+                }
+
+                var barraActual = $('#Barra').val();
+                barraActual = barraActual.replace(" ", "_");
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerProductoxTextoLibre", "Producto")',
+                    traditional: true,
+                    data: { 'search': barraActual },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
+                                if (resultData.Data.length === 1)
+                                {
+                                    cargaProductoSeleccionado(resultData.Data[0]);
+                                }
+                                else if (resultData.Data.length > 1)
+                                {
+                                    var fila = "";
+                                    for (var i = 0; i < resultData.Data.length; i++)
+                                    {
+                                        fila += "<tr><td>" + resultData.Data[i].ProductoId + "</td>";
+                                        fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                        fila += "<td><a href='" + resultData.Data[i].ProductoId + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                    }
+
+                                    $("#seleccionar-producto-form").modal();
+                                    $("#seleccionar-producto-form").find("#producto_seleccionado_tbody").html(fila);
+                                }
+                            }
+                            else
+                            {
+                                toastr.error('La barra del producto ingresada no es correcta');
+                                $('#Barra').val("");
+                                $('#Barra').focus();
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al visualizar el producto');
+                            $('#Barra').val("");
+                            $('#Barra').focus();
+                        }
+                    }
+                });
+            }
+
+            function cargaProductoSeleccionado(producto)
+            {
+                $('#Producto').val(producto.Nombre);
+                $('#ProductoId').val(producto.ProductoId);
+
+                $('#Barra').focus();
+                vCodBarra = $('#Barra').val();
+            }
+        });
+    </script>
+}

@@ -1,0 +1,101 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.Visita>
+
+@{
+    ViewBag.Title = "Visita Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Visita")">
+        Nueva
+        <i class="icon-circle-arrow-right"></i>
+    </a>   
+</div>
+<br />
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@(ViewBag.fechaInicial == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaInicial)" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@(ViewBag.fechaFinal == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaFinal)" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">       
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Visitas
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>                              
+                            <th>Empresa</th>     
+                            <th>Tipo de Visita</th>
+                            <th>Cliente ID - K66</th>
+                            <th>Cliente</th>
+                            <th>Direccion</th>       
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Detalle in Model)
+                        {
+                        <tr>
+                            <td>@(Detalle.Empresa == null ? "No Disponible" : Detalle.Empresa.Nombre)</td>
+                            <td>@(Detalle.TipoVisita == null ? "No Disponible" : Detalle.TipoVisita.Nombre)</td>
+                            <td>@Detalle.IDK66</td>
+                            <td>@Detalle.Nombre</td>
+                            <td>@(string.IsNullOrWhiteSpace(Detalle.Direccion) ? "No Disponible" : Detalle.Direccion)</td>
+                            <td>@Detalle.Fecha.ToString("dd/MM/yyyy")</td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        $(function ()
+        {
+            if ('@TempData["Visita-Success"]' == "OK")
+            {
+                toastr.success('La visita se registro exitosamente');
+            }         
+        });
+    </script>
+}

@@ -1,0 +1,128 @@
+﻿@model DiamDev.Give.Entities.MetaModel
+
+@{
+    ViewBag.Title = "Metas x Vendedor";
+}
+
+@{
+    DateTime _now = DateTime.Now;
+    string _dd = _now.ToString("dd"); //
+    string _mm = _now.ToString("MM");
+    string _yy = _now.ToString("yyyy");
+    string _hh = _now.Hour.ToString();
+    string _min = _now.Minute.ToString();
+    string _ss = _now.Second.ToString();
+
+    int diahoy = Convert.ToInt32(_dd);
+    int faltan = 30 - diahoy;
+
+    decimal resultado = Model.MontoFaltante == 0 ? 0 : Model.MontoFaltante / faltan;
+    string diario = resultado.ToString("C");
+}
+
+<div class="row">
+    <div class="col-md-12">     
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                @if (Model != null)
+                {
+                    if (Model.Vendedor != null)
+                    {
+                        <p>@string.Format("Metas - Vendedor: {0}", Model.Vendedor.Nombre)</p>
+                    }
+                    else
+                    {
+                        <p>@string.Format("Metas - Vendedor: {0}", "No Asignado")</p>
+                    }
+                }
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        @if (Model != null)
+                        {
+                            if (Model.VentaxDia)
+                            {
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Meta del Día de hoy</th>
+                                            <th>Monto Vendido</th>
+                                            <th>Monto Faltante</th>                                         
+                                            <th>% Comisión</th>
+                                            <th>Comisión</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model != null)
+                                        {
+                                            <tr>
+                                                <td>@Model.MontoMeta.ToString("C")</td>
+                                                <td>@Model.MontoVenta.ToString("C")</td>
+                                                <td>@Model.MontoFaltante.ToString("C")</td>                                                
+                                                <td>@Model.Comision</td>
+                                                <td>@string.Format("{0:C}", Model.Comision * Model.MontoVenta)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                            else
+                            {
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Meta del Mes</th>
+                                            <th>Monto Vendido</th>
+                                            <th>Monto Faltante</th>
+                                            <th>Monto Diario para Meta</th>
+                                            <th>% Comisión</th>
+                                            <th>Comisión</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model != null)
+                                        {
+                                            <tr>
+                                                <td>@Model.MontoMeta.ToString("C")</td>
+                                                <td>@Model.MontoVenta.ToString("C")</td>
+                                                <td>@Model.MontoFaltante.ToString("C")</td>
+                                                <td>@diario</td>
+                                                <td>@Model.Comision</td>
+                                                <td>@string.Format("{0:C}", Model.Comision * Model.MontoVenta)</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        }
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        @if (Model != null)
+                        {
+                            <progress style="width: 100%; height: 25px; padding: 5px;" value="@Model.MontoVenta" max="@Model.MontoMeta"></progress>
+                        }
+                        else
+                        {
+                            <progress style="width: 100%; height: 25px; padding: 5px;" value="0" max="100"></progress>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>

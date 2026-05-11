@@ -1,0 +1,160 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.Gasto>
+
+@{
+    ViewBag.Title = "Gasto Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Gasto")">
+        Nuevo
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">        
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Gasto
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Agencia</th>
+                                <th>Proveedor</th>
+                                <th>Tipo de Compra</th>
+                                <th>Categoria</th>
+                                <th>Fecha Gasto</th>
+                                <th>Fecha Libro</th>
+                                <th>Concepto</th>
+                                <th>#Documento</th>
+                                <th>Monto</th>
+                                <th>Anulado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var Gasto in Model)
+                            {
+                                <tr>
+                                    <td>@(Gasto.Agencia == null ? "No Disponible" : Gasto.Agencia.Nombre)</td>
+                                    <td>@(Gasto.Proveedor == null ? "No Disponible" : Gasto.Proveedor.Nombre)</td>
+                                    <td>@(Gasto.TipoCompra == null ? "No Disponible" : Gasto.TipoCompra.Nombre)</td>
+                                    <td>@(Gasto.Categoria == null ? "No Disponible" : Gasto.Categoria.Nombre)</td>
+                                    <td>@Gasto.FechaFactura.ToString("dd/MM/yyyy")</td>
+                                    <td>@(Gasto.FechaLibro == null ? "No Disponible" : Gasto.FechaLibro.Value.ToString("dd/MM/yyyy"))</td>
+                                    <td>@Gasto.Concepto</td>
+                                    <td>@(!string.IsNullOrWhiteSpace(Gasto.SerieFactura) ? string.Format("{0} - {1}", Gasto.SerieFactura, Gasto.Documento) : Gasto.Documento)</td>
+                                    <td>@Gasto.Monto.ToString("C")</td>
+                                    <td>@(Gasto.Anulada ? "Sí" : "No")</td>
+                                    <td class="center">
+                                        <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                            @if (!Gasto.Anulada)
+                                            {
+                                                <a href="@Url.Action("Detalle", "Gasto", new { id = Gasto.GastoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Gasto"><i class="clip-stack-empty"></i></a>
+                                                <a href="@Url.Action("Anular", "Gasto", new { id = Gasto.GastoId })" c class="btn btn-bricky tooltips" data-placement="top" data-original-title="Anular Gasto"><i class="clip-close"></i></a>
+                                            }
+                                        </div>
+                                        <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                            <div class="btn-group">
+                                                <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                    <i class="icon-cog"></i> <span class="caret"></span>
+                                                </a>
+                                                <ul role="menu" class="dropdown-menu pull-right">
+                                                    @if (!Gasto.Anulada)
+                                                    {
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Gasto", new { id = Gasto.GastoId })">
+                                                                <i class="clip-stack-empty"></i> Detalle del Gasto
+                                                            </a>
+                                                        </li>
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Anular", "Gasto", new { id = Gasto.GastoId })">
+                                                                <i class="clip-close"></i> Anular Gasto
+                                                            </a>
+                                                        </li>
+                                                    }                                                   
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+    $(document).ready(function () {
+        if ('@TempData["Gasto-Success"]' == "OK")
+            {
+                toastr.success('El gasto se guardó exitosamente');
+            }
+            else if ('@TempData["Gasto_Anular-Success"]' == "OK")
+            {
+                toastr.success('El gasto se anulo exitosamente');
+            }
+        });
+    </script>
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

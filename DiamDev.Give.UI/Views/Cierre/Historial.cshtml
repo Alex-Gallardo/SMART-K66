@@ -1,0 +1,575 @@
+﻿@model DiamDev.Give.Entities.CorteCajaHistorial
+
+@{
+    ViewBag.Title = "Historial";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Recibos
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Recibo</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Recibos != null && Model.Recibos.Count() > 0)
+                        {
+                            foreach (var Recibo in Model.Recibos)
+                            {
+                                <tr>
+                                    <td>@Recibo.ReciboId</td>
+                                    <td>@Recibo.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@(Recibo.FechaHoraRecibo == null ? "00:00" : Recibo.FechaHoraRecibo.Value.ToString("hh:mm tt"))</td>
+                                    <td>@(Recibo.Cliente == null ? "No Disponible" : Recibo.Cliente.Nombre)</td>
+                                    <td>@(Recibo.Detalles == null ? 0 : (Recibo.Anulada ? 0 : Recibo.Detalles.Count()))</td>
+                                    <td>@(Recibo.Detalles == null ? "Q0.0000" : (Recibo.Anulada ? "Q0.0000" : Recibo.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4")))</td>
+                                </tr>
+                            }
+                            <tr>
+                                <td>
+                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                        Total:
+                                    </div>
+                                </td>
+                                <td colspan="6">
+                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                        @string.Format("{0:C4}", Model.Recibos.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio)))
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Facturas
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Factura</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Facturas != null && Model.Facturas.Count() > 0)
+                        {
+                            foreach (var Factura in Model.Facturas)
+                            {
+                                <tr>
+                                    <td>@(string.Format("{0} - {1}", Factura.Serie.Nombre, Factura.NoFactura))</td>
+                                    <td>@Factura.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@(Factura.FechaHoraFactura == null ? "00:00" : Factura.FechaHoraFactura.Value.ToString("hh:mm tt"))</td>
+                                    <td>@(Factura.Cliente == null ? "No Disponible" : Factura.Cliente.Nombre)</td>
+                                    <td>@(Factura.Detalles == null ? 0 : (Factura.Anulada ? 0 : Factura.Detalles.Count()))</td>
+                                    <td>@(Factura.Detalles == null ? "Q0.0000" : (Factura.Anulada ? "Q0.0000" : Factura.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4")))</td>
+                                </tr>
+                            }
+                            <tr>
+                                <td>
+                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                        Total:
+                                    </div>
+                                </td>
+                                <td colspan="6">
+                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                        @string.Format("{0:C4}", Model.Facturas.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio)))
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Reservas
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Reserva</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Reservas != null && Model.Reservas.Count() > 0)
+                        {
+                            foreach (var Reserva in Model.Reservas)
+                            {
+                                <tr>
+                                    <td>@Reserva.ReservaId</td>
+                                    <td>@Reserva.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@(Reserva.FechaHoraReserva == null ? "00:00" : Reserva.FechaHoraReserva.Value.ToString("hh:mm tt"))</td>
+                                    <td>@(Reserva.Cliente == null ? "No Disponible" : Reserva.Cliente.Nombre)</td>
+                                    <td>@(Reserva.Detalles == null ? 0 : (Reserva.Anulada ? 0 : Reserva.Detalles.Count()))</td>
+                                    <td>@(Reserva.Detalles == null ? "Q0.0000" : (Reserva.Anulada ? "Q0.0000" : Reserva.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4")))</td>
+                                </tr>
+                            }
+                            <tr>
+                                <td>
+                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                        Total:
+                                    </div>
+                                </td>
+                                <td colspan="6">
+                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                        @string.Format("{0:C4}", Model.Reservas.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio)))
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Abonos Recibos
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Recibo</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Abono</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Abonos != null && Model.Abonos.Count() > 0)
+                        {
+                            foreach (var Recibo in Model.Abonos)
+                            {
+                                <tr>
+                                    <td>@Recibo.ReciboId</td>
+                                    <td>@Recibo.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@(Recibo.FechaHoraRecibo == null ? "00:00" : Recibo.FechaHoraRecibo.Value.ToString("hh:mm tt"))</td>
+                                    <td>@(Recibo.Cliente == null ? "No Disponible" : Recibo.Cliente.Nombre)</td>
+                                    <td>@(Recibo.Detalles == null ? 0 : (Recibo.Anulada ? 0 : Recibo.Detalles.Count()))</td>
+                                    <td>@(Recibo.Pagos == null ? "Q0.0000" : (Recibo.Anulada ? "Q0.0000" : Recibo.Pagos.Sum(x => x.Valor).ToString("C4")))</td>
+                                </tr>
+                            }
+                            <tr>
+                                <td>
+                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                        Total:
+                                    </div>
+                                </td>
+                                <td colspan="6">
+                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                        @string.Format("{0:C4}", Model.Abonos.Sum(y => y.Pagos.Sum(z => z.Valor)))
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Abonos Facturas
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Factura</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Abono</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.FacturaAbonos != null && Model.FacturaAbonos.Count() > 0)
+                        {
+                            foreach (var Factura in Model.FacturaAbonos)
+                            {
+                                <tr>
+                                    <td>@(string.Format("{0} - {1}", Factura.Serie.Nombre, Factura.NoFactura))</td>
+                                    <td>@Factura.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@(Factura.FechaHoraFactura == null ? "00:00" : Factura.FechaHoraFactura.Value.ToString("hh:mm tt"))</td>
+                                    <td>@(Factura.Cliente == null ? "No Disponible" : Factura.Cliente.Nombre)</td>
+                                    <td>@(Factura.Detalles == null ? 0 : (Factura.Anulada ? 0 : Factura.Detalles.Count()))</td>
+                                    <td>@(Factura.Pagos == null ? "Q0.0000" : (Factura.Anulada ? "Q0.0000" : Factura.Pagos.Sum(x => x.Valor).ToString("C4")))</td>
+                                </tr>
+                            }
+                            <tr>
+                                <td>
+                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                        Total:
+                                    </div>
+                                </td>
+                                <td colspan="6">
+                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                        @string.Format("{0:C4}", Model.FacturaAbonos.Sum(y => y.Pagos.Sum(z => z.Valor)))
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Abonos Reservas
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Reserva</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Abono</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.ReservaAbonos != null && Model.ReservaAbonos.Count() > 0)
+                        {
+                            foreach (var Reserva in Model.ReservaAbonos)
+                            {
+                                <tr>
+                                    <td>@Reserva.ReservaId</td>
+                                    <td>@Reserva.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@(Reserva.FechaHoraReserva == null ? "00:00" : Reserva.FechaHoraReserva.Value.ToString("hh:mm tt"))</td>
+                                    <td>@(Reserva.Cliente == null ? "No Disponible" : Reserva.Cliente.Nombre)</td>
+                                    <td>@(Reserva.Detalles == null ? 0 : (Reserva.Anulada ? 0 : Reserva.Detalles.Count()))</td>
+                                    <td>@(Reserva.Pagos == null ? "Q0.0000" : (Reserva.Anulada ? "Q0.0000" : Reserva.Pagos.Sum(x => x.Valor).ToString("C4")))</td>
+                                </tr>
+                            }
+                            <tr>
+                                <td>
+                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                        Total:
+                                    </div>
+                                </td>
+                                <td colspan="6">
+                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                        @string.Format("{0:C4}", Model.ReservaAbonos.Sum(y => y.Pagos.Sum(z => z.Valor)))
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Gastos
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th>Fecha</th>
+                                <th>Concepto</th>
+                                <th>#Documento</th>
+                                <th>Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Gastos != null && Model.Gastos.Count() > 0)
+                            {
+                                foreach (var Gasto in Model.Gastos)
+                                {
+                                    <tr>
+                                        <td>@(Gasto.Categoria == null ? "No Disponible" : Gasto.Categoria.Nombre)</td>
+                                        <td>@Gasto.FechaFactura.ToString("dd/MM/yyyy")</td>
+                                        <td>@Gasto.Concepto</td>
+                                        <td>@Gasto.Documento</td>
+                                        <td>@Gasto.Monto.ToString("C4")</td>
+                                    </tr>
+                                }
+                                <tr>
+                                    <td>
+                                        <div style="text-align:left; font-size:large; font-weight:bold;">
+                                            Total:
+                                        </div>
+                                    </td>
+                                    <td colspan="5">
+                                        <div style="text-align: right;font-size:large; font-weight:bold;">
+                                            @string.Format("{0:C4}", Model.Gastos.Sum(y => y.Monto))
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Retiros
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Responsable</th>
+                                <th>Fecha</th>
+                                <th>Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.Cortes != null && Model.Cortes.Count() > 0)
+                            {
+                                foreach (var Corte in Model.Cortes)
+                                {
+                                    <tr>
+                                        <td>@(Corte.Responsable == null ? "No Disponible" : Corte.Responsable.Nombre)</td>
+                                        <td>@Corte.Fecha.ToString("dd/MM/yyyy")</td>
+                                        <td>@Corte.Monto.ToString("C4")</td>
+                                    </tr>
+                                }
+                                <tr>
+                                    <td>
+                                        <div style="text-align:left; font-size:large; font-weight:bold;">
+                                            Total:
+                                        </div>
+                                    </td>
+                                    <td colspan="3">
+                                        <div style="text-align: right;font-size:large; font-weight:bold;">
+                                            @string.Format("{0:C4}", Model.Cortes.Sum(y => y.Monto))
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Resumen
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Recibos</th>
+                                <th>Facturas</th>
+                                <th>Reservas</th>
+                                <th>Abonos Recibos</th>
+                                <th>Abonos Facturas</th>
+                                <th>Abonos Reservas</th>
+                                <th>Gastos</th>
+                                <th>Retiros</th>
+                                <th>Cierre</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <th>@(Model.Recibos != null ? string.Format("{0:C4}", Model.Recibos.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio))) : "Q0.0000")</th>
+                                <th>@(Model.Facturas != null ? string.Format("{0:C4}", Model.Facturas.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio))) : "Q0.0000")</th>
+                                <th>@(Model.Reservas != null ? string.Format("{0:C4}", Model.Reservas.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio))) : "Q0.0000")</th>
+                                <th>@(Model.Abonos != null ? string.Format("{0:C4}", Model.Abonos.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio))) : "Q0.0000")</th>
+                                <th>@(Model.FacturaAbonos != null ? string.Format("{0:C4}", Model.FacturaAbonos.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio))) : "Q0.0000")</th>
+                                <th>@(Model.ReservaAbonos != null ? string.Format("{0:C4}", Model.ReservaAbonos.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio))) : "Q0.0000")</th>
+                                <th>@(Model.Gastos != null ? string.Format("{0:C4}", Model.Gastos.Sum(y => y.Monto)) : "Q0.0000")</th>
+                                <th>@(Model.Cortes != null ? string.Format("{0:C4}", Model.Cortes.Sum(y => y.Monto)) : "Q0.0000")</th>
+                                <th>@string.Format("{0:C4}", ((Model.Recibos != null ? Model.Recibos.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio)) : 0) + (Model.Facturas != null ? Model.Facturas.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio)) : 0) + (Model.Reservas != null ? Model.Reservas.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio)) : 0) + (Model.Abonos != null ? Model.Abonos.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio)) : 0) + (Model.FacturaAbonos != null ? Model.FacturaAbonos.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio)) : 0) + (Model.ReservaAbonos != null ? Model.ReservaAbonos.Sum(y => y.Detalles.Sum(z => z.Cantidad * z.Precio)) : 0)) - ((Model.Gastos != null ? Model.Gastos.Sum(y => y.Monto) : 0) + (Model.Cortes != null ? Model.Cortes.Sum(y => y.Monto) : 0)))</th>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+

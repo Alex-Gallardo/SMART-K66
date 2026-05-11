@@ -2719,15 +2719,15 @@ td.center .dropdown-menu {
 /*	Login
  /* ---------------------------------------------------------------------- */
 body.login {
-	color: #7F7F7F;
+	background-color: #00365a;
 }
 body.login.example1 {
-	background-image: url("../images/bg.png");
-	background-color: rgba(0, 0, 0, 0);
+	
+	background-color: #00365a;
 }
 body.login.example2 {
 	background-image: url("../images/bg_2.png");
-	background-color: rgba(255, 255, 255, 0);
+	background-color: #00365a;
 }
 body.login .main-login {
 	margin-top: 60px;

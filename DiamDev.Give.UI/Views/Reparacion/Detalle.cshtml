@@ -1,0 +1,623 @@
+﻿@model DiamDev.Give.Entities.Reparacion
+
+@{
+    ViewBag.Title = "Detalle de la Reparación";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Reparaci&oacute;n
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="ReparacionId" name="ReparacionId" value="@Html.Raw(Model.ReparacionId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Agencia
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Agencia == null ? "No Disponible" : Model.Agencia.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Cliente == null ? "No Disponible" : Model.Cliente.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Serial
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.IMEI) ? "No Disponible" : Model.IMEI)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Marca y Modelo
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Marca) ? "No Disponible" : Model.Marca)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Falla Reportada
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Falla) ? "No Disponible" : Model.Falla)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Descripci&oacute;n de estado físico
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Descripcion) ? "No contiene descripción" : Model.Descripcion)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Garant&iacute;a
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Garantia) ? "No contiene garantía" : Model.Garantia)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Diagnostico T&eacute;cnico
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Comentario) ? "No contiene diagnostico técnico" : Model.Comentario)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Fecha.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha de Entrega
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.FechaEntrega.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Cancelaci&oacute;n
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.FechaCancelacion == null ? "No Disponible" : Model.FechaCancelacion.Value.ToString("dd/MM/yyyy"))
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Estado
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Estado == null ? "No Disponible" : Model.Estado.Nombre)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Evaluaci&oacute;nes
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Servicio</th>
+                                        <th>Nota</th>
+                                        <th>Buen Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Servicios != null && Model.Servicios.Count() > 0)
+                                    {
+                                        foreach (var Servicio in Model.Servicios)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Servicio.Servicio == null ? "No Disponible" : Servicio.Servicio.Nombre)
+                                                </td>
+                                                <td>
+                                                    @(string.IsNullOrWhiteSpace(Servicio.Nota) ? "Sin Contenido" : Servicio.Nota)
+                                                </td>
+                                                <td>
+                                                    @(Servicio.Estado == true ? "Estado Bueno" : "Estado Malo")
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene servicios</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio</th>
+                                        <th>Sub-Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Piezas != null && Model.Piezas.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.Piezas)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Detalle.Producto == null ? "No Disponible" : Detalle.Producto.Nombre)
+                                                </td>
+                                                <td>
+                                                    @Detalle.Cantidad
+                                                </td>
+                                                <td>
+                                                    @Detalle.Precio.ToString("C")
+                                                </td>
+                                                <td>
+                                                    @string.Format("{0:C}", Detalle.Cantidad * Detalle.Precio)
+                                                </td>
+                                            </tr>
+                                        }
+                                        <tr>
+                                            <td>
+                                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                    Total:
+                                                </div>
+                                            </td>
+                                            <td colspan="4">
+                                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                    @string.Format("{0:C}", Model.Piezas.Sum(x => x.Cantidad * x.Precio))
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Comentarios
+                        </label>
+                    </h2>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right"><a href="#new-comentario-form" data-toggle="modal" title="Editar" class="demo btn btn-blue">Nuevo Comentario</a></p>
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Comentario</th>
+                                        <th>Fecha y Hora</th>
+                                        <th>Usuario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Comentarios != null && Model.Comentarios.Count() > 0)
+                                    {
+                                        foreach (var Anotacion in Model.Comentarios.OrderByDescending(x => x.AnotacionId))
+                                        {
+                                            <tr>
+                                                <td>@Anotacion.Comentario</td>
+                                                <td>@Anotacion.FechaAnotacion.ToString("dd/MM/yyyy hh:mm:ss tt")</td>
+                                                <td>@(Anotacion.UsuarioAnotacion == null ? "No Disponible" : Anotacion.UsuarioAnotacion.Nombre)</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="3">
+                                                <strong>No contiene comentarios</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Imagenes
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (Model.Imagenes != null && Model.Imagenes.Count() > 0)
+                            {
+                                <strong>
+                                    Click sobre cualquier imagen para Zoom(+)
+                                </strong>
+                                <p>
+                                    @foreach (var Imagen in Model.Imagenes)
+                                    {
+                                        <a class="fancybox" href="@Url.Action("Imagen", new { Id = Imagen.FotografiaId, DocumentoId = Imagen.ReparacionId })" rel="thumbs" title="">
+                                            <img alt="" src="@Url.Action("Preview", new { Id = Imagen.FotografiaId, DocumentoId = Imagen.ReparacionId })" style=" height:100px; width:75px;" />
+                                        </a>
+                                    }
+                                </p>
+                            }
+                            else
+                            {
+                                <strong>No contiene imagenes</strong>
+                            }
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Total a Pagar
+                        </label>
+                    </h2>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Total Producto:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                    @string.Format("{0:C}", Model.CostoProducto)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Total Servicio:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                    @string.Format("{0:C}", Model.Costo)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Sub-Total:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                    @string.Format("{0:C}", Model.CostoServicio)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Descuento:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                    @string.Format("{0:C}", Model.Descuento == null ? 0 : (Model.Descuento == 0 ? 0 : ((Convert.ToDecimal(Model.Descuento) / Convert.ToDecimal(100)) * Model.CostoServicio)))
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Total:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                    @string.Format("{0:C}", Model.Descuento == null ? 0 : (Model.Descuento == 0 ? Model.CostoServicio : (Model.CostoServicio - ((Convert.ToDecimal(Model.Descuento) / Convert.ToDecimal(100)) * Model.CostoServicio))))
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Pagos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Forma</th>
+                                        <th>Cantidad</th>
+                                        <th>Nota</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Pagos != null && Model.Pagos.Count() > 0)
+                                    {
+                                        foreach (var Pago in Model.Pagos)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Pago.FormaPago == null ? "No Disponible" : Pago.FormaPago.Nombre)
+                                                </td>
+                                                <td>
+                                                    @Pago.Valor.ToString("C")
+                                                </td>
+                                                <td>
+                                                    @(string.IsNullOrWhiteSpace(Pago.Nota) ? "Sin nota" : Pago.Nota)
+                                                </td>
+                                            </tr>
+                                        }
+                                        <tr>
+                                            <td>
+                                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                    Total:
+                                                </div>
+                                            </td>
+                                            <td colspan="4">
+                                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                    @string.Format("{0:C}", Model.Pagos.Sum(x => x.Valor))
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene pagos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Políticas
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Política</th>                                       
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Politicas != null && Model.Politicas.Count() > 0)
+                                    {
+                                        foreach (var Politica in Model.Politicas)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Politica.Politica == null ? "No Disponible" : Politica.Politica.Nombre)
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="1">
+                                                <strong>No contiene politicas</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">                       
+                        <p>
+                            <div class="col-md-12">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="new-comentario-form" class="modal fade" tabindex="-1" data-focus-on="textarea:first" data-width="760" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Nuevo Comentario</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="control-label">
+                        Comentario<span class="symbol required"></span>
+                    </label>
+                    <textarea placeholder="Comentario" rows="10" cols="50" class="form-control" id="Nuevo_Comentario" name="Nuevo_Comentario" required></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-save-up-comentario" class="btn btn-primary">Guardar</button>
+        <button id="btn-close-up-comentario" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            $("a[rel='thumbs']").fancybox(
+            {
+                type: "image"
+            });
+
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            $("#btn-save-up-comentario").click(function (evt)
+            {
+                evt.preventDefault();
+
+                var comentario = $("#new-comentario-form").find("#Nuevo_Comentario").val();
+
+                if (comentario === "")
+                {
+                    error("El comentario es obligatorio");
+                    $("#new-comentario-form").find("#Nuevo_Comentario").focus();
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("NuevoComentario", "Reparacion")',
+                    data: { 'ReparacionId': $("#ReparacionId").val(), 'Comentario': comentario },
+                    traditional: true,
+                    async: false,
+                    type: 'POST',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
+                                toastr.success('El comentario se guardó exitosamente');
+                            }
+                            else
+                            {
+                                toastr.error('Ocurrió un error, al guardar el comentario');
+                            }
+
+                            window.location.href = '@Url.Action("Detalle", "Reparacion")';
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al guardar el comentario');
+                        }
+                    }
+                });
+            });
+
+        });
+    </script>
+}
+
+

@@ -1,0 +1,797 @@
+﻿@model DiamDev.Give.Entities.Reparacion
+
+@{
+    ViewBag.Title = "Entrega";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Entrega
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="ReparacionId" name="ReparacionId" value="@Html.Raw(Model.ReparacionId)" />
+                        <input type="hidden" id="descuento" name="descuento" value="@Html.Raw(Model.Cliente == null ? 0 : Model.Cliente.Descuento)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Agencia
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Agencia == null ? "No Disponible" : Model.Agencia.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Cliente == null ? "No Disponible" : Model.Cliente.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Serial
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.IMEI) ? "No Disponible" : Model.IMEI)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Marca y Modelo
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Marca) ? "No Disponible" : Model.Marca)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Falla Reportada
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Falla) ? "No Disponible" : Model.Falla)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Descripci&oacute;n de estado físico
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Descripcion) ? "No contiene descripción" : Model.Descripcion)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Garant&iacute;a
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Garantia) ? "No contiene garantía" : Model.Garantia)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Diagnostico T&eacute;cnico
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Comentario) ? "No contiene diagnostico técnico" : Model.Comentario)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Fecha.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha de Entrega
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.FechaEntrega.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Evaluaci&oacute;nes
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Servicio</th>
+                                        <th>Nota</th>
+                                        <th>Buen Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Servicios != null && Model.Servicios.Count() > 0)
+                                    {
+                                        foreach (var Servicio in Model.Servicios)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Servicio.Servicio == null ? "No Disponible" : Servicio.Servicio.Nombre)
+                                                </td>
+                                                <td>
+                                                    @(string.IsNullOrWhiteSpace(Servicio.Nota) ? "Sin Contenido" : Servicio.Nota)
+                                                </td>
+                                                <td>
+                                                    @(Servicio.Estado == true ? "Sí" : "No")
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene servicios</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio</th>
+                                        <th>Sub-Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Piezas != null && Model.Piezas.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.Piezas)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Detalle.Producto == null ? "No Disponible" : Detalle.Producto.Nombre)
+                                                </td>
+                                                <td>
+                                                    @Detalle.Cantidad
+                                                </td>
+                                                <td>
+                                                    @Detalle.Precio.ToString("C")
+                                                </td>
+                                                <td>
+                                                    @string.Format("{0:C}", Detalle.Cantidad * Detalle.Precio)
+                                                </td>
+                                            </tr>
+                                        }
+                                        <tr>
+                                            <td>
+                                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                    Total:
+                                                </div>
+                                            </td>
+                                            <td colspan="4">
+                                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                    @string.Format("{0:C}", Model.Piezas.Sum(x => x.Cantidad * x.Precio))
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Comentarios
+                        </label>
+                    </h2>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right"><a href="#new-comentario-form" data-toggle="modal" title="Editar" class="demo btn btn-blue">Nuevo Comentario</a></p>
+                            <table class="table table-hover" id="sample-table-1">
+                                <thead>
+                                    <tr>
+                                        <th>Comentario</th>
+                                        <th>Fecha y Hora</th>
+                                        <th>Usuario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Comentarios != null && Model.Comentarios.Count() > 0)
+                                    {
+                                        foreach (var Anotacion in Model.Comentarios.OrderByDescending(x => x.AnotacionId))
+                                        {
+                                            <tr>
+                                                <td>@Anotacion.Comentario</td>
+                                                <td>@Anotacion.FechaAnotacion.ToString("dd/MM/yyyy hh:mm:ss tt")</td>
+                                                <td>@(Anotacion.UsuarioAnotacion == null ? "No Disponible" : Anotacion.UsuarioAnotacion.Nombre)</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="3">
+                                                <strong>No contiene comentarios</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Imagenes
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (Model.Imagenes != null && Model.Imagenes.Count() > 0)
+                            {
+                                <strong>
+                                    Click sobre cualquier imagen para Zoom(+)
+                                </strong>
+                                <p>
+                                    @foreach (var Imagen in Model.Imagenes)
+                                    {
+                                        <a class="fancybox" href="@Url.Action("Imagen", new { Id = Imagen.FotografiaId, DocumentoId = Imagen.ReparacionId })" rel="thumbs" title="">
+                                            <img alt="" src="@Url.Action("Preview", new { Id = Imagen.FotografiaId, DocumentoId = Imagen.ReparacionId })" style=" height:100px; width:75px;" />
+                                        </a>
+                                    }
+                                </p>
+                            }
+                            else
+                            {
+                                <strong>No contiene imagenes</strong>
+                            }
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Total a Pagar
+                        </label>
+                    </h2>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Total Producto:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                    @string.Format("{0:C}", Model.CostoProducto)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Total Servicio:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                    @string.Format("{0:C}", Model.Costo)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Sub-Total:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                    @string.Format("{0:C}", Model.CostoServicio)
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Descuento:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                    @string.Format("{0:C}", Model.Descuento == null ? 0 : (Model.Descuento == 0 ? 0 : ((Convert.ToDecimal(Model.Descuento)/ Convert.ToDecimal(100)) * Model.CostoServicio)))
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Total:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                    @string.Format("{0:C}", Model.Descuento == null ? 0 : (Model.Descuento == 0 ? Model.CostoServicio : (Model.CostoServicio - ((Convert.ToDecimal(Model.Descuento) / Convert.ToDecimal(100)) * Model.CostoServicio))))
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="dvFactura">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Serie
+                                    </label>
+                                    @Html.TextBoxFor(model => model.Serie, new { @class = "form-control", @placeholder = "Serie", autocomplete = "off" })
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        No. Factura
+                                    </label>
+                                    @Html.TextBoxFor(model => model.Factura, new { @class = "form-control", @placeholder = "No. Factura", autocomplete = "off" })
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                      <i class="icon-edit-sign teal"></i> Forma de Pago
+                    </h2>
+                    <hr>
+                    <div class="row">
+                            <div class="col-md-8">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Forma
+                                    </label>
+                                    @Html.DropDownList("PagoId", (SelectList)ViewBag.Formas, "--Seleccione una Forma de Pago--", new { @class = "form-control search-select" })
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Cantidad
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-addon">Q</span>
+                                        <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad_Pagar" name="Cantidad_Pagar" value="@Html.Raw(string.Format("{0:N2}", Model.Descuento == null ? 0 : (Model.Descuento == 0 ? Model.CostoServicio : (Model.CostoServicio - ((Convert.ToDecimal(Model.Descuento) / Convert.ToDecimal(100)) * Model.CostoServicio)))))" autocomplete="off" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>                    
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Nota
+                                    </label>
+                                    <input type="text" placeholder="Nota" class="form-control" id="Nota_Forma" name="Nota_Forma" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-forma">Agregar</button></p>
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Forma</th>
+                                            <th>Cantidad</th>                                         
+                                            <th>Nota</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="forma_tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="col-md-4">
+                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                        Total:
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div id="Total_Pagar" style="text-align: right;font-size:large; font-weight:bold;">
+                                        Q0.00
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <p>
+                                <div class="col-md-6">
+                                    <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                        <span class="ladda-label"> Aceptar </span>
+                                        <span class="ladda-spinner"></span>
+                                        <span class="ladda-progress" style="width: 0px;"></span>
+                                    </button>
+                                </div>
+                            </p>
+                            <p>
+                                <div class="col-md-6">
+                                    <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                        Regresar <i class="icon-prev"></i>
+                                    </a>
+                                </div>
+                            </p>
+                        </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="new-comentario-form" class="modal fade" tabindex="-1" data-focus-on="textarea:first" data-width="760" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Nuevo Comentario</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="control-label">
+                        Comentario<span class="symbol required"></span>
+                    </label>
+                    <textarea placeholder="Comentario" rows="10" cols="50" class="form-control" id="Nuevo_Comentario" name="Nuevo_Comentario" required></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-save-up-comentario" class="btn btn-primary">Guardar</button>
+        <button id="btn-close-up-comentario" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Scripts/mustache.js"></script>
+      <script type="text/html" id="forma_tr_template">
+        <tr>
+            <td>{{forma}}</td>
+            <td>Q{{pagar}}</td>         
+            <td>{{nota}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="formaIds" value="{{forma_id}}" />
+                <input type="hidden" name="pagarIds" value="{{pagar_id}}" />
+                <input type="hidden" name="bancoIds" value="{{banco_id}}" />
+                <input type="hidden" name="boletaIds" value="{{boleta}}" />
+                <input type="hidden" name="notaIds" value="{{nota_id}}" />
+            </td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">       
+
+        var formaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.formaIds))');
+        var pagarSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.pagarIds))');
+        var bancoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.bancoIds))');
+        var boletaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.boletaIds))');
+        var notaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.notaIds))');
+
+        $(function ()
+        {
+            $('#dvFactura').css("display", "none");
+
+            function error(texto)
+            {
+                toastr.error(texto);
+            }            
+
+            function cargaForma(forma_id, forma, pagar_id, banco_id, banco, boleta, nota_id) {
+                var plantilla = $('#forma_tr_template').html();
+
+                var modelo =
+                {
+                    forma_id: forma_id,
+                    forma: forma,
+                    pagar_id: pagar_id,
+                    pagar: pagar_id,
+                    banco_id: banco_id,
+                    banco: banco,
+                    boleta: boleta,
+                    nota_id: nota_id,
+                    nota: nota_id
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#forma_tbody').append(filaHtml);
+            }
+
+            renderizarFormasIniciales();            
+
+            $('#btn-agregar-forma').click(function (e)
+            {
+                e.preventDefault();
+
+                var forma_id = $('#PagoId').val();
+                var forma = $('#PagoId option:selected').text();
+
+                if (forma_id === "" || forma === "")
+                {
+                    error("Seleccione una forma de pago");
+                    return;
+                }
+
+                var cantidad_id = $('#Cantidad_Pagar').val();
+
+                if (cantidad_id === "")
+                {
+                    error("Ingrese la cantidad a cancelar");
+                    return;
+                }
+
+                var banco_id = $('#BancoId').val();
+                var banco = $('#BancoId option:selected').text();
+
+                var boleta = $('#Boleta').val();
+
+                var nota_id = $('#Nota').val();
+
+                var existeDeposito = false;
+                var cantidadBoleta = 0;
+
+                if (((banco_id !== "") || (banco_id !== "0")) && boleta !== "") {
+                    $.ajax({
+                        url: '@Url.Action("ExisteDeposito", "Deposito")',
+                        traditional: true,
+                        data: { 'bancoId': banco_id, 'boleta': boleta },
+                        async: false,
+                        type: 'POST',
+                        success: function (resultData) {
+                            if (resultData !== null) {
+                                cantidadBoleta = parseInt(resultData.Operacion);
+                                if (cantidadBoleta > 0) {
+                                    existeDeposito = true;
+                                }
+                            }
+                        }
+                    });
+                }
+                else {
+                    banco_id = 0;
+                    banco = "";
+                    boleta = "";
+                }
+
+                var agregarDeposito = 0;
+                if (existeDeposito) {
+                    if (confirm('Se le informa que el # Boleta ingresado ya se encuentra registrada en el sistema (' + cantidadBoleta + '), desea agregarla?')) {
+                        agregarDeposito = 0;
+                    }
+                    else {
+                        agregarDeposito = 1;
+                    }
+                }
+
+                if (agregarDeposito === 0)
+                {
+                    cargaForma(forma_id, forma, cantidad_id, banco_id, banco, boleta, nota_id);
+                    totalizarPagar();
+
+                    $("#PagoId").val(0);
+                    $("#Cantidad_Pagar").val("");
+                    $("#BancoId").val(0);
+                    $("#Boleta").val("");
+                    $("#PagoId").focus();
+                }               
+            });           
+
+            $('#forma_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+
+                totalizarPagar();
+            });            
+
+            function renderizarFormasIniciales()
+            {
+                if (formaSeleccionados == null)
+                {
+                    return;
+                }
+
+                // recorremos las formas de pago que haya ingresado el usuario
+                for (var i = 0; i < formaSeleccionados.length; i++)
+                {
+                    var forma_id = formaSeleccionados[i];
+                    var forma = $('#PagoId option[value=' + forma_id + ']').text();
+
+                    var cantidad_id = pagarSeleccionados[i];
+                    var banco_id = bancoSeleccionados[i];
+                    var banco = $('#BancoId option[value=' + banco_id + ']').text();
+                    var boleta = boletaSeleccionados[i];
+                    var nota_id = notaSeleccionados[i];
+
+                    cargaForma(forma_id, forma, cantidad_id, banco_id, banco, boleta, nota_id);
+                }
+
+                totalizarPagar();
+            }            
+
+            function totalizarPagar()
+            {                
+                var pagarArray = new Array();
+                $('input[name=pagarIds]').each(function ()
+                {
+                    pagarArray.push(parseFloat($(this).val()));
+                });
+
+                var total = 0;
+                var total_producto = 0;
+
+                if (pagarArray.length > 0)
+                {
+                    if (pagarArray.length > 0)
+                    {
+                        for (var i = 0; i < pagarArray.length; i++)
+                        {
+                            total_producto += pagarArray[i];
+                        }
+
+                        total = total_producto;
+
+                        $('#Total_Pagar').html('Q' + parseFloat(total).toFixed(2));
+                    }
+                    else
+                    {
+                        $('#Total_Pagar').html('Q' + parseFloat(total).toFixed(2));
+                    }
+                }
+                else
+                {
+                    $('#Total_Pagar').html('Q' + parseFloat(total).toFixed(2));
+                }
+            }
+
+            $("#btn-save-up-comentario").click(function (evt)
+            {
+                evt.preventDefault();
+
+                var comentario = $("#new-comentario-form").find("#Nuevo_Comentario").val();
+
+                if (comentario === "") {
+                    error("El comentario es obligatorio");
+                    $("#new-comentario-form").find("#Nuevo_Comentario").focus();
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("NuevoComentario", "Reparacion")',
+                    data: { 'ReparacionId': $("#ReparacionId").val(), 'Comentario': comentario },
+                    traditional: true,
+                    async: false,
+                    type: 'POST',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
+                                toastr.success('El comentario se guardó exitosamente');
+                            }
+                            else
+                            {
+                                toastr.error('Ocurrió un error, al guardar el comentario');
+                            }
+
+                            window.location.href = '@Url.Action("Entrega", "Reparacion")';
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al guardar el comentario');
+                        }
+                    }
+                });
+            });
+
+
+            $('#TipoId').change(function (evt)
+            {
+                if ($(this).val() === '2')
+                {
+                    $('#dvFactura').css("display", "block");
+                    $('#Serie').focus();
+                }
+                else
+                {
+                    $('#dvFactura').css("display", "none");
+                }
+            });
+
+        });
+
+    </script>
+}

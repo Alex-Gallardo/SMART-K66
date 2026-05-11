@@ -124,15 +124,19 @@
                 var CentroId = $("#CentroId").val();
                 var ProductoId = $("#ProductoId").val();
 
-                if (CentroId !== "" && ProductoId !== "")
-                {
-                    ObtenerFacturas(FechaInicial, FechaFinal, CentroId, ProductoId);
-                }
-                else
+                if (CentroId === "")
                 {
                     toastr.error('Debe seleccionar un centro de costo');
                     return;
                 }
+
+                if (ProductoId === "")
+                {
+                    toastr.error('Debe seleccionar un producto');
+                    return;
+                }
+
+                ObtenerFacturas(FechaInicial, FechaFinal, CentroId, ProductoId);
 
                 $("#myReport").show();
 

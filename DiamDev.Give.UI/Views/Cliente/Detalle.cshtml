@@ -6,7 +6,6 @@
 
 <div class="row">
     <div class="col-md-12">
-        <!-- start: FORM VALIDATION 1 PANEL -->
         <div class="panel panel-default">
             <div class="panel-heading">
                 <i class="icon-external-link-sign"></i>
@@ -22,7 +21,7 @@
                     </a>
                 </div>
             </div>
-            <div class="panel-body">              
+            <div class="panel-body">
                 <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
                     @Html.AntiForgeryToken()
                     <div class="row">
@@ -37,7 +36,7 @@
                             }
                         </div>
                         <input type="hidden" id="ClienteId" name="ClienteId" value="@Html.Raw(Model.ClienteId)" />
-                    </div>                    
+                    </div>
                     <div class="row">
                         <div class="col-md-12">
                             <div class="form-group">
@@ -77,7 +76,7 @@
                                 </label>
                                 <br />
                                 <strong>
-                                   @(string.IsNullOrWhiteSpace(Model.DPI) ? "No contiene DPI" : Model.DPI)
+                                    @(string.IsNullOrWhiteSpace(Model.DPI) ? "No contiene DPI" : Model.DPI)
                                 </strong>
                             </div>
                         </div>
@@ -105,6 +104,30 @@
                         </div>
                     </div>
                     <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Limite de Credito
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.LimiteCredito == null ? "Q0.00" : Model.LimiteCredito.Value.ToString("C"))
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Credito
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Credito.ToString("C"))
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
                         <div class="col-md-12">
                             <h2><i class="icon-edit-sign teal"></i>VIP</h2>
                             <hr>
@@ -122,7 +145,7 @@
                                 </strong>
                             </div>
                         </div>
-                    </div>  
+                    </div>
                     <div class="row">
                         <div class="col-md-12">
                             <h2><i class="icon-edit-sign teal"></i>Estado</h2>
@@ -141,25 +164,401 @@
                                 </strong>
                             </div>
                         </div>
-                    </div>                   
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Datos de Contacto</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre del Contacto
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NombreContacto) ? "No Disponible" : Model.NombreContacto)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Telefono del Contacto
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.TelefonoContacto) ? "No Disponible" : Model.TelefonoContacto)
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Celular del Contacto
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.CelularContacto) ? "No Disponible" : Model.CelularContacto)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Correo Electronico del Contacto
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.CorreoContacto) ? "No Disponible" : Model.CorreoContacto)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Notas del Contacto
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NotaContacto) ? "No Disponible" : Model.NotaContacto)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Contactos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Departamento</th>
+                                        <th>Nombre</th>
+                                        <th>#Telefono</th>
+                                        <th>#Celular</th>
+                                        <th>Correo Electronico</th>
+                                        <th>Notas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var Contacto in Model.Contactos)
+                                    {
+                                    <tr>
+                                        <td>@(Contacto.Departamento == null ? "No Disponible" : Contacto.Departamento.Nombre)</td>
+                                        <td>@Contacto.Nombre</td>
+                                        <td>@(string.IsNullOrWhiteSpace(Contacto.Telefono) ? "No Disponible" : Contacto.Telefono)</td>
+                                        <td>@(string.IsNullOrWhiteSpace(Contacto.Celular) ? "No Disponible" : Contacto.Celular)</td>
+                                        <td>@(string.IsNullOrWhiteSpace(Contacto.Correo) ? "No Disponible" : Contacto.Correo)</td>
+                                        <td>@(string.IsNullOrWhiteSpace(Contacto.Notas) ? "No Disponible" : Contacto.Notas)</td>
+                                    </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Imagenes
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (Model.Imagenes != null && Model.Imagenes.Count() > 0)
+                            {
+                                <strong>
+                                    Click sobre cualquier imagen para Zoom(+)
+                                </strong>
+                                <p>
+                                    @foreach (var Imagen in Model.Imagenes.Where(x => x.ContentType.Contains("image")))
+                                    {
+                                        <a class="fancybox" href="@Url.Action("Imagen", new { id = Imagen.FotografiaId, clienteId = Imagen.ClienteId })" rel="thumbs" title="">
+                                            <img alt="" src="@Url.Action("Preview", new { id = Imagen.FotografiaId, clienteId = Imagen.ClienteId })" style=" height:100px; width:75px;" />
+                                        </a>
+                                    }
+                                </p>
+                            }
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Facturas
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Factura</th>
+                                        <th>Fecha</th>
+                                        <th>Hora</th>
+                                        <th>Productos</th>
+                                        <th>Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var Factura in Model.Facturas)
+                                    {
+                                        <tr>
+                                            <td>@(string.Format("{0} - {1}", Factura.SerieFEL, Factura.NumeroFEL))</td>
+                                            <td>@Factura.Fecha.ToString("dd/MM/yyyy")</td>
+                                            <td>@(Factura.FechaHoraFactura == null ? "00:00" : Factura.FechaHoraFactura.Value.ToString("hh:mm tt"))</td>
+                                            <td>@(Factura.Detalles == null ? 0 : (Factura.Anulada ? 0 : Factura.Detalles.Count()))</td>
+                                            <td>@(Factura.Detalles == null ? "Q0.00" : (Factura.Anulada ? "Q0.00" : (Factura.Detalles.Sum(x => x.Cantidad * x.Precio)).ToString("C")))</td>
+                                            <td class="center">
+                                                <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                                    <a href="@Url.Action("Detalle", "Factura", new { id = Factura.FacturaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle de la Factura"><i class="clip-stack-empty"></i></a>
+                                                </div>
+                                                <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                                    <div class="btn-group">
+                                                        <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                            <i class="icon-cog"></i> <span class="caret"></span>
+                                                        </a>
+                                                        <ul role="menu" class="dropdown-menu pull-right">
+                                                            <li role="presentation">
+                                                                <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Factura", new { id = Factura.FacturaId })">
+                                                                    <i class="clip-stack-empty"></i> Detalle de la Factura
+                                                                </a>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Recibos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Recibo</th>
+                                        <th>Fecha</th>
+                                        <th>Hora</th>
+                                        <th>Productos</th>
+                                        <th>Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var Recibo in Model.Recibos)
+                                    {
+                                        <tr>
+                                            <td>@(string.Format("REC - {0}", Recibo.ReciboId))</td>
+                                            <td>@Recibo.Fecha.ToString("dd/MM/yyyy")</td>
+                                            <td>@(Recibo.FechaHoraRecibo == null ? "00:00" : Recibo.FechaHoraRecibo.Value.ToString("hh:mm tt"))</td>
+                                            <td>@(Recibo.Detalles == null ? 0 : (Recibo.Anulada ? 0 : Recibo.Detalles.Count()))</td>
+                                            <td>@(Recibo.Detalles == null ? "Q0.00" : (Recibo.Anulada ? "Q0.00" : (Recibo.Detalles.Sum(x => x.Cantidad * x.Precio)).ToString("C")))</td>
+                                            <td class="center">
+                                                <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                                    <a href="@Url.Action("Detalle", "Recibo", new { id = Recibo.ReciboId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Recibo"><i class="clip-stack-empty"></i></a>
+                                                </div>
+                                                <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                                    <div class="btn-group">
+                                                        <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                            <i class="icon-cog"></i> <span class="caret"></span>
+                                                        </a>
+                                                        <ul role="menu" class="dropdown-menu pull-right">
+                                                            <li role="presentation">
+                                                                <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Recibo", new { id = Recibo.ReciboId })">
+                                                                    <i class="clip-stack-empty"></i> Detalle del Recibo
+                                                                </a>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                     <div class="row">
                         <p>
-                            <div class="col-md-6">
-                            </div>
-                        </p>
-                        <p>
-                            <div class="col-md-6">
-                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Cliente")">
+                            <div class="col-md-12">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
                                     Regresar <i class="icon-prev"></i>
                                 </a>
                             </div>
                         </p>
                     </div>
                 </form>
-
             </div>
         </div>
-        <!-- end: FORM VALIDATION 1 PANEL -->
     </div>
 </div>
+
+<div id="new-contacto-form" class="modal fade" tabindex="-1" data-width="760" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Nuevo Contacto</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="control-label">
+                        Departamento<span class="symbol required"></span>
+                    </label>
+                    @Html.DropDownList("DepartamentoId", (SelectList)ViewBag.Departamentos, "--Seleccione un Departamento--", new { @class = "form-control search-select required" })
+                </div>
+                <div class="form-group">
+                    <label class="control-label">
+                        Nombre<span class="symbol required"></span>
+                    </label>
+                    <input type="text" id="ContactoNombre" class="form-control" value="" autocomplete="off" required />
+                </div>                
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="control-label">
+                        #Telefono
+                    </label>
+                    <input type="text" id="ContactoTelefono" class="form-control input-mask-phone" value="" autocomplete="off" />                    
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="control-label">
+                        #Celular
+                    </label>
+                    <input type="text" id="ContactoCelular" class="form-control input-mask-phone" value="" autocomplete="off" />
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="control-label">
+                        Correo Electronico
+                    </label>
+                    <input type="email" id="ContactoCorreo" class="form-control" value="" autocomplete="off" />
+                </div>
+                <div class="form-group">
+                    <label class="control-label">
+                        Notas
+                    </label>
+                    <input type="text" id="ContactoNota" class="form-control" value="" autocomplete="off" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-save-up-contacto" class="btn btn-primary">Guardar</button>
+        <button id="btn-close-up-contacto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function () {
+            $("a[rel='thumbs']").fancybox(
+                {
+                    type: "image"
+                });
+
+            $("#btn-agregar").click(function (evt)
+            {
+                evt.preventDefault();
+
+                $("#ContactoNombre").val("");
+                $("#ContactoTelefono").val("");
+                $("#ContactoCelular").val("");
+                $("#ContactoCorreo").val("");
+                $("#ContactoNota").val("");
+
+                $("#new-contacto-form").modal({ backdrop: 'static', keyboard: false });
+            });
+
+            $("#btn-save-up-contacto").click(function (evt)
+            {
+                evt.preventDefault();
+
+                let departamentoId = $("#DepartamentoId").val();
+                if (departamentoId === "")
+                {
+                    toastr.error('Seleccione un departamento');
+                    return;
+                }
+
+                let nombre = $("#ContactoNombre").val();
+                if (nombre === "")
+                {
+                    toastr.error('Ingrese el nombre del contacto');
+                    return;
+                }
+
+                let telefono = $("#ContactoTelefono").val();
+                let celular = $("#ContactoCelular").val();
+                let correo = $("#ContactoCorreo").val();
+                let nota = $("#ContactoNota").val();
+
+                var modelo =
+                {
+                    'ClienteId': $("#ClienteId").val(),
+                    'DepartamentoId': departamentoId,
+                    'Nombre': nombre,
+                    'Telefono': telefono,
+                    'Celular': celular,
+                    'Correo': correo,
+                    'Notas': nota
+                };
+
+                $.ajax({
+                    url: '@Url.Action("NuevoContacto", "Cliente")',
+                    data: { 'modelo': modelo },
+                    async: false,
+                    type: 'POST',
+                    success: function (data)
+                    {
+                        if (data.Operacion)
+                        {
+                            $('#btn-close-up-contacto').click();
+                            toastr.success('El nuevo contacto se guardó exitosamente');  
+                            window.location.reload();
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al guardar al nuevo contacto');
+                        }
+                    }
+                });
+
+            });
+        });
+    </script>
+}
+
 

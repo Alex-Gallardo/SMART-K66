@@ -1,0 +1,25 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.ProductoPrecioCostoHistorial>
+
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th>Proveedor</th>
+            <th>Fecha</th>          
+            <th>P. Costo Anterior</th>
+            <th>P. Costo Compra</th>
+            <th>P. Costo Promedio</th>            
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var Historial in Model)
+        {
+            <tr>
+                <td>@(Historial.Proveedor == null ? "No Disponible" : Historial.Proveedor.Nombre)</td>                
+                <td>@Historial.Fecha.ToString("dd/MM/yyyy")</td>                             
+                <td>@Historial.PrecioCostoActual.ToString("C4")</td>
+                <td>@Historial.PrecioCostoNuevo.ToString("C4")</td>
+                <td>@Historial.PrecioCostoPromedio.ToString("C4")</td>               
+            </tr>
+        }
+    </tbody>
+</table>

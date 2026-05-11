@@ -20,7 +20,7 @@ namespace DiamDev.Give.Entities
 
         [ForeignKey("MovimientoId")]
         public Movimiento Movimiento { get; set; }
-
+        
         [Column("Producto_Id")]
         [StringLength(50)]
         public string ProductoId { get; set; }
@@ -34,11 +34,27 @@ namespace DiamDev.Give.Entities
         [ForeignKey("UnidadId")]
         public Unidad Unidad { get; set; }
 
+        [NotMapped]
+        public decimal Existencia { get; set; }
+
         public decimal Cantidad { get; set; }
 
         [Column("Precio_Costo")]
         public decimal PrecioCosto { get; set; }
 
         public decimal Precio { get; set; }
+
+        public int Minimo { get; set; }
+
+        public int Maximo { get; set; }
+
+        [StringLength(100)]
+        public string ID { get; set; }
+
+        [StringLength(100)]
+        public string Lote { get; set; }
+
+        [Column("Fecha_Vencimiento_Lote")]
+        public DateTime? FechaVencimientoLote { get; set; }
     }
 }

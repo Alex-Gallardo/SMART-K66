@@ -8,7 +8,6 @@ namespace DiamDev.Give.BLL
 {
     public class VendedorBL
     {
-
         #region Variables Globales
 
             private GiveContext db;
@@ -49,9 +48,9 @@ namespace DiamDev.Give.BLL
                 return Id;
             }
 
-            private bool Agregar(Vendedor entidad)
+            private string Agregar(Vendedor entidad)
             {
-                bool VendedorAgregar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -74,24 +73,53 @@ namespace DiamDev.Give.BLL
                                     Vendedor.VendedorId = entidad.VendedorId;                                    
                                 }                                
                             }
-                           
+
+                            if (entidad.Escalas != null && entidad.Escalas.Count() > 0)
+                            {
+                                int i = 1;
+                                foreach (VendedorEscala Escala in entidad.Escalas)
+                                {
+                                    Escala.EscalaId = i;
+                                    Escala.VendedorId = entidad.VendedorId;
+                                    i++;
+                                }
+                            }
+
+                            if (entidad.Metas != null && entidad.Metas.Count() > 0)
+                            {
+                                foreach (VendedorMeta Meta in entidad.Metas)
+                                {
+                                    Meta.ResponsableId = entidad.ResponsableId;
+                                    Meta.VendedorId = entidad.VendedorId;
+                                }
+                            }
+
+                            if (entidad.MetasxDia != null && entidad.MetasxDia.Count() > 0)
+                            {
+                                foreach (VendedorMetaxDia Meta in entidad.MetasxDia)
+                                {
+                                    Meta.ResponsableId = entidad.ResponsableId;
+                                    Meta.VendedorId = entidad.VendedorId;
+                                }
+                            }
+
                             db.Set<Vendedor>().Add(entidad);
-                            db.SaveChanges();
-                            VendedorAgregar = true;
+                            db.SaveChanges();                            
                         }
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return VendedorAgregar;
+                return Mensaje;
             }
 
-            private bool Actualizar(Vendedor entidad)
+            private string Actualizar(Vendedor entidad)
             {
-                bool VendedorActualizar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -99,7 +127,9 @@ namespace DiamDev.Give.BLL
                     Vendedor VendedorActual = ObtenerPorId(entidad.VendedorId);
 
                     if (VendedorActual.VendedorId > 0)
-                    {                        
+                    {
+                        VendedorActual.EmpresaId = entidad.EmpresaId;
+
                         VendedorActual.Nombre = entidad.Nombre;                       
                         VendedorActual.Activo = entidad.Activo;
 
@@ -115,16 +145,57 @@ namespace DiamDev.Give.BLL
                             }
                         }
 
-                        db.SaveChanges();
-                        VendedorActualizar = true;
+                        if (entidad.Escalas != null && entidad.Escalas.Count() > 0)
+                        {
+                            var Escalas = db.Set<VendedorEscala>().Where(x => x.VendedorId == entidad.VendedorId);
+                            db.Set<VendedorEscala>().RemoveRange(Escalas);
+
+                            int i = 1;
+                            foreach (var Escala in entidad.Escalas)
+                            {
+                                Escala.EscalaId = i;
+                                Escala.VendedorId = entidad.VendedorId;
+                                db.Set<VendedorEscala>().Add(Escala);
+                                i++;
+                            }
+                        }
+
+                        if (entidad.Metas != null && entidad.Metas.Count() > 0)
+                        {
+                            var Metas = db.Set<VendedorMeta>().Where(x => x.VendedorId == entidad.VendedorId && x.MontoMensualReal == 0);
+                            db.Set<VendedorMeta>().RemoveRange(Metas);
+
+                            foreach (var Meta in entidad.Metas)
+                            {
+                                Meta.VendedorId = entidad.VendedorId;
+                                Meta.ResponsableId = entidad.ResponsableId;
+                                db.Set<VendedorMeta>().Add(Meta);
+                            }
+                        }
+
+                        if (entidad.MetasxDia != null && entidad.MetasxDia.Count() > 0)
+                        {
+                            var Metas = db.Set<VendedorMetaxDia>().Where(x => x.VendedorId == entidad.VendedorId);
+                            db.Set<VendedorMetaxDia>().RemoveRange(Metas);
+
+                            foreach (var Meta in entidad.MetasxDia)
+                            {
+                                Meta.VendedorId = entidad.VendedorId;
+                                Meta.ResponsableId = entidad.ResponsableId;
+                                db.Set<VendedorMetaxDia>().Add(Meta);
+                            }
+                        }
+
+                        db.SaveChanges();                        
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return VendedorActualizar;
+                return Mensaje;
             }
 
         #endregion
@@ -134,22 +205,16 @@ namespace DiamDev.Give.BLL
             public string Guardar(Vendedor entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
-
+              
                 if (entidad.VendedorId > 0)
                 {
-                    OperacionExitosa = Actualizar(entidad);
+                    Mensaje = Actualizar(entidad);
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
+                    Mensaje = Agregar(entidad);
                 }
-
-                if (!OperacionExitosa)
-                {
-                    Mensaje = "La información ingresada no es valida";
-                }
-
+             
                 return Mensaje;
             }
 
@@ -161,7 +226,7 @@ namespace DiamDev.Give.BLL
                 {
                     if (todo)
                     {
-                        VendedorActual = db.Set<Vendedor>().Include("Agencias").Include("Agencias.Agencia").Where(x => x.VendedorId == id).FirstOrDefault();
+                        VendedorActual = db.Set<Vendedor>().Include("Agencias").Include("Agencias.Agencia").Include("Escalas").Include("Metas").Include("Metas.Mes").Include("MetasxDia").Where(x => x.VendedorId == id).FirstOrDefault();
                     }
                     else
                     {
@@ -169,13 +234,12 @@ namespace DiamDev.Give.BLL
                     }
                 }
                 catch (Exception)
-                {
-                }
+                {}
 
                 return VendedorActual;
             }
 
-            public List<Vendedor> ObtenerListado(bool todos)
+            public List<Vendedor> ObtenerListado(bool todos, long empresaId)
             {
                 List<Vendedor> Vendedors = new List<Vendedor>();
 
@@ -183,11 +247,11 @@ namespace DiamDev.Give.BLL
                 {
                     if (todos)
                     {
-                        Vendedors = db.Set<Vendedor>().Include("Agencias").OrderByDescending(x => x.Fecha).ThenByDescending(x => x.VendedorId).ToList();
+                        Vendedors = db.Set<Vendedor>().Include("Agencias").AsNoTracking().Where(x => x.EmpresaId == empresaId).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.VendedorId).ToList();
                     }
                     else
                     {
-                        Vendedors = db.Set<Vendedor>().Where(x => x.Activo == true).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.VendedorId).ToList();
+                        Vendedors = db.Set<Vendedor>().AsNoTracking().Where(x => x.Activo).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.VendedorId).ToList();
                     }
                 }
                 catch (Exception)
@@ -197,28 +261,34 @@ namespace DiamDev.Give.BLL
                 return Vendedors;
             }
 
-            public List<Vendedor> Buscar(string search)
+            public List<Vendedor> Buscar(string search, long empresaId)
             {
                 List<Vendedor> Vendedors = new List<Vendedor>();
 
                 try
                 {
-                    Vendedors = db.Set<Vendedor>().Include("Agencias").Where(x => x.Nombre.Contains(search)).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.VendedorId).ToList();
+                    Vendedors = db.Set<Vendedor>().Include("Agencias").AsNoTracking().Where(x => x.Nombre.Contains(search) && x.EmpresaId == empresaId).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.VendedorId).ToList();
                 }
                 catch (Exception)
-                {
-                }
+                {}
 
                 return Vendedors;
             }
 
-            public List<Vendedor> ObtenerVendedoresPorAgencia(long agenciaId) 
+            public List<Vendedor> ObtenerVendedoresPorAgencia(long agenciaId, bool aplicarFiltroActivo = true) 
             {
                 List<Vendedor> Vendedores = new List<Vendedor>();
 
                 try
                 {
-                    Vendedores = db.Set<VendedorAgencia>().Where(x => x.AgenciaId == agenciaId).Join(db.Set<Vendedor>().Where(x => x.Activo == true), VA => VA.VendedorId, V => V.VendedorId, (VA,V) => new { V }).Select(x => x.V).ToList();
+                    if (aplicarFiltroActivo)
+                    {
+                        Vendedores = db.Set<VendedorAgencia>().Where(x => x.AgenciaId == agenciaId).Join(db.Set<Vendedor>().Where(x => x.Activo == true), VA => VA.VendedorId, V => V.VendedorId, (VA, V) => new { V }).Select(x => x.V).ToList();
+                    }
+                    else
+                    {
+                        Vendedores = db.Set<VendedorAgencia>().Where(x => x.AgenciaId == agenciaId).Join(db.Set<Vendedor>(), VA => VA.VendedorId, V => V.VendedorId, (VA, V) => new { V }).Select(x => x.V).ToList();
+                    }
                 }
                 catch (Exception)
                 {
@@ -227,7 +297,106 @@ namespace DiamDev.Give.BLL
                 return Vendedores;
             }
 
-        #endregion
+            public MetaModel ObtenerVentaYMetaxVendedor(DateTime fecha, long usuarioId) 
+            {
+                MetaModel Metas = new MetaModel();
+                bool MetaxDia = false;
 
+                try
+                {
+                    //Se inicializa los valores
+                    Metas.Vendedor = new Vendedor();
+                    Metas.Meta = new VendedorMeta();
+                    Metas.MetaxDia = new VendedorMetaxDia();
+                    Metas.Comision = 0;
+
+                    //Se obtiene al vendedor
+                    Metas.Vendedor = db.Set<Usuario>().AsNoTracking().Where(x => x.UsuarioId == usuarioId).Join(db.Set<Vendedor>().AsNoTracking(), U => U.VendedorId, V => V.VendedorId, (U, V) => new { V }).Select(x => x.V).FirstOrDefault();
+                    if (Metas.Vendedor != null)
+                    {
+                        //Se obtiene la meta del vendedor
+                        Configuracion ConfiguracionActual = db.Set<Configuracion>().AsNoTracking().Where(x => x.ConfiguracionId == 20210412002).FirstOrDefault();
+                        if (ConfiguracionActual != null)
+                        {
+                            if (ConfiguracionActual.Valor.Equals("1"))
+                            {
+                                MetaxDia = true;
+                            }                            
+                        }
+
+                        Metas.VentaxDia = MetaxDia;
+
+                        if (MetaxDia)
+                        {
+                            Metas.MetaxDia = db.Set<VendedorMetaxDia>().AsNoTracking().Where(x => x.VendedorId == Metas.Vendedor.VendedorId && x.Fecha == fecha).FirstOrDefault();
+                        }
+                        else
+                        {
+                            Metas.Meta = db.Set<VendedorMeta>().AsNoTracking().Where(x => x.VendedorId == Metas.Vendedor.VendedorId && x.MesId == fecha.Month && x.Anio == fecha.Year).FirstOrDefault();
+                        }
+                    }
+
+                    if (Metas.Vendedor != null && Metas.Meta != null)
+                    {
+                        if (MetaxDia)
+                        {
+                            Metas.MontoMeta = Metas.MetaxDia.MontoxDia;
+                        }
+                        else
+                        {
+                            Metas.MontoMeta = Metas.Meta.MontoMensualMeta;
+                        }
+
+                        //Se obtienen recibos pagados
+                        List<Recibo> Ventas = new List<Recibo>();
+
+                        if (MetaxDia)
+                        {
+                            Ventas = db.Set<Recibo>().Include("Detalles").AsNoTracking().Where(x => !x.Anulada && x.Pagada && x.VendedorId == Metas.Vendedor.VendedorId && x.Fecha == fecha).ToList();
+                        }
+                        else
+                        {
+                            Ventas = db.Set<Recibo>().Include("Detalles").AsNoTracking().Where(x => !x.Anulada && x.Pagada && x.VendedorId == Metas.Vendedor.VendedorId && x.Fecha.Month == fecha.Month && x.Fecha.Year == fecha.Year).ToList();
+                        }
+                    
+                        if (Ventas != null && Ventas.Count() > 0)
+                        {
+                            Metas.MontoVenta = Ventas.Sum(x => x.Detalles.Sum(y => y.Cantidad * y.Precio));
+                        }
+
+                        //Se obtienen facturas pagadas
+                        List<Factura> FacturaVentas = new List<Factura>();
+
+                        if (MetaxDia)
+                        {
+                            FacturaVentas = db.Set<Factura>().Include("Detalles").AsNoTracking().Where(x => !x.Anulada && x.Pagada && x.VendedorId == Metas.Vendedor.VendedorId && x.Fecha == fecha).ToList();
+                        }
+                        else
+                        {
+                            FacturaVentas = db.Set<Factura>().Include("Detalles").AsNoTracking().Where(x => !x.Anulada && x.Pagada && x.VendedorId == Metas.Vendedor.VendedorId && x.Fecha.Month == fecha.Month && x.Fecha.Year == fecha.Year).ToList();
+                        }
+                        
+                        if (FacturaVentas != null && FacturaVentas.Count() > 0)
+                        {
+                            Metas.MontoVenta += FacturaVentas.Sum(x => x.Detalles.Sum(y => y.Cantidad * y.Precio));
+                        }
+
+                        Metas.MontoFaltante = Metas.MontoMeta - Metas.MontoVenta;
+
+                        //Se obtiene la comision del vendedor                    
+                        VendedorEscala EscalaActual = db.Set<VendedorEscala>().AsNoTracking().Where(x => x.VendedorId == Metas.Vendedor.VendedorId && Metas.MontoVenta >= x.Inicio && Metas.MontoVenta <= x.Fin).FirstOrDefault();
+                        if (EscalaActual != null)
+                        {
+                            Metas.Comision = EscalaActual.Porcentaje;
+                        }
+                    }
+                }
+                catch (Exception)
+                {}
+
+                return Metas;
+            }
+
+        #endregion
     }
 }

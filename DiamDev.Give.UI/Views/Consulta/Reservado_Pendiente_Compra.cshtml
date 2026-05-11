@@ -1,0 +1,58 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.ReporteProductoReservaPendienteCompra>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Producto Pendiente de Compra - Reservado";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Producto Pendiente de Compra - Reservado
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Marca</th>
+                            <th>Codigo</th>
+                            <th>Producto</th>
+                            <th>C. Reservada</th>
+                            <th>Monto Abonado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Detalle in Model)
+                        {
+                            <tr>
+                                <td>@Detalle.Marca</td>
+                                <td>@Detalle.Codigo</td>
+                                <td>@Detalle.Producto</td>
+                                <td>@Detalle.Cantidad</td>
+                                <td>@Detalle.TotalPagado</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Reservado_Pendiente_Compra", new { page }))

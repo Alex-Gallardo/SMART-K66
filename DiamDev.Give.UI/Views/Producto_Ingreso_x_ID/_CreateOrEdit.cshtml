@@ -1,0 +1,243 @@
+﻿@model DiamDev.Give.Entities.Movimiento
+
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Proveedores</h2>
+        <hr>
+    </div>
+</div>
+<div class="form-group">
+    <label class="control-label">
+        Proveedor<span class="symbol required"></span>
+    </label>
+    <div class="input-group">
+        @Html.DropDownList("ProveedorId", (SelectList)ViewBag.Proveedores, "--Seleccione un Proveedor--", new { @class = "form-control search-select required", autofocus = "autofocus" })
+        <div class="input-group-btn">
+            <a href="#new-proveedor-form" data-toggle="modal" class="demo btn btn-blue" style="margin-bottom: -3px;">
+                <i class="clip-plus-circle"></i>
+            </a>
+        </div>
+    </div>    
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Agencias</h2>
+        <hr>
+    </div>
+</div>
+<div class="form-group">
+    <label class="control-label">
+        Agencia<span class="symbol required"></span>
+    </label>
+    @Html.DropDownList("AgenciaId", (SelectList)ViewBag.Agencias, "--Seleccione una Agencia--", new { @class = "form-control search-select required" })
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Categorias</h2>
+        <hr>
+    </div>
+</div>
+<div class="form-group">
+    <label class="control-label">
+        Categoria<span class="symbol required"></span>
+    </label>
+    @Html.DropDownList("MovimientoCategoriaId", (SelectList)ViewBag.Categorias, "--Seleccione una Categoria--", new { @class = "form-control search-select required" })
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Estados</h2>
+        <hr>
+    </div>
+</div>
+<div class="form-group">
+    <label class="control-label">
+        Estado<span class="symbol required"></span>
+    </label>
+    @Html.DropDownList("MovimientoEstadoId", (SelectList)ViewBag.Estados, "--Seleccione un Estado--", new { @class = "form-control search-select required" })
+</div>
+<div id="divCredito">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="control-label">
+                    #Documento
+                </label>
+                @Html.TextBoxFor(model => model.Documento, new { @class = "form-control", @placeholder = "#Documento", autocomplete = "off" })
+            </div>      
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha de Vencimiento
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaVencimiento" name="FechaVencimiento" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : (Model.FechaVencimiento == null ? "" : Model.FechaVencimiento.Value.ToString("yyyy-MM-dd")))">
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="control-label">
+                    Dias de Credito
+                </label>
+                @Html.TextBoxFor(model => model.DiasCredito, new { @class = "form-control", @placeholder = "Dias de Credito", autocomplete = "off", Value = 0 })
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Descripci&oacute;n</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Descripci&oacute;n<span class="symbol required"></span>
+            </label>
+            @Html.TextAreaFor(model => model.Descripcion, new { @class = "form-control", @placeholder = "Descripción del Ingreso", required = "required", autocomplete = "off" })
+        </div>                 
+    </div>
+</div>
+<h2>
+    <i class="icon-edit-sign teal"></i> Productos
+</h2>
+<hr>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Barra
+            </label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="imagen">
+    <div class="row">
+        <div class="col-md-12">
+            <button type="button" class="btn btn-med-grey btn-block ladda-button" data-toggle="modal" data-target="#visualizar-imagen-producto-form" id="btn-visualizar">Visualizar Fotografía</button>
+        </div>
+    </div>
+    <br />
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Producto
+            </label>
+            <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" disabled="disabled" />
+            <input type="hidden" id="ProductoId" name="ProductoId" value="0" />
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Unidad
+            </label>
+            <select id="PresentacionId" name="PresentacionId" class="form-control search-select">
+                <option value="0">--SELECCIONE UNA UNIDAD--</option>
+            </select>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Cantidad
+            </label>
+            <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" value="1" autocomplete="off" />
+        </div>
+    </div>
+    <div class="col-md-1">
+        <div class="form-group">
+            <label class="control-label">
+                Minimo
+            </label>
+            <input type="number" placeholder="Minimo" class="form-control" id="Minimo" name="Minimo" value="0" autocomplete="off"  />
+        </div>
+    </div>
+    <div class="col-md-1">
+        <div class="form-group">
+            <label class="control-label">
+                Maximo
+            </label>
+            <input type="number" placeholder="Maximo" class="form-control" id="Maximo" name="Maximo" value="0" autocomplete="off"  />
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="form-group">
+            <label class="control-label">
+                ID
+            </label>
+            <input type="text" placeholder="ID" class="form-control" id="IDs" name="IDs" value="" autocomplete="off" />
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="form-group">
+            <label class="control-label">
+                Precio Costo
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                <input type="text" placeholder="Precio Costo" class="form-control" id="PrecioCosto" name="PrecioCosto" value="0" autocomplete="off" />
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="form-group">
+            <label class="control-label">
+                Precio Venta
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                <input type="text" placeholder="Precio de Venta" class="form-control" id="PrecioVenta" name="PrecioVenta" value="0" autocomplete="off" />
+            </div>
+        </div>
+    </div>   
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+        <table class="table table-hover" id="sample-table-1">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Unidad</th>
+                    <th>Cantidad</th>
+                    <th>Minimo</th>
+                    <th>Maximo</th>
+                    <th>ID</th>
+                    <th>P. Costo</th>
+                    <th>P. Venta</th>
+                    <th>Sub-Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="producto_tbody"></tbody>
+        </table>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="col-md-4">
+            <div style="text-align:left; font-size:large; font-weight:bold;">
+                Total:
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div id="Total" style="text-align: right;font-size:large; font-weight:bold;">
+                Q0.00
+            </div>
+        </div>
+    </div>
+</div>
+

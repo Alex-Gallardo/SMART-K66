@@ -36,7 +36,7 @@
     <div class="col-md-6">
         <div class="form-group">
             <label class="control-label">
-                No. de Telefono <span class="symbol required"></span>
+                No. de Telefono<span class="symbol required"></span>
             </label>
             @Html.TextBoxFor(model => model.NoTelefonoOficina, new { @class = "form-control input-mask-phone", @placeholder = "No. de Telefono", required = "required", autocomplete = "off" })
         </div>        
@@ -76,7 +76,7 @@
     <div class="col-md-6">
         <div class="form-group">
             <label class="control-label">
-                No. de Telefono <span class="symbol required"></span>
+                No. de Telefono<span class="symbol required"></span>
             </label>
             @Html.TextBoxFor(model => model.NoTelefonoContacto, new { @class = "form-control input-mask-phone", @placeholder = "No. de Telefono", required = "required", autocomplete = "off" })
         </div>
@@ -115,5 +115,20 @@
         </div>
     </div>
 </div>
-
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Tipos de Proveedor</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Tipo de Proveedor<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("TipoId", (SelectList)ViewBag.Tipos, "--Seleccione un Tipo de Proveedor--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
 

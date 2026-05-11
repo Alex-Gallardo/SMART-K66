@@ -18,5 +18,9 @@ namespace DiamDev.Give.Entities
         [Required]
         [StringLength(500)]
         public string Descripcion { get; set; }
+
+        [Required]
+        [StringLength(200)]
+        public string Modulo { get; set; }
     }
 }

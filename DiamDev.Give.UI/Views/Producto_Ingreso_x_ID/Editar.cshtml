@@ -1,0 +1,888 @@
+﻿@model DiamDev.Give.Entities.Movimiento
+
+@{
+    ViewBag.Title = "Editar Ingreso x ID";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Editar Ingreso x ID
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Editar Ingreso x ID</h2>
+                <p>
+                    Editar un ingreso.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>                       
+                        <input type="hidden" id="MovimientoId" name="MovimientoId" value="@Html.Raw(Model.MovimientoId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Proveedores</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">
+                            Proveedor<span class="symbol required"></span>
+                        </label>
+                        <div class="input-group">
+                            @Html.DropDownList("ProveedorId", (SelectList)ViewBag.Proveedores, "--Seleccione un Proveedor--", new { @class = "form-control search-select required", autofocus = "autofocus" })
+                            <div class="input-group-btn">
+                                <a href="#new-proveedor-form" data-toggle="modal" class="demo btn btn-blue" style="margin-bottom: -3px;">
+                                    <i class="clip-plus-circle"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Agencias</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">
+                            Agencia<span class="symbol required"></span>
+                        </label>
+                        @Html.DropDownList("AgenciaId", (SelectList)ViewBag.Agencias, "--Seleccione una Agencia--", new { @class = "form-control search-select required" })
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Categorias</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="control-label">
+                            Categoria<span class="symbol required"></span>
+                        </label>
+                        @Html.DropDownList("MovimientoCategoriaId", (SelectList)ViewBag.Categorias, "--Seleccione una Categoria--", new { @class = "form-control search-select required" })
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Descripci&oacute;n</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Descripci&oacute;n<span class="symbol required"></span>
+                                </label>
+                                @Html.TextAreaFor(model => model.Descripcion, new { @class = "form-control", @placeholder = "Descripción del Ingreso", required = "required", autocomplete = "off" })
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i> Productos
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Barra
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="imagen">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <button type="button" class="btn btn-med-grey btn-block ladda-button" data-toggle="modal" data-target="#visualizar-imagen-producto-form" id="btn-visualizar">Visualizar Fotografía</button>
+                            </div>
+                        </div>
+                        <br />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Producto
+                                </label>
+                                <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" disabled="disabled" />
+                                <input type="hidden" id="ProductoId" name="ProductoId" value="0" />
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Unidad
+                                </label>
+                                <select id="PresentacionId" name="PresentacionId" class="form-control search-select">
+                                    <option value="0">--SELECCIONE UNA UNIDAD--</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cantidad
+                                </label>
+                                <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" value="1" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Minimo
+                                </label>
+                                <input type="number" placeholder="Minimo" class="form-control" id="Minimo" name="Minimo" value="0" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="col-md-1">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Maximo
+                                </label>
+                                <input type="number" placeholder="Maximo" class="form-control" id="Maximo" name="Maximo" value="0" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    ID
+                                </label>
+                                <input type="text" placeholder="ID" class="form-control" id="IDs" name="IDs" value="" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Precio Costo
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-addon">Q</span>
+                                    <input type="text" placeholder="Precio Costo" class="form-control" id="PrecioCosto" name="PrecioCosto" value="0" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Precio Venta
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-addon">Q</span>
+                                    <input type="text" placeholder="Precio de Venta" class="form-control" id="PrecioVenta" name="PrecioVenta" value="0" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <p style="text-align:right"><button id="btnNuevoProducto" name="btnNuevoProducto" class="demo btn btn-blue">Nuevo Producto</button></p>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-12">                            
+                            <table class="table table-hover" id="sample-table-1">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>
+                                        <th>Cantidad</th>
+                                        <th>Minimo</th>
+                                        <th>Maximo</th>
+                                        <th>ID</th>
+                                        <th>P. Costo</th>
+                                        <th>P. Venta</th>
+                                        <th>Sub-Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="producto_tbody">
+                                    @if (Model != null)
+                                    {
+                                        if (Model.Detalles != null && Model.Detalles.Count() > 0)
+                                        {
+                                            foreach (var Detalle in Model.Detalles)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, Detalle.Producto.Nombre))
+                                                    </td>
+                                                    <td>
+                                                        @(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Cantidad
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Minimo
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Maximo
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.ID                                                        
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.PrecioCosto.ToString("C")
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Precio.ToString("C")
+                                                    </td>
+                                                    <td>
+                                                        @string.Format("{0:C}", Detalle.Cantidad * Detalle.PrecioCosto)
+                                                    </td>
+                                                    <td>
+                                                        <a id="Eliminar" href="@Detalle.ProductoId" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                                                        <input type="hidden" name="IDIds" value="@Detalle.ID" />
+                                                    </td>
+                                                </tr>
+                                            }
+                                            <tr>
+                                                <td>
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Total:
+                                                    </div>
+                                                </td>
+                                                <td colspan="9">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C}", Model.Detalles.Sum(x => x.Cantidad * x.PrecioCosto))
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Producto_Ingreso_x_ID")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="new-proveedor-form" class="modal fade" tabindex="-1" data-focus-on="input:first" data-width="760" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Nuevo Proveedor</h4>
+    </div>
+    <div class="modal-body">
+        @Html.Partial("~/Views/Proveedor/_CreateOrEdit.cshtml", new DiamDev.Give.Entities.Proveedor())
+    </div>
+    <div class="modal-footer">
+        <button id="btn-save-up-proveedor" class="btn btn-primary">Guardar</button>
+        <button id="btn-close-up-proveedor" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<div id="visualizar-imagen-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Fotografia</h4>
+    </div>
+    <div class="modal-body">
+        <center>
+            <img alt="" id="fotografia" src="@Url.Content("~/Content/assets/images/producto-sin-foto.jpg")" style="height:50%; width:50%" class="img-responsive" />
+        </center>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-imagen-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        var vCodBarra = "";
+        var vAumentaCantidad = 0;
+
+        $(function ()
+        {
+            //Se oculta el boton de visualizar imagen
+            $('#imagen').css("display", "none");
+
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            $("#btnNuevoProducto").click(function (evt)
+            {
+                evt.preventDefault();
+
+                var productoId = $("#ProductoId").val();
+
+                if (productoId === "")
+                {
+                    error("Seleccione un producto");
+                    return;
+                }
+
+                var presentacionId = $("#PresentacionId").val();
+
+                if (presentacionId === "")
+                {
+                    error("Seleccione una unidad");
+                    return;
+                }
+
+                var cantidad = $("#Cantidad").val();
+
+                if (cantidad === "")
+                {
+                    error("Ingrese la cantidad del producto");
+                    return;
+                }
+
+                cantidad = parseFloat(cantidad);
+
+                var minimo = $('#Minimo').val();
+
+                if (minimo === "") {
+                    error("Ingrese la cantidad minima del producto");
+                    return;
+                }
+
+                var maximo = $('#Maximo').val();
+
+                if (maximo === "") {
+                    error("Ingrese la cantidad maxima del producto");
+                    return;
+                }
+
+                var id = $('#IDs').val();
+
+                if (id === "")
+                {
+                    error("Ingrese el ID del producto");
+                    return;
+                }
+
+                var precio_costo = $('#PrecioCosto').val();
+
+                if (precio_costo === "") {
+                    error("Ingrese el precio costo del producto");
+                    return;
+                }
+
+                var precio_venta = $('#PrecioVenta').val();
+
+                if (precio_venta === "") {
+                    error("Ingrese el precio venta del producto");
+                    return;
+                }
+
+                var agregar = 1;
+
+                var res = id.split(',');
+                var totalIDs = res.length;
+
+                if (cantidad !== totalIDs)
+                {
+                    agregar = 0;
+                    alert("Se le informa que los IDs no corresponden con la cantidad");
+                    return;
+                }
+
+                var idArray = new Array();
+                $('input[name=IDIds]').each(function ()
+                {
+                    var res = $(this).val().split(',');
+                    for (var i = 0; i < res.length; i++)
+                    {
+                        if (res[i] !== "")
+                        {
+                            idArray.push(res[i]);
+                        }
+                    }
+                });
+
+                if (idArray.length > 0)
+                {
+                    for (var x = 0; x < idArray.length; x++)
+                    {
+                        if (idArray[x] === id)
+                        {
+                            agregar = 0;
+                            alert("Se le informa que los IDs que quiere ingresar ya existe en el sistema");
+                            return;
+                        }
+                    }
+                }
+
+                if (agregar === 1)
+                {
+                    idArray.push(id);
+
+                    for (var i = 0; i < idArray.length; i++)
+                    {
+                        $.ajax({
+                            url: '@Url.Action("ValidarID", "Producto_Ingreso_x_ID")',
+                            traditional: true,
+                            data: { 'ID': idArray[i] },
+                            async: false,
+                            type: 'POST',
+                            success: function (resultData)
+                            {
+                                if (resultData !== null)
+                                {
+                                    if (resultData.Operacion)
+                                    {
+                                        agregar = 0;
+                                        alert("Se le informa que los IDs que quiere ingresar ya existe en el sistema");
+                                        return;
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+
+                if (agregar === 1)
+                {
+                    var modelo =
+                    {
+                        'MovimientoId': $("#MovimientoId").val(),                    
+                        'ProductoId': productoId,
+                        'UnidadId': presentacionId,
+                        'Cantidad': cantidad,
+                        'Minimo': minimo,
+                        'Maximo': maximo,
+                        'ID': id,
+                        'PrecioCosto': precio_costo,
+                        'Precio': precio_venta
+                    };
+
+                    //Se oculta el boton de visualizar imagen
+                    $('#imagen').css("display", "none");
+
+                    //Se asigna la imagen por default               
+                    $("#visualizar-imagen-producto-form").find("#fotografia").attr("src", "@Url.Content("~/Content/assets/images/producto-sin-foto.jpg")");
+
+                    $.ajax({
+                        url: '@Url.Action("NuevoProducto", "Producto_Ingreso_x_ID")',
+                        data: { 'modelo': modelo },
+                        async: false,
+                        type: 'POST',
+                        success: function (resultData)
+                        {
+                            if (resultData !== null)
+                            {
+                                if (resultData.Operacion)
+                                {
+                                    toastr.success('El nuevo producto se guardó exitosamente');
+                                }
+                                else {
+                                    toastr.error('Ocurrió un error, al guardar el nuevo producto');
+                                }
+
+                                window.location.href = '@Url.Action("Editar", "Producto_Ingreso_x_ID")';
+                            }
+                            else {
+                                toastr.error('Ocurrió un error, al guardar el nuevo producto');
+                            }
+                        }
+                    });
+                }                
+            });
+
+            $('#producto_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+
+                eliminar = confirm("¿Deseas eliminar este registro?");
+                if (eliminar)
+                {
+                    $.ajax({
+                        url: '@Url.Action("Eliminar", "Producto_Ingreso_x_ID")',
+                        data: { 'movimientoId': $("#MovimientoId").val(), 'productoId': $(this).attr("href") },
+                        traditional: true,
+                        async: false,
+                        type: 'POST',
+                        success: function (resultData)
+                        {
+                            if (resultData !== null)
+                            {
+                                if (resultData.Operacion)
+                                {
+                                    toastr.success('El producto se elimino exitosamente');
+                                }
+                                else
+                                {
+                                    toastr.error('Ocurrió un error, al eliminar el producto');
+                                }
+
+                                window.location.href = '@Url.Action("Editar", "Producto_Ingreso_x_ID")';
+                            }
+                            else
+                            {
+                                toastr.error('Ocurrió un error, al eliminar el producto');
+                            }
+                        }
+                    });
+                }
+            });
+
+            $("#btn-save-up-proveedor").click(function ()
+            {
+                var Nit = $("#new-proveedor-form").find("#Nit").val();
+                var Nombre = $("#new-proveedor-form").find("#Nombre").val();
+                var NombreCheque = $("#new-proveedor-form").find("#NombreCheque").val();
+                var Direccion = $("#new-proveedor-form").find("#Direccion").val();
+                var NoTelefono = $("#new-proveedor-form").find("#NoTelefonoOficina").val();
+                var Patente = $("#new-proveedor-form").find("#Patente").val();
+                var EmailProveedor = $("#new-proveedor-form").find("#EmailProveedor").val();
+                var Contacto = $("#new-proveedor-form").find("#Contacto").val();
+                var NoTelefonoContacto = $("#new-proveedor-form").find("#NoTelefonoContacto").val();
+                var EmailContacto = $("#new-proveedor-form").find("#EmailContacto").val();
+                var EmailProveedor = $("#new-proveedor-form").find("#EmailProveedor").val();
+                var Activo = true;
+
+                if (Nit === "") {
+                    error("El nit es requerido");
+                    return;
+                }
+
+                if (Nombre === "") {
+                    error("El nombre es requerido");
+                    return;
+                }
+
+                if (Direccion === "") {
+                    error("La dirección es requerida");
+                    return;
+                }
+
+                if (NoTelefono === "") {
+                    error("El numero de telefono es requerido");
+                    return;
+                }
+
+                if (Contacto === "") {
+                    error("El contacto es requerido");
+                    return;
+                }
+
+                if (NoTelefonoContacto === "") {
+                    error("El numero de telefono del contacto es requerido");
+                    return;
+                }
+
+                var modelo =
+                {
+                    'Nit': Nit,
+                    'Nombre': Nombre,
+                    'NombreCheque': NombreCheque,
+                    'Direccion': Direccion,
+                    'NoTelefonoOficina': NoTelefono,
+                    'Patente': Patente,
+                    'EmailProveedor': EmailProveedor,
+                    'Contacto': Contacto,
+                    'NoTelefonoContacto': NoTelefonoContacto,
+                    'EmailContacto': EmailContacto,
+                    'Activo': Activo
+                };
+
+                $.ajax({
+                    url: '@Url.Action("NuevoProveedor", "Proveedor")',
+                    data: { 'modelo': modelo },
+                    async: false,
+                    type: 'POST',
+                    success: function (data)
+                    {
+                        if (data == true)
+                        {
+                            $('#btn-close-up-proveedor').click();
+                            toastr.success('El nuevo proveedor se guardó exitosamente');
+
+                            location.reload();
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al guardar al nuevo proveedor');
+                        }
+                    }
+                });
+
+            });
+
+            $("#Barra").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("ConsultaProductoAutocomplementar", "Producto")',
+                        type: "POST",
+                        dataType: "json",
+                        data: { search: request.term, id: true },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.Nombre, value: item.Nombre };
+                            }))
+                        }
+                    })
+                },
+                messages:
+                {
+                    noResults: "", results: ""
+                }
+            });
+
+            $('#PresentacionId').change(function (evt) {
+                if ($('#ProductoId').val() === "") {
+                    error("Seleccionar un producto");
+                    return;
+                }
+
+                if ($('#PresentacionId').val() === "") {
+                    error("Seleccionar una presentacion");
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerProducto", "Producto")',
+                    traditional: true,
+                    async: false,
+                    data: { 'agenciaId': $('#AgenciaId').val(), 'productoId': $('#ProductoId').val(), 'presentacionId': $('#PresentacionId').val(), 'empleado': false },
+                    type: 'GET',
+                    success: function (resultData) {
+                        if (resultData !== null) {
+                            if (resultData.Operacion) {
+                                $('#Minimo').val(resultData.Data.Minimo);
+                                $('#Maximo').val(resultData.Data.Maximo);
+                                $('#PrecioCosto').val(resultData.Data.Costo);
+                                $('#PrecioVenta').val(resultData.Data.PrecioActual);
+                                $('#Cantidad').focus();
+                            }
+                            else {
+                                toastr.error('Ocurrió un error, al visualizar el producto');
+                            }
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar el producto');
+                        }
+                    }
+                });
+            });
+
+            $('#formaprincipal').keydown(function (evt) {
+                if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                    cargaBusquedaProducto(evt)
+                }
+                else if ($('#Cantidad').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                    evt.preventDefault();
+                    if ($('#Cantidad').val() === "") {
+                        error("Ingresar cantidad de producto");
+                        $('#Cantidad').focus();
+                        return;
+                    }
+                    $('#PrecioActual').focus();
+                }
+                else if ($('#Minimo').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                    evt.preventDefault();
+                    if ($('#Minimo').val() === "") {
+                        error("Ingresar el minimo del producto");
+                        $('#Minimo').focus();
+                        return;
+                    }
+                    $('#Maximo').focus();
+                }
+                else if ($('#Maximo').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                    evt.preventDefault();
+                    if ($('#Maximo').val() === "") {
+                        error("Ingresar el maximo del producto");
+                        $('#Maximo').focus();
+                        return;
+                    }
+                    $('#IDs').focus();
+                }
+                else if ($('#IDs').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                    evt.preventDefault();
+                    if ($('#IDs').val() === "")
+                    {
+                        error("Ingresar el ID del producto");
+                        $('#IDs').focus();
+                        return;
+                    }
+
+                    $('#PrecioCosto').focus();
+                }
+                else if ($('#PrecioCosto').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                    evt.preventDefault();
+                    if ($('#PrecioCosto').val() === "") {
+                        error("Ingresar el precio costo del producto");
+                        $('#PrecioCosto').focus();
+                        return;
+                    }
+                    $('#PrecioVenta').focus();
+                }
+                else if ($('#PrecioVenta').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                    evt.preventDefault();
+                    if ($('#PrecioVenta').val() === "") {
+                        error("Ingresar precio venta del producto");
+                        $('#PrecioVenta').focus();
+                        return;
+                    }
+                    $('#btn-agregar').focus();
+                }
+            });
+
+            /*
+            Evento click para el boton de busqueda de productos */
+            $('#btnBarra').click(function (evt) {
+                cargaBusquedaProducto(evt);
+            });
+
+            /*
+    Evento click para el boton de visualizar imagen de productos */
+            $('#btn-visualizar').click(function (evt) {
+                if ($('#ProductoId').val() === "") {
+
+                    error("Ingresar codigo de barra");
+                    $('#Barra').focus();
+
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerFotografiaProducto", "Producto")',
+                    traditional: true,
+                    data: { 'productoId': $('#ProductoId').val() },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData) {
+                        if (resultData !== null) {
+                            if (resultData.Operacion) {
+                                $("#visualizar-imagen-producto-form").find("#fotografia").attr("src", resultData.Data);
+                            }
+                        }
+                    }
+                });
+
+            });
+
+            /*
+            Función para la busqueda de productos */
+            function cargaBusquedaProducto(evt) {
+                evt.preventDefault();
+
+                if ($('#Barra').val() === "") {
+
+                    error("Ingresar codigo de barra");
+                    $('#Barra').focus();
+
+                    return;
+                }
+                if (vCodBarra === $('#Barra').val()) {
+                    vAumentaCantidad = parseInt($('#Cantidad').val()) + 1;
+                    $('#Cantidad').val(vAumentaCantidad);
+                }
+                else { $('#Cantidad').val(1); }
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerProductoxBarra", "Producto")',
+                    traditional: true,
+                    data: { 'barra': $('#Barra').val() },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData) {
+                        if (resultData !== null) {
+                            if (resultData.Operacion) {
+                                //Se activa el boton de visualizar fotografia
+                                $('#imagen').css("display", "block");
+
+                                $('#Producto').val(resultData.Data.Nombre);
+                                $('#ProductoId').val(resultData.Data.ProductoId);
+
+                                var PresentacionSelect = $("#PresentacionId");
+                                PresentacionSelect.empty();
+                                PresentacionSelect.append('<option value="0">--Seleccione una Unidad--</option>');
+
+                                $.ajax({
+                                    url: '@Url.Action("ObtenerPresentacionPorProducto", "Producto_Ingreso")',
+                                    data: { 'id': $('#ProductoId').val() },
+                                    traditional: true,
+                                    async: false,
+                                    type: 'GET',
+                                    success: function (data) {
+                                        $.each(data, function (j) {
+                                            PresentacionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                                        });
+
+                                        //Se selecciona por default a la unidad de medida: Unidad
+                                        $("#PresentacionId").val("20170114001").trigger("change");
+                                    }
+                                });
+
+
+                                $('#Barra').focus();
+                                vCodBarra = $('#Barra').val();
+
+                            }
+                            else {
+                                toastr.error('La barra del producto ingresada no es correcta');
+                                $('#Barra').val("");
+                                $('#Barra').focus();
+                            }
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar el producto');
+                            $('#Barra').val("");
+                            $('#Barra').focus();
+                        }
+                    }
+                });
+            }
+        });
+
+    </script>  
+}
+

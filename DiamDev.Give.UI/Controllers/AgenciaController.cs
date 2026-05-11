@@ -17,6 +17,17 @@ namespace DiamDev.Give.UI.Controllers
     [HandleError]
     public class AgenciaController : Controller
     {
+        #region Metodos Privados
+
+            private void CargaControles()
+            {
+                var Empresas = new EmpresaBL().ObtenerListado();               
+
+                ViewBag.Empresas = new SelectList(Empresas, "EmpresaId", "Nombre");
+            }
+
+        #endregion
+
         // GET: Agencia
         [Permiso("Control.Agencia.Ver_Listado")]
         public ActionResult Index(int? page)
@@ -47,19 +58,23 @@ namespace DiamDev.Give.UI.Controllers
 
             string strAtributo = "checked='checked'";
 
+            ViewBag.domicilioSi = strAtributo;
+            ViewBag.domicilioNo = "";
+
             ViewBag.activoSi = strAtributo;
             ViewBag.activoNo = "";
 
+            this.CargaControles();
             return View();
         }
 
         [HttpPost]
         [Permiso("Control.Agencia.Crear")]
-        public ActionResult Crear(Agencia modelo, bool activo)
+        public ActionResult Crear(Agencia modelo, bool domicilio, bool activo)
         {
-
             if (ModelState.IsValid)
             {
+                modelo.EsDeliveryDomicilio = domicilio;
                 modelo.Activo = activo;
                 string strMensaje = new AgenciaBL().Guardar(modelo);
 
@@ -72,14 +87,17 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     ModelState.AddModelError("", strMensaje);
                 }
-
             }
 
             string strAtributo = "checked='checked'";
 
+            ViewBag.domicilioSi = domicilio == true ? strAtributo : "";
+            ViewBag.domicilioNo = domicilio == false ? strAtributo : "";
+
             ViewBag.activoSi = activo == true ? strAtributo : "";
             ViewBag.activoNo = activo == false ? strAtributo : "";
 
+            this.CargaControles();
             return View(modelo);
         }
 
@@ -97,19 +115,23 @@ namespace DiamDev.Give.UI.Controllers
 
             string strAtributo = "checked='checked'";
 
+            ViewBag.domicilioSi = AgenciaActual.EsDeliveryDomicilio == true ? strAtributo : "";
+            ViewBag.domicilioNo = AgenciaActual.EsDeliveryDomicilio == false ? strAtributo : "";
+
             ViewBag.activoSi = AgenciaActual.Activo == true ? strAtributo : "";
             ViewBag.activoNo = AgenciaActual.Activo == false ? strAtributo : "";
 
+            this.CargaControles();
             return View(AgenciaActual);
         }
 
         [HttpPost]
         [Permiso("Control.Agencia.Editar")]
-        public ActionResult Editar(Agencia modelo, bool activo)
+        public ActionResult Editar(Agencia modelo, bool domicilio, bool activo)
         {
-
             if (ModelState.IsValid)
             {
+                modelo.EsDeliveryDomicilio = domicilio;
                 modelo.Activo = activo;
                 string strMensaje = new AgenciaBL().Guardar(modelo);
 
@@ -122,14 +144,17 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     ModelState.AddModelError("", strMensaje);
                 }
-
             }
 
             string strAtributo = "checked='checked'";
 
+            ViewBag.domicilioSi = domicilio == true ? strAtributo : "";
+            ViewBag.domicilioNo = domicilio == false ? strAtributo : "";
+
             ViewBag.activoSi = activo == true ? strAtributo : "";
             ViewBag.activoNo = activo == false ? strAtributo : "";
 
+            this.CargaControles();
             return View(modelo);
         }
     }

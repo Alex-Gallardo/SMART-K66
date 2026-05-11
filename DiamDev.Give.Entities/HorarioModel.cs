@@ -14,8 +14,10 @@ namespace DiamDev.Give.Entities
 
         public DateTime Fecha { get; set; }
 
-        public DateTime Entrada { get; set; }
+        public TimeSpan Entrada { get; set; }
 
-        public DateTime? Salida { get; set; }
+        public TimeSpan? Salida { get; set; }
+        
+        public TimeSpan Laborado { get; set; }
     }
 }

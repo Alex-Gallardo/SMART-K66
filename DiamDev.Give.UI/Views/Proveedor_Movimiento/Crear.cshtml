@@ -1,0 +1,190 @@
+﻿@model DiamDev.Give.Entities.ProveedorMovimiento
+
+@{
+    ViewBag.Title = "Nuevo Movimiento";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nuevo Movimiento
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nuevo Movimiento</h2>
+                <p>
+                    Crea un nuevo movimiento.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    @Html.Partial("_CreateOrEdit")
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Proveedor_Movimiento")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            $("#divAbono").hide();
+
+            var correlativo = 0;
+            $('#btn-agregar-imagen').click(function (e)
+            {
+                e.preventDefault();
+
+                var $fila = $('<tr/>');
+                var $celdaA = $('<td />');
+                var $celdaB = $('<td />');
+
+                var prefijo = 'archivos[' + correlativo + ']';
+
+                var $hidden = $('<input />', { type: 'hidden', value: correlativo, name: 'archivos.Crear' });
+                var $inputFile = $('<input />', { name: prefijo + '.archivo', type: 'file', class: 'file-input' });
+                var $delete = $('<button />', { type: 'button', class: 'btn btn-danger' }).text('Eliminar');
+
+                $celdaB.append($delete);
+                $celdaA.append($inputFile);
+
+                $fila.append([$celdaA, $celdaB]);
+
+                $('#tbl-archivos').append($fila);
+
+                $delete.click(function (_e)
+                {
+                    _e.preventDefault();
+                    $fila.remove();
+                })
+
+                correlativo++;
+                $inputFile.click();
+            });
+
+            function error(texto) {
+                toastr.error(texto);
+            }
+
+            $("#TipoId").change(function (evt)
+            {
+                if ($('#ProveedorId').val() === "")
+                {
+                    error("Seleccionar un proveedor");
+                    return;
+                }
+
+                if ($('#TipoId').val() === "")
+                {
+                    error("Seleccionar un tipo de movimiento");
+                    return;
+                }
+
+                if ($('#TipoId').val() === "2")
+                {
+                    var CreditoSelect = $("#CreditoId");
+                    CreditoSelect.empty();
+                    CreditoSelect.append('<option value="0">--Seleccione un Credito--</option>');
+
+                    $.ajax({
+                        url: '@Url.Action("ObtenerCreditosxProveedorId", "Proveedor")',
+                        data: { 'id': $('#ProveedorId').val() },
+                        traditional: true,
+                        async: false,
+                        type: 'GET',
+                        success: function (data)
+                        {
+                            $.each(data, function (j)
+                            {
+                                CreditoSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                            });
+                        }
+                    });
+
+                    $("#divAbono").show();
+                }
+                else if ($('#TipoId').val() === "1") {
+                    $("#divAbono").hide();
+                }
+            });
+
+            $("#CreditoId").change(function (evt)
+            {
+                if ($('#ProveedorId').val() === "")
+                {
+                    error("Seleccionar un proveedor");
+                    return;
+                }
+
+                if ($('#CreditoId').val() === "")
+                {
+                    error("Seleccionar un credito");
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerTotalCreditos", "Proveedor")',
+                    traditional: true,
+                    data: { 'proveedorId': $('#ProveedorId').val(), 'id': $('#CreditoId').val() },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
+                                $("#Monto").val(resultData.Data);
+                            }
+                        }
+                    }
+                });
+            });
+        });
+
+    </script>
+}

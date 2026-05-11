@@ -1,0 +1,162 @@
+﻿@{
+    ViewBag.Title = "Reportes";
+}
+
+<h2><i class="icon-edit-sign teal"></i> Reportes</h2>
+<hr />
+
+<div class="row">
+
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-archive circle-icon circle-teal"></i>
+                    <h2>Inventario</h2>
+                </div>
+                <a href="@Url.Action("Inventario", "Reporte")" class="view-more">
+                    Ver Reporte <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Cierre"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-stats circle-icon circle-bricky"></i>
+                    <h2>Cierre del Día</h2>
+                </div>
+                <a href="@Url.Action("Cierre", "Reporte")" class="view-more">
+                    Ver Reporte <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.CierreDiarioResumen"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-stats circle-icon circle-red"></i>
+                    <h2>Corte Diario</h2>
+                </div>
+                <a href="@Url.Action("CierreDiarioResumen", "Reporte")" class="view-more">
+                    Ver Reporte <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.ventasdesp"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-truck circle-icon circle-green"></i>
+                    <h2>Ventas Despachadas</h2>
+                </div>
+                <a href="@Url.Action("VentasDespachadas", "Reporte")" class="view-more">
+                    Ver Reporte <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.LibroVenta"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-book circle-icon circle-teal"></i>
+                    <h2>Libro de Venta</h2>
+                </div>
+                <a href="@Url.Action("LibroVenta", "Reporte")" class="view-more">
+                    Ver Reporte <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Ganancia"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-coins circle-icon circle-green"></i>
+                    <h2>Ganancia</h2>
+                </div>
+                <a href="@Url.Action("Ganancia", "Reporte")" class="view-more">
+                    Ver Reporte <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.kpidel"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-speedometer circle-icon circle-bricky"></i>
+                    <h2>KPI Entrega</h2>
+                </div>
+                <a href="@Url.Action("KpiDelivery", "Reporte")" class="view-more">
+                    Ver Reporte <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.recanula"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-ban-circle circle-icon circle-red"></i>
+                    <h2>Recibos Anulados</h2>
+                </div>
+                <a href="@Url.Action("RecibosAnulados", "Reporte")" class="view-more">
+                    Ver Reporte <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+
+    @* ─── NUEVOS REPORTES ──────────────────────────────── *@
+
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.HistorialVenta"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-stats circle-icon circle-teal"></i>
+                    <h2>Historial de Venta</h2>
+                </div>
+                <a href="@Url.Action("HistorialVenta", "Reporte")" class="view-more">
+                    Ver Reporte <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.HistorialEntrega"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-truck circle-icon circle-bricky"></i>
+                    <h2>Historial de Entrega</h2>
+                </div>
+                <a href="@Url.Action("HistorialEntrega", "Reporte")" class="view-more">
+                    Ver Reporte <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+
+</div>

@@ -51,9 +51,9 @@ namespace DiamDev.Give.BLL
                 return Id;
             }
 
-            private bool Agregar(CuentaContable entidad)
+            private string Agregar(CuentaContable entidad)
             {
-                bool CuentaContableAgregar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -71,22 +71,22 @@ namespace DiamDev.Give.BLL
 
                             db.Set<CuentaContable>().Add(entidad);
 
-                            db.SaveChanges();
-                            CuentaContableAgregar = true;
+                            db.SaveChanges();                            
                         }
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return CuentaContableAgregar;
+                return Mensaje;
             }
 
-            private bool Actualizar(CuentaContable entidad)
+            private string Actualizar(CuentaContable entidad)
             {
-                bool CuentaContableActualizar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -101,16 +101,16 @@ namespace DiamDev.Give.BLL
                         CuentaActual.Descripcion = entidad.Descripcion;
                         CuentaActual.Activo = entidad.Activo;
 
-                        db.SaveChanges();
-                        CuentaContableActualizar = true;
+                        db.SaveChanges();                       
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return CuentaContableActualizar;
+                return Mensaje;
             }
 
         #endregion
@@ -120,22 +120,16 @@ namespace DiamDev.Give.BLL
             public string Guardar(CuentaContable entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
-
+               
                 if (entidad.CuentaId > 0)
                 {
-                    OperacionExitosa = Actualizar(entidad);
+                    Mensaje = Actualizar(entidad);
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
+                    Mensaje = Agregar(entidad);
                 }
-
-                if (!OperacionExitosa)
-                {
-                    Mensaje = "La información ingresada no es valida";
-                }
-
+               
                 return Mensaje;
             }
 

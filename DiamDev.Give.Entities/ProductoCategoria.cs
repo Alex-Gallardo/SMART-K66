@@ -24,5 +24,10 @@ namespace DiamDev.Give.Entities
         public DateTime Fecha { get; set; }
 
         public int Correlativo { get; set; }
+
+        public string FotografiaApp { get; set; }
+
+        [NotMapped]
+        public ProductoFotografia Fotografia { get; set; }
     }
 }

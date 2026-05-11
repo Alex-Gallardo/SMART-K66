@@ -1,0 +1,440 @@
+﻿@model DiamDev.Give.Entities.Credito
+
+@{
+    ViewBag.Title = "Detalle Credito";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Credito
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="CreditoId" name="CreditoId" value="@Html.Raw(Model.CreditoId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Tipo de Credito
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Tipo == null ? "No Disponible" : Model.Tipo.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Agencia
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Agencia == null ? "No Disponible" : Model.Agencia.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <br />
+                                <strong>
+                                   @Model.Cliente.Nombre
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Descripci&oacute;n del Credito
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Descripcion) ? "No contiene descripción" : Model.Descripcion)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Anulada
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Anulada == true ? "Sí" : "No")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Inicial
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.FechaInicial.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Final
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.FechaFinal.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio</th>
+                                        <th>Sub-Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Detalles != null && Model.Detalles.Count() > 0)
+                                    {
+                                        if (!Model.Anulada)
+                                        {
+                                            foreach (var Detalle in Model.Detalles)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Detalle.Producto == null ? "No Disponible" : Detalle.Producto.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Cantidad
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Precio.ToString("C")
+                                                    </td>
+                                                    <td>
+                                                        @string.Format("{0:C}", Detalle.Cantidad * Detalle.Precio)
+                                                    </td>
+                                                </tr>
+                                            }
+                                            <tr>
+                                                <td>
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Total:
+                                                    </div>
+                                                </td>
+                                                <td colspan="4">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C}", Model.Detalles.Sum(x => x.Cantidad * x.Precio))
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="4">
+                                                    <strong>Le informamos que el credito fue anulado, por lo tanto no puede visualizar los productos</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="4">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Comentarios
+                        </label>
+                    </h2>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right"><a href="#new-comentario-form" data-toggle="modal" title="Editar" class="demo btn btn-blue">Nuevo Comentario</a></p>
+                            <table class="table table-hover" id="sample-table-1">
+                                <thead>
+                                    <tr>
+                                        <th>Comentario</th>
+                                        <th>Fecha y Hora</th>
+                                        <th>Usuario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Comentarios != null && Model.Comentarios.Count() > 0)
+                                    {
+                                        foreach (var Anotacion in Model.Comentarios.OrderByDescending(x => x.AnotacionId))
+                                        {
+                                            <tr>
+                                                <td>@Anotacion.Comentario</td>
+                                                <td>@Anotacion.FechaAnotacion.ToString("dd/MM/yyyy hh:mm:ss tt")</td>
+                                                <td>@(Anotacion.UsuarioAnotacion == null ? "No Disponible" : Anotacion.UsuarioAnotacion.Nombre)</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="3">
+                                                <strong>No contiene comentarios</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Pagos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Usuario</th>
+                                        <th>Forma</th>
+                                        <th>Fecha</th>
+                                        <th>Nota</th>
+                                        <th>Cantidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Pagos != null && Model.Pagos.Count() > 0)
+                                    {
+                                        if (!Model.Anulada)
+                                        {
+                                            foreach (var Detalle in Model.Pagos)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Detalle.UsuarioOperacion == null ? "No Disponible" : Detalle.UsuarioOperacion.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @(Detalle.FormaPago == null ? "No Disponible" : Detalle.FormaPago.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Fecha.ToString("dd/MM/yyyy")
+                                                    </td>
+                                                    <td>
+                                                        @(string.IsNullOrWhiteSpace(Detalle.Nota) ? "Sin nota" : Detalle.Nota)
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Valor.ToString("C")
+                                                    </td>
+                                                </tr>
+                                            }
+                                            <tr>
+                                                <td>
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Total:
+                                                    </div>
+                                                </td>
+                                                <td colspan="5">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C}", Model.Pagos.Sum(x => x.Valor))
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="5">
+                                                    <strong>Le informamos que el credito fue anulado, por lo tanto no puede visualizar los pagos</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene pagos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Total
+                        </label>
+                    </h2>
+                    <hr>
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Credito</th>
+                                <th>Pago</th>
+                                <th>Diferencia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    @string.Format("{0:C}", Model.Anulada ? 0 : Model.Detalles.Sum(x => x.Cantidad * x.Precio))
+                                </td>
+                                <td>
+                                    @string.Format("{0:C}", Model.Anulada ? 0 : Model.Pagos.Sum(x => x.Valor))
+                                </td>
+                                <td>
+                                    @string.Format("{0:C}", Model.Anulada ? 0 : Model.Detalles.Sum(x => x.Cantidad * x.Precio) - Model.Pagos.Sum(x => x.Valor))
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Credito")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="new-comentario-form" class="modal fade" tabindex="-1" data-focus-on="textarea:first" data-width="760" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Nuevo Comentario</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="control-label">
+                        Comentario<span class="symbol required"></span>
+                    </label>
+                    <textarea placeholder="Comentario" rows="10" cols="50" class="form-control" id="Nuevo_Comentario" name="Nuevo_Comentario" required></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-save-up-comentario" class="btn btn-primary">Guardar</button>
+        <button id="btn-close-up-comentario" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        $(function ()
+        {
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            $("#btn-save-up-comentario").click(function (evt)
+            {
+                evt.preventDefault();
+
+                var comentario = $("#new-comentario-form").find("#Nuevo_Comentario").val();
+
+                if (comentario === "")
+                {
+                    error("El comentario es obligatorio");
+                    $("#new-comentario-form").find("#Nuevo_Comentario").focus();
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("NuevoComentario", "Credito")',
+                    data: { 'CreditoId': $("#CreditoId").val(), 'Comentario': comentario },
+                    traditional: true,
+                    async: false,
+                    type: 'POST',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
+                                toastr.success('El comentario se guardó exitosamente');
+                            }
+                            else {
+                                toastr.error('Ocurrió un error, al guardar el comentario');
+                            }
+
+                            window.location.href = '@Url.Action("Detalle", "Credito")';
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al guardar el comentario');
+                        }
+                    }
+                });
+            });
+        });
+
+    </script>
+}
+
+
+
+

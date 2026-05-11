@@ -60,6 +60,24 @@
                             </div>
                             <div class="form-group">
                                 <label class="control-label">
+                                    Nombre Alternativo #1
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NombreAlternativo1) ? "Sin nombre alternativo #1" : Model.NombreAlternativo1)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre Alternativo #2
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NombreAlternativo2) ? "Sin nombre alternativo #2" : Model.NombreAlternativo2)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
                                     Descripci&oacute;n
                                 </label>
                                 <br />
@@ -135,112 +153,201 @@
                             </div>
                         </div>                      
                     </div>
-                    <h2>
-                        <i class="icon-edit-sign teal"></i>
-                        <label class="control-label">
-                            Imagenes
-                        </label>
-                    </h2>
-                    <hr>
-                    <div class="row">
-                        <div class="col-md-12">
-                            @if (Model.Imagenes != null && Model.Imagenes.Count() > 0)
+                
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Tiene Envase
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.TieneEnvase ? "Sí" : "No")
+                                    </strong>
+                                </div>
+                            </div>
+                            @if (Model.TieneEnvase)
                             {
-                                <strong>
-                                    Click sobre cualquier imagen para Zoom(+)
-                                </strong>
-                                <p>
-                                    @foreach (var Imagen in Model.Imagenes.Where(x => x.ContentType.Contains("image")))
-                                    {
-                                        <a class="fancybox" href="@Url.Action("Imagen", new { id = Imagen.FotografiaId, documentoId = Imagen.ProductoId })" rel="thumbs" title="">
-                                            <img alt="" src="@Url.Action("Preview", new { id = Imagen.FotografiaId, documentoId = Imagen.ProductoId })" style=" height:100px; width:75px;" />
-                                        </a>
-                                    }
-                                </p>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="control-label">
+                                            Cantidad de Envase
+                                        </label>
+                                        <br />
+                                        <strong>
+                                            @Model.CantidadEnvase
+                                        </strong>
+                                    </div>
+                                </div>
                             }
                         </div>
-                    </div>
-                    <h2>
-                        <i class="icon-edit-sign teal"></i>
-                        <label class="control-label">
-                            Presentaciones
-                        </label>
-                    </h2>
-                    <hr>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Nombre</th>
-                                        <th>Categoria</th>
-                                        <th>Marca</th>
-                                        <th>Unidad</th>
-                                        <th>Cantidad</th>                                       
-                                        <th>Activo</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @if (Model.Productos != null && Model.Productos.Count() > 0)
-                                    {
-                                        foreach (var Producto in Model.Productos)
+						 <h2>
+                            <i class="icon-edit-sign teal"></i>
+                            <label class="control-label">
+                                Fotografia APP
+                            </label>
+                        </h2>
+						<div class="row">
+						 
+                                                <img  src="@Model.FotografiaApp" width="250px" />
+                                    
+						
+						</div>
+                        <h2>
+                            <i class="icon-edit-sign teal"></i>
+                            <label class="control-label">
+                                Imagenes
+                            </label>
+                        </h2>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-12">
+                                @if (Model.Imagenes != null && Model.Imagenes.Count() > 0)
+                                {
+                                    <strong>
+                                        Click sobre cualquier imagen para Zoom(+)
+                                    </strong>
+                                    <p>
+                                        @foreach (var Imagen in Model.Imagenes.Where(x => x.ContentType.Contains("image")))
+                                        {
+                                            <a class="fancybox" href="@Url.Action("Imagen", new { id = Imagen.FotografiaId, documentoId = Imagen.ProductoId })" rel="thumbs" title="">
+                                                <img alt="" src="@Url.Action("Preview", new { id = Imagen.FotografiaId, documentoId = Imagen.ProductoId })" style=" height:100px; width:75px;" />
+                                            </a>
+                                        }
+                                    </p>
+                                }
+                            </div>
+                        </div>
+                        <h2>
+                            <i class="icon-edit-sign teal"></i>
+                            <label class="control-label">
+                                Presentaciones
+                            </label>
+                        </h2>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Categoria</th>
+                                            <th>Marca</th>
+                                            <th>Unidad</th>
+                                            <th>Cantidad</th>
+                                            <th>Activo</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.Productos != null && Model.Productos.Count() > 0)
+                                        {
+                                            foreach (var Producto in Model.Productos)
+                                            {
+                                                <tr>
+                                                    <td>@Producto.Nombre</td>
+                                                    <td>@(Producto.Categoria == null ? "No Disponible" : Producto.Categoria.Nombre)</td>
+                                                    <td>@(Producto.Marca == null ? "No Disponible" : Producto.Marca.Nombre)</td>
+                                                    <td>@(Producto.Unidad == null ? "No Disponible" : Producto.Unidad.Nombre)</td>
+                                                    <td>@string.Format("{0} - ({1})", Producto.Cantidad, Model.Unidad.Nombre)</td>
+                                                    <td>@(Producto.Activo ? "Sí" : "No")</td>
+                                                    <td class="center">
+                                                        <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                                            <a href="@Url.Action("Editar", "Producto", new { id = Producto.ProductoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                                        </div>
+                                                        <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                                            <div class="btn-group">
+                                                                <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                                    <i class="icon-cog"></i> <span class="caret"></span>
+                                                                </a>
+                                                                <ul role="menu" class="dropdown-menu pull-right">
+                                                                    <li role="presentation">
+                                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Producto", new { id = Producto.ProductoId })">
+                                                                            <i class="icon-edit"></i> Editar
+                                                                        </a>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
                                         {
                                             <tr>
-                                                <td>@Producto.Nombre</td>
-                                                <td>@(Producto.Categoria == null ? "No Disponible" : Producto.Categoria.Nombre)</td>
-                                                <td>@(Producto.Marca == null ? "No Disponible" : Producto.Marca.Nombre)</td>
-                                                <td>@(Producto.Unidad == null ? "No Disponible" : Producto.Unidad.Nombre)</td>
-                                                <td>@string.Format("{0} - ({1})", Producto.Cantidad, Model.Unidad.Nombre)</td>                                             
-                                                <td>@(Producto.Activo ? "Sí" : "No")</td>
-                                                <td class="center">
-                                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
-                                                        <a href="@Url.Action("Editar", "Producto", new { id = Producto.ProductoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>                                                        
-                                                    </div>
-                                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
-                                                        <div class="btn-group">
-                                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
-                                                                <i class="icon-cog"></i> <span class="caret"></span>
-                                                            </a>
-                                                            <ul role="menu" class="dropdown-menu pull-right">
-                                                                <li role="presentation">
-                                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Producto", new { id = Producto.ProductoId })">
-                                                                        <i class="icon-edit"></i> Editar
-                                                                    </a>
-                                                                </li>                                                              
-                                                            </ul>
-                                                        </div>
-                                                    </div>
+                                                <td colspan="6">
+                                                    <strong>No contiene presentaciones</strong>
                                                 </td>
                                             </tr>
                                         }
-                                    }
-                                    else
-                                    {
-                                        <tr>
-                                            <td colspan="6">
-                                                <strong>No contiene presentaciones</strong>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                    <div class="row">
-                        <p>
-                            <div class="col-md-6">
+                        <h2>
+                            <i class="icon-edit-sign teal"></i>
+                            <label class="control-label">
+                                Historial
+                            </label>
+                        </h2>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Proveedor</th>
+                                            <th>#Ingreso</th>
+                                            <th>Fecha</th>
+                                            <th>P. Costo Sistema</th>
+                                            <th>P. Costo Nuevo</th>
+                                            <th>P. Costo Promedio</th>
+                                            <th>Cantidad</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.Compras != null && Model.Compras.Count() > 0)
+                                        {
+                                            foreach (var Producto in Model.Compras)
+                                            {
+                                                <tr>
+                                                    <td>@(Producto.Proveedor == null ? "No Disponible" : Producto.Proveedor.Nombre)</td>
+                                                    <td>@Producto.IngresoId</td>
+                                                    <td>@Producto.Fecha.ToString("dd/MM/yyyy")</td>
+                                                    <td>@Producto.PrecioCostoActual.ToString("C")</td>
+                                                    <td>@Producto.PrecioCostoNuevo.ToString("C")</td>
+                                                    <td>@Producto.PrecioCostoPromedio.ToString("C")</td>
+                                                    <td>@Producto.Cantidad</td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="7">
+                                                    <strong>No contiene historial</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
                             </div>
-                        </p>
-                        <p>
-                            <div class="col-md-6">
-                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Producto")">
-                                    Regresar <i class="icon-prev"></i>
-                                </a>
-                            </div>
-                        </p>
-                    </div>
-                </form>
+                        </div>
+                        <div class="row">
+                            <p>
+                                <div class="col-md-6">
+                                </div>
+                            </p>
+                            <p>
+                                <div class="col-md-6">
+                                    <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Producto")">
+                                        Regresar <i class="icon-prev"></i>
+                                    </a>
+                                </div>
+                            </p>
+                        </div>
+</form>
 
             </div>
         </div>

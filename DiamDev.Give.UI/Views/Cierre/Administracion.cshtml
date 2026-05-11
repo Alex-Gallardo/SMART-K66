@@ -1,0 +1,145 @@
+﻿@model DiamDev.Give.Entities.CierreCajaModelxCajero
+
+@{
+    ViewBag.Title = "Administración de Cierres de Caja";
+}
+
+<form action="" method="get">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Agencia<span class="symbol required"></span>
+                </label>
+                @Html.DropDownList("AgenciaId", (SelectList)ViewBag.Agencias, "--Seleccione una Agencia--", new { @class = "form-control search-select required" })
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Administración de Cierres de Caja
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Agencia</th>
+                            <th>#Cierre</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cajero</th>
+                            <th>Monto Sistema</th>
+                            <th>Monto Cajero</th>
+                            <th>Faltante</th>
+                            <th>Sobrante</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null)
+                        {
+                            if (Model.Cierres != null && Model.Cierres.Count() > 0)
+                            {
+                                foreach (var Cierre in Model.Cierres)
+                                {
+                                    <tr>
+                                        <td>@(Cierre.Agencia == null ? "No Disponible" : Cierre.Agencia.Nombre)</td>
+                                        <td>@(Cierre.CierreId)</td>
+                                        <td>@Cierre.Fecha.ToString("dd/MM/yyyy")</td>
+                                        <td>@(Cierre.FechaHora == null ? "00:00" : Cierre.FechaHora.ToString("hh:mm tt"))</td>
+                                        <td>@(Cierre.Cajero == null ? "No Disponible" : Cierre.Cajero.Nombre)</td>
+                                        <td>@(Cierre.Detalles == null ? "Q0.0000" : Cierre.Detalles.Sum(x => x.MontoSistema).ToString("C4"))</td>
+                                        <td>@(Cierre.Detalles == null ? "Q0.0000" : Cierre.Detalles.Sum(x => x.MontoCajero).ToString("C4"))</td>
+                                        <td>@Cierre.Faltante.ToString("C4")</td>
+                                        <td>@Cierre.Sobrante.ToString("C4")</td>
+                                        <td class="center">
+                                            <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                                <a href="@Url.Action("Boleta", "Cierre", new { id = Cierre.CierreId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Cierre de Caja"><i class="clip-file-pdf"></i></a>
+                                                <a href="@Url.Action("Historial", "Cierre", new { AgenciaId = Cierre.AgenciaId, CajeroId = Cierre.CajeroId, Fecha = Cierre.Fecha.ToString("yyyy-MM-dd") })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Historial de Cierre de Caja"><i class="clip-calendar"></i></a>
+                                                <a href="javascript:void(0);" onclick="eliminar('@Cierre.CierreId');" class="btn btn-bricky tooltips" data-placement="top" data-original-title="Eliminar Cierre"><i class="clip-close"></i></a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        function eliminar(id)
+        {
+            if (confirm("¿Desea eliminar el cierre?"))
+            {
+                $.ajax({
+                    url: '@Url.Action("Eliminar", "Cierre")',
+                    data: { 'id': id },
+                    async: false,
+                    type: 'POST',
+                    success: function (data)
+                    {
+                        if (!data.Operacion)
+                        {
+                            toastr.error('Ocurrió un error, al eliminar el cierre');
+                            return;
+                        }
+
+                        toastr.success('Se elimino el cierre exitosamente');
+                        window.location.reload();
+                    },
+                    fail: function (data)
+                    {
+                        toastr.error('Ocurrió un error, al eliminar el cierre');
+                    }
+                });
+            }
+        }
+    </script>
+}

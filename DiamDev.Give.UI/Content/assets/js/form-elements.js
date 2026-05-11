@@ -72,12 +72,7 @@ var FormElements = function () {
             height: 300,
             tabsize: 2
         });
-    };
-    //function to initiate ckeditor
-    var runCKEditor = function () {
-        CKEDITOR.disableAutoInline = true;
-        $('textarea.ckeditor').ckeditor();
-    };
+    };   
     return {
         //main function to initiate template pages
         init: function () {
@@ -90,8 +85,7 @@ var FormElements = function () {
             runDateRangePicker();
             runColorPicker();
             runTagsInput();
-            runSummerNote();
-            runCKEditor();
+            runSummerNote();            
         }
     };
 }();

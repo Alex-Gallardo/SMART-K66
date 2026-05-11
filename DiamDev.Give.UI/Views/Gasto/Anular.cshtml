@@ -1,0 +1,166 @@
+﻿@model DiamDev.Give.Entities.Gasto
+
+@{
+    ViewBag.Title = "Anular Gasto";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Gasto
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="gastoId" name="gastoId" value="@Html.Raw(Model.GastoId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    #Documento
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Documento
+                                </strong>
+                            </div>
+                        </div>                        
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">                           
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Concepto
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Concepto
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Factura
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.FechaFactura.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Monto Factura
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Monto.ToString("C")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Fotografias
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (Model.Fotografias != null && Model.Fotografias.Count() > 0)
+                            {                              
+                                <p>
+                                    @foreach (var Imagen in Model.Fotografias.Where(x => x.ContentType.Contains("image")))
+                                    {
+                                        <a class="fancybox" href="@Url.Action("Imagen", new { id = Imagen.FotografiaId, gastoId = Imagen.GastoId })" rel="thumbs" title="">
+                                            <img alt="" src="@Url.Action("Preview", new { id = Imagen.FotografiaId, gastoId = Imagen.GastoId })" style=" height:100px; width:75px;" />
+                                        </a>
+                                    }
+                                </p>
+                            }
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Motivo de Anulaci&oacute;n
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Comentario<span class="symbol required"></span>
+                                </label>
+                                <textarea id="comentario" name="comentario" class="form-control" placeholder="Comentario de la Anulación" required autocomplete="off"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Gasto")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            $("a[rel='thumbs']").fancybox(
+            {
+                type: "image"
+            });
+        });
+    </script>
+}

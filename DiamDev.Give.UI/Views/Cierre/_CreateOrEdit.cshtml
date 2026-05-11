@@ -1,0 +1,118 @@
+﻿@model DiamDev.Give.Entities.CierreCajaModelxCajero
+
+<div class="row">
+    <div class="col-md-12">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Forma</th>
+                    <th>Cantidad</th>                    
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Formas != null && Model.Formas.Count() > 0)
+                {
+                    if (!Model.Operado)
+                    {
+                        foreach (var Detalle in Model.Formas)
+                        {
+                            <tr>
+                                <td>
+                                    @Detalle.Nombre
+                                    <input type="hidden" name="formaPagoIDs" value="@Detalle.FormaPagoId" />
+                                </td>
+                                <td>
+                                    <input class="form-control" type="number" name="cantidadCajeroIDs" value="0" />
+                                    <input type="hidden" name="cantidadSistemaIDs" value="@Detalle.Valor" />
+                                </td>                               
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="2">
+                                <strong>Le informamos que ya genero su cierre, por lo tanto no puede visualizar los pagos</strong>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="2">
+                            <strong>No contiene pagos</strong>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Total de Gastos<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                <input type="text" placeholder="Total de Gastos" class="form-control" value="@Model.TotalGastos" autocomplete="off" disabled="disabled" required />
+                <input type="hidden" name="gastoIDs" value="@Model.TotalGastos" />
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Total de Retiros<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                <input type="text" placeholder="Total de Retiros" class="form-control" value="@Model.TotalRetiros" autocomplete="off" disabled="disabled" required />
+                <input type="hidden" name="retiroIDs" value="@Model.TotalRetiros" />
+            </div>
+        </div>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>#Cierre</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Cajero</th>                   
+                    <th>Monto Sistema</th>
+                    <th>Monto Cajero</th>
+                    <th>Faltante</th>
+                    <th>Sobrante</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var Cierre in Model.Cierres)
+                {
+                    <tr>
+                        <td>@(Cierre.CierreId)</td>
+                        <td>@Cierre.Fecha.ToString("dd/MM/yyyy")</td>
+                        <td>@(Cierre.FechaHora == null ? "00:00" : Cierre.FechaHora.ToString("hh:mm tt"))</td>
+                        <td>@(Cierre.Cajero == null ? "No Disponible" : Cierre.Cajero.Nombre)</td>
+                        <td>@(Cierre.Detalles == null ? "Q0.0000" : Cierre.Detalles.Sum(x => x.MontoSistema).ToString("C4"))</td>
+                        <td>@(Cierre.Detalles == null ? "Q0.0000" : Cierre.Detalles.Sum(x => x.MontoCajero).ToString("C4"))</td>
+                        <td>@Model.Faltante.ToString("C4")</td>
+                        <td>@Model.Sobrante.ToString("C4")</td>
+                        <td class="center">
+                            <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                <a href="@Url.Action("Boleta", "Cierre", new { id = Cierre.CierreId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Cierre de Caja"><i class="clip-file-pdf"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

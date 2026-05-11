@@ -1,0 +1,156 @@
+﻿@model DiamDev.Give.Entities.CorteCajaHistorial
+
+@{
+    ViewBag.Title = "Historial";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Recibos
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Recibo</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Total</th>                            
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Recibo in Model.Recibos)
+                        {
+                            <tr>
+                                <td>@Recibo.ReciboId</td>
+                                <td>@Recibo.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@(Recibo.FechaHoraRecibo == null ? "00:00" : Recibo.FechaHoraRecibo.Value.ToString("hh:mm tt"))</td>
+                                <td>@(Recibo.Cliente == null ? "No Disponible" : Recibo.Cliente.Nombre)</td>
+                                <td>@(Recibo.Detalles == null ? 0 : (Recibo.Anulada ? 0 : Recibo.Detalles.Count()))</td>
+                                <td>@(Recibo.Detalles == null ? "Q0.0000" : (Recibo.Anulada ? "Q0.0000" : Recibo.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4")))</td>                                
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Abonos
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Recibo</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Abono</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Recibo in Model.Abonos)
+                        {
+                            <tr>
+                                <td>@Recibo.ReciboId</td>
+                                <td>@Recibo.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@(Recibo.FechaHoraRecibo == null ? "00:00" : Recibo.FechaHoraRecibo.Value.ToString("hh:mm tt"))</td>
+                                <td>@(Recibo.Cliente == null ? "No Disponible" : Recibo.Cliente.Nombre)</td>
+                                <td>@(Recibo.Detalles == null ? 0 : (Recibo.Anulada ? 0 : Recibo.Detalles.Count()))</td>
+                                <td>@(Recibo.Pagos == null ? "Q0.0000" : (Recibo.Anulada ? "Q0.0000" : Recibo.Pagos.Sum(x => x.Valor).ToString("C4")))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Gastos
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>                                
+                                <th>Categoria</th>
+                                <th>Fecha</th>
+                                <th>Concepto</th>
+                                <th>#Documento</th>
+                                <th>Monto</th>                                
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var Gasto in Model.Gastos)
+                            {
+                                <tr>                                   
+                                    <td>@(Gasto.Categoria == null ? "No Disponible" : Gasto.Categoria.Nombre)</td>
+                                    <td>@Gasto.FechaFactura.ToString("dd/MM/yyyy")</td>
+                                    <td>@Gasto.Concepto</td>
+                                    <td>@Gasto.Documento</td>
+                                    <td>@Gasto.Monto.ToString("C4")</td>                                    
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+

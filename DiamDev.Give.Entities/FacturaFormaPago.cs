@@ -11,15 +11,18 @@ namespace DiamDev.Give.Entities
     [Table("Factura_Forma_Pago")]
     public class FacturaFormaPago
     {
-        [Key, Column(name: "Factura_Id", Order = 0)]
+        [Key, Column(name: "Detalle_Id", Order = 0)]
+        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        public int DetalleId { get; set; }
+
+        [Key, Column(name: "Factura_Id", Order = 1)]
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         public long FacturaId { get; set; }
 
         [ForeignKey("FacturaId")]
         public Factura Factura { get; set; }
 
-        [Key, Column(name: "Forma_Pago_Id", Order = 1)]
-        [DatabaseGenerated(DatabaseGeneratedOption.None)]
+        [Column("Forma_Pago_Id")]
         public long FormaPagoId { get; set; }
 
         [ForeignKey("FormaPagoId")]
@@ -28,5 +31,13 @@ namespace DiamDev.Give.Entities
         public decimal Valor { get; set; }
 
         public string Nota { get; set; }
+
+        public DateTime Fecha { get; set; }
+
+        [Column("Usr_Operacion_Id")]
+        public long UsrOperacionId { get; set; }
+
+        [ForeignKey("UsrOperacionId")]
+        public Usuario UsuarioOperacion { get; set; }
     }
 }

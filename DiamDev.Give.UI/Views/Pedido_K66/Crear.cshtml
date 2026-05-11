@@ -1,0 +1,1183 @@
+﻿@model DiamDev.Give.Entities.PedidoK66
+
+@{
+    ViewBag.Title = "Nuevo Pedido K66";
+}
+
+<div class="row">
+    <div class="col-md-12">       
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nuevo Pedido K66
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nuevo Pedido K66</h2>
+                <p>
+                    Crea un nuevo pedido k66.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                            <input type="hidden" id="FechaPrometida" name="FechaPrometida" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>                        
+                    </div>
+                    @Html.Partial("_CreateOrEdit")
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>        
+    </div>
+</div>
+
+<div id="seleccionar-cliente-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Cliente</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="cliente_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-cliente" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<div id="seleccionar-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Producto</h4>
+    </div>
+    <div class="modal-body">      
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>                        
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="producto_seleccionado_tbody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<div id="existencia-producto-form" class="modal fade" tabindex="-1" data-width="750" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Producto</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+          <div class="col-md-12">
+              <div id="divExistencias"></div>
+          </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-existencia-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="producto_tr_template">
+        <tr>
+            <td>{{producto}}</td>
+            <td>{{unidad}}</td>
+            <td>{{bodega}}</td>
+            <td>{{cantidad}}</td>
+            <td>Q{{precio}}</td>
+            <td>Q{{sub_total}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="productoIds" value="{{producto_id}}" />
+                <input type="hidden" name="nombreProductoIds" value="{{producto}}" />
+                <input type="hidden" name="unidadIds" value="{{unidad}}" />
+                <input type="hidden" name="existenciaIds" value="{{existencia_id}}" />
+                <input type="hidden" name="cantidadIds" value="{{cantidad_id}}" />
+                <input type="hidden" name="precioIds" value="{{precio_id}}" />
+                <input type="hidden" name="precioOriginalIds" value="{{precio_original_id}}" />
+                <input type="hidden" name="precioCambiadoIds" value="{{precio_cambiado_id}}" />
+                <input type="hidden" name="descuentoIds" value="{{descuento}}" />
+                <input type="hidden" name="bodegaIds" value="{{bodega}}" />
+            </td>
+        </tr>
+    </script>
+  
+    <script type="text/javascript">
+
+    var vCliente = "";
+    var vCodBarra = "";
+
+    var productoIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
+    var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombreProductoIds))');
+    var unidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.unidadIds))');
+    var existenciaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.existenciaIds))');
+    var cantidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.cantidadIds))');
+    var precioSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioIds))');
+    var precioOriginalSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioOriginalIds))');
+    var precioCambiadoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioCambiadoIds))');
+    var descuentoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.descuentoIds))');
+    var bodegaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.bodegaIds))');
+
+    var clienteIds = "@Html.Raw(ViewBag.ClienteIds)";
+    var direccionIds = "@Html.Raw(ViewBag.DireccionIds)";
+    var tipoPedidoIds = "@Html.Raw(ViewBag.TipoPedidoIds)";
+
+    var unidadPermisoIds = "@Html.Raw(ViewBag.Unidad)";
+
+    $(function ()
+    {
+        $("#divFechaEntrega").hide();
+
+        //$('#UnidadId').prop('disabled', 'disabled');
+
+        //if (unidadPermisoIds === "1")
+        //{
+        //    $('#UnidadId').removeAttr('disabled');
+        //}
+
+        $("#divCredito").hide();
+        $("#divMostrarExistencia").hide();
+
+        $("#DescuentoK66Id").val(0).trigger("change");
+
+        $("#divPrecioNegociado").hide();
+        $("#divDescuento").hide();
+
+        $('#InventarioTotal').val("0");
+        $('#InventarioComprometido').val("0");
+        $("#Existencia").val("0");
+
+        if (clienteIds !== "0")
+        {
+            var modelo =
+            {
+                'ID': clienteIds
+            };
+
+            cargaClienteSeleccionado(modelo);
+        }
+
+         $("#BuscarCliente").autocomplete({
+            source: function (request, response)
+            {
+                $.ajax({
+                    url: '@Url.Action("ConsultaClienteK66", "Cliente")',
+                    type: "POST",
+                    dataType: "json",
+                    data: { search: request.term, 'empresaId': $("#EmpresaId").val() },
+                    success: function (data)
+                    {
+                        response($.map(data, function (item)
+                        {
+                            return { label: item.Nombre, value: item.Nombre };
+                        }))
+                    }
+                })
+            },
+            messages:
+            {
+                noResults: "", results: ""
+            }
+        });
+
+        $('#formaprincipal').keydown(function (evt)
+        {
+            if ($('#BuscarCliente').is(":focus") && (evt.which || evt.keyCode) == 13)
+            {
+                cargaBusquedaCliente(evt)
+            }
+        });
+
+        $('#btnBuscarCliente').click(function (evt)
+        {
+            cargaBusquedaCliente(evt);
+        });
+
+        function cargaBusquedaCliente(evt)
+        {
+            evt.preventDefault();
+
+            if ($('#BuscarCliente').val() === "")
+            {
+                error("Ingresar Nit o Nombre del Cliente");
+                $('#BuscarCliente').focus();
+                return;
+            }
+
+            var clienteActual = $('#BuscarCliente').val();
+            clienteActual = clienteActual.replace(" ", "_");
+
+            $.ajax({
+                url: '@Url.Action("ObtenerClientexTextoLibreK66", "Cliente")',
+                traditional: true,
+                data: { 'search': clienteActual, 'empresaId': $("#EmpresaId").val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData)
+                {
+                    if (resultData !== null)
+                    {
+                        if (resultData.Operacion)
+                        {
+                            if (resultData.Data.length === 1)
+                            {
+                                cargaClienteSeleccionado(resultData.Data[0]);
+                            }
+                            else if (resultData.Data.length > 1)
+                            {
+                                var fila = "";
+                                for (var i = 0; i < resultData.Data.length; i++)
+                                {
+                                    fila += "<tr><td>" + resultData.Data[i].ID + "</td>";
+                                    fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                    fila += "<td><a href='" + resultData.Data[i].ID + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                }
+
+                                $("#seleccionar-cliente-form").modal();
+                                $("#seleccionar-cliente-form").find("#cliente_seleccionado_tbody").html(fila);
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('El cliente ingresado no es correcto');
+                        }
+                    }
+                    else
+                    {
+                        toastr.error('Ocurrió un error, al visualizar al cliente');
+                        $('#BuscarCliente').val("");
+                        $('#BuscarCliente').focus();
+                    }
+                }
+            });
+        }
+
+        $('#cliente_seleccionado_tbody').delegate("a", "click", function (e)
+        {
+            e.preventDefault();
+
+            $('#btn-close-up-seleccionar-cliente').click();
+            var clienteReferencia = $(this).attr("href");
+            var clienteActual = clienteReferencia.split(",");
+
+            var modelo =
+                {
+                    'ID': clienteActual[0],
+                    'Nombre': clienteActual[1]
+                };
+
+            cargaClienteSeleccionado(modelo);
+        });
+
+        function cargaClienteSeleccionado(cliente)
+        {
+            var clienteSeleccionado = obtenerClientexID(cliente.ID);
+
+            if (clienteSeleccionado !== null)
+            {
+                $('#NombreCliente').val(clienteSeleccionado.Nombre);
+                $("#DireccionCliente").val(clienteSeleccionado.Direccion);
+
+                $('#IDK66').val(clienteSeleccionado.ID);
+                $('#Nit').val(clienteSeleccionado.Nit);
+                $('#Nombre').val(clienteSeleccionado.Nombre);
+
+                if (clienteSeleccionado.ID == "CL0400" ||
+                    clienteSeleccionado.ID == "CL0401" ||
+                    clienteSeleccionado.ID == "CL0162" ||
+                    clienteSeleccionado.ID == "CL0163" ||
+                    clienteSeleccionado.ID == "CL0148" ||
+                    clienteSeleccionado.ID == "CL0149") {
+
+                    $('#Nit').prop('disabled', false);
+                    $('#Nombre').prop('disabled', false);
+                    $('#Direccion').prop('disabled', false);
+                    $('#Direccion').css({
+                        'background-color': 'white',
+                    });
+                    $('#Nit').css({
+                        'background-color': 'white',
+                    });
+                    $('#Nombre').css({
+                        'background-color': 'white',
+                    });
+                } else {//
+                    $('#Nit').prop('disabled', false);
+                    $('#Nombre').prop('disabled', false);
+                    $('#Direccion').prop('disabled', false);
+                    $('#Nit').css({
+                        'background-color': '#E2DDDC',
+                    });
+                    $('#Nombre').css({
+                        'background-color': '#E2DDDC',
+                    });
+                    $('#Direccion').css({
+                        'background-color': '#E2DDDC',
+                    });
+                }
+
+                $('#Direccion').val(clienteSeleccionado.Direccion);
+                $('#DireccionEntrega').val(clienteSeleccionado.Direccion);
+
+                $('#EstadoCredito').val(clienteSeleccionado.EstadoCredito);
+                $('#LimiteCredito').val(clienteSeleccionado.LimiteCredito);
+                $('#SaldoActual').val(clienteSeleccionado.SaldoActual);
+                $('#CreditoDisponible').val(clienteSeleccionado.CreditoDisponible);
+                $('#DiasCobroSemana').val(clienteSeleccionado.DiasCobroSemana);
+                $('#DiasCobroFinSemana').val(clienteSeleccionado.DiasCobroFinSemana);
+
+                $('#TotalPedidoPendientes').val(clienteSeleccionado.E2);
+                $('#TotalListaEmpaque').val(clienteSeleccionado.E3);
+
+                $('#TerminoEntrega').val(clienteSeleccionado.TerminoEntrega);
+                $('#Vendedor').val(clienteSeleccionado.Vendedor);
+                $('#ImpuestoTAX').val(clienteSeleccionado.Impuesto);
+                $('#Moneda').val(clienteSeleccionado.Moneda);
+
+                $('#E1').val(clienteSeleccionado.E1);
+                $('#E2').val(clienteSeleccionado.E2);
+                $('#E3').val(clienteSeleccionado.E3);
+                $('#E4').val(clienteSeleccionado.E4);
+
+                if (clienteSeleccionado.EstadoCredito.trim() == 'APPROVED')
+                {
+                    $('#divCredito').css('color', '#009E08');
+                }
+                else
+                {
+                    $('#divCredito').css('color', '#ED0000');
+                }
+
+                $('#divCredito').css('fontSize', '15px');
+                $('#divCredito').css('text-align', 'center');
+                $("#divCredito").css("font-weight", "bold");
+
+                $("#divCredito").show();
+
+                var DireccionSelect = $("#DireccionId");
+                DireccionSelect.empty();
+                DireccionSelect.append('<option value="">--Seleccione una Direccion--</option>');
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerDireccionxClienteId", "Cliente")',
+                    data: { 'id': $('#IDK66').val(), 'empresaId': $('#EmpresaId').val() },
+                    traditional: true,
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        DireccionSelect.empty();
+                        $.each(data, function (j)
+                        {
+                            DireccionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                            if (j == 0) {
+                                DireccionSelect.val(data[0]['Value']).trigger("change");;
+                            }
+                        });
+                    }
+                });
+
+                if (direccionIds !== "")
+                {
+                    $("#DireccionId").val(direccionIds).trigger("change");
+                }
+            }
+
+            vCliente = $('#BuscarCliente').val();
+            $('#DireccionId').focus();
+        }
+
+        $("#DireccionId").change(function (evt)
+        {
+            evt.preventDefault();
+
+            $('#DireccionEntrega').val($('#DireccionId option:selected').text());
+
+			 $('#Barra').focus();
+        });
+
+        function obtenerClientexID(id)
+        {
+            var cliente = null;
+
+            $.ajax({
+                url: '@Url.Action("ObtenerPorIDK66", "Cliente")',
+                data: { 'id': id, 'empresaId': $("#EmpresaId").val() },
+                async: false,
+                type: 'GET',
+                success: function (data)
+                {
+                    if (!data.Operacion)
+                    {
+                        toastr.error('Ocurrió un error, al obtener datos del cliente');
+                        return;
+                    }
+
+                    cliente = data.Data;
+                },
+                fail: function (data)
+                {
+                    toastr.error('Ocurrió un error, al obtener datos del cliente');
+                }
+            });
+
+            return cliente;
+        }
+
+        function error(texto)
+        {
+            toastr.error(texto);
+        }
+
+        function cargaProducto(producto_id, producto, unidad, existencia_id, cantidad_id, precio_id, precio_original_id, precio_cambiado_id, descuento, bodega)
+        {
+            var plantilla = $('#producto_tr_template').html();
+
+            var modelo =
+            {
+                producto_id: producto_id,
+                producto: producto,
+                unidad: unidad,
+                bodega: bodega,
+                existencia_id: existencia_id,
+                cantidad_id: cantidad_id,
+                cantidad: cantidad_id,
+                precio_id: precio_id.toFixed(2),
+                precio: precio_id.toFixed(2),
+                precio_original_id: precio_original_id,
+                precio_cambiado_id: precio_cambiado_id,
+                descuento: descuento,
+                sub_total: (precio_id * cantidad_id).toFixed(2)
+            };
+
+            var filaHtml = Mustache.render(plantilla, modelo);
+
+            // agregamos la nueva fila a la tabla.
+            $('#producto_tbody').append(filaHtml);
+        }
+
+        renderizarProductosIniciales();
+
+        $('#btn-agregar').click(function (e)
+        {
+            e.preventDefault();
+
+            var producto_id = $('#ProductoId').val();
+            var producto = $('#Producto').val();
+
+            if (producto_id === "" || producto === "")
+            {
+                error("Seleccione un producto");
+                return;
+            }
+
+            //var unidad_id = $('#UnidadId').val();
+            var unidad = $('#empaque').val();
+
+            if (unidad === "")
+            {
+                error("Seleccione una unidad");
+                return;
+            }
+
+            var cantidad_id = $('#Cantidad').val();
+
+            if (cantidad_id === "")
+            {
+                error("Ingrese la cantidad del producto");
+                return;
+            }
+
+            var precio_id = $('#PrecioActual').val();
+            precio_id = parseFloat(precio_id);
+
+            
+
+            var existencia_id = parseFloat($('#Existencia').val());
+            cantidad_id = parseFloat(cantidad_id);
+
+            var precioOriginal = precio_id;
+            var precioCambio = false;
+
+            var descuentoK66Id = $('#DescuentoK66Id').val();
+            descuentoK66Id = parseInt(descuentoK66Id);
+
+            var descuentoGeneral = 0;
+
+            if (descuentoK66Id === 1)
+            {
+                var descuentoManual = $('#PrecioNegociadoActual').val();
+                descuentoManual = parseFloat(descuentoManual);
+
+                precioCambio = true;
+                precio_id = descuentoManual;
+            }
+            else if (descuentoK66Id === 2)
+            {
+                var descuentoManual = $('#DescuentoActual').val();
+                descuentoManual = parseFloat(descuentoManual);
+
+                descuentoGeneral = descuentoManual;
+
+                if (descuentoManual !== 0)
+                {
+                    descuentoManual = descuentoManual / 100;
+                }
+
+                precioCambio = false;
+                precio_id = precio_id - (precio_id * descuentoManual);
+            }
+
+            if (precio_id === 0 && precioCambio === false && descuentoGeneral < 100) {
+                error("Ingrese el precio del producto");
+                return;
+            }
+
+            var BodegaSelect = $("#WarehouseId");
+            var bodega = BodegaSelect.val();
+
+            if (bodega === "") {
+                error("Ingrese la bodega");
+                return;
+            }
+            
+            $.ajax({
+                url: '@Url.Action("ObtenerContadorBodegasPorProducto", "Producto")',
+                traditional: true,
+                data: { 'ItemCode': producto_id,'Bodega': bodega, 'empresaId': $("#EmpresaId").val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData)
+                {
+                    if (resultData !== null)
+                    {
+                        if (resultData.Operacion)
+                        {
+                            var contador = resultData.Data.Contador;
+                            if (contador > 0) {
+                                cargaProducto(producto_id, producto, unidad, existencia_id, cantidad_id, precio_id, precioOriginal, precioCambio, descuentoGeneral, bodega);
+                                totalizarProducto();
+
+                                $("#divMostrarExistencia").hide();
+
+                                $("#DescuentoK66Id").val(0).trigger("change");
+                                $("#divPrecioNegociado").hide();
+                                $("#divDescuento").hide();
+
+                                $("#WarehouseId").empty();
+                                $("#WarehouseId").append('<option value="">--Seleccione Bodega</option>');
+
+                                $("#WarehouseId").val("");
+                                $("#empaque").val("");
+                                //$("#UnidadId").empty();
+                                //$("#UnidadId").append('<option value="0">--Seleccione una Unidad de Empaque--</option>');
+                                //$("#UnidadId").val(0).trigger("change");
+
+                                $("#PrecioNegociadoActual").val("");
+                                $("#DescuentoActual").val("");
+
+                                $("#ProductoId").val(0);
+                                $("#Cantidad").val("1");
+                                $('#InventarioTotal').val("0");
+                                $('#InventarioComprometido').val("0");
+                                $("#Existencia").val("0");
+                                $("#PrecioActual").val("");
+                                $("#Unidad").val("");
+                                $("#UnidadOriginal").val("");
+                                $("#Producto").val("");
+                                $("#Barra").val("");
+                                $("#Barra").focus();
+                            } else
+                            {
+                                toastr.error('El producto no esta asociado a la bodega en Sap.');
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('El producto no esta asociado a la bodega en Sap.');
+                        }
+                    }
+                    else
+                    {
+                        toastr.error('Ocurrió un error, al consultar estado de bodega para el producto');
+                    }
+                }
+            });
+            
+        });
+
+        $('#producto_tbody').delegate("a", "click", function (e)
+        {
+            e.preventDefault();
+            $(this).parent().parent().remove();
+
+            totalizarProducto();
+        });
+
+        function renderizarProductosIniciales()
+        {
+            if (productoIdSeleccionados == null)
+            {
+                return;
+            }
+
+            // recorremos los productos que haya ingresado el usuario
+            for (var i = 0; i < productoIdSeleccionados.length; i++)
+            {
+                var producto_id = productoIdSeleccionados[i];
+                var producto = productoSeleccionados[i];
+                var unidad = unidadSeleccionados[i];
+
+                var existencia_id = existenciaSeleccionados[i];
+                var cantidad_id = cantidadSeleccionados[i];
+                var precio_id = precioSeleccionados[i];
+
+                var precio_original_id = precioOriginalSeleccionados[i];
+                var precio_cambiado_id = precioCambiadoSeleccionados[i];
+
+                var descuento_id = descuentoSeleccionados[i];
+
+                var bodega_id = bodegaSeleccionados[i];
+
+                cargaProducto(producto_id, producto, unidad, existencia_id, cantidad_id, precio_id, precio_original_id, precio_cambiado_id, descuento_id, bodega_id);
+            }
+
+            totalizarProducto();
+        }
+
+        function totalizarProducto()
+        {
+            var cantidadArray = new Array();
+            $('input[name=cantidadIds]').each(function ()
+            {
+                cantidadArray.push(parseFloat($(this).val()));
+            });
+
+            var precioArray = new Array();
+            $('input[name=precioIds]').each(function ()
+            {
+                precioArray.push(parseFloat($(this).val()));
+            });
+
+            var total = 0;
+
+            if (cantidadArray.length > 0 && precioArray.length > 0)
+            {
+                for (var i = 0; i < cantidadArray.length; i++)
+                {
+                    total += cantidadArray[i] * precioArray[i];
+                }
+
+                $('#Total').html('Q' + total.toFixed(4));
+            }
+            else
+            {
+                $('#Total').html('Q' + total.toFixed(4));
+            }
+        }
+
+        $("#Barra").autocomplete({
+            source: function (request, response)
+            {
+                $.ajax({
+                    url: '@Url.Action("ConsultaProductoAutocomplementarK66", "Producto")',
+                    type: "POST",
+                    dataType: "json",
+                    data: { search: request.term, 'clienteId': $("#IDK66").val(), 'empresaId': $("#EmpresaId").val() },
+                    success: function (data)
+                    {
+                        response($.map(data, function (item)
+                        {
+                            return { label: item.Nombre, value: item.Nombre };
+                        }))
+                    }
+                })
+            },
+            messages:
+            {
+                noResults: "", results: ""
+            }
+        });
+
+        $('#formaprincipal').keydown(function (evt)
+        {
+            if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13)
+            {
+                cargaBusquedaProducto(evt)
+            }
+            else if ($('#Cantidad').is(":focus") && (evt.which || evt.keyCode) == 13)
+            {
+                cargaPrecioxCantidad(evt);
+            }
+        });
+
+        /*
+        Evento click para el boton de busqueda de productos */
+        $('#btnBarra').click(function (evt)
+        {
+            cargaBusquedaProducto(evt);
+        });
+
+        $('#producto_seleccionado_tbody').delegate("a", "click", function (e)
+        {
+            e.preventDefault();
+
+            $('#btn-close-up-seleccionar-producto').click();
+            var productoReferencia = $(this).attr("href");
+            var productoActual = productoReferencia.split(",");
+
+            var modelo =
+             {
+                'ID': productoActual[0],
+                'Unidad': productoActual[1],
+                'Nombre': productoActual[2]
+             };
+
+            cargaProductoSeleccionado(modelo);
+        });
+
+        /*
+        Función para la busqueda de productos */
+        function cargaBusquedaProducto(evt)
+        {
+            evt.preventDefault();
+
+            if ($('#Barra').val() === "")
+            {
+               // error("Ingresar codigo de barra");
+                $('#Barra').focus();
+                return;
+            }
+
+            if (vCodBarra === $('#Barra').val())
+            {
+                vAumentaCantidad = parseInt($('#Cantidad').val()) + 1;
+                $('#Cantidad').val(vAumentaCantidad);
+            }
+            else
+            {
+                $('#Cantidad').val(1);
+            }
+
+            var barraActual = $('#Barra').val();
+
+            $.ajax({
+                url: '@Url.Action("ObtenerProductoxTextoLibreK66", "Producto")',
+                traditional: true,
+                data: { 'search': barraActual, 'clienteId': $("#IDK66").val(), 'empresaId': $("#EmpresaId").val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData)
+                {
+                    if (resultData !== null)
+                    {
+                        if (resultData.Operacion)
+                        {
+                            if (resultData.Data.length === 1)
+                            {
+                                cargaProductoSeleccionado(resultData.Data[0]);
+                            }
+                            else if (resultData.Data.length > 1)
+                            {
+                                var fila = "";
+                                for (var i = 0; i < resultData.Data.length; i++)
+                                {
+                                    fila += "<tr><td>" + resultData.Data[i].ID + "</td>";
+                                    fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                    fila += "<td><a href='" + resultData.Data[i].ID + "," + resultData.Data[i].Unidad + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                }
+
+                                $("#seleccionar-producto-form").modal();
+                                $("#seleccionar-producto-form").find("#producto_seleccionado_tbody").html(fila);
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('La barra del producto ingresada no es correcta');
+                            $('#Barra').val("");
+                            $('#Barra').focus();
+                        }
+                    }
+                    else
+                    {
+                        toastr.error('Ocurrió un error, al visualizar el producto');
+                        $('#Barra').val("");
+                        $('#Barra').focus();
+                    }
+                }
+            });
+        }
+
+        function cargaPrecioxCantidad(evt)
+        {
+            evt.preventDefault();
+
+            if ($('#Cantidad').val() === "")
+            {
+                error("Ingresar cantidad de producto");
+                $('#Cantidad').focus();
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("ObtenerPrecioxCantidad", "Producto")',
+                data: { 'id': $('#ProductoId').val(), 'clienteId': $("#IDK66").val(), 'cantidad': $("#Cantidad").val(), 'empresaId': $("#EmpresaId").val() },
+                async: false,
+                type: 'GET',
+                success: function (data)
+                {
+                    if (!data.Operacion)
+                    {
+                        toastr.error('Ocurrió un error, al obtener el precio del producto');
+                        return;
+                    }
+
+                    if (data.Data.Precio > 0)
+                    {
+                        $("#PrecioActual").val(data.Data.Precio);
+                    }
+                },
+                fail: function (data)
+                {
+                    toastr.error('Ocurrió un error, al obtener el precio del producto');
+                }
+            });
+        }
+
+        function cargaProductoSeleccionado(producto)
+        {
+            var productoSeleccionado = obtenerProductoxID(producto.ID, producto.Unidad);
+
+            if (productoSeleccionado !== null)
+            {
+                $("#DescuentoK66Id").val(0).trigger("change");
+                $("#divPrecioNegociado").hide();
+                $("#divDescuento").hide();
+
+                if (productoSeleccionado.Descuento > 0) {
+                    $("#DescuentoK66Id").val(2);
+                    $("#DescuentoActual").val(productoSeleccionado.Descuento);
+                    $("#divDescuento").show();
+                } else {
+                    $("#DescuentoK66Id").val(0);
+                    $("#DescuentoActual").val("");
+                    $("#divDescuento").hide();
+                }
+
+                //$("#UnidadId").empty();
+                //$("#UnidadId").append('<option value="0">--Seleccione una Unidad de Empaque--</option>');
+                //$("#UnidadId").val(0).trigger("change");
+
+                $("#PrecioNegociadoActual").val("");
+
+                $('#empaque').val(productoSeleccionado.Unidad);
+                $('#InventarioTotalOriginal').val(productoSeleccionado.InventarioTotal);
+                $('#InventarioComprometidoOriginal').val(productoSeleccionado.InventarioComprometido);
+                $('#InventarioDisponibleOriginal').val(productoSeleccionado.InventarioDisponible);
+                $('#PrecioOriginal').val(productoSeleccionado.Precio);
+
+                $('#UnidadOriginal').val(productoSeleccionado.Unidad);
+                $('#InventarioTotal').val(productoSeleccionado.InventarioTotal);
+                $('#InventarioComprometido').val(productoSeleccionado.InventarioComprometido);
+                $('#Existencia').val(productoSeleccionado.InventarioDisponible);
+                $('#PrecioActual').val(productoSeleccionado.Precio);
+                $('#Producto').val(productoSeleccionado.Descripcion);
+                $('#ProductoId').val(productoSeleccionado.ID);
+
+                //var UnidadSelect = $("#UnidadId");
+                //UnidadSelect.empty();
+                //UnidadSelect.append('<option value="">--Seleccione una Unidad de Empaque--</option>');
+
+                var BodegaSelect = $("#WarehouseId");
+                BodegaSelect.empty();
+                BodegaSelect.append('<option value="">--Seleccione Bodega</option>');
+                BodegaSelect.val("").trigger("change");
+
+                @*$.ajax({
+                    url: '@Url.Action("ObtenerUnidadxConversion", "Unidad")',
+                    data: { 'id': productoSeleccionado.Unidad, 'empresaId': $('#EmpresaId').val() },
+                    traditional: true,
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        $.each(data, function (j)
+                        {
+                            UnidadSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                        });
+                    }
+                });*@
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerBodegasPorProducto", "Producto")',
+                    data: { 'id': producto.ID, 'empresaId': $('#EmpresaId').val() },
+                    traditional: true,
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        $.each(data, function (j)
+                        {
+                            BodegaSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                        });
+
+                        if (data.length > 0) {
+                            BodegaSelect.val(data[0]['Value']).trigger("change");
+                        }
+                    }
+                });
+
+                //$("#Unidad").val(productoSeleccionado.Unidad);
+                //$("#UnidadId").val(0).trigger("change");
+            }
+
+            $('#Barra').focus();
+            vCodBarra = $('#Barra').val();
+
+            $("#divMostrarExistencia").show();
+        }
+
+        @*$("#UnidadId").change(function (evt)
+        {
+            evt.preventDefault();
+
+            if ($("#UnidadId").val() > 0)
+            {
+                $("#Unidad").val($('#UnidadId option:selected').text());
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerUnidadxId", "Unidad")',
+                    data: { 'id': $("#UnidadId").val(), 'empresaId': $("#EmpresaId").val() },
+                    async: false,
+                    type: 'GET',
+                    success: function (data) {
+                        if (!data.Operacion) {
+                            toastr.error('Ocurrió un error, al obtener datos del conversion');
+                            return;
+                        }
+
+                        let conversion = data.Data;
+                        if (conversion != null) {
+                            if ($("#UnidadOriginal").val() === conversion.FROM_UM) {
+                                $('#InventarioTotal').val(($('#InventarioTotalOriginal').val() * conversion.CONVERSION_FACTOR).toFixed(2));
+                                $('#InventarioComprometido').val(($('#InventarioComprometidoOriginal').val() * conversion.CONVERSION_FACTOR).toFixed(2));
+                                $('#Existencia').val(($('#InventarioDisponibleOriginal').val() * conversion.CONVERSION_FACTOR).toFixed(2));
+
+                                $('#PrecioActual').val(($('#PrecioOriginal').val() / conversion.CONVERSION_FACTOR).toFixed(2));
+                            }
+                            else if ($("#UnidadOriginal").val() === conversion.TO_UM) {
+                                $('#InventarioTotal').val(($('#InventarioTotalOriginal').val() / conversion.CONVERSION_FACTOR).toFixed(2));
+                                $('#InventarioComprometido').val(($('#InventarioComprometidoOriginal').val() / conversion.CONVERSION_FACTOR).toFixed(2));
+                                $('#Existencia').val(($('#InventarioDisponibleOriginal').val() / conversion.CONVERSION_FACTOR).toFixed(2));
+
+                                $('#PrecioActual').val(($('#PrecioOriginal').val() * conversion.CONVERSION_FACTOR).toFixed(2));
+                            }
+                        }
+                    },
+                    fail: function (data) {
+                        toastr.error('Ocurrió un error, al obtener datos del conversion');
+                    }
+                });
+            }
+            else
+            {
+                $('#InventarioTotal').val($('#InventarioTotalOriginal').val());
+                $('#InventarioComprometido').val($('#InventarioComprometidoOriginal').val());
+                $('#Existencia').val($('#InventarioDisponibleOriginal').val());
+
+                $('#PrecioActual').val($('#PrecioOriginal').val());
+            }
+        });*@
+
+        $('#btn-validar-precio').click(function (evt) {
+            cargaPrecioxCantidad(evt);
+        });
+
+        function obtenerProductoxID(id, unidad)
+        {
+            var producto = null;
+
+            $.ajax({
+                url: '@Url.Action("ObtenerPorIDK66", "Producto")',
+                data: { 'id': id, 'unidad': unidad, 'clienteId': $("#IDK66").val(), 'direccionId': $("#DireccionId").val(), 'empresaId': $("#EmpresaId").val(), 'cantidad': $("#Cantidad").val() },
+                async: false,
+                type: 'GET',
+                success: function (data)
+                {
+                    if (!data.Operacion)
+                    {
+                        toastr.error('Ocurrió un error, al obtener datos del producto');
+                        return;
+                    }
+
+                    producto = data.Data;
+                },
+                fail: function (data)
+                {
+                    toastr.error('Ocurrió un error, al obtener datos del producto');
+                }
+            });
+
+            return producto;
+        }
+
+        cargaTipoPedidoxEmpresa($("#EmpresaId").val());
+
+        $("#EmpresaId").change(function (evt)
+        {
+            if ($(this).val() !== "")
+            {
+                cargaTipoPedidoxEmpresa($(this).val());
+            }
+        });
+
+        function cargaTipoPedidoxEmpresa(id)
+        {
+            var TipoPedidoSelect = $("#TipoPedidoId");
+            TipoPedidoSelect.empty();
+            TipoPedidoSelect.append('<option value="">--Seleccione un Tipo de Pedido--</option>');
+
+            $.ajax({
+                url: '@Url.Action("ObtenerTipoPedidoxEmpresa", "Pedido_K66")',
+                data: { 'id': id },
+                traditional: true,
+                async: false,
+                type: 'GET',
+                success: function (data)
+                {
+
+                    $.each(data, function (j)
+                    {
+                        TipoPedidoSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                    });
+                }
+            });
+
+            if (tipoPedidoIds !== "0")
+            {
+                $("#TipoPedidoId").val(tipoPedidoIds).trigger("change");
+            }
+        }
+
+        $("#btnExistencia").on("click", function (evt)
+        {
+            evt.preventDefault();
+
+            $("#divExistencias").load('@Url.Action("GetExistenciasxProducto", "Producto")?id=' + $('#ProductoId').val() + '&clienteId=' + $("#IDK66").val() + '&empresaId=' + $("#EmpresaId").val(), function ()
+            {
+                $("#existencia-producto-form").modal();
+            });
+        });
+
+        $("#DescuentoK66Id").change(function (evt)
+        {
+            evt.preventDefault();
+
+            $("#divPrecioNegociado").hide();
+            $("#divDescuento").hide();
+
+            if ($("#DescuentoK66Id").val() === "1")
+            {
+                $("#divPrecioNegociado").show();
+                $("#divDescuento").hide();
+            }
+            else if ($("#DescuentoK66Id").val() === "2")
+            {
+                $("#divPrecioNegociado").hide();
+                $("#divDescuento").show();
+            }
+        });
+
+        $("#TipoPedidoId").change(function (evt)
+        {
+            evt.preventDefault();
+
+            if ($("#TipoPedidoId").val() !== "")
+            {
+                $("#divFechaEntrega").hide();
+
+                var tipo = $("#TipoPedidoId").val();
+                if (tipo == "P") {
+                    $("#divFechaEntrega").show();
+                }
+            }
+        });
+
+        $("#FechaEntrega").change(function (evt)
+        {
+            evt.preventDefault();
+
+            if ($("#FechaEntrega").val() !== "")
+            {
+                $("#FechaPrometida").val($("#FechaEntrega").val());
+            }
+        });
+    });
+
+    </script>
+}
+

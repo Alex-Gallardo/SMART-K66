@@ -62,7 +62,8 @@
                         <tr>                            
                             <th>Agencia Origen</th>
                             <th>Agencia Destino</th>
-                            <th>Fecha</th>                            
+                            <th>Fecha</th>    
+                            <th>Descripción</th>                           
                             <th></th>
                         </tr>
                     </thead>
@@ -72,7 +73,8 @@
                             <tr>
                                 <td>@(Traslado.AgenciaOrigen == null ? "No Disponible" : Traslado.AgenciaOrigen.Nombre)</td>
                                 <td>@(Traslado.AgenciaDestino == null ? "No Disponible" : Traslado.AgenciaDestino.Nombre)</td>
-                                <td>@Traslado.Fecha.ToString("dd/MM/yyyy")</td>                              
+                                <td>@Traslado.Fecha.ToString("dd/MM/yyyy")</td>        
+                                <td>@(string.IsNullOrWhiteSpace(Traslado.Descripcion) ? "No contiene descripción" : Traslado.Descripcion)</td>                       
                                 <td class="center">
                                     <div class="visible-md visible-lg hidden-sm hidden-xs">
                                         <a href="@Url.Action("Detalle", "Traslado", new { id = Traslado.TrasladoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Traslado"><i class="clip-stack-empty"></i></a>

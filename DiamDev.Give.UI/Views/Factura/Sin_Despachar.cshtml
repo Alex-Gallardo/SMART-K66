@@ -1,0 +1,132 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Factura>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Factura x Despachar Listado";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Factura
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>         
+                            <th>Factura</th>
+                            <th>Vendedor</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="recibo_seleccionado_tbody">
+                        @foreach (var Factura in Model)
+                        {
+                            <tr>
+                                <td>@(string.Format("{0} - {1}", Factura.Serie.Nombre, Factura.NoFactura))</td>
+                                <td>@(Factura.Vendedor == null ? "No Disponible" : Factura.Vendedor.Nombre)</td>
+                                <td>@Factura.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@(Factura.FechaHoraFactura == null ? "00:00" : Factura.FechaHoraFactura.Value.ToString("hh:mm tt"))</td>     
+                                <td>@(Factura.Cliente == null ? "No Disponible" : Factura.Cliente.Nombre)</td>
+                                <td>@(Factura.Detalles == null ? 0 : (Factura.Anulada ? 0 : Factura.Detalles.Count()))</td>
+                                <td>@(Factura.Detalles == null ? "Q0.0000" : (Factura.Anulada ? "Q0.0000" : Factura.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4")))</td>
+                                <td class="center">                                   
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                      @if (!Factura.ProductoLote)
+                                      {
+                                        <a href="@Url.Action("Detalle", "Factura", new { id = Factura.FacturaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle de la Factura"><i class="clip-stack-empty"></i></a>
+                                        <a href="@Url.Action("Asignar_Transporte", "Factura", new { id = Factura.FacturaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Asignar Transporte"><i class="clip-truck"></i></a>
+                                          if (Factura.TransporteId != null)
+                                          {
+                                            <a href="javascript:void(0);" onclick="despachar('@Factura.FacturaId');" class="despachar btn btn-teal tooltips" data-placement="top" data-original-title="Despachar"><i class="clip-checkmark"></i></a>
+                                          }
+                                          if (Factura.Lotes != null && Factura.Lotes.Count() > 0)
+                                          {
+                                            <a href="@Url.Action("Boleta_Lote", "Factura", new { id = Factura.FacturaId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
+                                          }
+                                      }
+                                      else
+                                      {
+                                        <a href="@Url.Action("Asignar_Lote", "Factura", new { id = Factura.FacturaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Asignar Lote"><i class="icon-edit"></i></a>
+                                      }                                    
+                                    </div>                                                                  
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Sin_Despachar", new { page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            if ('@TempData["Factura_Asignar_Transporte-Success"]' == "OK")
+            {
+                toastr.success('El transporte se asigno exitosamente');
+            }
+            else if ('@TempData["Factura_Lote-Success"]' == "OK") {
+                toastr.success('El lote fue asignado exitosamente');
+            }
+        });
+
+        function despachar(id)
+        {
+            if (confirm("¿Desea despachar la factura?"))
+            {
+                $.ajax({
+                    url: '@Url.Action("ActualizarFacturaDespachado", "Factura")?facturaId=' + encodeURI(id),
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        if (!data.Operacion)
+                        {
+                            toastr.error('Ocurrió un error, al despachar la factura');
+                            return;
+                        }
+
+                        toastr.success('La factura se despacho exitosamente');
+                        window.location = '@Url.Action("Sin_Despachar", "Factura")';
+                    },
+                    fail: function (data)
+                    {
+                        console.error(data);
+                        toastr.error('Ocurrió un error, al despachar la factura');
+                    }
+                });
+            }
+        }
+    </script>
+}
+
+
+
+

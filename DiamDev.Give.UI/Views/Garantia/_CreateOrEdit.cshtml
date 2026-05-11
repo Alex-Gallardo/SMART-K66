@@ -1,0 +1,116 @@
+﻿@model DiamDev.Give.Entities.Garantia
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Documento<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("DocumentoId", (SelectList)ViewBag.Documentos, "--Seleccione un Documento--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+<div id="divFactura">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Serie
+                </label>
+                @Html.DropDownList("SerieId", (SelectList)ViewBag.Series, "--Seleccione una Serie--", new { @class = "form-control search-select" })
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label class="control-label">
+                    No. Factura
+                </label>
+                <input type="number" placeholder="No. de la Factura" class="form-control" id="factura" name="factura" value="" autocomplete="off" />
+            </div>
+        </div>
+        <button class="btn btn-primary" style="margin-bottom: -58px;" id="btnBuscarFactura" type="button">
+            <i class="clip-search-3"></i> Buscar
+        </button>
+    </div>
+</div>
+<div id="divRecibo">
+    <div class="row">       
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    No. Recibo
+                </label>
+                <input type="number" placeholder="No. de Recibo" class="form-control" id="recibo" name="recibo" value="" autocomplete="off" />
+            </div>
+        </div>
+        <button class="btn btn-primary" style="margin-bottom: -58px;" id="btnBuscarRecibo" type="button">
+            <i class="clip-search-3"></i> Buscar
+        </button>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Cliente<span class="symbol required"></span>
+            </label>
+            <input type="text" placeholder="Cliente" class="form-control" id="NombreCliente" name="NombreCliente" autocomplete="off" disabled="disabled" required />
+            <input type="hidden" id="FacturaId" name="FacturaId" value="" /> 
+            <input type="hidden" id="ReciboId" name="ReciboId" value="" />                  
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+               Observaciones
+            </label>
+            @Html.TextAreaFor(model => model.Observaciones, new { @class = "form-control", @placeholder = "Observaciones de Garantia", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<h2>
+    <i class="icon-edit-sign teal"></i> Productos
+</h2>
+<hr>
+<div class="row">
+    <div class="col-md-8">
+        <div class="form-group">
+            <label class="control-label">
+                Producto<span class="symbol required"></span>
+            </label>
+            <select id="ProductoId" name="ProductoId" class="form-control required search-select">
+                <option value="0">--Seleccione un Producto--</option>
+            </select>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                ID
+            </label>
+            <input type="text" placeholder="IDs" class="form-control" id="IDs" name="IDs" autocomplete="off" />
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Producto</th>                 
+                    <th>IDs</th>                 
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="producto_tbody"></tbody>
+        </table>
+    </div>
+</div>
+
+
+
+
+

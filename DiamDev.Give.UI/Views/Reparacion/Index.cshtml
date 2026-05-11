@@ -1,0 +1,170 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.Reparacion>
+
+@{
+    ViewBag.Title = "Reparación Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Reparacion")">
+        Nueva
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Reparaci&oacute;n
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#Reparación</th>
+                                <th>Agencia</th>
+                                <th>Dias GAMES</th>
+                                <th>Fecha</th>
+                                <th>Serial</th>
+                                <th>Cliente</th>
+                                <th>U. Asignado</th>
+                                <th>U. Entrega</th>
+                                <th>Estado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var Reparacion in Model)
+                            {
+                                <tr>
+                                    <td>@Reparacion.ReparacionId</td>
+                                    <td>@(Reparacion.Agencia == null ? "No Disponible" : Reparacion.Agencia.Nombre)</td>
+                                    <td>@Reparacion.DiasGames</td>
+                                    <td>@Reparacion.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@(string.IsNullOrWhiteSpace(Reparacion.IMEI) ? "No Disponible" : Reparacion.IMEI)</td>
+                                    <td>@(Reparacion.Cliente == null ? "No Disponible" : Reparacion.Cliente.Nombre)</td>
+                                    <td>@(Reparacion.UsuarioAsignado == null ? "No Disponible" : Reparacion.UsuarioAsignado.Nombre)</td>
+                                    <td>@(Reparacion.UsuarioEntrega == null ? "No Disponible" : Reparacion.UsuarioEntrega.Nombre)</td>
+                                    <td>@(Reparacion.Estado == null ? "No Disponible" : Reparacion.Estado.Nombre)</td>
+                                    <td class="center">
+                                        <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                            @if (!Reparacion.Anulada)
+                                            {
+                                                <a href="@Url.Action("Anular", "Reparacion", new { id = Reparacion.ReparacionId })" class="btn btn-bricky tooltips" data-placement="top" data-original-title="Anular Reparación"><i class="clip-close"></i></a>
+
+                                                if (Reparacion.EstadoId == 1 || Reparacion.EstadoId == 2)
+                                                {
+                                                    <a href="@Url.Action("Editar", "Reparacion", new { id = Reparacion.ReparacionId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                                }
+
+                                                if (Reparacion.EstadoId == 3)
+                                                {
+                                                    <a href="@Url.Action("Aprobar", "Reparacion", new { id = Reparacion.ReparacionId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Aprobar Reparación"><i class="clip-checkmark-2"></i></a>
+                                                }
+                                                
+                                                <a href="@Url.Action("Detalle", "Reparacion", new { id = Reparacion.ReparacionId })" clas class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle de la Reparación"><i class="clip-stack-empty"></i></a>
+                                                <a href="@Url.Action("Boleta", "Reparacion", new { id = Reparacion.ReparacionId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>                                                
+                                            }                                          
+                                        </div>
+                                        <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                            <div class="btn-group">
+                                                <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                    <i class="icon-cog"></i> <span class="caret"></span>
+                                                </a>
+                                                <ul role="menu" class="dropdown-menu pull-right">
+                                                    @if (!Reparacion.Anulada)
+                                                    {
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Anular", "Reparacion", new { id = Reparacion.ReparacionId })">
+                                                                <i class="clip-close"></i> Anular Reparación
+                                                            </a>
+                                                        </li>
+
+                                                        if (Reparacion.EstadoId == 1 || Reparacion.EstadoId == 2)
+                                                        {
+                                                            <li role="presentation">
+                                                                <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Reparacion", new { id = Reparacion.ReparacionId })">
+                                                                    <i class="icon-edit"></i> Editar
+                                                                </a>
+                                                            </li>
+                                                        }
+
+                                                        if (Reparacion.EstadoId == 3)
+                                                        {
+                                                            <li role="presentation">
+                                                                <a role="menuitem" tabindex="-1" href="@Url.Action("Aprobar", "Reparacion", new { id = Reparacion.ReparacionId })">
+                                                                    <i class="clip-checkmark-2"></i> Aprobar Reparación
+                                                                </a>
+                                                            </li>
+                                                        }
+                                                        
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Reparacion", new { id = Reparacion.ReparacionId })">
+                                                                <i class="clip-stack-empty"></i> Detalle de la Reparación
+                                                            </a>
+                                                        </li>
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Reparacion", new { id = Reparacion.ReparacionId })" target="_blank">
+                                                                <i class="clip-file-pdf"></i> Ver Boleta
+                                                            </a>
+                                                        </li>
+                                                    }                                                  
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>                
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function ()
+        {
+            if ('@TempData["Reparacion-Success"]' == "OK")
+            {
+                toastr.success('La reparación se guardó exitosamente');
+            }
+        });
+    </script>
+}
+
+
+
+

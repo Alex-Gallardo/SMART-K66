@@ -1,0 +1,43 @@
+﻿@model List<DiamDev.Give.UI.Models.ProductoCargaMasivaArchivo>
+@{
+    ViewBag.Title = "Salidas Por Aprobar";
+}
+
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                Salidas por aprobar
+            </div>
+            <div class="panel-body">
+
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Carga</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Fecha.ToShortDateString()</td>
+                                <td>
+                                    <a href="@Url.Action("Revisar", "ProductosSalidaMasiva", new { id = item.Id })">@item.Correlativo</a>
+                                </td>
+                                <td>
+                                    <form method="post" action="@Url.Action("Eliminar", "ProductosSalidaMasiva", new { id = item.Id })" class="form-inline" onsubmit="return confirm('&iquest;Seguro que desea rechazar la salida?')">
+                                        <button type="submit" class="btn btn-default btn-xs"><i class="glyphicon glyphicon-trash"></i> Rechazar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

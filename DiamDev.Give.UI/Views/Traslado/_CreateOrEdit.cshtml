@@ -46,30 +46,65 @@
     <div class="col-md-12">
         <div class="form-group">
             <label class="control-label">
+                Barra
+            </label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="imagen">
+    <div class="row">
+        <div class="col-md-12">
+            <button type="button" class="btn btn-med-grey btn-block ladda-button" data-toggle="modal" data-target="#visualizar-imagen-producto-form" id="btn-visualizar">Visualizar Fotografía</button>
+        </div>
+    </div>
+    <br />
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
                 Producto
             </label>
-            @Html.DropDownList("ProductoId", (SelectList)ViewBag.Productos, "--Seleccione un Producto--", new { @class = "form-control search-select" })
+            <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" disabled="disabled" />
+            <input type="hidden" id="ProductoId" name="ProductoId" value="0" />
+            <input type="hidden" id="TieneIDs" name="TieneIDs" value="0" />
         </div>
         <div class="form-group">
             <label class="control-label">
                 Unidad
             </label>
             <select id="PresentacionId" name="PresentacionId" class="form-control search-select">
-                <option value="0">--Seleccione una Unidad--</option>
+                <option value="0">--SELECCIONE UNA UNIDAD--</option>
             </select>
+        </div>
+        <div id="divOcultarIDs">
+            <div class="form-group">
+                <label class="control-label">
+                    IDs
+                </label>
+                <select id="ProductoActualIDs" name="ProductoActualIDs" class="form-control search-select">
+                    <option value="0">--SELECCIONE UN IDs--</option>
+                </select>
+            </div>
         </div>
     </div>
 </div>
 <div class="row">
-    <div class="col-md-4">
+    <div class="col-md-6">
         <div class="form-group">
             <label class="control-label">
                 Cantidad
             </label>
-            <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" autocomplete="off" />
+            <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" value="1" autocomplete="off" />
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-6">
         <div class="form-group">
             <label class="control-label">
                 Existencia
@@ -81,12 +116,13 @@
 <div class="row">
     <div class="col-md-12">
         <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
-        <table class="table table-hover" id="sample-table-1">
+        <table class="table table-hover">
             <thead>
                 <tr>
                     <th>Producto</th>
                     <th>Unidad</th>
-                    <th>Cantidad</th>                   
+                    <th>Cantidad</th>   
+                    <th>IDs</th>                
                     <th></th>
                 </tr>
             </thead>

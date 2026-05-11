@@ -173,6 +173,77 @@
                             </div>
                         </div>
                     </div>  
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Estado de Cuenta</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Credito</th>
+                                        <th>Abono</th>
+                                        <th>Pendiente</th>                                        
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>@Model.Credito.ToString("C")</td>
+                                        <td>@Model.Abono.ToString("C")</td>
+                                        <td>@(string.Format("{0:C}", Model.Credito - Model.Abono))</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>  
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Historial de Movimientos(CREDITO O ABONO)
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Fecha</th>
+                                        <th>#Documento</th>
+                                        <th>Observaciones</th>
+                                        <th>Monto</th>                      
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Movimientos != null && Model.Movimientos.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.Movimientos)
+                                        {
+                                            <tr>
+                                                <td>@(Detalle.Tipo == null ? "No Disponible" : Detalle.Tipo.Nombre)</td>
+                                                <td>@Detalle.FechaMovimiento.ToString("dd/MM/yyyy")</td>
+                                                <td>@Detalle.Documento</td>
+                                                <td>@(string.IsNullOrWhiteSpace(Detalle.Observaciones) ? "No contiene observaciones" : Detalle.Observaciones)</td> 
+                                                <td>@Detalle.Monto.ToString("C")</td>                                      
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="4">
+                                                <strong>No contiene movimientos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                     <h2>
                         <i class="icon-edit-sign teal"></i>
                         <label class="control-label">
@@ -187,8 +258,7 @@
                                     <tr>
                                         <th>Fecha</th>
                                         <th>Descripci&oacute;n</th>
-                                        <th>Total</th>
-                                        <th></th>
+                                        <th>Total</th>                                        
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -205,26 +275,7 @@
                                                 </td>
                                                 <td>
                                                     @string.Format("{0:C}", Detalle.Precio)
-                                                </td>
-                                                <td class="center">
-                                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
-                                                        <a href="@Url.Action("Detalle", "Producto_Ingreso", new { id = Detalle.MovimientoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Ingreso"><i class="clip-stack-empty"></i></a>
-                                                    </div>
-                                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
-                                                        <div class="btn-group">
-                                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
-                                                                <i class="icon-cog"></i> <span class="caret"></span>
-                                                            </a>
-                                                            <ul role="menu" class="dropdown-menu pull-right">
-                                                                <li role="presentation">
-                                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Producto_Ingreso", new { id = Detalle.MovimientoId })">
-                                                                        <i class="clip-stack-empty"></i> Detalle del Ingreso
-                                                                    </a>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                    </div>
-                                                </td>
+                                                </td>                                                
                                             </tr>
                                         }
                                     }
@@ -233,6 +284,49 @@
                                         <tr>
                                             <td colspan="5">
                                                 <strong>No contiene compras</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Cuentas Bancarias
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Banco</th>
+                                        <th>#Cuenta</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Cuentas != null && Model.Cuentas.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.Cuentas)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Detalle.Banco == null ? "No Disponible" : Detalle.Banco.Nombre)
+                                                </td>
+                                                <td>
+                                                    @Detalle.Cuenta
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="2">
+                                                <strong>No contiene cuentas bancarias</strong>
                                             </td>
                                         </tr>
                                     }

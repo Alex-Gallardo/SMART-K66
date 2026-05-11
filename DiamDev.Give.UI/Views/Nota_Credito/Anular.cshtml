@@ -1,0 +1,333 @@
+﻿@model DiamDev.Give.Entities.NotaCredito
+
+@{
+    ViewBag.Title = "Anular Nota Credito";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nota Credito
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="CreditoId" name="CreditoId" value="@Html.Raw(Model.CreditoId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    ID
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.CreditoId
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Agencia
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Agencia == null ? "No Disponible" : Model.Agencia.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Cliente == null ? "No Disponible" : Model.Cliente.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Tipo de Nota Credito
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Devolucion ? "Devolución" : "Vale de Regalo")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Serie
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Serie
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Fecha.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Operado
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Operado == true ? "Sí" : "No")
+                                </strong>
+                            </div>                            
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. Nota Credito
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.NoNotaCredito
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Monto
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Monto.ToString("C")
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Anulada
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Anulada == true ? "Sí" : "No")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Descripción
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Nota) ? "No contiene descripción la nota de credito" : Model.Nota)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    @if (Model.Devolucion)
+                    {
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h2><i class="icon-edit-sign teal"></i>Factura</h2>
+                                <hr>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Agencia
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Factura.Agencia == null ? "No Disponible" : Model.Factura.Agencia.Nombre)
+                                    </strong>
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Cliente
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Factura.Cliente == null ? "No Disponible" : Model.Factura.Cliente.Nombre)
+                                    </strong>
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Fecha
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @Model.Factura.Fecha.ToString("dd/MM/yyyy")
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Serie
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @Model.Factura.Serie.Nombre
+                                    </strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        No. Factura
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @Model.Factura.NoFactura
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    @if (!Model.Devolucion)
+                    {
+                        <h2>
+                            <i class="icon-edit-sign teal"></i>
+                            <label class="control-label">
+                                Pagos
+                            </label>
+                        </h2>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Forma</th>
+                                            <th>Cantidad</th>
+                                            <th>Nota</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.Pagos != null && Model.Pagos.Count() > 0)
+                                        {
+                                            if (!Model.Anulada)
+                                            {
+                                                foreach (var Pago in Model.Pagos)
+                                                {
+                                                    <tr>
+                                                        <td>
+                                                            @(Pago.FormaPago == null ? "No Disponible" : Pago.FormaPago.Nombre)
+                                                        </td>
+                                                        <td>
+                                                            @Pago.Valor.ToString("C")
+                                                        </td>
+                                                        <td>
+                                                            @(string.IsNullOrWhiteSpace(Pago.Nota) ? "No Disponible" : Pago.Nota)
+                                                        </td>
+                                                    </tr>
+                                                }
+                                                <tr>
+                                                    <td>
+                                                        <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                            Total:
+                                                        </div>
+                                                    </td>
+                                                    <td colspan="4">
+                                                        <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                            @string.Format("{0:C}", Model.Pagos.Sum(x => x.Valor))
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                            else
+                                            {
+                                                <tr>
+                                                    <td colspan="4">
+                                                        <strong>Le informamos que la nota de credito fue anulada, por lo tanto no puede visualizar los pagos</strong>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="4">
+                                                    <strong>No contiene pagos</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Motivo de Anulaci&oacute;n
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Comentario<span class="symbol required"></span>
+                                </label>
+                                <textarea id="comentario" name="comentario" class="form-control" placeholder="Comentario de la Anulación" required autocomplete="off"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Nota_Credito")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+

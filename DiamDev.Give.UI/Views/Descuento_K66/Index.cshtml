@@ -1,0 +1,189 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.DescuentoK66>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Descuento K66 Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Descuento_K66")">
+        Nuevo
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get">
+            <div class="form-group">
+                <label class="control-label">
+                    Empresa<span class="symbol required"></span>
+                </label>
+                @Html.DropDownList("empresa", (SelectList)ViewBag.Empresas, "--Seleccione una Empresa--", new { @class = "form-control search-select required", onchange = "this.form.submit();" })
+            </div>
+        </form>
+    </div>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">       
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Descuento
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>                             
+                            <th>Empresa</th>         
+                            <th>Fecha</th>                                                  
+                            <th>Cliente</th>
+                            <th>Producto</th>
+                            <th>Descuento</th>                          
+                            <th>Responsable</th> 
+                            <th></th> 
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Detalle in Model)
+                        {
+                            <tr>  
+                                <td>@(Detalle.Empresa == null ? "No Disponible" : Detalle.Empresa.Nombre)</td>   
+                                <td>@Detalle.Fecha.ToString("dd/MM/yyyy")</td> 
+                                <td>@Detalle.Nombre</td>                            
+                                <td>@Detalle.Producto</td>
+                                <td>@Detalle.Descuento.ToString("N4")</td>                                
+                                <td>@(Detalle.Responsable == null ? "No Disponible" : Detalle.Responsable.Nombre)</td>    
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        <a href="@Url.Action("Editar", "Descuento_K66", new { id = Detalle.DescuentoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                        @if (ViewBag.Eliminar)
+                                        {
+                                            <a onclick="eliminar('@Detalle.DescuentoId');" class="btn btn-bricky tooltips" data-placement="top" data-original-title="Eliminar"><i class="clip-close"></i></a>
+                                        }
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Descuento_K66", new { id = Detalle.DescuentoId })">
+                                                        <i class="icon-edit"></i> Editar
+                                                    </a>
+                                                </li>
+                                                @if (ViewBag.Eliminar)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" onclick="eliminar('@Detalle.DescuentoId');">
+                                                            <i class="clip-close"></i> Eliminar
+                                                        </a>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>       
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { search = ViewBag.Search, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            if ('@TempData["Descuento-Success"]' == "OK")
+            {
+                toastr.success('El descuento K66 se guardó exitosamente');
+            }
+        });
+
+        function eliminar(id)
+        {
+            if (confirm("¿Desea eliminar el descuento seleccionado?"))
+            {
+                $.ajax({
+                    url: '@Url.Action("EliminarDescuento", "Descuento_K66")',
+                    data: { 'id': id },
+                    async: false,
+                    type: 'POST',
+                    success: function (data)
+                    {
+                        if (data.Operacion)
+                        {
+                            toastr.success('El descuento k66 se elimino exitosamente');
+                            window.location.reload();
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al eliminar el descuento k66');
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+}

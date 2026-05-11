@@ -22,7 +22,7 @@
                     </a>
                 </div>
             </div>
-            <div class="panel-body">              
+            <div class="panel-body">
                 <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
                     @Html.AntiForgeryToken()
                     <div class="row">
@@ -36,10 +36,10 @@
                                 </div>
                             }
                         </div>
-                        <input type="hidden" id="PersonalId" name="PersonalId" value="@Html.Raw(Model.PersonalId)"  />
-                    </div>                    
+                        <input type="hidden" id="PersonalId" name="PersonalId" value="@Html.Raw(Model.PersonalId)" />
+                    </div>
                     <div class="row">
-                        <div class="col-md-12">                        
+                        <div class="col-md-12">
                             <div class="form-group">
                                 <label class="control-label">
                                     Nombre
@@ -57,22 +57,30 @@
                                 <strong>
                                     @Model.Direccion
                                 </strong>
-                            </div>
+                            </div>                           
                         </div>
-                    </div>
-                    <div class="row">                      
-                        <div class="col-md-4">
+                    </div>                    
+                    <div class="row">
+                        <div class="col-md-6">
                             <div class="form-group">
                                 <label class="control-label">
-                                    No. de Telefono
+                                    Fecha Nacimiento
                                 </label>
                                 <br />
                                 <strong>
-                                    @Model.NoTelefono
+                                    @(Model.FechaNacimiento == null ? "No Disponible" : Model.FechaNacimiento.Value.ToString("dd/MM/yyyy"))
                                 </strong>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Datos de Contacto</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
                             <div class="form-group">
                                 <label class="control-label">
                                     Correo Electrónico
@@ -80,6 +88,233 @@
                                 <br />
                                 <strong>
                                     @(string.IsNullOrWhiteSpace(Model.Email) ? "No contiene correo electrónico" : Model.Email)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. de Telefono Principal
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NoTelefono) ? "0000-0000" : Model.NoTelefono)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. de Celular Principal
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NoCelularPrincipal) ? "0000-0000" : Model.NoCelularPrincipal)
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. de Telefono Alterno
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NoTelefonoAlterno) ? "0000-0000" : Model.NoTelefonoAlterno)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. de Celular Alterno
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NoCelularAlterno) ? "0000-0000" : Model.NoCelularAlterno)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Documentos</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    DPI
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.DPI) ? "No contiene DPI" : Model.DPI)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Licencia Vehiculo
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.LicenciaVehiculo) ? "No contiene licencia de vehiculo" : Model.LicenciaVehiculo)
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nit
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Nit) ? "No contiene nit" : Model.Nit)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Licencia Moto
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.LicenciaMoto) ? "No contiene licencia de moto" : Model.LicenciaMoto)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Datos Laborales</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Puesto
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Puesto == null ? "No Disponible" : Model.Puesto.Nombre)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Banco
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Banco == null ? "No Disponible" : Model.Banco.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Contrato
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Contrato) ? "No contiene contrato" : Model.Contrato)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Descuento IGSS?
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.IGSS ? "Sí" : "No")
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Planilla
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Planilla) ? "No contiene no. de cuenta bancaria" : Model.Planilla)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. Afiliación IGSS
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NoAfiliacionIGSS) ? "No contiene no. de afiliación" : Model.NoAfiliacionIGSS)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Ingreso
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.FechaIngreso == null ? "No Disponible" : Model.FechaIngreso.Value.ToString("dd/MM/yyyy"))
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Egreso
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Activo ? "No Disponible" : Model.FechaEgreso.Value.ToString("dd/MM/yyyy"))
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Motivo de Egreso
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.MotivoEgreso) ? "No contiene motivo de egreso" : Model.MotivoEgreso)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Salarios</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Sueldo
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Sueldo.ToString("C"))
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Bonificación
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Bonificacion.ToString("C"))
                                 </strong>
                             </div>
                         </div>
@@ -94,7 +329,7 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="control-label">
-                                    Activo
+                                    Personal Activo
                                 </label>
                                 <br />
                                 <strong>
@@ -103,14 +338,70 @@
                             </div>
                         </div>
                     </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Historial de Anotaciones
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            @foreach (var item in ViewBag.Catalogos)
+                            {
+                                <p>
+                                    <h3>
+                                        @item.Nombre
+                                    </h3>
+                                </p>
+                                <hr />
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>F. Inicial</th>
+                                            <th>F. Final</th>
+                                            <th>Motivo</th>
+                                            <th>Monto</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.Anotaciones != null && Model.Anotaciones.Count() > 0)
+                                        {
+                                            foreach (var Detalle in Model.Anotaciones.Where(x => x.TipoId == item.TipoId).OrderBy(x => x.Fecha).ThenByDescending(x => x.AnotacionId))
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @Detalle.FechaInicial.ToString("dd/MM/yyyy")
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.FechaFinal.ToString("dd/MM/yyyy")
+                                                    </td>
+                                                    <td>
+                                                        @(string.IsNullOrWhiteSpace(Detalle.Descripcion) ? "No Disponible" : Detalle.Descripcion)
+                                                    </td>
+                                                    <td>
+                                                        @string.Format("{0:C}", Detalle.Monto)
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="4">
+                                                    <strong>No contiene anotaciones de @item.Nombre</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+                    </div>
                     <div class="row">
                         <p>
-                            <div class="col-md-6">
-                            </div>
-                        </p>
-                        <p>
-                            <div class="col-md-6">
-                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Personal")">
+                            <div class="col-md-12">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
                                     Regresar <i class="icon-prev"></i>
                                 </a>
                             </div>

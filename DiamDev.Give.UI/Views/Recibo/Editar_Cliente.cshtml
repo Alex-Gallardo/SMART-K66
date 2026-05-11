@@ -1,0 +1,781 @@
+﻿@model DiamDev.Give.Entities.Recibo
+
+@{
+    ViewBag.Title = "Editar Cliente del Recibo";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Recibo
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="ReciboId" name="ReciboId" value="@Html.Raw(Model.ReciboId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Clientes</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="BuscarCliente" name="BuscarCliente" autocomplete="off" placeholder="Buscar Cliente...">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-secondary" type="button" id="btnBuscarCliente">Buscar</button>
+                                        <a href="#new-cliente-form" data-toggle="modal" class="demo btn btn-blue" style="margin-bottom: -1px;">
+                                            <i class="clip-plus-circle"></i>
+                                        </a>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente<span class="symbol required"></span>
+                                </label>
+                                <input type="text" placeholder="Cliente" class="form-control" id="NombreCliente" name="NombreCliente" autocomplete="off" disabled="disabled" required />
+                                <input type="hidden" id="ClienteId" name="ClienteId" value="0" />
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Dirección
+                                </label>
+                                <input type="text" placeholder="Dirección" class="form-control" id="DireccionCliente" name="DireccionCliente" autocomplete="off" disabled="disabled" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    #Telefono
+                                </label>
+                                <input type="text" placeholder="#Telefono" class="form-control" id="TelefonoCliente" name="TelefonoCliente" autocomplete="off" disabled="disabled" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div id="mensajeVIP" style="text-align:center; font-weight:bold; color:red;"></div>
+                        </div>
+                    </div>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. Recibo
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.ReciboId
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Agencia
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Agencia == null ? "No Disponible" : Model.Agencia.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha y Hora
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.FechaHoraRecibo == null ? Model.Fecha.ToString("dd/MM/yyyy") : Model.FechaHoraRecibo.Value.ToString("dd/MM/yyyy hh:mm tt"))
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>
+                                        <th>Cantidad</th>
+                                        <th>IDs</th>
+                                        <th>Precio</th>
+                                        <th>Sub-Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Detalles != null && Model.Detalles.Count() > 0)
+                                    {
+                                        if (!Model.Anulada)
+                                        {
+                                            foreach (var Detalle in Model.Detalles)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, string.IsNullOrWhiteSpace(Detalle.Nombre) ? Detalle.Producto.Nombre : Detalle.Nombre))
+                                                    </td>
+                                                    <td>
+                                                        @(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Cantidad
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.ID
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Precio.ToString("C4")
+                                                    </td>
+                                                    <td>
+                                                        @string.Format("{0:C4}", Detalle.Cantidad * Detalle.Precio)
+                                                    </td>
+                                                </tr>
+                                            }
+                                            <tr>
+                                                <td>
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Total:
+                                                    </div>
+                                                </td>
+                                                <td colspan="6">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C4}", Model.Detalles.Sum(x => x.Cantidad * x.Precio))
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="6">
+                                                    <strong>Le informamos que el recibo fue anulado, por lo tanto no puede visualizar los productos</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="6">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Pagos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Forma</th>
+                                        <th>Cantidad</th>
+                                        <th>Fecha</th>
+                                        <th>Nota</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Pagos != null && Model.Pagos.Count() > 0)
+                                    {
+                                        if (!Model.Anulada)
+                                        {
+                                            foreach (var Pago in Model.Pagos)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Pago.FormaPago == null ? "No Disponible" : Pago.FormaPago.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Pago.Valor.ToString("C4")
+                                                    </td>
+                                                    <td>
+                                                        @Pago.Fecha.ToString("dd/MM/yyyy")
+                                                    </td>
+                                                    <td>
+                                                        @(string.IsNullOrWhiteSpace(Pago.Nota) ? "No Disponible" : Pago.Nota)
+                                                    </td>
+                                                </tr>
+                                            }
+                                            <tr>
+                                                <td>
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Total:
+                                                    </div>
+                                                </td>
+                                                <td colspan="4">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C4}", Model.Pagos.Sum(x => x.Valor))
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="4">
+                                                    <strong>Le informamos que el recibo fue anulado, por lo tanto no puede visualizar los pagos</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene pagos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    @if (Model.PedidoId != null)
+                    {
+                        <h2>
+                            <i class="icon-edit-sign teal"></i>
+                            <label class="control-label">
+                                Pedido
+                            </label>
+                        </h2>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        #Pedido
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @Model.PedidoId
+                                    </strong>
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        U. Creo Pedido
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "No Disponible" : (Model.Pedido.UsuarioCreo == null ? "No Disponible" : Model.Pedido.UsuarioCreo.Nombre))
+                                    </strong>
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        U. Opero Pedido
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "No Disponible" : (Model.Pedido.UsuarioOpero == null ? "No Disponible" : Model.Pedido.UsuarioOpero.Nombre))
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Fecha Pedido
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "No Disponible" : Model.Pedido.Fecha.ToString("dd/MM/yyyy"))
+                                    </strong>
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Fecha Pedido Opero
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "No Disponible" : Model.Pedido.FechaHoraOpero.Value.ToString("dd/MM/yyyy"))
+                                    </strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Hora Pedido
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "00:00" : Model.Pedido.FechaHoraCreacion.Value.ToString("hh:mm tt"))
+                                    </strong>
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Hora Pedido Opero
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "00:00" : Model.Pedido.FechaHoraOpero.Value.ToString("hh:mm tt"))
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="new-cliente-form" class="modal fade" tabindex="-1" data-width="760" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Nuevo Cliente</h4>
+    </div>
+    <div class="modal-body">        
+        @Html.Partial("~/Views/Cliente/_CreateOrEdit.cshtml", new DiamDev.Give.Entities.Cliente() { Direccion = "CIUDAD", EmailCliente = "sincorreo@cbp.com" })
+    </div>
+    <div class="modal-footer">
+        <button id="btn-save-up-cliente" class="btn btn-primary">Guardar</button>
+        <button id="btn-close-up-cliente" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<div id="seleccionar-cliente-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Cliente</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="cliente_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-cliente" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        var vCliente = "";
+
+        var clienteIds = "@Html.Raw(ViewBag.ClienteIds)";
+
+        $(function ()
+        {
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            if (clienteIds !== "0")
+            {
+                var modelo =
+                {
+                    'ClienteId': clienteIds
+                };
+
+                cargaClienteSeleccionado(modelo);
+            }
+
+            $("#BuscarCliente").autocomplete({
+            source: function (request, response)
+            {
+                $.ajax({
+                    url: '@Url.Action("ConsultaCliente", "Cliente")',
+                    type: "POST",
+                    dataType: "json",
+                    data: { search: request.term },
+                    success: function (data)
+                    {
+                        response($.map(data, function (item)
+                        {
+                            return { label: item.Nombre, value: item.Nombre };
+                        }))
+                    }
+                })
+            },
+            messages:
+            {
+                noResults: "", results: ""
+            }
+            });
+
+            $('#formaprincipal').keydown(function (evt)
+            {
+                if ($('#BuscarCliente').is(":focus") && (evt.which || evt.keyCode) == 13)
+                {
+                    cargaBusquedaCliente(evt)
+                }
+            });
+
+            $('#btnBuscarCliente').click(function (evt)
+            {
+                cargaBusquedaCliente(evt);
+            });
+
+            function cargaBusquedaCliente(evt)
+            {
+                evt.preventDefault();
+
+                if ($('#BuscarCliente').val() === "")
+                {
+                    error("Ingresar Nit o Nombre del Cliente");
+                    $('#BuscarCliente').focus();
+                    return;
+                }
+
+                var clienteActual = $('#BuscarCliente').val();
+                clienteActual = clienteActual.replace(" ", "_");
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerClientexTextoLibre", "Cliente")',
+                    traditional: true,
+                    data: { 'search': clienteActual },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
+                                if (resultData.Data.length === 1)
+                                {
+                                    cargaClienteSeleccionado(resultData.Data[0]);
+                                }
+                                else if (resultData.Data.length > 1)
+                                {
+                                    var fila = "";
+                                    for (var i = 0; i < resultData.Data.length; i++)
+                                    {
+                                        fila += "<tr><td>" + resultData.Data[i].ClienteId + "</td>";
+                                        fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                        fila += "<td><a href='" + resultData.Data[i].ClienteId + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                    }
+
+                                    $("#seleccionar-cliente-form").modal();
+                                    $("#seleccionar-cliente-form").find("#cliente_seleccionado_tbody").html(fila);
+                                }
+                            }
+                            else {
+                                toastr.error('El cliente ingresado no es correcto');
+
+                                $.ajax({
+                                    url: '@Url.Action("ObtenerClienteDigifact", "Cliente")',
+                                    data: { 'nit': $('#BuscarCliente').val() },
+                                    async: false,
+                                    type: 'POST',
+                                    success: function (data)
+                                    {
+                                        if (data.Operacion)
+                                        {
+                                            $("#new-cliente-form").find("#Nombre").val(data.Data.NOMBRE);
+                                            $("#new-cliente-form").find("#Direccion").val("CIUDAD");
+                                        }
+                                    }
+                                });
+
+                                $("#new-cliente-form").modal();
+                                $("#new-cliente-form").find("#Nit").val($('#BuscarCliente').val());
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al visualizar al cliente');
+                            $('#BuscarCliente').val("");
+                            $('#BuscarCliente').focus();
+                        }
+                    }
+                });
+            }
+
+            $('#cliente_seleccionado_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+
+                $('#btn-close-up-seleccionar-cliente').click();
+                var clienteReferencia = $(this).attr("href");
+                var clienteActual = clienteReferencia.split(",");
+
+                var modelo =
+                 {
+                     'ClienteId': clienteActual[0],
+                     'Nombre': clienteActual[1]
+                 };
+
+                cargaClienteSeleccionado(modelo);
+            });
+
+            function cargaClienteSeleccionado(cliente)
+            {
+                var clienteSeleccionado = obtenerClientexID(cliente.ClienteId);
+                idclienteseleccionado = cliente.ClienteId;
+                $('#NombreCliente').val(clienteSeleccionado.Nombre);
+                $("#DireccionCliente").val(clienteSeleccionado.Direccion);
+                $("#TelefonoCliente").val(clienteSeleccionado.NoTelefono);
+                $('#ClienteId').val(clienteSeleccionado.ClienteId);
+
+                //Se valida si el cliente es VIP
+                if (clienteSeleccionado.Vip == true)
+                {
+                    $("#mensajeVIP").html("PAPELERIA COMPLETA");
+                }
+                else
+                {
+                    $("#mensajeVIP").html("PAPELERIA NO COMPLETA");
+                }
+
+                vCliente = $('#BuscarCliente').val();
+            }
+
+            function obtenerClientexID(id)
+            {
+                var cliente = null;
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerPorID", "Cliente")?id=' + id,
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        if (!data.Operacion)
+                        {
+                            toastr.error('Ocurrió un error, al obtener datos del cliente');
+                            return;
+                        }
+
+                        cliente = data.Data;
+                    },
+                    fail: function (data)
+                    {
+                        toastr.error('Ocurrió un error, al obtener datos del cliente');
+                    }
+                });
+
+                return cliente;
+            }
+
+            $("#new-cliente-form").find("#Nit").change(function ()
+            {
+                var nit = $(this).val();
+                var cliente = obtenerCliente(nit);
+                if (!cliente) return;
+
+                var vipChk = cliente.Vip ? "Si" : "No";
+                var activoChk = cliente.Activo ? "Si" : "No";
+
+                var frm = $("#new-cliente-form");
+
+                frm.find("#Nombre").val(cliente.Nombre);
+                frm.find("#Direccion").val(cliente.Direccion);
+                frm.find("#DPI").val(cliente.DPI);
+                frm.find("#NoTelefono").val(cliente.NoTelefono);
+                frm.find("#EmailCliente").val(cliente.EmailCliente);
+                frm.find('#vip' + vipChk).iCheck('check');
+                frm.find('#activo' + activoChk).iCheck('check');
+            });
+
+            function obtenerCliente(nit)
+            {
+                nit = (nit || '').trim();
+                if (!nit) return;
+                var cliente = null;
+                $.ajax({
+                    url: '@Url.Action("ObtenerPorNit", "Cliente")?nit=' + encodeURI(nit),
+                    async: false,
+                    type: 'GET',
+                    success: function (data) {
+
+                        if (!data.Operacion) {
+                            toastr.error('Ocurrió un error, al obtener datos del cliente');
+                            return;
+                        }
+
+                        cliente = data.Data;
+
+                    },
+                    fail: function (data) {
+                        console.error(data);
+                        toastr.error('Ocurrió un error, al obtener datos del cliente');
+                    }
+                });
+
+                return cliente;
+            }
+
+            $("#btn-save-up-cliente").click(function ()
+            {
+                var Nit = $("#new-cliente-form").find("#Nit").val();
+                var Nombre = $("#new-cliente-form").find("#Nombre").val();
+                var Direccion = $("#new-cliente-form").find("#Direccion").val();
+                var DPI = $("#new-cliente-form").find("#DPI").val();
+                var NoTelefono = $("#new-cliente-form").find("#NoTelefono").val();
+                var EmailCliente = $("#new-cliente-form").find("#EmailCliente").val();
+                var Pass = $("#new-cliente-form").find("#Pass").val();
+                var Vip = false;
+                var Activo = true;
+
+                if (Nit === "") {
+                    error("El nit es requerido");
+                    return;
+                }
+
+                if (Nombre === "") {
+                    error("El nombre es requerido");
+                    return;
+                }
+
+                if (Direccion === "") {
+                    error("La dirección es requerida");
+                    return;
+                }
+
+                if (EmailCliente === "") {
+                    error("El correo electrónico es requerido");
+                    return;
+                }
+
+                //Se verifica que no exista NIT
+                var existeNit = 0;
+
+                $.ajax({
+                    url: '@Url.Action("ExisteNIT", "Cliente")?nit=' + encodeURI(Nit),
+                    async: false,
+                    type: 'POST',
+                    success: function (data) {
+                        if (data.Operacion) {
+                            existeNit = 1;
+                        }
+                    }
+                });
+
+                if (existeNit === 1) {
+                    toastr.error('Se le informa que el nit que esta ingresado ya se encuentra registrado en el sistema');
+                    return;
+                }
+
+                var modelo =
+               {
+                   'Nit': Nit,
+                   'Nombre': Nombre,
+                   'Direccion': Direccion,
+                   'DPI': DPI,
+                   'NoTelefono': NoTelefono,
+                   'EmailCliente': EmailCliente,
+                   'Descuento': 0,
+                   'Vip': Vip,
+                    'Activo': Activo,
+                   'Pass': Pass
+               };
+
+                $.ajax({
+                    url: '@Url.Action("NuevoCliente", "Cliente")',
+                    data: { 'modelo': modelo },
+                    async: false,
+                    type: 'POST',
+                    success: function (data)
+                    {
+                        if (data.Operacion)
+                        {
+                            $('#btn-close-up-cliente').click();
+                            toastr.success('El nuevo cliente se guardó exitosamente');
+
+                            var modelo =
+                            {
+                                'ClienteId': data.Cliente
+                            };
+
+                            cargaClienteSeleccionado(modelo);
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al guardar al nuevo cliente');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}

@@ -1,0 +1,61 @@
+﻿@model DiamDev.Give.Entities.OfertaDelivery
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Nombre<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre de la Oferta", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>        
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Descripcion<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Descripcion, new { @class = "form-control", @placeholder = "Descripcion de la OFerta", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha Inicio<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicioOferta" name="FechaInicioOferta" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : (Model.FechaInicioOferta == null ? "" : Model.FechaInicioOferta.Date.ToString("yyyy-MM-dd")))">
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha Fin<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinOferta" name="FechaFinOferta" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : (Model.FechaFinOferta == null ? "" : Model.FechaFinOferta.Date.ToString("yyyy-MM-dd")))">
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Producto Base
+            </label>
+            <div class="input-group">
+                @Html.DropDownList("ProductoBaseId", (SelectList)ViewBag.Productos, "--Seleccione un Producto--", new { @class = "form-control search-select required"  })
+                
+            </div>
+        </div>
+    </div>
+</div>

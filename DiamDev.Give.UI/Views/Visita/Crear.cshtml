@@ -1,0 +1,363 @@
+﻿@model DiamDev.Give.Entities.Visita
+
+@{
+    ViewBag.Title = "Nueva Visita";
+}
+
+<div class="row">
+    <div class="col-md-12">        
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nueva Visita
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <center><h1> Crear Visita</h1></center>              
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>                       
+                    </div>                   
+                    @Html.Partial("_CreateOrEdit")					
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button id="btnGuardar" data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="button">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Visita")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>        
+    </div>
+</div>
+
+<div id="new-cliente-form" class="modal fade" tabindex="-1" data-width="760" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Nuevo Cliente</h4>
+    </div>
+    <div class="modal-body">
+        @Html.Partial("~/Views/Cliente/_CreateOrEditK66.cshtml", new DiamDev.Give.Entities.Cliente() { Direccion = "CIUDAD" })
+    </div>
+    <div class="modal-footer">
+        <button id="btn-save-up-cliente" class="btn btn-primary">Guardar</button>
+        <button id="btn-close-up-cliente" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<div id="seleccionar-cliente-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Cliente</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="cliente_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-cliente" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        var vCliente = "";
+        obtenerCoordenadas();
+
+        $(function ()
+        {
+            $('#BuscarCliente').focus();
+
+            $("#BuscarCliente").autocomplete({
+                source: function (request, response)
+                {
+                    $.ajax({
+                        url: '@Url.Action("ConsultaClienteVisitaK66", "Cliente")',
+                        type: "POST",
+                        dataType: "json",
+                        data: { search: request.term, 'bolik': $('#chk20210705001').is(":checked"), 'empaques': $('#chk20210705002').is(":checked"), 'faes': $('#chk20210705003').is(":checked"), 'graco': $('#chk20210705004').is(":checked") },
+                        success: function (data)
+                        {
+                            response($.map(data, function (item)
+                            {
+                                return { label: item.Nombre, value: item.Nombre };
+                            }))
+                        }
+                    })
+                },
+                messages:
+                {
+                    noResults: "", results: ""
+                }
+            });
+
+            $('#formaprincipal').keydown(function (evt)
+            {
+                if ($('#BuscarCliente').is(":focus") && (evt.which || evt.keyCode) == 13)
+                {
+                    cargaBusquedaCliente(evt)
+                }
+            });
+
+            $('#btnBuscarCliente').click(function (evt)
+            {
+                cargaBusquedaCliente(evt);
+            });
+
+            function cargaBusquedaCliente(evt)
+            {
+                evt.preventDefault();
+
+                if ($('#BuscarCliente').val() === "")
+                {
+                    error("Ingresar Nit o Nombre del Cliente");
+                    $('#BuscarCliente').focus();
+                    return;
+                }
+
+                var clienteActual = $('#BuscarCliente').val();
+                clienteActual = clienteActual.replace(" ", "_");
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerClienteVisitaxTextoLibreK66", "Cliente")',
+                    traditional: true,
+                    data: { 'search': clienteActual, 'bolik': $('#chk20210705001').is(":checked"), 'empaques': $('#chk20210705002').is(":checked"), 'faes': $('#chk20210705003').is(":checked"), 'graco': $('#chk20210705004').is(":checked") },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
+                                if (resultData.Data.length === 1)
+                                {
+                                    cargaClienteSeleccionado(resultData.Data[0]);
+                                }
+                                else if (resultData.Data.length > 1)
+                                {
+                                    var fila = "";
+                                    for (var i = 0; i < resultData.Data.length; i++)
+                                    {
+                                        fila += "<tr><td>" + resultData.Data[i].ID + "</td>";
+                                        fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                        fila += "<td><a href='" + resultData.Data[i].ID + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                    }
+
+                                    $("#seleccionar-cliente-form").modal();
+                                    $("#seleccionar-cliente-form").find("#cliente_seleccionado_tbody").html(fila);
+                                }
+                            }
+                            else
+                            {
+                                toastr.error('El cliente ingresado no es correcto');
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al visualizar al cliente');
+                            $('#BuscarCliente').val("");
+                            $('#BuscarCliente').focus();
+                        }
+                    }
+                });
+            }
+
+            $('#cliente_seleccionado_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+
+                $('#btn-close-up-seleccionar-cliente').click();
+                var clienteReferencia = $(this).attr("href");
+                var clienteActual = clienteReferencia.split(",");
+
+                var modelo =
+                 {
+                     'ID': clienteActual[0],
+                     'Nombre': clienteActual[1]
+                 };
+
+                cargaClienteSeleccionado(modelo);
+            });
+
+            function cargaClienteSeleccionado(cliente)
+            {
+                var clienteSeleccionado = obtenerClientexID(cliente.ID);
+
+                if (clienteSeleccionado !== null)
+                {
+                    $('#NombreCliente').val(clienteSeleccionado.Nombre);
+                    $("#DireccionCliente").val(clienteSeleccionado.Direccion);
+
+                    $('#IDK66').val(clienteSeleccionado.ID);
+                    $('#Nit').val(clienteSeleccionado.Nit);
+                    $('#Nombre').val(clienteSeleccionado.Nombre);
+                    $('#Direccion').val(clienteSeleccionado.Direccion);
+                }
+
+                vCliente = $('#BuscarCliente').val();
+                $('#Barra').focus();
+            }
+
+            function obtenerClientexID(id)
+            {
+                var cliente = null;
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerPorIDGeneralK66", "Cliente")',
+                    data: { 'id': id },
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        if (!data.Operacion)
+                        {
+                            toastr.error('Ocurrió un error, al obtener datos del cliente');
+                            return;
+                        }
+
+                        cliente = data.Data;
+                    },
+                    fail: function (data)
+                    {
+                        toastr.error('Ocurrió un error, al obtener datos del cliente');
+                    }
+                });
+
+                return cliente;
+            }
+
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            $("#btn-save-up-cliente").click(function ()
+            {
+                var Nit = $("#new-cliente-form").find("#Nit").val();
+                var Nombre = $("#new-cliente-form").find("#Nombre").val();
+                var Direccion = $("#new-cliente-form").find("#Direccion").val();              
+
+                if (Nit === "")
+                {
+                    error("El nit es requerido");
+                    return;
+                }
+
+                if (Nombre === "")
+                {
+                    error("El nombre es requerido");
+                    return;
+                }
+
+                if (Direccion === "")
+                {
+                    error("La dirección es requerida");
+                    return;
+                }
+
+                $("#IDK66").val("LOCAL");
+                $("#Nit").val(Nit);
+                $("#Nombre").val(Nombre);
+                $("#Direccion").val(Direccion);
+
+                $('#NombreCliente').val(Nombre);
+                $("#DireccionCliente").val(Direccion);
+
+                $('#btn-close-up-cliente').click();
+                toastr.success('El nuevo cliente se guardó exitosamente');
+            });
+
+            $("#btnGuardar").on("click", function (evt)
+            {
+                evt.preventDefault();
+
+                if ($("#Latitud").val() !== "0" && $("#Longitud").val() !== "0")
+                {
+                    $("#formaprincipal").submit();
+                }
+                else
+                {
+                    error("Para registrar la visita necesita las coordenadas");
+                }
+            });
+        });
+
+        function obtenerCoordenadas()
+        {
+            if (!navigator.geolocation)
+            {
+                toastr.error("Este navegador no admite la geolocalización");
+                return;
+            }
+
+            function success(position)
+            {
+                var latitud = position.coords.latitude;
+                var longitud = position.coords.longitude;
+
+                $("#LatitudK66").val(latitud);
+                $("#LongitudK66").val(longitud);
+
+                $("#Latitud").val(latitud);
+                $("#Longitud").val(longitud);
+            };
+
+            function error()
+            {
+                toastr.error("La información de ubicación no está disponible");
+            };
+
+            navigator.geolocation.getCurrentPosition(success, error);
+        }
+
+    </script>
+}

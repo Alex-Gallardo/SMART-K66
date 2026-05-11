@@ -49,9 +49,9 @@ namespace DiamDev.Give.BLL
                 return Id;
             }
 
-            private bool Agregar(Serie entidad)
+            private string Agregar(Serie entidad)
             {
-                bool SerieAgregar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -76,22 +76,22 @@ namespace DiamDev.Give.BLL
                             }
 
                             db.Set<Serie>().Add(entidad);
-                            db.SaveChanges();
-                            SerieAgregar = true;
+                            db.SaveChanges();                            
                         }
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return SerieAgregar;
+                return Mensaje;
             }
 
-            private bool Actualizar(Serie entidad)
+            private string Actualizar(Serie entidad)
             {
-                bool SerieActualizar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -115,16 +115,16 @@ namespace DiamDev.Give.BLL
                             }
                         }
 
-                        db.SaveChanges();
-                        SerieActualizar = true;
+                        db.SaveChanges();                       
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return SerieActualizar;
+                return Mensaje;
             }
 
         #endregion
@@ -134,20 +134,41 @@ namespace DiamDev.Give.BLL
             public string Guardar(Serie entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
-
+             
                 if (entidad.SerieId > 0)
                 {
-                    OperacionExitosa = Actualizar(entidad);
+                    Mensaje = Actualizar(entidad);
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
+                    Mensaje = Agregar(entidad);
                 }
 
-                if (!OperacionExitosa)
+                return Mensaje;
+            }
+
+            public string GenerarCorrelativo(CorrelativoModel entidad) 
+            {
+                string Mensaje = "OK";
+
+                try
                 {
-                    Mensaje = "La información ingresada no es valida";
+                    bool ExisteNumeracion = db.Set<SerieAgenciaFactura>().Where(x => x.SerieId == entidad.SerieId && x.Factura >= entidad.FacturaInicial && x.Factura <= entidad.FacturaFinal).Count() > 0;
+                    if (ExisteNumeracion)
+                    {
+                        return "El correlativo de facturas ya se encuentra registrado en el sistema"; 
+                    }
+
+                    for (long i = entidad.FacturaInicial; i <= entidad.FacturaFinal; i++)
+                    {
+                        db.Set<SerieAgenciaFactura>().Add(new SerieAgenciaFactura() { SerieId = entidad.SerieId, Factura = i, AgenciaId = entidad.AgenciaId, Operada = false });                   
+                    }
+
+                    db.SaveChanges();
+                }
+                catch (Exception)
+                {
+                    Mensaje = "Ocurrió un error, El correlativo de facturas ya se encuentra registrado en el sistema";
                 }
 
                 return Mensaje;
@@ -212,13 +233,20 @@ namespace DiamDev.Give.BLL
                 return Series;
             }
 
-            public List<Serie> ObtenerSeriesPorAgencia(long agenciaId) 
+            public List<Serie> ObtenerSeriesPorAgencia(long agenciaId, bool todo = false) 
             {
                 List<Serie> Series = new List<Serie>();
 
                 try
                 {
-                    Series = db.Set<SerieAgencia>().Where(x => x.AgenciaId == agenciaId).Join(db.Set<Serie>().Where(x => x.Activo == true), SA => SA.SerieId, S => S.SerieId, (SA, S) => new { S }).Select(x => x.S).ToList();
+                    if (todo)
+                    {
+                        Series = db.Set<Serie>().Where(x => x.Activo == true).ToList();
+                    }
+                    else
+                    {
+                        Series = db.Set<SerieAgencia>().Where(x => x.AgenciaId == agenciaId).Join(db.Set<Serie>().Where(x => x.Activo == true), SA => SA.SerieId, S => S.SerieId, (SA, S) => new { S }).Select(x => x.S).ToList();
+                    }
                 }
                 catch (Exception)
                 {
@@ -227,13 +255,28 @@ namespace DiamDev.Give.BLL
                 return Series;
             }
 
+            public List<Agencia> ObtenerAgenciasxSerieId(long serieId) 
+            {
+                List<Agencia> Agencias = new List<Agencia>();
+
+                try
+                {
+                    Agencias = db.Set<SerieAgencia>().Where(x => x.SerieId == serieId).Join(db.Set<Agencia>().Where(x => x.Activo), SA => SA.AgenciaId, A => A.AgenciaId, (SA, A) => new { A }).Select(x => x.A).ToList();
+                }
+                catch (Exception)
+                {                  
+                }
+
+                return Agencias;
+            }
+
             public SerieAgenciaFactura ObtenerFacturaActual(long agenciaId, long serieId) 
             {
                 SerieAgenciaFactura FacturaActual = new SerieAgenciaFactura();
 
                 try
                 {
-                    FacturaActual = db.Set<SerieAgenciaFactura>().Where(x => x.AgenciaId == agenciaId && x.SerieId == serieId && x.Operada == false).FirstOrDefault();
+                    FacturaActual = db.Set<SerieAgenciaFactura>().Where(x => x.AgenciaId == agenciaId && x.SerieId == serieId && !x.Operada).FirstOrDefault();
                 }
                 catch (Exception)
                 {

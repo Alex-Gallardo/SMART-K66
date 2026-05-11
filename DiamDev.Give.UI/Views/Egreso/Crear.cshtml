@@ -1,0 +1,600 @@
+﻿@model DiamDev.Give.Entities.Egreso
+
+@{
+    ViewBag.Title = "Nuevo Egreso";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nuevo Egreso
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nuevo Egreso</h2>
+                <p>
+                    Crea un nuevo egreso.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>                        
+                    </div>
+                    @Html.Partial("_CreateOrEdit")                    
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Egreso")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="visualizar-imagen-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Fotografia</h4>
+    </div>
+    <div class="modal-body">
+        <center>
+            <img alt="" id="fotografia" src="@Url.Content("~/Content/assets/images/producto-sin-foto.jpg")" style="height:50%; width:50%" class="img-responsive" />
+        </center>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-imagen-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<div id="seleccionar-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Producto</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover" id="sample-table-1">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="producto_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+   <script src="~/Scripts/mustache.js"></script>
+   <script type="text/html" id="producto_tr_template">
+    <tr>
+        <td>{{producto}}</td>
+        <td>{{presentacion}}</td>
+        <td>{{cantidad}}</td>  
+        <td>{{id}}</td>  
+        <td>Q{{precio}}</td>     
+        <td>Q{{sub_total}}</td>  
+        <td>
+            <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+            <input type="hidden" name="productoIds" value="{{producto_id}}" />
+            <input type="hidden" name="presentacionIds" value="{{presentacion_id}}" />
+            <input type="hidden" name="cantidadIds" value="{{cantidad_id}}" />     
+            <input type="hidden" name="idIds" value="{{id}}" />   
+            <input type="hidden" name="precioIds" value="{{precio_id}}" />    
+        </td>
+    </tr>
+</script>
+
+    <script type="text/javascript">
+
+    var vCodBarra = "";
+    var vAumentaCantidad = 0;
+
+    var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
+    var presentacionSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.presentacionIds))');
+    var cantidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.cantidadIds))');
+    var idsSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.idIds))');
+    var precioSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioIds))');
+
+        $(function ()
+        {
+            //Se oculta el boton de visualizar imagen
+            $('#imagen').css("display", "none");
+
+            $("#divOcultarIDs").hide();
+
+            $('#PresentacionId').change(function (evt) {
+                if ($('#ProductoId').val() === "") {
+                    error("Seleccionar un producto");
+                    return;
+                }
+
+                if ($('#PresentacionId').val() === "") {
+                    error("Seleccionar una presentacion");
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerProducto", "Producto")',
+                traditional: true,
+                async: false,
+                data: { 'agenciaId': $('#AgenciaId').val(), 'productoId': $('#ProductoId').val(), 'presentacionId': $('#PresentacionId').val(), 'empleado': false },
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion)
+                        {
+                            $('#Existencia').val(resultData.Data.Existencia);
+                            $('#PrecioActual').val(parseFloat(resultData.Data.Costo).toFixed(4));
+
+                            if (resultData.Data.TieneIdentificador === true)
+                            {
+                                $("#TieneIDs").val(1);
+                                $('#Cantidad').val(1);
+                                cargaProductoIDsSeleccionado();
+                                $("#Cantidad").prop('disabled', true);
+                            }
+                            else
+                            {
+                                $("#divOcultarIDs").hide();
+                                $("#TieneIDs").val(0);
+                                $("#ProductoActualIDs").val(0);
+                                $("#Cantidad").prop('disabled', false);
+                            }
+
+                            $('#Cantidad').focus();
+
+                            if (parseFloat(resultData.Data.Existencia) === 0) {
+
+                                document.getElementById('Existencia').style.backgroundColor = "#F78181";
+                            }
+                            else {
+                                document.getElementById('Existencia').removeAttribute("style");
+                            }
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar el producto');
+                        }
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al visualizar el producto');
+                    }
+                }
+            });
+        });
+
+        function error(texto) {
+            toastr.error(texto);
+        }
+
+        function cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, id, precio_id)
+        {
+            var plantilla = $('#producto_tr_template').html();
+
+            var modelo =
+            {
+                producto_id: producto_id,
+                producto: producto,
+                presentacion_id: presentacion_id,
+                presentacion: presentacion,
+                cantidad_id: cantidad_id,
+                cantidad: cantidad_id,
+                id: id,
+                precio_id: (precio_id).toFixed(4),
+                precio: (precio_id).toFixed(4),              
+                sub_total: (precio_id * cantidad_id).toFixed(4)
+            };
+
+            var filaHtml = Mustache.render(plantilla, modelo);
+
+            // agregamos la nueva fila a la tabla.
+            $('#producto_tbody').append(filaHtml);
+        }
+
+        renderizarProductosIniciales();
+
+        $('#btn-agregar').click(function (e) {
+            e.preventDefault();
+
+            var producto_id = $('#ProductoId').val();
+            var producto = $('#Producto').val();
+
+            if (producto_id === "" || producto === "") {
+                error("Seleccione un producto");
+                return;
+            }
+
+            var presentacion_id = $('#PresentacionId').val();
+            var presentacion = $('#PresentacionId option:selected').text();
+
+            if (presentacion_id === "" || presentacion === "") {
+                error("Seleccione una presentacion");
+                return;
+            }
+
+            var cantidad_id = $('#Cantidad').val();
+
+            if (cantidad_id === "") {
+                error("Ingrese la cantidad del producto");
+                return;
+            }
+
+            var precio_id = $('#PrecioActual').val();
+            precio_id = parseFloat(precio_id);
+
+            if (precio_id === 0)
+            {
+                error("El precio costo no puede ser 0");
+                return;
+            }
+
+            var existencia_id = parseFloat($('#Existencia').val());
+            cantidad_id = parseFloat(cantidad_id);
+
+            if (cantidad_id <= 0) {
+                error("La cantidad ingresada no puede ser 0");
+                return;
+            }
+
+            if (cantidad_id > existencia_id) {
+                error("La cantidad ingresada es mayor a la existencia");
+                return;
+            }
+
+            var IDsActual = "";
+            var tieneIds = $("#TieneIDs").val();
+            tieneIds = parseInt(tieneIds);
+
+            if (tieneIds === 1) {
+                IDsActual = $("#ProductoActualIDs").val();
+                if (IDsActual === "") {
+                    error("Seleccionar un IDs");
+                    return;
+                }
+
+                if (IDsActual === "0") {
+                    error("Seleccionar un IDs");
+                    return;
+                }
+            }
+
+            cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, IDsActual, precio_id);
+
+            //Se oculta el boton de visualizar imagen
+            $('#imagen').css("display", "none");
+
+            //Se asigna la imagen por default
+            $("#visualizar-imagen-producto-form").find("#fotografia").attr("src", "@Url.Content("~/Content/assets/images/producto-sin-foto.jpg")");
+
+            totalizarProducto();
+
+            $("#ProductoId").val(0);
+            $("#TieneIDs").val(0);
+            $("#Cantidad").val(1);
+            $("#Existencia").val(0);
+            $('#PrecioActual').val(0);
+            $("#Producto").val("");
+            $("#Barra").val("");
+            $("#divOcultarIDs").hide();
+            $("#Barra").focus();
+        });
+
+        $('#producto_tbody').delegate("a", "click", function (e) {
+            e.preventDefault();
+            $(this).parent().parent().remove();
+
+            totalizarProducto();
+        });
+
+        function renderizarProductosIniciales()
+        {
+            if (productoSeleccionados == null)
+            {
+                return;
+            }
+
+            // recorremos los productos que haya ingresado el usuario
+            for (var i = 0; i < productoSeleccionados.length; i++)
+            {
+                var producto_id = productoSeleccionados[i];
+                var producto = $('#ProductoId option[value=' + producto_id + ']').text();
+
+                var presentacion_id = presentacionSeleccionados[i];
+                var presentacion = $('#PresentacionId option[value=' + presentacion_id + ']').text();
+
+                var cantidad_id = cantidadSeleccionados[i];
+                var ids = idsSeleccionados[i];
+
+                var precio_id = precioSeleccionados[i];
+
+                cargaProducto(producto_id, producto, presentacion_id, presentacion, cantidad_id, ids, precio_id);
+            }
+
+            totalizarProducto();
+        }
+
+        function totalizarProducto()
+        {
+            var cantidadArray = new Array();
+            $('input[name=cantidadIds]').each(function ()
+            {
+                cantidadArray.push(parseFloat($(this).val()));
+            });
+
+            var precioArray = new Array();
+            $('input[name=precioIds]').each(function ()
+            {
+                precioArray.push(parseFloat($(this).val()));
+            });
+        
+            var total = 0;
+
+            if (cantidadArray.length > 0 && precioArray.length > 0)
+            {
+                for (var i = 0; i < cantidadArray.length; i++)
+                {
+                    total += cantidadArray[i] * precioArray[i];
+                }
+
+                $('#Total').html('Q' + total.toFixed(4));
+            }
+            else
+            {
+                $('#Total').html('Q' + total.toFixed(4));               
+            }
+        }
+
+        $("#Barra").autocomplete({
+            source: function (request, response) {
+                $.ajax({
+                    url: '@Url.Action("ConsultaProductoAutocomplementarExistencia", "Producto")',
+                    type: "POST",
+                    dataType: "json",
+                    data: { search: request.term },
+                    success: function (data) {
+                        response($.map(data, function (item) {
+                            return { label: item.Nombre, value: item.Nombre };
+                        }))
+                    }
+                })
+            },
+            messages:
+            {
+                noResults: "", results: ""
+            }
+        });
+
+        $('#formaprincipal').keydown(function (evt) {
+            if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                cargaBusquedaProducto(evt)
+            }
+            else if ($('#Cantidad').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                evt.preventDefault();
+                if ($('#Cantidad').val() === "") {
+                    error("Ingresar cantidad de producto");
+                    $('#Cantidad').focus();
+                    return;
+                }
+
+                $('#btn-agregar').focus();
+            }
+        });
+
+        /*
+        Evento click para el boton de busqueda de productos */
+        $('#btnBarra').click(function (evt) {
+            cargaBusquedaProducto(evt);
+        });
+
+        /*
+     Evento click para el boton de visualizar imagen de productos */
+        $('#btn-visualizar').click(function (evt) {
+            if ($('#ProductoId').val() === "") {
+
+                error("Ingresar codigo de barra");
+                $('#Barra').focus();
+
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("ObtenerFotografiaProducto", "Producto")',
+                traditional: true,
+                data: { 'productoId': $('#ProductoId').val() },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            $("#visualizar-imagen-producto-form").find("#fotografia").attr("src", resultData.Data);
+                        }
+                    }
+                }
+            });
+
+        });
+
+        $('#producto_seleccionado_tbody').delegate("a", "click", function (e) {
+            e.preventDefault();
+
+            $('#btn-close-up-seleccionar-producto').click();
+            var productoReferencia = $(this).attr("href");
+            var productoActual = productoReferencia.split(",");
+
+            var modelo =
+             {
+                 'ProductoId': productoActual[0],
+                 'Nombre': productoActual[1]
+             };
+
+            cargaProductoSeleccionado(modelo);
+        });
+
+        /*
+        Función para la busqueda de productos */
+        function cargaBusquedaProducto(evt) {
+            evt.preventDefault();
+
+            if ($('#Barra').val() === "") {
+                error("Ingresar codigo de barra");
+                $('#Barra').focus();
+                return;
+            }
+
+            if (vCodBarra === $('#Barra').val()) {
+                vAumentaCantidad = parseInt($('#Cantidad').val()) + 1;
+                $('#Cantidad').val(vAumentaCantidad);
+            }
+            else {
+                $('#Cantidad').val(1);
+            }
+
+            var barraActual = $('#Barra').val();
+            barraActual = barraActual.replace(" ", "_");
+
+            $.ajax({
+                url: '@Url.Action("ObtenerProductoxTextoLibre", "Producto")',
+                traditional: true,
+                data: { 'search': barraActual },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            if (resultData.Data.length === 1) {
+                                cargaProductoSeleccionado(resultData.Data[0]);
+                            }
+                            else if (resultData.Data.length > 1) {
+                                var fila = "";
+                                for (var i = 0; i < resultData.Data.length; i++) {
+                                    fila += "<tr><td>" + resultData.Data[i].ProductoId + "</td>";
+                                    fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                    fila += "<td><a href='" + resultData.Data[i].ProductoId + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                }
+
+                                $("#seleccionar-producto-form").modal();
+                                $("#seleccionar-producto-form").find("#producto_seleccionado_tbody").html(fila);
+                            }
+                        }
+                        else {
+                            toastr.error('La barra del producto ingresada no es correcta');
+                            $('#Barra').val("");
+                            $('#Barra').focus();
+                        }
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al visualizar el producto');
+                        $('#Barra').val("");
+                        $('#Barra').focus();
+                    }
+                }
+            });
+        }
+
+        function cargaProductoSeleccionado(producto) {
+            //Se activa el boton de visualizar fotografia
+            $('#imagen').css("display", "block");
+
+            $('#Producto').val(producto.Nombre);
+            $('#ProductoId').val(producto.ProductoId);
+
+            var PresentacionSelect = $("#PresentacionId");
+            PresentacionSelect.empty();
+            PresentacionSelect.append('<option value="0">--Seleccione una Unidad--</option>');
+
+            $.ajax({
+                url: '@Url.Action("ObtenerPresentacionPorProducto", "Producto_Ingreso")',
+                data: { 'id': $('#ProductoId').val() },
+                traditional: true,
+                async: false,
+                type: 'GET',
+                success: function (data) {
+                    var unidadActualId = 0;
+                    $.each(data, function (j) {
+                        unidadActualId = data[j]['Value'];
+                        PresentacionSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                    });
+
+                    //Se selecciona por default la primera unidad
+                    $("#PresentacionId").val(unidadActualId).trigger("change");
+                }
+            });
+
+            $('#Barra').focus();
+            vCodBarra = $('#Barra').val();
+        }
+
+        function cargaProductoIDsSeleccionado() {
+            var ProductoActualIDsSelect = $("#ProductoActualIDs");
+            ProductoActualIDsSelect.empty();
+            ProductoActualIDsSelect.append('<option value="0">--Seleccione un IDs--</option>');
+
+            $.ajax({
+                url: '@Url.Action("ObtenerProductoID", "Producto")',
+                data: { 'id': $('#ProductoId').val(), 'agenciaId': $('#AgenciaId').val() },
+                traditional: true,
+                async: false,
+                type: 'GET',
+                success: function (data) {
+                    $.each(data, function (j) {
+                        ProductoActualIDsSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                    });
+
+                    $("#divOcultarIDs").show();
+                }
+            });
+        }
+    });
+
+    </script>
+}
+
+

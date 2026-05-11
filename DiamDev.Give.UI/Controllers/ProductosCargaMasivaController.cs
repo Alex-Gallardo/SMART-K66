@@ -46,8 +46,7 @@ namespace DiamDev.Give.UI.Controllers
                 return Resultado(success, error);
             }
 
-            var usuario = User.Identity.Name;
-            //var id = Guid.NewGuid();
+            var usuario = User.Identity.Name;          
             var hoy = DateTime.Today;
             var anio = hoy.Year;
             var mes = hoy.Month;
@@ -58,8 +57,8 @@ namespace DiamDev.Give.UI.Controllers
                 Directory.CreateDirectory(fileDir);
             }
 
-            var correlativo = Directory.GetFiles(fileDir, $"{anio}-{mes:00}-{dia:00}-*.xlsx").Length + 1;
-            var fileName = Path.Combine(fileDir, $"{anio}-{mes:00}-{dia:00}-{correlativo}.xlsx");
+            var correlativo = Directory.GetFiles(fileDir, string.Format("{0}-{1:00}-{2:00}-*.xlsx",anio,mes, dia)).Length + 1;
+            var fileName = Path.Combine(fileDir, string.Format("{0}-{1:00}-{2:00}-{3}.xlsx",anio,mes, dia, correlativo));
             archivo.SaveAs(fileName);
 
             var nombresColumnas = new[] { "ID", "CODIGO", "BODEGA", "NOMBRE", "MARCA", "CANTIDAD", "COSTO", "P VENTA", "MIN", "MAX", "RENT Q.", "RENT %", "MODIFICACION" };
@@ -77,13 +76,13 @@ namespace DiamDev.Give.UI.Controllers
 
                     if (cells.Length < 12)
                     {
-                        error = $"Error en fila {filas.Count + 1}, debe tener al menos 12 columnas.";
+                        error = string.Format("Error en fila {0}, debe tener al menos 12 columnas.",cells.Length);
                         return Resultado(success, error);
                     }
 
                     if (rowsCount == 1)
                     {
-                        var nombresEnArchivo = cells.Select(x => x?.Text?.Trim()).ToArray();
+                        var nombresEnArchivo = cells.Where(x => x != null).Select(x => x.Text.Trim()).ToArray();
                         for (int i = 0; i < nombresColumnas.Length; i++)
                         {
                             if (nombresColumnas[i] != nombresEnArchivo[i])
@@ -96,7 +95,7 @@ namespace DiamDev.Give.UI.Controllers
                         continue;
                     }
 
-                    double rowId;
+                    string rowId;
                     string codigo;
                     string bodega;
                     string nombre;
@@ -110,22 +109,22 @@ namespace DiamDev.Give.UI.Controllers
                     double rentP;
                     string modificacion;
 
+                    rowId = null;
+                    codigo = cells[1].Text.Trim() ?? "";
+                    bodega = cells[2].Text.Trim() ?? "";
+                    nombre = cells[3].Text.Trim() ?? "";
+                    marca = cells[4].Text.Trim() ?? "";
 
-                    rowId = cells[0]?.Amount ?? 0;
-                    codigo = cells[1]?.Text?.Trim() ?? "";
-                    bodega = cells[2]?.Text?.Trim() ?? "";
-                    nombre = cells[3]?.Text?.Trim() ?? "";
-                    marca = cells[4]?.Text?.Trim() ?? "";
-                    cantidad = cells[5]?.Amount ?? 0;
-                    costo = cells[6]?.Amount ?? 0;
-                    precioVenta = cells[7]?.Amount ?? 0;
-                    min = cells[8]?.Amount ?? 0;
-                    max = cells[9]?.Amount ?? 0;
-                    rentQ = cells[10]?.Amount ?? 0;
-                    rentP = cells[11]?.Amount ?? 0;
-                    modificacion = cells.Length > 12 ? cells[12]?.Text?.Trim() ?? "" : "";
+                    cantidad = string.IsNullOrWhiteSpace(cells[5].Text) ? 0 : double.Parse(cells[5].Text);
+                    costo = string.IsNullOrWhiteSpace(cells[6].Text) ? 0 : double.Parse(cells[6].Text);
+                    precioVenta = string.IsNullOrWhiteSpace(cells[7].Text) ? 0 : double.Parse(cells[7].Text);
+                    min = string.IsNullOrWhiteSpace(cells[8].Text) ? 0 : double.Parse(cells[8].Text);
+                    max = string.IsNullOrWhiteSpace(cells[9].Text) ? 0 : double.Parse(cells[9].Text);
+                    rentQ = string.IsNullOrWhiteSpace(cells[10].Text) ? 0 : double.Parse(cells[10].Text);
+                    rentP = string.IsNullOrWhiteSpace(cells[11].Text) ? 0 : double.Parse(cells[11].Text);
+                    modificacion = cells.Length > 12 ? ( cells[12] != null ? cells[12].Text.Trim() : "") : "";
 
-                    if (rowId > 0 || !string.IsNullOrWhiteSpace(codigo))
+                    if (!string.IsNullOrWhiteSpace(rowId) || !string.IsNullOrWhiteSpace(codigo))
                     {
                         filas.Add(new ProductoCargaMasivaDetalle
                         {
@@ -151,6 +150,30 @@ namespace DiamDev.Give.UI.Controllers
             if (filas.Count == 0)
             {
                 error = "El archivo está vacío.";
+                return Resultado(success, error);
+            }
+
+            if (filas.Where(x => string.IsNullOrWhiteSpace(x.Codigo)).Count() > 0)
+            {
+                error = "El documento no es valido, existen productos que no contienen codigo.";
+                return Resultado(success, error);
+            }
+
+            if (filas.Where(x => string.IsNullOrWhiteSpace(x.Bodega)).Count() > 0)
+            {
+                error = "El documento no es valido, existen productos que no contienen bodega.";
+                return Resultado(success, error);
+            }
+
+            if (filas.Where(x => string.IsNullOrWhiteSpace(x.Nombre)).Count() > 0)
+            {
+                error = "El documento no es valido, existen productos que no contienen nombre.";
+                return Resultado(success, error);
+            }
+
+            if (filas.Where(x => string.IsNullOrWhiteSpace(x.Marca)).Count() > 0)
+            {
+                error = "El documento no es valido, existen productos que no contienen marca.";
                 return Resultado(success, error);
             }
 
@@ -263,11 +286,8 @@ namespace DiamDev.Give.UI.Controllers
             int correlativo = 0;
             var hoy = DateTime.Now;
 
-
-
             using (var db = new GiveContext())
             {
-
                 using (var trx = db.Database.BeginTransaction())
                 {
 
@@ -287,304 +307,361 @@ namespace DiamDev.Give.UI.Controllers
                     {
                         movimientoCorrelativo = 1;
                     }
+                                        
+                    var agenciaIds = productos.Select(x => x.Bodega).Distinct().ToList();
 
-                    movimientoCorrelativo++;
-
-                    var movimiento = new Movimiento
+                    if (agenciaIds == null)
                     {
-                        MovimientoId = long.Parse(string.Format("{0:yyyyMMdd}{1:000}", hoy, movimientoCorrelativo)),
-                        Correlativo = movimientoCorrelativo,
-                        AgenciaId = CustomHelper.getAgenciaId(),
-                        UsrCreo = CustomHelper.getUserId(),
-                        MovimientoTipoId = 1,
-                        Operado = true,
-                        Fecha = DateTime.Today,
-                        Descripcion = "Carga Masiva",
-                        Proveedor = proveedor,
-                        Detalles = new List<MovimientoDetalle>()
-                    };
+                        error = "No contiene bodegas.";
+                        errores.Add(error);
+                        return errores;
+                    }
 
-                    int movimientoDetalleId = 1;
+                    //Configuracion cuando los productos son nuevos
+                    ProductoCategoria CategoriaGeneral = db.Set<ProductoCategoria>().AsNoTracking().Where(x => x.Nombre.ToLower().Equals("general")).FirstOrDefault();
+                    Unidad UnidadGeneral = db.Set<Unidad>().AsNoTracking().Where(x => x.Nombre.ToLower().Equals("unidad")).FirstOrDefault();
 
-                    foreach (var item in productos)
+                    if (CategoriaGeneral == null && productos.Where(x => !string.IsNullOrWhiteSpace(x.Modificacion)).Count() > 0)
                     {
-                        var agencia = db.Agencias.FirstOrDefault(x => x.Nombre.ToLower().Trim() == item.Bodega.ToLower().Trim());
-                        if (agencia == null)
+                        error = "Se le informa que la configuración general no se encuentra registrada en Categoria";
+                        errores.Add(error);
+                        return errores;                        
+                    }
+
+                    if (UnidadGeneral == null && productos.Where(x => !string.IsNullOrWhiteSpace(x.Modificacion)).Count() > 0)
+                    {
+                        error = "Se le informa que la configuración general no se encuentra registrada en Unidad de Medida";
+                        errores.Add(error);
+                        return errores;
+                    }
+
+                    foreach (var itemAgencia in agenciaIds)
+                    {
+                        //Se aumenta el correlativo
+                        movimientoCorrelativo++;
+
+                        var agenciaActual = db.Agencias.FirstOrDefault(x => x.Nombre.ToLower().Trim().Equals(itemAgencia.ToLower().Trim()));
+
+                        if (agenciaActual == null)
                         {
-                            error = "No existe la bodega '" + item.Bodega + "'.";
-                            if (!errores.Contains(error))
-                                errores.Add(error);
-
-                            continue;
+                            error = "No existe la bodega '" + itemAgencia + "'.";
+                            errores.Add(error);
+                            return errores;
                         }
 
-                        Producto producto;
-                        Marca marca;
-                        decimal cantidad;
-                        decimal costo;
-
-                        if (string.IsNullOrWhiteSpace(item.Modificacion))
+                        //Encabezado del movimiento
+                        var movimiento = new Movimiento
                         {
-                            // editar
-                            producto = db.Productos.Include(x => x.Precios).FirstOrDefault(x => x.ProductoId.Trim() == item.Id.ToString().Trim() || x.Codigo.Trim() == item.Codigo.Trim());
+                            MovimientoId = long.Parse(string.Format("{0:yyyyMMdd}{1:000}", hoy, movimientoCorrelativo)),
+                            Correlativo = movimientoCorrelativo,
+                            AgenciaId = agenciaActual.AgenciaId,
+                            UsrCreo = CustomHelper.getUserId(),
+                            MovimientoTipoId = 1,
+                            MovimientoCategoriaId = 3,
+                            Operado = true,
+                            Fecha = DateTime.Today,
+                            Descripcion = "Carga Masiva",
+                            Proveedor = proveedor,
+                            Detalles = new List<MovimientoDetalle>()
+                        };
+                        
+                        //Detalle del Movimiento
+                        int movimientoDetalleId = 1;
 
-                            if (producto == null)
+                        foreach (var item in productos.Where(x => x.Bodega.ToLower().Trim().Equals(agenciaActual.Nombre.ToLower().Trim())))
+                        {                           
+                            Producto producto;
+                            Marca marca;
+                            decimal cantidad;
+                            decimal existenciaActual;
+                            decimal costo;
+                            decimal venta;
+
+                            if (string.IsNullOrWhiteSpace(item.Modificacion))
                             {
-                                error = "No existe el producto con id '" + item.Id + "' ni con codigo '" + item.Codigo + "'.";
-                                if (!errores.Contains(error))
-                                    errores.Add(error);
+                                // editar
+                                producto = db.Productos.Include(x => x.Precios).FirstOrDefault(x => x.ProductoId.Trim() == item.Id.ToString().Trim() || x.Codigo.Trim() == item.Codigo.Trim());
 
-                                continue;
-                            }
-
-                            marca = db.Marcas.Where(x => x.Nombre.ToLower().Trim() == item.Marca.ToLower().Trim()).FirstOrDefault();
-
-                            if (marca == null)
-                            {
-                                var fecha = DateTime.Now;
-                                var marcaCorrelativo = db.Marcas.Where(x => x.Fecha.Year == fecha.Year && x.Fecha.Month == fecha.Month && x.Fecha.Day == fecha.Day).OrderByDescending(x => x.Correlativo).Select(x => x.Correlativo).FirstOrDefault();
-
-                                marcaCorrelativo = marcaCorrelativo > 0 ? marcaCorrelativo + 1 : 1;
-
-                                var marcaId = long.Parse(string.Format("{0:yyyyMMdd}{1:000}", fecha, marcaCorrelativo));
-
-                                marca = new Marca
+                                if (producto == null)
                                 {
-                                    Correlativo = marcaCorrelativo,
-                                    MarcaId = marcaId,
-                                    Activo = true,
-                                    Fecha = DateTime.Now,
-                                    Nombre = item.Marca
-                                };
+                                    error = "No existe el producto con id '" + item.Id + "' ni con codigo '" + item.Codigo + "'.";
+                                    if (!errores.Contains(error))
+                                        errores.Add(error);
+                                    continue;
+                                }
 
-                                db.Marcas.Add(marca);
-                                producto.Marca = marca;
-                            }
-
-                            var productoBodega = db.ProductoInventarios.FirstOrDefault(x => x.AgenciaId == agencia.AgenciaId && x.ProductoId == producto.ProductoId);
-
-                            cantidad = Convert.ToDecimal(item.Cantidad);
-                            if (productoBodega == null)
-                            {
-                                productoBodega = new ProductoInventario
+                                //Se valida que producto se encuentre activo
+                                if (!producto.Activo)
                                 {
-                                    AgenciaId = agencia.AgenciaId,
-                                    ProductoId = producto.ProductoId,
-                                    Cantidad = cantidad
-                                };
-                                db.ProductoInventarios.Add(productoBodega);
+                                    continue;
+                                }
+
+                                marca = db.Marcas.Where(x => x.Nombre.ToLower().Trim() == item.Marca.ToLower().Trim()).FirstOrDefault();
+
+                                if (marca == null)
+                                {
+                                    var fecha = DateTime.Now;
+                                    var marcaCorrelativo = db.Marcas.Where(x => x.Fecha.Year == fecha.Year && x.Fecha.Month == fecha.Month && x.Fecha.Day == fecha.Day).OrderByDescending(x => x.Correlativo).Select(x => x.Correlativo).FirstOrDefault();
+
+                                    marcaCorrelativo = marcaCorrelativo > 0 ? marcaCorrelativo + 1 : 1;
+
+                                    var marcaId = long.Parse(string.Format("{0:yyyyMMdd}{1:000}", fecha, marcaCorrelativo));
+
+                                    marca = new Marca
+                                    {
+                                        Correlativo = marcaCorrelativo,
+                                        MarcaId = marcaId,
+                                        Activo = true,
+                                        Fecha = DateTime.Now,
+                                        Nombre = item.Marca
+                                    };
+
+                                    db.Marcas.Add(marca);
+                                    db.SaveChanges();
+
+                                    producto.Marca = marca;
+                                }
+
+                                var productoBodega = db.ProductoInventarios.FirstOrDefault(x => x.AgenciaId == agenciaActual.AgenciaId && x.ProductoId == producto.ProductoId);
+
+                                cantidad = Convert.ToDecimal(item.Cantidad);
+                                if (productoBodega == null)
+                                {
+                                    productoBodega = new ProductoInventario
+                                    {
+                                        AgenciaId = agenciaActual.AgenciaId,
+                                        ProductoId = producto.ProductoId,
+                                        Cantidad = cantidad
+                                    };
+                                    db.ProductoInventarios.Add(productoBodega);
+                                    existenciaActual = cantidad;
+                                }
+                                else
+                                {
+                                    productoBodega.Cantidad += cantidad;
+                                    existenciaActual = productoBodega.Cantidad;
+                                }
+
+                                producto.Nombre = item.Nombre;
+                                producto.Minimo = Convert.ToInt32(item.Min);
+                                producto.Maximo = Convert.ToInt32(item.Max);
+
+                                var productoPrecioCosto = db.ProductoPrecioCostos.FirstOrDefault(x => x.ProductoId == producto.ProductoId);
+
+                                costo = Convert.ToDecimal(item.Costo);
+                                if (productoPrecioCosto == null)
+                                {
+                                    productoPrecioCosto = new ProductoPrecioCosto
+                                    {
+                                        Producto = producto,
+                                        PrecioCosto = costo
+                                    };
+                                    db.ProductoPrecioCostos.Add(productoPrecioCosto);
+                                }
+                                else
+                                {
+                                    productoPrecioCosto.PrecioCosto = costo;
+                                }
+
+                                producto.PrecioActual = Convert.ToDecimal(item.PrecioVenta);
+                                venta = Convert.ToDecimal(item.PrecioVenta);
+
+                                if (producto.Precios.Any(x => x.PrecioId == 5))
+                                {
+                                    producto.Precios.First(x => x.PrecioId == 5).Valor = Convert.ToDecimal(item.PrecioVenta);
+                                }
+                                else
+                                {
+                                    producto.Precios.Add(new ProductoPrecio
+                                    {
+                                        PrecioId = 5,
+                                        Producto = producto,
+                                        Valor = Convert.ToDecimal(item.PrecioVenta)
+                                    });
+                                }
+
                             }
                             else
                             {
-                                productoBodega.Cantidad += cantidad;
-                            }
+                                // crear
+                                producto = db.Productos.FirstOrDefault(x => x.ProductoId.Trim() == item.Id.ToString().Trim() || x.Codigo.Trim() == item.Codigo.Trim());
 
+                                if (producto != null)
+                                {
+                                    error = "Ya existe un producto con id '" + item.Id + "' o con codigo '" + item.Codigo + "'.";
+                                    if (!errores.Contains(error))
+                                        errores.Add(error);
+                                    continue;
+                                }
 
-                            producto.Nombre = item.Nombre;
-                            producto.Minimo = Convert.ToInt32(item.Min);
-                            producto.Maximo = Convert.ToInt32(item.Max);
+                                marca = db.Marcas.Where(x => x.Nombre.ToLower().Trim() == item.Marca.ToLower().Trim()).FirstOrDefault();
 
-                            var productoPrecioCosto = db.ProductoPrecioCostos.FirstOrDefault(x => x.ProductoId == producto.ProductoId);
+                                if (marca == null)
+                                {
+                                    var marcaCorrelativo = db.Marcas.Where(x => x.Fecha.Year == hoy.Year && x.Fecha.Month == hoy.Month && x.Fecha.Day == hoy.Day).OrderByDescending(x => x.Correlativo).Select(x => x.Correlativo).FirstOrDefault();
 
-                            costo = Convert.ToDecimal(item.Costo);
-                            if (productoPrecioCosto == null)
-                            {
-                                productoPrecioCosto = new ProductoPrecioCosto
+                                    marcaCorrelativo = marcaCorrelativo > 0 ? marcaCorrelativo + 1 : 1;
+
+                                    var marcaId = long.Parse(string.Format("{0:yyyyMMdd}{1:000}", hoy, marcaCorrelativo));
+
+                                    marca = new Marca
+                                    {
+                                        Correlativo = marcaCorrelativo,
+                                        MarcaId = marcaId,
+                                        Activo = true,
+                                        Fecha = DateTime.Now,
+                                        Nombre = item.Marca
+                                    };
+
+                                    db.Set<Marca>().Add(marca);
+                                    db.SaveChanges();
+                                }
+
+                                DateTime productoFecha = hoy;
+                                int productoCorrelativo;
+                                string productoId = null;
+
+                                if (!string.IsNullOrWhiteSpace(item.Id))
+                                {
+                                    try
+                                    {
+                                        //productoFecha = DateTime.ParseExact(productoId.Substring(0, 8), "yyyyMMdd", CultureInfo.CurrentCulture);
+                                        productoCorrelativo = int.Parse(productoId.Substring(8, 3));
+
+                                        //if (productoFecha.Year == hoy.Year && productoFecha.Month == hoy.Month && productoFecha.Day == hoy.Day)
+                                        //{
+                                        if (correlativo < productoCorrelativo)
+                                        {
+                                            correlativo = productoCorrelativo;
+                                        }
+                                        //}
+
+                                    }
+                                    catch (Exception)
+                                    {
+                                        error = "El id " + item.Id + " no es válido";
+                                        if (!errores.Contains(error))
+                                            errores.Add(error);
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    productoFecha = hoy;
+
+                                    if (correlativo > 0)
+                                    {
+                                        productoCorrelativo = correlativo;
+                                    }
+                                    else
+                                    {
+                                        int correlativoDb = db.Productos.Where(x => x.Fecha.Year == hoy.Year && x.Fecha.Month == hoy.Month && x.Fecha.Day == hoy.Day).OrderByDescending(x => x.Correlativo).Select(x => x.Correlativo).FirstOrDefault();
+                                        if (correlativo < correlativoDb)
+                                        {
+                                            productoCorrelativo = correlativoDb;
+                                        }
+                                        else
+                                        {
+                                            productoCorrelativo = correlativo;
+                                        }
+                                    }
+
+                                    productoCorrelativo = productoCorrelativo > 0 ? productoCorrelativo + 1 : 1;
+
+                                    correlativo = productoCorrelativo;
+
+                                    productoId = string.Format("{0:yyyyMMdd}{1:000}", hoy, productoCorrelativo);
+                                }                                
+
+                                producto = new Producto
+                                {
+                                    ProductoId = productoId,
+                                    Correlativo = productoCorrelativo,
+                                    Codigo = item.Codigo,
+                                    Nombre = item.Nombre,
+                                    Descripcion = item.Nombre,
+                                    Minimo = Convert.ToInt32(item.Min),
+                                    Maximo = Convert.ToInt32(item.Max),
+                                    Activo = true,
+                                    CategoriaId = CategoriaGeneral.ProductoCategoriaId,
+                                    Cantidad = Convert.ToDecimal(item.Cantidad),
+                                    UnidadId = UnidadGeneral.UnidadId,
+                                    Fecha = productoFecha,
+                                    Precios = new List<ProductoPrecio> { new ProductoPrecio { PrecioId = 5, Valor = Convert.ToDecimal(item.PrecioVenta) } },
+                                    Marca = marca,
+                                    PrecioActual = Convert.ToDecimal(item.PrecioVenta)
+                                };
+
+                                db.Productos.Add(producto);
+                                db.SaveChanges();
+
+                                costo = Convert.ToDecimal(item.Costo);
+                                venta = Convert.ToDecimal(item.PrecioVenta);
+                                cantidad = Convert.ToDecimal(item.Cantidad);
+
+                                var productoPrecioCosto = new ProductoPrecioCosto
                                 {
                                     Producto = producto,
                                     PrecioCosto = costo
                                 };
                                 db.ProductoPrecioCostos.Add(productoPrecioCosto);
-                            }
-                            else
-                            {
-                                productoPrecioCosto.PrecioCosto = costo;
-                            }
-
-                            producto.PrecioActual = Convert.ToDecimal(item.PrecioVenta);
-
-                            if (producto.Precios.Any(x => x.PrecioId == 5))
-                            {
-                                producto.Precios.First(x => x.PrecioId == 5).Valor = Convert.ToDecimal(item.PrecioVenta);
-                            }
-                            else
-                            {
-                                producto.Precios.Add(new ProductoPrecio
+                                db.ProductoInventarios.Add(new ProductoInventario
                                 {
-                                    PrecioId = 5,
-                                    Producto = producto,
-                                    Valor = Convert.ToDecimal(item.PrecioVenta)
+                                    AgenciaId = agenciaActual.AgenciaId,
+                                    ProductoId = producto.ProductoId,
+                                    Cantidad = cantidad
+                                });
+
+                                existenciaActual = cantidad;
+                            }
+
+                            if (commit)
+                            {
+
+                                movimiento.Detalles.Add(new MovimientoDetalle
+                                {
+                                    DetalleId = movimientoDetalleId++,
+                                    MovimientoId = movimiento.MovimientoId,
+                                    ProductoId = producto.ProductoId,
+                                    UnidadId = producto.UnidadId,
+                                    Cantidad = cantidad,
+                                    Minimo = producto.Minimo,
+                                    Maximo = producto.Maximo,
+                                    Precio = venta,
+                                    PrecioCosto = costo
+                                });
+
+                                db.RegistrosKardex.Add(new RegistroKardex
+                                {
+                                    FechaHora = DateTime.Now,
+                                    Fecha = DateTime.Today,
+                                    ProductoId = producto.ProductoId,
+                                    ProductoCodigo = producto.Codigo,
+                                    ProductoNombre = producto.Nombre,
+                                    ProductoDescripcion = producto.Descripcion,
+                                    MarcaId = marca.MarcaId,
+                                    MarcaNombre = marca.Nombre,
+                                    AgenciaId = agenciaActual.AgenciaId,
+                                    AgenciaNombre = agenciaActual.Nombre,
+                                    TipoRegistro = "Ingreso Masivo",
+                                    IngresoCantidadTienda = cantidad,
+                                    IngresoCostoTienda = costo,
+                                    ExistenciaFinalTienda = existenciaActual
                                 });
                             }
-
-                        }
-                        else
-                        {
-                            // crear
-
-                            producto = db.Productos.FirstOrDefault(x => x.ProductoId.Trim() == item.Id.ToString().Trim() || x.Codigo.Trim() == item.Codigo.Trim());
-
-                            if (producto != null)
-                            {
-                                error = "Ya existe un producto con id '" + item.Id + "' o con codigo '" + item.Codigo + "'.";
-                                if (!errores.Contains(error))
-                                    errores.Add(error);
-
-                                continue;
-                            }
-
-                            marca = db.Marcas.Where(x => x.Nombre.ToLower().Trim() == item.Marca.ToLower().Trim()).FirstOrDefault();
-
-                            if (marca == null)
-                            {
-                                var marcaCorrelativo = db.Marcas.Where(x => x.Fecha.Year == hoy.Year && x.Fecha.Month == hoy.Month && x.Fecha.Day == hoy.Day).OrderByDescending(x => x.Correlativo).Select(x => x.Correlativo).FirstOrDefault();
-
-                                marcaCorrelativo = marcaCorrelativo > 0 ? marcaCorrelativo + 1 : 1;
-
-                                var marcaId = long.Parse(string.Format("{0:yyyyMMdd}{1:000}", hoy, marcaCorrelativo));
-
-                                marca = new Marca
-                                {
-                                    Correlativo = marcaCorrelativo,
-                                    MarcaId = marcaId,
-                                    Activo = true,
-                                    Fecha = DateTime.Now,
-                                    Nombre = item.Marca
-                                };
-                            }
-
-                            DateTime productoFecha = hoy;
-                            int productoCorrelativo;
-                            string productoId = item.Id.ToString();
-
-                            if (item.Id > 0)
-                            {
-                                try
-                                {
-                                    //productoFecha = DateTime.ParseExact(productoId.Substring(0, 8), "yyyyMMdd", CultureInfo.CurrentCulture);
-                                    productoCorrelativo = int.Parse(productoId.Substring(8, 3));
-
-                                    //if (productoFecha.Year == hoy.Year && productoFecha.Month == hoy.Month && productoFecha.Day == hoy.Day)
-                                    //{
-                                        if (correlativo < productoCorrelativo)
-                                        {
-                                            correlativo = productoCorrelativo;
-                                        }
-                                    //}
-
-                                }
-                                catch (Exception)
-                                {
-                                    error = "El id " + item.Id + " no es válido";
-                                    if (!errores.Contains(error))
-                                        errores.Add(error);
-                                    continue;
-                                }
-                            }
-                            else
-                            {
-                                productoFecha = hoy;
-
-                                if (correlativo > 0)
-                                {
-                                    productoCorrelativo = correlativo;
-                                }
-                                else
-                                {
-                                    int correlativoDb = db.Productos.Where(x => x.Fecha.Year == hoy.Year && x.Fecha.Month == hoy.Month && x.Fecha.Day == hoy.Day).OrderByDescending(x => x.Correlativo).Select(x => x.Correlativo).FirstOrDefault();
-                                    if (correlativo < correlativoDb)
-                                    {
-                                        productoCorrelativo = correlativoDb;
-                                    }
-                                    else
-                                    {
-                                        productoCorrelativo = correlativo;
-                                    }
-                                }
-
-                                productoCorrelativo = productoCorrelativo > 0 ? productoCorrelativo + 1 : 1;
-
-                                correlativo = productoCorrelativo;
-
-                                productoId = string.Format("{0:yyyyMMdd}{1:000}", hoy, productoCorrelativo);
-                            }
-
-                            producto = new Producto
-                            {
-                                ProductoId = productoId,
-                                Correlativo = productoCorrelativo,
-                                Codigo = item.Codigo,
-                                Nombre = item.Nombre,
-                                Descripcion = item.Nombre,
-                                Minimo = Convert.ToInt32(item.Min),
-                                Maximo = Convert.ToInt32(item.Max),
-                                Activo = true,
-                                CategoriaId = 20170114001,
-                                Cantidad = Convert.ToDecimal(item.Cantidad),
-                                UnidadId = 20170114001,
-                                Fecha = productoFecha,
-                                Precios = new List<ProductoPrecio> { new ProductoPrecio { PrecioId = 5, Valor = Convert.ToDecimal(item.PrecioVenta) } },
-                                Marca = marca,
-                                PrecioActual = Convert.ToDecimal(item.PrecioVenta)
-                            };
-
-                            db.Productos.Add(producto);
-
-                            costo = Convert.ToDecimal(item.Costo);
-                            cantidad = Convert.ToDecimal(item.Cantidad);
-
-                            var productoPrecioCosto = new ProductoPrecioCosto
-                            {
-                                Producto = producto,
-                                PrecioCosto = costo
-                            };
-                            db.ProductoPrecioCostos.Add(productoPrecioCosto);
-                            db.ProductoInventarios.Add(new ProductoInventario
-                            {
-                                AgenciaId = agencia.AgenciaId,
-                                ProductoId = producto.ProductoId,
-                                Cantidad = cantidad
-                            });
                         }
 
                         if (commit)
                         {
-
-                            movimiento.Detalles.Add(new MovimientoDetalle {
-                                DetalleId = movimientoDetalleId++,
-                                MovimientoId = movimiento.MovimientoId,
-                                ProductoId = producto.ProductoId,
-                                UnidadId = producto.UnidadId,
-                                Cantidad = cantidad,
-                                Precio = costo,
-                                PrecioCosto = decimal.Round(cantidad * costo, 2)
-                            });
-
-                            db.RegistrosKardex.Add(new RegistroKardex
-                            {
-                                FechaHora = DateTime.Now,
-                                Fecha = DateTime.Today,
-                                ProductoId = producto.ProductoId,
-                                ProductoCodigo = producto.Codigo,
-                                ProductoNombre = producto.Nombre,
-                                ProductoDescripcion = producto.Descripcion,
-                                MarcaId = marca.MarcaId,
-                                MarcaNombre = marca.Nombre,
-                                AgenciaId = agencia.AgenciaId,
-                                AgenciaNombre = agencia.Nombre,
-                                TipoRegistro = "Ingreso Masivo",
-                                IngresoCantidadTienda = cantidad,
-                                IngresoCostoTienda = costo
-                            });
+                            db.Movimientos.Add(movimiento);  
                         }
                     }
 
                     try
                     {
-                        db.Movimientos.Add(movimiento);
-                        db.SaveChanges();
                         if (commit)
-                        {
+                        {                            
+                            db.SaveChanges();
                             trx.Commit();
                         }
                     }

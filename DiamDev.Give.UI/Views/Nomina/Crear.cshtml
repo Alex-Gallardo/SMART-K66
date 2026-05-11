@@ -1,0 +1,217 @@
+﻿@model DiamDev.Give.Entities.Nomina
+
+@{
+    ViewBag.Title = "Nueva Nomina";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nueva Nomina
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nueva Nomina</h2>
+                <p>
+                    Crea una nueva nomina.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    @Html.Partial("_CreateOrEdit")
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Generar Calculos Nomina</button></p>
+                        </div>
+                    </div>
+                    <hr />
+                    <h2>
+                        <i class="icon-edit-sign teal"></i> Personal
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Puesto</th>
+                                            <th>Dias</th>
+                                            <th>Sueldo</th>
+                                            <th>Bonficacion</th>
+                                            <th>Otros Ingresos</th>
+                                            <th>IGSS</th>
+                                            <th>Otros Descuentos</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbl-empleados"></tbody>
+                                </table>
+                            </div>                            
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            $('#btn-agregar').click(function (evt)
+            {
+                var TipoId = $("#TipoId").val();
+                var FechaInicial = $("#FechaInicial").val();
+                var FechaFinal = $("#FechaFinal").val();
+
+                if (TipoId === "")
+                {
+                    error('Ingresar el tipo de la nomina');
+                    return;
+                }
+
+                if (FechaInicial === "")
+                {
+                    error('Ingresar fecha inicial de la nomina');
+                    return;
+                }
+
+                if (FechaFinal === "")
+                {
+                    error('Ingresar fecha final de la nomina');
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerPersonalNomina", "Nomina")',
+                    traditional: true,
+                    data: { 'fechaInicial': FechaInicial, 'fechaFinal': FechaFinal, 'tipoId': TipoId },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
+                                var indice = 0;
+
+                                for (var i = 0; i < resultData.Data.length; i++)
+                                {
+                                    var $fila = $('<tr/>');
+                                    var $celdaA = $('<td />');
+                                    var $celdaB = $('<td />');
+                                    var $celdaC = $('<td />');
+                                    var $celdaD = $('<td />');
+                                    var $celdaE = $('<td />');
+                                    var $celdaF = $('<td />');
+                                    var $celdaG = $('<td />');
+                                    var $celdaH = $('<td />');
+                                    var $celdaI = $('<td />');
+
+                                    var prefijo = 'empleados[' + indice + ']';
+
+                                    var $hidden = $('<input />', { type: 'hidden', value: resultData.Data[i].PersonalId, name: prefijo + '.PersonalId' });
+                                    var $nombre = $('<input />', { type: 'text', name: prefijo + '.Nombre', value: resultData.Data[i].Nombre, class: 'form-control' });
+                                    var $puesto = $('<input />', { name: prefijo + '.Puesto', value: resultData.Data[i].Puesto, class: 'form-control' });
+                                    var $dias = $('<input />', { name: prefijo + '.Dias', value: resultData.Data[i].Dias, class: 'form-control' });
+                                    var $sueldo = $('<input />', { name: prefijo + '.Sueldo', value: resultData.Data[i].Sueldo, class: 'form-control' });
+                                    var $bonificacion = $('<input />', { name: prefijo + '.Bonificacion', value: resultData.Data[i].Bonificacion, class: 'form-control' });
+                                    var $otrosIngresos = $('<input />', { name: prefijo + '.OtrosIngresos', value: resultData.Data[i].OtrosIngresos, class: 'form-control' });
+                                    var $igss = $('<input />', { name: prefijo + '.IGSS', value: resultData.Data[i].IGSS, class: 'form-control' });
+                                    var $otrosDescuentos = $('<input />', { name: prefijo + '.OtrosDescuentos', value: resultData.Data[i].OtrosDescuentos, class: 'form-control' });
+                                    var $delete = $('<button />', { type: 'button', class: 'btn btn-danger' }).text('Eliminar');
+
+                                    $celdaA.append($nombre);
+                                    $celdaA.append($hidden);
+                                    $celdaB.append($puesto);
+                                    $celdaC.append($dias);
+                                    $celdaD.append($sueldo);
+                                    $celdaE.append($bonificacion);
+                                    $celdaF.append($otrosIngresos);
+                                    $celdaG.append($igss);
+                                    $celdaH.append($otrosDescuentos);
+                                    $celdaI.append($delete);
+
+                                    $fila.append([$celdaA, $celdaB, $celdaC, $celdaD, $celdaE, $celdaF, $celdaG, $celdaH, $celdaI]);
+
+                                    $('#tbl-empleados').append($fila);
+
+                                    $delete.click(function (_evt)
+                                    {
+                                        _evt.preventDefault();
+                                        $fila.remove();
+                                    });
+
+                                    indice++;                                 
+                                }
+                            }
+                            else
+                            {
+                                toastr.error('Ocurrió un error, al visualizar la nomina');
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al visualizar la nomina');
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+}
+
+

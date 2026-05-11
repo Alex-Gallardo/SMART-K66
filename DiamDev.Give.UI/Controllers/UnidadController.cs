@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -16,8 +17,7 @@ namespace DiamDev.Give.UI.Controllers
     [Seguridad]
     [HandleError]
     public class UnidadController : Controller
-    {
-        //
+    {        
         // GET: /Unidad/
         [Permiso("Control.Unidad.Ver_Listado")]
         public ActionResult Index(int? page)
@@ -58,10 +58,9 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso("Control.Unidad.Crear")]
         public ActionResult Crear(Unidad modelo, bool activo)
         {
-
+            modelo.Cantidad = 0;
             if (ModelState.IsValid)
             {
-
                 modelo.Activo = activo;
                 string strMensaje = new UnidadBL().Guardar(modelo);
 
@@ -74,7 +73,6 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     ModelState.AddModelError("", strMensaje);
                 }
-
             }
 
             string strAtributo = "checked='checked'";
@@ -109,7 +107,7 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso("Control.Unidad.Editar")]
         public ActionResult Editar(Unidad modelo, bool activo)
         {
-
+            modelo.Cantidad = 0;
             if (ModelState.IsValid)
             {
                 modelo.Activo = activo;
@@ -124,7 +122,6 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     ModelState.AddModelError("", strMensaje);
                 }
-
             }
 
             string strAtributo = "checked='checked'";
@@ -133,6 +130,29 @@ namespace DiamDev.Give.UI.Controllers
             ViewBag.activoNo = activo == false ? strAtributo : "";
 
             return View(modelo);
+        }
+
+        [ActionName("ObtenerUnidadxConversion")]
+        public JsonResult ObtenerUnidadxConversion(string id, long empresaId)
+        {
+            IList _result = new List<SelectListItem>();
+            _result = new UnidadBL().ObtenerUnidadxConversion(id, CustomHelper.getUserId(), empresaId).Select(m => new SelectListItem() { Text = m.Unidad, Value = m.UnidadId.ToString() }).ToList();
+            return Json(_result, JsonRequestBehavior.AllowGet);
+        }
+
+        [ActionName("ObtenerUnidadxId")]
+        public JsonResult ObtenerUnidadxId(int id, long empresaId)
+        {
+            if (id > 0)
+            {
+                UnidadK66 UnidadK66Actual = new UnidadBL().ObtenerUnidadxID(id, CustomHelper.getUserId(), empresaId);
+                if (UnidadK66Actual != null)
+                {
+                    return Json(new { Operacion = true, Data = UnidadK66Actual }, JsonRequestBehavior.AllowGet);
+                }
+            }
+
+            return Json(new { Operacion = false }, JsonRequestBehavior.AllowGet);
         }
     }
 }

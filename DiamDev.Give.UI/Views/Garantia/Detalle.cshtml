@@ -1,0 +1,231 @@
+﻿@model DiamDev.Give.Entities.Garantia
+
+@{
+    ViewBag.Title = "Detalle Garantia";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Garantia
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="GarantiaId" name="GarantiaId" value="@Html.Raw(Model.GarantiaId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Documento
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Documento == null ? "No Disponible" : Model.Documento.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <br />
+                                <strong>
+                                    @if (Model.DocumentoId == 1)
+                                    {
+                                        @(Model.Factura.Cliente == null ? "No Disponible" : Model.Factura.Cliente.Nombre)
+                                    }
+                                    else if (Model.DocumentoId == 2)
+                                    {
+                                        @(Model.Recibo.Cliente == null ? "No Disponible" : Model.Recibo.Cliente.Nombre)
+                                    }
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha
+                                </label>
+                                <br />
+                                <strong>
+                                    @if (Model.DocumentoId == 1)
+                                    {
+                                        @Model.Factura.Fecha.ToString("dd/MM/yyyy")
+                                    }
+                                    else if (Model.DocumentoId == 2)
+                                    {
+                                        @Model.Recibo.Fecha.ToString("dd/MM/yyyy")
+                                    }                                   
+                                </strong>
+                            </div>   
+                        </div>
+                    </div>
+                    @if (Model.DocumentoId == 1)
+                    {
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Serie
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @Model.Factura.Serie.Nombre
+                                    </strong>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        No. Factura
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @Model.Factura.NoFactura
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (Model.DocumentoId == 2)
+                    {
+                        <div class="row">                          
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        No. Recibo
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @Model.Recibo.ReciboId
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div class="row">
+                        <div class="col-md-12">                          
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Observaciones
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Observaciones) ? "No Disponible" : Model.Observaciones)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Responsable
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.UsuarioCreo.Nombre
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                   Responsable Entrega
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.UsuarioEntrega == null ? "No Disponible" : Model.UsuarioEntrega.Nombre)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>                                    
+                                        <th>IDs</th>                                      
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Detalles != null && Model.Detalles.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.Detalles)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, Detalle.Producto.Nombre))
+                                                </td>
+                                                <td>
+                                                    @(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)
+                                                </td>                                              
+                                                <td>
+                                                    @Detalle.ID
+                                                </td>                                               
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="3">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Garantia")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>

@@ -17,6 +17,12 @@ namespace DiamDev.Give.Entities
         [StringLength(50)]
         public string ProductoId { get; set; }
 
+        [Column("Empresa_Id")]
+        public long? EmpresaId { get; set; }
+
+        [ForeignKey("EmpresaId")]
+        public Empresa Empresa { get; set; }
+
         [Column("Producto_Padre_Id")]
         [StringLength(50)]
         public string ProductoPadreId { get; set; }
@@ -45,6 +51,12 @@ namespace DiamDev.Give.Entities
         [Required]
         public string Nombre { get; set; }
 
+        [Column("Nombre_Alternativo_1")]
+        public string NombreAlternativo1 { get; set; }
+
+        [Column("Nombre_Alternativo_2")]
+        public string NombreAlternativo2 { get; set; }
+
         public string Descripcion { get; set; }
         
         public int Minimo { get; set; }
@@ -58,6 +70,21 @@ namespace DiamDev.Give.Entities
 
         [NotMapped]
         public decimal PrecioActual { get; set; }
+
+        [Column("Tiene_Identificador")]
+        public bool TieneIdentificador { get; set; }
+
+        [NotMapped]
+        public int EnvaseId { get; set; }
+        
+        [Column("Tiene_Envase")]
+        public bool TieneEnvase { get; set; }
+
+        [Column("Cantidad_Envase")]
+        public int?  CantidadEnvase { get; set; }
+
+        [Column("Tiene_Lote")]
+        public bool TieneLote { get; set; }
                 
         public bool Activo { get; set; }
 
@@ -65,14 +92,29 @@ namespace DiamDev.Give.Entities
 
         public int Correlativo { get; set; }
 
+        public string FotografiaApp { get; set; }
+
+        [NotMapped]
+        public bool Eliminar { get; set; }
+
         public List<ProductoPrecio> Precios { get; set; }
 
         [NotMapped]
         public decimal Costo { get; set; }
 
         [NotMapped]
+        public decimal PrecioCostoDescuento { get; set; }
+        
+        [NotMapped]
         public List<Producto> Productos { get; set; }
 
         public List<ProductoFotografia> Imagenes { get; set; }
+
+        public List<ProductoPrecioCostoHistorial> Compras { get; set; }
+
+        public List<ProductoNivelPrecio> Niveles { get; set; }
+
+        [NotMapped]
+        public ProductoFotografia Fotografia { get; set; }
     }
 }

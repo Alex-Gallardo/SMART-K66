@@ -57,10 +57,8 @@
                         </tr>
                     </thead>
                     <tbody>
-
                         @foreach (var Proveedor in Model)
                         {
-
                             <tr>
                                 <td>@(string.IsNullOrWhiteSpace(Proveedor.Nit) ? "No Disponible" : Proveedor.Nit)</td>
                                 <td>@Proveedor.Nombre</td>
@@ -69,8 +67,11 @@
                                 <td>@(Proveedor.Activo == true ? "Sí" : "No")</td>
                                 <td class="center">
                                     <div class="visible-md visible-lg hidden-sm hidden-xs">
-                                        <a href="@Url.Action("Editar", "Proveedor", new { id = Proveedor.ProveedorId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
-                                        <a href="@Url.Action("Detalle", "Proveedor", new { id = Proveedor.ProveedorId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Proveedor"><i class="clip-stack-empty"></i></a>
+                                        @if (Proveedor.ProveedorId != 20181120001)
+                                        {
+                                            <a href="@Url.Action("Editar", "Proveedor", new { id = Proveedor.ProveedorId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                            <a href="@Url.Action("Detalle", "Proveedor", new { id = Proveedor.ProveedorId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Proveedor"><i class="clip-stack-empty"></i></a>
+                                        }                                       
                                     </div>
                                     <div class="visible-xs visible-sm hidden-md hidden-lg">
                                         <div class="btn-group">
@@ -78,24 +79,25 @@
                                                 <i class="icon-cog"></i> <span class="caret"></span>
                                             </a>
                                             <ul role="menu" class="dropdown-menu pull-right">
-                                                <li role="presentation">
-                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Proveedor", new { id = Proveedor.ProveedorId })">
-                                                        <i class="icon-edit"></i> Editar
-                                                    </a>
-                                                </li>
-                                                <li role="presentation">
-                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Proveedor", new { id = Proveedor.ProveedorId })">
-                                                        <i class="clip-stack-empty"></i> Detalle del Proveedor
-                                                    </a>
-                                                </li>
+                                                @if (Proveedor.ProveedorId != 20181120001)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Proveedor", new { id = Proveedor.ProveedorId })">
+                                                            <i class="icon-edit"></i> Editar
+                                                        </a>
+                                                    </li>
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Proveedor", new { id = Proveedor.ProveedorId })">
+                                                            <i class="clip-stack-empty"></i> Detalle del Proveedor
+                                                        </a>
+                                                    </li>
+                                                }                                             
                                             </ul>
                                         </div>
                                     </div>
                                 </td>
                             </tr>
-
                         }
-
                     </tbody>
                 </table>
             </div>

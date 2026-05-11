@@ -33,8 +33,11 @@
             <div class="panel-body">
                 <table class="table table-hover" id="sample-table-1">
                     <thead>
-                        <tr>                          
-                            <th>Nombre</th>                           
+                        <tr>
+                    
+                            <th>Codigo de Establecimiento</th>
+                            <th>Nombre</th>
+                            <th>Domicilio</th>
                             <th>Activo</th>
                             <th></th>
                         </tr>
@@ -42,8 +45,11 @@
                     <tbody>
                         @foreach (var Agencia in Model)
                         {
-                            <tr>                               
-                                <td>@Agencia.Nombre</td>                                
+                            <tr>
+                 
+                                <td>@(Agencia.CodigoEstablecimiento == null ? 000000 : Agencia.CodigoEstablecimiento.Value)</td> 
+                                <td>@Agencia.Nombre</td>      
+                                <td>@(Agencia.EsDeliveryDomicilio ? "Sí" : "No")</td>
                                 <td>@(Agencia.Activo ? "Sí" : "No")</td>
                                 <td class="center">
                                     <div class="visible-md visible-lg hidden-sm hidden-xs">                                        

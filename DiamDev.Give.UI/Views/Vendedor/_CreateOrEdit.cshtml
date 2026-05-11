@@ -7,7 +7,7 @@
                 Nombre<span class="symbol required"></span>
             </label>
             @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre del Vendedor", required = "required", autocomplete = "off", autofocus = "autofocus" })
-        </div>                  
+        </div>
     </div>
 </div>
 <div class="row">
@@ -51,7 +51,8 @@
 </div>
 <div class="row">
     <div class="col-md-12">
-        <table class="table table-hover" id="sample-table-1">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+        <table class="table table-hover">
             <thead>
                 <tr>
                     <th>Agencia</th>
@@ -60,8 +61,145 @@
             </thead>
             <tbody id="agencia_tbody"></tbody>
         </table>
-        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
     </div>
 </div>
-
-
+<h2>
+    <i class="icon-edit-sign teal"></i> Escalas
+</h2>
+<hr>
+<div class="row">
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Inicio
+            </label>
+            <input type="number" placeholder="Inicio" class="form-control" id="Inicio" name="Inicio" autocomplete="off" />
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Fin
+            </label>
+            <input type="number" placeholder="Fin" class="form-control" id="Fin" name="Fin" autocomplete="off" />
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Porcentaje
+            </label>
+            <input type="number" placeholder="Porcentaje" class="form-control" id="Porcentaje" name="Porcentaje" autocomplete="off" />
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-escala">Agregar</button></p>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Inicio</th>
+                    <th>Fin</th>
+                    <th>Porcentaje</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="escala_tbody"></tbody>
+        </table>
+    </div>
+</div>
+<h2>
+    <i class="icon-edit-sign teal"></i> Metas
+</h2>
+<hr>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Mes
+            </label>
+            @Html.DropDownList("MesId", (SelectList)ViewBag.Meses, "--Seleccione un Mes--", new { @class = "form-control search-select" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Año
+            </label>
+            <input type="number" placeholder="Año" class="form-control" id="Anio" name="Anio" autocomplete="off" />
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Monto Meta Mensual
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                <input type="number" placeholder="Monto Meta Mensual" class="form-control" id="MetaMensual" name="MetaMensual" autocomplete="off" />
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-meta">Agregar</button></p>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Mes</th>
+                    <th>Año</th>
+                    <th>Monto Meta Mensual</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="meta_tbody"></tbody>
+        </table>
+    </div>
+</div>
+<h2>
+    <i class="icon-edit-sign teal"></i> Metas x Dia
+</h2>
+<hr>
+<div class="row">  
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaxDia" name="FechaxDia" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")">
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Monto x Dia
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                <input type="number" placeholder="Monto x Dia" class="form-control" id="MetaxDia" name="MetaxDia" autocomplete="off" />
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-metaxdia">Agregar</button></p>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Fecha</th>                  
+                    <th>Monto x Dia</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="metaxdia_tbody"></tbody>
+        </table>
+    </div>
+</div>

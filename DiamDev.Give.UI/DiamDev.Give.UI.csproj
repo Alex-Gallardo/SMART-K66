@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.props" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -13,13 +14,19 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DiamDev.Give.UI</RootNamespace>
     <AssemblyName>DiamDev.Give.UI</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <UseIISExpress>true</UseIISExpress>
     <IISExpressSSLPort />
     <IISExpressAnonymousAuthentication />
     <IISExpressWindowsAuthentication />
     <IISExpressUseClassicPipelineMode />
     <UseGlobalApplicationHostFile />
+    <TargetFrameworkProfile />
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+    <Use64BitIISExpress />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -44,31 +51,55 @@
       <HintPath>..\libs\BinarioDrawingTools.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.SqlServer.dll</HintPath>
     </Reference>
-    <Reference Include="EPPlus, Version=4.1.0.0, Culture=neutral, PublicKeyToken=ea159fdaa78159a1, processorArchitecture=MSIL">
-      <HintPath>..\packages\EPPlus.4.1.0\lib\net40\EPPlus.dll</HintPath>
+    <Reference Include="EPPlus, Version=4.5.2.1, Culture=neutral, PublicKeyToken=ea159fdaa78159a1, processorArchitecture=MSIL">
+      <HintPath>..\packages\EPPlus.4.5.2.1\lib\net40\EPPlus.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.CSharp">
       <Private>True</Private>
     </Reference>
-    <Reference Include="Microsoft.ReportViewer.Common, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+    <Reference Include="Microsoft.ReportViewer.Common, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\libs\Microsoft.ReportViewer.Common.dll</HintPath>
+      <HintPath>bin\Microsoft.ReportViewer.Common.dll</HintPath>
     </Reference>
-    <Reference Include="Microsoft.ReportViewer.WebForms, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+    <Reference Include="Microsoft.ReportViewer.DataVisualization, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\libs\Microsoft.ReportViewer.WebForms.dll</HintPath>
+      <HintPath>bin\Microsoft.ReportViewer.DataVisualization.dll</HintPath>
     </Reference>
-    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Microsoft.ReportViewer.Design, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Microsoft.ReportViewer.Design.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.ProcessingObjectModel, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Microsoft.ReportViewer.ProcessingObjectModel.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.WebDesign, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Microsoft.ReportViewer.WebDesign.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.WebForms, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Microsoft.ReportViewer.WebForms.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.ReportViewer.WinForms, Version=11.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Microsoft.ReportViewer.WinForms.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.SqlServer.Types, Version=14.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.SqlServer.Types.14.0.1016.290\lib\net40\Microsoft.SqlServer.Types.dll</HintPath>
       <Private>True</Private>
+    </Reference>
+    <Reference Include="Microsoft.Web.Infrastructure, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Web.Infrastructure.2.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="PagedList, Version=1.17.0.0, Culture=neutral, PublicKeyToken=abbb863e9397c5e1, processorArchitecture=MSIL">
       <HintPath>..\packages\PagedList.1.17.0.0\lib\net40\PagedList.dll</HintPath>
@@ -78,10 +109,19 @@
       <HintPath>..\packages\PagedList.Mvc.4.5.0.0\lib\net40\PagedList.Mvc.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="PresentationCore" />
     <Reference Include="Sistema.Seguridad">
       <HintPath>..\libs\Sistema.Seguridad.dll</HintPath>
     </Reference>
+    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Net.Http">
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Net.Http.Formatting, Version=5.2.9.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.Client.5.2.9\lib\net45\System.Net.Http.Formatting.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security">
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Web.DynamicData">
@@ -102,23 +142,36 @@
     <Reference Include="System.Data">
       <Private>True</Private>
     </Reference>
-    <Reference Include="System.Core">
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Data.DataSetExtensions">
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Web.Extensions">
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Xml.Linq">
-      <Private>True</Private>
-    </Reference>
     <Reference Include="System.Drawing">
       <Private>True</Private>
     </Reference>
     <Reference Include="System.Web">
       <Private>True</Private>
+    </Reference>
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.9\lib\net45\System.Web.Helpers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Http, Version=5.2.9.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.Core.5.2.9\lib\net45\System.Web.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Http.WebHost, Version=5.2.9.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebApi.WebHost.5.2.9\lib\net45\System.Web.Http.WebHost.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Mvc, Version=5.2.9.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.Mvc.5.2.9\lib\net45\System.Web.Mvc.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.Razor.3.2.9\lib\net45\System.Web.Razor.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.9\lib\net45\System.Web.WebPages.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Deployment, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.9\lib\net45\System.Web.WebPages.Deployment.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web.WebPages.Razor, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.9\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
     </Reference>
     <Reference Include="System.Xml">
       <Private>True</Private>
@@ -132,39 +185,7 @@
     <Reference Include="System.EnterpriseServices">
       <Private>True</Private>
     </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Include="System.Web.Razor">
-      <HintPath>..\packages\Microsoft.AspNet.Razor.3.2.3\lib\net45\System.Web.Razor.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.Webpages">
-      <HintPath>..\packages\Microsoft.AspNet.Webpages.3.2.3\lib\net45\System.Web.Webpages.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.Webpages.Deployment">
-      <HintPath>..\packages\Microsoft.AspNet.Webpages.3.2.3\lib\net45\System.Web.Webpages.Deployment.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.Webpages.Razor">
-      <HintPath>..\packages\Microsoft.AspNet.Webpages.3.2.3\lib\net45\System.Web.Webpages.Razor.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.Helpers">
-      <HintPath>..\packages\Microsoft.AspNet.Webpages.3.2.3\lib\net45\System.Web.Helpers.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Web.Infrastructure">
-      <HintPath>..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
-    <Reference Include="System.Web.Mvc">
-      <HintPath>..\packages\Microsoft.AspNet.Mvc.5.2.3\lib\net45\System.Web.Mvc.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Net.Http.Formatting">
-      <HintPath>..\packages\Microsoft.AspNet.WebApi.Client.5.2.3\lib\net45\System.Net.Http.Formatting.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.Http">
-      <HintPath>..\packages\Microsoft.AspNet.WebApi.Core.5.2.3\lib\net45\System.Web.Http.dll</HintPath>
-    </Reference>
-    <Reference Include="System.Web.Http.WebHost">
-      <HintPath>..\packages\Microsoft.AspNet.WebApi.WebHost.5.2.3\lib\net45\System.Web.Http.WebHost.dll</HintPath>
-    </Reference>
+    <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\assets\css\jquery.bootstrap-touchspin.css" />
@@ -195,8 +216,10 @@
     <Content Include="Content\assets\images\green.png" />
     <Content Include="Content\assets\images\lightgrey.png" />
     <Content Include="Content\assets\images\loading.gif" />
+    <Content Include="Content\assets\images\logo.jpg" />
     <Content Include="Content\assets\images\menu-white-arrow.png" />
     <Content Include="Content\assets\images\navy.png" />
+    <Content Include="Content\assets\images\producto-sin-foto.jpg" />
     <Content Include="Content\assets\images\timer-piece.png" />
     <Content Include="Content\assets\js\charts.js" />
     <Content Include="Content\assets\js\form-calendar.js" />
@@ -593,9 +616,20 @@
     <Content Include="Content\themes\base\tooltip.css" />
     <Content Include="Content\toastr.css" />
     <Content Include="Content\toastr.min.css" />
+    <Content Include="DeliveryModel.Context.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>DeliveryModel.edmx</DependentUpon>
+      <LastGenOutput>DeliveryModel.Context.cs</LastGenOutput>
+    </Content>
+    <Content Include="DeliveryModel.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>DeliveryModel.edmx</DependentUpon>
+      <LastGenOutput>DeliveryModel.cs</LastGenOutput>
+    </Content>
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
     <Content Include="Reports\ReportViewer.aspx" />
+    <Content Include="Scripts\App\ProductosSalidaMasiva-Index.js" />
     <Content Include="Scripts\App\ProductosCargaMasiva-Index.js" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
@@ -603,17 +637,26 @@
     <Content Include="Scripts\exporting.js" />
     <Content Include="Scripts\highcharts-more.js" />
     <Content Include="Scripts\highcharts.js" />
-    <Content Include="Reports\Inventario.xsc">
-      <DependentUpon>Inventario.xsd</DependentUpon>
-    </Content>
     <Content Include="Content\assets\plugins\summernote\build\font\summernote.eot" />
     <Content Include="Content\assets\plugins\summernote\build\font\summernote.ttf" />
     <Content Include="Content\assets\plugins\summernote\build\font\summernote.woff" />
     <Content Include="Content\Formatos\ProductosCargaMasiva.xlsx" />
+    <Content Include="Content\Formatos\ProductosSalidaMasiva.xlsx" />
+    <EntityDeploy Include="DeliveryModel.edmx">
+      <Generator>EntityModelCodeGenerator</Generator>
+      <LastGenOutput>DeliveryModel.Designer.cs</LastGenOutput>
+    </EntityDeploy>
+    <Content Include="DeliveryModel.edmx.diagram">
+      <DependentUpon>DeliveryModel.edmx</DependentUpon>
+    </Content>
+    <None Include="Properties\PublishProfiles\Inventory.pubxml" />
     <None Include="Properties\PublishProfiles\Site.pubxml" />
+    <Content Include="Reports\Inventario.xsc">
+      <DependentUpon>Inventario.xsd</DependentUpon>
+    </Content>
     <None Include="Reports\Inventario.xsd">
       <Generator>MSDataSetGenerator</Generator>
-      <LastGenOutput>Inventario1.Designer.cs</LastGenOutput>
+      <LastGenOutput>Inventario2.Designer.cs</LastGenOutput>
       <SubType>Designer</SubType>
     </None>
     <Content Include="Reports\Inventario.xss">
@@ -636,6 +679,19 @@
     <Content Include="Scripts\spin.min.js" />
     <Content Include="Scripts\toastr.js" />
     <Content Include="Scripts\toastr.min.js" />
+    <Content Include="SqlServerTypes\readme.htm" />
+    <Content Include="SqlServerTypes\x64\msvcr120.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SqlServerTypes\x64\SqlServerSpatial140.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SqlServerTypes\x86\msvcr120.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SqlServerTypes\x86\SqlServerSpatial140.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -726,9 +782,6 @@
     <Content Include="Views\Reporte\IngresoxProducto.cshtml" />
     <Content Include="Views\Reporte\IngresoxProveedor.cshtml" />
     <Content Include="Views\Reporte\Inventario.cshtml" />
-    <Content Include="Views\Reporte\InventarioTransito.cshtml" />
-    <Content Include="Views\Reporte\InventarioxPrecioVenta.cshtml" />
-    <Content Include="Views\Reporte\InventarioxPresentacion.cshtml" />
     <Content Include="Views\Reporte\Mayor.cshtml" />
   </ItemGroup>
   <ItemGroup>
@@ -737,11 +790,59 @@
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\SeguridadAttribute.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
+    <Compile Include="Controllers\Pedido_Tipo_K66Controller.cs" />
+    <Compile Include="Controllers\Descuento_K66Controller.cs" />
+    <Compile Include="Controllers\Pedido_K66Controller.cs" />
+    <Compile Include="Controllers\Producto_Alerta_K66Controller.cs" />
+    <Compile Include="Controllers\VisitaController.cs" />
+    <Compile Include="Controllers\Tipo_VisitaController.cs" />
+    <Compile Include="Controllers\PaqueteController.cs" />
+    <Compile Include="Controllers\EmpresaController.cs" />
+    <Compile Include="Controllers\MonedaController.cs" />
+    <Compile Include="Controllers\MesaController.cs" />
+    <Compile Include="Controllers\Orden_CompraController.cs" />
+    <Compile Include="Controllers\TokenController.cs" />
+    <Compile Include="Controllers\Tipo_UbicacionController.cs" />
+    <Compile Include="Controllers\LocalidadController.cs" />
+    <Compile Include="Controllers\MunicipioController.cs" />
+    <Compile Include="Controllers\OfertaDeliveryController.cs" />
+    <Compile Include="Controllers\RegionController.cs" />
+    <Compile Include="Controllers\Categoria_GastoController.cs" />
+    <Compile Include="Controllers\Anotacion_TipoController.cs" />
+    <Compile Include="Controllers\CierreController.cs" />
+    <Compile Include="Controllers\Cliente_TipoController.cs" />
     <Compile Include="Controllers\AgenciaController.cs" />
+    <Compile Include="Controllers\BancoController.cs" />
+    <Compile Include="Controllers\ConsultaController.cs" />
+    <Compile Include="Controllers\Cuenta_x_CobrarController.cs" />
+    <Compile Include="Controllers\DepartamentoController.cs" />
+    <Compile Include="Controllers\GarantiaController.cs" />
+    <Compile Include="Controllers\MonitoreoController.cs" />
+    <Compile Include="Controllers\NominaController.cs" />
+    <Compile Include="Controllers\Contrasena_PagoController.cs" />
+    <Compile Include="Controllers\PuestoController.cs" />
+    <Compile Include="Controllers\ReciboController.cs" />
+    <Compile Include="Controllers\PoliticaController.cs" />
+    <Compile Include="Controllers\Politica_CategoriaController.cs" />
+    <Compile Include="Controllers\Producto_Ingreso_x_IDController.cs" />
+    <Compile Include="Controllers\ReparacionController.cs" />
+    <Compile Include="Controllers\ReservaController.cs" />
+    <Compile Include="Controllers\ServicioController.cs" />
+    <Compile Include="Controllers\ServiciosAppController.cs" />
+    <Compile Include="Controllers\TransporteController.cs" />
     <Compile Include="Controllers\ClienteController.cs" />
+    <Compile Include="Controllers\GastoController.cs" />
+    <Compile Include="Controllers\Proveedor_MovimientoController.cs" />
+    <Compile Include="Controllers\Servicio_ClienteController.cs" />
+    <Compile Include="Controllers\EgresoController.cs" />
+    <Compile Include="Controllers\Traslado_SupervisorController.cs" />
+    <Compile Include="Controllers\Unidad_ConversionController.cs" />
     <Compile Include="Controllers\ConfiguracionController.cs" />
+    <Compile Include="Controllers\CreditoController.cs" />
     <Compile Include="Controllers\Cuenta_ContableController.cs" />
     <Compile Include="Controllers\DiarioController.cs" />
+    <Compile Include="Controllers\PedidoController.cs" />
+    <Compile Include="Controllers\LaboratorioController.cs" />
     <Compile Include="Controllers\FacturaController.cs" />
     <Compile Include="Controllers\Forma_PagoController.cs" />
     <Compile Include="Controllers\InicioController.cs" />
@@ -749,11 +850,15 @@
     <Compile Include="Controllers\MarcaController.cs" />
     <Compile Include="Controllers\PersonalController.cs" />
     <Compile Include="Controllers\ProductoController.cs" />
+    <Compile Include="Controllers\ProductosSalidaMasivaController.cs" />
     <Compile Include="Controllers\ProductosCargaMasivaController.cs" />
     <Compile Include="Controllers\Producto_CategoriaController.cs" />
+    <Compile Include="Controllers\Nota_CreditoController.cs" />
     <Compile Include="Controllers\Producto_EgresoController.cs" />
     <Compile Include="Controllers\Producto_IngresoController.cs" />
+    <Compile Include="Controllers\RolController.cs" />
     <Compile Include="Controllers\SerieController.cs" />
+    <Compile Include="Controllers\SerieFacturaController.cs" />
     <Compile Include="Controllers\VendedorController.cs" />
     <Compile Include="Controllers\ProveedorController.cs" />
     <Compile Include="Controllers\ReporteController.cs" />
@@ -761,16 +866,37 @@
     <Compile Include="Controllers\TrasladoController.cs" />
     <Compile Include="Controllers\UnidadController.cs" />
     <Compile Include="Controllers\UsuarioController.cs" />
+    <Compile Include="DeliveryModel.Context.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DeliveryModel.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="DeliveryModel.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DeliveryModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="DeliveryModel.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>DeliveryModel.edmx</DependentUpon>
+    </Compile>
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="KpiDelivery_Result.cs">
+      <DependentUpon>DeliveryModel.tt</DependentUpon>
+    </Compile>
     <Compile Include="Models\ArchivoModel.cs" />
+    <Compile Include="Models\EmpleadoNominaModel.cs" />
     <Compile Include="Models\LoginModel.cs" />
     <Compile Include="Models\ProductoCargaMasivaArchivo.cs" />
     <Compile Include="Models\ProductoCargaMasivaDetalle.cs" />
+    <Compile Include="Models\SerieAgenciaFacturaModel.cs" />
     <Compile Include="Models\UsuarioModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Reports\Inventario1.Designer.cs">
+    <Compile Include="Reports\Inventario.Designer.cs" />
+    <Compile Include="Reports\Inventario2.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Inventario.xsd</DependentUpon>
@@ -782,6 +908,34 @@
     <Compile Include="Reports\ReportViewer.aspx.designer.cs">
       <DependentUpon>ReportViewer.aspx</DependentUpon>
     </Compile>
+    <Compile Include="sp_cuentaporcobrar_historico_Result.cs">
+      <DependentUpon>DeliveryModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="sp_despachosportransporte_fecha_Result.cs">
+      <DependentUpon>DeliveryModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="sp_recibos_anulados_Result.cs">
+      <DependentUpon>DeliveryModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="sp_topclientes_Result.cs">
+      <DependentUpon>DeliveryModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="sp_ventascomparativa_Result.cs">
+      <DependentUpon>DeliveryModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="sp_ventasporproductotop_Result.cs">
+      <DependentUpon>DeliveryModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="sp_ventasxvendedor_cons_det_Result.cs">
+      <DependentUpon>DeliveryModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="sp_ventasxvendedor_cons_Result.cs">
+      <DependentUpon>DeliveryModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="sp_ventas_despachadas_por_dia_Result.cs">
+      <DependentUpon>DeliveryModel.tt</DependentUpon>
+    </Compile>
+    <Compile Include="SqlServerTypes\Loader.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Views\web.config" />
@@ -831,6 +985,354 @@
     <Content Include="Views\ProductosCargaMasiva\Revisar.cshtml" />
     <Content Include="Views\Kardex\Index.cshtml" />
     <Content Include="Views\SerieFactura\Index.cshtml" />
+    <Content Include="Views\Reporte\InventarioxTienda.cshtml" />
+    <Content Include="Views\Reporte\InventarioxTiendaYMarca.cshtml" />
+    <Content Include="Views\Reporte\VentaxTienda.cshtml" />
+    <Content Include="Views\Reporte\VentaxTiendaYMarca.cshtml" />
+    <Content Include="Views\Serie\Correlativo.cshtml" />
+    <Content Include="Views\Producto_Ingreso\Editar.cshtml" />
+    <Content Include="Views\Producto_Ingreso\Aprobar.cshtml" />
+    <Content Include="Views\ProductosSalidaMasiva\Index.cshtml" />
+    <Content Include="Views\ProductosSalidaMasiva\Revisar.cshtml" />
+    <Content Include="Views\ProductosSalidaMasiva\Verificados.cshtml" />
+    <Content Include="Views\ProductosSalidaMasiva\Verificar.cshtml" />
+    <Content Include="Views\Reporte\PedidoxTiendaYMarca.cshtml" />
+    <Content Include="Views\Producto_Ingreso\Anular.cshtml" />
+    <Content Include="Views\Producto_Egreso\Anular.cshtml" />
+    <Content Include="Views\Nota_Credito\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Nota_Credito\Anular.cshtml" />
+    <Content Include="Views\Nota_Credito\Crear.cshtml" />
+    <Content Include="Views\Nota_Credito\Detalle.cshtml" />
+    <Content Include="Views\Nota_Credito\Index.cshtml" />
+    <Content Include="Views\Reporte\VentaResumenxTienda.cshtml" />
+    <Content Include="Views\Reporte\CierreDiarioResumen.cshtml" />
+    <Content Include="Views\Reporte\IngresoxTienda.cshtml" />
+    <Content Include="Views\Reporte\SalidaxTienda.cshtml" />
+    <Content Include="Views\Reporte\TomaFisicaxTienda.cshtml" />
+    <Content Include="Views\Reporte\LibroVenta.cshtml" />
+    <Content Include="Views\Rol\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Rol\Crear.cshtml" />
+    <Content Include="Views\Rol\Editar.cshtml" />
+    <Content Include="Views\Rol\Index.cshtml" />
+    <Content Include="Views\Credito\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Credito\Consulta.cshtml" />
+    <Content Include="Views\Credito\Crear.cshtml" />
+    <Content Include="Views\Credito\Detalle.cshtml" />
+    <Content Include="Views\Credito\Editar.cshtml" />
+    <Content Include="Views\Credito\Index.cshtml" />
+    <Content Include="Views\Credito\Pago.cshtml" />
+    <Content Include="Views\Laboratorio\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Laboratorio\Crear.cshtml" />
+    <Content Include="Views\Laboratorio\Detalle.cshtml" />
+    <Content Include="Views\Laboratorio\Index.cshtml" />
+    <Content Include="Views\Pedido\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Pedido\Crear.cshtml" />
+    <Content Include="Views\Pedido\Detalle.cshtml" />
+    <Content Include="Views\Pedido\Index.cshtml" />
+    <Content Include="Views\Unidad_Conversion\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Unidad_Conversion\Crear.cshtml" />
+    <Content Include="Views\Unidad_Conversion\Editar.cshtml" />
+    <Content Include="Views\Unidad_Conversion\Index.cshtml" />
+    <Content Include="Views\Gasto\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Gasto\Crear.cshtml" />
+    <Content Include="Views\Gasto\Detalle.cshtml" />
+    <Content Include="Views\Gasto\Index.cshtml" />
+    <Content Include="Views\Reporte\CierrexUsuario.cshtml" />
+    <Content Include="Views\Servicio_Cliente\Index.cshtml" />
+    <Content Include="Views\Factura\Crear_Correlativo.cshtml" />
+    <Content Include="Views\Inicio\Pedido.cshtml" />
+    <Content Include="Views\Cliente\_CreateOrEditGeneral.cshtml" />
+    <Content Include="Views\Producto\Eliminar.cshtml" />
+    <Content Include="Views\Banco\Crear.cshtml" />
+    <Content Include="Views\Banco\Editar.cshtml" />
+    <Content Include="Views\Banco\Index.cshtml" />
+    <Content Include="Views\Banco\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Proveedor_Movimiento\Crear.cshtml" />
+    <Content Include="Views\Proveedor_Movimiento\Detalle.cshtml" />
+    <Content Include="Views\Proveedor_Movimiento\Index.cshtml" />
+    <Content Include="Views\Proveedor_Movimiento\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Reporte\Producto_Controlado.cshtml" />
+    <Content Include="Views\Reporte\Producto_Minimo_Categoria.cshtml" />
+    <Content Include="Views\Reporte\Venta_Comision_Vendedor.cshtml" />
+    <Content Include="Views\Reporte\CierrexUsuarioHora.cshtml" />
+    <Content Include="Views\Reporte\Proveedor_Producto.cshtml" />
+    <Content Include="Views\Transporte\_CreateOrEditGeneral.cshtml" />
+    <Content Include="Views\Transporte\Crear.cshtml" />
+    <Content Include="Views\Transporte\Editar.cshtml" />
+    <Content Include="Views\Transporte\Index.cshtml" />
+    <Content Include="Views\Reporte\Venta_Transporte.cshtml" />
+    <Content Include="Views\Servicio\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Servicio\Crear.cshtml" />
+    <Content Include="Views\Servicio\Editar.cshtml" />
+    <Content Include="Views\Servicio\Index.cshtml" />
+    <Content Include="Views\Departamento\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Departamento\Crear.cshtml" />
+    <Content Include="Views\Departamento\Editar.cshtml" />
+    <Content Include="Views\Departamento\Index.cshtml" />
+    <Content Include="Views\Politica_Categoria\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Politica_Categoria\Crear.cshtml" />
+    <Content Include="Views\Politica_Categoria\Editar.cshtml" />
+    <Content Include="Views\Politica_Categoria\Index.cshtml" />
+    <Content Include="Views\Politica\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Politica\Crear.cshtml" />
+    <Content Include="Views\Politica\Editar.cshtml" />
+    <Content Include="Views\Politica\Index.cshtml" />
+    <Content Include="Views\Reparacion\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Reparacion\Anotacion.cshtml" />
+    <Content Include="Views\Reparacion\Asignadas.cshtml" />
+    <Content Include="Views\Reparacion\Crear.cshtml" />
+    <Content Include="Views\Reparacion\Detalle.cshtml" />
+    <Content Include="Views\Reparacion\Editar.cshtml" />
+    <Content Include="Views\Reparacion\Editar_de_6.cshtml" />
+    <Content Include="Views\Reparacion\Entrega.cshtml" />
+    <Content Include="Views\Reparacion\Entrega_de_2_a_5.cshtml" />
+    <Content Include="Views\Reparacion\Entrega_de_6.cshtml" />
+    <Content Include="Views\Reparacion\Entregas.cshtml" />
+    <Content Include="Views\Reparacion\Entregas_de_2_a_5.cshtml" />
+    <Content Include="Views\Reparacion\Entregas_de_6.cshtml" />
+    <Content Include="Views\Reparacion\Index.cshtml" />
+    <Content Include="Views\Reparacion\Liquidar.cshtml" />
+    <Content Include="Views\Reparacion\Reparacion_Liquidar.cshtml" />
+    <Content Include="Views\Reparacion\SinAsignar.cshtml" />
+    <Content Include="Views\Reparacion\Verificar.cshtml" />
+    <Content Include="Views\Reserva\Index.cshtml" />
+    <Content Include="Views\Reserva\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Reserva\Crear.cshtml" />
+    <Content Include="Views\Reserva\Detalle.cshtml" />
+    <Content Include="Views\Reserva\Anular.cshtml" />
+    <Content Include="Views\Producto_Ingreso_x_ID\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Producto_Ingreso_x_ID\Anular.cshtml" />
+    <Content Include="Views\Producto_Ingreso_x_ID\Aprobar.cshtml" />
+    <Content Include="Views\Producto_Ingreso_x_ID\Crear.cshtml" />
+    <Content Include="Views\Producto_Ingreso_x_ID\Detalle.cshtml" />
+    <Content Include="Views\Producto_Ingreso_x_ID\Editar.cshtml" />
+    <Content Include="Views\Producto_Ingreso_x_ID\Index.cshtml" />
+    <Content Include="Views\Recibo\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Recibo\Anular.cshtml" />
+    <Content Include="Views\Recibo\Crear.cshtml" />
+    <Content Include="Views\Recibo\Detalle.cshtml" />
+    <Content Include="Views\Recibo\Index.cshtml" />
+    <Content Include="Views\Cuenta_x_Cobrar\Index.cshtml" />
+    <Content Include="Views\Recibo\Venta_x_Recibo.cshtml" />
+    <Content Include="Views\Garantia\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Garantia\Crear.cshtml" />
+    <Content Include="Views\Garantia\Detalle.cshtml" />
+    <Content Include="Views\Garantia\Entrega.cshtml" />
+    <Content Include="Views\Garantia\Index.cshtml" />
+    <Content Include="Views\Reporte\Inventario_x_Tienda_Categoria.cshtml" />
+    <Content Include="Views\Reporte\Inventario_IDs_x_Tienda_Producto.cshtml" />
+    <Content Include="Views\Reporte\Cierre_Transporte.cshtml" />
+    <Content Include="Views\Reporte\Producto_Reservado.cshtml" />
+    <Content Include="Views\Cliente_Tipo\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Cliente_Tipo\Crear.cshtml" />
+    <Content Include="Views\Cliente_Tipo\Editar.cshtml" />
+    <Content Include="Views\Cliente_Tipo\Index.cshtml" />
+    <Content Include="Views\Reporte\Venta_x_Tipo_Cliente.cshtml" />
+    <Content Include="Views\Reporte\Grafica_Venta_x_Tipo_Cliente.cshtml" />
+    <Content Include="Views\Reporte\Venta_Comision_x_Vendedor_Configurable.cshtml" />
+    <Content Include="Views\Reparacion\Historial_Reparacion_x_Tecnico.cshtml" />
+    <Content Include="Views\Reporte\Reparacion_Pagos_Tecnicos.cshtml" />
+    <Content Include="Views\Reparacion\Anular.cshtml" />
+    <Content Include="Views\Reparacion\Aprobar.cshtml" />
+    <Content Include="Views\Reporte\Venta_x_Forma_Pago.cshtml" />
+    <Content Include="Views\Reporte\Producto_Reservado_x_Producto.cshtml" />
+    <Content Include="Views\Reporte\Producto_Reservado_Actual.cshtml" />
+    <Content Include="Views\Anotacion_Tipo\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Anotacion_Tipo\Crear.cshtml" />
+    <Content Include="Views\Anotacion_Tipo\Editar.cshtml" />
+    <Content Include="Views\Anotacion_Tipo\Index.cshtml" />
+    <Content Include="Views\Personal\Anotacion.cshtml" />
+    <Content Include="Views\Puesto\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Puesto\Crear.cshtml" />
+    <Content Include="Views\Puesto\Editar.cshtml" />
+    <Content Include="Views\Puesto\Index.cshtml" />
+    <Content Include="Views\Nomina\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Nomina\Crear.cshtml" />
+    <Content Include="Views\Nomina\Detalle.cshtml" />
+    <Content Include="Views\Nomina\Index.cshtml" />
+    <Content Include="Views\Pedido\Sin_Operar.cshtml" />
+    <Content Include="Views\Pedido\Operar.cshtml" />
+    <Content Include="Views\Categoria_Gasto\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Categoria_Gasto\Crear.cshtml" />
+    <Content Include="Views\Categoria_Gasto\Editar.cshtml" />
+    <Content Include="Views\Categoria_Gasto\Index.cshtml" />
+    <Content Include="Views\Recibo\Sin_Despachar.cshtml" />
+    <Content Include="Views\Recibo\Asignar_Transporte.cshtml" />
+    <Content Include="Views\Cuenta_x_Cobrar\Pago_Recibo.cshtml" />
+    <Content Include="Views\Monitoreo\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Monitoreo\Corte_Caja.cshtml" />
+    <Content Include="Views\Monitoreo\_Cortes.cshtml" />
+    <Content Include="Views\Monitoreo\Historial.cshtml" />
+    <Content Include="Views\Producto_Ingreso\_Historial.cshtml" />
+    <Content Include="Views\Cierre\Caja.cshtml" />
+    <Content Include="Views\Cierre\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Recibo\_ProductoNivelPrecio.cshtml" />
+    <Content Include="Views\Recibo\Envase_x_Recibir.cshtml" />
+    <Content Include="Views\Recibo\Detalle_Envase.cshtml" />
+    <Content Include="Views\Egreso\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Egreso\Crear.cshtml" />
+    <Content Include="Views\Egreso\Detalle.cshtml" />
+    <Content Include="Views\Egreso\Index.cshtml" />
+    <Content Include="Views\Cierre\Administracion.cshtml" />
+    <Content Include="Views\Reporte\Ganancia_Consolidada.cshtml" />
+    <Content Include="Views\Reporte\Ganancia_Consolidada_x_Producto.cshtml" />
+    <Content Include="Views\Cierre\Historial.cshtml" />
+    <Content Include="Views\Pedido\Anular.cshtml" />
+    <Content Include="Views\Credito\Anular.cshtml" />
+    <Content Include="Views\Producto\Consulta_Administrativa.cshtml" />
+    <Content Include="Views\Cliente\Historial.cshtml" />
+    <Content Include="Views\Reporte\Egresos_Efectivo.cshtml" />
+    <Content Include="Views\Reporte\Abono_x_Cliente.cshtml" />
+    <Content Include="Views\Producto\Kardex.cshtml" />
+    <Content Include="Views\Producto\Ingreso.cshtml" />
+    <Content Include="Views\Producto\Egreso.cshtml" />
+    <Content Include="Views\Producto\Recibo.cshtml" />
+    <Content Include="Views\Producto\Factura.cshtml" />
+    <Content Include="Views\Producto\Egreso_x_Ajuste.cshtml" />
+    <Content Include="Views\Producto\Traslado.cshtml" />
+    <Content Include="Views\Producto\Credito.cshtml" />
+    <Content Include="Views\Reporte\Venta_x_Producto_Dia_Vendedor.cshtml" />
+    <Content Include="Views\Proveedor\Credito.cshtml" />
+    <Content Include="Views\Traslado_Supervisor\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Traslado_Supervisor\Crear.cshtml" />
+    <Content Include="Views\Traslado_Supervisor\Detalle.cshtml" />
+    <Content Include="Views\Traslado_Supervisor\Index.cshtml" />
+    <Content Include="Views\Traslado_Supervisor\Sin_Despachar.cshtml" />
+    <Content Include="Views\Gasto\Anular.cshtml" />
+    <Content Include="Views\Cierre\Seguimiento.cshtml" />
+    <Content Include="Views\Factura\Sin_Despachar.cshtml" />
+    <Content Include="Views\Factura\Asignar_Transporte.cshtml" />
+    <Content Include="Views\Cuenta_x_Cobrar\Pago_Factura.cshtml" />
+    <Content Include="Views\Consulta\Producto_Stock_Maximo.cshtml" />
+    <Content Include="Views\Consulta\Producto_Stock_Minimo.cshtml" />
+    <Content Include="Views\Consulta\Reservado_Pendiente_Compra.cshtml" />
+    <Content Include="Views\Contrasena_Pago\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Contrasena_Pago\Crear.cshtml" />
+    <Content Include="Views\Contrasena_Pago\Index.cshtml" />
+    <Content Include="Views\Recibo\Asignar_Lote.cshtml" />
+    <Content Include="Views\Factura\Asignar_Lote.cshtml" />
+    <Content Include="Views\Region\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Region\Crear.cshtml" />
+    <Content Include="Views\Region\Editar.cshtml" />
+    <Content Include="Views\Region\Index.cshtml" />
+    <Content Include="Views\Reporte\Producto_x_Lote.cshtml" />
+    <Content Include="Views\Vendedor\Metas.cshtml" />
+    <Content Include="Views\Pedido\Editar.cshtml" />
+    <Content Include="Views\Recibo\Cocina.cshtml" />
+    <Content Include="Views\Recibo\FinalizarCocina.cshtml" />
+    <Content Include="Views\Reporte\KpiDelivery.cshtml" />
+    <Content Include="Views\Reporte\TopClientes.cshtml" />
+    <Content Include="Views\OfertaDelivery\Index.cshtml" />
+    <Content Include="Views\OfertaDelivery\Editar.cshtml" />
+    <Content Include="Views\OfertaDelivery\_CreateOrEdit.cshtml" />
+    <Content Include="Views\OfertaDelivery\Crear.cshtml" />
+    <Content Include="Views\Municipio\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Municipio\Crear.cshtml" />
+    <Content Include="Views\Municipio\Editar.cshtml" />
+    <Content Include="Views\Municipio\Index.cshtml" />
+    <Content Include="Views\Localidad\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Localidad\Crear.cshtml" />
+    <Content Include="Views\Localidad\Editar.cshtml" />
+    <Content Include="Views\Localidad\Index.cshtml" />
+    <Content Include="Views\Recibo\Generar_Factura.cshtml" />
+    <Content Include="Views\Factura\Certificar.cshtml" />
+    <Content Include="Views\Recibo\CocinaPantalla2.cshtml" />
+    <Content Include="Views\Recibo\CocinaPantalla3.cshtml" />
+    <Content Include="Views\Recibo\CocinaPantalla4.cshtml" />
+    <Content Include="Views\Reporte\CuentasPorCobrarHistorico.cshtml" />
+    <Content Include="Views\Reporte\RecibosAnulados.cshtml" />
+    <Content Include="Views\Reporte\VentasDespachadas.cshtml" />
+    <Content Include="Views\Reporte\TransporteConsolidado.cshtml" />
+    <Content Include="Views\Reporte\VendedoresComparativa.cshtml" />
+    <Content Include="Views\Reporte\ComparativaSucursal.cshtml" />
+    <Content Include="Views\Reporte\ProductosTop.cshtml" />
+    <Content Include="Views\Tipo_Ubicacion\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Tipo_Ubicacion\Crear.cshtml" />
+    <Content Include="Views\Tipo_Ubicacion\Editar.cshtml" />
+    <Content Include="Views\Tipo_Ubicacion\Index.cshtml" />
+    <Content Include="Views\Mesa\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Mesa\Crear.cshtml" />
+    <Content Include="Views\Mesa\Editar.cshtml" />
+    <Content Include="Views\Mesa\Index.cshtml" />
+    <Content Include="Views\Token\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Token\Crear.cshtml" />
+    <Content Include="Views\Token\Index.cshtml" />
+    <Content Include="Views\Recibo\Cuenta.cshtml" />
+    <Content Include="Views\Recibo\Generar_Factura_CAM.cshtml" />
+    <Content Include="Views\Factura\Nota_Credito.cshtml" />
+    <Content Include="Views\Recibo\Supervisor.cshtml" />
+    <Content Include="Views\Cliente\_CreateOrEditTienda.cshtml" />
+    <Content Include="Views\Recibo\_CreateOrEditTienda.cshtml" />
+    <Content Include="Views\Recibo\Crear_Tienda.cshtml" />
+    <Content Include="Views\Consulta\Productos_x_Cliente.cshtml" />
+    <Content Include="Views\Consulta\Analisis_x_Morosidad.cshtml" />
+    <Content Include="Views\Consulta\Cuenta_x_Cobrar_al_Dia.cshtml" />
+    <Content Include="Views\Consulta\Morosidad_Alta.cshtml" />
+    <Content Include="Views\Consulta\Morosidad_Critica.cshtml" />
+    <Content Include="Views\Consulta\Morosidad_Media.cshtml" />
+    <Content Include="Views\Pedido\Duplicar.cshtml" />
+    <Content Include="Views\Moneda\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Moneda\Crear.cshtml" />
+    <Content Include="Views\Moneda\Editar.cshtml" />
+    <Content Include="Views\Moneda\Index.cshtml" />
+    <Content Include="Views\Recibo\Seguimiento_Pago.cshtml" />
+    <Content Include="Views\Orden_Compra\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Orden_Compra\Crear.cshtml" />
+    <Content Include="Views\Orden_Compra\Editar.cshtml" />
+    <Content Include="Views\Orden_Compra\Index.cshtml" />
+    <Content Include="Views\Pedido\Tablet.cshtml" />
+    <Content Include="Views\Pedido\_ProductoNivelPrecio.cshtml" />
+    <Content Include="Views\Recibo\Editar_Cliente.cshtml" />
+    <Content Include="Views\Reserva\Reserva_x_Cliente.cshtml" />
+    <Content Include="Views\Inicio\Producto.cshtml" />
+    <Content Include="Views\Empresa\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Empresa\Crear.cshtml" />
+    <Content Include="Views\Empresa\Editar.cshtml" />
+    <Content Include="Views\Empresa\Index.cshtml" />
+    <Content Include="Views\Paquete\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Paquete\Crear.cshtml" />
+    <Content Include="Views\Paquete\Editar.cshtml" />
+    <Content Include="Views\Paquete\Index.cshtml" />
+    <Content Include="Views\Empresa\Detalle.cshtml" />
+    <Content Include="Views\Paquete\Venta.cshtml" />
+    <Content Include="Views\Paquete\Propios.cshtml" />
+    <Content Include="Views\Tipo_Visita\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Tipo_Visita\Crear.cshtml" />
+    <Content Include="Views\Tipo_Visita\Editar.cshtml" />
+    <Content Include="Views\Tipo_Visita\Index.cshtml" />
+    <Content Include="Views\Visita\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Visita\Crear.cshtml" />
+    <Content Include="Views\Visita\Index.cshtml" />
+    <Content Include="Views\Seguridad\Token.cshtml" />
+    <Content Include="Views\Visita\Monitoreo.cshtml" />
+    <Content Include="Views\Pedido_K66\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Pedido_K66\Crear.cshtml" />
+    <Content Include="Views\Pedido_K66\Index.cshtml" />
+    <Content Include="Views\Producto_Alerta_K66\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Producto_Alerta_K66\Crear.cshtml" />
+    <Content Include="Views\Producto_Alerta_K66\Editar.cshtml" />
+    <Content Include="Views\Producto_Alerta_K66\Index.cshtml" />
+    <Content Include="Views\Cliente\_CreateOrEditK66.cshtml" />
+    <Content Include="Views\Empresa\Productos_Especiales.cshtml" />
+    <Content Include="Views\Descuento_K66\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Descuento_K66\Crear.cshtml" />
+    <Content Include="Views\Descuento_K66\Index.cshtml" />
+    <Content Include="Views\Descuento_K66\Editar.cshtml" />
+    <Content Include="Views\Pedido_Tipo_K66\_CreateOrEdit.cshtml" />
+    <Content Include="Views\Pedido_Tipo_K66\Crear.cshtml" />
+    <Content Include="Views\Pedido_Tipo_K66\Editar.cshtml" />
+    <Content Include="Views\Pedido_Tipo_K66\Index.cshtml" />
+    <Content Include="Views\Empresa\Bodegas_Activas.cshtml" />
+    <Content Include="Views\Producto\_ProductoExistencias.cshtml" />
+    <Content Include="Views\Pedido_K66\Pendiente_Aprobacion.cshtml" />
+    <Content Include="Views\Pedido_K66\Aprobar.cshtml" />
+    <Content Include="Views\Pedido_K66\Rechazado.cshtml" />
+    <Content Include="Views\Pedido_K66\Rechazar.cshtml" />
+    <Content Include="Views\Pedido_K66\Editar.cshtml" />
+    <Content Include="Views\Pedido_K66\Detalle.cshtml" />
+    <Content Include="Views\Reporte\Index.cshtml" />
+    <Content Include="Views\Reporte\HistorialVenta.cshtml" />
+    <Content Include="Views\Reporte\HistorialEntrega.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>
@@ -840,6 +1342,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="Views\ServiciosApp\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DiamDev.Give.BLL\DiamDev.Give.BLL.csproj">
@@ -847,7 +1350,7 @@
       <Name>DiamDev.Give.BLL</Name>
     </ProjectReference>
     <ProjectReference Include="..\DiamDev.Give.DAL\DiamDev.Give.DAL.csproj">
-      <Project>{970FC862-F1CF-40D0-A78A-E30CF71EABCE}</Project>
+      <Project>{970fc862-f1cf-40d0-a78a-e30cf71eabce}</Project>
       <Name>DiamDev.Give.DAL</Name>
     </ProjectReference>
     <ProjectReference Include="..\DiamDev.Give.Entities\DiamDev.Give.Entities.csproj">
@@ -856,23 +1359,97 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Reports\ReportAbonoxCliente.rdlc" />
     <EmbeddedResource Include="Reports\ReportBalanceSaldo.rdlc" />
     <EmbeddedResource Include="Reports\ReportCierre.rdlc" />
+    <EmbeddedResource Include="Reports\ReportCierreDiarioResumen.rdlc" />
+    <EmbeddedResource Include="Reports\ReportCierreTransporte.rdlc" />
+    <EmbeddedResource Include="Reports\ReportCierrexUsuario.rdlc" />
+    <EmbeddedResource Include="Reports\ReportCierrexUsuarioHora.rdlc" />
     <EmbeddedResource Include="Reports\ReportDiario.rdlc" />
     <EmbeddedResource Include="Reports\ReportEgreso.rdlc" />
+    <EmbeddedResource Include="Reports\ReportEgresoEfectivo.rdlc" />
     <EmbeddedResource Include="Reports\ReportGanancia.rdlc" />
+    <EmbeddedResource Include="Reports\ReportGananciaConsolidado.rdlc" />
+    <EmbeddedResource Include="Reports\ReportGananciaConsolidadoxProducto.rdlc" />
+    <EmbeddedResource Include="Reports\ReportGananciaDetalle.rdlc" />
+    <EmbeddedResource Include="Reports\ReportGraficaVentaxTipoCliente.rdlc" />
+    <EmbeddedResource Include="Reports\ReportHorarioIndividual.rdlc" />
     <EmbeddedResource Include="Reports\ReportIngreso.rdlc" />
     <EmbeddedResource Include="Reports\ReportIngresoxProducto.rdlc" />
     <EmbeddedResource Include="Reports\ReportIngresoxProveedor.rdlc" />
+    <EmbeddedResource Include="Reports\ReportIngresoxTienda.rdlc" />
     <EmbeddedResource Include="Reports\ReportInventario.rdlc" />
-    <EmbeddedResource Include="Reports\ReportInventarioTransito.rdlc" />
-    <EmbeddedResource Include="Reports\ReportInventarioxPrecioVenta.rdlc" />
-    <EmbeddedResource Include="Reports\ReportInventarioxPresentacion.rdlc" />
+    <EmbeddedResource Include="Reports\ReportInventarioIDsxTiendaYProducto.rdlc" />
+    <EmbeddedResource Include="Reports\ReportInventarioxTienda.rdlc" />
+    <EmbeddedResource Include="Reports\ReportInventarioxTiendaCategoria.rdlc" />
+    <EmbeddedResource Include="Reports\ReportInventarioxTiendaYMarca.rdlc" />
+    <EmbeddedResource Include="Reports\ReportCxCHist.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovNota.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovOrden.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovPedidoK66_20210705004.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovPedidoK66_20210705003.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovPedidoK66_20210705001.rdlc" />
+    <EmbeddedResource Include="Reports\ReportRecibosAnulados.rdlc" />
+    <EmbeddedResource Include="Reports\ReportComparativaSucursal.rdlc" />
+    <EmbeddedResource Include="Reports\ReporteProductosTop.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovToken.rdlc" />
+    <EmbeddedResource Include="Reports\ReportVendedoresComparativa.rdlc" />
+    <EmbeddedResource Include="Reports\ReportTransporteConsolidado.rdlc" />
+    <EmbeddedResource Include="Reports\ReportVentasDespachadas.rdlc" />
+    <EmbeddedResource Include="Reports\ReportKpiDelivery.rdlc" />
+    <EmbeddedResource Include="Reports\ReportLibroVenta.rdlc" />
     <EmbeddedResource Include="Reports\ReportMayor.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovAbonoFactura.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovAbonoRecibo.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovCheque.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovCierre.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovComprobante.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovComprobantexLote.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovContrasena.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovCorteCaja.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovCredito.rdlc" />
     <EmbeddedResource Include="Reports\ReportMovEgreso.rdlc" />
-    <EmbeddedResource Include="Reports\ReportMovIngreso.rdlc" />
     <EmbeddedResource Include="Reports\ReportMovFactura.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovGarantia.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovIngreso.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovIngresoID.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovIngresoSinAprobar.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovLaboratorio.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovMovimiento.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovNomina.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovNotaCredito.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovPedido.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovPedidoAnonimo.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovRecibo.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovReserva.rdlc" />
+    <EmbeddedResource Include="Reports\ReportMovReservaHistorial.rdlc" />
     <EmbeddedResource Include="Reports\ReportMovTraslado.rdlc" />
+    <EmbeddedResource Include="Reports\ReportPedidoxTiendaYMarca.rdlc" />
+    <EmbeddedResource Include="Reports\ReportProductoControlado.rdlc" />
+    <EmbeddedResource Include="Reports\ReportProductoLote.rdlc" />
+    <EmbeddedResource Include="Reports\ReportProductoMinimoCategoria.rdlc" />
+    <EmbeddedResource Include="Reports\ReportProductoReserva.rdlc" />
+    <EmbeddedResource Include="Reports\ReportProductoReservado.rdlc" />
+    <EmbeddedResource Include="Reports\ReportProductoReservadoActual.rdlc" />
+    <EmbeddedResource Include="Reports\ReportProveedorProducto.rdlc" />
+    <EmbeddedResource Include="Reports\ReportReparacionPagosTecnicos.rdlc" />
+    <EmbeddedResource Include="Reports\ReportSalidaxTienda.rdlc" />
+    <EmbeddedResource Include="Reports\ReportSolicitud.rdlc" />
+    <EmbeddedResource Include="Reports\ReportTomaFisicaInventarioxTienda.rdlc" />
+    <EmbeddedResource Include="Reports\ReportTopClientes.rdlc" />
+    <EmbeddedResource Include="Reports\ReportVentaComisionVendedor.rdlc" />
+    <EmbeddedResource Include="Reports\ReportVentaComisionxVendedorConfigurable.rdlc" />
+    <EmbeddedResource Include="Reports\ReportVentaResumenxTienda.rdlc" />
+    <EmbeddedResource Include="Reports\ReportVentaTransporte.rdlc" />
+    <EmbeddedResource Include="Reports\ReportVentaxFormaPago.rdlc" />
+    <EmbeddedResource Include="Reports\ReportVentaxProductoDiaVendedor.rdlc" />
+    <EmbeddedResource Include="Reports\ReportVentaxTienda.rdlc" />
+    <EmbeddedResource Include="Reports\ReportVentaxTiendaYMarca.rdlc" />
+    <EmbeddedResource Include="Reports\ReportVentaxTipoCliente.rdlc" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>
@@ -899,6 +1476,16 @@
       </FlavorProperties>
     </VisualStudio>
   </ProjectExtensions>
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>Este proyecto hace referencia a los paquetes NuGet que faltan en este equipo. Habilite la restauración del paquete NuGet para descargarlos. Para obtener más información, consulte http://go.microsoft.com/fwlink/?LinkID=322105. El archivo que falta es {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.props'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.targets'))" />
+  </Target>
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.targets" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

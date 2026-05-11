@@ -26,7 +26,7 @@ namespace DiamDev.Give.Entities
         public string ProductoId { get; set; }
 
         [ForeignKey("ProductoId")]
-        public Producto Producto { get; set; }
+        public Producto Producto { get; set; }        
 
         [Column("Unidad_Id")]
         public long UnidadId { get; set; }
@@ -34,11 +34,22 @@ namespace DiamDev.Give.Entities
         [ForeignKey("UnidadId")]
         public Unidad Unidad { get; set; }
 
+        [StringLength(400)]
+        public string Nombre { get; set; }
+
+        public decimal? Descuento { get; set; }
+
+        [NotMapped]
+        public decimal Existencia { get; set; }
+
         public decimal Cantidad { get; set; }
 
         [Column("Precio_Costo")]
         public decimal PrecioCosto { get; set; }
 
         public decimal Precio { get; set; }
+
+        [StringLength(100)]
+        public string ID { get; set; }
     }
 }

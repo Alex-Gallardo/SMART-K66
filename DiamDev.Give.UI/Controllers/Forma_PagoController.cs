@@ -27,7 +27,7 @@ namespace DiamDev.Give.UI.Controllers
 
             try
             {
-                FormaPagos = new FormaPagoBL().ObtenerListado(true);
+                FormaPagos = new FormaPagoBL().ObtenerListado(true, CustomHelper.getEmpresaId());
             }
             catch (Exception ex)
             {
@@ -57,9 +57,9 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso("Control.Forma_Pago.Crear")]
         public ActionResult Crear(FormaPago modelo, bool activo)
         {
-
             if (ModelState.IsValid)
             {
+                modelo.EmpresaId = CustomHelper.getEmpresaId();
                 modelo.Activo = activo;
                 string strMensaje = new FormaPagoBL().Guardar(modelo);
 
@@ -72,7 +72,6 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     ModelState.AddModelError("", strMensaje);
                 }
-
             }
 
             string strAtributo = "checked='checked'";
@@ -107,9 +106,9 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso("Control.Forma_Pago.Editar")]
         public ActionResult Editar(FormaPago modelo, bool activo)
         {
-
             if (ModelState.IsValid)
             {
+                modelo.EmpresaId = CustomHelper.getEmpresaId();
                 modelo.Activo = activo;
                 string strMensaje = new FormaPagoBL().Guardar(modelo);
 
@@ -122,7 +121,6 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     ModelState.AddModelError("", strMensaje);
                 }
-
             }
 
             string strAtributo = "checked='checked'";

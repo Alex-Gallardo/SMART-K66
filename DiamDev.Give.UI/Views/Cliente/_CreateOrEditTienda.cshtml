@@ -1,0 +1,35 @@
+﻿
+@model DiamDev.Give.Entities.Cliente
+@{
+    DateTime _now = DateTime.Now;
+    string _dd = _now.ToString("dd"); //
+    string _mm = _now.ToString("MM");
+    string _yy = _now.ToString("yyyy");
+    string _hh = _now.Hour.ToString();
+    string _min = _now.Minute.ToString();
+    string _ss = _now.Second.ToString();
+    string _ms = _now.Millisecond.ToString();
+
+    string _uniqueId = _dd + _hh + _mm + _min + _ss + _ms + _yy;
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Nit (-)<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nit, new { @class = "form-control", @placeholder = "Nit del Cliente", required = "required",@Value = _uniqueId, autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Nombre<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre del Cliente", required = "required", autocomplete = "off" })
+        </div>        
+    </div>
+</div>

@@ -1,0 +1,489 @@
+﻿@model DiamDev.Give.Entities.Factura
+
+@{
+    ViewBag.Title = "Nota de Credito";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Factura
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="FacturaId" name="FacturaId" value="@Html.Raw(Model.FacturaId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Agencia
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Agencia == null ? "No Disponible" : Model.Agencia.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Cliente == null ? "No Disponible" : Model.Cliente.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Fecha.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Anulada
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Anulada == true ? "Sí" : "No")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Serie
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Serie.Nombre
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. Factura
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.NoFactura
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio</th>
+                                        <th>Sub-Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="producto_tbody">
+                                    @if (Model.Detalles != null && Model.Detalles.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.Detalles)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, string.IsNullOrWhiteSpace(Detalle.Nombre) ? Detalle.Producto.Nombre : Detalle.Nombre))
+                                                </td>
+                                                <td>
+                                                    @(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)
+                                                </td>
+                                                <td>
+                                                    @Detalle.Cantidad
+                                                </td>
+                                                <td>
+                                                    @Detalle.Precio.ToString("C")
+                                                </td>
+                                                <td>
+                                                    @string.Format("{0:C}", Detalle.Cantidad * Detalle.Precio)
+                                                </td>
+                                                <td>
+                                                    <a href="@Detalle.DetalleId" class="btn btn-teal tooltips" data-placement="top" data-original-title="Trasladar a Nota de Credito"><i class="clip-checkmark-2"></i></a>
+                                                    <input type="hidden" id="@string.Format("ProductoId_{0}", Detalle.DetalleId)" value="@Detalle.ProductoId" />
+                                                    <input type="hidden" id="@string.Format("Producto_{0}", Detalle.DetalleId)" value="@(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, string.IsNullOrWhiteSpace(Detalle.Nombre) ? Detalle.Producto.Nombre : Detalle.Nombre))" />
+                                                    <input type="hidden" id="@string.Format("UnidadId_{0}", Detalle.DetalleId)" value="@Detalle.UnidadId" />
+                                                    <input type="hidden" id="@string.Format("Unidad_{0}", Detalle.DetalleId)" value="@(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)" />
+                                                    <input type="hidden" id="@string.Format("Cantidad_{0}", Detalle.DetalleId)" value="@Detalle.Cantidad" />
+                                                    <input type="hidden" id="@string.Format("Precio_{0}", Detalle.DetalleId)" value="@Detalle.Precio" />
+                                                </td>
+                                            </tr>
+                                        }
+                                        <tr>
+                                            <td>
+                                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                    Total:
+                                                </div>
+                                            </td>
+                                            <td colspan="5">
+                                                <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                    @string.Format("{0:C}", Model.Detalles.Sum(x => x.Cantidad * x.Precio))
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos Nota de Credito
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio</th>
+                                        <th>Sub-Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="producto_nota_tbody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="col-md-4">
+                                <div style="text-align:left; font-size:large; font-weight:bold;">
+                                    Total:
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div id="Total" style="text-align: right;font-size:large; font-weight:bold;">
+                                    Q0.00
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Motivo de la Nota de Credito
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Comentario<span class="symbol required"></span>
+                                </label>
+                                @Html.TextAreaFor(model => model.Comentario, new { @class = "form-control", @placeholder = "Comentario", autocomplete = "off", required = "required" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="nota-credito-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Trasladar a Nota de Credito</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="control-label">
+                        Producto
+                    </label>
+                    <input type="text" placeholder="Producto" class="form-control" id="Producto" autocomplete="off" disabled="disabled" />
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="control-label">
+                        Cantidad
+                    </label>
+                    <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" autocomplete="off" />
+                    <input type="hidden" id="CantidadReal" value="0" />
+                    <input type="hidden" id="DetalleId" value="0" />
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-save-up-nota" class="btn btn-primary">Aceptar</button>
+        <button id="btn-close-up-nota" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="producto_tr_template">
+        <tr>
+            <td>{{producto}}</td>
+            <td>{{presentacion}}</td>
+            <td>{{cantidad}}</td>          
+            <td>Q{{precio}}</td>          
+            <td>Q{{sub_total}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="productoIds" value="{{producto_id}}" />
+                <input type="hidden" name="nombreProductoIds" value="{{producto}}" />
+                <input type="hidden" name="presentacionIds" value="{{presentacion_id}}" />
+                <input type="hidden" name="nombrePresentacionIds" value="{{presentacion}}" />
+                <input type="hidden" name="existenciaIds" value="{{existencia_id}}" />
+                <input type="hidden" name="cantidadIds" value="{{cantidad_id}}" />
+                <input type="hidden" name="precioIds" value="{{precio_id}}" />
+            </td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">
+
+        var productoIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
+        var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombreProductoIds))');
+        var presentacionIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.presentacionIds))');
+        var presentacionSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombrePresentacionIds))');
+        var existenciaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.existenciaIds))');
+        var cantidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.cantidadIds))');
+        var precioSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioIds))');
+
+        $(function ()
+        {
+            renderizarProductosIniciales();
+
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            $('#producto_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+
+                var id = $(this).attr("href");
+                var Producto = $("#Producto_" + id).val();
+                var Cantidad = $("#Cantidad_" + id).val();
+                Cantidad = parseInt(Cantidad);
+
+                $("#Producto").val(Producto);
+                $("#Cantidad").val(Cantidad);
+                $("#CantidadReal").val(Cantidad);
+                $("#DetalleId").val(id);
+
+                $("#nota-credito-form").modal({ backdrop: 'static', keyboard: false, show: true });
+                $('#Cantidad').focus();
+            });
+
+            $("#btn-save-up-nota").click(function ()
+            {
+                var id = $("#DetalleId").val();
+                var cantidad = $("#Cantidad").val();
+                var existencia = $("#CantidadReal").val();
+
+                if (cantidad === "")
+                {
+                    error("Ingrese la cantidad del producto");
+                    return;
+                }
+
+                cantidad = parseInt(cantidad);
+                existencia = parseInt(existencia);
+
+                if (cantidad <= 0)
+                {
+                    error("La cantidad ingresada no puede ser 0");
+                    return;
+                }
+
+                if (cantidad > existencia)
+                {
+                    error("La cantidad ingresada es mayor a la existencia");
+                    return;
+                }
+
+                var ProductoId = $("#ProductoId_" + id).val();
+                var Producto = $("#Producto_" + id).val();
+                var UnidadId = $("#UnidadId_" + id).val();
+                var Unidad = $("#Unidad_" + id).val();
+                var Precio = $("#Precio_" + id).val();
+                Precio = parseFloat(Precio);
+
+                cargaProducto(ProductoId, Producto, UnidadId, Unidad, existencia, cantidad, Precio);
+                totalizarProducto();
+
+                $('#nota-credito-form').modal('toggle');
+            });
+
+            $('#producto_nota_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+
+                totalizarProducto();
+            });
+
+            function renderizarProductosIniciales()
+            {
+                if (productoIdSeleccionados == null)
+                {
+                    return;
+                }
+
+                // recorremos los productos que haya ingresado el usuario
+                for (var i = 0; i < productoIdSeleccionados.length; i++)
+                {
+                    var producto_id = productoIdSeleccionados[i];
+                    var producto = productoSeleccionados[i];
+
+                    var presentacion_id = presentacionIdSeleccionados[i];
+                    var presentacion = presentacionSeleccionados[i];
+
+                    var existencia_id = existenciaSeleccionados[i];
+                    var cantidad_id = cantidadSeleccionados[i];                   
+                    var precio_id = precioSeleccionados[i];
+                
+                    cargaProducto(producto_id, producto, presentacion_id, presentacion, existencia_id, cantidad_id, precio_id);
+                }
+
+                totalizarProducto();
+            }
+
+            function totalizarProducto()
+            {
+                var cantidadArray = new Array();
+                $('input[name=cantidadIds]').each(function ()
+                {
+                    cantidadArray.push(parseFloat($(this).val()));
+                });
+
+                var precioArray = new Array();
+                $('input[name=precioIds]').each(function ()
+                {
+                    precioArray.push(parseFloat($(this).val()));
+                });             
+
+                var total = 0;
+
+                if (cantidadArray.length > 0 && precioArray.length > 0)
+                {
+                    for (var i = 0; i < cantidadArray.length; i++)
+                    { 
+                        total += cantidadArray[i] * precioArray[i];
+                    }
+
+                    $('#Total').html('Q' + total.toFixed(4));                  
+                }
+                else
+                {
+                    $('#Total').html('Q' + total.toFixed(4));                   
+                }
+            }
+
+            function cargaProducto(producto_id, producto, presentacion_id, presentacion, existencia_id, cantidad_id, precio_id)
+            {
+                var plantilla = $('#producto_tr_template').html();
+
+                var modelo =
+                {
+                    producto_id: producto_id,
+                    producto: producto,
+                    presentacion_id: presentacion_id,
+                    presentacion: presentacion,
+                    existencia_id: existencia_id,
+                    cantidad_id: cantidad_id,
+                    cantidad: cantidad_id,
+                    precio_id: (precio_id).toFixed(4),
+                    precio: (precio_id).toFixed(4),
+                    sub_total: (precio_id * cantidad_id).toFixed(4)
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#producto_nota_tbody').append(filaHtml);
+            }
+        });
+    </script>
+}
+

@@ -1,0 +1,275 @@
+﻿@{
+    ViewBag.Title = "Nuevo Corte de Caja";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                 Nuevo Corte de Caja
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nuevo Corte de Caja</h2>
+                <p>
+                    Crea un nuevo corte de caja.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>                        
+                    </div>
+                    @Html.Partial("_CreateOrEdit")
+                    <div class="row">
+                        <p>
+                            <div class="col-md-12">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Corte_Caja", "Monitoreo")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+    $(function () {
+        $("#divMontos").hide();
+
+        function error(texto) {
+            toastr.error(texto);
+        }
+
+        $('#AgenciaId').change(function () {
+            if ($('#AgenciaId').val() !== "") {
+                cargarCajeros();
+            }
+        });
+
+        $('#CajeroId').change(function () {
+            if ($('#CajeroId').val() !== "") {
+                $("#divMontos").show();
+                cargaCorteCajaActual();
+                cargaCortes();
+            }
+            else {
+                $("#divMontos").hide();
+            }
+        });
+
+        function cargarCajeros() {
+            var CajeroSelect = $("#CajeroId");
+            CajeroSelect.empty();
+            CajeroSelect.append('<option value="">--Seleccione un Cajero--</option>');
+
+            var ResponsableSelect = $("#ResponsableId");
+            ResponsableSelect.empty();
+            ResponsableSelect.append('<option value="">--Seleccione un Responsable--</option>');
+
+            $.ajax({
+                url: '@Url.Action("ObtenerCajerosxAgenciaId", "Monitoreo")',
+                data: { 'id': $('#AgenciaId').val() },
+                traditional: true,
+                async: false,
+                type: 'GET',
+                success: function (data) {
+                    $.each(data, function (j) {
+                        CajeroSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                        ResponsableSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                    });
+                }
+            });
+        }
+
+        function cargaCortes() {
+            $("#divContenedorCortes").load('@Url.Action("GetCortes", "Monitoreo")?agenciaId=' + $("#AgenciaId").val() + '&cajeroId=' + $("#CajeroId").val());
+        }
+
+        $("#btnGenerarCorte").click(function () {
+            var AgenciaId = $("#AgenciaId").val();
+            var CajeroId = $("#CajeroId").val();
+            var ResponsableId = $("#ResponsableId").val();
+
+            var TotalRecibos = $("#TotalRecibos").val();
+            var TotalAbonos = $("#TotalAbonos").val();
+            var TotalRetiros = $("#TotalRetiros").val();
+            var TotalGastos = $("#TotalGastos").val();
+            var Disponible = $("#Disponible").val();
+            var Retirar = $("#Retirar").val();
+
+            if (AgenciaId === "") {
+                error("Seleccionar una agencia");
+                return;
+            }
+
+            if (CajeroId === "") {
+                error("Seleccionar un cajero");
+                return;
+            }
+
+            if (ResponsableId === "") {
+                error("Seleccionar un responsable");
+                return;
+            }
+
+            if (Disponible === "") {
+                error("El disponible del corte no es valido");
+                return;
+            }
+
+            if (Retirar === "") {
+                error("El monto a retirar no es valido");
+                return;
+            }
+
+            Disponible = parseFloat(Disponible);
+            Retirar = parseFloat(Retirar);
+            TotalGastos = parseFloat(TotalGastos);
+
+            if (Disponible === 0) {
+                error("El disponible del corte no es valido");
+                return;
+            }
+
+            if (Retirar === 0) {
+                error("El monto a retirar no es valido");
+                return;
+            }
+
+            if (Retirar <= Disponible)
+            { }
+            else
+            {
+                error("El monto actual es de Q." + Disponible.toFixed(4));
+                return;
+            }
+
+            var modelo =
+            {
+                'AgenciaId': AgenciaId,
+                'CajeroId': CajeroId,
+                'ResponsableId': ResponsableId,
+                'Monto': Retirar,
+                'Gasto': TotalGastos
+            };
+
+            $.ajax({
+                url: '@Url.Action("NuevoCorteCaja", "Monitoreo")',
+                    data: { 'modelo': modelo },
+                    async: false,
+                    type: 'POST',
+                    success: function (data)
+                    {
+                        if (data.Operacion)
+                        {
+                            $("#TotalRecibos").val(0);
+                            $("#TotalAbonos").val(0);
+                            $("#TotalRetiros").val(0);
+                            $("#TotalGastos").val(0);
+                            $("#Disponible").val(0);
+                            $("#Retirar").val(0);
+
+                            toastr.success('El nuevo corte de caja se guardó exitosamente');
+                            cargaCortes();
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al guardar al nuevo corte de caja');
+                        }
+                    }
+                });
+            });
+
+            $("#btnGenerarHistorial").click(function ()
+            {
+                var AgenciaId = $("#AgenciaId").val();
+                var CajeroId = $("#CajeroId").val();
+
+                if (AgenciaId === "")
+                {
+                    error("Seleccionar una agencia");
+                    return;
+                }
+
+                if (CajeroId === "")
+                {
+                    error("Seleccionar un cajero");
+                    return;
+                }
+
+                window.open('@Url.Action("Historial", "Monitoreo")?agenciaId=' + AgenciaId + '&cajeroId=' + CajeroId, '_blank');
+            });
+
+            function cargaCorteCajaActual()
+            {
+                var AgenciaId = $("#AgenciaId").val();
+                var CajeroId = $("#CajeroId").val();
+
+                if (AgenciaId === "") {
+                    error("Seleccionar una agencia");
+                    return;
+                }
+
+                if (CajeroId === "") {
+                    error("Seleccionar un cajero");
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerCorteActual", "Monitoreo")',
+                traditional: true,
+                data: { 'agenciaId': AgenciaId, 'cajeroId': CajeroId },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null) {
+                        if (resultData.Operacion) {
+                            $('#TotalRecibos').val(resultData.Data.TotalRecibos);
+                            $('#TotalAbonos').val(resultData.Data.TotalAbonos);
+                            $('#TotalRetiros').val(resultData.Data.TotalRetiros);
+                            $('#TotalGastos').val(resultData.Data.TotalGastos);
+                            $('#Disponible').val(resultData.Data.Disponible);
+                            $('#Retirar').val(resultData.Data.Disponible);
+
+                            $('#Retirar').focus();
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar la disponibilidad del corte de caja');
+                        }
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al visualizar la disponibilidad del corte de caja');
+                    }
+                }
+            });
+        }
+    });
+    </script>
+}

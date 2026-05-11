@@ -26,27 +26,26 @@ namespace DiamDev.Give.BLL
 
         #region Metodos Privados
 
-            private bool Agregar(Rol entidad)
+            private string Agregar(Rol entidad)
             {
-                bool RolAgregar = false;
+                string Mensaje = "OK";
 
                 try
                 {
                     db.Set<Rol>().Add(entidad);
-                    db.SaveChanges();
-
-                    RolAgregar = true;
+                    db.SaveChanges();                   
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return RolAgregar;
+                return Mensaje;
             }
 
-            private bool Actualizar(Rol entidad)
+            private string Actualizar(Rol entidad)
             {
-                bool RolActualizar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -68,24 +67,21 @@ namespace DiamDev.Give.BLL
                             RolActual.Permisos = new List<RolPermiso>();
                             foreach (var Permiso in entidad.Permisos)
                             {
-                                if (!RolActual.Permisos.Any(x => x.PermisoId.Equals(Permiso.PermisoId)))
-                                {
-                                    RolActual.Permisos.Add(new RolPermiso() { RolId = RolActual.RolId, PermisoId = Permiso.PermisoId });
-                                }
+                                db.Set<RolPermiso>().Add(new RolPermiso() { RolId = RolActual.RolId, PermisoId = Permiso.PermisoId });
                             }
 
                         }
 
-                        db.SaveChanges();
-                        RolActualizar = true;
+                        db.SaveChanges();                       
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return RolActualizar;
+                return Mensaje;
             }
 
         #endregion
@@ -95,20 +91,14 @@ namespace DiamDev.Give.BLL
             public string Guardar(Rol entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
-
+              
                 if (entidad.RolId > 0)
                 {
-                    OperacionExitosa = Actualizar(entidad);
+                    Mensaje = Actualizar(entidad);
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
-                }
-
-                if (!OperacionExitosa)
-                {
-                    Mensaje = "La información ingresada no es valida";
+                    Mensaje = Agregar(entidad);
                 }
 
                 return Mensaje;
@@ -172,6 +162,26 @@ namespace DiamDev.Give.BLL
                 }
 
                 return Permisos;
+            }
+
+            public string ObtenerPermisoPorUsuario(long usuario)
+            {
+                Rol RolActual = new Rol();
+                string Descripcion = string.Empty;
+
+                try
+                {
+                    RolActual = db.Set<Usuario>().Where(x => x.UsuarioId == usuario).Join(db.Set<UsuarioRol>(), U => U.UsuarioId, UR => UR.UsuarioId, (U, UR) => new { Roles = UR }).Join(db.Set<Rol>(), R => R.Roles.RolId, RP => RP.RolId, (R, RP) => new { Permisos = RP }).Select(x => x.Permisos).FirstOrDefault();
+                    if (RolActual != null)
+                    {
+                        Descripcion = RolActual.Nombre;                        
+                    }
+                }
+                catch (Exception)
+                {
+                }
+
+                return Descripcion;
             }
 
             public bool AutorizacionPermisoPorUsuario(string usuario, string permiso)

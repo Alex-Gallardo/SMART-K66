@@ -1,0 +1,66 @@
+﻿@model DiamDev.Give.Entities.Transporte
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Nit (-)<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nit, new { @class = "form-control", @placeholder = "Nit", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Nombre<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre del Transporte", required = "required", autocomplete = "off"})
+        </div>  
+        <div class="form-group">
+            <label class="control-label">
+                Nombre de Emisi&oacute;n de Cheque
+            </label>
+            @Html.TextBoxFor(model => model.NombrePago, new { @class = "form-control", @placeholder = "Nombre de Emisión de Cheque", autocomplete = "off" })
+        </div>     
+        <div class="form-group">
+            <label class="control-label">
+                Contacto<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Contacto, new { @class = "form-control", @placeholder = "Nombre del Contacto", required = "required", autocomplete = "off" })
+        </div>     
+    </div>
+</div>
+<div class="row">    
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                No. de Telefono
+            </label>
+            @Html.TextBoxFor(model => model.NoTelefono, new { @class = "form-control input-mask-phone", @placeholder = "No. de Telefono", autocomplete = "off" })
+        </div>  
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Sitio Web
+            </label>
+            @Html.TextBoxFor(model => model.SitioWeb, new { @class = "form-control", @placeholder = "Sitio Web del Transporte", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Descripción
+            </label>
+            @Html.TextAreaFor(model => model.Descripcion, new { @class = "form-control", @placeholder = "Descripción", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Descripción de Empaque
+            </label>
+            @Html.TextAreaFor(model => model.DescripcionEmpaque, new { @class = "form-control", @placeholder = "Descripción de Empaque", autocomplete = "off" })
+        </div> 
+    </div>
+</div>

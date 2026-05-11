@@ -29,12 +29,11 @@ namespace DiamDev.Give.UI.Controllers
 
         public ActionResult Generar(DateTime desde, DateTime hasta, string producto = "")
         {
-
             producto = string.IsNullOrWhiteSpace(producto) ? "" : producto.Trim();
             RegistroKardex[] kardex;
             using (var db = new GiveContext())
             {
-                kardex = db.RegistrosKardex.Where(x => x.Fecha >= desde && x.Fecha <= hasta && (x.ProductoId == producto || producto == "")).OrderBy(x => x.FechaHora).ToArray();
+                kardex = db.RegistrosKardex.Where(x => x.Fecha >= desde && x.Fecha <= hasta && (x.ProductoId == producto || producto == "")).OrderBy(x => x.ProductoCodigo).ToArray();
             }
 
             var agencias = kardex.Select(x => new { x.AgenciaId, x.AgenciaNombre }).Distinct().ToArray();
@@ -47,16 +46,16 @@ namespace DiamDev.Give.UI.Controllers
                 ws.Cells["A3"].Value = "Proyecto Give Guatemala, S.A.";
                 ws.Cells["A3:E3"].Merge = true;
 
-                ws.Cells["A4"].Value = $"Kardex de inventario al {hasta:dd/MM/yyyy}";
+                ws.Cells["A4"].Value = string.Format("Kardex de inventario al {0}", hasta.ToString("dd/MM/yyyy"));
                 ws.Cells["A4:E4"].Merge = true;
 
-                ws.Cells["A7"].Value = "Id";
-                ws.Cells["B7"].Value = "Código";
-                ws.Cells["C7"].Value = "Marca";
-                ws.Cells["D7"].Value = "Descripción";
-                ws.Cells["E7"].Value = "Fecha";
-                ws.Cells["F7"].Value = "Documento";
-                ws.Cells["G7"].Value = "Concepto";
+                ws.Cells["A7"].Value = "ID";
+                ws.Cells["B7"].Value = "CÓDIGO";
+                ws.Cells["C7"].Value = "MARCA";
+                ws.Cells["D7"].Value = "DESCRIPCIÓN";
+                ws.Cells["E7"].Value = "FECHA";
+                ws.Cells["F7"].Value = "DOCUMENTO NO.";
+                ws.Cells["G7"].Value = "CONCEPTO";
 
                 ws.Cells["A7:A9"].Merge = true;
                 ws.Cells["B7:B9"].Merge = true;
@@ -72,21 +71,21 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     agenciasIndex[agencia.AgenciaId] = index++;
 
-                    ws.Cells[7, columna].Value = agencia.AgenciaNombre;
-                    ws.Cells[8, columna].Value = "Ingresos";
-                    ws.Cells[9, columna].Value = "Cantidad";
-                    ws.Cells[9, columna + 1].Value = "Costo";
-                    ws.Cells[9, columna + 2].Value = "Total";
+                    ws.Cells[7, columna].Value = agencia.AgenciaNombre.ToUpper();
+                    ws.Cells[8, columna].Value = "INGRESOS";
+                    ws.Cells[9, columna].Value = "CANTIDAD";
+                    ws.Cells[9, columna + 1].Value = "COSTO";
+                    ws.Cells[9, columna + 2].Value = "TOTAL";
 
-                    ws.Cells[8, columna + 3].Value = "Egresos";
-                    ws.Cells[9, columna + 3].Value = "Cantidad";
-                    ws.Cells[9, columna + 4].Value = "Costo";
-                    ws.Cells[9, columna + 5].Value = "Total";
+                    ws.Cells[8, columna + 3].Value = "EGRESOS";
+                    ws.Cells[9, columna + 3].Value = "CANTIDAD";
+                    ws.Cells[9, columna + 4].Value = "COSTO";
+                    ws.Cells[9, columna + 5].Value = "TOTAL";
 
-                    ws.Cells[8, columna + 6].Value = "Existencias";
-                    ws.Cells[9, columna + 6].Value = "Cantidad";
-                    ws.Cells[9, columna + 7].Value = "Costo Promedio";
-                    ws.Cells[9, columna + 8].Value = "Total";
+                    ws.Cells[8, columna + 6].Value = "EXISTENCIAS";
+                    ws.Cells[9, columna + 6].Value = "CANTIDAD";
+                    ws.Cells[9, columna + 7].Value = "COSTO PROMEDIO";
+                    ws.Cells[9, columna + 8].Value = "TOTAL";
 
                     ws.Cells[7, columna, 7, columna + 8].Merge = true;
                     ws.Cells[8, columna, 8, columna + 2].Merge = true;
@@ -103,9 +102,10 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     columna = (agenciasIndex[item.AgenciaId] * 9) + 8;
 
-                    ws.Cells[fila, 2].Value = item.ProductoCodigo?.Trim();
-                    ws.Cells[fila, 3].Value = item.MarcaNombre?.Trim();
-                    ws.Cells[fila, 4].Value = item.ProductoDescripcion?.Trim();
+                    ws.Cells[fila, 1].Value = item.ProductoId.Trim();
+                    ws.Cells[fila, 2].Value = item.ProductoCodigo.Trim();
+                    ws.Cells[fila, 3].Value = item.MarcaNombre.Trim();
+                    ws.Cells[fila, 4].Value = item.ProductoDescripcion.Trim();
                     ws.Cells[fila, 5].Value = Fecha(item.FechaHora);
                     ws.Cells[fila, 5].Style.Numberformat.Format = "dd/mm/yyyy";
                     
@@ -116,15 +116,14 @@ namespace DiamDev.Give.UI.Controllers
 
                     if (item.IngresoCantidadTienda > 0)
                         ws.Cells[cantidadI].Value = item.IngresoCantidadTienda;
-                    else
-                        ws.Cells[cantidadI].Value = 0;
-
+                  
                     if (item.IngresoCostoTienda > 0)
                         ws.Cells[costoI].Value = item.IngresoCostoTienda;
-                    else
-                        ws.Cells[costoI].Value = 0;
 
-                    ws.Cells[totalI].Formula = $"{cantidadI}*{costoI}";
+                    if ((item.IngresoCantidadTienda * item.IngresoCostoTienda) > 0)
+                    {
+                        ws.Cells[totalI].Formula = string.Format("{0}*{1}", cantidadI, costoI);                             
+                    }                   
 
                     // egreso
                     var cantidadE = ExcelCellBase.GetAddress(fila, columna + 3);
@@ -133,29 +132,28 @@ namespace DiamDev.Give.UI.Controllers
 
                     if (item.SalidaCantidadTienda > 0)
                         ws.Cells[cantidadE].Value = item.SalidaCantidadTienda;
-                    else
-                        ws.Cells[cantidadE].Value = 0;
-
+                 
                     if (item.SalidaCostoTienda > 0)
                         ws.Cells[costoE].Value = item.SalidaCostoTienda;
-                    else
-                        ws.Cells[costoE].Value = 0;
 
-                    ws.Cells[totalE].Formula = $"{cantidadE}*{costoE}";
+                    if ((item.SalidaCantidadTienda * item.SalidaCostoTienda) > 0)
+                    {
+                         ws.Cells[totalE].Formula = string.Format("{0}*{1}", cantidadE, costoE);
+                    }
 
                     // existencias
                     var cantidadX = ExcelCellBase.GetAddress(fila, columna + 6);
                     var costoX = ExcelCellBase.GetAddress(fila, columna + 7);
                     var totalX = ExcelCellBase.GetAddress(fila, columna + 8);
 
-                    ws.Cells[cantidadX].Formula = $"{cantidadI}-{cantidadE}";
-                    ws.Cells[costoX].Formula = $"({costoI}+{costoE})/2";
-                    ws.Cells[totalX].Formula = $"({cantidadI}*{costoI})+({cantidadE}*{costoE})";
+                    ws.Cells[cantidadX].Value = item.ExistenciaFinalTienda;
+                    ws.Cells[costoX].Formula = string.Format("{0}+{1}/2", costoI, costoE);
+                    ws.Cells[totalX].Formula = string.Format("{0}*{1} + {2}*{3}", cantidadI, costoI, cantidadE, costoE);
 
                     fila++;
                 }
 
-                ws.Cells[fila, 1].Value = "Totales:";
+                ws.Cells[fila, 1].Value = "TOTALES:";
 
                 columna = 8;
                 var primerFila = 10;
@@ -168,12 +166,12 @@ namespace DiamDev.Give.UI.Controllers
                     // Cantidad
                     var inicio = ExcelCellBase.GetAddress(primerFila, columna);
                     var finale = ExcelCellBase.GetAddress(ultimaFila, columna);
-                    ws.Cells[fila, columna].Formula = $"SUM({inicio}:{finale})";
+                    ws.Cells[fila, columna].Formula = string.Format("SUM({0}:{1})", inicio, finale);
 
                     // Total
                     inicio = ExcelCellBase.GetAddress(primerFila, columna + 2);
                     finale = ExcelCellBase.GetAddress(ultimaFila, columna + 2);
-                    ws.Cells[fila, columna + 2].Formula = $"SUM({inicio}:{finale})";
+                    ws.Cells[fila, columna + 2].Formula = string.Format("SUM({0}:{1})", inicio, finale);
 
                     ColocarFormatoNumero(ws, primerFila, columna + 0, fila, columna + 0);
                     ColocarFormatoMoneda(ws, primerFila, columna + 1, fila, columna + 1);
@@ -184,12 +182,12 @@ namespace DiamDev.Give.UI.Controllers
                     // Cantidad
                     inicio = ExcelCellBase.GetAddress(primerFila, columna + 3);
                     finale = ExcelCellBase.GetAddress(ultimaFila, columna + 3);
-                    ws.Cells[fila, columna + 3].Formula = $"SUM({inicio}:{finale})";
+                    ws.Cells[fila, columna + 3].Formula = string.Format("SUM({0}:{1})", inicio, finale);
 
                     // Total
                     inicio = ExcelCellBase.GetAddress(primerFila, columna + 5);
                     finale = ExcelCellBase.GetAddress(ultimaFila, columna + 5);
-                    ws.Cells[fila, columna + 5].Formula = $"SUM({inicio}:{finale})";
+                    ws.Cells[fila, columna + 5].Formula = string.Format("SUM({0}:{1})", inicio, finale);
 
                     ColocarFormatoNumero(ws, primerFila, columna + 3, fila, columna + 3);
                     ColocarFormatoMoneda(ws, primerFila, columna + 4, fila, columna + 4);
@@ -200,12 +198,12 @@ namespace DiamDev.Give.UI.Controllers
                     // Cantidad
                     inicio = ExcelCellBase.GetAddress(primerFila, columna + 6);
                     finale = ExcelCellBase.GetAddress(ultimaFila, columna + 6);
-                    ws.Cells[fila, columna + 6].Formula = $"SUM({inicio}:{finale})";
+                    ws.Cells[fila, columna + 6].Formula = string.Format("SUM({0}:{1})", inicio, finale);
 
                     // Total
                     inicio = ExcelCellBase.GetAddress(primerFila, columna + 8);
                     finale = ExcelCellBase.GetAddress(ultimaFila, columna + 8);
-                    ws.Cells[fila, columna + 8].Formula = $"SUM({inicio}:{finale})";
+                    ws.Cells[fila, columna + 8].Formula = string.Format("SUM({0}:{1})", inicio, finale);
 
                     ColocarFormatoNumero(ws, primerFila, columna + 6, fila, columna + 6);
                     ColocarFormatoMoneda(ws, primerFila, columna + 7, fila, columna + 7);
@@ -225,7 +223,7 @@ namespace DiamDev.Give.UI.Controllers
 
                 AjustarAncho(ws, 7, 1, fila, columna + 8);
 
-                return File(pck.GetAsByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"kardex_{desde:yyMMdd}_{hasta:yyMMdd}.xlsx");
+                return File(pck.GetAsByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", string.Format("kardex_{0}_{1}.xlsx", desde.ToString("yyyyMMdd"), hasta.ToString("yyyyMMdd")));
             }
         }
 

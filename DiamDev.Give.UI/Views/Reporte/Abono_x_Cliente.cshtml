@@ -1,0 +1,318 @@
+﻿@{
+    ViewBag.Title = "Abonos x Cliente";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Abonos x Cliente
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i>Abonos x Cliente</h2>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }                           
+                        </div>                       
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Inicial<span class="symbol required"></span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Final<span class="symbol required"></span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <input type="text" class="form-control" id="BuscarCliente" name="BuscarCliente" autocomplete="off" placeholder="Buscar Cliente...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente<span class="symbol required"></span>
+                                </label>
+                                <input type="text" placeholder="Cliente" class="form-control" id="NombreCliente" name="NombreCliente" autocomplete="off" disabled="disabled" required />
+                                <input type="hidden" id="ClienteId" name="ClienteId" value="0" />                               
+                            </div>                            
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" id="Aceptar" type="button">
+                                    <span class="ladda-label"> Generar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Abono_x_Cliente", "Reporte")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="seleccionar-cliente-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Cliente</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="cliente_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-cliente" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<table width="100%" height="100%">
+    <tr>
+        <td>
+            <iframe id="myReport" width="100%" height="800px"></iframe>
+        </td>
+    </tr>
+</table>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        var vCliente = "";
+
+        $(function ()
+        {
+            $("#myReport").hide();
+
+            $("#BuscarCliente").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("ConsultaCliente", "Cliente")',
+                        type: "POST",
+                        dataType: "json",
+                        data: { search: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.Nombre, value: item.Nombre };
+                            }))
+                        }
+                    })
+                },
+                messages:
+                {
+                    noResults: "", results: ""
+                }
+            });
+
+            $('#formaprincipal').keydown(function (evt) {
+                if ($('#BuscarCliente').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                    cargaBusquedaCliente(evt)
+                }
+            });
+
+            $('#btnBuscarCliente').click(function (evt) {
+                cargaBusquedaCliente(evt);
+            });
+
+            function cargaBusquedaCliente(evt) {
+                evt.preventDefault();
+
+                if ($('#BuscarCliente').val() === "") {
+                    error("Ingresar Nit o Nombre del Cliente");
+                    $('#BuscarCliente').focus();
+                    return;
+                }
+
+                var clienteActual = $('#BuscarCliente').val();
+                clienteActual = clienteActual.replace(" ", "_");
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerClientexTextoLibre", "Cliente")',
+                    traditional: true,
+                    data: { 'search': clienteActual },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData) {
+                        if (resultData !== null) {
+                            if (resultData.Operacion) {
+                                if (resultData.Data.length === 1) {
+                                    cargaClienteSeleccionado(resultData.Data[0]);
+                                }
+                                else if (resultData.Data.length > 1) {
+                                    var fila = "";
+                                    for (var i = 0; i < resultData.Data.length; i++) {
+                                        fila += "<tr><td>" + resultData.Data[i].ClienteId + "</td>";
+                                        fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                        fila += "<td><a href='" + resultData.Data[i].ClienteId + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                    }
+
+                                    $("#seleccionar-cliente-form").modal();
+                                    $("#seleccionar-cliente-form").find("#cliente_seleccionado_tbody").html(fila);
+                                }
+                            }
+                            else {
+                                toastr.error('El cliente ingresado no es correcto');
+
+                                $("#new-cliente-form").modal();
+                                $("#new-cliente-form").find("#Nit").val($('#BuscarCliente').val());
+                                $("#new-cliente-form").find("#Nombre").focus();
+                            }
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar al cliente');
+                            $('#BuscarCliente').val("");
+                            $('#BuscarCliente').focus();
+                        }
+                    }
+                });
+            }
+
+            $('#cliente_seleccionado_tbody').delegate("a", "click", function (e) {
+                e.preventDefault();
+
+                $('#btn-close-up-seleccionar-cliente').click();
+                var clienteReferencia = $(this).attr("href");
+                var clienteActual = clienteReferencia.split(",");
+
+                var modelo =
+                 {
+                     'ClienteId': clienteActual[0],
+                     'Nombre': clienteActual[1]
+                 };
+
+                cargaClienteSeleccionado(modelo);
+            });
+
+            function cargaClienteSeleccionado(cliente) {
+                var clienteSeleccionado = obtenerClientexID(cliente.ClienteId);
+
+                $('#NombreCliente').val(clienteSeleccionado.Nombre);             
+                $('#ClienteId').val(clienteSeleccionado.ClienteId);
+            }
+
+            function obtenerClientexID(id) {
+                var cliente = null;
+                $.ajax({
+                    url: '@Url.Action("ObtenerPorID", "Cliente")?id=' + id,
+                    async: false,
+                    type: 'GET',
+                    success: function (data) {
+
+                        if (!data.Operacion) {
+                            toastr.error('Ocurrió un error, al obtener datos del cliente');
+                            return;
+                        }
+
+                        cliente = data.Data;
+
+                    },
+                    fail: function (data) {
+                        console.error(data);
+                        toastr.error('Ocurrió un error, al obtener datos del cliente');
+                    }
+                });
+
+                return cliente;
+            }
+
+            $("#Aceptar").on("click", function ()
+            {
+                var FechaInicial = $("#FechaInicial").val();
+                var FechaFinal = $("#FechaFinal").val();
+                var ClienteId = $("#ClienteId").val();
+              
+                if (FechaInicial === "")
+                {
+                    toastr.error('Debe ingresar la fecha inicial');
+                    return;
+                }
+
+                if (FechaFinal === "")
+                {
+                    toastr.error('Debe ingresar la fecha final');
+                    return;
+                }
+
+                ObtenerAbonos(FechaInicial, FechaFinal, ClienteId);
+
+                $("#myReport").show();
+
+            });
+
+        });
+
+        function ObtenerAbonos(FechaInicial, FechaFinal, ClienteId)
+        {
+            document.getElementById("myReport").src = "@Url.Content("~/Reports/ReportViewer.aspx?ReportID=ReportAbonoxCliente")&FechaInicial=" + FechaInicial + "&FechaFinal=" + FechaFinal + "&ClienteId=" + ClienteId;
+        }
+
+    </script>
+}
+

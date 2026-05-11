@@ -1,0 +1,271 @@
+﻿@model DiamDev.Give.Entities.Reparacion
+
+@{
+    ViewBag.Title = "Verificar Reparación";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Verificar
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="ReparacionId" name="ReparacionId" value="@Html.Raw(Model.ReparacionId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Agencia
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Agencia == null ? "No Disponible" : Model.Agencia.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Cliente == null ? "No Disponible" : Model.Cliente.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Serial
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.IMEI) ? "No Disponible" : Model.IMEI)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Marca y Modelo
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Marca) ? "No Disponible" : Model.Marca)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Falla Reportada
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Falla) ? "No Disponible" : Model.Falla)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Descripci&oacute;n de estado físico
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Descripcion) ? "No contiene descripción" : Model.Descripcion)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Fecha.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha de Entrega
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.FechaEntrega.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Comentarios
+                        </label>
+                    </h2>
+                    <hr />
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right"><a href="#new-comentario-form" data-toggle="modal" title="Editar" class="demo btn btn-blue">Nuevo Comentario</a></p>
+                            <table class="table table-hover" id="sample-table-1">
+                                <thead>
+                                    <tr>
+                                        <th>Comentario</th>
+                                        <th>Fecha y Hora</th>
+                                        <th>Usuario</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Comentarios != null && Model.Comentarios.Count() > 0)
+                                    {
+                                        foreach (var Anotacion in Model.Comentarios.OrderByDescending(x => x.AnotacionId))
+                                        {
+                                            <tr>
+                                                <td>@Anotacion.Comentario</td>
+                                                <td>@Anotacion.FechaAnotacion.ToString("dd/MM/yyyy hh:mm:ss tt")</td>
+                                                <td>@(Anotacion.UsuarioAnotacion == null ? "No Disponible" : Anotacion.UsuarioAnotacion.Nombre)</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="3">
+                                                <strong>No contiene comentarios</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Asignar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="new-comentario-form" class="modal fade" tabindex="-1" data-focus-on="textarea:first" data-width="760" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Nuevo Comentario</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="control-label">
+                        Comentario<span class="symbol required"></span>
+                    </label>
+                    <textarea placeholder="Comentario" rows="10" cols="50" class="form-control" id="Nuevo_Comentario" name="Nuevo_Comentario" required></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-save-up-comentario" class="btn btn-primary">Guardar</button>
+        <button id="btn-close-up-comentario" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        $(function ()
+        {   
+            function error(texto)
+            {
+                toastr.error(texto);
+            }           
+
+            $("#btn-save-up-comentario").click(function (evt)
+            {
+                evt.preventDefault();
+
+                var comentario = $("#new-comentario-form").find("#Nuevo_Comentario").val();
+
+                if (comentario === "")
+                {
+                    error("El comentario es obligatorio");
+                    $("#new-comentario-form").find("#Nuevo_Comentario").focus();
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("NuevoComentario", "Reparacion")',
+                    data: { 'ReparacionId': $("#ReparacionId").val(), 'Comentario': comentario },
+                    traditional: true,
+                    async: false,
+                    type: 'POST',
+                    success: function (resultData)
+                    {
+                        if (resultData !== null)
+                        {
+                            if (resultData.Operacion)
+                            {
+                                toastr.success('El comentario se guardó exitosamente');
+                            }
+                            else
+                            {
+                                toastr.error('Ocurrió un error, al guardar el comentario');
+                            }
+
+                            window.location.href = '@Url.Action("Verificar", "Reparacion")';
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al guardar el comentario');
+                        }
+                    }
+                });
+            });
+        });
+
+    </script>
+ }
+

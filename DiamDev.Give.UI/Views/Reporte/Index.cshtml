@@ -480,90 +480,112 @@
     </div>
 </div>
 
-    @* ════════════════════════════════════════════════════════════
-        COLLAPSE 4 — CRYSTAL REPORTS SAP (HANA)
-        ════════════════════════════════════════════════════════════ *@
-    <div class="panel panel-default">
-        <div class="panel-heading" style="cursor:pointer"
-             data-toggle="collapse" data-target="#collapseCrystal">
-            <h4 class="panel-title">
-                <i class="icon-bar-chart teal"></i>
-                <strong> Crystal Reports</strong>
-                <span class="label label-warning"
-                      style="font-size:11px; margin-left:6px">SAP</span>
-                <span class="pull-right"><i class="icon-angle-down"></i></span>
-            </h4>
-        </div>
-        <div id="collapseCrystal" class="panel-collapse collapse in">
-            <div class="panel-body">
+@* ════════════════════════════════════════════════════════════
+    COLLAPSE 4 — CRYSTAL REPORTS SAP (HANA)
+    ════════════════════════════════════════════════════════════ *@
+<div class="panel panel-default">
+    <div class="panel-heading" style="cursor:pointer"
+            data-toggle="collapse" data-target="#collapseCrystal">
+        <h4 class="panel-title">
+            <i class="icon-bar-chart teal"></i>
+            <strong> Crystal Reports</strong>
+            <span class="label label-warning"
+                    style="font-size:11px; margin-left:6px">SAP</span>
+            <span class="pull-right"><i class="icon-angle-down"></i></span>
+        </h4>
+    </div>
+    <div id="collapseCrystal" class="panel-collapse collapse in">
+        <div class="panel-body">
 
-                @* ── Pedidos SAP ── *@
-                <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
-                    <i class="icon-folder-open"></i> Pedidos SAP
-                </h5>
-                <div class="row" style="margin-bottom:15px">
-                    <div class="col-md-3">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-stack-2 circle-icon circle-teal"></i>
-                                <h2>Pedidos No Sincronizados</h2>
-                            </div>
-                            <a href="javascript:void(0)"
-                               onclick="abrirCrystalDirecto('@Url.Action("PedidosNoSincronizados","Reporte")')"
-                               class="view-more">
-                                Ver Reporte <i class="clip-arrow-right-2"></i>
-                            </a>
+            @* ── Pedidos SAP ── *@
+            <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
+                <i class="icon-folder-open"></i> Pedidos SAP
+            </h5>
+            <div class="row" style="margin-bottom:15px">
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-stack-2 circle-icon circle-teal"></i>
+                            <h2>Pedidos No Sincronizados</h2>
                         </div>
+                        <a href="javascript:void(0)"
+                           onclick="abrirCrystalDirecto('@Url.Action("PedidosNoSincronizados","Reporte")')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
                     </div>
                 </div>
-
-                @* ── Rutas ── *@
-                <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
-                    <i class="icon-folder-open"></i> Rutas
-                </h5>
-                <div class="row" style="margin-bottom:15px">
-                    <div class="col-md-3">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-truck circle-icon circle-green"></i>
-                                <h2>Revisión de Rutas</h2>
-                            </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirFechasCrystal(
-                               '@Url.Action("RevisionRutas","Reporte")',
-                               'Revisión de Rutas')"
-                               class="view-more">
-                                Ver Reporte <i class="clip-arrow-right-2"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
-                @* ── Clientes SAP ── *@
-                <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
-                    <i class="icon-folder-open"></i> Clientes SAP
-                </h5>
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-archive circle-icon circle-teal"></i>
-                                <h2>Estado De Cuenta</h2>
-                            </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirFechasYCliente(
-                               '@Url.Action("EstadoDeCuenta","Reporte")',
-                               'Estado de Cuenta Clientes')"
-                               class="view-more">
-                                Ver Reporte <i class="clip-arrow-right-2"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-
             </div>
+
+            @* ── Rutas ── *@
+            <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
+                <i class="icon-folder-open"></i> Rutas
+            </h5>
+            <div class="row" style="margin-bottom:15px">
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-truck circle-icon circle-green"></i>
+                            <h2>Revisión de Rutas</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="pedirFechasCrystal(
+                            '@Url.Action("RevisionRutas","Reporte")',
+                            'Revisión de Rutas')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @* ── Clientes SAP ── *@
+            <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
+                <i class="icon-folder-open"></i> Clientes SAP
+            </h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-archive circle-icon circle-teal"></i>
+                            <h2>Estado De Cuenta</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="pedirFechasYCliente(
+                            '@Url.Action("EstadoDeCuenta","Reporte")',
+                            'Estado de Cuenta Clientes')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            @* ── Backorder ── *@
+            <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
+                <i class="icon-folder-open"></i> Backorder
+            </h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-archive circle-icon circle-teal"></i>
+                            <h2>Backorder</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="pedirFechasYCliente(
+                            '@Url.Action("Backorder","Reporte")',
+                            'Backorder')"
+                           class="view-more">
+                            Ver Reporte <i class="clip-arrow-right-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
+</div>
 
 @* ════════════════════════════════════════════════════════════
     MODAL — Ingreso de ID de Agente

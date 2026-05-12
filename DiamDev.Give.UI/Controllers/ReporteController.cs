@@ -218,7 +218,7 @@ namespace DiamDev.Give.UI.Controllers
         /// Pedidos no Sincronizados.rpt
         /// URL: /Reporte/PedidosNoSincronizados
         /// </summary>
-        [Permiso("Control.Reporte.VerReporteHana")]
+        /// [Permiso("Control.Reporte.Inventario")]
         public ActionResult PedidosNoSincronizados()
         {
             ReportDocument rpt = new ReportDocument();
@@ -243,7 +243,7 @@ namespace DiamDev.Give.UI.Controllers
         /// SetParameterValue los inyecta. Si el SQL no usa parámetros Crystal,
         /// ignóralos y el reporte cargará sin filtro de fecha.
         /// </summary>
-        [Permiso("Control.Reporte.VerReporteHana")]
+        [Permiso("Control.Reporte.Inventario")]
         public ActionResult RevisionRutas(string fechaInicial = "", string fechaFinal = "")
         {
             ReportDocument rpt = new ReportDocument();
@@ -277,7 +277,7 @@ namespace DiamDev.Give.UI.Controllers
         /// El reporte está agrupado por CardCode (cliente SAP).
         /// Si cardCode viene vacío, genera para todos los clientes.
         /// </summary>
-        [Permiso("Control.Reporte.VerReporteHana")]
+        /// [Permiso("Control.Reporte.Inventario")]
         public ActionResult EstadoDeCuenta(string fechaInicial = "",
                                             string fechaFinal = "",
                                             string cardCode = "")
@@ -305,6 +305,23 @@ namespace DiamDev.Give.UI.Controllers
             {
                 rpt.Close(); rpt.Dispose();
                 return ContenidoError(ex, "Estado de Cuenta");
+            }
+        }
+
+        public ActionResult Backorder()
+        {
+            ReportDocument rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder.rpt"));
+                AplicarConexionHana(rpt);
+
+                return ExportarPdf(rpt, $"Backorder_");
+            }
+            catch (Exception ex)
+            {
+                rpt.Close(); rpt.Dispose();
+                return ContenidoError(ex, "Backorder");
             }
         }
 

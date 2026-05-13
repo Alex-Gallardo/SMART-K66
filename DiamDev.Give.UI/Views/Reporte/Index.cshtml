@@ -478,7 +478,7 @@
 
         </div>
     </div>
-</div>
+</div> 
 
 @* ════════════════════════════════════════════════════════════
     COLLAPSE 4 — CRYSTAL REPORTS SAP (HANA)
@@ -578,9 +578,9 @@
 
             @* ── Clientes SAP ── *@
             @* ── <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
-                      <i class="icon-folder-open"></i> Clientes SAP
-                  </h5>
-                  <div class="row" style="margin-bottom:15px"></div> ── *@
+                    <i class="icon-folder-open"></i> Clientes SAP
+                </h5>
+                <div class="row" style="margin-bottom:15px"></div> ── *@
 
             @* ── Pedidos SAP ── *@
             <h5 style="color:#777;border-bottom:1px solid #eee;padding-bottom:5px">
@@ -605,6 +605,17 @@
                 <i class="icon-folder-open"></i> Rutas
             </h5>
             <div class="row">
+                <div class="col-md-3">
+                    <div class="core-box">
+                        <div class="heading">
+                            <i class="clip-truck circle-icon circle-green"></i>
+                            <h2>Revisión de Rutas</h2>
+                        </div>
+                        <a href="javascript:void(0)"
+                           onclick="pedirRuta('@Url.Action("RevisionRutas","Reporte")', 'Revisión de Rutas')"
+                           class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                    </div>
+                </div>
                 <div class="col-md-3">
                     <div class="core-box">
                         <div class="heading">

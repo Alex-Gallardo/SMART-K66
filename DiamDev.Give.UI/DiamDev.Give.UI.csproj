@@ -678,6 +678,7 @@
     <Content Include="Reports\Crystal\Backorder General.rpt" />
     <Content Include="Reports\Crystal\Backorder Agentes Bolik.rpt" />
     <Content Include="Reports\Crystal\Backorder Agentes Graco.rpt" />
+    <Content Include="Reports\Crystal\Despachos en ruta dia.rpt" />
     <None Include="Reports\Inventario.xsd">
       <Generator>MSDataSetGenerator</Generator>
       <LastGenOutput>Inventario2.Designer.cs</LastGenOutput>

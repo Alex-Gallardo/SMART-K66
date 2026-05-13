@@ -36,7 +36,7 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     Centros.Insert(0, new Agencia() { AgenciaId = 0, Nombre = "General" });
                 }
-            }         
+            }
 
             ViewBag.Centros = new SelectList(Centros, "AgenciaId", "Nombre");
         }
@@ -77,10 +77,10 @@ namespace DiamDev.Give.UI.Controllers
             ViewBag.Categorias = new SelectList(Categorias, "ProductoCategoriaId", "Nombre");
         }
 
-        private void cargaVendedores() 
+        private void cargaVendedores()
         {
             var Vendedores = new VendedorBL().ObtenerVendedoresPorAgencia(CustomHelper.getAgenciaId());
-            ViewBag.Vendedores = new SelectList(Vendedores, "VendedorId", "Nombre");    
+            ViewBag.Vendedores = new SelectList(Vendedores, "VendedorId", "Nombre");
         }
 
         private void cargaUsuarios()
@@ -255,6 +255,21 @@ namespace DiamDev.Give.UI.Controllers
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Inventario General FGB MP"); }
         }
 
+        public ActionResult DespachosEnRutaDia()
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Despachos en ruta dia.rpt"));
+                AplicarConexionHana(rpt);
+                return ExportarPdf(rpt, "Despachos_En_Ruta_Dia");
+            }
+            catch(Exception ex)
+            {
+                rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Despachos en ruta dia");
+            }
+        }
+
         // ── PARÁMETRO: Agente ────────────────────────────────────────────────────
 
         public ActionResult BackorderAgenteBolik(string agente = "")
@@ -305,7 +320,9 @@ namespace DiamDev.Give.UI.Controllers
                 }
 
                 if (!string.IsNullOrWhiteSpace(cardCode))
+                {
                     TrySetParametro(rpt, "Cliente", cardCode);  // ← "Cliente", no "CardCode"
+                }
 
                 string sufijo = string.IsNullOrWhiteSpace(cardCode) ? "General" : cardCode;
                 return ExportarPdf(rpt, $"Estado_Cuenta_{sufijo}");

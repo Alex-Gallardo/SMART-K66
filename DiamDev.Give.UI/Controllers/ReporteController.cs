@@ -143,13 +143,6 @@ namespace DiamDev.Give.UI.Controllers
             return View();
         }
 
-
-        // ════════════════════════════════════════════════════════════════════════
-        //  REGIÓN: CRYSTAL REPORTS — HANA
-        //  Patrón A: Los .rpt tienen SQL embebido con conexión B1CRHPROXY.
-        //  Solo cambiamos las credenciales en runtime, conservando el driver.
-        // ════════════════════════════════════════════════════════════════════════
-
         #region Crystal Reports — Utilitarios
 
         /// <summary>
@@ -209,121 +202,167 @@ namespace DiamDev.Give.UI.Controllers
         #endregion
 
         // ════════════════════════════════════════════════════════════════════════
+        //  REGIÓN: CRYSTAL REPORTS — HANA
+        //  Patrón A: Los .rpt tienen SQL embebido con conexión B1CRHPROXY.
+        //  Solo cambiamos las credenciales en runtime, conservando el driver.
+        // ════════════════════════════════════════════════════════════════════════
+
+        // ════════════════════════════════════════════════════════════════════════
         //  ACCIONES PÚBLICAS — Una por cada .rpt existente en Reports/Crystal/
         //  Los 3 reportes usan B1CRHPROXY con SQL Command embebido.
         //  No se usa SetDataSource; solo se sobreescriben las credenciales HANA.
         // ════════════════════════════════════════════════════════════════════════
 
-        /// <summary>
-        /// Pedidos no Sincronizados.rpt
-        /// URL: /Reporte/PedidosNoSincronizados
-        /// </summary>
-        /// [Permiso("Control.Reporte.Inventario")]
-        public ActionResult PedidosNoSincronizados()
+        // ════════════════════════════════════════════════════════════════════════
+        //  CRYSTAL REPORTS — HANA  (parámetros verificados con DiagParametros)
+        // ════════════════════════════════════════════════════════════════════════
+
+        // ── SIN PARÁMETROS — abren directo ──────────────────────────────────────
+
+        public ActionResult Backorder()
         {
-            ReportDocument rpt = new ReportDocument();
+            var rpt = new ReportDocument();
             try
             {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/Pedidos no Sincronizados.rpt"));
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder.rpt"));
                 AplicarConexionHana(rpt);
-                return ExportarPdf(rpt, "Pedidos_No_Sincronizados");
+                return ExportarPdf(rpt, "Backorder");
             }
-            catch (Exception ex)
-            {
-                rpt.Close(); rpt.Dispose();
-                return ContenidoError(ex, "Pedidos No Sincronizados");
-            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder"); }
         }
 
-        /// <summary>
-        /// REVISION DE RUTAS.rpt
-        /// URL: /Reporte/RevisionRutas?fechaInicial=2026-01-01&fechaFinal=2026-05-11
-        ///
-        /// Si el .rpt tiene Crystal Parameter Fields definidos con esos nombres,
-        /// SetParameterValue los inyecta. Si el SQL no usa parámetros Crystal,
-        /// ignóralos y el reporte cargará sin filtro de fecha.
-        /// </summary>
-        [Permiso("Control.Reporte.Inventario")]
-        public ActionResult RevisionRutas(string fechaInicial = "", string fechaFinal = "")
+        public ActionResult BackorderGeneral()
         {
-            ReportDocument rpt = new ReportDocument();
+            var rpt = new ReportDocument();
             try
             {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/REVISION DE RUTAS.rpt"));
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder General.rpt"));
                 AplicarConexionHana(rpt);
-
-                // Intentar pasar fechas si el .rpt declara parámetros Crystal.
-                // Si el reporte no los tiene, estas líneas se ignoran sin error.
-                if (!string.IsNullOrWhiteSpace(fechaInicial) &&
-                    !string.IsNullOrWhiteSpace(fechaFinal))
-                {
-                    TrySetParametro(rpt, "FechaInicial", Convert.ToDateTime(fechaInicial));
-                    TrySetParametro(rpt, "FechaFinal", Convert.ToDateTime(fechaFinal));
-                }
-
-                return ExportarPdf(rpt, "Revision_Rutas");
+                return ExportarPdf(rpt, "Backorder_General");
             }
-            catch (Exception ex)
-            {
-                rpt.Close(); rpt.Dispose();
-                return ContenidoError(ex, "Revisión de Rutas");
-            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder General"); }
         }
 
-        /// <summary>
-        /// Estado de Cuenta.rpt
-        /// URL: /Reporte/EstadoDeCuenta?fechaInicial=2026-01-01&fechaFinal=2026-05-11&cardCode=CL0001
-        ///
-        /// El reporte está agrupado por CardCode (cliente SAP).
-        /// Si cardCode viene vacío, genera para todos los clientes.
-        /// </summary>
-        /// [Permiso("Control.Reporte.Inventario")]
+        public ActionResult InventarioGeneral()
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Inventario General FGB MP.rpt"));
+                AplicarConexionHana(rpt);
+                return ExportarPdf(rpt, "Inventario_General_FGB_MP");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Inventario General FGB MP"); }
+        }
+
+        // ── PARÁMETRO: Agente ────────────────────────────────────────────────────
+
+        public ActionResult BackorderAgenteBolik(string agente = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Bolik.rpt"));
+                AplicarConexionHana(rpt);
+                if (!string.IsNullOrWhiteSpace(agente))
+                    TrySetParametro(rpt, "Agente", agente);
+                return ExportarPdf(rpt, $"Backorder_Agente_Bolik_{agente}");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Bolik"); }
+        }
+
+        public ActionResult BackorderAgenteGraco(string agente = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Graco.rpt"));
+                AplicarConexionHana(rpt);
+                if (!string.IsNullOrWhiteSpace(agente))
+                    TrySetParametro(rpt, "Agente", agente);
+                return ExportarPdf(rpt, $"Backorder_Agente_Graco_{agente}");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Graco"); }
+        }
+
+        // ── PARÁMETROS: FInicial + FFinal + Cliente ──────────────────────────────
+        // ⚠️ Nombres EXACTOS del .rpt: FInicial / FFinal / Cliente (no FechaInicial/CardCode)
+
         public ActionResult EstadoDeCuenta(string fechaInicial = "",
                                             string fechaFinal = "",
                                             string cardCode = "")
         {
-            ReportDocument rpt = new ReportDocument();
+            var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Estado de Cuenta.rpt"));
                 AplicarConexionHana(rpt);
 
-                if (!string.IsNullOrWhiteSpace(fechaInicial) &&
-                    !string.IsNullOrWhiteSpace(fechaFinal))
+                if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
                 {
-                    TrySetParametro(rpt, "FechaInicial", Convert.ToDateTime(fechaInicial));
-                    TrySetParametro(rpt, "FechaFinal", Convert.ToDateTime(fechaFinal));
+                    TrySetParametro(rpt, "FInicial", Convert.ToDateTime(fechaInicial));
+                    TrySetParametro(rpt, "FFinal", Convert.ToDateTime(fechaFinal));
                 }
 
                 if (!string.IsNullOrWhiteSpace(cardCode))
-                    TrySetParametro(rpt, "CardCode", cardCode);
+                    TrySetParametro(rpt, "Cliente", cardCode);  // ← "Cliente", no "CardCode"
 
                 string sufijo = string.IsNullOrWhiteSpace(cardCode) ? "General" : cardCode;
                 return ExportarPdf(rpt, $"Estado_Cuenta_{sufijo}");
             }
-            catch (Exception ex)
-            {
-                rpt.Close(); rpt.Dispose();
-                return ContenidoError(ex, "Estado de Cuenta");
-            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Estado de Cuenta"); }
         }
 
-        public ActionResult Backorder()
+        // ── PARÁMETROS: Cliente + Pedido ─────────────────────────────────────────
+
+        public ActionResult PedidosNoSincronizados(string cliente = "", string pedido = "")
         {
-            ReportDocument rpt = new ReportDocument();
+            var rpt = new ReportDocument();
             try
             {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder.rpt"));
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Pedidos no Sincronizados.rpt"));
                 AplicarConexionHana(rpt);
 
-                return ExportarPdf(rpt, $"Backorder_");
+                if (!string.IsNullOrWhiteSpace(cliente))
+                    TrySetParametro(rpt, "Cliente", cliente);
+                if (!string.IsNullOrWhiteSpace(pedido))
+                    TrySetParametro(rpt, "Pedido", pedido);
+
+                return ExportarPdf(rpt, "Pedidos_No_Sincronizados");
             }
-            catch (Exception ex)
-            {
-                rpt.Close(); rpt.Dispose();
-                return ContenidoError(ex, "Backorder");
-            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Pedidos No Sincronizados"); }
         }
+
+        // ── PARÁMETROS: 6 campos (REVISION DE RUTAS) ────────────────────────────
+        // ⚠️ Nombres con espacios y mayúsculas: "FECHA INICIAL", "FECHA FINAL", etc.
+
+        // [Permiso("Control.Reporte.Inventario")]
+        public ActionResult RevisionRutas(string fechaInicial = "", string fechaFinal = "",
+                                           string vehiculo = "", string noRuta = "",
+                                           string agente = "", string documento = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/REVISION DE RUTAS.rpt"));
+                AplicarConexionHana(rpt);
+
+                if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
+                {
+                    TrySetParametro(rpt, "FECHA INICIAL", Convert.ToDateTime(fechaInicial));
+                    TrySetParametro(rpt, "FECHA FINAL", Convert.ToDateTime(fechaFinal));
+                }
+                if (!string.IsNullOrWhiteSpace(vehiculo)) TrySetParametro(rpt, "VEHICULO", vehiculo);
+                if (!string.IsNullOrWhiteSpace(noRuta)) TrySetParametro(rpt, "NO RUTA", noRuta);
+                if (!string.IsNullOrWhiteSpace(agente)) TrySetParametro(rpt, "AGENTE", agente);
+                if (!string.IsNullOrWhiteSpace(documento)) TrySetParametro(rpt, "DOCUMENTO", documento);
+
+                return ExportarPdf(rpt, "Revision_Rutas");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Revisión de Rutas"); }
+        }
+
+
 
         // ── Helpers internos ──────────────────────────────────────────────────
 
@@ -404,6 +443,72 @@ namespace DiamDev.Give.UI.Controllers
                 sb.Append("<li>Firewall bloqueando el puerto HANA</li>");
                 sb.Append("<li>Credenciales incorrectas</li>");
                 sb.Append("</ul>");
+            }
+
+            return Content(sb.ToString(), "text/html");
+        }
+
+        // ══════════════════════════════════════════════════════
+        //  DIAGNÓSTICO — Lista parámetros de todos los .rpt
+        //  QUITAR EN PRODUCCIÓN
+        // ══════════════════════════════════════════════════════
+        public ActionResult DiagParametros()
+        {
+            string carpeta = Server.MapPath("~/Reports/Crystal/");
+            var archivos = System.IO.Directory.GetFiles(carpeta, "*.rpt");
+
+            var sb = new System.Text.StringBuilder();
+            sb.Append(@"<style>
+                        body { font-family: monospace; padding: 20px; }
+                        table { border-collapse: collapse; margin-bottom: 30px; width: 100%; }
+                        th { background: #2c3e50; color: white; padding: 8px 12px; text-align: left; }
+                        td { border: 1px solid #ddd; padding: 6px 12px; }
+                        tr:nth-child(even) { background: #f5f5f5; }
+                        h3 { color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 5px; }
+                        .none { color: #999; font-style: italic; }
+                        .badge { background:#27ae60; color:white; padding:2px 8px; 
+                                 border-radius:3px; font-size:11px; }
+                    </style>");
+            sb.Append("<h2>📋 Parámetros Crystal por Reporte</h2><hr/>");
+
+            foreach (string archivo in archivos.OrderBy(f => f))
+            {
+                string nombre = System.IO.Path.GetFileName(archivo);
+                sb.Append($"<h3>📄 {nombre}</h3>");
+
+                var rpt = new ReportDocument();
+                try
+                {
+                    rpt.Load(archivo);
+                    var parametros = rpt.DataDefinition.ParameterFields;
+
+                    if (parametros.Count == 0)
+                    {
+                        sb.Append("<p class='none'>— Sin parámetros definidos</p>");
+                    }
+                    else
+                    {
+                        sb.Append("<table>");
+                        sb.Append("<tr><th>#</th><th>Nombre</th><th>Tipo</th><th>Requerido</th></tr>");
+                        int i = 1;
+                        foreach (ParameterFieldDefinition p in parametros)
+                        {
+                            string requerido = p.IsOptionalPrompt ? "No" : "<span class='badge'>Sí</span>";
+                            sb.Append($"<tr><td>{i++}</td><td><b>{p.Name}</b></td>" +
+                                      $"<td></td><td>{requerido}</td></tr>");
+                        }
+                        sb.Append("</table>");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    sb.Append($"<p style='color:red'>❌ Error al cargar: {ex.Message}</p>");
+                }
+                finally
+                {
+                    rpt.Close();
+                    rpt.Dispose();
+                }
             }
 
             return Content(sb.ToString(), "text/html");

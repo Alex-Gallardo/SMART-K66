@@ -674,6 +674,10 @@
     </Content>
     <Content Include="Reports\Crystal\Estado de Cuenta.rpt" />
     <Content Include="Reports\Crystal\Backorder.rpt" />
+    <Content Include="Reports\Crystal\Inventario General FGB MP.rpt" />
+    <Content Include="Reports\Crystal\Backorder General.rpt" />
+    <Content Include="Reports\Crystal\Backorder Agentes Bolik.rpt" />
+    <Content Include="Reports\Crystal\Backorder Agentes Graco.rpt" />
     <None Include="Reports\Inventario.xsd">
       <Generator>MSDataSetGenerator</Generator>
       <LastGenOutput>Inventario2.Designer.cs</LastGenOutput>

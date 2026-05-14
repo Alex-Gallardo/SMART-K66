@@ -354,14 +354,14 @@ namespace DiamDev.Give.UI.Controllers
         // ⚠️ Nombres con espacios y mayúsculas: "FECHA INICIAL", "FECHA FINAL", etc.
 
         // [Permiso("Control.Reporte.Inventario")]
-        public ActionResult RevisionRutas(string fechaInicial = "", string fechaFinal = "",
+        public ActionResult EstadoPedido(string fechaInicial = "", string fechaFinal = "",
                                            string vehiculo = "", string noRuta = "",
                                            string agente = "", string documento = "")
         {
             var rpt = new ReportDocument();
             try
             {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/REVISION DE RUTAS.rpt"));
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Estado Pedido.rpt"));
                 AplicarConexionHana(rpt);
 
                 if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
@@ -374,9 +374,9 @@ namespace DiamDev.Give.UI.Controllers
                 if (!string.IsNullOrWhiteSpace(agente)) TrySetParametro(rpt, "AGENTE", agente);
                 if (!string.IsNullOrWhiteSpace(documento)) TrySetParametro(rpt, "DOCUMENTO", documento);
 
-                return ExportarPdf(rpt, "Revision_Rutas");
+                return ExportarPdf(rpt, "Estado_Pedido");
             }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Revisión de Rutas"); }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Estado Pedido"); }
         }
 
 
@@ -526,6 +526,74 @@ namespace DiamDev.Give.UI.Controllers
                     rpt.Close();
                     rpt.Dispose();
                 }
+            }
+
+            return Content(sb.ToString(), "text/html");
+        }
+
+        // ══════════════════════════════════════════════════════
+        //  DIAGNÓSTICO — RUTAS - ESTADO PEDIDO .rpt
+        //  
+        // ══════════════════════════════════════════════════════
+        public ActionResult DiagConexionRutas()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append("<style>body{font-family:monospace;padding:20px} table{border-collapse:collapse;width:100%} td,th{border:1px solid #ccc;padding:6px 10px} th{background:#2c3e50;color:white}</style>");
+            sb.Append("<h2>Diagnóstico conexión: REVISION DE RUTAS.rpt</h2><hr/>");
+
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/REVISION DE RUTAS.rpt"));
+
+                // ── ANTES de aplicar credenciales ──────────────────────────────
+                sb.Append("<h3>Tablas del reporte principal (ANTES)</h3><table>");
+                sb.Append("<tr><th>Tabla</th><th>ServerName</th><th>DatabaseName</th><th>UserID</th><th>Connection.Type</th></tr>");
+                foreach (CrystalDecisions.CrystalReports.Engine.Table t in rpt.Database.Tables)
+                {
+                    var li = t.LogOnInfo;
+                    sb.Append($"<tr><td>{t.Name}</td><td>{li.ConnectionInfo.ServerName}</td>" +
+                              $"<td>{li.ConnectionInfo.DatabaseName}</td><td>{li.ConnectionInfo.UserID}</td>" +
+                              $"<td>{li.ConnectionInfo.Type}</td></tr>");
+                }
+                sb.Append("</table>");
+
+                // ── Subreportes ────────────────────────────────────────────────
+                if (rpt.Subreports.Count > 0)
+                {
+                    sb.Append($"<h3>Subreportes encontrados: {rpt.Subreports.Count}</h3>");
+                    foreach (ReportDocument sub in rpt.Subreports)
+                    {
+                        sb.Append($"<h4>Subreporte: {sub.Name}</h4><table>");
+                        sb.Append("<tr><th>Tabla</th><th>ServerName</th><th>DatabaseName</th><th>UserID</th></tr>");
+                        foreach (CrystalDecisions.CrystalReports.Engine.Table t in sub.Database.Tables)
+                        {
+                            var li = t.LogOnInfo;
+                            sb.Append($"<tr><td>{t.Name}</td><td>{li.ConnectionInfo.ServerName}</td>" +
+                                      $"<td>{li.ConnectionInfo.DatabaseName}</td><td>{li.ConnectionInfo.UserID}</td></tr>");
+                        }
+                        sb.Append("</table>");
+                    }
+                }
+                else
+                {
+                    sb.Append("<p>Sin subreportes.</p>");
+                }
+
+                // ── Configuración en Web.config ────────────────────────────────
+                sb.Append("<h3>Web.config HANA</h3><table>");
+                sb.Append("<tr><th>Clave</th><th>Valor</th></tr>");
+                foreach (string key in new[] { "HANA_Server", "HANA_Database", "HANA_User" })
+                {
+                    sb.Append($"<tr><td>{key}</td><td>{System.Configuration.ConfigurationManager.AppSettings[key]}</td></tr>");
+                }
+                sb.Append("</table>");
+
+                rpt.Close(); rpt.Dispose();
+            }
+            catch (Exception ex)
+            {
+                sb.Append($"<h3 style='color:red'>Error al cargar el .rpt</h3><pre>{ex}</pre>");
             }
 
             return Content(sb.ToString(), "text/html");

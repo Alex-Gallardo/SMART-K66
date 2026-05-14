@@ -98,7 +98,7 @@
                     </div>
                 </div>
 
-                @* ESTADO DE PEDIDO ES (REVISION DE RUTAS) *@
+                @* ESTADO PEDIDO *@
                 <div class="col-md-3">
                     <div class="core-box">
                         <div class="heading">
@@ -106,12 +106,12 @@
                             <h2>Estado Pedido</h2>
                         </div>
                         <a href="javascript:void(0)"
-                           onclick="pedirRuta('@Url.Action("RevisionRutas","Reporte")', 'Revisión de Rutas')"
+                           onclick="pedirRuta('@Url.Action("EstadoPedido","Reporte")', 'Estado Pedido')"
                            class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                     </div>
                 </div>
 
-                @* ESTADO DE PEDIDO ES (REVISION DE RUTAS) *@
+                @* RUTAS *@
                 <div class="col-md-3">
                     <div class="core-box">
                         <div class="heading">
@@ -193,14 +193,14 @@
         </div>
     </div>
 
-    @* ── MODAL: Revisión de Rutas (6 campos) ── *@
+    @* ── MODAL: Estado Pedidos - Revisión de Rutas (6 campos) ── *@
     <div class="modal fade" id="modalRuta" tabindex="-1" role="dialog">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal">&times;</button>
                     <h4 class="modal-title">
-                        <i class="icon-truck teal"></i> Revisión de Rutas
+                        <i class="icon-truck teal"></i> Estado Pedido
                     </h4>
                 </div>
                 <div class="modal-body">

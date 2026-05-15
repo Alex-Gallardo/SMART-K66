@@ -100,13 +100,10 @@
 
 		 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Pedido_K66.Crear"))
     {
-	
-	<div class="col-md-4">
-	
+	    <div class="col-md-4">
             <!-- small box -->
             <div class="small-box bg-success">
                 <div class="inner">
-                    
                     <p>Crear Pedido</p>
                 </div>
                 <div class="icon">
@@ -115,11 +112,10 @@
                 <a href="@Url.Action("Crear", "Pedido_K66")" class="small-box-footer">Crear <i class="clip-plus-circle"></i></a>
             </div>
         </div>
-         <div class="col-md-4">
+        <div class="col-md-4">
             <!-- small box -->
             <div class="small-box bg-info">
                 <div class="inner">
-                    
                     <p>Listado Pedidos</p>
                 </div>
                 <div class="icon">
@@ -128,11 +124,10 @@
                 <a href="@Url.Action("Index", "Pedido_K66")" class="small-box-footer">Listado <i class="clip-plus-circle"></i></a>
             </div>
         </div>
-		 <div class="col-md-4">
+		<div class="col-md-4">
             <!-- small box -->
             <div class="small-box bg-danger">
                 <div class="inner">
-                    
                     <p>Listado Rechazados</p>
                 </div>
                 <div class="icon">
@@ -140,9 +135,7 @@
                 </div>
                 <a href="@Url.Action("Rechazado", "Pedido_K66")" class="small-box-footer">Libro <i class="clip-plus-circle"></i></a>
             </div>
-        </div>
-		
-		 
+        </div> 
     }
 	
 	 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Visita.Crear"))

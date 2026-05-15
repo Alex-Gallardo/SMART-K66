@@ -666,17 +666,16 @@
     <Content Include="Reports\Inventario.xsc">
       <DependentUpon>Inventario.xsd</DependentUpon>
     </Content>
-    <Content Include="Reports\Crystal\Pedidos no Sincronizados.rpt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="Reports\Crystal\Estado de Cuenta.rpt" />
-    <Content Include="Reports\Crystal\Backorder.rpt" />
-    <Content Include="Reports\Crystal\Inventario General FGB MP.rpt" />
-    <Content Include="Reports\Crystal\Backorder General.rpt" />
     <Content Include="Reports\Crystal\Backorder Agentes Bolik.rpt" />
     <Content Include="Reports\Crystal\Backorder Agentes Graco.rpt" />
     <Content Include="Reports\Crystal\Despachos en ruta dia.rpt" />
     <Content Include="Reports\Crystal\Estado Pedido.rpt" />
+    <Content Include="Reports\Crystal\Inventario Bolik.rpt" />
+    <Content Include="Reports\Crystal\Inventario Graco.rpt" />
+    <Content Include="Reports\Crystal\Backorder Agentes Faes.rpt" />
+    <Content Include="Reports\Crystal\Inventario Escocesa.rpt" />
+    <Content Include="Reports\Crystal\Detalle de Facturas General.rpt" />
     <None Include="Reports\Inventario.xsd">
       <Generator>MSDataSetGenerator</Generator>
       <LastGenOutput>Inventario2.Designer.cs</LastGenOutput>

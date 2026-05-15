@@ -150,10 +150,10 @@ namespace DiamDev.Give.UI.Controllers
         /// SIN reemplazar el objeto ConnectionInfo completo.
         /// Reemplazarlo borra el tipo de driver (B1CRHPROXY) y Crystal falla.
         /// </summary>
-        private void AplicarConexionHana(ReportDocument reporte)
+        private void AplicarConexionHana(ReportDocument reporte, string databaseOverride = null)
         {
             string servidor = ConfigurationManager.AppSettings["HANA_Server"];
-            string baseDatos = ConfigurationManager.AppSettings["HANA_Database"];
+            string baseDatos = databaseOverride ?? ConfigurationManager.AppSettings["HANA_Database"];
             string usuario = ConfigurationManager.AppSettings["HANA_User"];
             string password = ConfigurationManager.AppSettings["HANA_Password"];
 
@@ -206,54 +206,16 @@ namespace DiamDev.Give.UI.Controllers
         //  Patrón A: Los .rpt tienen SQL embebido con conexión B1CRHPROXY.
         //  Solo cambiamos las credenciales en runtime, conservando el driver.
         // ════════════════════════════════════════════════════════════════════════
-
         // ════════════════════════════════════════════════════════════════════════
         //  ACCIONES PÚBLICAS — Una por cada .rpt existente en Reports/Crystal/
         //  Los 3 reportes usan B1CRHPROXY con SQL Command embebido.
         //  No se usa SetDataSource; solo se sobreescriben las credenciales HANA.
         // ════════════════════════════════════════════════════════════════════════
-
         // ════════════════════════════════════════════════════════════════════════
         //  CRYSTAL REPORTS — HANA  (parámetros verificados con DiagParametros)
         // ════════════════════════════════════════════════════════════════════════
 
         // ── SIN PARÁMETROS — abren directo ──────────────────────────────────────
-
-        public ActionResult Backorder()
-        {
-            var rpt = new ReportDocument();
-            try
-            {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder.rpt"));
-                AplicarConexionHana(rpt);
-                return ExportarPdf(rpt, "Backorder");
-            }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder"); }
-        }
-
-        public ActionResult BackorderGeneral()
-        {
-            var rpt = new ReportDocument();
-            try
-            {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder General.rpt"));
-                AplicarConexionHana(rpt);
-                return ExportarPdf(rpt, "Backorder_General");
-            }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder General"); }
-        }
-
-        public ActionResult InventarioGeneral()
-        {
-            var rpt = new ReportDocument();
-            try
-            {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/Inventario General FGB MP.rpt"));
-                AplicarConexionHana(rpt);
-                return ExportarPdf(rpt, "Inventario_General_FGB_MP");
-            }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Inventario General FGB MP"); }
-        }
 
         public ActionResult DespachosEnRutaDia()
         {
@@ -300,6 +262,20 @@ namespace DiamDev.Give.UI.Controllers
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Graco"); }
         }
 
+        public ActionResult BackorderAgenteFaes(string agente = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Faes.rpt"));
+                AplicarConexionHana(rpt);
+                if (!string.IsNullOrWhiteSpace(agente))
+                    TrySetParametro(rpt, "Agente", agente);
+                return ExportarPdf(rpt, $"Backorder_Agente_Faes_{agente}");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Faes"); }
+        }
+
         // ── PARÁMETROS: FInicial + FFinal + Cliente ──────────────────────────────
         // ⚠️ Nombres EXACTOS del .rpt: FInicial / FFinal / Cliente (no FechaInicial/CardCode)
 
@@ -332,22 +308,58 @@ namespace DiamDev.Give.UI.Controllers
 
         // ── PARÁMETROS: Cliente + Pedido ─────────────────────────────────────────
 
-        public ActionResult PedidosNoSincronizados(string cliente = "", string pedido = "")
+        public ActionResult InventarioBolik(string cod_producto = "", string name_producto = "")
         {
             var rpt = new ReportDocument();
             try
             {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/Pedidos no Sincronizados.rpt"));
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Inventario Bolik.rpt"));
                 AplicarConexionHana(rpt);
 
-                if (!string.IsNullOrWhiteSpace(cliente))
-                    TrySetParametro(rpt, "Cliente", cliente);
-                if (!string.IsNullOrWhiteSpace(pedido))
-                    TrySetParametro(rpt, "Pedido", pedido);
+                if (!string.IsNullOrWhiteSpace(cod_producto))
+                    TrySetParametro(rpt, "Codigo_Producto", cod_producto);
+                if (!string.IsNullOrWhiteSpace(name_producto))
+                    TrySetParametro(rpt, "Producto_Name", name_producto);
 
-                return ExportarPdf(rpt, "Pedidos_No_Sincronizados");
+                return ExportarPdf(rpt, "Inventario_Bolik");
             }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Pedidos No Sincronizados"); }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Inventario Bolik"); }
+        }
+
+        public ActionResult InventarioGraco(string cod_producto = "", string name_producto = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Inventario Graco.rpt"));
+                AplicarConexionHana(rpt);
+
+                if (!string.IsNullOrWhiteSpace(cod_producto))
+                    TrySetParametro(rpt, "Codigo_Producto", cod_producto);
+                if (!string.IsNullOrWhiteSpace(name_producto))
+                    TrySetParametro(rpt, "Producto_Name", name_producto);
+
+                return ExportarPdf(rpt, "Inventario_Graco");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Inventario Graco"); }
+        }
+
+        public ActionResult InventarioEscocesa(string cod_producto = "", string name_producto = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Inventario Escocesa.rpt"));
+                AplicarConexionHana(rpt);
+
+                if (!string.IsNullOrWhiteSpace(cod_producto))
+                    TrySetParametro(rpt, "Codigo_Producto", cod_producto);
+                if (!string.IsNullOrWhiteSpace(name_producto))
+                    TrySetParametro(rpt, "Producto_Name", name_producto);
+
+                return ExportarPdf(rpt, "Inventario_Escocesa");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Inventario Escocesa"); }
         }
 
         // ── PARÁMETROS: 6 campos (REVISION DE RUTAS) ────────────────────────────
@@ -379,6 +391,43 @@ namespace DiamDev.Give.UI.Controllers
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Estado Pedido"); }
         }
 
+        // ── DETALLE FACTURAS — Empresa + Fechas + Cliente + Codigo + Producto ──────
+        public ActionResult DetalleFacturas(string empresa = "SBOBOLIK",
+                                            string fechaInicial = "",
+                                            string fechaFinal = "",
+                                            string cliente = "",
+                                            string codigo = "",
+                                            string producto = "")
+        {
+            // Whitelist de empresas permitidas
+            var empresaDb = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "SBOBOLIK",    "SBOBOLIK"    },
+                { "SBOESCOCESA", "SBOESCOCESA" },
+                { "SBO_GRACO",   "SBO_GRACO"   }
+            };
+
+            string dbName = empresaDb.ContainsKey(empresa) ? empresaDb[empresa] : "SBOBOLIK";
+            var rpt = new ReportDocument();
+
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Detalle de Facturas General.rpt"));
+                AplicarConexionHana(rpt, dbName);   // ← pasa el schema de la empresa elegida
+
+                if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
+                {
+                    TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicial));
+                    TrySetParametro(rpt, "Fecha Final", Convert.ToDateTime(fechaFinal));
+                }
+                if (!string.IsNullOrWhiteSpace(cliente)) TrySetParametro(rpt, "Cliente", cliente);
+                if (!string.IsNullOrWhiteSpace(codigo)) TrySetParametro(rpt, "Codigo", codigo);
+                if (!string.IsNullOrWhiteSpace(producto)) TrySetParametro(rpt, "Producto", producto);
+
+                return ExportarPdf(rpt, $"Detalle_Facturas_{dbName}");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Detalle Facturas"); }
+        }
 
 
         // ── Helpers internos ──────────────────────────────────────────────────
@@ -406,7 +455,11 @@ namespace DiamDev.Give.UI.Controllers
                 "text/html");
         }
 
-        // Quitar en producción — solo para diagnóstico
+        // ════════════════════════════════════════════════════════════════════════
+        //  DIAGNÓSTICOS REPORTS — HANA
+        //  - (verifica Estados de Reporte, DiagParametros)
+        //  - Quitar en producción — solo para diagnóstico
+        // ════════════════════════════════════════════════════════════════════════
         public ActionResult TestHana()
         {
             var sb = new System.Text.StringBuilder();
@@ -465,10 +518,6 @@ namespace DiamDev.Give.UI.Controllers
             return Content(sb.ToString(), "text/html");
         }
 
-        // ══════════════════════════════════════════════════════
-        //  DIAGNÓSTICO — Lista parámetros de todos los .rpt
-        //  QUITAR EN PRODUCCIÓN
-        // ══════════════════════════════════════════════════════
         public ActionResult DiagParametros()
         {
             string carpeta = Server.MapPath("~/Reports/Crystal/");
@@ -531,20 +580,16 @@ namespace DiamDev.Give.UI.Controllers
             return Content(sb.ToString(), "text/html");
         }
 
-        // ══════════════════════════════════════════════════════
-        //  DIAGNÓSTICO — RUTAS - ESTADO PEDIDO .rpt
-        //  
-        // ══════════════════════════════════════════════════════
         public ActionResult DiagConexionRutas()
         {
             var sb = new System.Text.StringBuilder();
             sb.Append("<style>body{font-family:monospace;padding:20px} table{border-collapse:collapse;width:100%} td,th{border:1px solid #ccc;padding:6px 10px} th{background:#2c3e50;color:white}</style>");
-            sb.Append("<h2>Diagnóstico conexión: REVISION DE RUTAS.rpt</h2><hr/>");
+            sb.Append("<h2>Diagnóstico conexión: Estado Pedido.rpt</h2><hr/>");
 
             var rpt = new ReportDocument();
             try
             {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/REVISION DE RUTAS.rpt"));
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Estado Pedido.rpt"));
 
                 // ── ANTES de aplicar credenciales ──────────────────────────────
                 sb.Append("<h3>Tablas del reporte principal (ANTES)</h3><table>");
@@ -599,6 +644,46 @@ namespace DiamDev.Give.UI.Controllers
             return Content(sb.ToString(), "text/html");
         }
 
+        public ActionResult DiagDetalleFacturas()
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Detalle de Facturas.rpt"));
+                var sb = new System.Text.StringBuilder();
+                sb.Append("<pre style='font-family:monospace;padding:20px'>");
+                sb.Append("<h3>Tablas / Comandos</h3>");
+
+                foreach (CrystalDecisions.CrystalReports.Engine.Table t in rpt.Database.Tables)
+                {
+                    sb.Append($"<b>Tabla:</b> {t.Name}<br/>");
+                    sb.Append($"<b>Location:</b> {t.Location}<br/>");
+                    var li = t.LogOnInfo;
+                    sb.Append($"<b>ServerName:</b> {li.ConnectionInfo.ServerName}<br/>");
+                    sb.Append($"<b>DatabaseName:</b> {li.ConnectionInfo.DatabaseName}<br/><hr/>");
+                }
+
+                // Si usa SQL Command embebido
+                try
+                {
+                    var cmd = rpt.DataDefinition;
+                    sb.Append($"<b>RecordSelectionFormula:</b><br/>{cmd.RecordSelectionFormula}<br/>");
+                }
+                catch { }
+
+                sb.Append("</pre>");
+                rpt.Close(); rpt.Dispose();
+                return Content(sb.ToString(), "text/html");
+            }
+            catch (Exception ex)
+            {
+                rpt.Close(); rpt.Dispose();
+                return Content($"<pre style='color:red'>{ex}</pre>", "text/html");
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════════
 
         [Permiso("Control.Reporte.kpidel")]
         public ActionResult KpiDelivery()

@@ -236,42 +236,49 @@ namespace DiamDev.Give.UI.Controllers
 
         public ActionResult BackorderAgenteBolik(string agente = "")
         {
+
+            // var userId = CustomHelper.getUserId();
+            var userNombre = CustomHelper.getUsuarioNombre();
+            // var userName = User.Identity.Name;
+
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Bolik.rpt"));
                 AplicarConexionHana(rpt);
-                if (!string.IsNullOrWhiteSpace(agente))
-                    TrySetParametro(rpt, "Agente", agente);
-                return ExportarPdf(rpt, $"Backorder_Agente_Bolik_{agente}");
+                if (!string.IsNullOrWhiteSpace(userNombre))
+                    TrySetParametro(rpt, "Agente", userNombre);
+                return ExportarPdf(rpt, $"Backorder_Agente_Bolik_{userNombre}");
             }
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Bolik"); }
         }
 
         public ActionResult BackorderAgenteGraco(string agente = "")
         {
+            var userNombre = CustomHelper.getUsuarioNombre();
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Graco.rpt"));
                 AplicarConexionHana(rpt);
-                if (!string.IsNullOrWhiteSpace(agente))
-                    TrySetParametro(rpt, "Agente", agente);
-                return ExportarPdf(rpt, $"Backorder_Agente_Graco_{agente}");
+                if (!string.IsNullOrWhiteSpace(userNombre))
+                    TrySetParametro(rpt, "Agente", userNombre);
+                return ExportarPdf(rpt, $"Backorder_Agente_Graco_{userNombre}");
             }
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Graco"); }
         }
 
         public ActionResult BackorderAgenteFaes(string agente = "")
         {
+            var userNombre = CustomHelper.getUsuarioNombre();
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Faes.rpt"));
                 AplicarConexionHana(rpt);
-                if (!string.IsNullOrWhiteSpace(agente))
-                    TrySetParametro(rpt, "Agente", agente);
-                return ExportarPdf(rpt, $"Backorder_Agente_Faes_{agente}");
+                if (!string.IsNullOrWhiteSpace(userNombre))
+                    TrySetParametro(rpt, "Agente", userNombre);
+                return ExportarPdf(rpt, $"Backorder_Agente_Faes_{userNombre}");
             }
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Faes"); }
         }
@@ -308,7 +315,7 @@ namespace DiamDev.Give.UI.Controllers
 
         // ── PARÁMETROS: Cliente + Pedido ─────────────────────────────────────────
 
-        public ActionResult InventarioBolik(string cod_producto = "", string name_producto = "")
+        public ActionResult InventarioBolik(string codigoProducto = "", string nombreProducto = "")
         {
             var rpt = new ReportDocument();
             try
@@ -316,10 +323,10 @@ namespace DiamDev.Give.UI.Controllers
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Inventario Bolik.rpt"));
                 AplicarConexionHana(rpt);
 
-                if (!string.IsNullOrWhiteSpace(cod_producto))
-                    TrySetParametro(rpt, "Codigo_Producto", cod_producto);
-                if (!string.IsNullOrWhiteSpace(name_producto))
-                    TrySetParametro(rpt, "Producto_Name", name_producto);
+                if (!string.IsNullOrWhiteSpace(codigoProducto))
+                    TrySetParametro(rpt, "Codigo_Producto", codigoProducto);
+                if (!string.IsNullOrWhiteSpace(nombreProducto))
+                    TrySetParametro(rpt, "Producto_Name", nombreProducto);
 
                 return ExportarPdf(rpt, "Inventario_Bolik");
             }

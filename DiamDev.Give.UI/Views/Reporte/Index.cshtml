@@ -181,7 +181,7 @@
                     </div>
                     <a href="javascript:void(0)"
                        onclick="pedirRuta('@Url.Action("EstadoPedido","Reporte")', 'Estado Pedido')"
-                       class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                       class="view-more" >Ver Reporte <i class="clip-arrow-right-2"></i></a>
                 </div>
             </div>
 
@@ -230,7 +230,7 @@
     </div>
 </div>
 
-@* ── MODAL: Pedidos No Sincronizados (Cliente + Pedido) ── *@
+@* ── MODAL: INVENTARIO = Pedidos No Sincronizados (Cliente + Pedido) ── *@
 <div class="modal fade" id="modalInventario" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
@@ -584,7 +584,7 @@
             if (e.which === 13) $("#btnVerAgenteCrystal").click();
         });
 
-        // ── CRYSTAL: Pedidos No Sincronizados (Cliente + Pedido) ───────────
+        // ── CRYSTAL: INVENTARIO = Pedidos No Sincronizados (Cliente + Pedido) ───────────
         function pedirInventario(urlBase, titulo) {
             _urlCrystalBase = urlBase;
             $("#modalInventarioTitulo").text(titulo || "Inventarios");

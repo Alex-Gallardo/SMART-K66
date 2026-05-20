@@ -8,201 +8,217 @@
 @* ════════════════════════════════════════════════════════════
     COLLAPSE 1 — INVENTARIOS
     ════════════════════════════════════════════════════════════ *@
-<div class="panel panel-default">
-    <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseInventario">
-        <h4 class="panel-title">
-            <i class="icon-folder-open teal"></i>
-            <strong> Inventario</strong>
-            <span class="pull-right"><i class="icon-angle-down"></i></span>
-        </h4>
-    </div>
-    <div id="collapseInventario" class="panel-collapse collapse">
-        <div class="panel-body">
-            @* INVENTARIO BOLIK *@
-            <div class="col-md-3">
-                <div class="core-box">
-                    <div class="heading">
-                        <i class="clip-archive circle-icon circle-red"></i>
-                        <h2>Inventario Bolik</h2>
-                    </div>
-                    <a href="javascript:void(0)"
-                       onclick="pedirInventario('@Url.Action("InventarioBolik","Reporte")')"
-                       class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                </div>
-            </div>
-            @* INVENTARIO GRACO *@
-            <div class="col-md-3">
-                <div class="core-box">
-                    <div class="heading">
-                        <i class="clip-archive circle-icon circle-yellow"></i>
-                        <h2>Inventario Graco</h2>
-                    </div>
-                    <a href="javascript:void(0)"
-                       onclick="pedirInventario('@Url.Action("InventarioGraco","Reporte")')"
-                       class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                </div>
-            </div>
-            @* INVENTARIO ESCOCESA *@
-            <div class="col-md-3">
-                <div class="core-box">
-                    <div class="heading">
-                        <i class="clip-archive circle-icon circle-blue"></i>
-                        <h2>Inventario Escocesa</h2>
-                    </div>
-                    <a href="javascript:void(0)"
-                       onclick="pedirInventario('@Url.Action("InventarioEscocesa","Reporte")')"
-                       class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                </div>
+@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Inventario"))
+{ <div class="panel panel-default">
+        <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseInventario">
+            <h4 class="panel-title">
+                <i class="icon-folder-open teal"></i>
+                <strong> Inventario</strong>
+                <span class="pull-right"><i class="icon-angle-down"></i></span>
+            </h4>
+        </div>
+        <div id="collapseInventario" class="panel-collapse collapse">
+            <div class="panel-body">
+                @* INVENTARIO BOLIK *@
+                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Bolik"))
+                {<div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-archive circle-icon circle-red"></i>
+                                <h2>Inventario Bolik</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirInventario('@Url.Action("InventarioBolik", "Reporte")')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>}
+                    @* INVENTARIO GRACO *@
+                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Graco"))
+                { <div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-archive circle-icon circle-yellow"></i>
+                                <h2>Inventario Graco</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirInventario('@Url.Action("InventarioGraco", "Reporte")')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>}
+                    @* INVENTARIO ESCOCESA *@
+                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Escocesa"))
+                {<div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-archive circle-icon circle-blue"></i>
+                                <h2>Inventario Escocesa</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirInventario('@Url.Action("InventarioEscocesa", "Reporte")')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>}
             </div>
         </div>
-    </div>
-</div>
+    </div>}
 
-@* ════════════════════════════════════════════════════════════
-    COLLAPSE 2 — VENTAS
-    ════════════════════════════════════════════════════════════ *@
-<div class="panel panel-default">
-    <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseVentas">
-        <h4 class="panel-title">
-            <i class="clip-stats teal"></i>
-            <strong> Ventas</strong>
-            <span class="pull-right"><i class="icon-angle-down"></i></span>
-        </h4>
-    </div>
-    <div id="collapseVentas" class="panel-collapse collapse">
-        <div class="panel-body">
-
-            @* DETALLE FACTURAS *@
-            <div class="col-md-3">
-                <div class="core-box">
-                    <div class="heading">
-                        <i class="clip-archive circle-icon circle-teal"></i>
-                        <h2>Detalle Facturas</h2>
-                    </div>
-                    <a href="javascript:void(0)"
-                       onclick="pedirDetalleFacturas('@Url.Action("DetalleFacturas","Reporte")')"
-                       class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                </div>
-            </div>
-
+    @* ════════════════════════════════════════════════════════════
+        COLLAPSE 2 — VENTAS
+        ════════════════════════════════════════════════════════════ *@
+@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Ventas"))
+{ <div class="panel panel-default">
+        <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseVentas">
+            <h4 class="panel-title">
+                <i class="clip-stats teal"></i>
+                <strong> Ventas</strong>
+                <span class="pull-right"><i class="icon-angle-down"></i></span>
+            </h4>
         </div>
-    </div>
-</div>
+        <div id="collapseVentas" class="panel-collapse collapse">
+            <div class="panel-body">
 
-@* ════════════════════════════════════════════════════════════
-    COLLAPSE 3 — CXC
-    ════════════════════════════════════════════════════════════ *@
-<div class="panel panel-default">
-    <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseCXC">
-        <h4 class="panel-title">
-            <i class="clip-archive teal"></i>
-            <strong> CXC</strong>
-            <span class="pull-right"><i class="icon-angle-down"></i></span>
-        </h4>
-    </div>
-    @*<div id="collapseCXC" class="panel-collapse collapse in">*@
-    <div id="collapseCXC" class="panel-collapse collapse ">
-        <div class="panel-body">
-            <div class="col-md-3">
-                <div class="core-box">
-                    <div class="heading">
-                        <i class="clip-archive circle-icon circle-teal"></i>
-                        <h2>Estado De Cuenta</h2>
-                    </div>
-                    <a href="javascript:void(0)"
-                       onclick="pedirFechasYCliente('@Url.Action("EstadoDeCuenta","Reporte")', 'Estado de Cuenta')"
-                       class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                </div>
+                @* DETALLE FACTURAS *@
+                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Ventas_Detalle_Factura"))
+                {<div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-archive circle-icon circle-teal"></i>
+                                <h2>Detalle Facturas</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirDetalleFacturas('@Url.Action("DetalleFacturas", "Reporte")')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>}
+
             </div>
         </div>
-    </div>
-</div>
+    </div>}
 
-
-@* ════════════════════════════════════════════════════════════
-    COLLAPSE 4 — DISTRIBUCION
-    ════════════════════════════════════════════════════════════ *@
-<div class="panel panel-default">
-    <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseDistibucion">
-        <h4 class="panel-title">
-            <i class="icon-truck teal"></i>
-            <strong> Distribución</strong>
-            <span class="pull-right"><i class="icon-angle-down"></i></span>
-        </h4>
-    </div>
-    <div id="collapseDistibucion" class="panel-collapse collapse">
-        <div class="panel-body">
-
-            @* BACKORDER *@
-            <div class="col-md-3">
-                <div class="core-box">
-                    <div class="heading">
-                        <i class="clip-data circle-icon circle-teal"></i>
-                        <h2>Backorder Bolik</h2>
-                    </div>
-                    <a href="javascript:void(0)"
-                       onclick="abrirCrystalDirecto('@Url.Action("BackorderAgenteBolik","Reporte")')"
-                       class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                </div>
-            </div>
-
-            @* BACKORDER *@
-            <div class="col-md-3">
-                <div class="core-box">
-                    <div class="heading">
-                        <i class="clip-data circle-icon circle-teal"></i>
-                        <h2>Backorder Graco</h2>
-                    </div>
-                    <a href="javascript:void(0)"
-                       onclick="abrirCrystalDirecto('@Url.Action("BackorderAgenteGraco","Reporte")')"
-                       class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                </div>
-            </div>
-
-            @* BACKORDER *@
-            <div class="col-md-3">
-                <div class="core-box">
-                    <div class="heading">
-                        <i class="clip-data circle-icon circle-teal"></i>
-                        <h2>Backorder Faes</h2>
-                    </div>
-                    <a href="javascript:void(0)"
-                       onclick="abrirCrystalDirecto('@Url.Action("BackorderAgenteFaes","Reporte")')"
-                       class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                </div>
-            </div>
-
-            @* ESTADO PEDIDO *@
-            <div class="col-md-3">
-                <div class="core-box">
-                    <div class="heading">
-                        <i class="clip-stats circle-icon circle-red "></i>
-                        <h2>Estado Pedido</h2>
-                    </div>
-                    <a href="javascript:void(0)"
-                       onclick="pedirRuta('@Url.Action("EstadoPedido","Reporte")', 'Estado Pedido')"
-                       class="view-more" >Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                </div>
-            </div>
-
-            @* RUTAS *@
-            <div class="col-md-3">
-                <div class="core-box">
-                    <div class="heading">
-                        <i class="clip-truck circle-icon circle-green"></i>
-                        <h2>Ruta</h2>
-                    </div>
-                    <a href="javascript:void(0)"
-                       onclick="abrirCrystalDirecto('@Url.Action("DespachosEnRutaDia","Reporte")', 'Despachos En Ruta Dia')"
-                       class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                </div>
-            </div>
-
+    @* ════════════════════════════════════════════════════════════
+        COLLAPSE 3 — CXC
+        ════════════════════════════════════════════════════════════ *@
+@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_CXC"))
+{<div class="panel panel-default">
+        <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseCXC">
+            <h4 class="panel-title">
+                <i class="clip-archive teal"></i>
+                <strong> CXC</strong>
+                <span class="pull-right"><i class="icon-angle-down"></i></span>
+            </h4>
         </div>
-    </div>
-</div>
+        @*<div id="collapseCXC" class="panel-collapse collapse in">*@
+        <div id="collapseCXC" class="panel-collapse collapse ">
+            <div class="panel-body">
 
-@* ── MODAL: Solo Agente (Crystal) ── *@
+                @* Estado De Cuenta *@
+                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.CXC_Estado_De_Cuenta"))
+                {<div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-archive circle-icon circle-teal"></i>
+                                <h2>Estado De Cuenta</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirFechasYCliente('@Url.Action("EstadoDeCuenta", "Reporte")', 'Estado de Cuenta')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>}
+            </div>
+        </div>
+    </div>}
+
+
+    @* ════════════════════════════════════════════════════════════
+        COLLAPSE 4 — DISTRIBUCION
+        ════════════════════════════════════════════════════════════ *@
+@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Distribucion"))
+{ <div class="panel panel-default">
+        <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseDistibucion">
+            <h4 class="panel-title">
+                <i class="icon-truck teal"></i>
+                <strong> Distribución</strong>
+                <span class="pull-right"><i class="icon-angle-down"></i></span>
+            </h4>
+        </div>
+        <div id="collapseDistibucion" class="panel-collapse collapse">
+            <div class="panel-body">
+
+                @* BACKORDER *@
+                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Bolik"))
+                {<div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-data circle-icon circle-teal"></i>
+                                <h2>Backorder Bolik</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="abrirCrystalDirecto('@Url.Action("BackorderAgenteBolik", "Reporte")')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>}
+
+                    @* BACKORDER *@
+                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Graco"))
+                {<div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-data circle-icon circle-teal"></i>
+                                <h2>Backorder Graco</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="abrirCrystalDirecto('@Url.Action("BackorderAgenteGraco", "Reporte")')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>}
+
+                    @* BACKORDER *@
+                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Faes"))
+                {<div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-data circle-icon circle-teal"></i>
+                                <h2>Backorder Faes</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="abrirCrystalDirecto('@Url.Action("BackorderAgenteFaes", "Reporte")')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>}
+
+                    @* ESTADO PEDIDO *@
+                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Estado_Pedido"))
+                {<div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-stats circle-icon circle-red "></i>
+                                <h2>Estado Pedido</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirRuta('@Url.Action("EstadoPedido", "Reporte")', 'Estado Pedido')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>}
+
+                    @* RUTAS *@
+                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Ruta"))
+                {<div class="col-md-3">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-truck circle-icon circle-green"></i>
+                                <h2>Ruta</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="abrirCrystalDirecto('@Url.Action("DespachosEnRutaDia", "Reporte")', 'Despachos En Ruta Dia')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>}
+
+            </div>
+        </div>
+    </div>}
+
+    @* ── MODAL: Solo Agente (Crystal) ── *@
 <div class="modal fade" id="modalAgenteCrystal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">

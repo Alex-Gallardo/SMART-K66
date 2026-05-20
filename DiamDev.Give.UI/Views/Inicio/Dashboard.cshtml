@@ -283,6 +283,20 @@
             </div>
         </div>
     }
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Produccion"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-stats circle-icon circle-blue"></i>
+                    <h2>Dashboard Tiempos</h2>
+                </div>
+                <a href="@Url.Action("Index", "Dashboard")" class="view-more">
+                    Ver Detalle <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
 </div>
 <div class="row">
     @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Producto_Ingreso.Ver_Listado"))

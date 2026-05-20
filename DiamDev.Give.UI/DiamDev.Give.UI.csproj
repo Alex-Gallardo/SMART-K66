@@ -628,6 +628,7 @@
     <Content Include="Content\themes\base\tooltip.css" />
     <Content Include="Content\toastr.css" />
     <Content Include="Content\toastr.min.css" />
+    <Content Include="dashboard.sql" />
     <Content Include="DeliveryModel.Context.tt">
       <Generator>TextTemplatingFileGenerator</Generator>
       <DependentUpon>DeliveryModel.edmx</DependentUpon>
@@ -714,6 +715,7 @@
     <Content Include="SqlServerTypes\x86\SqlServerSpatial140.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <None Include="Views\Dashboard\Index.cshtml" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -812,6 +814,7 @@
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\SeguridadAttribute.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
+    <Compile Include="Controllers\DashboardController.cs" />
     <Compile Include="Controllers\Pedido_Tipo_K66Controller.cs" />
     <Compile Include="Controllers\Descuento_K66Controller.cs" />
     <Compile Include="Controllers\Pedido_K66Controller.cs" />
@@ -1364,6 +1367,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
+    <Folder Include="Views\NewFolder1\" />
     <Folder Include="Views\ServiciosApp\" />
   </ItemGroup>
   <ItemGroup>

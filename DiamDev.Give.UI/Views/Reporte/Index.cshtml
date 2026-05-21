@@ -9,7 +9,7 @@
     COLLAPSE 1 — INVENTARIOS
     ════════════════════════════════════════════════════════════ *@
 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Inventario"))
-{ <div class="panel panel-default">
+{<div class="panel panel-default">
         <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseInventario">
             <h4 class="panel-title">
                 <i class="icon-folder-open teal"></i>
@@ -32,9 +32,9 @@
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>}
-                    @* INVENTARIO GRACO *@
+                @* INVENTARIO GRACO *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Graco"))
-                { <div class="col-md-3">
+                {<div class="col-md-3">
                         <div class="core-box">
                             <div class="heading">
                                 <i class="clip-archive circle-icon circle-yellow"></i>
@@ -45,7 +45,7 @@
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>}
-                    @* INVENTARIO ESCOCESA *@
+                @* INVENTARIO ESCOCESA *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Escocesa"))
                 {<div class="col-md-3">
                         <div class="core-box">
@@ -62,11 +62,11 @@
         </div>
     </div>}
 
-    @* ════════════════════════════════════════════════════════════
-        COLLAPSE 2 — VENTAS
-        ════════════════════════════════════════════════════════════ *@
+@* ════════════════════════════════════════════════════════════
+    COLLAPSE 2 — VENTAS
+    ════════════════════════════════════════════════════════════ *@
 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Ventas"))
-{ <div class="panel panel-default">
+{<div class="panel panel-default">
         <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseVentas">
             <h4 class="panel-title">
                 <i class="clip-stats teal"></i>
@@ -95,9 +95,9 @@
         </div>
     </div>}
 
-    @* ════════════════════════════════════════════════════════════
-        COLLAPSE 3 — CXC
-        ════════════════════════════════════════════════════════════ *@
+@* ════════════════════════════════════════════════════════════
+    COLLAPSE 3 — CXC
+    ════════════════════════════════════════════════════════════ *@
 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_CXC"))
 {<div class="panel panel-default">
         <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseCXC">
@@ -128,12 +128,11 @@
         </div>
     </div>}
 
-
-    @* ════════════════════════════════════════════════════════════
-        COLLAPSE 4 — DISTRIBUCION
-        ════════════════════════════════════════════════════════════ *@
+@* ════════════════════════════════════════════════════════════
+    COLLAPSE 4 — DISTRIBUCION
+    ════════════════════════════════════════════════════════════ *@
 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Distribucion"))
-{ <div class="panel panel-default">
+{<div class="panel panel-default">
         <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseDistibucion">
             <h4 class="panel-title">
                 <i class="icon-truck teal"></i>
@@ -153,12 +152,12 @@
                                 <h2>Backorder Bolik</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="abrirCrystalDirecto('@Url.Action("BackorderAgenteBolik", "Reporte")')"
+                               onclick="pedirBackorder('@Url.Action("BackorderAgenteBolik", "Reporte")', 'Backorder Bolik')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>}
 
-                    @* BACKORDER *@
+                @* BACKORDER *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Graco"))
                 {<div class="col-md-3">
                         <div class="core-box">
@@ -167,12 +166,12 @@
                                 <h2>Backorder Graco</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="abrirCrystalDirecto('@Url.Action("BackorderAgenteGraco", "Reporte")')"
+                               onclick="pedirBackorder('@Url.Action("BackorderAgenteGraco", "Reporte")', 'Backorder Graco')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>}
 
-                    @* BACKORDER *@
+                @* BACKORDER *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Faes"))
                 {<div class="col-md-3">
                         <div class="core-box">
@@ -181,12 +180,12 @@
                                 <h2>Backorder Faes</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="abrirCrystalDirecto('@Url.Action("BackorderAgenteFaes", "Reporte")')"
+                               onclick="pedirBackorder('@Url.Action("BackorderAgenteFaes", "Reporte")', 'Backorder Faes')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>}
 
-                    @* ESTADO PEDIDO *@
+                @* ESTADO PEDIDO *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Estado_Pedido"))
                 {<div class="col-md-3">
                         <div class="core-box">
@@ -200,7 +199,7 @@
                         </div>
                     </div>}
 
-                    @* RUTAS *@
+                @* RUTAS *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Ruta"))
                 {<div class="col-md-3">
                         <div class="core-box">
@@ -218,35 +217,8 @@
         </div>
     </div>}
 
-    @* ── MODAL: Solo Agente (Crystal) ── *@
-<div class="modal fade" id="modalAgenteCrystal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-sm" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">
-                    <i class="icon-user teal"></i>
-                    <span id="modalAgenteCrystalTitulo">Reporte por Agente</span>
-                </h4>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="control-label">Código de Agente</label>
-                    <input type="text" id="crystalAgente" class="form-control"
-                           placeholder="Ej: ACODEX" />
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnVerAgenteCrystal">
-                    <i class="icon-file-pdf-alt"></i> Ver PDF
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
-@* ── MODAL: INVENTARIO = Pedidos No Sincronizados (Cliente + Pedido) ── *@
+@* ── MODAL: INVENTARIO (Cliente + Pedido) ── *@
 <div class="modal fade" id="modalInventario" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
@@ -260,14 +232,14 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="control-label">
-                        Código Producto <small class="text-muted">(vacío = todos)</small>
+                        Código Producto <small class="text-muted"></small>
                     </label>
                     <input type="text" id="codigoProducto" class="form-control"
                            placeholder="Ej: XCODEX" />
                 </div>
                 <div class="form-group">
                     <label class="control-label">
-                        Nombre Producto <small class="text-muted">(vacío = todos)</small>
+                        Nombre Producto <small class="text-muted"></small>
                     </label>
                     <input type="text" id="nombreProducto" class="form-control"
                            placeholder="Ej: Lapicero" />
@@ -363,6 +335,57 @@
     </div>
 </div>
 
+@* ── MODAL: Backorder (Cliente + Producto + Pedido) ── *@
+<div class="modal fade" id="modalBackorder" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">
+                    <i class="clip-data teal"></i>
+                    <span id="modalBackorderTitulo">Backorder</span>
+                </h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">
+                                Cliente <small class="text-muted">(vacío = todos)</small>
+                            </label>
+                            <input type="text" id="boCliente" class="form-control"
+                                   placeholder="Ej: CL0001" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">
+                                Producto <small class="text-muted">(vacío = todos)</small>
+                            </label>
+                            <input type="text" id="boProducto" class="form-control"
+                                   placeholder="Ej: ART-001" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label">
+                        No. Pedido <small class="text-muted">(vacío = todos)</small>
+                    </label>
+                    <input type="text" id="boPedido" class="form-control"
+                           placeholder="Ej: 12345" />
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnVerBackorder">
+                    <i class="icon-file-pdf-alt"></i> Ver PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @* ── MODAL: Detalle Facturas (Empresa + Fechas + Filtros opcionales) ── *@
 <div class="modal fade" id="modalDetalleFacturas" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -421,7 +444,7 @@
                         <div class="form-group">
                             <label class="control-label">
                                 Código Cliente
-                                <small class="text-muted">(vacío = todos)</small>
+                                <small class="text-muted"></small>
                             </label>
                             <input type="text" id="dfCliente" class="form-control"
                                    placeholder="Ej: CL0001" />
@@ -431,7 +454,7 @@
                         <div class="form-group">
                             <label class="control-label">
                                 Código Artículo
-                                <small class="text-muted">(vacío = todos)</small>
+                                <small class="text-muted"></small>
                             </label>
                             <input type="text" id="dfCodigo" class="form-control"
                                    placeholder="Ej: ART-001" />
@@ -441,7 +464,7 @@
                 <div class="form-group">
                     <label class="control-label">
                         Nombre / Descripción Artículo
-                        <small class="text-muted">(vacío = todos)</small>
+                        <small class="text-muted"></small>
                     </label>
                     <input type="text" id="dfProducto" class="form-control"
                            placeholder="Ej: DOMO" />
@@ -496,7 +519,7 @@
                 <div id="filaCrystalCardCode" class="form-group" style="display:none">
                     <label class="control-label">
                         Código Cliente SAP
-                        <small class="text-muted">(vacío = todos)</small>
+                        <small class="text-muted">*</small>
                     </label>
                     <input type="text" id="crystalCardCode"
                            class="form-control"
@@ -583,21 +606,31 @@
         });
 
         // ── CRYSTAL: Solo Agente (Backorder Agentes) ────────────────────────
-        function pedirAgenteCrystal(urlBase, titulo) {
-            _urlCrystalBase = urlBase;
-            $("#modalAgenteCrystalTitulo").text(titulo || "Reporte por Agente");
-            $("#crystalAgente").val("");
-            $("#modalAgenteCrystal").modal("show");
-            setTimeout(function () { $("#crystalAgente").focus(); }, 400);
+        var _urlBackorderBase = "";
+        function pedirBackorder(urlBase, titulo) {
+            _urlBackorderBase = urlBase;
+            $("#modalBackorderTitulo").text(titulo || "Backorder");
+            $("#boAgente, #boCliente, #boProducto, #boPedido").val("");
+            $("#modalBackorder").modal("show");
+            setTimeout(function () {
+                // Focus en el primer campo visible
+                var primer = $("#modalBackorder input:visible:first");
+                if (primer.length) primer.focus();
+            }, 400);
         }
-        $("#btnVerAgenteCrystal").on("click", function () {
-            var ag = $("#crystalAgente").val().trim();
-            if (!ag) { toastr.error("Ingrese el código de agente"); return; }
-            $("#modalAgenteCrystal").modal("hide");
-            window.open(_urlCrystalBase + "?agente=" + encodeURIComponent(ag), "_blank");
-        });
-        $("#crystalAgente").on("keypress", function (e) {
-            if (e.which === 13) $("#btnVerAgenteCrystal").click();
+        $("#btnVerBackorder").on("click", function () {
+            var cl = $("#boCliente").val().trim();
+            var pr = $("#boProducto").val().trim();
+            var pd = $("#boPedido").val().trim();
+
+            var url = _urlBackorderBase + "?";
+            if (cl) url += "cliente=" + encodeURIComponent(cl) + "&";
+            if (pr) url += "producto=" + encodeURIComponent(pr) + "&";
+            if (pd) url += "pedido=" + encodeURIComponent(pd) + "&";
+            url = url.replace(/[&?]$/, "");
+
+            $("#modalBackorder").modal("hide");
+            window.open(url, "_blank");
         });
 
         // ── CRYSTAL: INVENTARIO = Pedidos No Sincronizados (Cliente + Pedido) ───────────
@@ -653,7 +686,6 @@
 
         // ── DETALLE FACTURAS — Empresa + Fechas + Filtros opcionales ───────────────
         var _urlDetalleFacturas = "";
-
         function pedirDetalleFacturas(urlBase) {
             _urlDetalleFacturas = urlBase;
             $("#dfCliente, #dfCodigo, #dfProducto").val("");
@@ -661,7 +693,6 @@
             $("#modalDetalleFacturas").modal("show");
             setTimeout(function () { $("#dfFechaInicial").focus(); }, 400);
         }
-
         $("#btnVerDetalleFacturas").on("click", function () {
             var emp = $("#dfEmpresa").val();
             var fi = $("#dfFechaInicial").val().trim();

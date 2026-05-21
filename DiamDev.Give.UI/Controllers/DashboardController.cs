@@ -17,20 +17,32 @@ namespace DiamDev.Give.UI.Controllers
 
         // 2. Esta es tu nueva "API" que devuelve el JSON
         [HttpGet]
-        public JsonResult GetData(string from, string to)
+        public JsonResult GetData(string from, string to, string empresa)
         {
             var rows = new List<Dictionary<string, object>>();
 
-            // Leemos la conexión del Web.config
-            var connString = ConfigurationManager.ConnectionStrings["HanaOdbc"].ConnectionString;
+            // Connection String base
+            var baseConnString = ConfigurationManager
+                .ConnectionStrings["HanaOdbc"]
+                .ConnectionString;
 
-            // Buscamos el archivo SQL en la raíz del proyecto
+            // Obtener schema según empresa
+            var companySchema = ObtenerCompanySchema(empresa);
+
+            // Reemplazar CS dinámicamente
+            var connString = baseConnString.Replace(
+                "CS=SBO_GRACO",
+                $"CS={companySchema}"
+            );
+
+            // SQL
             var sqlPath = Server.MapPath("~/dashboard.sql");
             var sql = System.IO.File.ReadAllText(sqlPath);
 
             using (var conn = new OdbcConnection(connString))
             {
                 conn.Open();
+
                 using (var cmd = new OdbcCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@p1", from);
@@ -41,21 +53,46 @@ namespace DiamDev.Give.UI.Controllers
                         while (reader.Read())
                         {
                             var row = new Dictionary<string, object>();
+
                             for (int i = 0; i < reader.FieldCount; i++)
                             {
                                 var name = reader.GetName(i);
-                                var value = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                                var value = reader.IsDBNull(i)
+                                    ? null
+                                    : reader.GetValue(i);
 
-                                row[name] = value is DateTime dt ? dt.ToString("yyyy-MM-dd") : value;
+                                row[name] = value is DateTime dt
+                                    ? dt.ToString("yyyy-MM-dd")
+                                    : value;
                             }
+
                             rows.Add(row);
                         }
                     }
                 }
             }
 
-            // En MVC clásico, es obligatorio permitir peticiones GET para JSON
             return Json(new { rows = rows }, JsonRequestBehavior.AllowGet);
+        }
+
+
+
+        private string ObtenerCompanySchema(string empresa)
+        {
+            switch ((empresa ?? "").ToUpper())
+            {
+                case "BOLIK":
+                    return "SBOBOLIK";
+
+                case "GRACO":
+                    return "SBO_GRACO";
+
+                case "ESCOCESA":
+                    return "SBOESCOCESA";
+
+                default:
+                    return "SBO_GRACO";
+            }
         }
     }
 }

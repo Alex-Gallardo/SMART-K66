@@ -668,15 +668,15 @@
       <DependentUpon>Inventario.xsd</DependentUpon>
     </Content>
     <Content Include="Reports\Crystal\Estado de Cuenta.rpt" />
-    <Content Include="Reports\Crystal\Backorder Agentes Bolik.rpt" />
-    <Content Include="Reports\Crystal\Backorder Agentes Graco.rpt" />
     <Content Include="Reports\Crystal\Despachos en ruta dia.rpt" />
     <Content Include="Reports\Crystal\Estado Pedido.rpt" />
     <Content Include="Reports\Crystal\Inventario Bolik.rpt" />
     <Content Include="Reports\Crystal\Inventario Graco.rpt" />
-    <Content Include="Reports\Crystal\Backorder Agentes Faes.rpt" />
     <Content Include="Reports\Crystal\Inventario Escocesa.rpt" />
     <Content Include="Reports\Crystal\Detalle de Facturas General.rpt" />
+    <Content Include="Reports\Crystal\Backorder Agentes Bolik.rpt" />
+    <Content Include="Reports\Crystal\Backorder Agentes Faes.rpt" />
+    <Content Include="Reports\Crystal\Backorder Agentes Graco.rpt" />
     <None Include="Reports\Inventario.xsd">
       <Generator>MSDataSetGenerator</Generator>
       <LastGenOutput>Inventario2.Designer.cs</LastGenOutput>
@@ -715,7 +715,7 @@
     <Content Include="SqlServerTypes\x86\SqlServerSpatial140.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <None Include="Views\Dashboard\Index.cshtml" />
+    <Content Include="Views\Dashboard\Index.cshtml" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>

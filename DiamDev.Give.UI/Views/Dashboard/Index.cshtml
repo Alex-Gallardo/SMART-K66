@@ -254,6 +254,13 @@
         </div>
 
         <div class="filters">
+            <label class="sub">Empresa</label>
+            <select id="empresa">
+                <option value="GRACO" selected>Graco</option>
+                <option value="BOLIK">Bolik</option>
+                <option value="ESCOCESA">Escocesa</option>
+            </select>
+
             <label class="sub">Desde</label>
             <input type="date" id="from">
 
@@ -413,38 +420,65 @@
         }
 
         async function load() {
+
             const from = $('from').value;
             const to = $('to').value;
+            const empresa = $('empresa').value;
 
             if (!from || !to) {
-                $('status').textContent = 'Seleccioná fecha desde y hasta.';
+                $('status').textContent =
+                    'Selecciona fecha desde y hasta.';
                 return;
             }
 
             $('status').textContent = 'Cargando…';
+
             document.body.classList.add('loading');
 
             try {
-                const url = `/Dashboard/GetData?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
-                const r = await fetch(url, { cache: 'no-store' });
+
+                // ✅ Razor genera automáticamente la ruta correcta
+                var urlGetData = '@Url.Action("GetData", "Dashboard")';
+
+                const url =
+                    urlGetData + `?from=${encodeURIComponent(from)}`
+                    + `&to=${encodeURIComponent(to)}`
+                    + `&empresa=${encodeURIComponent(empresa)}`;
+
+                const r = await fetch(url, {
+                    cache: 'no-store'
+                });
 
                 if (!r.ok) {
+
                     const errorText = await r.text();
-                    throw new Error('Error ' + r.status + ': ' + errorText);
+
+                    throw new Error(
+                        'Error ' + r.status + ': ' + errorText
+                    );
                 }
 
                 const j = await r.json();
 
-                raw = Array.isArray(j.rows) ? j.rows : [];
+                raw = Array.isArray(j.rows)
+                    ? j.rows
+                    : [];
 
-                $('status').textContent = `${raw.length} filas · rango ${from} → ${to}`;
+                $('status').textContent =
+                    `${raw.length} filas · ${empresa} · rango ${from} → ${to}`;
 
                 render();
 
-            } catch (err) {
+            }
+            catch (err) {
+
                 console.error(err);
-                $('status').textContent = 'Error: ' + err.message;
-            } finally {
+
+                $('status').textContent =
+                    'Error: ' + err.message;
+            }
+            finally {
+
                 document.body.classList.remove('loading');
             }
         }
@@ -807,6 +841,7 @@
         }
 
         $('refresh').addEventListener('click', load);
+        $('empresa').addEventListener('change', load);
 
         $('bucket').addEventListener('change', () => {
             if (raw.length > 0) {

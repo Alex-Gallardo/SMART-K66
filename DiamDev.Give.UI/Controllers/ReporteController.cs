@@ -234,51 +234,68 @@ namespace DiamDev.Give.UI.Controllers
 
         // ── PARÁMETRO: Agente ────────────────────────────────────────────────────
 
-        public ActionResult BackorderAgenteBolik(string agente = "")
+        public ActionResult BackorderAgenteBolik(string cliente = "",
+                                           string producto = "",
+                                           string pedido = "")
         {
-
-            // var userId = CustomHelper.getUserId();
-            var userNombre = CustomHelper.getUsuarioNombre();
-            // var userName = User.Identity.Name;
-
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Bolik.rpt"));
                 AplicarConexionHana(rpt);
-                if (!string.IsNullOrWhiteSpace(userNombre))
-                    TrySetParametro(rpt, "Agente", userNombre);
-                return ExportarPdf(rpt, $"Backorder_Agente_Bolik_{userNombre}");
+
+                string agente = CustomHelper.getUsuarioNombre();
+
+                TrySetParametro(rpt, "Agente", agente);
+                TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
+                TrySetParametro(rpt, "Producto", string.IsNullOrWhiteSpace(producto) ? "*" : producto);
+                TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
+
+                return ExportarPdf(rpt, $"Backorder_Bolik_{agente}");
             }
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Bolik"); }
         }
 
-        public ActionResult BackorderAgenteGraco(string agente = "")
+        public ActionResult BackorderAgenteGraco(string cliente = "",
+                                                  string producto = "",
+                                                  string pedido = "")
         {
-            var userNombre = CustomHelper.getUsuarioNombre();
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Graco.rpt"));
                 AplicarConexionHana(rpt);
-                if (!string.IsNullOrWhiteSpace(userNombre))
-                    TrySetParametro(rpt, "Agente", userNombre);
-                return ExportarPdf(rpt, $"Backorder_Agente_Graco_{userNombre}");
+
+                string agente = CustomHelper.getUsuarioNombre();
+
+                TrySetParametro(rpt, "Agente", agente);
+                TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
+                TrySetParametro(rpt, "Producto", string.IsNullOrWhiteSpace(producto) ? "*" : producto);
+                TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
+
+                return ExportarPdf(rpt, $"Backorder_Graco_{agente}");
             }
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Graco"); }
         }
 
-        public ActionResult BackorderAgenteFaes(string agente = "")
+        public ActionResult BackorderAgenteFaes(string cliente = "",
+                                                  string producto = "",
+                                                  string pedido = "")
         {
-            var userNombre = CustomHelper.getUsuarioNombre();
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Faes.rpt"));
                 AplicarConexionHana(rpt);
-                if (!string.IsNullOrWhiteSpace(userNombre))
-                    TrySetParametro(rpt, "Agente", userNombre);
-                return ExportarPdf(rpt, $"Backorder_Agente_Faes_{userNombre}");
+
+                string agente = CustomHelper.getUsuarioNombre();
+
+                TrySetParametro(rpt, "Agente", agente);
+                TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
+                TrySetParametro(rpt, "Producto", string.IsNullOrWhiteSpace(producto) ? "*" : producto);
+                TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
+
+                return ExportarPdf(rpt, $"Backorder_Faes_{agente}");
             }
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Faes"); }
         }
@@ -314,8 +331,7 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         // ── PARÁMETROS: Cliente + Pedido ─────────────────────────────────────────
-
-        public ActionResult InventarioBolik(string codigoProducto = "", string nombreProducto = "")
+        public ActionResult InventarioBolik(string Codigo_Producto = "", string Producto_Name = "")
         {
             var rpt = new ReportDocument();
             try
@@ -323,17 +339,18 @@ namespace DiamDev.Give.UI.Controllers
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Inventario Bolik.rpt"));
                 AplicarConexionHana(rpt);
 
-                if (!string.IsNullOrWhiteSpace(codigoProducto))
-                    TrySetParametro(rpt, "Codigo_Producto", codigoProducto);
-                if (!string.IsNullOrWhiteSpace(nombreProducto))
-                    TrySetParametro(rpt, "Producto_Name", nombreProducto);
+                if (!string.IsNullOrWhiteSpace(Codigo_Producto))
+                    TrySetParametro(rpt, "Codigo_Producto", Codigo_Producto);
+                if (!string.IsNullOrWhiteSpace(Producto_Name))
+                    TrySetParametro(rpt, "Producto_Name", Producto_Name);
 
                 return ExportarPdf(rpt, "Inventario_Bolik");
             }
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Inventario Bolik"); }
         }
 
-        public ActionResult InventarioGraco(string cod_producto = "", string name_producto = "")
+        // ── INVENTARIO GRACO ────────────────────────────────────────────────────
+        public ActionResult InventarioGraco(string Codigo_Producto = "", string Producto_Name = "")
         {
             var rpt = new ReportDocument();
             try
@@ -341,17 +358,18 @@ namespace DiamDev.Give.UI.Controllers
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Inventario Graco.rpt"));
                 AplicarConexionHana(rpt);
 
-                if (!string.IsNullOrWhiteSpace(cod_producto))
-                    TrySetParametro(rpt, "Codigo_Producto", cod_producto);
-                if (!string.IsNullOrWhiteSpace(name_producto))
-                    TrySetParametro(rpt, "Producto_Name", name_producto);
+                if (!string.IsNullOrWhiteSpace(Codigo_Producto))
+                    TrySetParametro(rpt, "Codigo_Producto", Codigo_Producto);
+                if (!string.IsNullOrWhiteSpace(Producto_Name))
+                    TrySetParametro(rpt, "Producto_Name", Producto_Name);
 
                 return ExportarPdf(rpt, "Inventario_Graco");
             }
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Inventario Graco"); }
         }
 
-        public ActionResult InventarioEscocesa(string cod_producto = "", string name_producto = "")
+        // ── INVENTARIO ESCOCESA ─────────────────────────────────────────────────
+        public ActionResult InventarioEscocesa(string Codigo_Producto = "", string Producto_Name = "")
         {
             var rpt = new ReportDocument();
             try
@@ -359,15 +377,16 @@ namespace DiamDev.Give.UI.Controllers
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Inventario Escocesa.rpt"));
                 AplicarConexionHana(rpt);
 
-                if (!string.IsNullOrWhiteSpace(cod_producto))
-                    TrySetParametro(rpt, "Codigo_Producto", cod_producto);
-                if (!string.IsNullOrWhiteSpace(name_producto))
-                    TrySetParametro(rpt, "Producto_Name", name_producto);
+                if (!string.IsNullOrWhiteSpace(Codigo_Producto))
+                    TrySetParametro(rpt, "Codigo_Producto", Codigo_Producto);
+                if (!string.IsNullOrWhiteSpace(Producto_Name))
+                    TrySetParametro(rpt, "Producto_Name", Producto_Name);
 
                 return ExportarPdf(rpt, "Inventario_Escocesa");
             }
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Inventario Escocesa"); }
         }
+
 
         // ── PARÁMETROS: 6 campos (REVISION DE RUTAS) ────────────────────────────
         // ⚠️ Nombres con espacios y mayúsculas: "FECHA INICIAL", "FECHA FINAL", etc.
@@ -435,6 +454,7 @@ namespace DiamDev.Give.UI.Controllers
             }
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Detalle Facturas"); }
         }
+
 
 
         // ── Helpers internos ──────────────────────────────────────────────────

@@ -182,6 +182,46 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         /// <summary>
+        /// Aplica las credenciales SQL Server a todas las tablas del .rpt
+        /// Lee la cadena de conexión desde Web.config por nombre.
+        /// Mismo patrón que AplicarConexionHana — propiedad por propiedad.
+        /// </summary>
+        private void AplicarConexionSql(ReportDocument reporte,
+            string connectionStringName = "GiveContext")
+        {
+            var cs = System.Configuration.ConfigurationManager
+                         .ConnectionStrings[connectionStringName].ConnectionString;
+
+            var builder = new System.Data.SqlClient.SqlConnectionStringBuilder(cs);
+
+            string servidor = builder.DataSource;          // K66-APPS
+            string baseDatos = builder.InitialCatalog;       // POS-SmartK66_DEV
+            string usuario = builder.UserID;               // sa
+            string password = builder.Password;
+
+            SetCredencialesSql(reporte, servidor, baseDatos, usuario, password);
+
+            foreach (ReportDocument sub in reporte.Subreports)
+                SetCredencialesSql(sub, servidor, baseDatos, usuario, password);
+        }
+
+        private void SetCredencialesSql(ReportDocument rpt,
+            string servidor, string db, string user, string pwd)
+        {
+            foreach (CrystalDecisions.CrystalReports.Engine.Table tabla in rpt.Database.Tables)
+            {
+                TableLogOnInfo logOn = tabla.LogOnInfo;
+
+                logOn.ConnectionInfo.ServerName = servidor;
+                logOn.ConnectionInfo.DatabaseName = db;
+                logOn.ConnectionInfo.UserID = user;
+                logOn.ConnectionInfo.Password = pwd;
+
+                tabla.ApplyLogOnInfo(logOn);
+            }
+        }
+
+        /// <summary>
         /// Exporta el ReportDocument a PDF y lo devuelve inline en el browser.
         /// Llama a Close/Dispose siempre para evitar leaks de memoria en IIS.
         /// </summary>
@@ -339,10 +379,8 @@ namespace DiamDev.Give.UI.Controllers
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Inventario Bolik.rpt"));
                 AplicarConexionHana(rpt);
 
-                if (!string.IsNullOrWhiteSpace(Codigo_Producto))
-                    TrySetParametro(rpt, "Codigo_Producto", Codigo_Producto);
-                if (!string.IsNullOrWhiteSpace(Producto_Name))
-                    TrySetParametro(rpt, "Producto_Name", Producto_Name);
+                TrySetParametro(rpt, "Codigo_Producto", string.IsNullOrWhiteSpace(Codigo_Producto) ? "*" : Codigo_Producto);
+                TrySetParametro(rpt, "Producto_Name", string.IsNullOrWhiteSpace(Producto_Name) ? "*" : Producto_Name);
 
                 return ExportarPdf(rpt, "Inventario_Bolik");
             }
@@ -393,28 +431,34 @@ namespace DiamDev.Give.UI.Controllers
 
         // [Permiso("Control.Reporte.Inventario")]
         public ActionResult EstadoPedido(string fechaInicial = "", string fechaFinal = "",
-                                           string vehiculo = "", string noRuta = "",
-                                           string agente = "", string documento = "")
+                                  string vehiculo = "", string noRuta = "",
+                                  string agente = "", string documento = "")
         {
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Estado Pedido.rpt"));
-                AplicarConexionHana(rpt);
+                AplicarConexionSql(rpt, "GiveContext");
 
-                if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
+                if (!string.IsNullOrWhiteSpace(fechaInicial) &&
+                    !string.IsNullOrWhiteSpace(fechaFinal))
                 {
                     TrySetParametro(rpt, "FECHA INICIAL", Convert.ToDateTime(fechaInicial));
                     TrySetParametro(rpt, "FECHA FINAL", Convert.ToDateTime(fechaFinal));
                 }
-                if (!string.IsNullOrWhiteSpace(vehiculo)) TrySetParametro(rpt, "VEHICULO", vehiculo);
-                if (!string.IsNullOrWhiteSpace(noRuta)) TrySetParametro(rpt, "NO RUTA", noRuta);
-                if (!string.IsNullOrWhiteSpace(agente)) TrySetParametro(rpt, "AGENTE", agente);
-                if (!string.IsNullOrWhiteSpace(documento)) TrySetParametro(rpt, "DOCUMENTO", documento);
+
+                TrySetParametro(rpt, "VEHICULO", string.IsNullOrWhiteSpace(vehiculo) ? "*" : vehiculo);
+                TrySetParametro(rpt, "NO RUTA", string.IsNullOrWhiteSpace(noRuta) ? "*" : noRuta);
+                TrySetParametro(rpt, "AGENTE", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
+                TrySetParametro(rpt, "DOCUMENTO", string.IsNullOrWhiteSpace(documento) ? "*" : documento);
 
                 return ExportarPdf(rpt, "Estado_Pedido");
             }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Estado Pedido"); }
+            catch (Exception ex)
+            {
+                rpt.Close(); rpt.Dispose();
+                return ContenidoError(ex, "Estado Pedido");
+            }
         }
 
         // ── DETALLE FACTURAS — Empresa + Fechas + Cliente + Codigo + Producto ──────
@@ -707,6 +751,46 @@ namespace DiamDev.Give.UI.Controllers
                 rpt.Close(); rpt.Dispose();
                 return Content($"<pre style='color:red'>{ex}</pre>", "text/html");
             }
+        }
+
+        public ActionResult DiagSql()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append("<style>body{font-family:monospace;padding:20px}</style>");
+            sb.Append("<h2>Diagnóstico SQL Server — GiveContext</h2><hr/>");
+
+            try
+            {
+                var cs = System.Configuration.ConfigurationManager
+                             .ConnectionStrings["GiveContext"].ConnectionString;
+                var builder = new System.Data.SqlClient.SqlConnectionStringBuilder(cs);
+
+                sb.Append("<h4>Configuración leída</h4><ul>");
+                sb.Append($"<li><b>Server:</b>   {builder.DataSource}</li>");
+                sb.Append($"<li><b>Database:</b> {builder.InitialCatalog}</li>");
+                sb.Append($"<li><b>User:</b>     {builder.UserID}</li>");
+                sb.Append("</ul>");
+
+                using (var conn = new System.Data.SqlClient.SqlConnection(cs))
+                {
+                    conn.Open();
+                    sb.Append("<h3 style='color:green'>✓ Conexión SQL Server OK</h3>");
+
+                    // Verifica que el reporte puede leer alguna tabla clave
+                    using (var cmd = new System.Data.SqlClient.SqlCommand(
+                               "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES", conn))
+                    {
+                        int tablas = (int)cmd.ExecuteScalar();
+                        sb.Append($"<p>Tablas en la BD: <b>{tablas}</b></p>");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                sb.Append($"<h3 style='color:red'>✗ Fallo conexión SQL</h3><pre>{ex.Message}</pre>");
+            }
+
+            return Content(sb.ToString(), "text/html");
         }
 
         // ═══════════════════════════════════════════════════════════════════════

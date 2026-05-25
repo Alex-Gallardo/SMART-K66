@@ -84,6 +84,7 @@
     <Compile Include="AutenticarToken.cs" />
     <Compile Include="BodegaActivaModel.cs" />
     <Compile Include="ClienteK66.cs" />
+    <Compile Include="CodeFile1.cs" />
     <Compile Include="EmpresaBodegaActiva.cs" />
     <Compile Include="ERPPedidoDetalleK66.cs" />
     <Compile Include="EstadoxPedidoK66.cs" />

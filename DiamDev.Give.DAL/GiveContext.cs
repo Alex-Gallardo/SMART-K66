@@ -5,6 +5,7 @@ namespace DiamDev.Give.DAL
 {
     public class GiveContext : DbContext
     {
+
         public DbSet<Agencia> Agencias { get; set; }
 
         public DbSet<OfertaDelivery> OfertasDelivery { get; set; }
@@ -308,6 +309,9 @@ namespace DiamDev.Give.DAL
         public DbSet<PedidoTipoK66> PedidoTipoK66 { get; set; }
 
         public DbSet<EstadoSmartK66> EstadoSmartK66 { get; set; }
+
+        public DbSet<UsuarioEmpresa> UsuarioEmpresas { get; set; }
+
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {

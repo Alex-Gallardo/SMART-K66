@@ -274,70 +274,101 @@ namespace DiamDev.Give.UI.Controllers
 
         // ── PARÁMETRO: Agente ────────────────────────────────────────────────────
 
-        public ActionResult BackorderAgenteBolik(string cliente = "",
-                                           string producto = "",
-                                           string pedido = "")
+        public ActionResult BackorderAgenteBolik(string agente = "",
+                                         string cliente = "",
+                                         string producto = "",
+                                         string pedido = "")
         {
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Bolik.rpt"));
-                AplicarConexionHana(rpt);
 
-                string agente = CustomHelper.getUsuarioNombre();
+                // Siempre SBOBOLIK — este .rpt es exclusivo de Bolik
+                AplicarConexionHana(rpt, "SBOBOLIK");
 
-                TrySetParametro(rpt, "Agente", agente);
+                // Si el front manda "*" o vacío → todos los agentes
+                string agenteParam = string.IsNullOrWhiteSpace(agente) || agente == "*"
+                    ? "*"
+                    : agente;
+
+                TrySetParametro(rpt, "Agente", agenteParam);
                 TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
                 TrySetParametro(rpt, "Producto", string.IsNullOrWhiteSpace(producto) ? "*" : producto);
                 TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
 
-                return ExportarPdf(rpt, $"Backorder_Bolik_{agente}");
+                string sufijo = agenteParam == "*" ? "General" : agenteParam;
+                return ExportarPdf(rpt, $"Backorder_Bolik_{sufijo}");
             }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Bolik"); }
+            catch (Exception ex)
+            {
+                rpt.Close(); rpt.Dispose();
+                return ContenidoError(ex, "Backorder Agentes Bolik");
+            }
         }
 
-        public ActionResult BackorderAgenteGraco(string cliente = "",
-                                                  string producto = "",
-                                                  string pedido = "")
+        public ActionResult BackorderAgenteGraco(string agente = "",
+                                          string cliente = "",
+                                          string producto = "",
+                                          string pedido = "")
         {
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Graco.rpt"));
-                AplicarConexionHana(rpt);
 
-                string agente = CustomHelper.getUsuarioNombre();
+                // Siempre SBO_GRACO — este .rpt es exclusivo de Graco
+                AplicarConexionHana(rpt, "SBO_GRACO");
 
-                TrySetParametro(rpt, "Agente", agente);
+                string agenteParam = string.IsNullOrWhiteSpace(agente) || agente == "*"
+                    ? "*"
+                    : agente;
+
+                TrySetParametro(rpt, "Agente", agenteParam);
                 TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
                 TrySetParametro(rpt, "Producto", string.IsNullOrWhiteSpace(producto) ? "*" : producto);
                 TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
 
-                return ExportarPdf(rpt, $"Backorder_Graco_{agente}");
+                string sufijo = agenteParam == "*" ? "General" : agenteParam;
+                return ExportarPdf(rpt, $"Backorder_Graco_{sufijo}");
             }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Graco"); }
+            catch (Exception ex)
+            {
+                rpt.Close(); rpt.Dispose();
+                return ContenidoError(ex, "Backorder Agentes Graco");
+            }
         }
 
-        public ActionResult BackorderAgenteFaes(string cliente = "",
-                                                  string producto = "",
-                                                  string pedido = "")
+        public ActionResult BackorderAgenteFaes(string agente = "",
+                                          string cliente = "",
+                                          string producto = "",
+                                          string pedido = "")
         {
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Faes.rpt"));
-                AplicarConexionHana(rpt);
 
-                string agente = CustomHelper.getUsuarioNombre();
+                // Siempre SBOFAES — este .rpt es exclusivo de Faes
+                AplicarConexionHana(rpt, "SBOFAES");
 
-                TrySetParametro(rpt, "Agente", agente);
+                string agenteParam = string.IsNullOrWhiteSpace(agente) || agente == "*"
+                    ? "*"
+                    : agente;
+
+                TrySetParametro(rpt, "Agente", agenteParam);
                 TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
                 TrySetParametro(rpt, "Producto", string.IsNullOrWhiteSpace(producto) ? "*" : producto);
                 TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
 
-                return ExportarPdf(rpt, $"Backorder_Faes_{agente}");
+                string sufijo = agenteParam == "*" ? "General" : agenteParam;
+                return ExportarPdf(rpt, $"Backorder_Faes_{sufijo}");
             }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Backorder Agentes Faes"); }
+            catch (Exception ex)
+            {
+                rpt.Close(); rpt.Dispose();
+                return ContenidoError(ex, "Backorder Agentes Faes");
+            }
         }
 
         // ── PARÁMETROS: FInicial + FFinal + Cliente ──────────────────────────────
@@ -471,11 +502,12 @@ namespace DiamDev.Give.UI.Controllers
         {
             // Whitelist de empresas permitidas
             var empresaDb = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                { "SBOBOLIK",    "SBOBOLIK"    },
-                { "SBOESCOCESA", "SBOESCOCESA" },
-                { "SBO_GRACO",   "SBO_GRACO"   }
-            };
+{
+    { "SBOBOLIK",    "SBOBOLIK"    },
+    { "SBOFAES",     "SBOFAES"     },   // ← NUEVO: empresa Faes
+    { "SBOESCOCESA", "SBOESCOCESA" },
+    { "SBO_GRACO",   "SBO_GRACO"   }
+};
 
             string dbName = empresaDb.ContainsKey(empresa) ? empresaDb[empresa] : "SBOBOLIK";
             var rpt = new ReportDocument();
@@ -1332,6 +1364,48 @@ namespace DiamDev.Give.UI.Controllers
         {
             CustomHelper.setTitle("Reportes", "Listado");
             return View();
+        }
+
+        /// <summary>
+        /// Endpoint JSON para que el frontend sepa qué empresas y agentes
+        /// tiene disponibles el usuario loggeado.
+        /// Se llama desde Index.cshtml al cargar la página.
+        /// </summary>
+        [HttpGet]
+        public JsonResult GetUserEmpresaInfo()
+        {
+            // ⚠️ AJUSTE: si CustomHelper.getUserId() devuelve int, cambia a:
+            // long usuarioId = (long)CustomHelper.getUserId();
+            long usuarioId = CustomHelper.getUserId();
+
+            var bl = new UsuarioEmpresaBL();
+            var registros = bl.ObtenerPorUsuarioId(usuarioId);
+
+            // Proyectamos cada registro a un objeto anónimo con los campos
+            // que necesita el JavaScript en el frontend.
+            var agentes = registros.Select(r =>
+            {
+                var parsed = bl.ParseCodigo(r.Codigo);
+                return new
+                {
+                    // String para evitar pérdida de precisión en JSON con números grandes
+                    EmpresaId = r.EmpresaId.ToString(),
+                    EmpresaNombre = bl.GetEmpresaNombre(r.EmpresaId),
+                    HanaDb = bl.GetHanaDb(r.EmpresaId),
+                    SapId = parsed.SapId,
+                    AgenteNombre = parsed.AgenteNombre,
+                    Codigo = r.Codigo,
+                    SerieSap = r.SERIE_SAP
+                };
+            }).ToList();
+
+            return Json(new
+            {
+                TieneBolik = registros.Any(r => r.EmpresaId == UsuarioEmpresaBL.ID_BOLIK),
+                TieneFaes = registros.Any(r => r.EmpresaId == UsuarioEmpresaBL.ID_FAES),
+                TieneGraco = registros.Any(r => r.EmpresaId == UsuarioEmpresaBL.ID_GRACO),
+                Agentes = agentes
+            }, JsonRequestBehavior.AllowGet);
         }
     }
 

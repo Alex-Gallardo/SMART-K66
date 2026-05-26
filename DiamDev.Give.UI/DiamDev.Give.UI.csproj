@@ -667,9 +667,6 @@
     <Content Include="Reports\Inventario.xsc">
       <DependentUpon>Inventario.xsd</DependentUpon>
     </Content>
-    <Content Include="Reports\Crystal\Estado de Cuenta.rpt" />
-    <Content Include="Reports\Crystal\Despachos en ruta dia.rpt" />
-    <Content Include="Reports\Crystal\Estado Pedido.rpt" />
     <Content Include="Reports\Crystal\Inventario Bolik.rpt" />
     <Content Include="Reports\Crystal\Inventario Graco.rpt" />
     <Content Include="Reports\Crystal\Inventario Escocesa.rpt" />
@@ -680,6 +677,8 @@
     <Content Include="Reports\Crystal\Estado de Cuenta Faes.rpt" />
     <Content Include="Reports\Crystal\Estado de Cuenta Graco.rpt" />
     <Content Include="Reports\Crystal\Detalle de Facturas General.rpt" />
+    <Content Include="Reports\Crystal\Estado Pedido.rpt" />
+    <Content Include="Reports\Crystal\Despachos en ruta dia.rpt" />
     <None Include="Reports\Inventario.xsd">
       <Generator>MSDataSetGenerator</Generator>
       <LastGenOutput>Inventario2.Designer.cs</LastGenOutput>

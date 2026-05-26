@@ -163,6 +163,24 @@ namespace DiamDev.Give.UI.Controllers
                 SetCredenciales(sub, servidor, baseDatos, usuario, password);
         }
 
+        /// <summary>
+        /// Aplica credenciales HANA usando 4 claves de AppSettings independientes.
+        /// Útil para reportes que conectan a un schema HANA distinto (ej: APK66/SISTEMAS).
+        /// </summary>
+        private void AplicarConexionHanaConClaves(ReportDocument reporte,
+            string keyServer, string keyDatabase, string keyUser, string keyPassword)
+        {
+            string servidor = ConfigurationManager.AppSettings[keyServer];
+            string baseDatos = ConfigurationManager.AppSettings[keyDatabase];
+            string usuario = ConfigurationManager.AppSettings[keyUser];
+            string password = ConfigurationManager.AppSettings[keyPassword];
+
+            SetCredenciales(reporte, servidor, baseDatos, usuario, password);
+
+            foreach (ReportDocument sub in reporte.Subreports)
+                SetCredenciales(sub, servidor, baseDatos, usuario, password);
+        }
+
         private void SetCredenciales(ReportDocument rpt,
             string servidor, string db, string user, string pwd)
         {
@@ -255,20 +273,29 @@ namespace DiamDev.Give.UI.Controllers
         //  CRYSTAL REPORTS — HANA  (parámetros verificados con DiagParametros)
         // ════════════════════════════════════════════════════════════════════════
 
-        // ── SIN PARÁMETROS — abren directo ──────────────────────────────────────
-
-        public ActionResult DespachosEnRutaDia()
+        public ActionResult DespachosEnRutaDia(string empresa = "", string agente = "")
         {
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Despachos en ruta dia.rpt"));
-                AplicarConexionHana(rpt);
+
+                // ← Usa las credenciales específicas de APK66/SISTEMAS
+                AplicarConexionHanaConClaves(rpt,
+                    "HANA_Server_APK66",
+                    "HANA_Database_APK66",
+                    "HANA_User_APK66",
+                    "HANA_Password_APK66");
+
+                TrySetParametro(rpt, "Empresa", string.IsNullOrWhiteSpace(empresa) ? "*" : empresa);
+                TrySetParametro(rpt, "Agente", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
+
                 return ExportarPdf(rpt, "Despachos_En_Ruta_Dia");
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
-                rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Despachos en ruta dia");
+                rpt.Close(); rpt.Dispose();
+                return ContenidoError(ex, "Despachos en ruta dia");
             }
         }
 
@@ -350,7 +377,7 @@ namespace DiamDev.Give.UI.Controllers
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Backorder Agentes Faes.rpt"));
 
                 // Siempre SBOFAES — este .rpt es exclusivo de Faes
-                AplicarConexionHana(rpt, "SBOFAES");
+                AplicarConexionHana(rpt, "SBOESCOCESA");
 
                 string agenteParam = string.IsNullOrWhiteSpace(agente) || agente == "*"
                     ? "*"
@@ -371,35 +398,92 @@ namespace DiamDev.Give.UI.Controllers
             }
         }
 
+        // ══════════════════════════════════════════════════════════════════════
+        //  ESTADO DE CUENTA — un action por empresa (.rpt ya tiene param Agente)
+        // ══════════════════════════════════════════════════════════════════════
         // ── PARÁMETROS: FInicial + FFinal + Cliente ──────────────────────────────
         // ⚠️ Nombres EXACTOS del .rpt: FInicial / FFinal / Cliente (no FechaInicial/CardCode)
-
-        public ActionResult EstadoDeCuenta(string fechaInicial = "",
-                                            string fechaFinal = "",
-                                            string cardCode = "")
+        public ActionResult EstadoDeCuentaBolik(string fechaInicial = "",
+                                                 string fechaFinal = "",
+                                                 string cliente = "",
+                                                 string agente = "")
         {
             var rpt = new ReportDocument();
             try
             {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/Estado de Cuenta.rpt"));
-                AplicarConexionHana(rpt);
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Estado de Cuenta Bolik.rpt"));
+                AplicarConexionHana(rpt, "SBOBOLIK");
 
                 if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
                 {
                     TrySetParametro(rpt, "FInicial", Convert.ToDateTime(fechaInicial));
                     TrySetParametro(rpt, "FFinal", Convert.ToDateTime(fechaFinal));
                 }
+                if (!string.IsNullOrWhiteSpace(cliente))
+                    TrySetParametro(rpt, "Cliente", cliente);
 
-                if (!string.IsNullOrWhiteSpace(cardCode))
-                {
-                    TrySetParametro(rpt, "Cliente", cardCode);  // ← "Cliente", no "CardCode"
-                }
+                string agenteParam = string.IsNullOrWhiteSpace(agente) || agente == "*" ? "*" : agente;
+                TrySetParametro(rpt, "Agente", agenteParam);
 
-                string sufijo = string.IsNullOrWhiteSpace(cardCode) ? "General" : cardCode;
-                return ExportarPdf(rpt, $"Estado_Cuenta_{sufijo}");
+                return ExportarPdf(rpt, $"Estado_Cuenta_Bolik_{(string.IsNullOrWhiteSpace(cliente) ? "General" : cliente)}");
             }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Estado de Cuenta"); }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Estado de Cuenta Bolik"); }
         }
+
+        public ActionResult EstadoDeCuentaFaes(string fechaInicial = "",
+                                                string fechaFinal = "",
+                                                string cliente = "",
+                                                string agente = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Estado de Cuenta Faes.rpt"));
+                AplicarConexionHana(rpt, "SBOESCOCESA");
+
+                if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
+                {
+                    TrySetParametro(rpt, "FInicial", Convert.ToDateTime(fechaInicial));
+                    TrySetParametro(rpt, "FFinal", Convert.ToDateTime(fechaFinal));
+                }
+                if (!string.IsNullOrWhiteSpace(cliente))
+                    TrySetParametro(rpt, "Cliente", cliente);
+
+                string agenteParam = string.IsNullOrWhiteSpace(agente) || agente == "*" ? "*" : agente;
+                TrySetParametro(rpt, "Agente", agenteParam);
+
+                return ExportarPdf(rpt, $"Estado_Cuenta_Faes_{(string.IsNullOrWhiteSpace(cliente) ? "General" : cliente)}");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Estado de Cuenta Faes"); }
+        }
+
+        public ActionResult EstadoDeCuentaGraco(string fechaInicial = "",
+                                                 string fechaFinal = "",
+                                                 string cliente = "",
+                                                 string agente = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Estado de Cuenta Graco.rpt"));
+                AplicarConexionHana(rpt, "SBO_GRACO");
+
+                if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
+                {
+                    TrySetParametro(rpt, "FInicial", Convert.ToDateTime(fechaInicial));
+                    TrySetParametro(rpt, "FFinal", Convert.ToDateTime(fechaFinal));
+                }
+                if (!string.IsNullOrWhiteSpace(cliente))
+                    TrySetParametro(rpt, "Cliente", cliente);
+
+                string agenteParam = string.IsNullOrWhiteSpace(agente) || agente == "*" ? "*" : agente;
+                TrySetParametro(rpt, "Agente", agenteParam);
+
+                return ExportarPdf(rpt, $"Estado_Cuenta_Graco_{(string.IsNullOrWhiteSpace(cliente) ? "General" : cliente)}");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Estado de Cuenta Graco"); }
+        }
+
 
         // ── PARÁMETROS: Cliente + Pedido ─────────────────────────────────────────
         public ActionResult InventarioBolik(string Codigo_Producto = "", string Producto_Name = "")
@@ -462,8 +546,9 @@ namespace DiamDev.Give.UI.Controllers
 
         // [Permiso("Control.Reporte.Inventario")]
         public ActionResult EstadoPedido(string fechaInicial = "", string fechaFinal = "",
-                                  string vehiculo = "", string noRuta = "",
-                                  string agente = "", string documento = "")
+                          string vehiculo = "", string noRuta = "",
+                          string agente = "", string documento = "",
+                          string empresa = "")   // ← parámetro nuevo
         {
             var rpt = new ReportDocument();
             try
@@ -471,8 +556,7 @@ namespace DiamDev.Give.UI.Controllers
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Estado Pedido.rpt"));
                 AplicarConexionSql(rpt, "GiveContext");
 
-                if (!string.IsNullOrWhiteSpace(fechaInicial) &&
-                    !string.IsNullOrWhiteSpace(fechaFinal))
+                if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
                 {
                     TrySetParametro(rpt, "FECHA INICIAL", Convert.ToDateTime(fechaInicial));
                     TrySetParametro(rpt, "FECHA FINAL", Convert.ToDateTime(fechaFinal));
@@ -483,6 +567,10 @@ namespace DiamDev.Give.UI.Controllers
                 TrySetParametro(rpt, "AGENTE", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
                 TrySetParametro(rpt, "DOCUMENTO", string.IsNullOrWhiteSpace(documento) ? "*" : documento);
 
+                // ⚠️ Verifica que el valor que espera el .rpt coincida con lo que envía el select
+                // (ej: "INDUSTRIAS BOLIK, S.A." o "*" para todos)
+                TrySetParametro(rpt, "Empresa", string.IsNullOrWhiteSpace(empresa) ? "*" : empresa);
+
                 return ExportarPdf(rpt, "Estado_Pedido");
             }
             catch (Exception ex)
@@ -492,6 +580,11 @@ namespace DiamDev.Give.UI.Controllers
             }
         }
 
+        // ══════════════════════════════════════════════════════════════════════
+        //  DETALLE FACTURAS — un action por empresa, mismo .rpt, distinto schema
+        //  ⚠️ Si "Detalle de Facturas General.rpt" no declara el param "Agente",
+        //     TrySetParametro lo ignora sin error. Agrégalo al .rpt para filtrar.
+        // ══════════════════════════════════════════════════════════════════════
         // ── DETALLE FACTURAS — Empresa + Fechas + Cliente + Codigo + Producto ──────
         public ActionResult DetalleFacturas(string empresa = "SBOBOLIK",
                                             string fechaInicial = "",
@@ -502,12 +595,11 @@ namespace DiamDev.Give.UI.Controllers
         {
             // Whitelist de empresas permitidas
             var empresaDb = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-{
-    { "SBOBOLIK",    "SBOBOLIK"    },
-    { "SBOFAES",     "SBOFAES"     },   // ← NUEVO: empresa Faes
-    { "SBOESCOCESA", "SBOESCOCESA" },
-    { "SBO_GRACO",   "SBO_GRACO"   }
-};
+            {
+                { "SBOBOLIK",    "SBOBOLIK"    },
+                { "SBOESCOCESA", "SBOESCOCESA" },
+                { "SBO_GRACO",   "SBO_GRACO"   }
+            };
 
             string dbName = empresaDb.ContainsKey(empresa) ? empresaDb[empresa] : "SBOBOLIK";
             var rpt = new ReportDocument();
@@ -530,8 +622,99 @@ namespace DiamDev.Give.UI.Controllers
             }
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Detalle Facturas"); }
         }
+      
+        public ActionResult DetalleFacturasBolik(string fechaInicial = "",
+                                                  string fechaFinal = "",
+                                                  string cliente = "",
+                                                  string codigo = "",
+                                                  string producto = "",
+                                                  string agente = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Detalle de Facturas General.rpt"));
+                AplicarConexionHana(rpt);
 
+                if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
+                {
+                    TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicial));
+                    TrySetParametro(rpt, "Fecha Final", Convert.ToDateTime(fechaFinal));
+                    TrySetParametro(rpt, "Empresa", "INDUSTRIAS BOLIK, S.A.");
+                }
+                if (!string.IsNullOrWhiteSpace(cliente)) TrySetParametro(rpt, "Cliente", cliente);
+                if (!string.IsNullOrWhiteSpace(codigo)) TrySetParametro(rpt, "Codigo", codigo);
+                if (!string.IsNullOrWhiteSpace(producto)) TrySetParametro(rpt, "Producto", producto);
 
+                string agenteParam = string.IsNullOrWhiteSpace(agente) || agente == "*" ? "*" : agente;
+                TrySetParametro(rpt, "Agente", agenteParam);
+
+                return ExportarPdf(rpt, "Detalle_Facturas_Bolik");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Detalle Facturas Bolik"); }
+        }
+
+        public ActionResult DetalleFacturasFaes(string fechaInicial = "",
+                                                 string fechaFinal = "",
+                                                 string cliente = "",
+                                                 string codigo = "",
+                                                 string producto = "",
+                                                 string agente = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Detalle de Facturas General.rpt"));
+                AplicarConexionHana(rpt);
+
+                if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
+                {
+                    TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicial));
+                    TrySetParametro(rpt, "Fecha Final", Convert.ToDateTime(fechaFinal));
+                    TrySetParametro(rpt, "Empresa", "FABRICA ESCOCESA, S.A.");
+                }
+                if (!string.IsNullOrWhiteSpace(cliente)) TrySetParametro(rpt, "Cliente", cliente);
+                if (!string.IsNullOrWhiteSpace(codigo)) TrySetParametro(rpt, "Codigo", codigo);
+                if (!string.IsNullOrWhiteSpace(producto)) TrySetParametro(rpt, "Producto", producto);
+
+                string agenteParam = string.IsNullOrWhiteSpace(agente) || agente == "*" ? "*" : agente;
+                TrySetParametro(rpt, "Agente", agenteParam);
+
+                return ExportarPdf(rpt, "Detalle_Facturas_Faes");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Detalle Facturas Faes"); }
+        }
+
+        public ActionResult DetalleFacturasGraco(string fechaInicial = "",
+                                                  string fechaFinal = "",
+                                                  string cliente = "",
+                                                  string codigo = "",
+                                                  string producto = "",
+                                                  string agente = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Detalle de Facturas General.rpt"));
+                AplicarConexionHana(rpt);
+
+                if (!string.IsNullOrWhiteSpace(fechaInicial) && !string.IsNullOrWhiteSpace(fechaFinal))
+                {
+                    TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicial));
+                    TrySetParametro(rpt, "Fecha Final", Convert.ToDateTime(fechaFinal));
+                    TrySetParametro(rpt, "Empresa", "FABRICA GRACOPACK DE CENTROAMERICA, S.A.");
+                }
+                if (!string.IsNullOrWhiteSpace(cliente)) TrySetParametro(rpt, "Cliente", cliente);
+                if (!string.IsNullOrWhiteSpace(codigo)) TrySetParametro(rpt, "Codigo", codigo);
+                if (!string.IsNullOrWhiteSpace(producto)) TrySetParametro(rpt, "Producto", producto);
+
+                string agenteParam = string.IsNullOrWhiteSpace(agente) || agente == "*" ? "*" : agente;
+                TrySetParametro(rpt, "Agente", agenteParam);
+
+                return ExportarPdf(rpt, "Detalle_Facturas_Graco");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Detalle Facturas Graco"); }
+        }
 
         // ── Helpers internos ──────────────────────────────────────────────────
 
@@ -825,6 +1008,41 @@ namespace DiamDev.Give.UI.Controllers
             return Content(sb.ToString(), "text/html");
         }
 
+        public ActionResult DiagDespachos()
+        {
+            var rpt = new ReportDocument();
+            var sb = new System.Text.StringBuilder();
+            sb.Append("<style>body{font-family:monospace;padding:20px} table{border-collapse:collapse;width:100%} td,th{border:1px solid #ccc;padding:6px 10px} th{background:#2c3e50;color:white}</style>");
+            sb.Append("<h2>Diagnóstico: Despachos en ruta dia.rpt</h2><hr/>");
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Despachos en ruta dia.rpt"));
+
+                sb.Append("<h3>Tablas / Conexión embebida</h3><table>");
+                sb.Append("<tr><th>Tabla</th><th>ServerName</th><th>DatabaseName</th><th>UserID</th><th>Type</th></tr>");
+                foreach (CrystalDecisions.CrystalReports.Engine.Table t in rpt.Database.Tables)
+                {
+                    var li = t.LogOnInfo;
+                    sb.Append($"<tr><td>{t.Name}</td><td>{li.ConnectionInfo.ServerName}</td>" +
+                              $"<td>{li.ConnectionInfo.DatabaseName}</td><td>{li.ConnectionInfo.UserID}</td>" +
+                              $"<td>{li.ConnectionInfo.Type}</td></tr>");
+                }
+                sb.Append("</table>");
+
+                sb.Append("<h3>Parámetros del reporte</h3><table>");
+                sb.Append("<tr><th>Nombre</th><th>Tipo</th></tr>");
+                foreach (ParameterFieldDefinition p in rpt.DataDefinition.ParameterFields)
+                    sb.Append($"<tr><td>{p.Name}</td><td>{p.ParameterValueKind}</td></tr>");
+                sb.Append("</table>");
+
+                rpt.Close(); rpt.Dispose();
+            }
+            catch (Exception ex)
+            {
+                sb.Append($"<pre style='color:red'>{ex}</pre>");
+            }
+            return Content(sb.ToString(), "text/html");
+        }   
         // ═══════════════════════════════════════════════════════════════════════
         // ═══════════════════════════════════════════════════════════════════════
 

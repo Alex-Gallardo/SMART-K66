@@ -7,8 +7,6 @@
 
 @* ════════════════════════════════════════════════════════════
      COLLAPSE 1 — INVENTARIOS
-     Cards con data-empresa-id son ocultadas por JS si el usuario
-     no tiene acceso a esa empresa en Usuario_Empresa.
     ════════════════════════════════════════════════════════════ *@
 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Inventario"))
 {
@@ -23,7 +21,6 @@
         <div id="collapseInventario" class="panel-collapse collapse">
             <div class="panel-body">
 
-                @* INVENTARIO BOLIK — visible solo si usuario tiene Empresa_Id 20210705001 *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Bolik"))
                 {
                     <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
@@ -39,7 +36,6 @@
                     </div>
                 }
 
-                @* INVENTARIO GRACO — visible solo si usuario tiene Empresa_Id 20210705004 *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Graco"))
                 {
                     <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
@@ -55,12 +51,10 @@
                     </div>
                 }
 
-                @* INVENTARIO ESCOCESA — Escocesa no está en el sistema Usuario_Empresa,
-                    se controla solo por permiso Razor (sin filtro JS de empresa) *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Escocesa"))
                 {
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
-                        <div class="core-box">
+                    <div class="col-md-3">
+                        <div class="core-box card-empresa" data-empresa-id="20210705003">
                             <div class="heading">
                                 <i class="clip-archive circle-icon circle-blue"></i>
                                 <h2>Inventario Escocesa</h2>
@@ -93,18 +87,40 @@
         <div id="collapseVentas" class="panel-collapse collapse">
             <div class="panel-body">
 
-                @* DETALLE FACTURAS — el select de empresa en el modal
-                    se filtra dinámicamente en JS según empresas del usuario *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Ventas_Detalle_Factura"))
                 {
-                    <div class="col-md-3" id="cardDetalleFacturas">
+                    <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
                         <div class="core-box">
                             <div class="heading">
-                                <i class="clip-archive circle-icon circle-teal"></i>
-                                <h2>Detalle Facturas</h2>
+                                <i class="clip-clipboard circle-icon circle-teal"></i>
+                                <h2>Detalle Facturas Bolik</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="pedirDetalleFacturas('@Url.Action("DetalleFacturas", "Reporte")')"
+                               onclick="pedirDetalleFacturasEmpresa('@Url.Action("DetalleFacturasBolik", "Reporte")', 'Detalle Facturas Bolik', '20210705001')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-clipboard circle-icon circle-bricky"></i>
+                                <h2>Detalle Facturas Faes</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirDetalleFacturasEmpresa('@Url.Action("DetalleFacturasFaes", "Reporte")', 'Detalle Facturas Faes', '20210705003')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-clipboard circle-icon circle-green"></i>
+                                <h2>Detalle Facturas Graco</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirDetalleFacturasEmpresa('@Url.Action("DetalleFacturasGraco", "Reporte")', 'Detalle Facturas Graco', '20210705004')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>
@@ -131,17 +147,40 @@
         <div id="collapseCXC" class="panel-collapse collapse">
             <div class="panel-body">
 
-                @* ESTADO DE CUENTA — sin filtro de empresa *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.CXC_Estado_De_Cuenta"))
                 {
-                    <div class="col-md-3">
+                    <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
                         <div class="core-box">
                             <div class="heading">
                                 <i class="clip-archive circle-icon circle-teal"></i>
-                                <h2>Estado De Cuenta</h2>
+                                <h2>Estado de Cuenta Bolik</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="pedirFechasYCliente('@Url.Action("EstadoDeCuenta", "Reporte")', 'Estado de Cuenta')"
+                               onclick="pedirEstadoCuenta('@Url.Action("EstadoDeCuentaBolik", "Reporte")', 'Estado de Cuenta Bolik', '20210705001')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-archive circle-icon circle-bricky"></i>
+                                <h2>Estado de Cuenta Faes</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirEstadoCuenta('@Url.Action("EstadoDeCuentaFaes", "Reporte")', 'Estado de Cuenta Faes', '20210705003')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-archive circle-icon circle-green"></i>
+                                <h2>Estado de Cuenta Graco</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirEstadoCuenta('@Url.Action("EstadoDeCuentaGraco", "Reporte")', 'Estado de Cuenta Graco', '20210705004')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>
@@ -168,7 +207,6 @@
         <div id="collapseDistibucion" class="panel-collapse collapse">
             <div class="panel-body">
 
-                @* BACKORDER BOLIK — empresa 20210705001, pasa empresaId al modal *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Bolik"))
                 {
                     <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
@@ -184,7 +222,6 @@
                     </div>
                 }
 
-                @* BACKORDER GRACO — empresa 20210705004 *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Graco"))
                 {
                     <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
@@ -200,7 +237,6 @@
                     </div>
                 }
 
-                @* BACKORDER FAES — empresa 20210705003 *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Faes"))
                 {
                     <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
@@ -216,7 +252,7 @@
                     </div>
                 }
 
-                @* ESTADO PEDIDO — datos de SQL Server, sin filtro de empresa *@
+                @* Estado Pedido — ahora incluye Empresa en su modal *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Estado_Pedido"))
                 {
                     <div class="col-md-3">
@@ -226,13 +262,13 @@
                                 <h2>Estado Pedido</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="pedirRuta('@Url.Action("EstadoPedido", "Reporte")', 'Estado Pedido')"
+                               onclick="pedirRuta('@Url.Action("EstadoPedido", "Reporte")')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>
                 }
 
-                @* RUTAS — sin filtro de empresa (reporte general HANA) *@
+                @* Ruta — ahora abre modal con Empresa + Agente (ya no es directo) *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Ruta"))
                 {
                     <div class="col-md-3">
@@ -242,7 +278,7 @@
                                 <h2>Ruta</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="abrirCrystalDirecto('@Url.Action("DespachosEnRutaDia", "Reporte")')"
+                               onclick="pedirDespachos('@Url.Action("DespachosEnRutaDia", "Reporte")')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>
@@ -255,7 +291,7 @@
 
 
 @* ════════════════════════════════════════════════════════════
-     MODAL — INVENTARIO (Código + Nombre Producto)
+     MODAL — INVENTARIO
     ════════════════════════════════════════════════════════════ *@
 <div class="modal fade" id="modalInventario" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-sm" role="document">
@@ -270,11 +306,11 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="control-label">Código Producto <small class="text-muted">(vacío = todos)</small></label>
-                    <input type="text" id="codigoProducto" class="form-control" placeholder="Ej: XCODEX" />
+                    <input type="text" id="codigoProducto" class="form-control" placeholder="Ej: PT00001" />
                 </div>
                 <div class="form-group">
                     <label class="control-label">Nombre Producto <small class="text-muted">(vacío = todos)</small></label>
-                    <input type="text" id="nombreProducto" class="form-control" placeholder="Ej: Lapicero" />
+                    <input type="text" id="nombreProducto" class="form-control" placeholder="Ej: LAPICERO" />
                 </div>
             </div>
             <div class="modal-footer">
@@ -288,18 +324,37 @@
 </div>
 
 @* ════════════════════════════════════════════════════════════
-     MODAL — ESTADO PEDIDO / RUTAS (6 campos, SQL Server)
+     MODAL — ESTADO PEDIDO
+     Ahora incluye select de Empresa (nuevo parámetro del .rpt)
+     y select de Agente (todos los agentes del usuario)
     ════════════════════════════════════════════════════════════ *@
 <div class="modal fade" id="modalRuta" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">
-                    <i class="icon-truck teal"></i> Estado Pedido
-                </h4>
+                <h4 class="modal-title"><i class="icon-truck teal"></i> Estado Pedido</h4>
             </div>
             <div class="modal-body">
+
+                @* Empresa + Agente al inicio, como en los otros modales *@
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">Empresa</label>
+                            <select id="rutaEmpresa" class="form-control"></select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">Agente</label>
+                            <select id="rutaAgente" class="form-control"></select>
+                        </div>
+                    </div>
+                </div>
+
+                <hr style="margin:8px 0" />
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
@@ -332,21 +387,11 @@
                         </div>
                     </div>
                 </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="control-label">Agente <small class="text-muted">(vacío = todos)</small></label>
-                            <input type="text" id="rutaAgente" class="form-control" placeholder="Ej: ACODEX" />
-                        </div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="control-label">Documento <small class="text-muted">(vacío = todos)</small></label>
-                            <input type="text" id="rutaDocumento" class="form-control" placeholder="Ej: FAC-001" />
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label class="control-label">Documento <small class="text-muted">(vacío = todos)</small></label>
+                    <input type="text" id="rutaDocumento" class="form-control" placeholder="Ej: FAC-001" />
                 </div>
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
@@ -359,9 +404,43 @@
 </div>
 
 @* ════════════════════════════════════════════════════════════
+     MODAL — DESPACHOS EN RUTA DÍA
+     Nuevo modal: reemplaza el "abrirCrystalDirecto" anterior.
+     Solo tiene Empresa + Agente (los 2 parámetros del .rpt)
+    ════════════════════════════════════════════════════════════ *@
+<div class="modal fade" id="modalDespachos" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">
+                    <i class="clip-truck teal"></i> Despachos en Ruta
+                </h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="control-label">Empresa</label>
+                    <select id="despachosEmpresa" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                    <label class="control-label">
+                        Agente <small class="text-muted" id="despachosAgenteHelp"></small>
+                    </label>
+                    <select id="despachosAgente" class="form-control"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnVerDespachos">
+                    <i class="icon-file-pdf-alt"></i> Ver PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ════════════════════════════════════════════════════════════
      MODAL — BACKORDER
-     NUEVO: select de Agente poblado dinámicamente desde
-            GetUserEmpresaInfo según la empresa del reporte.
     ════════════════════════════════════════════════════════════ *@
 <div class="modal fade" id="modalBackorder" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -374,20 +453,13 @@
                 </h4>
             </div>
             <div class="modal-body">
-
-                @* ── AGENTE — se llena en JS con los agentes del usuario para esta empresa *@
                 <div class="form-group">
                     <label class="control-label">
-                        Agente
-                        <small class="text-muted" id="boAgenteHelp"></small>
+                        Agente <small class="text-muted" id="boAgenteHelp"></small>
                     </label>
-                    <select id="boAgente" class="form-control">
-                    </select>
+                    <select id="boAgente" class="form-control"></select>
                 </div>
-
                 <hr style="margin:8px 0" />
-
-                @* ── FILTROS OPCIONALES *@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
@@ -406,7 +478,6 @@
                     <label class="control-label">No. Pedido <small class="text-muted">(vacío = todos)</small></label>
                     <input type="text" id="boPedido" class="form-control" placeholder="Ej: 12345" />
                 </div>
-
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
@@ -419,35 +490,31 @@
 </div>
 
 @* ════════════════════════════════════════════════════════════
-     MODAL — DETALLE FACTURAS
-     NUEVO: opción FAES agregada. Las opciones se filtran en JS.
+     MODAL — ESTADO DE CUENTA (por empresa)
     ════════════════════════════════════════════════════════════ *@
-<div class="modal fade" id="modalDetalleFacturas" tabindex="-1" role="dialog">
+<div class="modal fade" id="modalEstadoCuenta" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
                 <h4 class="modal-title">
-                    <i class="icon-doc-text-inv teal"></i> Detalle Facturas
+                    <i class="clip-archive teal"></i>
+                    <span id="modalEstadoCuentaTitulo">Estado de Cuenta</span>
                 </h4>
             </div>
             <div class="modal-body">
-
-                @* data-empresa-id en cada <option> permite al JS filtrar por acceso del usuario *@
                 <div class="form-group">
-                    <label class="control-label">Empresa <span class="text-danger">*</span></label>
-                    <select id="dfEmpresa" class="form-control">
-                        <option value="SBOBOLIK" data-empresa-id="20210705001">Bolik</option>
-                        <option value="SBOESCOCESA" data-empresa-id="20210705003">Escocesa</option>
-                        <option value="SBO_GRACO" data-empresa-id="20210705004">Graco</option>
-                    </select>
+                    <label class="control-label">
+                        Agente <small class="text-muted" id="ecAgenteHelp"></small>
+                    </label>
+                    <select id="ecAgente" class="form-control"></select>
                 </div>
-
+                <hr style="margin:8px 0" />
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="control-label">Fecha Inicial <span class="text-danger">*</span></label>
-                            <input type="text" id="dfFechaInicial" class="form-control date-picker"
+                            <input type="text" id="ecFechaInicial" class="form-control date-picker"
                                    data-date-format="yyyy-mm-dd"
                                    value="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
@@ -455,7 +522,61 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="control-label">Fecha Final <span class="text-danger">*</span></label>
-                            <input type="text" id="dfFechaFinal" class="form-control date-picker"
+                            <input type="text" id="ecFechaFinal" class="form-control date-picker"
+                                   data-date-format="yyyy-mm-dd"
+                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label">Código Cliente <span class="text-danger">*</span></label>
+                    <input type="text" id="ecCliente" class="form-control" placeholder="Ej: CL0001" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnVerEstadoCuenta">
+                    <i class="icon-file-pdf-alt"></i> Ver PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ════════════════════════════════════════════════════════════
+     MODAL — DETALLE FACTURAS por empresa
+    ════════════════════════════════════════════════════════════ *@
+<div class="modal fade" id="modalDetalleFacturasEmpresa" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">
+                    <i class="clip-clipboard teal"></i>
+                    <span id="modalDFEmpresaTitulo">Detalle Facturas</span>
+                </h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="control-label">
+                        Agente <small class="text-muted" id="dfEmpresaAgenteHelp"></small>
+                    </label>
+                    <select id="dfEmpresaAgente" class="form-control"></select>
+                </div>
+                <hr style="margin:8px 0" />
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">Fecha Inicial <span class="text-danger">*</span></label>
+                            <input type="text" id="dfEmpresaFechaInicial" class="form-control date-picker"
+                                   data-date-format="yyyy-mm-dd"
+                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">Fecha Final <span class="text-danger">*</span></label>
+                            <input type="text" id="dfEmpresaFechaFinal" class="form-control date-picker"
                                    data-date-format="yyyy-mm-dd"
                                    value="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
@@ -464,67 +585,25 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="control-label">Código Cliente <small class="text-muted">(opcional)</small></label>
-                            <input type="text" id="dfCliente" class="form-control" placeholder="Ej: CL0001" />
+                            <label class="control-label">Código Cliente <span class="text-danger">*</span></label>
+                            <input type="text" id="dfEmpresaCliente" class="form-control" placeholder="Ej: CL0001" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="control-label">Código Artículo <small class="text-muted">(opcional)</small></label>
-                            <input type="text" id="dfCodigo" class="form-control" placeholder="Ej: ART-001" />
+                            <input type="text" id="dfEmpresaCodigo" class="form-control" placeholder="Ej: ART-001" />
                         </div>
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="control-label">Nombre Artículo <small class="text-muted">(opcional)</small></label>
-                    <input type="text" id="dfProducto" class="form-control" placeholder="Ej: DOMO" />
-                </div>
-
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnVerDetalleFacturas">
-                    <i class="icon-file-pdf-alt"></i> Ver PDF
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-@* ════════════════════════════════════════════════════════════
-     MODAL — Crystal Reports fechas genéricas (Estado de Cuenta, etc.)
-    ════════════════════════════════════════════════════════════ *@
-<div class="modal fade" id="modalCrystal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-sm" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">
-                    <i class="icon-bar-chart teal"></i>
-                    <span id="modalCrystalTitulo">Generar Reporte</span>
-                </h4>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="control-label">Fecha Inicial</label>
-                    <input type="text" id="crystalFechaInicial" class="form-control date-picker"
-                           data-date-format="yyyy-mm-dd"
-                           value="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                </div>
-                <div class="form-group">
-                    <label class="control-label">Fecha Final</label>
-                    <input type="text" id="crystalFechaFinal" class="form-control date-picker"
-                           data-date-format="yyyy-mm-dd"
-                           value="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                </div>
-                <div id="filaCrystalCardCode" class="form-group" style="display:none">
-                    <label class="control-label">Código Cliente SAP <small class="text-muted">*</small></label>
-                    <input type="text" id="crystalCardCode" class="form-control" placeholder="Ej: CL0001" />
+                    <input type="text" id="dfEmpresaProducto" class="form-control" placeholder="Ej: DOMO" />
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btnVerCrystal">
+                <button type="button" class="btn btn-primary" id="btnVerDFEmpresa">
                     <i class="icon-file-pdf-alt"></i> Ver PDF
                 </button>
             </div>
@@ -534,40 +613,47 @@
 
 
 @* ════════════════════════════════════════════════════════════
-     JAVASCRIPT — Al final del archivo, FUERA de @section Scripts
-     (el proyecto tiene problemas con @section Scripts en algunos layouts)
+     JAVASCRIPT
     ════════════════════════════════════════════════════════════ *@
-@* ════════════════════════════════════════════════════════════
-     JAVASCRIPT — Al final del archivo, FUERA de @section Scripts
-    ════════════════════════════════════════════════════════════ *@
-
 @section Scripts {
-
     <script type="text/javascript">
 
     // ── ESTADO GLOBAL ────────────────────────────────────────────────────────
-    var _userEmpresaInfo    = null;
-    var _urlCrystalBase     = "";
-    var _urlBackorderBase   = "";
-    var _urlDetalleFacturas = "";
-    var _empresaIdBackorder = null;
+    var _userEmpresaInfo       = null;
+    var _urlCrystalBase        = "";
+    var _urlBackorderBase      = "";
+    var _urlEstadoCuentaBase   = "";
+    var _urlDFEmpresaBase      = "";
+    var _urlDespachosBase      = "";
+    var _empresaIdBackorder    = null;
+    var _empresaIdEstadoCuenta = null;
+    var _empresaIdDFEmpresa    = null;
 
     var EMP_BOLIK = "20210705001";
     var EMP_FAES  = "20210705003";
     var EMP_GRACO = "20210705004";
 
-    // ── DOCUMENT READY — aquí van TANTO la carga inicial COMO todos los handlers
-    // ────────────────────────────────────────────────────────────────────────────
-    // Por qué: en MVC 5, el layout puede cargar jQuery DESPUÉS de RenderBody(),
-    // lo que significa que las sentencias $.on("click",...) fuera de ready()
-    // fallan silenciosamente porque $ puede no existir aún cuando el script corre.
-    // Las funciones (function keyword) sí se hositan y funcionan siempre,
-    // pero los .on() son sentencias imperativas que solo corren cuando se alcanzan.
+    // Nombres de empresa que espera Crystal Reports como parámetro.
+    // ⚠️ Verifica que estos valores coincidan con lo que filtra cada .rpt.
+    // Si Estado Pedido o Despachos usan un formato distinto, ajusta aquí.
+    var EMP_CRYSTAL = {};
+    EMP_CRYSTAL[EMP_BOLIK] = "INDUSTRIAS BOLIK, S.A.";
+    EMP_CRYSTAL[EMP_FAES]  = "FABRICA ESCOCESA, S.A.";
+    EMP_CRYSTAL[EMP_GRACO] = "FABRICA GRACOPACK DE CENTROAMERICA, S.A.";
+
+    var EMP_DISPLAY = {};
+    EMP_DISPLAY[EMP_BOLIK] = "Bolik";
+    EMP_DISPLAY[EMP_FAES]  = "Faes";
+    EMP_DISPLAY[EMP_GRACO] = "Graco";
+
+    // ════════════════════════════════════════════════════════
+    //  DOCUMENT READY
+    // ════════════════════════════════════════════════════════
     $(document).ready(function () {
-        // ── Carga inicial ────────────────────────────────────────────────────
+
         cargarInfoEmpresaUsuario();
 
-        // ── HANDLER: Inventario ──────────────────────────────────────────────
+        // ── Inventario ───────────────────────────────────────
         $("#btnVerInventario").on("click", function () {
             var cod = $("#codigoProducto").val().trim();
             var nom = $("#nombreProducto").val().trim();
@@ -579,100 +665,112 @@
             window.open(url, "_blank");
         });
 
-        // ── HANDLER: Backorder ───────────────────────────────────────────────
+        // ── Backorder ────────────────────────────────────────
         $("#btnVerBackorder").on("click", function () {
             var ag = $("#boAgente").val();
             var cl = $("#boCliente").val().trim();
             var pr = $("#boProducto").val().trim();
             var pd = $("#boPedido").val().trim();
-
             var url = _urlBackorderBase + "?";
             url += "agente=" + encodeURIComponent(ag) + "&";
             if (cl) url += "cliente="  + encodeURIComponent(cl) + "&";
             if (pr) url += "producto=" + encodeURIComponent(pr) + "&";
             if (pd) url += "pedido="   + encodeURIComponent(pd) + "&";
             url = url.replace(/[&?]$/, "");
-
             $("#modalBackorder").modal("hide");
             window.open(url, "_blank");
         });
 
-        // ── HANDLER: Crystal (fechas genéricas + Estado de Cuenta) ──────────
-        $("#btnVerCrystal").on("click", function () {
-            var fi = $("#crystalFechaInicial").val().trim();
-            var ff = $("#crystalFechaFinal").val().trim();
-            var cc = $("#crystalCardCode").val().trim();
+        // ── Estado de Cuenta ─────────────────────────────────
+        $("#btnVerEstadoCuenta").on("click", function () {
+            var ag = $("#ecAgente").val();
+            var fi = $("#ecFechaInicial").val().trim();
+            var ff = $("#ecFechaFinal").val().trim();
+            var cl = $("#ecCliente").val().trim();
             if (!fi || !ff) { toastr.error("Selecciona ambas fechas"); return; }
-            if (fi > ff)    { toastr.error("Fecha inicial mayor que fecha final"); return; }
-            var url = _urlCrystalBase
+            if (fi > ff) { toastr.error("Fecha inicial mayor que fecha final"); return; }
+            if (!cl)    { toastr.error("Codigo de cliente obligatorio"); return; }
+            var url = _urlEstadoCuentaBase
                 + "?fechaInicial=" + encodeURIComponent(fi)
                 + "&fechaFinal="   + encodeURIComponent(ff);
-            if (cc) url += "&cardCode=" + encodeURIComponent(cc);
-            $("#modalCrystal").modal("hide");
+            url += "&agente=" + encodeURIComponent(ag);
+            if (cl) url += "&cliente=" + encodeURIComponent(cl);
+            $("#modalEstadoCuenta").modal("hide");
             window.open(url, "_blank");
         });
 
-        // ── HANDLER: Estado Pedido / Rutas ───────────────────────────────────
+        // ── Detalle Facturas por empresa ──────────────────────
+        $("#btnVerDFEmpresa").on("click", function () {
+            var ag = $("#dfEmpresaAgente").val();
+            var fi = $("#dfEmpresaFechaInicial").val().trim();
+            var ff = $("#dfEmpresaFechaFinal").val().trim();
+            var cl = $("#dfEmpresaCliente").val().trim();
+            var cd = $("#dfEmpresaCodigo").val().trim();
+            var pr = $("#dfEmpresaProducto").val().trim();
+            if (!fi || !ff) { toastr.error("Selecciona ambas fechas"); return; }
+            if (fi > ff)    { toastr.error("Fecha inicial mayor que fecha final"); return; }
+            var url = _urlDFEmpresaBase
+                + "?fechaInicial=" + encodeURIComponent(fi)
+                + "&fechaFinal="   + encodeURIComponent(ff);
+            url += "&agente=" + encodeURIComponent(ag);
+            if (cl) url += "&cliente="  + encodeURIComponent(cl);
+            if (cd) url += "&codigo="   + encodeURIComponent(cd);
+            if (pr) url += "&producto=" + encodeURIComponent(pr);
+            $("#modalDetalleFacturasEmpresa").modal("hide");
+            window.open(url, "_blank");
+        });
+
+        // ── Estado Pedido (ahora incluye Empresa) ─────────────
         $("#btnVerRuta").on("click", function () {
-            var fi = $("#rutaFechaInicial").val().trim();
-            var ff = $("#rutaFechaFinal").val().trim();
-            var vh = $("#rutaVehiculo").val().trim();
-            var nr = $("#rutaNoRuta").val().trim();
-            var ag = $("#rutaAgente").val().trim();
-            var dc = $("#rutaDocumento").val().trim();
+            var emp = $("#rutaEmpresa").val();
+            var ag  = $("#rutaAgente").val();
+            var fi  = $("#rutaFechaInicial").val().trim();
+            var ff  = $("#rutaFechaFinal").val().trim();
+            var vh  = $("#rutaVehiculo").val().trim();
+            var nr  = $("#rutaNoRuta").val().trim();
+            var dc  = $("#rutaDocumento").val().trim();
             if (!fi || !ff) { toastr.error("Las fechas son obligatorias"); return; }
             if (fi > ff)    { toastr.error("Fecha inicial mayor que fecha final"); return; }
             var url = _urlCrystalBase
                 + "?fechaInicial=" + encodeURIComponent(fi)
                 + "&fechaFinal="   + encodeURIComponent(ff);
+            url += "&empresa=" + encodeURIComponent(emp);
+            url += "&agente="  + encodeURIComponent(ag);
             if (vh) url += "&vehiculo="  + encodeURIComponent(vh);
             if (nr) url += "&noRuta="    + encodeURIComponent(nr);
-            if (ag) url += "&agente="    + encodeURIComponent(ag);
             if (dc) url += "&documento=" + encodeURIComponent(dc);
             $("#modalRuta").modal("hide");
             window.open(url, "_blank");
         });
 
-        // ── HANDLER: Detalle Facturas ────────────────────────────────────────
-        $("#btnVerDetalleFacturas").on("click", function () {
-            var emp = $("#dfEmpresa").val();
-            var fi  = $("#dfFechaInicial").val().trim();
-            var ff  = $("#dfFechaFinal").val().trim();
-            var cl  = $("#dfCliente").val().trim();
-            var cd  = $("#dfCodigo").val().trim();
-            var pr  = $("#dfProducto").val().trim();
-            if (!fi || !ff) { toastr.error("Selecciona ambas fechas"); return; }
-            if (fi > ff)    { toastr.error("Fecha inicial mayor que fecha final"); return; }
-            var url = _urlDetalleFacturas
-                + "?empresa="      + encodeURIComponent(emp)
-                + "&fechaInicial=" + encodeURIComponent(fi)
-                + "&fechaFinal="   + encodeURIComponent(ff);
-            if (cl) url += "&cliente="  + encodeURIComponent(cl);
-            if (cd) url += "&codigo="   + encodeURIComponent(cd);
-            if (pr) url += "&producto=" + encodeURIComponent(pr);
-            $("#modalDetalleFacturas").modal("hide");
+        // ── Despachos en Ruta Día (nuevo modal) ──────────────
+        $("#btnVerDespachos").on("click", function () {
+            var emp = $("#despachosEmpresa").val();
+            var ag  = $("#despachosAgente").val();
+            var url = _urlDespachosBase
+                + "?empresa=" + encodeURIComponent(emp)
+                + "&agente="  + encodeURIComponent(ag);
+            $("#modalDespachos").modal("hide");
             window.open(url, "_blank");
         });
 
-    }); // ── FIN document.ready ───────────────────────────────────────────────
+    }); // ── FIN document.ready ───────────────────────────────
 
 
-    // ── FUNCIONES GLOBALES (llamadas desde onclick="" en el HTML) ────────────
-    // Estas van FUERA de ready() intencionalmente: son invocadas por atributos
-    // onclick="" y necesitan estar en el scope global. Las function declarations
-    // se hositan al tope del scope sin importar dónde estén escritas.
+    // ════════════════════════════════════════════════════════
+    //  FUNCIONES GLOBALES
+    // ════════════════════════════════════════════════════════
 
     function cargarInfoEmpresaUsuario() {
         $.getJSON('@Url.Action("GetUserEmpresaInfo", "Reporte")', function (data) {
             _userEmpresaInfo = data;
-            // NOTA: se eliminó el "debugger" que estaba aquí y pausaba ejecución
             aplicarVisibilidadReportes();
-            filtrarEmpresasDetalleFacturas();
         }).fail(function () {
             console.warn("[ReporteIndex] No se pudo cargar info de empresas del usuario.");
         });
     }
 
+    // ── Visibilidad ──────────────────────────────────────────
     function tieneAccesoEmpresa(empresaIdStr) {
         if (!_userEmpresaInfo) return true;
         return _userEmpresaInfo.Agentes.some(function (a) {
@@ -689,28 +787,62 @@
         });
     }
 
-    function filtrarEmpresasDetalleFacturas() {
+    // ── Helper: puebla select de agentes por empresa ─────────
+    function poblarSelectAgentes(sel, empresaId, helpSpanId) {
+        sel.empty();
+        if (helpSpanId) $(helpSpanId).text("");
         if (!_userEmpresaInfo) return;
+        var agentes = _userEmpresaInfo.Agentes.filter(function (a) {
+            return a.EmpresaId === empresaId.toString();
+        });
+        if (agentes.length === 0) {
+            if (helpSpanId) $(helpSpanId).text("(sin agentes registrados)");
+        } else {
+            $.each(agentes, function (i, a) {
+                if (a.AgenteNombre) {
+                    sel.append($("<option>", { value: a.AgenteNombre, text: a.AgenteNombre }));
+                }
+            });
+            if (agentes.length === 1 && agentes[0].AgenteNombre) {
+                sel.val(agentes[0].AgenteNombre);
+            }
+        }
+    }
 
-        $("#dfEmpresa option").each(function () {
-            var empId = $(this).attr("data-empresa-id");
-            if (empId && empId !== "" && !tieneAccesoEmpresa(empId)) {
-                $(this).remove();
+    /**
+     * Puebla un select con las empresas a las que el usuario tiene acceso.
+     * El value de cada option es el nombre Crystal que espera el .rpt (EMP_CRYSTAL).
+     * ⚠️ Si el .rpt espera un valor distinto, ajusta EMP_CRYSTAL arriba.
+     */
+    function poblarSelectEmpresas(sel) {
+        sel.empty();
+        if (!_userEmpresaInfo) return;
+        var vistas = {};
+        $.each(_userEmpresaInfo.Agentes, function (i, a) {
+            if (a.EmpresaId && !vistas[a.EmpresaId]) {
+                vistas[a.EmpresaId] = true;
+                var cristalVal  = EMP_CRYSTAL[a.EmpresaId]  || a.EmpresaNombre;
+                var displayName = EMP_DISPLAY[a.EmpresaId] || a.EmpresaNombre;
+                sel.append($("<option>", { value: cristalVal, text: displayName }));
             }
         });
+       }
 
-        var opciones = $("#dfEmpresa option");
-        if (opciones.length === 1) {
-            $("#dfEmpresa").val(opciones.first().val());
-        }
-        if (opciones.length === 0 && $("#cardDetalleFacturas").length) {
-            $("#cardDetalleFacturas").hide();
-        }
+    function poblarSelectEmpresasAbrev(sel) {
+        sel.empty();
+        if (!_userEmpresaInfo) return;
+        var vistas = {};
+        $.each(_userEmpresaInfo.Agentes, function (i, a) {
+            if (a.EmpresaId && !vistas[a.EmpresaId]) {
+                vistas[a.EmpresaId] = true;
+                var cristalVal = a.EmpresaId == '20210705001' ? 'BOLIK' : a.EmpresaId == '20210705003' ? 'FAES' : a.EmpresaId== '20210705004'?'GRACO':a.EmpresaNombre
+                var displayName = EMP_DISPLAY[a.EmpresaId] || a.EmpresaNombre;
+                sel.append($("<option>", { value: cristalVal, text: displayName }));
+            }
+        });
     }
 
-    function abrirCrystalDirecto(url) {
-        window.open(url, "_blank");
-    }
+    // ── Apertura de modales ──────────────────────────────────
 
     function pedirInventario(urlBase, titulo) {
         _urlCrystalBase = urlBase;
@@ -723,69 +855,123 @@
     function pedirBackorder(urlBase, titulo, empresaId) {
         _urlBackorderBase   = urlBase;
         _empresaIdBackorder = empresaId ? empresaId.toString() : null;
-
         $("#modalBackorderTitulo").text(titulo || "Backorder");
+        poblarSelectAgentes($("#boAgente"), _empresaIdBackorder, "#boAgenteHelp");
+        $("#boCliente, #boProducto, #boPedido").val("");
+        $("#modalBackorder").modal("show");
+        setTimeout(function () { $("#boAgente").focus(); }, 400);
+    }
 
-        var sel = $("#boAgente");
+    function pedirEstadoCuenta(urlBase, titulo, empresaId) {
+        _urlEstadoCuentaBase   = urlBase;
+        _empresaIdEstadoCuenta = empresaId ? empresaId.toString() : null;
+        $("#modalEstadoCuentaTitulo").text(titulo || "Estado de Cuenta");
+        poblarSelectAgentes($("#ecAgente"), _empresaIdEstadoCuenta, "#ecAgenteHelp");
+        $("#ecCliente").val("");
+        $("#modalEstadoCuenta").modal("show");
+        setTimeout(function () { $("#ecAgente").focus(); }, 400);
+    }
 
-        // ACCION FUTURA ---> (VER TODOS LOS AGENTES)
-        // sel.empty().append('<option value="*">-- Todos --</option>');
-        $("#boAgenteHelp").text("");
+    function pedirDetalleFacturasEmpresa(urlBase, titulo, empresaId) {
+        _urlDFEmpresaBase   = urlBase;
+        _empresaIdDFEmpresa = empresaId ? empresaId.toString() : null;
+        $("#modalDFEmpresaTitulo").text(titulo || "Detalle Facturas");
+        poblarSelectAgentes($("#dfEmpresaAgente"), _empresaIdDFEmpresa, "#dfEmpresaAgenteHelp");
+        $("#dfEmpresaCliente, #dfEmpresaCodigo, #dfEmpresaProducto").val("");
+        $("#modalDetalleFacturasEmpresa").modal("show");
+        setTimeout(function () { $("#dfEmpresaAgente").focus(); }, 400);
+    }
 
-        if (_userEmpresaInfo && _empresaIdBackorder) {
-            var agentes = _userEmpresaInfo.Agentes.filter(function (a) {
-                return a.EmpresaId === _empresaIdBackorder;
+    /**
+     * Estado Pedido — puebla Empresa (todas las del usuario) y
+     * Agente (filtrando según empresa seleccionada en tiempo real)
+     */
+    function pedirRuta(urlBase) {
+        _urlCrystalBase = urlBase;
+
+        // Poblar empresas del usuario
+        poblarSelectEmpresasAbrev($("#rutaEmpresa"));
+
+        // Poblar agentes con todos los del usuario (cross-empresa)
+        var selAgente = $("#rutaAgente");
+        selAgente.empty();
+        if (_userEmpresaInfo) {
+            var vistos = {};
+            $.each(_userEmpresaInfo.Agentes, function (i, a) {
+                if (a.AgenteNombre && !vistos[a.AgenteNombre]) {
+                    vistos[a.AgenteNombre] = true;
+                    selAgente.append($("<option>", { value: a.AgenteNombre, text: a.AgenteNombre }));
+                }
             });
+        }
 
+        $("#rutaVehiculo, #rutaNoRuta, #rutaDocumento").val("");
+        $("#modalRuta").modal("show");
+        setTimeout(function () { $("#rutaEmpresa").focus(); }, 400);
+    }
+
+    /**
+     * Despachos en Ruta Día — nuevo modal con Empresa + Agente.
+     * La empresa seleccionada filtra los agentes disponibles.
+     */
+    function pedirDespachos(urlBase) {
+        _urlDespachosBase = urlBase;
+
+        // Poblar empresas
+        poblarSelectEmpresasAbrev($("#despachosEmpresa"));
+
+        // Poblar agentes de la primera empresa por defecto
+        // var primeraEmpresa = $("#despachosEmpresa option:first").data ? null : null;
+        // Se poblarán los agentes según la empresa seleccionada
+        actualizarAgentesDespachos();
+
+        // Al cambiar empresa, actualizar agentes disponibles
+        $("#despachosEmpresa").off("change.despachos").on("change.despachos", function () {
+            actualizarAgentesDespachos();
+        });
+
+        $("#modalDespachos").modal("show");
+        setTimeout(function () { $("#despachosEmpresa").focus(); }, 400);
+    }
+
+    /**
+     * Actualiza el select de Agente en el modal Despachos
+     * según la Empresa seleccionada en ese mismo modal.
+     */
+    function actualizarAgentesDespachos() {
+        if (!_userEmpresaInfo) return;
+
+        // Encontrar el empresaId que corresponde al valor Crystal seleccionado
+        var desVal = $("#despachosEmpresa").val();
+        var empresaId = null;
+
+        // Actualizacion de Empresas
+        var cristalVal = desVal == 'GRACO' ? "FABRICA GRACOPACK DE CENTROAMERICA, S.A." : desVal == 'BOLIK' ? "INDUSTRIAS BOLIK, S.A." : "FABRICA ESCOCESA, S.A."
+        // debugger
+
+        $.each(Object.keys(EMP_CRYSTAL), function (i, id) {
+            if (EMP_CRYSTAL[id] === cristalVal) { empresaId = id; return false; }
+        });
+
+        var sel = $("#despachosAgente");
+        sel.empty();
+        $("#despachosAgenteHelp").text("");
+
+        if (empresaId) {
+            var agentes = _userEmpresaInfo.Agentes.filter(function (a) {
+                return a.EmpresaId === empresaId;
+            });
             if (agentes.length === 0) {
-                $("#boAgenteHelp").text("(sin agentes registrados)");
+                $("#despachosAgenteHelp").text("(sin agentes para esta empresa)");
             } else {
                 $.each(agentes, function (i, a) {
                     if (a.AgenteNombre) {
                         sel.append($("<option>", { value: a.AgenteNombre, text: a.AgenteNombre }));
                     }
                 });
-                if (agentes.length === 1 && agentes[0].AgenteNombre) {
-                    sel.val(agentes[0].AgenteNombre);
-                }
+                if (agentes.length === 1) sel.val(agentes[0].AgenteNombre);
             }
         }
-
-        $("#boCliente, #boProducto, #boPedido").val("");
-        $("#modalBackorder").modal("show");
-        setTimeout(function () { sel.focus(); }, 400);
-    }
-
-    function pedirFechasCrystal(urlBase, titulo) {
-        _urlCrystalBase = urlBase;
-        $("#modalCrystalTitulo").text(titulo || "Generar Reporte");
-        $("#filaCrystalCardCode").hide();
-        $("#crystalCardCode").val("");
-        $("#modalCrystal").modal("show");
-        setTimeout(function () { $("#crystalFechaInicial").focus(); }, 400);
-    }
-
-    function pedirFechasYCliente(urlBase, titulo) {
-        _urlCrystalBase = urlBase;
-        $("#modalCrystalTitulo").text(titulo || "Generar Reporte");
-        $("#filaCrystalCardCode").show();
-        $("#crystalCardCode").val("");
-        $("#modalCrystal").modal("show");
-        setTimeout(function () { $("#crystalFechaInicial").focus(); }, 400);
-    }
-
-    function pedirRuta(urlBase, titulo) {
-        _urlCrystalBase = urlBase;
-        $("#rutaVehiculo, #rutaNoRuta, #rutaAgente, #rutaDocumento").val("");
-        $("#modalRuta").modal("show");
-        setTimeout(function () { $("#rutaFechaInicial").focus(); }, 400);
-    }
-
-    function pedirDetalleFacturas(urlBase) {
-        _urlDetalleFacturas = urlBase;
-        $("#dfCliente, #dfCodigo, #dfProducto").val("");
-        $("#modalDetalleFacturas").modal("show");
-        setTimeout(function () { $("#dfFechaInicial").focus(); }, 400);
     }
 
     </script>

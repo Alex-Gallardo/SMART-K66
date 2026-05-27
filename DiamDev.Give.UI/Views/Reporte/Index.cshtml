@@ -252,7 +252,7 @@
                     </div>
                 }
 
-                @* Estado Pedido — ahora incluye Empresa en su modal *@
+                @* Estado Pedido — ahora incluye Empresa en su modal - MODIFICADO (Ahora llama a DespachosEnRuta) *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Estado_Pedido"))
                 {
                     <div class="col-md-3">
@@ -262,26 +262,28 @@
                                 <h2>Estado Pedido</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="pedirRuta('@Url.Action("EstadoPedido", "Reporte")')"
+                               onclick="pedirDespachos('@Url.Action("DespachosEnRutaDia", "Reporte")')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                            @*onclick="pedirRuta('@Url.Action("EstadoPedido", "Reporte")')"*@
                         </div>
                     </div>
                 }
 
-                @* Ruta — ahora abre modal con Empresa + Agente (ya no es directo) *@
+                @* Ruta — ahora abre modal con Empresa + Agente (ya no es directo) (DEPRECADO) *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Ruta"))
                 {
-                    <div class="col-md-3">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-truck circle-icon circle-green"></i>
-                                <h2>Ruta</h2>
+                    @*<div class="col-md-3">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-truck circle-icon circle-green"></i>
+                                    <h2>Ruta</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirDespachos('Url.Action("DespachosEnRutaDia", "Reporte")')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                             </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirDespachos('@Url.Action("DespachosEnRutaDia", "Reporte")')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                        </div>
-                    </div>
+                        </div>*@
+                    <div></div>
                 }
 
             </div>
@@ -405,11 +407,10 @@
 
 @* ════════════════════════════════════════════════════════════
      MODAL — DESPACHOS EN RUTA DÍA
-     Nuevo modal: reemplaza el "abrirCrystalDirecto" anterior.
-     Solo tiene Empresa + Agente (los 2 parámetros del .rpt)
+     6 parámetros: Agente, Empresa, Fecha Inicio, Fecha Fin, Cliente, Pedido
     ════════════════════════════════════════════════════════════ *@
 <div class="modal fade" id="modalDespachos" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
@@ -418,16 +419,65 @@
                 </h4>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label class="control-label">Empresa</label>
-                    <select id="despachosEmpresa" class="form-control"></select>
+
+                @* Empresa + Agente: select dinámico por empresa del usuario *@
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">Empresa</label>
+                            <select id="despachosEmpresa" class="form-control"></select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">
+                                Agente <small class="text-muted" id="despachosAgenteHelp"></small>
+                            </label>
+                            <select id="despachosAgente" class="form-control"></select>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="control-label">
-                        Agente <small class="text-muted" id="despachosAgenteHelp"></small>
-                    </label>
-                    <select id="despachosAgente" class="form-control"></select>
+
+                <hr style="margin:8px 0" />
+
+                @* Fechas *@
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">Fecha Inicio <span class="text-danger">*</span></label>
+                            <input type="text" id="despachosFechaInicio" class="form-control date-picker"
+                                   data-date-format="yyyy-mm-dd"
+                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">Fecha Fin <span class="text-danger">*</span></label>
+                            <input type="text" id="despachosFechaFin" class="form-control date-picker"
+                                   data-date-format="yyyy-mm-dd"
+                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
                 </div>
+
+                @* Cliente + Pedido *@
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">Cliente <small class="text-muted">(vacío = todos)</small></label>
+                            <input type="text" id="despachosCliente" class="form-control"
+                                   placeholder="Ej: CL0001" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">No. Pedido <small class="text-muted">(vacío = todos)</small></label>
+                            <input type="text" id="despachosPedido" class="form-control"
+                                   placeholder="Ej: 12345" />
+                        </div>
+                    </div>
+                </div>
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
@@ -708,7 +758,8 @@
             var cd = $("#dfEmpresaCodigo").val().trim();
             var pr = $("#dfEmpresaProducto").val().trim();
             if (!fi || !ff) { toastr.error("Selecciona ambas fechas"); return; }
-            if (fi > ff)    { toastr.error("Fecha inicial mayor que fecha final"); return; }
+            if (fi > ff) { toastr.error("Fecha inicial mayor que fecha final"); return; }
+            if (!cl) { toastr.error("Codigo de cliente obligatorio"); return; }
             var url = _urlDFEmpresaBase
                 + "?fechaInicial=" + encodeURIComponent(fi)
                 + "&fechaFinal="   + encodeURIComponent(ff);
@@ -744,12 +795,27 @@
         });
 
         // ── Despachos en Ruta Día (nuevo modal) ──────────────
+        // ── Despachos en Ruta Día ─────────────────────────────
         $("#btnVerDespachos").on("click", function () {
             var emp = $("#despachosEmpresa").val();
-            var ag  = $("#despachosAgente").val();
+            var ag = $("#despachosAgente").val();
+            var fi = $("#despachosFechaInicio").val().trim();
+            var ff = $("#despachosFechaFin").val().trim();
+            var cl = $("#despachosCliente").val().trim();
+            var pd = $("#despachosPedido").val().trim();
+
+            if (!fi || !ff) { toastr.error("Las fechas son obligatorias"); return; }
+            if (fi > ff) { toastr.error("Fecha inicio mayor que fecha fin"); return; }
+
             var url = _urlDespachosBase
                 + "?empresa=" + encodeURIComponent(emp)
-                + "&agente="  + encodeURIComponent(ag);
+                + "&agente=" + encodeURIComponent(ag)
+                + "&fechaInicio=" + encodeURIComponent(fi)
+                + "&fechaFin=" + encodeURIComponent(ff);
+
+            if (cl) url += "&cliente=" + encodeURIComponent(cl);
+            if (pd) url += "&pedido=" + encodeURIComponent(pd);
+
             $("#modalDespachos").modal("hide");
             window.open(url, "_blank");
         });
@@ -917,18 +983,19 @@
     function pedirDespachos(urlBase) {
         _urlDespachosBase = urlBase;
 
-        // Poblar empresas
+        // Poblar empresas del usuario
         poblarSelectEmpresasAbrev($("#despachosEmpresa"));
 
-        // Poblar agentes de la primera empresa por defecto
-        // var primeraEmpresa = $("#despachosEmpresa option:first").data ? null : null;
-        // Se poblarán los agentes según la empresa seleccionada
+        // Poblar agentes según la empresa seleccionada por defecto
         actualizarAgentesDespachos();
 
-        // Al cambiar empresa, actualizar agentes disponibles
+        // Al cambiar empresa, actualizar agentes
         $("#despachosEmpresa").off("change.despachos").on("change.despachos", function () {
             actualizarAgentesDespachos();
         });
+
+        // Limpiar campos opcionales
+        $("#despachosCliente, #despachosPedido").val("");
 
         $("#modalDespachos").modal("show");
         setTimeout(function () { $("#despachosEmpresa").focus(); }, 400);

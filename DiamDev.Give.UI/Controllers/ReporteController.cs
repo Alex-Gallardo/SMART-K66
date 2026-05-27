@@ -272,23 +272,35 @@ namespace DiamDev.Give.UI.Controllers
         // ════════════════════════════════════════════════════════════════════════
         //  CRYSTAL REPORTS — HANA  (parámetros verificados con DiagParametros)
         // ════════════════════════════════════════════════════════════════════════
-
-        public ActionResult DespachosEnRutaDia(string empresa = "", string agente = "")
+        public ActionResult DespachosEnRutaDia(string empresa = "",
+                                        string agente = "",
+                                        string fechaInicio = "",
+                                        string fechaFin = "",
+                                        string cliente = "",
+                                        string pedido = "")
         {
             var rpt = new ReportDocument();
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Despachos en ruta dia.rpt"));
 
-                // ← Usa las credenciales específicas de APK66/SISTEMAS
                 AplicarConexionHanaConClaves(rpt,
                     "HANA_Server_APK66",
                     "HANA_Database_APK66",
                     "HANA_User_APK66",
                     "HANA_Password_APK66");
 
-                TrySetParametro(rpt, "Empresa", string.IsNullOrWhiteSpace(empresa) ? "*" : empresa);
+                // Nombres EXACTOS del .rpt según DiagParametros
                 TrySetParametro(rpt, "Agente", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
+                TrySetParametro(rpt, "Empresa", string.IsNullOrWhiteSpace(empresa) ? "*" : empresa);
+                TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
+                TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
+
+                if (!string.IsNullOrWhiteSpace(fechaInicio) && !string.IsNullOrWhiteSpace(fechaFin))
+                {
+                    TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicio));
+                    TrySetParametro(rpt, "Fecha Fin", Convert.ToDateTime(fechaFin));
+                }
 
                 return ExportarPdf(rpt, "Despachos_En_Ruta_Dia");
             }
@@ -640,7 +652,7 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicial));
                     TrySetParametro(rpt, "Fecha Final", Convert.ToDateTime(fechaFinal));
-                    TrySetParametro(rpt, "Empresa", "INDUSTRIAS BOLIK, S.A.");
+                    TrySetParametro(rpt, "Empresa", "BOLIK");
                 }
                 if (!string.IsNullOrWhiteSpace(cliente)) TrySetParametro(rpt, "Cliente", cliente);
                 if (!string.IsNullOrWhiteSpace(codigo)) TrySetParametro(rpt, "Codigo", codigo);
@@ -671,7 +683,7 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicial));
                     TrySetParametro(rpt, "Fecha Final", Convert.ToDateTime(fechaFinal));
-                    TrySetParametro(rpt, "Empresa", "FABRICA ESCOCESA, S.A.");
+                    TrySetParametro(rpt, "Empresa", "FAES");
                 }
                 if (!string.IsNullOrWhiteSpace(cliente)) TrySetParametro(rpt, "Cliente", cliente);
                 if (!string.IsNullOrWhiteSpace(codigo)) TrySetParametro(rpt, "Codigo", codigo);
@@ -702,7 +714,7 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicial));
                     TrySetParametro(rpt, "Fecha Final", Convert.ToDateTime(fechaFinal));
-                    TrySetParametro(rpt, "Empresa", "FABRICA GRACOPACK DE CENTROAMERICA, S.A.");
+                    TrySetParametro(rpt, "Empresa", "GRACO");
                 }
                 if (!string.IsNullOrWhiteSpace(cliente)) TrySetParametro(rpt, "Cliente", cliente);
                 if (!string.IsNullOrWhiteSpace(codigo)) TrySetParametro(rpt, "Codigo", codigo);

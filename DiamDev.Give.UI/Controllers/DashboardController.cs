@@ -48,7 +48,7 @@ namespace DiamDev.Give.UI.Controllers
                     cmd.Parameters.AddWithValue("@p1", from);
                     cmd.Parameters.AddWithValue("@p2", to);
 
-                    using (var reader = cmd.ExecuteReader())
+                    using (OdbcDataReader reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
                         {

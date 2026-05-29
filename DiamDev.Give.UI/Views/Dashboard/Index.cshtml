@@ -233,6 +233,18 @@
             font-weight: 600;
         }
 
+        .estado-cerrada {
+            color: var(--good);
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .estado-abierta {
+            color: var(--warn);
+            font-weight: 600;
+            font-size: 11px;
+        }
+
         @@media(max-width:900px) {
             .charts {
                 grid-template-columns: 1fr;
@@ -302,7 +314,7 @@
             <div class="kpi">
                 <div class="label">% Eficiencia</div>
                 <div class="value" id="kpiEf">—</div>
-                <div class="delta">Plan / Real</div>
+                <div class="delta">Plan / Real OT</div>
             </div>
 
             <div class="kpi">
@@ -312,9 +324,9 @@
             </div>
 
             <div class="kpi">
-                <div class="label">Ingreso EM</div>
+                <div class="label">Cant. Producida</div>
                 <div class="value" id="kpiEM">—</div>
-                <div class="delta">unidades producidas</div>
+                <div class="delta">cant. total OTs en rango</div>
             </div>
         </section>
 
@@ -355,12 +367,17 @@
                                 <th>UoM</th>
                                 <th>Recurso</th>
                                 <th>Máquina</th>
+                                <th>Estado OT</th>
+                                <th class="num">Cant.Plan</th>
+                                <th class="num">Cant.Hecha</th>
                                 <th class="num">H.Plan</th>
                                 <th class="num">H.Real Día</th>
+                                <th class="num">H.Real Rango</th>
                                 <th class="num">H.Real OT</th>
-                                <th class="num">H.Paro</th>
-                                <th class="num">EM</th>
-                                <th class="num">% Efic.</th>
+                                <th class="num">P×T Plan</th>
+                                <th class="num">P×T Real</th>
+                                <th class="num">Efic.Día</th>
+                                <th class="num">Efic.Rango</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -391,7 +408,7 @@
             date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
             const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
             const wk = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
-            return date.getUTCFullYear() + '-W' + String(wk).padStart(2, '0');
+            return date.getUTCFullYear() + '-W' + String(wk).padStart(2, '00');
         }
 
         function effClass(pct) {
@@ -437,7 +454,6 @@
 
             try {
 
-                // ✅ Razor genera automáticamente la ruta correcta
                 var urlGetData = '@Url.Action("GetData", "Dashboard")';
 
                 const url =
@@ -504,89 +520,97 @@
             fillTable();
         }
 
+        // ─── CAMBIO: todas las referencias de columna actualizadas a la nueva consulta ───
         function renderKpis() {
-            const sumReal = raw.reduce((a, r) => a + (+r.HorasRealesDia || 0), 0);
+            // CAMBIO: HorasRealesDia → "Hora Real Día"
+            const sumReal = raw.reduce((a, r) => a + (+r["Hora Real Día"] || 0), 0);
 
+            // CAMBIO: HorasPlanificadas → "Hora Plan" | HorasRealesOT → "Hora Real OT"
+            // Se desduplicad por OT+Posicion+Recurso para evitar doble conteo
             const planMap = {};
             raw.forEach(r => {
                 const k = `${r.OT}|${r.PosicionOT}|${r.CodigoRecurso}`;
                 if (!(k in planMap)) {
                     planMap[k] = {
-                        plan: +r.HorasPlanificadas || 0,
-                        realOT: +r.HorasRealesOT || 0
+                        plan:   +r["Hora Plan"]     || 0,
+                        realOT: +r["Hora Real OT"]  || 0
                     };
                 }
             });
 
-            const sumPlan = Object.values(planMap).reduce((a, o) => a + o.plan, 0);
+            const sumPlan   = Object.values(planMap).reduce((a, o) => a + o.plan,   0);
             const sumRealOT = Object.values(planMap).reduce((a, o) => a + o.realOT, 0);
 
-            const emMap = {};
+            // CAMBIO: IngresoEM eliminado → "Cantidad Hecha" (total acumulado por OT+Posicion)
+            // Se desduplicad por OT+Posicion porque CantidadRealTotal ya es el total de la OT
+            const cantMap = {};
             raw.forEach(r => {
-                if (r.IngresoEM !== null && r.IngresoEM !== undefined) {
-                    const k = `${r.Fecha}|${r.OT}|${r.PosicionOT}`;
-                    emMap[k] = +r.IngresoEM || 0;
+                if (r["Cantidad Hecha"] !== null && r["Cantidad Hecha"] !== undefined) {
+                    const k = `${r.OT}|${r.PosicionOT}`;
+                    cantMap[k] = +r["Cantidad Hecha"] || 0;
                 }
             });
+            const sumCant = Object.values(cantMap).reduce((a, v) => a + v, 0);
 
-            const sumEM = Object.values(emMap).reduce((a, v) => a + v, 0);
-
+            // Paro estimado: 24h - horas reales por recurso·día (igual que antes)
             const recDiaMap = {};
             raw.forEach(r => {
-                const k = `${r.Fecha}|${r.CodigoRecurso}`;
-                recDiaMap[k] = (recDiaMap[k] || 0) + (+r.HorasRealesDia || 0);
+                const k = `${String(r.Fecha).slice(0, 10)}|${r.CodigoRecurso}`;
+                recDiaMap[k] = (recDiaMap[k] || 0) + (+r["Hora Real Día"] || 0);
             });
 
             const sumParo = Object.values(recDiaMap)
                 .reduce((a, h) => a + Math.max(24 - h, 0), 0);
 
-            $('kpiReal').textContent = fmt(sumReal) + ' h';
+            $('kpiReal').textContent    = fmt(sumReal) + ' h';
             $('kpiRealSub').textContent = `${raw.length} registros`;
 
-            $('kpiPlan').textContent = fmt(sumPlan) + ' h';
+            $('kpiPlan').textContent    = fmt(sumPlan) + ' h';
             $('kpiPlanSub').textContent = sumPlan ? `Δ ${fmt(sumReal - sumPlan)} h vs real` : '';
 
-            $('kpiCump').textContent = sumPlan ? fmtPct(sumReal / sumPlan) : '—';
-            $('kpiEf').textContent = sumRealOT ? fmtPct(sumPlan / sumRealOT) : '—';
+            $('kpiCump').textContent = sumPlan   ? fmtPct(sumReal   / sumPlan)   : '—';
+            $('kpiEf').textContent   = sumRealOT ? fmtPct(sumPlan   / sumRealOT) : '—';
 
-            $('kpiParo').textContent = fmt(sumParo) + ' h';
+            $('kpiParo').textContent    = fmt(sumParo) + ' h';
             $('kpiParoSub').textContent = `${Object.keys(recDiaMap).length} recurso·días`;
 
-            $('kpiEM').textContent = fmt(sumEM);
+            $('kpiEM').textContent = fmt(sumCant);
         }
 
+        // ─── CAMBIO: referencias de columna en drawTrend ───
         function drawTrend() {
             const bucket = $('bucket').value;
             const agg = {};
             const planSeen = new Set();
 
             raw.forEach(r => {
-                const key = bucket === 'week' ? isoWeek(r.Fecha) : String(r.Fecha).slice(0, 10);
+                const key = bucket === 'week'
+                    ? isoWeek(r.Fecha)
+                    : String(r.Fecha).slice(0, 10);
 
                 if (!agg[key]) {
-                    agg[key] = {
-                        real: 0,
-                        plan: 0,
-                        recDia: {}
-                    };
+                    agg[key] = { real: 0, plan: 0, recDia: {} };
                 }
 
-                agg[key].real += (+r.HorasRealesDia || 0);
+                // CAMBIO: HorasRealesDia → "Hora Real Día"
+                agg[key].real += (+r["Hora Real Día"] || 0);
 
+                // CAMBIO: HorasPlanificadas → "Hora Plan"
                 const planKey = `${key}|${r.OT}|${r.PosicionOT}|${r.CodigoRecurso}`;
                 if (!planSeen.has(planKey)) {
                     planSeen.add(planKey);
-                    agg[key].plan += (+r.HorasPlanificadas || 0);
+                    agg[key].plan += (+r["Hora Plan"] || 0);
                 }
 
+                // CAMBIO: HorasRealesDia → "Hora Real Día"
                 const rk = `${String(r.Fecha).slice(0, 10)}|${r.CodigoRecurso}`;
-                agg[key].recDia[rk] = (agg[key].recDia[rk] || 0) + (+r.HorasRealesDia || 0);
+                agg[key].recDia[rk] = (agg[key].recDia[rk] || 0) + (+r["Hora Real Día"] || 0);
             });
 
             const labels = Object.keys(agg).sort();
-            const real = labels.map(k => agg[k].real);
-            const plan = labels.map(k => agg[k].plan);
-            const paro = labels.map(k =>
+            const real   = labels.map(k => agg[k].real);
+            const plan   = labels.map(k => agg[k].plan);
+            const paro   = labels.map(k =>
                 Object.values(agg[k].recDia).reduce((a, h) => a + Math.max(24 - h, 0), 0)
             );
 
@@ -628,43 +652,30 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: {
-                            labels: {
-                                color: '#e2e8f0'
-                            }
-                        }
+                        legend: { labels: { color: '#e2e8f0' } }
                     },
                     scales: {
                         x: {
-                            ticks: {
-                                color: '#94a3b8',
-                                maxRotation: 35,
-                                minRotation: 35
-                            },
-                            grid: {
-                                color: '#27344966'
-                            }
+                            ticks: { color: '#94a3b8', maxRotation: 35, minRotation: 35 },
+                            grid:  { color: '#27344966' }
                         },
                         y: {
                             beginAtZero: true,
-                            ticks: {
-                                color: '#94a3b8'
-                            },
-                            grid: {
-                                color: '#27344966'
-                            }
+                            ticks: { color: '#94a3b8' },
+                            grid:  { color: '#27344966' }
                         }
                     }
                 }
             });
         }
 
+        // ─── CAMBIO: HorasRealesDia → "Hora Real Día" ───
         function drawByResource() {
             const agg = {};
 
             raw.forEach(r => {
                 const k = r.DescripcionRecurso || r.CodigoRecurso || '—';
-                agg[k] = (agg[k] || 0) + (+r.HorasRealesDia || 0);
+                agg[k] = (agg[k] || 0) + (+r["Hora Real Día"] || 0);
             });
 
             const pairs = Object.entries(agg)
@@ -677,62 +688,47 @@
                 type: 'bar',
                 data: {
                     labels: pairs.map(p => p[0]),
-                    datasets: [
-                        {
-                            label: 'Horas reales',
-                            data: pairs.map(p => p[1]),
-                            backgroundColor: '#22d3ee'
-                        }
-                    ]
+                    datasets: [{
+                        label: 'Horas reales',
+                        data: pairs.map(p => p[1]),
+                        backgroundColor: '#22d3ee'
+                    }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     indexAxis: 'y',
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
                         x: {
                             beginAtZero: true,
-                            ticks: {
-                                color: '#94a3b8'
-                            },
-                            grid: {
-                                color: '#27344966'
-                            }
+                            ticks: { color: '#94a3b8' },
+                            grid:  { color: '#27344966' }
                         },
                         y: {
-                            ticks: {
-                                color: '#94a3b8'
-                            },
-                            grid: {
-                                color: '#27344966'
-                            }
+                            ticks: { color: '#94a3b8' },
+                            grid:  { color: '#27344966' }
                         }
                     }
                 }
             });
         }
 
+        // ─── CAMBIO: HorasRealesDia → "Hora Real Día" ───
         function drawUtil() {
             const map = {};
 
             raw.forEach(r => {
-                const rec = r.DescripcionRecurso || r.CodigoRecurso || '—';
+                const rec   = r.DescripcionRecurso || r.CodigoRecurso || '—';
                 const fecha = String(r.Fecha).slice(0, 10);
-                const dk = fecha + '|' + r.CodigoRecurso;
+                const dk    = fecha + '|' + r.CodigoRecurso;
 
                 if (!map[rec]) {
-                    map[rec] = {
-                        real: {},
-                        dias: new Set()
-                    };
+                    map[rec] = { real: {}, dias: new Set() };
                 }
 
-                map[rec].real[dk] = (map[rec].real[dk] || 0) + (+r.HorasRealesDia || 0);
+                // CAMBIO: HorasRealesDia → "Hora Real Día"
+                map[rec].real[dk] = (map[rec].real[dk] || 0) + (+r["Hora Real Día"] || 0);
                 map[rec].dias.add(fecha);
             });
 
@@ -740,7 +736,7 @@
 
             Object.entries(map).forEach(([rec, v]) => {
                 const totReal = Object.values(v.real).reduce((a, h) => a + h, 0);
-                const dispo = v.dias.size * 24;
+                const dispo   = v.dias.size * 24;
 
                 if (dispo > 0) {
                     pairs.push([rec, +(totReal / dispo * 100).toFixed(1)]);
@@ -756,86 +752,85 @@
                 type: 'bar',
                 data: {
                     labels: top.map(p => p[0]),
-                    datasets: [
-                        {
-                            label: '% Utilización',
-                            data: top.map(p => p[1]),
-                            backgroundColor: top.map(p =>
-                                p[1] >= 70 ? '#10b981' : p[1] >= 40 ? '#f59e0b' : '#ef4444'
-                            )
-                        }
-                    ]
+                    datasets: [{
+                        label: '% Utilización',
+                        data: top.map(p => p[1]),
+                        backgroundColor: top.map(p =>
+                            p[1] >= 70 ? '#10b981' : p[1] >= 40 ? '#f59e0b' : '#ef4444'
+                        )
+                    }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     indexAxis: 'y',
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
                         x: {
-                            min: 0,
-                            max: 100,
-                            ticks: {
-                                color: '#94a3b8',
-                                callback: v => v + '%'
-                            },
-                            grid: {
-                                color: '#27344966'
-                            }
+                            min: 0, max: 100,
+                            ticks: { color: '#94a3b8', callback: v => v + '%' },
+                            grid:  { color: '#27344966' }
                         },
                         y: {
-                            ticks: {
-                                color: '#94a3b8'
-                            },
-                            grid: {
-                                color: '#27344966'
-                            }
+                            ticks: { color: '#94a3b8' },
+                            grid:  { color: '#27344966' }
                         }
                     }
                 }
             });
         }
 
+        // ─── CAMBIO: todas las columnas de la tabla actualizadas ───
         function fillTable() {
             const tb = $('tabla').querySelector('tbody');
             tb.innerHTML = '';
 
             raw.slice(0, 500).forEach(r => {
                 const tr = document.createElement('tr');
-                const pct = +r.PctEficiencia;
-                const cls = effClass(pct);
+
+                // CAMBIO: PctEficiencia → "Eficiencia Dia"
+                const efDia   = +r["Eficiencia Dia"];
+                const efRango = r["Eficiencia Rango"];
+                const cls     = effClass(efDia);
+
+                // CAMBIO: estado para colorear
+                const estadoCls = (r.EstadoOT || '').toLowerCase() === 'cerrada'
+                    ? 'estado-cerrada'
+                    : 'estado-abierta';
 
                 tr.innerHTML = `
-              <td>${String(r.Fecha || '').slice(0, 10)}</td>
-              <td>${r.OT ?? ''}</td>
-              <td>${r.PosicionOT ?? ''}</td>
-              <td>${r.ItemID ?? ''}</td>
-              <td>${r.DescripcionItem ?? ''}</td>
-              <td>${r.UnidadMedida ?? ''}</td>
-              <td>${r.CodigoRecurso ?? ''}</td>
-              <td>${r.DescripcionRecurso ?? ''}</td>
-              <td class="num">${fmt(r.HorasPlanificadas)}</td>
-              <td class="num">${fmt(r.HorasRealesDia)}</td>
-              <td class="num">${fmt(r.HorasRealesOT)}</td>
-              <td class="num">${fmt(r.HorasParo24h)}</td>
-              <td class="num">${r.IngresoEM != null ? fmt(r.IngresoEM) : ''}</td>
-              <td class="num ${cls}">${isNaN(pct) ? '' : fmt(pct) + '%'}</td>
-            `;
+                    <td>${String(r.Fecha || '').slice(0, 10)}</td>
+                    <td>${r.OT          ?? ''}</td>
+                    <td>${r.PosicionOT  ?? ''}</td>
+                    <td>${r.ItemID      ?? ''}</td>
+                    <td>${r.DescripcionItem ?? ''}</td>
+                    <td>${r.UnidadMedida   ?? ''}</td>
+                    <td>${r.CodigoRecurso  ?? ''}</td>
+                    <td>${r.DescripcionRecurso ?? ''}</td>
+                    <td class="${estadoCls}">${r.EstadoOT ?? ''}</td>
+                    <td class="num">${fmt(r["Cantidad Planeada"])}</td>
+                    <td class="num">${fmt(r["Cantidad Hecha"])}</td>
+                    <td class="num">${fmt(r["Hora Plan"])}</td>
+                    <td class="num">${fmt(r["Hora Real Día"])}</td>
+                    <td class="num">${fmt(r["Hora Real Rango"])}</td>
+                    <td class="num">${fmt(r["Hora Real OT"])}</td>
+                    <td class="num">${fmt(r["Pieza*turnoPlan"])}</td>
+                    <td class="num">${fmt(r["Pieza*turnoReal"])}</td>
+                    <td class="num ${cls}">${isNaN(efDia)  ? '' : fmt(efDia)   + '%'}</td>
+                    <td class="num">${efRango != null       ? fmt(efRango) + '%' : ''}</td>
+                `;
 
                 tb.appendChild(tr);
             });
 
             if (raw.length > 500) {
                 const tr = document.createElement('tr');
+                // CAMBIO: colspan actualizado de 14 → 19 (columnas nuevas)
                 tr.innerHTML = `
-              <td colspan="14" style="text-align:center;color:#94a3b8">
-                Mostrando 500 de ${raw.length} filas
-              </td>
-            `;
+                    <td colspan="19" style="text-align:center;color:#94a3b8">
+                        Mostrando 500 de ${raw.length} filas
+                    </td>
+                `;
                 tb.appendChild(tr);
             }
         }

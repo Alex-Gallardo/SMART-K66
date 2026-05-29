@@ -1,4 +1,4 @@
-WITH PARAMS AS
+﻿WITH PARAMS AS
 (
     SELECT
         TO_DATE(?) AS "FechaIni",
@@ -268,61 +268,55 @@ SELECT
     D."CantidadRealTotal"  AS "Cantidad Hecha",
 
     D."HoraPlan"       AS "Hora Plan",
-    D."HoraRealDia"    AS "Hora Real D�a",
+    D."HoraRealDia"    AS "Hora Real Día",
     D."HoraRealRango"  AS "Hora Real Rango",
     D."HoraRealOT"     AS "Hora Real OT",
 
-    ROUND(
-        D."CantidadPlaneada"
-        /
-        (D."HoraPlan" / D."HorasTurno"),
-    2) AS "Pieza*turnoPlan",
+    -- FIX 1: guard HoraPlan = 0  (antes: sin CASE → 50 / (0/11) explotaba)
+    CASE
+        WHEN COALESCE(D."HoraPlan", 0) > 0
+        THEN ROUND(
+                 D."CantidadPlaneada"
+                 / (D."HoraPlan" / D."HorasTurno"),
+             2)
+    END AS "Pieza*turnoPlan",
 
+    -- Sin cambio: ya tenía guard HoraRealDia > 0
     CASE
         WHEN D."HoraRealDia" > 0
         THEN ROUND(
-            D."CantidadRealDia"
-            /
-            (D."HoraRealDia" / D."HorasTurno"),
-        2)
+                 D."CantidadRealDia"
+                 / (D."HoraRealDia" / D."HorasTurno"),
+             2)
     END AS "Pieza*turnoReal",
 
+    -- FIX 2: añadido AND HoraPlan > 0 AND CantidadPlaneada > 0
+    --        (el denominador interno era CantidadPlaneada/(HoraPlan/11) = 0 cuando HoraPlan=0)
     CASE
-        WHEN D."HoraRealDia" > 0
+        WHEN D."HoraRealDia"  > 0
+         AND COALESCE(D."HoraPlan", 0)          > 0
+         AND COALESCE(D."CantidadPlaneada", 0)  > 0
         THEN ROUND(
-            (
-                (
-                    D."CantidadRealDia"
-                    /
-                    (D."HoraRealDia" / D."HorasTurno")
-                )
-                /
-                (
-                    D."CantidadPlaneada"
-                    /
-                    (D."HoraPlan" / D."HorasTurno")
-                )
-            ) * 100,
-        2)
+                 (
+                     (D."CantidadRealDia"  / (D."HoraRealDia"  / D."HorasTurno"))
+                     /
+                     (D."CantidadPlaneada" / (D."HoraPlan"      / D."HorasTurno"))
+                 ) * 100,
+             2)
     END AS "Eficiencia Dia",
 
+    -- FIX 3: mismo patrón para el rango
     CASE
         WHEN D."HoraRealRango" > 0
+         AND COALESCE(D."HoraPlan", 0)          > 0
+         AND COALESCE(D."CantidadPlaneada", 0)  > 0
         THEN ROUND(
-            (
-                (
-                    D."CantidadRealRango"
-                    /
-                    (D."HoraRealRango" / D."HorasTurno")
-                )
-                /
-                (
-                    D."CantidadPlaneada"
-                    /
-                    (D."HoraPlan" / D."HorasTurno")
-                )
-            ) * 100,
-        2)
+                 (
+                     (D."CantidadRealRango" / (D."HoraRealRango" / D."HorasTurno"))
+                     /
+                     (D."CantidadPlaneada"  / (D."HoraPlan"       / D."HorasTurno"))
+                 ) * 100,
+             2)
     END AS "Eficiencia Rango"
 
 FROM DETALLE D

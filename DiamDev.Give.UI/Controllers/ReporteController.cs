@@ -240,6 +240,66 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         /// <summary>
+        /// Aplica credenciales SQL Server ÚNICAMENTE a las tablas del reporte principal.
+        /// ⚠️ NO itera subreportes — cada subreporte recibe su propia conexión por separado.
+        /// Caso de uso: reportes mixtos donde el main usa SQL y el sub usa HANA.
+        /// </summary>
+        private void AplicarConexionSqlSoloMain(ReportDocument reporte,
+            string connectionStringName = "GiveContext")
+        {
+            var cs = System.Configuration.ConfigurationManager
+                         .ConnectionStrings[connectionStringName].ConnectionString;
+            var builder = new System.Data.SqlClient.SqlConnectionStringBuilder(cs);
+
+            // Solo el reporte principal, subreportes NO
+            SetCredencialesSql(reporte,
+                builder.DataSource,
+                builder.InitialCatalog,
+                builder.UserID,
+                builder.Password);
+        }
+
+        /// <summary>
+        /// Aplica credenciales HANA a un subreporte específico buscándolo por nombre exacto.
+        /// ⚠️ El nombre debe coincidir con el de la pestaña del subreporte en Crystal Reports.
+        /// Si no lo encuentra, no lanza excepción — solo loguea en Debug.
+        /// Preserva el driver B1CRHPROXY del .rpt porque usa SetCredenciales (propiedad x propiedad).
+        /// </summary>
+        private void AplicarConexionHanaSubreporte(ReportDocument reporte,
+            string nombreSubreporte,
+            string keyServer, string keyDatabase, string keyUser, string keyPassword)
+        {
+            string servidor = ConfigurationManager.AppSettings[keyServer];
+            string baseDatos = ConfigurationManager.AppSettings[keyDatabase];
+            string usuario = ConfigurationManager.AppSettings[keyUser];
+            string password = ConfigurationManager.AppSettings[keyPassword];
+
+            bool encontrado = false;
+
+            foreach (ReportDocument sub in reporte.Subreports)
+            {
+                // OrdinalIgnoreCase por si Crystal agrega espacios o cambia capitalización
+                if (string.Equals(sub.Name, nombreSubreporte, StringComparison.OrdinalIgnoreCase))
+                {
+                    // SetCredenciales preserva el driver B1CRHPROXY — no reemplaza el objeto
+                    SetCredenciales(sub, servidor, baseDatos, usuario, password);
+                    encontrado = true;
+                    break;
+                }
+            }
+
+            if (!encontrado)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"[AplicarConexionHanaSubreporte] ADVERTENCIA: subreporte '{nombreSubreporte}' " +
+                    $"no encontrado. Subreportes disponibles: " +
+                    string.Join(", ", reporte.Subreports
+                        .Cast<ReportDocument>()
+                        .Select(s => $"'{s.Name}'")));
+            }
+        }
+
+        /// <summary>
         /// Exporta el ReportDocument a PDF y lo devuelve inline en el browser.
         /// Llama a Close/Dispose siempre para evitar leaks de memoria en IIS.
         /// </summary>
@@ -273,24 +333,44 @@ namespace DiamDev.Give.UI.Controllers
         //  CRYSTAL REPORTS — HANA  (parámetros verificados con DiagParametros)
         // ════════════════════════════════════════════════════════════════════════
         public ActionResult DespachosEnRutaDia(string empresa = "",
-                                        string agente = "",
-                                        string fechaInicio = "",
-                                        string fechaFin = "",
-                                        string cliente = "",
-                                        string pedido = "")
+                                string agente = "",
+                                string fechaInicio = "",
+                                string fechaFin = "",
+                                string cliente = "",
+                                string pedido = "")
         {
             var rpt = new ReportDocument();
             try
             {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/Despachos en ruta dia.rpt"));
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Reporte despachos en ruta.rpt"));
 
-                AplicarConexionHanaConClaves(rpt,
-                    "HANA_Server_APK66",
-                    "HANA_Database_APK66",
-                    "HANA_User_APK66",
-                    "HANA_Password_APK66");
+                // ═══════════════════════════════════════════════════════════════
+                //  PASO 1: SQL Server → reporte PRINCIPAL
+                //  ⚠️ AplicarConexionSqlSoloMain NO toca subreportes.
+                //     Esto evita que las credenciales SQL sobreescriban las HANA
+                //     del subreporte DatosFacturaHANA.
+                // ═══════════════════════════════════════════════════════════════
+                AplicarConexionSqlSoloMain(rpt, "GiveContext");
 
-                // Nombres EXACTOS del .rpt según DiagParametros
+                // ═══════════════════════════════════════════════════════════════
+                //  PASO 2: HANA APK66 → SOLO el subreporte "DatosFacturaHANA"
+                //  ⚠️ AplicarConexionHanaSubreporte busca por nombre y solo aplica
+                //     a ese subreporte específico, sin tocar el main report.
+                // ═══════════════════════════════════════════════════════════════
+                AplicarConexionHanaSubreporte(rpt,
+                    nombreSubreporte: "DatosFacturaHANA",
+                    keyServer: "HANA_Server_APK66",
+                    keyDatabase: "HANA_Database_APK66",
+                    keyUser: "HANA_User_APK66",
+                    keyPassword: "HANA_Password_APK66");
+
+                // ═══════════════════════════════════════════════════════════════
+                //  PASO 3: Parámetros del reporte principal
+                //  Nombres EXACTOS confirmados en Field Explorer:
+                //  Agente, Empresa, Fecha Inicio, Fecha Fin, Cliente, Pedido
+                //  El parámetro Pm-Comando.ID_DOCUMENTO del subreporte lo gestiona
+                //  Crystal automáticamente via subreport link — no lo seteamos.
+                // ═══════════════════════════════════════════════════════════════
                 TrySetParametro(rpt, "Agente", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
                 TrySetParametro(rpt, "Empresa", string.IsNullOrWhiteSpace(empresa) ? "*" : empresa);
                 TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
@@ -1054,7 +1134,127 @@ namespace DiamDev.Give.UI.Controllers
                 sb.Append($"<pre style='color:red'>{ex}</pre>");
             }
             return Content(sb.ToString(), "text/html");
-        }   
+        }
+
+        /// <summary>
+        /// Diagnóstico para reporte mixto SQL + HANA.
+        /// Muestra el nombre EXACTO de cada subreporte y sus drivers de conexión.
+        /// Úsalo si DespachosEnRutaDia sigue fallando para confirmar el nombre del subreporte.
+        /// Navega a: /Reporte/DiagDespachosRutaMixto
+        /// </summary>
+        public ActionResult DiagDespachosRutaMixto()
+        {
+            var rpt = new ReportDocument();
+            var sb = new System.Text.StringBuilder();
+            sb.Append(@"<style>
+                            body  { font-family: monospace; padding: 20px; }
+                            table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+                            th    { background: #2c3e50; color: white; padding: 8px 12px; text-align: left; }
+                            td    { border: 1px solid #ddd; padding: 6px 12px; }
+                            tr:nth-child(even) { background: #f5f5f5; }
+                            h3    { color: #2c3e50; border-bottom: 2px solid #3498db; }
+                            .ok   { color: green; font-weight: bold; }
+                            .warn { color: orange; font-weight: bold; }
+                            .err  { color: red; font-weight: bold; }
+                        </style>");
+            sb.Append("<h2>Diagnóstico: Reporte despachos en ruta.rpt (SQL + HANA)</h2><hr/>");
+
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Reporte despachos en ruta.rpt"));
+
+                // ── Main report ──────────────────────────────────────────────────────
+                sb.Append("<h3>📊 Reporte Principal — Tablas y conexión embebida</h3>");
+                sb.Append("<table><tr><th>Tabla</th><th>ServerName</th><th>DatabaseName</th>" +
+                          "<th>UserID</th><th>Type (Driver)</th></tr>");
+                foreach (CrystalDecisions.CrystalReports.Engine.Table t in rpt.Database.Tables)
+                {
+                    var li = t.LogOnInfo;
+                    sb.Append($"<tr><td><b>{t.Name}</b></td>" +
+                              $"<td>{li.ConnectionInfo.ServerName}</td>" +
+                              $"<td>{li.ConnectionInfo.DatabaseName}</td>" +
+                              $"<td>{li.ConnectionInfo.UserID}</td>" +
+                              $"<td>{li.ConnectionInfo.Type}</td></tr>");
+                }
+                sb.Append("</table>");
+
+                // ── Parámetros del main ──────────────────────────────────────────────
+                sb.Append("<h3>📋 Reporte Principal — Parámetros</h3>");
+                sb.Append("<table><tr><th>#</th><th>Nombre</th><th>Tipo</th><th>Requerido</th></tr>");
+                int idx = 1;
+                foreach (ParameterFieldDefinition p in rpt.DataDefinition.ParameterFields)
+                    sb.Append($"<tr><td>{idx++}</td><td><b>{p.Name}</b></td>" +
+                              $"<td>{p.ParameterValueKind}</td>" +
+                              $"<td>{(p.IsOptionalPrompt ? "No" : "<span class='ok'>Sí</span>")}</td></tr>");
+                sb.Append("</table>");
+
+                // ── Subreportes ──────────────────────────────────────────────────────
+                int totalSubs = rpt.Subreports.Count;
+                sb.Append($"<h3>📎 Subreportes encontrados: {totalSubs}</h3>");
+
+                if (totalSubs == 0)
+                {
+                    sb.Append("<p class='warn'>⚠ No se encontraron subreportes. " +
+                              "Verifica que el .rpt sea el correcto.</p>");
+                }
+                else
+                {
+                    foreach (ReportDocument sub in rpt.Subreports)
+                    {
+                        bool esDatosFacturaHana = string.Equals(
+                            sub.Name, "DatosFacturaHANA", StringComparison.OrdinalIgnoreCase);
+
+                        sb.Append($"<h4>Subreporte: <code>\"{sub.Name}\"</code> " +
+                                  (esDatosFacturaHana
+                                      ? "<span class='ok'>✓ Coincide con 'DatosFacturaHANA'</span>"
+                                      : "<span class='warn'>⚠ Nombre diferente — actualiza el código</span>") +
+                                  "</h4>");
+
+                        sb.Append("<table><tr><th>Tabla</th><th>ServerName</th>" +
+                                  "<th>DatabaseName</th><th>UserID</th><th>Type (Driver)</th></tr>");
+                        foreach (CrystalDecisions.CrystalReports.Engine.Table t in sub.Database.Tables)
+                        {
+                            var li = t.LogOnInfo;
+                            sb.Append($"<tr><td><b>{t.Name}</b></td>" +
+                                      $"<td>{li.ConnectionInfo.ServerName}</td>" +
+                                      $"<td>{li.ConnectionInfo.DatabaseName}</td>" +
+                                      $"<td>{li.ConnectionInfo.UserID}</td>" +
+                                      $"<td>{li.ConnectionInfo.Type}</td></tr>");
+                        }
+                        sb.Append("</table>");
+
+                        if (sub.DataDefinition.ParameterFields.Count > 0)
+                        {
+                            sb.Append("<p><b>Parámetros del subreporte:</b></p>");
+                            sb.Append("<table><tr><th>Nombre</th><th>Tipo</th></tr>");
+                            foreach (ParameterFieldDefinition p in sub.DataDefinition.ParameterFields)
+                                sb.Append($"<tr><td><b>{p.Name}</b></td><td>{p.ParameterValueKind}</td></tr>");
+                            sb.Append("</table>");
+                        }
+                    }
+                }
+
+                // ── AppSettings relevantes ───────────────────────────────────────────
+                sb.Append("<h3>⚙ AppSettings HANA APK66</h3>");
+                sb.Append("<table><tr><th>Clave</th><th>Valor</th></tr>");
+                foreach (var key in new[] { "HANA_Server_APK66", "HANA_Database_APK66", "HANA_User_APK66" })
+                {
+                    var val = System.Configuration.ConfigurationManager.AppSettings[key];
+                    sb.Append($"<tr><td>{key}</td>" +
+                              $"<td>{(string.IsNullOrEmpty(val) ? "<span class='err'>NO DEFINIDO</span>" : val)}</td></tr>");
+                }
+                sb.Append("</table>");
+
+                rpt.Close();
+                rpt.Dispose();
+            }
+            catch (Exception ex)
+            {
+                sb.Append($"<h3 class='err'>Error al cargar el .rpt</h3><pre>{ex}</pre>");
+            }
+
+            return Content(sb.ToString(), "text/html");
+        }
         // ═══════════════════════════════════════════════════════════════════════
         // ═══════════════════════════════════════════════════════════════════════
 

@@ -240,26 +240,6 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         /// <summary>
-        /// Aplica credenciales SQL Server ÚNICAMENTE a las tablas del reporte principal.
-        /// ⚠️ NO itera subreportes — cada subreporte recibe su propia conexión por separado.
-        /// Caso de uso: reportes mixtos donde el main usa SQL y el sub usa HANA.
-        /// </summary>
-        private void AplicarConexionSqlSoloMain(ReportDocument reporte,
-            string connectionStringName = "GiveContext")
-        {
-            var cs = System.Configuration.ConfigurationManager
-                         .ConnectionStrings[connectionStringName].ConnectionString;
-            var builder = new System.Data.SqlClient.SqlConnectionStringBuilder(cs);
-
-            // Solo el reporte principal, subreportes NO
-            SetCredencialesSql(reporte,
-                builder.DataSource,
-                builder.InitialCatalog,
-                builder.UserID,
-                builder.Password);
-        }
-
-        /// <summary>
         /// Aplica credenciales HANA a un subreporte específico buscándolo por nombre exacto.
         /// ⚠️ El nombre debe coincidir con el de la pestaña del subreporte en Crystal Reports.
         /// Si no lo encuentra, no lanza excepción — solo loguea en Debug.
@@ -299,6 +279,79 @@ namespace DiamDev.Give.UI.Controllers
             }
         }
 
+        private void AplicarConexionHanaSoloMainConClaves(
+            ReportDocument reporte,
+            string keyServer,
+            string keyDatabase,
+            string keyUser,
+            string keyPassword)
+                {
+                    string servidor = ConfigurationManager.AppSettings[keyServer];
+                    string baseDatos = ConfigurationManager.AppSettings[keyDatabase];
+                    string usuario = ConfigurationManager.AppSettings[keyUser];
+                    string password = ConfigurationManager.AppSettings[keyPassword];
+
+                    SetCredenciales(reporte, servidor, baseDatos, usuario, password);
+                }
+
+        private string ResolverSchemaSapDesdeEmpresa(string empresa)
+        {
+            string emp = (empresa ?? "").Trim().ToUpperInvariant();
+
+            switch (emp)
+            {
+                case "BOLIK":
+                case "20210705001":
+                    return "SBOBOLIK";
+
+                case "FAES":
+                case "20210705003":
+                    return "SBOESCOCESA";
+
+                case "GRACO":
+                case "20210705004":
+                    return "SBO_GRACO";
+
+                default:
+                    return "SBO_GRACO";
+            }
+        }
+
+        private void AplicarConexionHanaB1Subreporte(
+            ReportDocument reporte,
+            string nombreSubreporte,
+            string schemaSap)
+        {
+            string serverBase = ConfigurationManager.AppSettings["HANA_Server"];      // sapserver:30013
+            string tenant = ConfigurationManager.AppSettings["HANA_TenantDB"];        // NDB
+            string usuario = ConfigurationManager.AppSettings["HANA_User"];
+            string password = ConfigurationManager.AppSettings["HANA_Password"];
+
+            // En tus capturas Crystal muestra el ServerName como NDB@sapserver:30013
+            string servidorCrystal = string.IsNullOrWhiteSpace(tenant)
+                ? serverBase
+                : tenant + "@" + serverBase;
+
+            bool encontrado = false;
+
+            foreach (ReportDocument sub in reporte.Subreports)
+            {
+                if (string.Equals(sub.Name, nombreSubreporte, StringComparison.OrdinalIgnoreCase))
+                {
+                    SetCredenciales(sub, servidorCrystal, schemaSap, usuario, password);
+                    encontrado = true;
+                    break;
+                }
+            }
+
+            if (!encontrado)
+            {
+                throw new Exception(
+                    "No se encontró el subreporte '" + nombreSubreporte + "'. Subreportes disponibles: " +
+                    string.Join(", ", reporte.Subreports.Cast<ReportDocument>().Select(s => "'" + s.Name + "'")));
+            }
+        }
+
         /// <summary>
         /// Exporta el ReportDocument a PDF y lo devuelve inline en el browser.
         /// Llama a Close/Dispose siempre para evitar leaks de memoria en IIS.
@@ -332,61 +385,57 @@ namespace DiamDev.Give.UI.Controllers
         // ════════════════════════════════════════════════════════════════════════
         //  CRYSTAL REPORTS — HANA  (parámetros verificados con DiagParametros)
         // ════════════════════════════════════════════════════════════════════════
-        public ActionResult DespachosEnRutaDia(string empresa = "",
-                                string agente = "",
-                                string fechaInicio = "",
-                                string fechaFin = "",
-                                string cliente = "",
-                                string pedido = "")
+        public ActionResult DespachosEnRutaDia(
+            string empresa = "",
+            string agente = "",
+            string fechaInicio = "",
+            string fechaFin = "",
+            string cliente = "",
+            string pedido = "")
         {
             var rpt = new ReportDocument();
+
             try
             {
                 rpt.Load(Server.MapPath("~/Reports/Crystal/Reporte despachos en ruta.rpt"));
 
-                // ═══════════════════════════════════════════════════════════════
-                //  PASO 1: SQL Server → reporte PRINCIPAL
-                //  ⚠️ AplicarConexionSqlSoloMain NO toca subreportes.
-                //     Esto evita que las credenciales SQL sobreescriban las HANA
-                //     del subreporte DatosFacturaHANA.
-                // ═══════════════════════════════════════════════════════════════
-                AplicarConexionSqlSoloMain(rpt, "GiveContext");
+                // 1. Reporte principal: HANA APK66
+                // Tu diagnóstico confirma que el main report usa 192.168.192.227 / APK66 / SISTEMAS.
+                AplicarConexionHanaSoloMainConClaves(
+                    rpt,
+                    "HANA_Server_APK66",
+                    "HANA_Database_APK66",
+                    "HANA_User_APK66",
+                    "HANA_Password_APK66");
 
-                // ═══════════════════════════════════════════════════════════════
-                //  PASO 2: HANA APK66 → SOLO el subreporte "DatosFacturaHANA"
-                //  ⚠️ AplicarConexionHanaSubreporte busca por nombre y solo aplica
-                //     a ese subreporte específico, sin tocar el main report.
-                // ═══════════════════════════════════════════════════════════════
-                AplicarConexionHanaSubreporte(rpt,
-                    nombreSubreporte: "DatosFacturaHANA",
-                    keyServer: "HANA_Server_APK66",
-                    keyDatabase: "HANA_Database_APK66",
-                    keyUser: "HANA_User_APK66",
-                    keyPassword: "HANA_Password_APK66");
+                // 2. Subreporte: HANA SAP B1 vía B1CRHPROXY
+                // El subreporte DatosFacturaHANA está diseñado contra SBO_GRACO,
+                // pero lo cambiamos dinámicamente según la empresa seleccionada.
+                string schemaSap = ResolverSchemaSapDesdeEmpresa(empresa);
 
-                // ═══════════════════════════════════════════════════════════════
-                //  PASO 3: Parámetros del reporte principal
-                //  Nombres EXACTOS confirmados en Field Explorer:
-                //  Agente, Empresa, Fecha Inicio, Fecha Fin, Cliente, Pedido
-                //  El parámetro Pm-Comando.ID_DOCUMENTO del subreporte lo gestiona
-                //  Crystal automáticamente via subreport link — no lo seteamos.
-                // ═══════════════════════════════════════════════════════════════
+                AplicarConexionHanaB1Subreporte(
+                    rpt,
+                    "DatosFacturaHANA",
+                    schemaSap);
+
+                // 3. Parámetros del reporte principal
                 TrySetParametro(rpt, "Agente", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
                 TrySetParametro(rpt, "Empresa", string.IsNullOrWhiteSpace(empresa) ? "*" : empresa);
                 TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
                 TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
 
-                if (!string.IsNullOrWhiteSpace(fechaInicio) && !string.IsNullOrWhiteSpace(fechaFin))
-                {
-                    TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicio));
-                    TrySetParametro(rpt, "Fecha Fin", Convert.ToDateTime(fechaFin));
-                }
+                if (string.IsNullOrWhiteSpace(fechaInicio) || string.IsNullOrWhiteSpace(fechaFin))
+                    throw new Exception("Fecha Inicio y Fecha Fin son obligatorias.");
+
+                TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicio));
+                TrySetParametro(rpt, "Fecha Fin", Convert.ToDateTime(fechaFin));
 
                 return ExportarPdf(rpt, "Despachos_En_Ruta_Dia");
             }
             catch (Exception ex)
             {
-                rpt.Close(); rpt.Dispose();
+                rpt.Close();
+                rpt.Dispose();
                 return ContenidoError(ex, "Despachos en ruta dia");
             }
         }

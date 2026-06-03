@@ -440,12 +440,131 @@ namespace DiamDev.Give.UI.Controllers
             }
         }
 
+        // ══════════════════════════════════════════════════════════════════════
+        //  DESPACHOS EN RUTA — un action por empresa
+        //  Parámetros del .rpt (verificados con DiagParametros):
+        //    Agente | Empresa | Fecha Inicio | Fecha Fin |
+        //    Cliente | Pedido (No. Factura) | Pm-Comando.ID_DOCUMENTO (No. Pedido)
+        // ══════════════════════════════════════════════════════════════════════
+
+        public ActionResult DespachosEnRutaBolik(
+            string agente = "",
+            string fechaInicio = "",
+            string fechaFin = "",
+            string cliente = "",
+            string pedido = "",       // No. Factura → parámetro "Pedido" del .rpt
+            string idDocumento = "")       // No. Pedido  → parámetro "Pm-Comando.ID_DOCUMENTO"
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Reporte despachos en ruta Bolik.rpt"));
+
+                AplicarConexionHanaSoloMainConClaves(rpt,
+                    "HANA_Server_APK66", "HANA_Database_APK66",
+                    "HANA_User_APK66", "HANA_Password_APK66");
+
+                // Subreporte SAP B1 — schema BOLIK
+                AplicarConexionHanaB1Subreporte(rpt, "DatosFacturaHANA",
+                    ResolverSchemaSapDesdeEmpresa("BOLIK"));
+
+                if (string.IsNullOrWhiteSpace(fechaInicio) || string.IsNullOrWhiteSpace(fechaFin))
+                    throw new Exception("Fecha Inicio y Fecha Fin son obligatorias.");
+
+                TrySetParametro(rpt, "Agente", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
+                TrySetParametro(rpt, "Empresa", "BOLIK");
+                TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicio));
+                TrySetParametro(rpt, "Fecha Fin", Convert.ToDateTime(fechaFin));
+                TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
+                TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
+                // TrySetParametro(rpt, "Pm-Comando.ID_DOCUMENTO", string.IsNullOrWhiteSpace(idDocumento) ? "*" : idDocumento);
+
+                return ExportarPdf(rpt, "Despachos_Ruta_Bolik");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Despachos en Ruta Bolik"); }
+        }
+
+        public ActionResult DespachosEnRutaFaes(
+            string agente = "",
+            string fechaInicio = "",
+            string fechaFin = "",
+            string cliente = "",
+            string pedido = "",
+            string idDocumento = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Reporte despachos en ruta Faes.rpt"));
+
+                AplicarConexionHanaSoloMainConClaves(rpt,
+                    "HANA_Server_APK66", "HANA_Database_APK66",
+                    "HANA_User_APK66", "HANA_Password_APK66");
+
+                // Subreporte SAP B1 — schema FAES (= SBOESCOCESA en este entorno)
+                AplicarConexionHanaB1Subreporte(rpt, "DatosFacturaHANA",
+                    ResolverSchemaSapDesdeEmpresa("FAES"));
+
+                if (string.IsNullOrWhiteSpace(fechaInicio) || string.IsNullOrWhiteSpace(fechaFin))
+                    throw new Exception("Fecha Inicio y Fecha Fin son obligatorias.");
+
+                TrySetParametro(rpt, "Agente", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
+                TrySetParametro(rpt, "Empresa", "FAES");
+                TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicio));
+                TrySetParametro(rpt, "Fecha Fin", Convert.ToDateTime(fechaFin));
+                TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
+                TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
+                // TrySetParametro(rpt, "Pm-Comando.ID_DOCUMENTO", string.IsNullOrWhiteSpace(idDocumento) ? "*" : idDocumento);
+
+                return ExportarPdf(rpt, "Despachos_Ruta_Faes");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Despachos en Ruta Faes"); }
+        }
+
+        public ActionResult DespachosEnRutaGraco(
+            string agente = "",
+            string fechaInicio = "",
+            string fechaFin = "",
+            string cliente = "",
+            string pedido = "",
+            string idDocumento = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Reporte despachos en ruta Graco.rpt"));
+
+                AplicarConexionHanaSoloMainConClaves(rpt,
+                    "HANA_Server_APK66", "HANA_Database_APK66",
+                    "HANA_User_APK66", "HANA_Password_APK66");
+
+                // Subreporte SAP B1 — schema GRACO
+                AplicarConexionHanaB1Subreporte(rpt, "DatosFacturaHANA",
+                    ResolverSchemaSapDesdeEmpresa("GRACO"));
+
+                if (string.IsNullOrWhiteSpace(fechaInicio) || string.IsNullOrWhiteSpace(fechaFin))
+                    throw new Exception("Fecha Inicio y Fecha Fin son obligatorias.");
+
+                TrySetParametro(rpt, "Agente", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
+                TrySetParametro(rpt, "Empresa", "GRACO");
+                TrySetParametro(rpt, "Fecha Inicio", Convert.ToDateTime(fechaInicio));
+                TrySetParametro(rpt, "Fecha Fin", Convert.ToDateTime(fechaFin));
+                TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
+                TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
+                // TrySetParametro(rpt, "Pm-Comando.ID_DOCUMENTO", string.IsNullOrWhiteSpace(idDocumento) ? "*" : idDocumento);
+
+                return ExportarPdf(rpt, "Despachos_Ruta_Graco");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Despachos en Ruta Graco"); }
+        }
+
         // ── PARÁMETRO: Agente ────────────────────────────────────────────────────
 
         public ActionResult BackorderAgenteBolik(string agente = "",
                                          string cliente = "",
                                          string producto = "",
-                                         string pedido = "")
+                                         string pedido = "",
+                                         string estadoStock = "")
         {
             var rpt = new ReportDocument();
             try
@@ -464,6 +583,7 @@ namespace DiamDev.Give.UI.Controllers
                 TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
                 TrySetParametro(rpt, "Producto", string.IsNullOrWhiteSpace(producto) ? "*" : producto);
                 TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
+                TrySetParametro(rpt, "EstadoStock", string.IsNullOrWhiteSpace(estadoStock) ? "*" : estadoStock);
 
                 string sufijo = agenteParam == "*" ? "General" : agenteParam;
                 return ExportarPdf(rpt, $"Backorder_Bolik_{sufijo}");
@@ -478,7 +598,8 @@ namespace DiamDev.Give.UI.Controllers
         public ActionResult BackorderAgenteGraco(string agente = "",
                                           string cliente = "",
                                           string producto = "",
-                                          string pedido = "")
+                                          string pedido = "",
+                                          string estadoStock = "")
         {
             var rpt = new ReportDocument();
             try
@@ -496,6 +617,7 @@ namespace DiamDev.Give.UI.Controllers
                 TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
                 TrySetParametro(rpt, "Producto", string.IsNullOrWhiteSpace(producto) ? "*" : producto);
                 TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
+                TrySetParametro(rpt, "EstadoStock", string.IsNullOrWhiteSpace(estadoStock) ? "*" : estadoStock);
 
                 string sufijo = agenteParam == "*" ? "General" : agenteParam;
                 return ExportarPdf(rpt, $"Backorder_Graco_{sufijo}");
@@ -510,7 +632,8 @@ namespace DiamDev.Give.UI.Controllers
         public ActionResult BackorderAgenteFaes(string agente = "",
                                           string cliente = "",
                                           string producto = "",
-                                          string pedido = "")
+                                          string pedido = "",
+                                          string estadoStock = "")
         {
             var rpt = new ReportDocument();
             try
@@ -528,6 +651,7 @@ namespace DiamDev.Give.UI.Controllers
                 TrySetParametro(rpt, "Cliente", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
                 TrySetParametro(rpt, "Producto", string.IsNullOrWhiteSpace(producto) ? "*" : producto);
                 TrySetParametro(rpt, "Pedido", string.IsNullOrWhiteSpace(pedido) ? "*" : pedido);
+                TrySetParametro(rpt, "EstadoStock", string.IsNullOrWhiteSpace(estadoStock) ? "*" : estadoStock);
 
                 string sufijo = agenteParam == "*" ? "General" : agenteParam;
                 return ExportarPdf(rpt, $"Backorder_Faes_{sufijo}");
@@ -540,10 +664,10 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        //  ESTADO DE CUENTA — un action por empresa (.rpt ya tiene param Agente)
-        // ══════════════════════════════════════════════════════════════════════
         // ── PARÁMETROS: FInicial + FFinal + Cliente ──────────────────────────────
+        //  ESTADO DE CUENTA — un action por empresa (.rpt ya tiene param Agente)
         // ⚠️ Nombres EXACTOS del .rpt: FInicial / FFinal / Cliente (no FechaInicial/CardCode)
+        // ══════════════════════════════════════════════════════════════════════
         public ActionResult EstadoDeCuentaBolik(string fechaInicial = "",
                                                  string fechaFinal = "",
                                                  string cliente = "",
@@ -626,7 +750,7 @@ namespace DiamDev.Give.UI.Controllers
         }
 
 
-        // ── PARÁMETROS: Cliente + Pedido ─────────────────────────────────────────
+        // ── PARÁMETROS: Cliente + Pedido, INVENTARIO GRACO, INVENTARIO ESCOCESA, INVENTARIO BOLIK  ─────────────────────────────────────────
         public ActionResult InventarioBolik(string Codigo_Producto = "", string Producto_Name = "")
         {
             var rpt = new ReportDocument();
@@ -643,7 +767,6 @@ namespace DiamDev.Give.UI.Controllers
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Inventario Bolik"); }
         }
 
-        // ── INVENTARIO GRACO ────────────────────────────────────────────────────
         public ActionResult InventarioGraco(string Codigo_Producto = "", string Producto_Name = "")
         {
             var rpt = new ReportDocument();
@@ -662,7 +785,6 @@ namespace DiamDev.Give.UI.Controllers
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Inventario Graco"); }
         }
 
-        // ── INVENTARIO ESCOCESA ─────────────────────────────────────────────────
         public ActionResult InventarioEscocesa(string Codigo_Producto = "", string Producto_Name = "")
         {
             var rpt = new ReportDocument();
@@ -685,7 +807,6 @@ namespace DiamDev.Give.UI.Controllers
         // ── PARÁMETROS: 6 campos (REVISION DE RUTAS) ────────────────────────────
         // ⚠️ Nombres con espacios y mayúsculas: "FECHA INICIAL", "FECHA FINAL", etc.
 
-        // [Permiso("Control.Reporte.Inventario")]
         public ActionResult EstadoPedido(string fechaInicial = "", string fechaFinal = "",
                           string vehiculo = "", string noRuta = "",
                           string agente = "", string documento = "",
@@ -723,10 +844,9 @@ namespace DiamDev.Give.UI.Controllers
 
         // ══════════════════════════════════════════════════════════════════════
         //  DETALLE FACTURAS — un action por empresa, mismo .rpt, distinto schema
-        //  ⚠️ Si "Detalle de Facturas General.rpt" no declara el param "Agente",
-        //     TrySetParametro lo ignora sin error. Agrégalo al .rpt para filtrar.
-        // ══════════════════════════════════════════════════════════════════════
+        //  ⚠️ Si "Detalle de Facturas General.rpt" no declara el param "Agente", TrySetParametro lo ignora sin error. Agrégalo al .rpt para filtrar.
         // ── DETALLE FACTURAS — Empresa + Fechas + Cliente + Codigo + Producto ──────
+        // ══════════════════════════════════════════════════════════════════════
         public ActionResult DetalleFacturas(string empresa = "SBOBOLIK",
                                             string fechaInicial = "",
                                             string fechaFinal = "",
@@ -881,6 +1001,7 @@ namespace DiamDev.Give.UI.Controllers
                 $"<pre style='font-size:12px'>{ex}</pre>",
                 "text/html");
         }
+
 
         // ════════════════════════════════════════════════════════════════════════
         //  DIAGNÓSTICOS REPORTS — HANA
@@ -1185,12 +1306,6 @@ namespace DiamDev.Give.UI.Controllers
             return Content(sb.ToString(), "text/html");
         }
 
-        /// <summary>
-        /// Diagnóstico para reporte mixto SQL + HANA.
-        /// Muestra el nombre EXACTO de cada subreporte y sus drivers de conexión.
-        /// Úsalo si DespachosEnRutaDia sigue fallando para confirmar el nombre del subreporte.
-        /// Navega a: /Reporte/DiagDespachosRutaMixto
-        /// </summary>
         public ActionResult DiagDespachosRutaMixto()
         {
             var rpt = new ReportDocument();
@@ -1306,537 +1421,6 @@ namespace DiamDev.Give.UI.Controllers
         }
         // ═══════════════════════════════════════════════════════════════════════
         // ═══════════════════════════════════════════════════════════════════════
-
-        [Permiso("Control.Reporte.kpidel")]
-        public ActionResult KpiDelivery()
-        {
-            CustomHelper.setTitle("KPI Entrega", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-        [Permiso("Control.Reporte.cxchist")]
-        public ActionResult CuentasPorCobrarHistorico()
-        {
-            CustomHelper.setTitle("Cuentas Por Cobrar Historico", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-        [Permiso("Control.Reporte.ventasdesp")]
-        public ActionResult VentasDespachadas()
-        {
-            CustomHelper.setTitle("Venta Despachada", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-        [Permiso("Control.Reporte.recanula")]
-        public ActionResult RecibosAnulados()
-        {
-            CustomHelper.setTitle("Recibos Anulados", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.CompVend")]
-        public ActionResult VendedoresComparativa()
-        {
-            CustomHelper.setTitle("Comparativa Vendedores", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-        [Permiso("Control.Reporte.TransRep")]
-        public ActionResult TransporteConsolidado()
-        {
-            CustomHelper.setTitle("Transporte Consolidado", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-        [Permiso("Control.Reporte.Ventacom")]
-        public ActionResult ComparativaSucursal()
-        {
-            CustomHelper.setTitle("Comparativa Sucursal", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.ProdTop")]
-        public ActionResult ProductosTop()
-        {
-            CustomHelper.setTitle("Ventas Por Producto", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-
-
-        [Permiso("Control.Reporte.topcli")]
-        public ActionResult TopClientes()
-        {
-            CustomHelper.setTitle("Top Clientes", "Reporte");
-
-            
-            return View();
-        }
-
-
-        [Permiso("Control.Reporte.Cierre")]
-        public ActionResult Cierre()
-        {
-            CustomHelper.setTitle("Cierre del Día", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Cierre")]
-        public ActionResult CierrexUsuario()
-        {
-            CustomHelper.setTitle("Cierre del Día x Usuario", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Cierre")]
-        public ActionResult CierrexUsuarioHora()
-        {
-            CustomHelper.setTitle("Cierre del Día x Usuario Hora", "Reporte");
-
-            this.cargaUsuarios();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Ingreso")]
-        public ActionResult Ingreso()
-        {
-            CustomHelper.setTitle("Ingreso", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.IngresoxProveedor")]
-        public ActionResult IngresoxProveedor()
-        {
-            CustomHelper.setTitle("Ingreso x Proveedor", "Reporte");
-
-            this.CargaControles(true);
-            this.CargaProveedores();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.IngresoxProducto")]
-        public ActionResult IngresoxProducto()
-        {
-            CustomHelper.setTitle("Ingreso x Producto", "Reporte");
-
-            this.CargaControles(true);
-            this.CargaProductos();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Egreso")]
-        public ActionResult Egreso()
-        {
-            CustomHelper.setTitle("Egreso", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Ganancia")]
-        public ActionResult Ganancia()
-        {
-            CustomHelper.setTitle("Ganancia", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Ganancia")]
-        public ActionResult Ganancia_Detalle()
-        {
-            CustomHelper.setTitle("Ganancia", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Ganancia")]
-        public ActionResult Ganancia_Consolidada()
-        {
-            CustomHelper.setTitle("Ganancia Consolidada", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Ganancia")]
-        public ActionResult Ganancia_Consolidada_x_Producto()
-        {
-            CustomHelper.setTitle("Ganancia Consolidada x Producto", "Reporte");
-
-            this.CargaControles(true);
-            this.CargaProductos();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Diario")]
-        public ActionResult Diario()
-        {
-            CustomHelper.setTitle("Libro Diario", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Mayor")]
-        public ActionResult Mayor()
-        {
-            CustomHelper.setTitle("Libro Mayor", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.BalanceSaldo")]
-        public ActionResult Balance_Saldo()
-        {
-            CustomHelper.setTitle("Balance de Saldos", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.VentaxTienda")]
-        public ActionResult VentaxTienda()
-        {
-            CustomHelper.setTitle("Venta x Tienda", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.VentaxTienda")]
-        public ActionResult VentaxTiendaYMarca()
-        {
-            CustomHelper.setTitle("Venta x Tienda Y Marca", "Reporte");
-
-            this.CargaMarcas();
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.TomaFisicaxTienda")]
-        public ActionResult TomaFisicaxTienda()
-        {
-            CustomHelper.setTitle("Toma Fisica de Inventario x Tienda", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.InventarioxTienda")]
-        public ActionResult InventarioxTienda()
-        {
-            CustomHelper.setTitle("Inventario x Tienda", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.InventarioxTienda")]
-        public ActionResult InventarioxTiendaYMarca()
-        {
-            CustomHelper.setTitle("Inventario x Tienda Y Marca", "Reporte");
-
-            this.CargaMarcas();
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.PedidoxTienda")]
-        public ActionResult PedidoxTiendaYMarca()
-        {
-            CustomHelper.setTitle("Pedido x Tienda Y Marca", "Reporte");
-
-            this.CargaMarcas();
-            this.CargaControles(true);
-            return View();
-        }
-        //se cambio el nombre en el Menu y en el encabezado 
-        [Permiso("Control.Reporte.VentaResumenxTienda")]
-        public ActionResult VentaResumenxTienda()
-        {
-            CustomHelper.setTitle("Resumen del Mes", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.CierreDiarioResumen")]
-        public ActionResult CierreDiarioResumen()
-        {
-            CustomHelper.setTitle("Corte Diario", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.IngresoxTienda")]
-        public ActionResult IngresoxTienda()
-        {
-            CustomHelper.setTitle("Ingreso x Tienda", "Reporte");
-                       
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.SalidaxTienda")]
-        public ActionResult SalidaxTienda()
-        {
-            CustomHelper.setTitle("Salida x Tienda", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        public ActionResult Horario()
-        {
-            CustomHelper.setTitle("Horario Personal", "Reporte");
-
-            this.CargaControles(true, false);
-            this.CargarPersonal();
-            return View();
-        }
-
-        public ActionResult Horario_General()
-        {
-            CustomHelper.setTitle("Horario General", "Reporte");
-
-            this.CargaControles(true, false);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.LibroVenta")]
-        public ActionResult LibroVenta()
-        {
-            CustomHelper.setTitle("Libro de Venta", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.ProductoControlado")]
-        public ActionResult Producto_Controlado()
-        {
-            CustomHelper.setTitle("Producto Controlado", "Reporte");
-           
-            this.CargarProductoCategorias();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.ProductoMinimoCategoria")]
-        public ActionResult Producto_Minimo_Categoria()
-        {
-            CustomHelper.setTitle("Producto Minimo x Categoria", "Reporte");
-
-            this.CargaControles(true);
-            this.CargarProductoCategorias();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.VentaComisionVendedor")]
-        public ActionResult Venta_Comision_Vendedor()
-        {
-            CustomHelper.setTitle("Venta Comision x Vendedor", "Reporte");
-
-            this.cargaVendedores();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.ProveedorProducto")]
-        public ActionResult Proveedor_Producto()
-        {
-            CustomHelper.setTitle("Proveedor Producto", "Reporte");
-
-            this.CargaProveedores();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.VentaTransporte")]
-        public ActionResult Venta_Transporte()
-        {
-            CustomHelper.setTitle("Venta Transporte", "Reporte");
-
-            this.cargaTransportes();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Inventario")]
-        public ActionResult Inventario_x_Tienda_Categoria()
-        {
-            CustomHelper.setTitle("Inventario x Tienda y Categoria", "Reporte");
-
-            this.CargaControles(true);
-            this.CargarProductoCategorias();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Inventario")]
-        public ActionResult Inventario_IDs_x_Tienda_Producto()
-        {
-            CustomHelper.setTitle("Inventario IDs x Tienda y Producto", "Reporte");
-
-            this.CargaControles(true);
-            this.cargaProductosIDs();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.VentaTransporte")]
-        public ActionResult Cierre_Transporte()
-        {
-            CustomHelper.setTitle("Cierre Transporte", "Reporte");
-
-            this.cargaTransportes();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.ProductoReserva")]
-        public ActionResult Producto_Reservado()
-        {
-            CustomHelper.setTitle("Producto Reservado", "Reporte");
-
-            this.CargaControles(true);
-            this.CargarProductoCategorias();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.VentaxTipoCliente")]
-        public ActionResult Venta_x_Tipo_Cliente()
-        {
-            CustomHelper.setTitle("Venta x Tipo de Cliente", "Reporte");
-
-            this.CargaControles(true);
-            this.cargaTiposDeClientes();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.VentaxTipoCliente")]
-        public ActionResult Grafica_Venta_x_Tipo_Cliente()
-        {
-            CustomHelper.setTitle("Grafica Venta x Tipo de Cliente", "Reporte");
-
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.VentaComisionVendedor")]
-        public ActionResult Venta_Comision_x_Vendedor_Configurable()
-        {
-            CustomHelper.setTitle("Venta Comision x Vendedor Configurable", "Reporte");
-
-            this.cargaVendedores();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Reparacion_Pagos_Tecnicos")]
-        public ActionResult Reparacion_Pagos_Tecnicos()
-        {
-            CustomHelper.setTitle("Reparación de Pagos Tecnicos", "Reporte");
-
-            this.cargaTecnicos();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Venta_x_Forma_Pago")]
-        public ActionResult Venta_x_Forma_Pago()
-        {
-            CustomHelper.setTitle("Venta x Forma de Pago", "Reporte");
-
-            this.cargaFormas();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Producto_Reservado_x_Producto")]
-        public ActionResult Producto_Reservado_x_Producto()
-        {
-            CustomHelper.setTitle("Producto Reservado x Producto", "Reporte");
-
-            this.CargaControles(true);
-            this.CargarProductoCategorias();
-            this.cargaEstadosReserva();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Producto_Reservado_Actual")]
-        public ActionResult Producto_Reservado_Actual()
-        {
-            CustomHelper.setTitle("Producto Reservado Actual", "Reporte");
-
-            this.CargaControles(true);           
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Egresos_Efectivo")]
-        public ActionResult Egresos_Efectivo()
-        {
-            CustomHelper.setTitle("Egresos de Efectivo", "Reporte");
-
-            this.CargaControles(true);
-            this.cargaCategoriaGastos();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.Abono_x_Cliente")]
-        public ActionResult Abono_x_Cliente()
-        {
-            CustomHelper.setTitle("Abonos x Cliente", "Reporte");
-         
-            return View();
-        }
-
-        [Permiso("Control.Reporte.VentaxProductoDiaVendedor")]
-        public ActionResult Venta_x_Producto_Dia_Vendedor()
-        {
-            CustomHelper.setTitle("Venta x Producto x Dia x Vendedor", "Reporte");
-
-            this.CargaControles(true);
-            this.cargaVendedores();
-            return View();
-        }
-
-        [Permiso("Control.Reporte.ProductoxLote")]
-        public ActionResult Producto_x_Lote()
-        {
-            CustomHelper.setTitle("Productos x Lote", "Reporte");
-
-            this.CargaControles(true);           
-            return View();
-        }
-
-        [Permiso("Control.Reporte.HistorialVenta")]
-        public ActionResult HistorialVenta()
-        {
-            CustomHelper.setTitle("Historial de Venta", "Reporte");
-            this.CargaControles(true);
-            return View();
-        }
-
-        [Permiso("Control.Reporte.HistorialEntrega")]
-        public ActionResult HistorialEntrega()
-        {
-            CustomHelper.setTitle("Historial de Entrega", "Reporte");
-            this.CargaControles(true);
-            return View();
-        }
 
         // GET: /Reporte/Index
         public ActionResult Index()

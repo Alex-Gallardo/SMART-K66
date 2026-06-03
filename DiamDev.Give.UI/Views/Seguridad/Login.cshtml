@@ -18,7 +18,6 @@
     <meta content="SmartK66" name="description" />
     <meta content="RAGATEC" name="author" />
     <!-- end: META -->
-
     <!--Plantillas CSS-->
     <link href="~/Content/assets/plugins/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen" />
     <link href="~/Content/assets/plugins/font-awesome/css/font-awesome.min.css" rel="stylesheet" />
@@ -34,10 +33,146 @@
     <link rel="stylesheet" href="assets/plugins/font-awesome/css/font-awesome-ie7.min.css">
     <![endif]-->
     <!--Fin de Plantillas CSS-->
+    <style>
+
+         /* =======================================================
+        FONDO LOGIN
+        ======================================================= */
+
+         body.login-background {
+             min-height: 100vh;
+             background: radial-gradient( circle at center, #0b6ea8 0%, #04507d 35%, #01385c 65%, #002845 100% );
+             background-attachment: fixed;
+         }
+
+        body.login-custom {
+            min-height: 100vh !important;
+            /* Fondo radial */
+            background: radial-gradient( circle at center, #0d6ea8 0%, #04537f 35%, #00365a 65%, #00213a 100% ) !important;
+            background-attachment: fixed;
+        }
+
+         /* =======================================================
+        CONTENEDOR
+        ======================================================= */
+
+         .login-container {
+             margin-top: 20px;
+         }
+
+         /* =======================================================
+        LOGO
+        ======================================================= */
+
+         .logo-k66 {
+             text-align: center;
+             margin-bottom: 25px;
+         }
+
+             .logo-k66 img {
+                 width: 240px;
+                 max-width: 100%;
+                 transition: all .3s ease;
+             }
+
+                 .logo-k66 img:hover {
+                     transform: scale(1.03);
+                 }
+
+         /* =======================================================
+        TARJETA LOGIN
+        ======================================================= */
+
+         .box-login {
+             background: rgba(255,255,255,.95);
+             border-radius: 12px;
+             padding: 25px;
+             border: none;
+             box-shadow: 0 10px 35px rgba(0,0,0,.25);
+             animation: fadeInLogin .6s ease;
+         }
+
+         @@keyframes fadeInLogin {
+             from {
+                 opacity: 0;
+                 transform: translateY(15px);
+             }
+
+             to {
+                 opacity: 1;
+                 transform: translateY(0);
+             }
+         }
+
+         /* =======================================================
+        TITULO
+        ======================================================= */
+
+         .box-login h3 {
+             font-size: 38px;
+             font-weight: 300;
+             margin-bottom: 15px;
+             color: #00365a;
+         }
+
+         /* =======================================================
+        INPUTS
+        ======================================================= */
+
+         .box-login .form-control {
+             height: 46px;
+             border-radius: 8px;
+             border: 1px solid #d5dce3;
+             box-shadow: none;
+             font-size: 16px;
+         }
+
+             .box-login .form-control:focus {
+                 border-color: #0b6ea8;
+                 box-shadow: 0 0 0 3px rgba(11,110,168,.15);
+             }
+
+         /* =======================================================
+        BOTON LOGIN
+        ======================================================= */
+
+         .submitbtn {
+             border-radius: 8px;
+             padding: 10px 24px;
+             font-size: 16px;
+             transition: all .25s ease;
+         }
+
+             .submitbtn:hover {
+                 transform: translateY(-2px);
+                 box-shadow: 0 6px 15px rgba(0,0,0,.20);
+             }
+
+         /* =======================================================
+        COPYRIGHT
+        ======================================================= */
+
+         .copyright {
+             margin-top: 20px;
+             color: rgba(255,255,255,.85);
+             font-size: 13px;
+             text-align: center;
+         }
+
+         /* =======================================================
+        NAVBAR
+        ======================================================= */
+
+         .navbar-inverse {
+             background: rgba(0,0,0,.15);
+             border: none;
+             backdrop-filter: blur(5px);
+         }
+    </style>
 
     <link rel="shortcut icon" href="~/favicon.ico" />
 </head>
-<body class="login example2" style="background-color:#00365a;">
+<body class="login example2 login-custom" >
     <div class="navbar navbar-inverse navbar-fixed-top">
         <!-- start: TOP NAVIGATION CONTAINER -->
         <div class="container">
@@ -75,9 +210,9 @@
         </div>
         <!-- end: TOP NAVIGATION CONTAINER -->
     </div>    
-    <div class="main-login col-sm-4 col-sm-offset-4" style="background-color:#00365a;">    
-          <div class="logo">
-            <img src="~/Content/assets/images/logo.png" style="width:200px;" />
+    <div class="main-login col-sm-4 col-sm-offset-4  login-container" >    
+          <div class="logo logo-k66">
+            <img src="~/Content/assets/images/logo.png"  alt="Grupo K66" />
         </div>
         <!-- start: LOGIN BOX -->
         <div class="box-login">

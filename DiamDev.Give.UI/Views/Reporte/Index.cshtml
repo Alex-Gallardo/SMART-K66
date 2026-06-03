@@ -36,27 +36,12 @@
                     </div>
                 }
 
-                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Graco"))
-                {
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-archive circle-icon circle-yellow"></i>
-                                <h2>Inventario Graco</h2>
-                            </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirInventario('@Url.Action("InventarioGraco", "Reporte")')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                        </div>
-                    </div>
-                }
-
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Escocesa"))
                 {
                     <div class="col-md-3">
                         <div class="core-box card-empresa" data-empresa-id="20210705003">
                             <div class="heading">
-                                <i class="clip-archive circle-icon circle-blue"></i>
+                                <i class="clip-archive circle-icon circle-bricky"></i>
                                 <h2>Inventario Escocesa</h2>
                             </div>
                             <a href="javascript:void(0)"
@@ -66,6 +51,20 @@
                     </div>
                 }
 
+                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Graco"))
+                {
+                    <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-archive circle-icon circle-green"></i>
+                                <h2>Inventario Graco</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirInventario('@Url.Action("InventarioGraco", "Reporte")')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -92,7 +91,7 @@
                     <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
                         <div class="core-box">
                             <div class="heading">
-                                <i class="clip-clipboard circle-icon circle-teal"></i>
+                                <i class="clip-clipboard circle-icon circle-red"></i>
                                 <h2>Detalle Facturas Bolik</h2>
                             </div>
                             <a href="javascript:void(0)"
@@ -152,7 +151,7 @@
                     <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
                         <div class="core-box">
                             <div class="heading">
-                                <i class="clip-history circle-icon circle-teal"></i>
+                                <i class="clip-history circle-icon circle-red"></i>
                                 <h2>Estado de Cuenta Bolik</h2>
                             </div>
                             <a href="javascript:void(0)"
@@ -252,19 +251,42 @@
                     </div>
                 }
 
-                @* Estado Pedido — ahora incluye Empresa en su modal - MODIFICADO (Ahora llama a DespachosEnRuta) *@
+                @* Despachos en Ruta — un card por empresa, misma lógica que Backorder *@
                 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Estado_Pedido"))
                 {
-                    <div class="col-md-3">
+                    <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
                         <div class="core-box">
                             <div class="heading">
-                                <i class="clip-stats circle-icon circle-red"></i>
-                                <h2>Estado Pedido</h2>
+                                <i class="clip-truck circle-icon circle-red"></i>
+                                <h2>Estado Pedido Bolik</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="pedirDespachos('@Url.Action("DespachosEnRutaDia", "Reporte")')"
+                               onclick="pedirDespachos('@Url.Action("DespachosEnRutaBolik", "Reporte")', 'Despachos Bolik', '20210705001')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                            @*onclick="pedirRuta('@Url.Action("EstadoPedido", "Reporte")')"*@
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-truck circle-icon circle-bricky"></i>
+                                <h2>Estado Pedido Faes</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirDespachos('@Url.Action("DespachosEnRutaFaes", "Reporte")', 'Despachos Faes', '20210705003')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>
+
+                    <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-truck circle-icon circle-green"></i>
+                                <h2>Estado Pedido Graco</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirDespachos('@Url.Action("DespachosEnRutaGraco", "Reporte")', 'Despachos Graco', '20210705004')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>
                 }
@@ -290,7 +312,6 @@
         </div>
     </div>
 }
-
 
 @* ════════════════════════════════════════════════════════════
      MODAL — INVENTARIO
@@ -406,8 +427,8 @@
 </div>
 
 @* ════════════════════════════════════════════════════════════
-     MODAL — DESPACHOS EN RUTA DÍA
-     6 parámetros: Agente, Empresa, Fecha Inicio, Fecha Fin, Cliente, Pedido
+     MODAL — DESPACHOS EN RUTA (por empresa)
+     Parámetros: Agente | Fechas | Cliente | No. Factura | No. Pedido
     ════════════════════════════════════════════════════════════ *@
 <div class="modal fade" id="modalDespachos" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
@@ -415,27 +436,18 @@
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal">&times;</button>
                 <h4 class="modal-title">
-                    <i class="clip-truck teal"></i> Despachos en Ruta
+                    <i class="clip-truck teal"></i>
+                    <span id="modalDespachosTitulo">Estado Pedido</span>
                 </h4>
             </div>
             <div class="modal-body">
 
-                @* Empresa + Agente: select dinámico por empresa del usuario *@
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="control-label">Empresa</label>
-                            <select id="despachosEmpresa" class="form-control"></select>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="control-label">
-                                Agente <small class="text-muted" id="despachosAgenteHelp"></small>
-                            </label>
-                            <select id="despachosAgente" class="form-control"></select>
-                        </div>
-                    </div>
+                @* Agente — se puebla dinámicamente según empresa del card *@
+                <div class="form-group">
+                    <label class="control-label">
+                        Agente <small class="text-muted" id="despachosAgenteHelp"></small>
+                    </label>
+                    <select id="despachosAgente" class="form-control"></select>
                 </div>
 
                 <hr style="margin:8px 0" />
@@ -444,38 +456,57 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="control-label">Fecha Inicio <span class="text-danger">*</span></label>
-                            <input type="text" id="despachosFechaInicio" class="form-control date-picker"
+                            <label class="control-label">
+                                Fecha Inicio <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" id="despachosFechaInicio"
+                                   class="form-control date-picker"
                                    data-date-format="yyyy-mm-dd"
                                    value="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="control-label">Fecha Fin <span class="text-danger">*</span></label>
-                            <input type="text" id="despachosFechaFin" class="form-control date-picker"
+                            <label class="control-label">
+                                Fecha Fin <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" id="despachosFechaFin"
+                                   class="form-control date-picker"
                                    data-date-format="yyyy-mm-dd"
                                    value="@DateTime.Today.ToString("yyyy-MM-dd")" />
                         </div>
                     </div>
                 </div>
 
-                @* Cliente + Pedido *@
+                @* Filtros opcionales *@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label class="control-label">Cliente <small class="text-muted">(vacío = todos)</small></label>
-                            <input type="text" id="despachosCliente" class="form-control"
-                                   placeholder="Ej: CL0001" />
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="control-label">No. Pedido <small class="text-muted">(vacío = todos)</small></label>
+                            <label class="control-label">
+                                No. Factura
+                                <small class="text-muted">(vacío = todos)</small>
+                            </label>
                             <input type="text" id="despachosPedido" class="form-control"
                                    placeholder="Ej: 12345" />
                         </div>
                     </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">
+                                No. Pedido
+                                <small class="text-muted">(vacío = todos)</small>
+                            </label>
+                            <input type="text" id="despachosIdDocumento" class="form-control"
+                                   placeholder="Ej: 67890" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label">
+                        Cliente <small class="text-muted">(vacío = todos)</small>
+                    </label>
+                    <input type="text" id="despachosCliente" class="form-control"
+                           placeholder="Ej: CL0001" />
                 </div>
 
             </div>
@@ -510,6 +541,21 @@
                     <select id="boAgente" class="form-control"></select>
                 </div>
                 <hr style="margin:8px 0" />
+
+                @* ── NUEVO: Estado de Stock ── *@
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">Estado Stock <small class="text-muted">(vacío = todos)</small></label>
+                            <select id="boEstadoStock" class="form-control">
+                                <option value="">-- Todos --</option>
+                                <option value="Completo">Completo</option>
+                                <option value="Incompleto">Incompleto</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
@@ -677,7 +723,8 @@
     var _urlDespachosBase      = "";
     var _empresaIdBackorder    = null;
     var _empresaIdEstadoCuenta = null;
-    var _empresaIdDFEmpresa    = null;
+    var _empresaIdDFEmpresa = null;
+    var _empresaIdDespachos = null;
 
     var EMP_BOLIK = "20210705001";
     var EMP_FAES  = "20210705003";
@@ -718,15 +765,19 @@
         // ── Backorder ────────────────────────────────────────
         $("#btnVerBackorder").on("click", function () {
             var ag = $("#boAgente").val();
+            var es = $("#boEstadoStock").val();        // ← NUEVO
             var cl = $("#boCliente").val().trim();
             var pr = $("#boProducto").val().trim();
             var pd = $("#boPedido").val().trim();
+
             var url = _urlBackorderBase + "?";
             url += "agente=" + encodeURIComponent(ag) + "&";
-            if (cl) url += "cliente="  + encodeURIComponent(cl) + "&";
+            if (es) url += "estadoStock=" + encodeURIComponent(es) + "&";  // ← NUEVO
+            if (cl) url += "cliente=" + encodeURIComponent(cl) + "&";
             if (pr) url += "producto=" + encodeURIComponent(pr) + "&";
-            if (pd) url += "pedido="   + encodeURIComponent(pd) + "&";
+            if (pd) url += "pedido=" + encodeURIComponent(pd) + "&";
             url = url.replace(/[&?]$/, "");
+
             $("#modalBackorder").modal("hide");
             window.open(url, "_blank");
         });
@@ -794,30 +845,62 @@
             window.open(url, "_blank");
         });
 
-        // ── Despachos en Ruta Día (nuevo modal) ──────────────
-        // ── Despachos en Ruta Día ─────────────────────────────
+        // ── Despachos en Ruta Día (por empresa) ──────────────────────────────
         $("#btnVerDespachos").on("click", function () {
-            var emp = $("#despachosEmpresa").val();
             var ag = $("#despachosAgente").val();
             var fi = $("#despachosFechaInicio").val().trim();
             var ff = $("#despachosFechaFin").val().trim();
             var cl = $("#despachosCliente").val().trim();
-            var pd = $("#despachosPedido").val().trim();
+            var pd = $("#despachosPedido").val().trim();        // No. Factura → param "pedido"
+            // var idd = $("#despachosIdDocumento").val().trim();   // No. Pedido  → param "idDocumento"
 
             if (!fi || !ff) { toastr.error("Las fechas son obligatorias"); return; }
             if (fi > ff) { toastr.error("Fecha inicio mayor que fecha fin"); return; }
 
             var url = _urlDespachosBase
-                + "?empresa=" + encodeURIComponent(emp)
-                + "&agente=" + encodeURIComponent(ag)
+                + "?agente=" + encodeURIComponent(ag)
                 + "&fechaInicio=" + encodeURIComponent(fi)
                 + "&fechaFin=" + encodeURIComponent(ff);
-
             if (cl) url += "&cliente=" + encodeURIComponent(cl);
             if (pd) url += "&pedido=" + encodeURIComponent(pd);
 
             $("#modalDespachos").modal("hide");
             window.open(url, "_blank");
+        });
+
+        // ── ENTER = Ver PDF en modales ────────────────────────────
+        $(".modal").on("keypress", function (e) {
+
+            if (e.which !== 13) return;
+
+            var modalId = $(this).attr("id");
+
+            switch (modalId) {
+
+                case "modalInventario":
+                    $("#btnVerInventario").click();
+                    break;
+
+                case "modalBackorder":
+                    $("#btnVerBackorder").click();
+                    break;
+
+                case "modalEstadoCuenta":
+                    $("#btnVerEstadoCuenta").click();
+                    break;
+
+                case "modalDetalleFacturasEmpresa":
+                    $("#btnVerDFEmpresa").click();
+                    break;
+
+                case "modalRuta":
+                    $("#btnVerRuta").click();
+                    break;
+
+                case "modalDespachos":
+                    $("#btnVerDespachos").click();
+                    break;
+            }
         });
 
     }); // ── FIN document.ready ───────────────────────────────
@@ -919,10 +1002,11 @@
     }
 
     function pedirBackorder(urlBase, titulo, empresaId) {
-        _urlBackorderBase   = urlBase;
+        _urlBackorderBase = urlBase;
         _empresaIdBackorder = empresaId ? empresaId.toString() : null;
         $("#modalBackorderTitulo").text(titulo || "Backorder");
         poblarSelectAgentes($("#boAgente"), _empresaIdBackorder, "#boAgenteHelp");
+        $("#boEstadoStock").val("");                      // ← NUEVO
         $("#boCliente, #boProducto, #boPedido").val("");
         $("#modalBackorder").modal("show");
         setTimeout(function () { $("#boAgente").focus(); }, 400);
@@ -976,29 +1060,25 @@
         setTimeout(function () { $("#rutaEmpresa").focus(); }, 400);
     }
 
-    /**
-     * Despachos en Ruta Día — nuevo modal con Empresa + Agente.
-     * La empresa seleccionada filtra los agentes disponibles.
+        /**
+     * Despachos en Ruta — patrón igual que Backorder.
+     * La empresa ya está fija en el .rpt de cada card; el modal
+     * solo pide Agente + filtros opcionales.
      */
-    function pedirDespachos(urlBase) {
+    function pedirDespachos(urlBase, titulo, empresaId) {
         _urlDespachosBase = urlBase;
+        _empresaIdDespachos = empresaId ? empresaId.toString() : null;
 
-        // Poblar empresas del usuario
-        poblarSelectEmpresasAbrev($("#despachosEmpresa"));
+        $("#modalDespachosTitulo").text(titulo || "Despachos en Ruta");
 
-        // Poblar agentes según la empresa seleccionada por defecto
-        actualizarAgentesDespachos();
-
-        // Al cambiar empresa, actualizar agentes
-        $("#despachosEmpresa").off("change.despachos").on("change.despachos", function () {
-            actualizarAgentesDespachos();
-        });
+        // Poblar agentes filtrados por empresa del card (igual que Backorder)
+        poblarSelectAgentes($("#despachosAgente"), _empresaIdDespachos, "#despachosAgenteHelp");
 
         // Limpiar campos opcionales
-        $("#despachosCliente, #despachosPedido",  "#despachosIdDocumento").val("");
+        $("#despachosCliente, #despachosPedido, #despachosIdDocumento").val("");
 
         $("#modalDespachos").modal("show");
-        setTimeout(function () { $("#despachosEmpresa").focus(); }, 400);
+        setTimeout(function () { $("#despachosAgente").focus(); }, 400);
     }
 
     /**

@@ -91,10 +91,15 @@
         <tr>
             <td>{{nombre}}</td>
             <td>{{codigo}}</td>
+            <td>{{serie_sap}}</td>
             <td>
-                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar">
+                    <i class="clip-remove"></i>
+                </a>
+
                 <input type="hidden" name="empresasIds" value="{{id}}" />
                 <input type="hidden" name="codigoIds" value="{{codigo}}" />
+                <input type="hidden" name="serieSapIds" value="{{serie_sap}}" />
             </td>
         </tr>
     </script>
@@ -109,8 +114,8 @@
         var codigoSeleccionadas = JSON.parse('@Html.Raw(Json.Encode(ViewBag.codigoIds))');
         var serieSapSeleccionadas = JSON.parse('@Html.Raw(Json.Encode(ViewBag.serieSapIds))');
 
-        $(function () {
 
+        $(function () {
             function error(texto)
             {
                 toastr.error(texto);
@@ -151,7 +156,6 @@
             function cargaEmpresa(id, nombre, codigo, serieSap)
             {
                 var plantilla = $('#empresa_tr_template').html();
-
                 var modelo =
                 {
                     id: id,
@@ -254,7 +258,7 @@
                     return;
                 }
 
-                cargaEmpresa(id, nombre, ColaboradorId);
+                cargaEmpresa(id, nombre, ColaboradorId, serieId);
 
                 $("#EmpresaId").val(0);
                 $("#ColaboradorId").val("");

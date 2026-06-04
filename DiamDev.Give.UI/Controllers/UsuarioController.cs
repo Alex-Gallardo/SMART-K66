@@ -35,6 +35,7 @@ namespace DiamDev.Give.UI.Controllers
                 ViewBag.Roles = new SelectList(Roles, "RolId", "Nombre");
                 ViewBag.Agencias = new SelectList(Agencias, "AgenciaId", "Nombre");
                 ViewBag.AgenciaConsultas = new SelectList(AgenciaConsultas, "AgenciaId", "Nombre");
+
             }
 
         #endregion
@@ -90,7 +91,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpPost]
         [Permiso("Control.Usuario.Crear")]
-        public ActionResult Crear(Usuario modelo, int[] rolesIds, long[] agenciasIds, long[] empresasIds, string[] codigoIds, string[] serieSapIds, bool activo, bool token)
+        public ActionResult Crear(Usuario modelo, int[] rolesIds, long[] agenciasIds, long[] empresasIds, string[] codigoIds, string[] serieSapIds , bool activo, bool token)
         {
             if (rolesIds == null || rolesIds.Length == 0)
             {
@@ -119,6 +120,26 @@ namespace DiamDev.Give.UI.Controllers
                 for (int i = 0; i < agenciasIds.Length; i++)
                 {
                     modelo.Agencias.Add(new UsuarioAgencia() { AgenciaId = agenciasIds[i] });
+                }
+
+                if (empresasIds == null)
+                {
+                    throw new Exception("empresasIds NULL");
+                }
+
+                if (codigoIds == null)
+                {
+                    throw new Exception("codigoIds NULL");
+                }
+
+                if (serieSapIds == null)
+                {
+                    throw new Exception("serieSapIds NULL");
+                }
+
+                if (modelo == null)
+                {
+                    throw new Exception("modelo NULL");
                 }
 
                 modelo.Empresas = new List<UsuarioEmpresa>();
@@ -159,6 +180,7 @@ namespace DiamDev.Give.UI.Controllers
 
             ViewBag.EmpresasIds = empresasIds;
             ViewBag.CodigoIds = codigoIds;
+            ViewBag.serieSapIds = serieSapIds;
 
             this.CargaControles();
             return View(modelo);
@@ -253,6 +275,14 @@ namespace DiamDev.Give.UI.Controllers
                 }
 
                 modelo.Empresas = new List<UsuarioEmpresa>();
+                if (serieSapIds == null)
+                {
+                    throw new Exception("serieSapIds viene NULL");
+                }
+                if (codigoIds == null)
+                {
+                    throw new Exception("codigoIds viene NULL");
+                }
                 for (int i = 0; i < empresasIds.Length; i++)
                 {
                     modelo.Empresas.Add(new UsuarioEmpresa() { EmpresaId = empresasIds[i], Codigo = codigoIds[i], SERIE_SAP = serieSapIds[i] });

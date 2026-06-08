@@ -355,13 +355,11 @@ namespace DiamDev.Give.BLL
 
             if (!string.IsNullOrWhiteSpace(entidad.Celular))
             {
-                int Inicial = 30000000;
-                int Final = 59999999;
+                int Inicial = 10000000;
+                int Final = 99999999;
                 int Celular = int.Parse(entidad.Celular.Replace("-",""));
 
-                if (Celular >= Inicial && Celular <= Final)
-                { }
-                else
+                if (Celular <= Inicial && Celular >= Final)
                 {
                     return "EL #TELEFONO NO ES VALIDO";
                 }

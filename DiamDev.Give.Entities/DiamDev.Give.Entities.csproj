@@ -83,8 +83,10 @@
   <ItemGroup>
     <Compile Include="AutenticarToken.cs" />
     <Compile Include="BodegaActivaModel.cs" />
+    <Compile Include="ClienteHana.cs" />
     <Compile Include="ClienteK66.cs" />
     <Compile Include="CodeFile1.cs" />
+    <Compile Include="DocumentoRecibo.cs" />
     <Compile Include="EmpresaBodegaActiva.cs" />
     <Compile Include="ERPPedidoDetalleK66.cs" />
     <Compile Include="EstadoxPedidoK66.cs" />
@@ -99,6 +101,10 @@
     <Compile Include="PedidoK66.cs" />
     <Compile Include="EstadoSmartK66.cs" />
     <Compile Include="PrecioxCantidadModel.cs" />
+    <Compile Include="ReciboCajaCobro.cs" />
+    <Compile Include="ReciboCajaDetalle.cs" />
+    <Compile Include="ReciboCajaEncabezado.cs" />
+    <Compile Include="ResultadoRecibo.cs" />
     <Compile Include="UnidadK66.cs" />
     <Compile Include="Visita.cs" />
     <Compile Include="ProductoAlertaK66.cs" />

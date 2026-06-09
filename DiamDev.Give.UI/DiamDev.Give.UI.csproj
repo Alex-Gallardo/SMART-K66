@@ -826,6 +826,7 @@
     <Compile Include="Controllers\Descuento_K66Controller.cs" />
     <Compile Include="Controllers\Pedido_K66Controller.cs" />
     <Compile Include="Controllers\Producto_Alerta_K66Controller.cs" />
+    <Compile Include="Controllers\ReciboCajaController.cs" />
     <Compile Include="Controllers\VisitaController.cs" />
     <Compile Include="Controllers\Tipo_VisitaController.cs" />
     <Compile Include="Controllers\PaqueteController.cs" />
@@ -924,6 +925,7 @@
     <Compile Include="Models\LoginModel.cs" />
     <Compile Include="Models\ProductoCargaMasivaArchivo.cs" />
     <Compile Include="Models\ProductoCargaMasivaDetalle.cs" />
+    <Compile Include="Models\ReciboCajaViewModel.cs" />
     <Compile Include="Models\SerieAgenciaFacturaModel.cs" />
     <Compile Include="Models\UsuarioModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -1365,6 +1367,7 @@
     <Content Include="Views\Reporte\Index.cshtml" />
     <Content Include="Views\Reporte\HistorialVenta.cshtml" />
     <Content Include="Views\Reporte\HistorialEntrega.cshtml" />
+    <Content Include="Views\ReciboCaja\Index.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

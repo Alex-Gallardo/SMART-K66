@@ -1,382 +1,722 @@
 ﻿@model DiamDev.Give.UI.Models.ReciboCajaIndexViewModel
-
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<!-- ══════════════════════════════════════════════
-     ESTILOS ESPECÍFICOS DE ESTA VISTA
-     (Bootstrap 3 ya cargado en _Layout)
-══════════════════════════════════════════════ -->
 <style>
-    /* ── Botones de empresa ── */
-    .btn-empresa {
-        display: block;
-        width: 100%;
-        padding: 18px;
-        font-size: 16px;
-        font-weight: bold;
-        border: 3px solid;
-        border-radius: 6px;
-        background: #fff;
-        cursor: pointer;
-        transition: all .2s;
-        margin-bottom: 12px;
+    /* ════════════════════════════════════════════
+       VARIABLES Y COLORES DE EMPRESA
+       Se aplican dinámicamente vía JS
+    ════════════════════════════════════════════ */
+    :root {
+        --c-graco: #27ae60;
+        --c-faes: #c0392b;
+        --c-bolik: #2c3e50;
+        --c-default: #95a5a6;
+    }
+
+    /* ── SELECTOR DE EMPRESA ── */
+    .empresa-addon {
+        width: 46px;
         text-align: center;
+        background: var(--c-default);
+        color: #fff;
+        font-size: 18px;
+        transition: background 0.25s ease;
+        border-right: none;
     }
 
-     .btn-empresa:hover {
-            color: #fff;
+        .empresa-addon.graco {
+            background: var(--c-graco);
         }
 
-    .empresa-graco {
-        border-color: #27ae60;
-        color: #27ae60;
+        .empresa-addon.faes {
+            background: var(--c-faes);
+        }
+
+        .empresa-addon.bolik {
+            background: var(--c-bolik);
+        }
+
+    /* ── BORDE DINÁMICO DE PANELS (indica empresa activa) ── */
+    .panel-empresa {
+        border-top: 4px solid var(--c-default);
+        transition: border-top-color 0.3s ease;
     }
 
-        .empresa-graco:hover,
-        .empresa-graco.activo {
-            background: #27ae60;
-            color: #fff;
+        .panel-empresa.graco {
+            border-top-color: var(--c-graco);
         }
 
-    .empresa-faes {
-        border-color: #c0392b;
-        color: #c0392b;
+        .panel-empresa.faes {
+            border-top-color: var(--c-faes);
+        }
+
+        .panel-empresa.bolik {
+            border-top-color: var(--c-bolik);
+        }
+
+    /* ── BADGE DE EMPRESA en heading ── */
+    .badge-emp {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        color: #fff;
+        background: var(--c-default);
+        vertical-align: middle;
+        transition: background 0.3s;
     }
 
-        .empresa-faes:hover,
-        .empresa-faes.activo {
-            background: #c0392b;
-            color: #fff;
+        .badge-emp.graco {
+            background: var(--c-graco);
         }
 
-    .empresa-bolik {
-        border-color: #2c3e50;
+        .badge-emp.faes {
+            background: var(--c-faes);
+        }
+
+        .badge-emp.bolik {
+            background: var(--c-bolik);
+        }
+
+    /* ── BADGES DE STATUS ── */
+    .badge-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+    }
+
+        .badge-status.nuevo {
+            background: #ecf0f1;
+            color: #7f8c8d;
+            border: 1px solid #bdc3c7;
+        }
+
+        .badge-status.guardado {
+            background: #d5f5e3;
+            color: #1e8449;
+            border: 1px solid #27ae60;
+        }
+
+    /* ── CAMPO # RECIBO ── */
+    #txtIdRecibo {
+        font-family: 'Courier New', monospace;
+        font-size: 15px;
+        font-weight: 700;
+        background: #f5f5f5 !important;
+        text-align: center;
+        letter-spacing: 2px;
         color: #2c3e50;
+        border: 1px dashed #bdc3c7;
     }
 
-        .empresa-bolik:hover,
-        .empresa-bolik.activo {
-            background: #2c3e50;
-            color: #fff;
-        }
-
-    /* ── Dropdown autocompletado cliente ── */
+    /* ── BÚSQUEDA DE CLIENTE ── */
     .wrapper-cliente {
         position: relative;
     }
+
+    #txtBuscarCliente {
+        border-left: 3px solid #3498db;
+        transition: border-color 0.2s;
+    }
+
+        #txtBuscarCliente:focus {
+            border-left-color: #2980b9;
+        }
 
     #dropdownClientes {
         position: absolute;
         top: 100%;
         left: 0;
         right: 0;
-        z-index: 1000;
+        z-index: 1050;
         background: #fff;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+        border: 1px solid #d0d3d4;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
         max-height: 220px;
         overflow-y: auto;
-        box-shadow: 0 4px 8px rgba(0,0,0,.15);
+        box-shadow: 0 6px 16px rgba(0,0,0,.12);
     }
 
         #dropdownClientes .item-cliente {
-            padding: 8px 12px;
+            padding: 9px 14px;
             cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid #f4f6f7;
             font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
             #dropdownClientes .item-cliente:hover {
-                background: #e8f4fd;
+                background: #eaf4fb;
             }
 
             #dropdownClientes .item-cliente .codigo {
+                font-family: monospace;
+                font-weight: 700;
                 color: #2980b9;
-                font-weight: bold;
+                min-width: 90px;
             }
 
-    /* ── Tablas de detalle ── */
-    .tabla-detalle {
-        font-size: 12px;
+    /* ── CAMPO NOMBRE CLIENTE (verde cuando hay valor) ── */
+    #txtNombreCliente.tiene-valor {
+        background: #eafaf1 !important;
+        border-color: #27ae60;
+        font-weight: 600;
+        color: #1a5e35;
     }
 
-        .tabla-detalle th {
-            background: #ecf0f1;
-            font-size: 11px;
+    /* ── LABELS COMPACTOS ESTILO MATERIAL ── */
+    .flabel {
+        display: block;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        font-weight: 700;
+        color: #95a5a6;
+        margin-bottom: 4px;
+    }
+
+        .flabel i {
+            margin-right: 3px;
+            color: #aab;
+        }
+
+    /* ── INPUTS Y SELECTS UNIFORMES ── */
+    .f-control {
+        height: 34px;
+        font-size: 13px;
+        padding: 4px 9px;
+        border-radius: 4px;
+    }
+
+    select.f-control {
+        height: 34px;
+    }
+
+    .fgroup {
+        margin-bottom: 12px;
+    }
+
+    /* ── PANELES DE DETALLE ── */
+    .panel-cobros .panel-heading {
+        background: #2471a3 !important;
+        color: #fff;
+    }
+
+    .panel-docs .panel-heading {
+        background: #1e8449 !important;
+        color: #fff;
+    }
+
+        .panel-cobros .panel-heading i,
+        .panel-docs .panel-heading i {
+            margin-right: 6px;
+        }
+
+    /* ── TABLAS DE DETALLE ── */
+    .tabla-detalle {
+        font-size: 12px;
+        margin-bottom: 0;
+    }
+
+        .tabla-detalle thead th {
+            background: #f2f3f4;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            color: #7f8c8d;
+            padding: 6px 8px !important;
+            white-space: nowrap;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tabla-detalle tbody td {
+            padding: 6px 8px !important;
+            vertical-align: middle !important;
         }
 
         .tabla-detalle tr.seleccionada {
             background: #d6eaf8 !important;
         }
 
-    /* ── Barra de totales ── */
+    .tabla-vacia td {
+        color: #bdc3c7;
+        font-style: italic;
+    }
+
+    /* ── BARRA TOTALES ── */
     .barra-totales {
         background: #2c3e50;
-        color: #fff;
-        padding: 10px 20px;
-        border-radius: 4px;
-        font-size: 15px;
+        color: #ecf0f1;
+        padding: 12px 20px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 0;
+        height: 100%;
     }
 
-        .barra-totales .valor {
-            color: #f1c40f;
-            font-weight: bold;
-            font-size: 17px;
+    .total-item {
+        text-align: center;
+        padding: 0 14px;
+    }
+
+        .total-item + .total-item {
+            border-left: 1px solid #3d5166;
         }
 
-    .saldo-error {
-        color: #e74c3c !important;
+    .total-lbl {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: #7f8c8d;
+        display: block;
     }
 
-    .saldo-ok {
-        color: #2ecc71 !important;
+    .total-val {
+        font-size: 19px;
+        font-weight: 700;
+        color: #f1c40f;
+        line-height: 1.1;
     }
 
-    /* ── Panel flotante solo cuando hay empresa ── */
+        .total-val.saldo-ok {
+            color: #2ecc71 !important;
+        }
+
+        .total-val.saldo-error {
+            color: #e74c3c !important;
+        }
+
+    .moneda-info {
+        font-size: 11px;
+        color: #7f8c8d;
+        padding-left: 14px;
+        border-left: 1px solid #3d5166;
+        line-height: 1.8;
+    }
+
+    /* ── ÁREA DE BOTONES ── */
+    .zona-botones {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        height: 100%;
+        flex-wrap: wrap;
+    }
+
+        .zona-botones .sep-btn {
+            width: 1px;
+            height: 28px;
+            background: #ddd;
+            flex-shrink: 0;
+        }
+
+    /* ── CARD INFO USUARIO ── */
+    .usuario-card {
+        background: #ecf0f1;
+        border-radius: 6px;
+        padding: 8px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+    }
+
+    .usuario-avatar {
+        width: 36px;
+        height: 36px;
+        background: #2c3e50;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 15px;
+        flex-shrink: 0;
+    }
+
+    .usuario-nombre {
+        font-weight: 700;
+        color: #2c3e50;
+        line-height: 1.2;
+    }
+
+    .usuario-planta {
+        font-size: 11px;
+        color: #7f8c8d;
+    }
+
+    /* ── panelRecibo oculto hasta elegir empresa ── */
     #panelRecibo {
         display: none;
     }
 
-    /* ── Campo readonly gris claro ── */
-    input[readonly] {
+    /* ── input readonly suave ── */
+    .f-readonly {
         background-color: #f9f9f9 !important;
+        cursor: default;
     }
 </style>
 
+<!--
+    
+    PERMISOS DE ROLES
+    Cambia los  _arroba por arrobas normales
+
+     _arroba if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.ReciboCaja.Graco"))
+    {
+        _arroba   <option value="GRACO">🏭&nbsp; Graco Pack</option>
+    }
+        if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.ReciboCaja.Faes"))
+    {
+        _arroba   <option value="FAES">🏭&nbsp; Fabrica Escocesa</option>
+    }
+    _arroba if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.ReciboCaja.Bolik"))
+    {
+        <option value="BOLIK">🏭&nbsp; Industrias Bolik</option>
+    }
+    -->
 <!-- ══════════════════════════════════════════════
-     SECCIÓN 1: SELECCIÓN DE EMPRESA + FECHA
+     SECCIÓN 1: EMPRESA + FECHA
+     Rediseño: select con indicador de color
+     en lugar de 3 botones grandes
 ══════════════════════════════════════════════ -->
-<div class="panel panel-default">
-    <div class="panel-heading">
-        <h4 class="panel-title">
-            <i class="clip-archive"></i> Recibos de Caja &nbsp;
+<div class="panel panel-default panel-empresa" id="panelSelector">
+    <div class="panel-heading" style="background:#f7f9fa; border-bottom:1px solid #eee;">
+        <h4 class="panel-title" style="color:#5d6d7e; font-size:13px;">
+            <i class="clip-archive"></i>&nbsp; Recibos de Caja &mdash;
             <small>Seleccione empresa y fecha para comenzar</small>
         </h4>
     </div>
-    <div class="panel-body">
-        <div class="row">
-            <!-- Botones de empresa (filtrados por permiso) -->
-            <div class="col-md-5">
-                <label class="control-label">Seleccionar Empresa</label>
-            <div style="margin-top: 8px;">
-            <button class="btn-empresa empresa-graco" data-empresa="GRACO">
-                <i class="icon-building"></i>&nbsp; Graco Pack
-            </button>
-            <button class="btn-empresa empresa-faes" data-empresa="FAES">
-                <i class="icon-building"></i>&nbsp; Fabrica Escocesa
-            </button>
-            <button class="btn-empresa empresa-bolik" data-empresa="BOLIK">
-                <i class="icon-building"></i>&nbsp; Industrias Bolik
-            </button>
-        </div>
-    </div>
+    <div class="panel-body" style="padding: 16px 20px;">
+        <div class="row" style="display:flex; align-items:flex-end; flex-wrap:wrap;">
 
-    <!-- Fecha + Info usuario -->
-                    <div class="col-md-4 col-md-offset-1">
-                        <div class="form-group">
-                            <label class="control-label">Fecha del Recibo</label>
-                            <input type="text" id="fechaRecibo"
-                                   class="form-control date-picker"
-                                   data-date-format="yyyy-mm-dd"
-                                   data-date-viewmode="years"
-                                   value="@DateTime.Today.ToString("yyyy-MM-dd")"
-                                   readonly="readonly" />
-                        </div>
-                        <div style="margin-top: 16px; padding: 10px; background:#ecf0f1; border-radius:4px;">
-                            <strong>Usuario:</strong> @Model.UsuarioActual <br />
-                            <strong>Planta:</strong>  @Model.PlantaUsuario
+            <!-- Selector de empresa -->
+            <div class="col-md-4">
+                <span class="flabel"><i class="icon-building"></i> Empresa</span>
+                <div class="input-group">
+                    <span class="input-group-addon empresa-addon" id="empresaAddon">
+                        <i class="icon-building"></i>
+                    </span>
+                    <select id="selEmpresa" class="form-control f-control search-select">
+                        <option value="">— Seleccione empresa —</option>
+                            <option value="GRACO">🏭&nbsp; Graco Pack</option>
+                            <option value="FAES">🏭&nbsp; Fabrica Escocesa</option>
+                            <option value="BOLIK">🏭&nbsp; Industrias Bolik</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Fecha del recibo -->
+            <div class="col-md-3">
+                <span class="flabel"><i class="icon-calendar"></i> Fecha del Recibo</span>
+                <div class="input-group">
+                    <span class="input-group-addon" style="background:#eaf0fb; color:#2980b9;">
+                        <i class="icon-calendar"></i>
+                    </span>
+                    <input type="text" id="fechaRecibo"
+                           class="form-control f-control date-picker"
+                           data-date-format="yyyy-mm-dd"
+                           data-date-viewmode="years"
+                           value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                           readonly="readonly" />
+                </div>
+            </div>
+
+            <!-- Info usuario -->
+            <div class="col-md-3 col-md-offset-1">
+                <div class="usuario-card" style="margin-top:4px;">
+                    <div class="usuario-avatar">
+                        <i class="icon-user"></i>
+                    </div>
+                    <div>
+                        <div class="usuario-nombre">@Model.UsuarioActual</div>
+                        <div class="usuario-planta">
+                            <i class="icon-map-marker" style="font-size:10px;"></i>
+                            Planta: <strong>@Model.PlantaUsuario</strong>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <!-- ══════════════════════════════════════════════
      SECCIÓN 2: FORMULARIO DE RECIBO
-     (aparece después de seleccionar empresa)
+     (aparece al seleccionar empresa)
 ══════════════════════════════════════════════ -->
 <div id="panelRecibo">
 
-    <!-- ── ENCABEZADO ── -->
-    <div class="panel panel-default">
-        <div class="panel-heading">
-            <h4 class="panel-title">
-                <i class="clip-edit-2"></i>&nbsp;
-                Encabezado del Recibo &mdash;
-                <span id="lblEmpresaActiva" style="font-weight:bold;"></span>
-            </h4>
+    <!-- ── ENCABEZADO DEL RECIBO ── -->
+    <div class="panel panel-default panel-empresa" id="panelEncabezado">
+        <div class="panel-heading" style="background:#f7f9fa; border-bottom:1px solid #eee; padding:10px 15px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <h4 class="panel-title" style="margin:0; font-size:14px; color:#5d6d7e;">
+                    <i class="clip-edit-2"></i>&nbsp;
+                    Encabezado del Recibo &nbsp;
+                    <span id="badgeEmpresa" class="badge-emp">—</span>
+                </h4>
+                <span id="badgeStatus" class="badge-status nuevo">NUEVO</span>
+            </div>
         </div>
-        <div class="panel-body">
-            <!-- Fila 1: Recibo + Empresa + RecFísico + Fecha -->
+        <div class="panel-body" style="padding: 14px 18px;">
+
+            <!-- Fila A: Identificadores + Totales rápidos -->
             <div class="row">
                 <div class="col-md-2">
-                    <label class="control-label"># Recibo</label>
-                    <input type="text" id="txtIdRecibo" class="form-control" readonly placeholder="Automático" />
-                    <input type="hidden" id="hdnEmpresa" />
-                    <input type="hidden" id="hdnAgente" />
-                    <input type="hidden" id="hdnMonedaCobro" />
-                    <input type="hidden" id="hdnMonedaDoc" />
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-tag"></i> # Recibo</span>
+                        <input type="text" id="txtIdRecibo"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="Automático" />
+                        <!-- Campos ocultos de estado -->
+                        <input type="hidden" id="hdnEmpresa" />
+                        <input type="hidden" id="hdnAgente" />
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <label class="control-label">Rec. Físico</label>
-                    <input type="text" id="txtRecFisico" class="form-control" maxlength="20" />
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-file-text"></i> Rec. Físico</span>
+                        <input type="text" id="txtRecFisico"
+                               class="form-control f-control"
+                               maxlength="20" placeholder="Nro. físico..." />
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <label class="control-label">Monto Cobros</label>
-                    <input type="text" id="txtMontoRec" class="form-control" readonly />
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-money"></i> Monto Cobros</span>
+                        <input type="text" id="txtMontoRec"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="0.00"
+                               style="color:#1a5276; font-weight:700;" />
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <label class="control-label">Total Docs.</label>
-                    <input type="text" id="txtTotalDoc" class="form-control" readonly />
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-file"></i> Total Docs.</span>
+                        <input type="text" id="txtTotalDoc"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="0.00"
+                               style="color:#145a32; font-weight:700;" />
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <label class="control-label">Saldo</label>
-                    <input type="text" id="txtSaldo" class="form-control" readonly />
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-signal"></i> Saldo</span>
+                        <input type="text" id="txtSaldo"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="0.00"
+                               style="font-weight:700;" />
+                    </div>
                 </div>
                 <div class="col-md-2">
-                    <label class="control-label">Status</label>
-                    <input type="text" id="txtStatus" class="form-control" readonly value="NUEVO" />
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-time"></i> Moneda</span>
+                        <input type="text" id="txtMoneda"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="—" />
+                    </div>
                 </div>
             </div>
 
-            <!-- Fila 2: Búsqueda de cliente -->
-            <div class="row" style="margin-top:12px;">
-                <div class="col-md-4">
-                    <label class="control-label">Cliente <small>(código o nombre)</small></label>
-                    <div class="wrapper-cliente">
-                        <input type="text" id="txtBuscarCliente"
-                               class="form-control"
-                               placeholder="Escriba para buscar..."
-                               autocomplete="off" />
-                        <div id="dropdownClientes"></div>
+            <div style="border-top:1px solid #f0f0f0; margin: 4px 0 12px;"></div>
+
+            <!-- Fila B: Búsqueda de cliente -->
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-user"></i> Cliente (código o nombre)</span>
+                        <div class="wrapper-cliente input-group">
+                            <span class="input-group-addon"
+                                  style="background:#eaf0fb; color:#2980b9;">
+                                <i class="icon-search"></i>
+                            </span>
+                            <input type="text" id="txtBuscarCliente"
+                                   class="form-control f-control"
+                                   placeholder="Escriba código o nombre para buscar..."
+                                   autocomplete="off" />
+                            <div id="dropdownClientes"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-user"></i> Nombre Cliente</span>
+                        <input type="text" id="txtNombreCliente"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="—" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-barcode"></i> NIT</span>
+                        <input type="text" id="txtNit"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="—" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fila C: Datos adicionales cliente -->
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-map-marker"></i> Dirección</span>
+                        <input type="text" id="txtDireccion"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="—" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-user"></i> Agente</span>
+                        <input type="text" id="txtAgente"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="—" />
                     </div>
                 </div>
                 <div class="col-md-4">
-                    <label class="control-label">Nombre Cliente</label>
-                    <input type="text" id="txtNombreCliente" class="form-control" readonly />
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label">NIT</label>
-                    <input type="text" id="txtNit" class="form-control" readonly />
-                </div>
-                <div class="col-md-2">
-                    <label class="control-label">Moneda</label>
-                    <input type="text" id="txtMoneda" class="form-control" readonly />
+                    <div class="fgroup" style="margin-bottom:0;">
+                        <span class="flabel"><i class="icon-envelope"></i> Correo</span>
+                        <input type="text" id="txtCorreo"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="—" />
+                    </div>
                 </div>
             </div>
 
-            <!-- Fila 3: Resto de datos cliente -->
-            <div class="row" style="margin-top:12px;">
-                <div class="col-md-4">
-                    <label class="control-label">Dirección</label>
-                    <input type="text" id="txtDireccion" class="form-control" readonly />
-                </div>
-                <div class="col-md-3">
-                    <label class="control-label">Agente</label>
-                    <input type="text" id="txtAgente" class="form-control" readonly />
-                </div>
-                <div class="col-md-4">
-                    <label class="control-label">Correo</label>
-                    <input type="text" id="txtCorreo" class="form-control" readonly />
-                </div>
-            </div>
         </div>
-    </div><!-- /panel encabezado -->
+    </div>
+
     <!-- ── DETALLES: COBROS | DOCUMENTOS ── -->
     <div class="row">
 
-        <!-- ═══ COLUMNA IZQUIERDA: COBROS ═══ -->
+        <!-- ═══ IZQUIERDA: COBROS ═══ -->
         <div class="col-md-6">
-            <div class="panel panel-default">
-                <div class="panel-heading" style="background:#2980b9;color:#fff;">
-                    <strong><i class="icon-money"></i> Detalle de Cobros</strong>
+            <div class="panel panel-default panel-cobros">
+                <div class="panel-heading" style="padding:10px 14px;">
+                    <strong style="font-size:13px;">
+                        <i class="icon-money"></i> Detalle de Cobros
+                    </strong>
                 </div>
-                <div class="panel-body">
+                <div class="panel-body" style="padding:14px 16px;">
+
                     <div class="row">
-                        <div class="col-md-6">
-                            <label class="control-label">Tipo de Pago</label>
-                            <select id="cboTipoPago" class="form-control search-select">
-                                <option value="">-- Seleccionar --</option>
-                                <option>EFECTIVO</option>
-                                <option>CHEQUE</option>
-                                <option>TRANSFERENCIA</option>
-                                <option>DEPOSITO</option>
-                            </select>
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel">Tipo de Pago</span>
+                                <select id="cboTipoPago" class="form-control f-control search-select">
+                                    <option value="">— Seleccionar —</option>
+                                    <option value="EFECTIVO">💵&nbsp; EFECTIVO</option>
+                                    <option value="CHEQUE">🏦&nbsp; CHEQUE</option>
+                                    <option value="TRANSFERENCIA">🔄&nbsp; TRANSFERENCIA</option>
+                                    <option value="DEPOSITO">💳&nbsp; DEPOSITO</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="control-label">Banco</label>
-                            <select id="cboBanco" class="form-control search-select">
-                                <option value="">-- Seleccionar --</option>
-                                <option>BANRURAL</option>
-                                <option>INDUSTRIAL</option>
-                                <option>G&T CONTINENTAL</option>
-                                <option>BAM</option>
-                                <option>AGROMERCANTIL</option>
-                                <option>OCCIDENTE</option>
-                                <option>PROMERICA</option>
-                                <option>BANTRAB</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row" style="margin-top:8px;">
-                        <div class="col-md-5">
-                            <label class="control-label">No. Documento</label>
-                            <input type="text" id="txtNoDocCobro" class="form-control" />
-                        </div>
-                        <div class="col-md-7">
-                            <label class="control-label">Fecha</label>
-                            <input type="text" id="dtpFechaCobro"
-                                   class="form-control date-picker"
-                                   data-date-format="yyyy-mm-dd"
-                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel">Banco</span>
+                                <select id="cboBanco" class="form-control f-control search-select">
+                                    <option value="">— Seleccionar —</option>
+                                    <option value="BANRURAL">🏛️&nbsp; BANRURAL</option>
+                                    <option value="INDUSTRIAL">🏛️&nbsp; INDUSTRIAL</option>
+                                    <option value="G&T CONTINENTAL">🏛️&nbsp; G&amp;T CONTINENTAL</option>
+                                    <option value="BAM">🏛️&nbsp; BAM</option>
+                                    <option value="AGROMERCANTIL">🏛️&nbsp; AGROMERCANTIL</option>
+                                    <option value="OCCIDENTE">🏛️&nbsp; OCCIDENTE</option>
+                                    <option value="PROMERICA">🏛️&nbsp; PROMERICA</option>
+                                    <option value="BANTRAB">🏛️&nbsp; BANTRAB</option>
+                                    <option value="REFORMADOR">🏛️&nbsp; REFORMADOR</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
-                    <div class="row" style="margin-top:8px;">
-                        <div class="col-md-6">
-                            <label class="control-label">Monto</label>
-                            <input type="number" id="txtMontoCobro" class="form-control"
-                                   step="0.01" min="0" placeholder="0.00" />
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel"><i class="icon-file-text"></i> No. Documento</span>
+                                <input type="text" id="txtNoDocCobro"
+                                       class="form-control f-control"
+                                       placeholder="Nro. de cheque / transf..." />
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="control-label">Moneda</label>
-                            <select id="cboMonedaCobro" class="form-control search-select">
-                                <option value="">-- Seleccionar --</option>
-                                <option>GTQ</option>
-                                <option>USD</option>
-                            </select>
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel"><i class="icon-calendar"></i> Fecha Documento</span>
+                                <input type="text" id="dtpFechaCobro"
+                                       class="form-control f-control date-picker"
+                                       data-date-format="yyyy-mm-dd"
+                                       value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            </div>
                         </div>
                     </div>
-                    <div style="margin-top:12px;">
-                        <button class="btn btn-primary btn-sm" id="btnAgregarCobro">
-                            <i class="icon-plus"></i> Agregar
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="fgroup" style="margin-bottom:0;">
+                                <span class="flabel"><i class="icon-money"></i> Monto</span>
+                                <input type="number" id="txtMontoCobro"
+                                       class="form-control f-control"
+                                       step="0.01" min="0" placeholder="0.00" />
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="fgroup" style="margin-bottom:0;">
+                                <span class="flabel">💱 Moneda</span>
+                                <select id="cboMonedaCobro" class="form-control f-control search-select">
+                                    <option value="">— Seleccionar —</option>
+                                    <option value="GTQ">🇬🇹&nbsp; GTQ — Quetzal</option>
+                                    <option value="USD">🇺🇸&nbsp; USD — Dólar</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:12px; display:flex; gap:8px;">
+                        <button class="btn btn-primary btn-sm" id="btnAgregarCobro" style="flex:1;">
+                            <i class="icon-plus"></i> Agregar Cobro
                         </button>
                         <button class="btn btn-danger btn-sm" id="btnQuitarCobro">
-                            <i class="icon-minus"></i> Quitar seleccionado
+                            <i class="icon-minus"></i> Quitar
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Tabla Cobros -->
+            <!-- Tabla de cobros -->
             <div class="panel panel-default">
-                <div class="panel-body" style="padding:5px; overflow-x:auto;">
-                    <table id="tablaCobros"
-                           class="table table-condensed table-striped table-bordered tabla-detalle">
+                <div class="panel-body" style="padding:0; overflow-x:auto;">
+                    <table class="table tabla-detalle">
                         <thead>
                             <tr>
                                 <th>Tipo</th>
                                 <th>Banco</th>
                                 <th>Fecha</th>
                                 <th>Documento</th>
-                                <th>Monto</th>
-                                <th>Moneda</th>
+                                <th class="text-right">Monto</th>
+                                <th>Mon.</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyCobros">
-                            <tr id="trSinCobros">
-                                <td colspan="6" class="text-center text-muted">
+                            <tr class="tabla-vacia">
+                                <td colspan="6" class="text-center" style="padding:16px;">
+                                    <i class="icon-inbox" style="font-size:20px; color:#ccc;"></i><br />
                                     Sin cobros agregados
                                 </td>
                             </tr>
@@ -385,115 +725,149 @@
                 </div>
             </div>
         </div><!-- /col cobros -->
-        <!-- ═══ COLUMNA DERECHA: DOCUMENTOS ═══ -->
+        <!-- ═══ DERECHA: DOCUMENTOS ═══ -->
         <div class="col-md-6">
-            <div class="panel panel-default">
-                <div class="panel-heading" style="background:#27ae60;color:#fff;">
-                    <strong><i class="icon-file-text"></i> Detalle de Documentos</strong>
+            <div class="panel panel-default panel-docs">
+                <div class="panel-heading" style="padding:10px 14px;">
+                    <strong style="font-size:13px;">
+                        <i class="icon-file-text"></i> Detalle de Documentos
+                    </strong>
                 </div>
-                <div class="panel-body">
+                <div class="panel-body" style="padding:14px 16px;">
+
                     <div class="row">
-                        <div class="col-md-12">
-                            <label class="control-label">Tipo de Documento</label>
-                            <select id="cboTipoDoc" class="form-control search-select">
-                                <option value="">-- Seleccionar --</option>
-                                <option>FACTURA</option>
-                                <option>PEDIDO</option>
-                                <option>ANTICIPO</option>
-                                <option>SALDO PENDIENTE</option>
-                                <option>NOTA DE CREDITO</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row" style="margin-top:8px;">
-                        <div class="col-md-8">
-                            <label class="control-label">No. Documento</label>
-                            <div class="input-group">
-                                <input type="text" id="txtNoDocDoc"
-                                       class="form-control"
-                                       placeholder="Escriba o haga clic en 🔍" />
-                                <span class="input-group-btn">
-                                    <button class="btn btn-default" id="btnBuscarDoc"
-                                            title="Buscar documento disponible">
-                                        <i class="icon-search"></i>
-                                    </button>
-                                </span>
+                        <div class="col-sm-12">
+                            <div class="fgroup">
+                                <span class="flabel">Tipo de Documento</span>
+                                <select id="cboTipoDoc" class="form-control f-control search-select">
+                                    <option value="">— Seleccionar —</option>
+                                    <option value="FACTURA">🧾&nbsp; FACTURA</option>
+                                    <option value="PEDIDO">📦&nbsp; PEDIDO</option>
+                                    <option value="ANTICIPO">💰&nbsp; ANTICIPO</option>
+                                    <option value="SALDO PENDIENTE">⏳&nbsp; SALDO PENDIENTE</option>
+                                    <option value="NOTA DE CREDITO">📝&nbsp; NOTA DE CRÉDITO</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="control-label">Fecha Doc.</label>
-                            <input type="text" id="dtpFechaDoc"
-                                   class="form-control date-picker"
-                                   data-date-format="yyyy-mm-dd"
-                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel"><i class="icon-file-text"></i> No. Documento</span>
+                                <div class="input-group">
+                                    <input type="text" id="txtNoDocDoc"
+                                           class="form-control f-control"
+                                           placeholder="Escriba o busque 🔍" />
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-default btn-sm" id="btnBuscarDoc"
+                                                title="Buscar documento disponible"
+                                                style="height:34px;">
+                                            <i class="icon-search"></i>
+                                        </button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel"><i class="icon-calendar"></i> Fecha Documento</span>
+                                <input type="text" id="dtpFechaDoc"
+                                       class="form-control f-control date-picker"
+                                       data-date-format="yyyy-mm-dd"
+                                       value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            </div>
                         </div>
                     </div>
-                    <div class="row" style="margin-top:8px;">
-                        <div class="col-md-4">
-                            <label class="control-label">Serie FEL</label>
-                            <input type="text" id="txtSerieFel" class="form-control" />
+
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="fgroup">
+                                <span class="flabel">Serie FEL</span>
+                                <input type="text" id="txtSerieFel"
+                                       class="form-control f-control"
+                                       placeholder="Serie..." />
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="control-label">Núm. FEL</label>
-                            <input type="text" id="txtNumFel" class="form-control" />
+                        <div class="col-sm-4">
+                            <div class="fgroup">
+                                <span class="flabel">Núm. FEL</span>
+                                <input type="text" id="txtNumFel"
+                                       class="form-control f-control"
+                                       placeholder="Número..." />
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="control-label">Total Fact.</label>
-                            <input type="text" id="txtTotalFact" class="form-control"
-                                   readonly placeholder="0.00" />
-                        </div>
-                    </div>
-                    <div class="row" style="margin-top:8px;">
-                        <div class="col-md-4">
-                            <label class="control-label">Monto a Cobrar</label>
-                            <input type="number" id="txtMontoDoc" class="form-control"
-                                   step="0.01" min="0" placeholder="0.00" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="control-label">Pagado</label>
-                            <input type="text" id="txtPagado" class="form-control"
-                                   readonly placeholder="0.00" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="control-label">Moneda</label>
-                            <select id="cboMonedaDoc" class="form-control search-select">
-                                <option value="">-- Seleccionar --</option>
-                                <option>GTQ</option>
-                                <option>USD</option>
-                            </select>
+                        <div class="col-sm-4">
+                            <div class="fgroup">
+                                <span class="flabel">Total Factura</span>
+                                <input type="text" id="txtTotalFact"
+                                       class="form-control f-control f-readonly"
+                                       readonly placeholder="0.00"
+                                       style="color:#7d6608; font-weight:600;" />
+                            </div>
                         </div>
                     </div>
-                    <div style="margin-top:12px;">
-                        <button class="btn btn-success btn-sm" id="btnAgregarDoc">
-                            <i class="icon-plus"></i> Agregar
+
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="fgroup" style="margin-bottom:0;">
+                                <span class="flabel"><i class="icon-money"></i> Monto a Cobrar</span>
+                                <input type="number" id="txtMontoDoc"
+                                       class="form-control f-control"
+                                       step="0.01" min="0" placeholder="0.00" />
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="fgroup" style="margin-bottom:0;">
+                                <span class="flabel">Ya Pagado</span>
+                                <input type="text" id="txtPagado"
+                                       class="form-control f-control f-readonly"
+                                       readonly placeholder="0.00" />
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="fgroup" style="margin-bottom:0;">
+                                <span class="flabel">💱 Moneda</span>
+                                <select id="cboMonedaDoc" class="form-control f-control search-select">
+                                    <option value="">— Seleccionar —</option>
+                                    <option value="GTQ">🇬🇹&nbsp; GTQ — Quetzal</option>
+                                    <option value="USD">🇺🇸&nbsp; USD — Dólar</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:12px; display:flex; gap:8px;">
+                        <button class="btn btn-success btn-sm" id="btnAgregarDoc" style="flex:1;">
+                            <i class="icon-plus"></i> Agregar Documento
                         </button>
                         <button class="btn btn-danger btn-sm" id="btnQuitarDoc">
-                            <i class="icon-minus"></i> Quitar seleccionado
+                            <i class="icon-minus"></i> Quitar
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Tabla Documentos -->
+            <!-- Tabla de documentos -->
             <div class="panel panel-default">
-                <div class="panel-body" style="padding:5px; overflow-x:auto;">
-                    <table id="tablaDocumentos"
-                           class="table table-condensed table-striped table-bordered tabla-detalle">
+                <div class="panel-body" style="padding:0; overflow-x:auto;">
+                    <table class="table tabla-detalle">
                         <thead>
                             <tr>
                                 <th>Tipo</th>
                                 <th>Documento</th>
                                 <th>Fecha</th>
-                                <th>Monto</th>
-                                <th>Moneda</th>
-                                <th>Total Fact.</th>
-                                <th>Pagado</th>
+                                <th class="text-right">Monto</th>
+                                <th>Mon.</th>
+                                <th class="text-right">Total F.</th>
+                                <th class="text-right">Pagado</th>
                                 <th>Serie FEL</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyDocs">
-                            <tr id="trSinDocs">
-                                <td colspan="8" class="text-center text-muted">
+                            <tr class="tabla-vacia">
+                                <td colspan="8" class="text-center" style="padding:16px;">
+                                    <i class="icon-inbox" style="font-size:20px; color:#ccc;"></i><br />
                                     Sin documentos agregados
                                 </td>
                             </tr>
@@ -505,48 +879,63 @@
 
     </div><!-- /row detalles -->
     <!-- ── BARRA TOTALES + BOTONES ── -->
-    <div class="panel panel-default">
-        <div class="panel-body">
-            <div class="row">
-                <div class="col-md-8">
-                    <div class="barra-totales">
-                        <span>
-                            Cobros:
-                            <span class="valor" id="spanTotalCobros">0.00</span>
-                        </span>
-                        &nbsp;&nbsp;|&nbsp;&nbsp;
-                        <span>
-                            Documentos:
-                            <span class="valor" id="spanTotalDocs">0.00</span>
-                        </span>
-                        &nbsp;&nbsp;|&nbsp;&nbsp;
-                        <span>
-                            Saldo:
-                            <span class="valor" id="spanSaldo">0.00</span>
-                        </span>
-                        &nbsp;&nbsp;|&nbsp;&nbsp;
-                        <span style="font-size:12px;">
-                            Mon. Cobro: <span id="spanMonedaCobro">--</span> &nbsp;
-                            Mon. Doc: <span id="spanMonedaDoc">--</span>
-                        </span>
+    <div class="panel panel-default" style="border-top:3px solid #2c3e50;">
+        <div class="panel-body" style="padding:12px 16px;">
+            <div class="row" style="display:flex; align-items:stretch; flex-wrap:wrap;">
+
+                <!-- Totales -->
+                <div class="col-md-7" style="display:flex; align-items:center;">
+                    <div class="barra-totales" style="width:100%;">
+                        <div class="total-item">
+                            <span class="total-lbl">💰 Cobros</span>
+                            <span class="total-val" id="spanTotalCobros">0.00</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-lbl">📄 Documentos</span>
+                            <span class="total-val" id="spanTotalDocs">0.00</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-lbl">⚖️ Saldo</span>
+                            <span class="total-val" id="spanSaldo">0.00</span>
+                        </div>
+                        <div class="moneda-info">
+                            <div>Mon. Cobro: <strong id="spanMonedaCobro">—</strong></div>
+                            <div>Mon. Doc: &nbsp;<strong id="spanMonedaDoc">—</strong></div>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-4 text-right" style="padding-top:6px;">
-                    <button id="btnNuevo" class="btn btn-default">
-                        <i class="icon-plus-sign"></i> Nuevo
-                    </button>
-                    <button id="btnGuardar" class="btn btn-primary" disabled>
-                        <i class="icon-save"></i> Guardar
-                    </button>
-                    <button id="btnCancelar" class="btn btn-default" disabled>
-                        <i class="icon-remove"></i> Cancelar
-                    </button>
-                    <button id="btnBuscarRecibo" class="btn btn-info">
-                        <i class="icon-search"></i> Buscar
-                    </button>
-                    <button id="btnImprimir" class="btn btn-success" disabled>
-                        <i class="icon-print"></i> Imprimir
-                    </button>
+
+                <!-- Botones organizados por función -->
+                <div class="col-md-5" style="display:flex; align-items:center;">
+                    <div class="zona-botones" style="width:100%;">
+
+                        <!-- Grupo 1: Navegar / reset -->
+                        <button id="btnNuevo" class="btn btn-default btn-sm">
+                            <i class="icon-plus-sign"></i> Nuevo
+                        </button>
+                        <button id="btnBuscarRecibo" class="btn btn-info btn-sm">
+                            <i class="icon-search"></i> Buscar
+                        </button>
+
+                        <div class="sep-btn"></div>
+
+                        <!-- Grupo 2: Acciones principales -->
+                        <button id="btnGuardar" class="btn btn-primary" disabled
+                                style="font-weight:600;">
+                            <i class="icon-save"></i> Guardar
+                        </button>
+                        <button id="btnCancelar" class="btn btn-default btn-sm" disabled>
+                            <i class="icon-remove"></i> Cancelar
+                        </button>
+
+                        <div class="sep-btn"></div>
+
+                        <!-- Grupo 3: Salida -->
+                        <button id="btnImprimir" class="btn btn-success btn-sm" disabled>
+                            <i class="icon-print"></i> Imprimir
+                        </button>
+
+                    </div>
                 </div>
             </div>
         </div>
@@ -559,45 +948,47 @@
 <div class="modal fade" id="modalBuscarDoc" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header" style="background:#27ae60; color:#fff;">
+            <div class="modal-header" style="background:#1e8449; color:#fff; padding:12px 16px;">
                 <button type="button" class="close" data-dismiss="modal"
-                        style="color:#fff;">
+                        style="color:#fff; opacity:1;">
                     &times;
                 </button>
-                <h4 class="modal-title">
-                    <i class="icon-search"></i> Documentos Disponibles
+                <h4 class="modal-title" style="font-size:14px;">
+                    <i class="icon-search"></i>&nbsp; Documentos Disponibles para Cobro
                 </h4>
             </div>
-            <div class="modal-body">
-                <div id="loadingDocs" class="text-center" style="display:none;">
-                    <i class="icon-spinner icon-spin icon-2x"></i> Cargando...
+            <div class="modal-body" style="padding:12px;">
+                <div id="loadingDocs" class="text-center" style="display:none; padding:20px;">
+                    <i class="icon-spinner icon-spin icon-2x" style="color:#27ae60;"></i>
+                    <p style="margin-top:8px; color:#7f8c8d;">Consultando documentos...</p>
                 </div>
-                <table id="tablaModalDocs"
-                       class="table table-striped table-condensed table-bordered tabla-detalle">
-                    <thead>
-                        <tr>
-                            <th>No. Documento</th>
-                            <th>Fecha</th>
-                            <th>Total Fact.</th>
-                            <th>Pagado</th>
-                            <th>Saldo</th>
-                            <th>Moneda</th>
-                            <th>Serie FEL</th>
-                            <th>Núm. FEL</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbodyModalDocs">
-                        <tr>
-                            <td colspan="9" class="text-center text-muted">
-                                Seleccione empresa, cliente y tipo de documento primero.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div style="overflow-x:auto;">
+                    <table class="table table-striped table-condensed table-bordered tabla-detalle">
+                        <thead>
+                            <tr>
+                                <th>No. Documento</th>
+                                <th>Fecha</th>
+                                <th class="text-right">Total Fact.</th>
+                                <th class="text-right">Pagado</th>
+                                <th class="text-right">Saldo</th>
+                                <th>Moneda</th>
+                                <th>Serie FEL</th>
+                                <th>Núm. FEL</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyModalDocs">
+                            <tr class="tabla-vacia">
+                                <td colspan="9" class="text-center" style="padding:20px;">
+                                    Seleccione empresa, cliente y tipo de documento primero.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default"
+            <div class="modal-footer" style="padding:10px 14px;">
+                <button type="button" class="btn btn-default btn-sm"
                         data-dismiss="modal">
                     Cerrar
                 </button>
@@ -610,32 +1001,36 @@
      MODAL: BUSCAR RECIBO EXISTENTE
 ══════════════════════════════════════════════ -->
 <div class="modal fade" id="modalBuscarRecibo" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
+    <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
-            <div class="modal-header" style="background:#2980b9; color:#fff;">
+            <div class="modal-header" style="background:#2471a3; color:#fff; padding:12px 16px;">
                 <button type="button" class="close" data-dismiss="modal"
-                        style="color:#fff;">
+                        style="color:#fff; opacity:1;">
                     &times;
                 </button>
-                <h4 class="modal-title">
-                    <i class="icon-search"></i> Buscar Recibo
+                <h4 class="modal-title" style="font-size:14px;">
+                    <i class="icon-search"></i>&nbsp; Buscar Recibo Existente
                 </h4>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label class="control-label">Número de Recibo</label>
-                    <input type="text" id="txtBuscarIdRecibo"
-                           class="form-control"
-                           placeholder="Ej: GR00042" />
+                <div class="fgroup">
+                    <span class="flabel"><i class="icon-tag"></i> Número de Recibo</span>
+                    <div class="input-group">
+                        <span class="input-group-addon" style="background:#eaf0fb; color:#2980b9;">
+                            <i class="icon-search"></i>
+                        </span>
+                        <input type="text" id="txtBuscarIdRecibo"
+                               class="form-control f-control"
+                               placeholder="Ej: GR00042" />
+                    </div>
                 </div>
                 <div id="msgBuscarRecibo" class="alert" style="display:none;"></div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" id="btnEjecutarBusqueda">
+            <div class="modal-footer" style="padding:10px 14px;">
+                <button type="button" class="btn btn-primary btn-sm" id="btnEjecutarBusqueda">
                     <i class="icon-search"></i> Buscar
                 </button>
-                <button type="button" class="btn btn-default"
-                        data-dismiss="modal">
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">
                     Cancelar
                 </button>
             </div>
@@ -645,56 +1040,84 @@
 
 
 <!-- ══════════════════════════════════════════════
-     JAVASCRIPT
-     (AL FINAL del archivo, fuera de )
+     JAVASCRIPT — al final del .cshtml
+     (NO en per project convention)
 ══════════════════════════════════════════════ -->
 @section Scripts{
     <script>
-// ─── Estado global (equivale a las variables globales del módulo VB) ───────
-var Estado = {
-    empresa:      "",
-    agente:       "",
-    clienteId:    "",
-    monedaCobro:  "",
-    monedaDoc:    "",
-    idReciboGuardado: "",
-    modoActivo:   false,    // true = formulario en edición
-    cobros:       [],       // arreglo de objetos cobro
-    documentos:   []        // arreglo de objetos documento
+// ─── Mapa de colores por empresa ─────────────────────────────────────
+var EMPRESA_COLORES = {
+    GRACO: { clase: "graco", color: "#27ae60", nombre: "Graco Pack"       },
+    FAES:  { clase: "faes",  color: "#c0392b", nombre: "Fabrica Escocesa" },
+    BOLIK: { clase: "bolik", color: "#2c3e50", nombre: "Industrias Bolik" }
 };
 
-// ─── URLs base ──────────────────────────────────────────────────────────────
-var URL_BUSCAR_CLIENTES  = "@Url.Action("BuscarClientes",  "ReciboCaja")";
-var URL_BUSCAR_DOCS      = "@Url.Action("ObtenerDocumentos","ReciboCaja")";
-var URL_GUARDAR          = "@Url.Action("Guardar",         "ReciboCaja")";
-var URL_BUSCAR_RECIBO    = "@Url.Action("BuscarRecibo",    "ReciboCaja")";
-var URL_IMPRIMIR         = "@Url.Action("Imprimir",        "ReciboCaja")";
+// ─── Estado global ────────────────────────────────────────────────────
+var Estado = {
+    empresa:          "",
+    agente:           "",
+    clienteId:        "",
+    monedaCobro:      "",
+    monedaDoc:        "",
+    idReciboGuardado: "",
+    modoActivo:       false,
+    cobros:           [],
+    documentos:       []
+};
+
+// ─── URLs base ────────────────────────────────────────────────────────
+var URL_CLIENTES = "@Url.Action("BuscarClientes",   "ReciboCaja")";
+var URL_DOCS     = "@Url.Action("ObtenerDocumentos","ReciboCaja")";
+var URL_GUARDAR  = "@Url.Action("Guardar",          "ReciboCaja")";
+var URL_BUSCAR   = "@Url.Action("BuscarRecibo",     "ReciboCaja")";
+var URL_IMPRIMIR = "@Url.Action("Imprimir",         "ReciboCaja")";
 
 // ════════════════════════════════════════════════════════
-// 1. SELECCIÓN DE EMPRESA
+// 1. SELECCIÓN DE EMPRESA (select en lugar de botones)
 // ════════════════════════════════════════════════════════
-$(document).on("click", ".btn-empresa", function () {
-    $(".btn-empresa").removeClass("activo");
-    $(this).addClass("activo");
+$("#selEmpresa").on("change", function () {
+    var emp = $(this).val();
 
-    Estado.empresa = $(this).data("empresa");
+    // Limpiar clases de color del addon
+    var $addon = $("#empresaAddon");
+    $addon.removeClass("graco faes bolik");
+
+    // Limpiar clases de color de todos los panels
+    $(".panel-empresa").removeClass("graco faes bolik");
+
+    if (!emp) {
+        // Sin empresa: ocultar formulario
+        $("#panelRecibo").slideUp(200);
+        Estado.empresa = "";
+        return;
+    }
+
+    var cfg = EMPRESA_COLORES[emp];
+    if (!cfg) return;
+
+    // Aplicar color al addon
+    $addon.addClass(cfg.clase);
+
+    // Aplicar color a los panels
+    $(".panel-empresa").addClass(cfg.clase);
+
+    // Actualizar badge en el encabezado
+    $("#badgeEmpresa").text(cfg.nombre).removeClass("graco faes bolik").addClass(cfg.clase);
+
+    // Guardar estado
+    Estado.empresa    = emp;
     Estado.modoActivo = false;
 
-    $("#hdnEmpresa").val(Estado.empresa);
-    $("#lblEmpresaActiva").text(Estado.empresa);
-
-    // Mostrar la sección del recibo
+    // Mostrar el formulario con animación
     $("#panelRecibo").slideDown(300);
-
-    // Activar fecha
-    $("#fechaRecibo").prop("readonly", false);
 
     LimpiarFormulario();
     SetBotonesInicio();
+    AplicarColorSaldo();
 });
 
 // ════════════════════════════════════════════════════════
-// 2. BÚSQUEDA DE CLIENTE (typeahead)
+// 2. BÚSQUEDA DE CLIENTE (typeahead con debounce)
 // ════════════════════════════════════════════════════════
 var timerCliente = null;
 
@@ -708,7 +1131,7 @@ $("#txtBuscarCliente").on("input", function () {
     }
 
     timerCliente = setTimeout(function () {
-        $.get(URL_BUSCAR_CLIENTES, {
+        $.get(URL_CLIENTES, {
             empresa: Estado.empresa,
             agente:  Estado.agente,
             filtro:  texto
@@ -716,20 +1139,20 @@ $("#txtBuscarCliente").on("input", function () {
             if (!resp.ok) { toastr.error(resp.msg); return; }
 
             var dd = $("#dropdownClientes").empty();
-            if (resp.data.length === 0) {
-                dd.append('<div class="item-cliente text-muted">Sin resultados</div>');
+            if (!resp.data || resp.data.length === 0) {
+                dd.append('<div class="item-cliente" style="color:#aaa; font-style:italic;">Sin resultados</div>');
             } else {
                 $.each(resp.data, function (_, c) {
                     dd.append(
                         $('<div class="item-cliente"></div>')
-                            .html('<span class="codigo">' + c.CardCode + '</span> — ' + c.CardName)
+                            .html('<span class="codigo">' + c.CardCode + '</span><span>' + c.CardName + '</span>')
                             .data("cliente", c)
                     );
                 });
             }
             dd.show();
         });
-    }, 350);  // espera 350ms después de dejar de escribir
+    }, 350);
 });
 
 // Seleccionar cliente del dropdown
@@ -737,9 +1160,8 @@ $(document).on("click", "#dropdownClientes .item-cliente", function () {
     var c = $(this).data("cliente");
     if (!c) return;
 
-    // Llenar campos (igual que lstClientes_Click en el desktop)
-    $("#txtBuscarCliente").val(c.CardCode + " — " + c.CardName);
-    $("#txtNombreCliente").val(c.CardName);
+    $("#txtBuscarCliente").val(c.CardCode + "  —  " + c.CardName);
+    $("#txtNombreCliente").val(c.CardName).addClass("tiene-valor");
     $("#txtDireccion").val(c.Address);
     $("#txtNit").val(c.LicTradNum);
     $("#txtAgente").val(c.SlpName);
@@ -751,12 +1173,10 @@ $(document).on("click", "#dropdownClientes .item-cliente", function () {
     Estado.agente    = c.SlpName;
 
     $("#dropdownClientes").hide().empty();
-
-    // Activar el botón Guardar y detalle
     SetBotonesActivos();
 });
 
-// Cerrar dropdown al hacer click fuera
+// Cerrar dropdown al click fuera
 $(document).on("click", function (e) {
     if (!$(e.target).closest(".wrapper-cliente").length) {
         $("#dropdownClientes").hide();
@@ -764,8 +1184,7 @@ $(document).on("click", function (e) {
 });
 
 // ════════════════════════════════════════════════════════
-// 3. TIPO DE PAGO — habilita/deshabilita campos
-//    (lógica de cboTipoPago_SelectedIndexChanged del desktop)
+// 3. TIPO DE PAGO → habilitar/deshabilitar campos
 // ════════════════════════════════════════════════════════
 $("#cboTipoPago").on("change", function () {
     var esEfectivo = $(this).val() === "EFECTIVO";
@@ -775,26 +1194,24 @@ $("#cboTipoPago").on("change", function () {
 });
 
 // ════════════════════════════════════════════════════════
-// 4. TIPO DOCUMENTO — habilita/deshabilita campos
-//    (lógica de cboTipoDoc_SelectedIndexChanged del desktop)
+// 4. TIPO DOCUMENTO → habilitar/deshabilitar campos
 // ════════════════════════════════════════════════════════
 $("#cboTipoDoc").on("change", function () {
-    var tipo = $(this).val();
+    var tipo        = $(this).val();
     var esAntOSaldo = (tipo === "ANTICIPO" || tipo === "SALDO PENDIENTE");
 
     $("#txtNoDocDoc").prop("disabled", esAntOSaldo).val("");
     $("#dtpFechaDoc").prop("disabled", esAntOSaldo).val("");
     $("#txtSerieFel").val("").prop("disabled", esAntOSaldo);
     $("#txtNumFel").val("").prop("disabled", esAntOSaldo);
-    $("#txtTotalFact").val("0.00");
-    $("#txtPagado").val("0.00");
-    $("#txtMontoDoc").val("");
     $("#cboMonedaDoc").val("").prop("disabled", esAntOSaldo);
+    $("#txtTotalFact").val("");
+    $("#txtPagado").val("");
+    $("#txtMontoDoc").val("");
 });
 
 // ════════════════════════════════════════════════════════
-// 5. AGREGAR COBRO AL GRID
-//    (lógica de AgregaralGrid() + MonedaRevCob() del desktop)
+// 5. AGREGAR COBRO
 // ════════════════════════════════════════════════════════
 $("#btnAgregarCobro").on("click", function () {
     var tipo   = $("#cboTipoPago").val();
@@ -808,13 +1225,10 @@ $("#btnAgregarCobro").on("click", function () {
         toastr.warning("Tipo de pago, monto y moneda son obligatorios.");
         return;
     }
-
-    // Validar moneda consistente (MonedaRevCob del desktop)
     if (Estado.monedaCobro && Estado.monedaCobro !== moneda) {
-        toastr.error("Los cobros deben tener la misma moneda (" + Estado.monedaCobro + ").");
+        toastr.error("Todos los cobros deben tener la misma moneda (" + Estado.monedaCobro + ").");
         return;
     }
-
     if (tipo !== "EFECTIVO" && (!banco || !nodoc)) {
         toastr.warning("Para " + tipo + " se requiere banco y número de documento.");
         return;
@@ -823,16 +1237,15 @@ $("#btnAgregarCobro").on("click", function () {
     Estado.monedaCobro = moneda;
     $("#spanMonedaCobro").text(moneda);
 
-    var cobro = {
+    Estado.cobros.push({
         TipoCobro:   tipo,
         Banco:       tipo === "EFECTIVO" ? "" : banco,
         FechaDoc:    tipo === "EFECTIVO" ? "" : fecha,
         NoDocumento: tipo === "EFECTIVO" ? "" : nodoc,
         Monto:       monto,
         Moneda:      moneda
-    };
+    });
 
-    Estado.cobros.push(cobro);
     RenderizarTablaCobros();
     ActualizarTotales();
     LimpiarDetalleCobro();
@@ -842,10 +1255,13 @@ $("#btnAgregarCobro").on("click", function () {
 // 6. QUITAR COBRO
 // ════════════════════════════════════════════════════════
 $("#btnQuitarCobro").on("click", function () {
-    var idx = $("#tablaCobros tbody tr.seleccionada").data("idx");
+    var idx = $("#tbodyCobros tr.seleccionada").data("idx");
     if (idx === undefined) { toastr.info("Seleccione una fila para quitar."); return; }
     Estado.cobros.splice(idx, 1);
-    if (Estado.cobros.length === 0) Estado.monedaCobro = "";
+    if (Estado.cobros.length === 0) {
+        Estado.monedaCobro = "";
+        $("#spanMonedaCobro").text("—");
+    }
     RenderizarTablaCobros();
     ActualizarTotales();
 });
@@ -856,7 +1272,7 @@ $(document).on("click", "#tbodyCobros tr", function () {
 });
 
 // ════════════════════════════════════════════════════════
-// 7. ABRIR MODAL DE DOCUMENTOS (botón lupa)
+// 7. MODAL DOCUMENTOS DISPONIBLES (lupa)
 // ════════════════════════════════════════════════════════
 $("#btnBuscarDoc").on("click", function () {
     var tipo = $("#cboTipoDoc").val();
@@ -865,41 +1281,42 @@ $("#btnBuscarDoc").on("click", function () {
         return;
     }
     if (tipo === "ANTICIPO" || tipo === "SALDO PENDIENTE") {
-        toastr.info("Para " + tipo + " no se busca documento.");
+        toastr.info("Para " + tipo + " no se busca un documento específico.");
         return;
     }
 
-    $("#loadingDocs").show();
-    $("#tbodyModalDocs").empty();
+    $("#tbodyModalDocs").html('<tr><td colspan="9" class="text-center" style="padding:24px;"><i class="icon-spinner icon-spin icon-2x" style="color:#27ae60;"></i></td></tr>');
     $("#modalBuscarDoc").modal("show");
 
-    $.get(URL_BUSCAR_DOCS, {
+    $.get(URL_DOCS, {
         empresa:   Estado.empresa,
         clienteId: Estado.clienteId,
         tipoDoc:   tipo
     }, function (resp) {
-        $("#loadingDocs").hide();
-        if (!resp.ok) { toastr.error(resp.msg); return; }
-
         var tbody = $("#tbodyModalDocs");
-        if (resp.data.length === 0) {
-            tbody.html('<tr><td colspan="9" class="text-center text-muted">Sin documentos disponibles</td></tr>');
+        if (!resp.ok) {
+            tbody.html('<tr><td colspan="9" class="text-center text-danger">' + resp.msg + '</td></tr>');
+            return;
+        }
+        if (!resp.data || resp.data.length === 0) {
+            tbody.html('<tr><td colspan="9" class="text-center" style="padding:20px; color:#aaa;">Sin documentos disponibles para este cliente</td></tr>');
             return;
         }
 
+        tbody.empty();
         $.each(resp.data, function (_, d) {
             tbody.append(
                 '<tr>' +
-                '<td>' + (d.NoDocumento||'') + '</td>' +
+                '<td><strong>' + (d.NoDocumento || '') + '</strong></td>' +
                 '<td>' + FmtFecha(d.FechaDoc) + '</td>' +
                 '<td class="text-right">' + FmtNum(d.MontoFact) + '</td>' +
-                '<td class="text-right">' + FmtNum(d.Pagado)    + '</td>' +
-                '<td class="text-right">' + FmtNum(d.Saldo)     + '</td>' +
-                '<td>' + (d.Moneda||'') + '</td>' +
-                '<td>' + (d.FelSerie||'') + '</td>' +
-                '<td>' + (d.FelNumero||'') + '</td>' +
+                '<td class="text-right">' + FmtNum(d.Pagado) + '</td>' +
+                '<td class="text-right" style="color:#1a5e35;font-weight:700;">' + FmtNum(d.Saldo) + '</td>' +
+                '<td>' + (d.Moneda || '') + '</td>' +
+                '<td>' + (d.FelSerie || '') + '</td>' +
+                '<td>' + (d.FelNumero || '') + '</td>' +
                 '<td><button class="btn btn-xs btn-success btn-selDoc" ' +
-                     'data-doc=\'' + JSON.stringify(d) + '\'>Seleccionar</button></td>' +
+                    'data-doc=\'' + JSON.stringify(d).replace(/'/g, "&#39;") + '\'>Seleccionar</button></td>' +
                 '</tr>'
             );
         });
@@ -909,74 +1326,58 @@ $("#btnBuscarDoc").on("click", function () {
 // Seleccionar documento del modal
 $(document).on("click", ".btn-selDoc", function () {
     var d = $(this).data("doc");
+    if (!d) return;
     $("#txtNoDocDoc").val(d.NoDocumento);
     $("#dtpFechaDoc").val(FmtFecha(d.FechaDoc));
-    $("#txtSerieFel").val(d.FelSerie   || "");
-    $("#txtNumFel").val(d.FelNumero    || "");
+    $("#txtSerieFel").val(d.FelSerie  || "");
+    $("#txtNumFel").val(d.FelNumero   || "");
     $("#txtTotalFact").val(FmtNum(d.MontoFact));
     $("#txtPagado").val(FmtNum(d.Pagado));
-    // Monto a cobrar = MontoFact - Pagado (saldo)
-    $("#txtMontoDoc").val((parseFloat(d.MontoFact||0) - parseFloat(d.Pagado||0)).toFixed(2));
+    $("#txtMontoDoc").val((parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0)).toFixed(2));
     $("#cboMonedaDoc").val(d.Moneda || "GTQ");
     $("#modalBuscarDoc").modal("hide");
 });
 
 // ════════════════════════════════════════════════════════
-// 8. AGREGAR DOCUMENTO AL GRID
-//    (lógica de AgregaralGrid2() del desktop)
+// 8. AGREGAR DOCUMENTO
 // ════════════════════════════════════════════════════════
 $("#btnAgregarDoc").on("click", function () {
-    var tipo   = $("#cboTipoDoc").val();
-    var nodoc  = $("#txtNoDocDoc").val().trim();
-    var fecha  = $("#dtpFechaDoc").val();
-    var monto  = parseFloat($("#txtMontoDoc").val()) || 0;
-    var moneda = $("#cboMonedaDoc").val();
-    var serie  = $("#txtSerieFel").val().trim();
-    var nfel   = $("#txtNumFel").val().trim();
-    var tfact  = parseFloat($("#txtTotalFact").val()) || 0;
-    var pagado = parseFloat($("#txtPagado").val())    || 0;
+    var tipo        = $("#cboTipoDoc").val();
+    var nodoc       = $("#txtNoDocDoc").val().trim();
+    var fecha       = $("#dtpFechaDoc").val();
+    var monto       = parseFloat($("#txtMontoDoc").val()) || 0;
+    var moneda      = $("#cboMonedaDoc").val();
     var esAntOSaldo = (tipo === "ANTICIPO" || tipo === "SALDO PENDIENTE");
 
     if (!tipo || monto <= 0) {
         toastr.warning("Tipo de documento y monto son obligatorios.");
         return;
     }
-
     if (!esAntOSaldo && !nodoc) {
         toastr.warning("Ingrese el número de documento.");
         return;
     }
-
-    // Verificar que el documento no esté ya en el grid
-    var yaExiste = Estado.documentos.some(function (d) {
-        return !esAntOSaldo && d.NoDocumento === nodoc;
-    });
-    if (yaExiste) {
-        toastr.warning("El documento " + nodoc + " ya está en el detalle.");
+    if (!esAntOSaldo && Estado.documentos.some(function (d) { return d.NoDocumento === nodoc; })) {
+        toastr.warning("El documento " + nodoc + " ya está agregado.");
         return;
     }
 
-    // Validar moneda consistente (MonedaRevDoc del desktop)
-    if (Estado.monedaDoc && Estado.monedaDoc !== moneda && !esAntOSaldo) {
-        Estado.monedaDoc = moneda;  // el desktop actualizaba ccbDocMoneda
-    }
     if (!Estado.monedaDoc) Estado.monedaDoc = moneda;
     $("#spanMonedaDoc").text(moneda || Estado.monedaDoc);
 
-    var doc = {
+    Estado.documentos.push({
         TipoDoc:     tipo,
         NoDocumento: esAntOSaldo ? "" : nodoc,
         FechaDoc:    esAntOSaldo ? "" : fecha,
         Status:      "",
         Monto:       monto,
         Moneda:      moneda,
-        MontoFact:   tfact,
-        Pagado:      pagado,
-        FelSerie:    serie,
-        FelNumero:   nfel
-    };
+        MontoFact:   parseFloat($("#txtTotalFact").val()) || 0,
+        Pagado:      parseFloat($("#txtPagado").val())    || 0,
+        FelSerie:    $("#txtSerieFel").val().trim(),
+        FelNumero:   $("#txtNumFel").val().trim()
+    });
 
-    Estado.documentos.push(doc);
     RenderizarTablaDocumentos();
     ActualizarTotales();
     LimpiarDetalleDoc();
@@ -986,10 +1387,13 @@ $("#btnAgregarDoc").on("click", function () {
 // 9. QUITAR DOCUMENTO
 // ════════════════════════════════════════════════════════
 $("#btnQuitarDoc").on("click", function () {
-    var idx = $("#tablaDocumentos tbody tr.seleccionada").data("idx");
+    var idx = $("#tbodyDocs tr.seleccionada").data("idx");
     if (idx === undefined) { toastr.info("Seleccione una fila para quitar."); return; }
     Estado.documentos.splice(idx, 1);
-    if (Estado.documentos.length === 0) Estado.monedaDoc = "";
+    if (Estado.documentos.length === 0) {
+        Estado.monedaDoc = "";
+        $("#spanMonedaDoc").text("—");
+    }
     RenderizarTablaDocumentos();
     ActualizarTotales();
 });
@@ -1000,30 +1404,20 @@ $(document).on("click", "#tbodyDocs tr", function () {
 });
 
 // ════════════════════════════════════════════════════════
-// 10. GUARDAR RECIBO (AJAX POST)
+// 10. GUARDAR
 // ════════════════════════════════════════════════════════
 $("#btnGuardar").on("click", function () {
-    if (Estado.cobros.length === 0) {
-        toastr.error("Debe agregar al menos un cobro.");
-        return;
-    }
-    if (Estado.documentos.length === 0) {
-        toastr.error("Debe agregar al menos un documento.");
-        return;
-    }
+    if (!Estado.cobros.length)     { toastr.error("Agregue al menos un cobro.");    return; }
+    if (!Estado.documentos.length) { toastr.error("Agregue al menos un documento."); return; }
 
-    var totalCobros = Estado.cobros.reduce(function(s,c){ return s + c.Monto; }, 0);
-    var totalDocs   = Estado.documentos.reduce(function(s,d){ return s + d.Monto; }, 0);
-    var saldo       = totalCobros - totalDocs;
+    var tC    = Estado.cobros.reduce(function (s, c) { return s + c.Monto; }, 0);
+    var tD    = Estado.documentos.reduce(function (s, d) { return s + d.Monto; }, 0);
+    var saldo = tC - tD;
 
-    // Confirmar si monedas difieren (equivale al ElseIf del desktop)
     if (Estado.monedaCobro !== Estado.monedaDoc && saldo !== 0) {
-        if (!confirm("Monedas diferentes detectadas (Cobro: " + Estado.monedaCobro +
-                     " / Doc: " + Estado.monedaDoc + ").\n¿Desea guardar de todas formas?")) {
-            return;
-        }
+        if (!confirm("⚠ Monedas diferentes (Cobro: " + Estado.monedaCobro +
+                     " / Doc: " + Estado.monedaDoc + ").\n¿Desea guardar de todas formas?")) return;
     }
-
     if (!confirm("¿Confirmar guardado del recibo?")) return;
 
     var payload = {
@@ -1041,40 +1435,33 @@ $("#btnGuardar").on("click", function () {
         Documentos:    Estado.documentos
     };
 
-    $("#btnGuardar").prop("disabled", true).html('<i class="icon-spinner icon-spin"></i> Guardando...');
+    $("#btnGuardar").prop("disabled", true)
+        .html('<i class="icon-spinner icon-spin"></i> Guardando...');
 
     $.ajax({
-        url:         URL_GUARDAR,
-        type:        "POST",
+        url: URL_GUARDAR, type: "POST",
         contentType: "application/json",
-        data:        JSON.stringify(payload),
+        data: JSON.stringify(payload),
         success: function (resp) {
             if (resp.ok) {
-                toastr.success("Recibo " + resp.idRecibo + " guardado correctamente.");
+                toastr.success("✅ Recibo " + resp.idRecibo + " guardado correctamente.");
                 Estado.idReciboGuardado = resp.idRecibo;
                 $("#txtIdRecibo").val(resp.idRecibo);
-                $("#txtStatus").val("GUARDADO");
-
-                // Habilitar imprimir, deshabilitar edición
-                $("#btnImprimir").prop("disabled", false);
-                $("#btnGuardar").prop("disabled", true);
-                $("#btnCancelar").prop("disabled", true);
+                // Actualizar badge de status
+                $("#badgeStatus").text("GUARDADO")
+                    .removeClass("nuevo").addClass("guardado");
                 SetBotonesPostGuardado();
-
-                // Abrir impresión automáticamente
                 AbrirImpresion(resp.idRecibo, Estado.empresa);
             } else {
                 toastr.error(resp.msg);
+                $("#btnGuardar").prop("disabled", false)
+                    .html('<i class="icon-save"></i> Guardar');
             }
         },
         error: function () {
-            toastr.error("Error de conexión al guardar.");
-        },
-        complete: function () {
-            if ($("#btnGuardar").prop("disabled") &&
-                Estado.idReciboGuardado === "") {
-                $("#btnGuardar").prop("disabled", false).html('<i class="icon-save"></i> Guardar');
-            }
+            toastr.error("Error de conexión al guardar. Intente nuevamente.");
+            $("#btnGuardar").prop("disabled", false)
+                .html('<i class="icon-save"></i> Guardar');
         }
     });
 });
@@ -1085,11 +1472,10 @@ $("#btnGuardar").on("click", function () {
 $("#btnImprimir").on("click", function () {
     AbrirImpresion(Estado.idReciboGuardado, Estado.empresa);
 });
-
 function AbrirImpresion(idRecibo, empresa) {
-    var url = URL_IMPRIMIR + "?idRecibo=" + encodeURIComponent(idRecibo) +
-                              "&empresa="  + encodeURIComponent(empresa);
-    window.open(url, "_blank");
+    window.open(URL_IMPRIMIR +
+        "?idRecibo=" + encodeURIComponent(idRecibo) +
+        "&empresa="  + encodeURIComponent(empresa), "_blank");
 }
 
 // ════════════════════════════════════════════════════════
@@ -1106,20 +1492,20 @@ $("#btnEjecutarBusqueda").on("click", function () {
     var id = $("#txtBuscarIdRecibo").val().trim();
     if (!id) return;
 
-    $.get(URL_BUSCAR_RECIBO, { idRecibo: id, empresa: Estado.empresa }, function (resp) {
+    $.get(URL_BUSCAR, { idRecibo: id, empresa: Estado.empresa }, function (resp) {
         if (!resp.ok) {
             $("#msgBuscarRecibo")
                 .removeClass("alert-success").addClass("alert-danger")
                 .text(resp.msg).show();
             return;
         }
-
         var r = resp.data;
-        // Cargar datos en el formulario
+
+        // Rellenar encabezado
         $("#txtIdRecibo").val(r.IdRecibo);
         Estado.clienteId = r.IdCliente;
-        $("#txtBuscarCliente").val(r.IdCliente + " — " + r.NombreCliente);
-        $("#txtNombreCliente").val(r.NombreCliente);
+        $("#txtBuscarCliente").val(r.IdCliente + "  —  " + r.NombreCliente);
+        $("#txtNombreCliente").val(r.NombreCliente).addClass("tiene-valor");
         $("#txtDireccion").val(r.Direccion);
         $("#txtNit").val(r.Nit);
         $("#txtAgente").val(r.Agente);
@@ -1127,16 +1513,18 @@ $("#btnEjecutarBusqueda").on("click", function () {
         $("#txtCorreo").val(r.Correo);
         $("#txtMoneda").val(r.Moneda);
         $("#txtRecFisico").val(r.RecFisico);
-        $("#txtStatus").val(r.Status);
 
-        Estado.cobros     = r.Cobros     || [];
-        Estado.documentos = r.Documentos || [];
-        Estado.idReciboGuardado = r.IdRecibo;
+        // Actualizar badge status
+        var esGuardado = r.Status && r.Status !== "NUEVO";
+        $("#badgeStatus").text(r.Status || "NUEVO")
+            .removeClass("nuevo guardado")
+            .addClass(esGuardado ? "guardado" : "nuevo");
 
-        if (Estado.cobros.length)
-            Estado.monedaCobro = Estado.cobros[0].Moneda;
-        if (Estado.documentos.length)
-            Estado.monedaDoc = Estado.documentos[0].Moneda;
+        Estado.cobros              = r.Cobros     || [];
+        Estado.documentos          = r.Documentos || [];
+        Estado.idReciboGuardado    = r.IdRecibo;
+        if (Estado.cobros.length)     Estado.monedaCobro = Estado.cobros[0].Moneda;
+        if (Estado.documentos.length) Estado.monedaDoc   = Estado.documentos[0].Moneda;
 
         RenderizarTablaCobros();
         RenderizarTablaDocumentos();
@@ -1157,31 +1545,30 @@ $("#btnNuevo").on("click", function () {
     Estado.modoActivo = true;
     $("#txtBuscarCliente").focus();
 });
-
 $("#btnCancelar").on("click", function () {
     LimpiarFormulario();
     SetBotonesInicio();
 });
 
 // ════════════════════════════════════════════════════════
-// HELPERS DE RENDERIZADO Y CÁLCULO
+// RENDERIZADO DE TABLAS
 // ════════════════════════════════════════════════════════
-
 function RenderizarTablaCobros() {
     var tbody = $("#tbodyCobros").empty();
-    if (Estado.cobros.length === 0) {
-        tbody.html('<tr id="trSinCobros"><td colspan="6" class="text-center text-muted">Sin cobros agregados</td></tr>');
+    if (!Estado.cobros.length) {
+        tbody.html('<tr class="tabla-vacia"><td colspan="6" class="text-center" style="padding:14px;">' +
+                   '<i class="icon-inbox" style="font-size:18px;color:#ccc;"></i><br/>Sin cobros agregados</td></tr>');
         return;
     }
     $.each(Estado.cobros, function (i, c) {
         tbody.append(
-            $('<tr></tr>').data("idx", i).append(
-                "<td>" + c.TipoCobro   + "</td>",
-                "<td>" + (c.Banco||"—") + "</td>",
-                "<td>" + (c.FechaDoc||"—") + "</td>",
-                "<td>" + (c.NoDocumento||"—") + "</td>",
-                '<td class="text-right">' + FmtNum(c.Monto) + "</td>",
-                "<td>" + c.Moneda + "</td>"
+            $('<tr style="cursor:pointer;"></tr>').data("idx", i).html(
+                "<td><span class='label label-default'>" + c.TipoCobro + "</span></td>" +
+                "<td>" + (c.Banco || "—")       + "</td>" +
+                "<td>" + (c.FechaDoc || "—")    + "</td>" +
+                "<td>" + (c.NoDocumento || "—") + "</td>" +
+                '<td class="text-right"><strong>' + FmtNum(c.Monto) + "</strong></td>" +
+                "<td><span class='label label-info'>" + c.Moneda + "</span></td>"
             )
         );
     });
@@ -1189,64 +1576,81 @@ function RenderizarTablaCobros() {
 
 function RenderizarTablaDocumentos() {
     var tbody = $("#tbodyDocs").empty();
-    if (Estado.documentos.length === 0) {
-        tbody.html('<tr id="trSinDocs"><td colspan="8" class="text-center text-muted">Sin documentos agregados</td></tr>');
+    if (!Estado.documentos.length) {
+        tbody.html('<tr class="tabla-vacia"><td colspan="8" class="text-center" style="padding:14px;">' +
+                   '<i class="icon-inbox" style="font-size:18px;color:#ccc;"></i><br/>Sin documentos agregados</td></tr>');
         return;
     }
     $.each(Estado.documentos, function (i, d) {
         tbody.append(
-            $('<tr></tr>').data("idx", i).append(
-                "<td>" + d.TipoDoc + "</td>",
-                "<td>" + (d.NoDocumento||"—") + "</td>",
-                "<td>" + (d.FechaDoc||"—") + "</td>",
-                '<td class="text-right">' + FmtNum(d.Monto) + "</td>",
-                "<td>" + d.Moneda + "</td>",
-                '<td class="text-right">' + FmtNum(d.MontoFact) + "</td>",
-                '<td class="text-right">' + FmtNum(d.Pagado) + "</td>",
-                "<td>" + (d.FelSerie||"—") + "</td>"
+            $('<tr style="cursor:pointer;"></tr>').data("idx", i).html(
+                "<td><span class='label label-default'>" + d.TipoDoc + "</span></td>" +
+                "<td><strong>" + (d.NoDocumento || "—") + "</strong></td>" +
+                "<td>" + (d.FechaDoc || "—")  + "</td>" +
+                '<td class="text-right"><strong>' + FmtNum(d.Monto) + "</strong></td>" +
+                "<td><span class='label label-info'>" + d.Moneda + "</span></td>" +
+                '<td class="text-right">' + FmtNum(d.MontoFact) + "</td>" +
+                '<td class="text-right">' + FmtNum(d.Pagado)    + "</td>" +
+                "<td>" + (d.FelSerie || "—") + "</td>"
             )
         );
     });
 }
 
+// ════════════════════════════════════════════════════════
+// CÁLCULO DE TOTALES
+// ════════════════════════════════════════════════════════
 function ActualizarTotales() {
-    var tCobros = Estado.cobros.reduce(function(s,c){ return s + c.Monto; }, 0);
-    var tDocs   = Estado.documentos.reduce(function(s,d){ return s + d.Monto; }, 0);
-    var saldo   = tCobros - tDocs;
+    var tC    = Estado.cobros.reduce(function (s, c) { return s + c.Monto; }, 0);
+    var tD    = Estado.documentos.reduce(function (s, d) { return s + d.Monto; }, 0);
+    var saldo = tC - tD;
 
-    $("#spanTotalCobros").text(FmtNum(tCobros));
-    $("#spanTotalDocs").text(FmtNum(tDocs));
-    $("#spanMonedaCobro").text(Estado.monedaCobro || "--");
-    $("#spanMonedaDoc").text(Estado.monedaDoc || "--");
+    $("#spanTotalCobros").text(FmtNum(tC));
+    $("#spanTotalDocs").text(FmtNum(tD));
+    $("#spanMonedaCobro").text(Estado.monedaCobro || "—");
+    $("#spanMonedaDoc").text(Estado.monedaDoc     || "—");
 
-    var $saldo = $("#spanSaldo").text(FmtNum(saldo));
-    $saldo.toggleClass("saldo-ok",    saldo === 0)
-          .toggleClass("saldo-error", saldo !== 0);
+    $("#spanSaldo").text(FmtNum(saldo))
+        .removeClass("saldo-ok saldo-error")
+        .addClass(saldo === 0 ? "saldo-ok" : "saldo-error");
 
-    // Actualizar campos del encabezado también
-    $("#txtMontoRec").val(FmtNum(tCobros));
-    $("#txtTotalDoc").val(FmtNum(tDocs));
+    // Sincronizar campos del encabezado
+    $("#txtMontoRec").val(FmtNum(tC));
+    $("#txtTotalDoc").val(FmtNum(tD));
     $("#txtSaldo").val(FmtNum(saldo));
+
+    // Colorear campo saldo del encabezado
+    AplicarColorSaldo();
 }
 
-function LimpiarFormulario() {
-    Estado.clienteId    = "";
-    Estado.agente       = "";
-    Estado.monedaCobro  = "";
-    Estado.monedaDoc    = "";
-    Estado.cobros       = [];
-    Estado.documentos   = [];
-    Estado.idReciboGuardado = "";
+function AplicarColorSaldo() {
+    var s = parseFloat($("#txtSaldo").val()) || 0;
+    $("#txtSaldo").css("color", s === 0 ? "#1a5e35" : "#922b21");
+}
 
-    $("#txtIdRecibo, #txtRecFisico, #txtBuscarCliente, #txtNombreCliente")
-        .val("");
+// ════════════════════════════════════════════════════════
+// LIMPIAR
+// ════════════════════════════════════════════════════════
+function LimpiarFormulario() {
+    Estado.clienteId          = "";
+    Estado.agente             = "";
+    Estado.monedaCobro        = "";
+    Estado.monedaDoc          = "";
+    Estado.cobros             = [];
+    Estado.documentos         = [];
+    Estado.idReciboGuardado   = "";
+
+    $("#txtIdRecibo, #txtRecFisico, #txtBuscarCliente").val("");
+    $("#txtNombreCliente").val("").removeClass("tiene-valor");
     $("#txtDireccion, #txtNit, #txtAgente, #txtCorreo, #txtMoneda").val("");
     $("#txtMontoRec, #txtTotalDoc, #txtSaldo").val("");
     $("#txtStatus").val("NUEVO");
     $("#hdnAgente").val("");
+    $("#badgeStatus").text("NUEVO").removeClass("guardado").addClass("nuevo");
+
     $("#spanTotalCobros, #spanTotalDocs").text("0.00");
     $("#spanSaldo").text("0.00").removeClass("saldo-ok saldo-error");
-    $("#spanMonedaCobro, #spanMonedaDoc").text("--");
+    $("#spanMonedaCobro, #spanMonedaDoc").text("—");
 
     RenderizarTablaCobros();
     RenderizarTablaDocumentos();
@@ -1264,49 +1668,41 @@ function LimpiarDetalleDoc() {
     $("#cboTipoDoc, #cboMonedaDoc").val("");
     $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel").val("");
     $("#txtTotalFact, #txtPagado, #txtMontoDoc").val("");
-    $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel, #cboMonedaDoc")
-        .prop("disabled", false);
+    $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel, #cboMonedaDoc").prop("disabled", false);
 }
 
-// ─── Control de botones ──────────────────────────────────
-
+// ════════════════════════════════════════════════════════
+// CONTROL DE BOTONES
+// ════════════════════════════════════════════════════════
 function SetBotonesInicio() {
-    // Solo Nuevo y Buscar activos
     $("#btnGuardar, #btnCancelar, #btnImprimir").prop("disabled", true);
     $("#btnNuevo, #btnBuscarRecibo").prop("disabled", false);
     $("#btnGuardar").html('<i class="icon-save"></i> Guardar');
 }
-
 function SetBotonesActivos() {
-    // Formulario abierto para edición
     $("#btnGuardar, #btnCancelar").prop("disabled", false);
     $("#btnNuevo, #btnBuscarRecibo").prop("disabled", true);
     $("#btnImprimir").prop("disabled", true);
 }
-
 function SetBotonesPostGuardado() {
-    // Recibo guardado: solo Nuevo, Buscar e Imprimir
-    $("#btnGuardar").prop("disabled", true)
-                    .html('<i class="icon-save"></i> Guardar');
+    $("#btnGuardar").prop("disabled", true).html('<i class="icon-save"></i> Guardar');
     $("#btnCancelar").prop("disabled", true);
     $("#btnNuevo, #btnBuscarRecibo, #btnImprimir").prop("disabled", false);
 }
 
-// ─── Utilidades ─────────────────────────────────────────
-
-function FmtNum(n) {
-    return parseFloat(n || 0).toFixed(2);
-}
+// ════════════════════════════════════════════════════════
+// UTILIDADES
+// ════════════════════════════════════════════════════════
+function FmtNum(n) { return parseFloat(n || 0).toFixed(2); }
 
 function FmtFecha(iso) {
     if (!iso) return "";
-    // ISO viene como /Date(...)/ de JSON .NET o como string
     if (typeof iso === "string" && iso.indexOf("/Date(") === 0) {
         var ms = parseInt(iso.replace(/\/Date\((\d+).*/, "$1"));
         var d  = new Date(ms);
         return d.getFullYear() + "-" +
-               ("0"+(d.getMonth()+1)).slice(-2) + "-" +
-               ("0"+ d.getDate()).slice(-2);
+               ("0" + (d.getMonth() + 1)).slice(-2) + "-" +
+               ("0" + d.getDate()).slice(-2);
     }
     return iso.substring(0, 10);
 }

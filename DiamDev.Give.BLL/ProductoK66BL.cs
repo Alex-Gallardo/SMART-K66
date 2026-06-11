@@ -22,11 +22,11 @@ namespace DiamDev.Give.BLL
 
         #region Constructores 
 
-            public ProductoK66BL()
-            {
-                this.db = new GiveContext();
-                this.URL_SAP = ConfigurationManager.AppSettings["URL_SAP"].ToString();
-            }
+        public ProductoK66BL()
+        {
+            this.db = new GiveContext();
+            this.URL_SAP = ConfigurationManager.AppSettings["URL_SAP"].ToString();
+        }
 
         #endregion
 
@@ -35,7 +35,7 @@ namespace DiamDev.Give.BLL
 
         #region Metodos Publicos
 
-            public List<ProductoK66> BuscarProductoxNombreK66(string buscar, string clienteId, long usuarioId, long empresaId)
+        public List<ProductoK66> BuscarProductoxNombreK66(string buscar, string clienteId, long usuarioId, long empresaId)
             {
                 List<ProductoK66> Productos = new List<ProductoK66>();
 
@@ -346,34 +346,19 @@ namespace DiamDev.Give.BLL
                 return Productos;
             }
 
-            public ProductoK66 ObtenerxIDK66(string id, string unidad, string clienteId, string direccionId, long usuarioId, long empresaId, int cantidad)
-            {
-                ProductoK66 ProductoActual = new ProductoK66();
+        public ProductoK66 ObtenerxIDK66(string id, string unidad, string clienteId, string direccionId, long usuarioId, long empresaId, int cantidad)
+        {
+            ProductoK66 ProductoActual = new ProductoK66();
 
-                try
+            try
+            {
+                UsuarioEmpresa UsuarioEmpresaActual = db.Set<UsuarioEmpresa>().Include("Empresa").AsNoTracking().Where(x => x.UsuarioId == usuarioId && x.EmpresaId == empresaId).FirstOrDefault();
+                if (UsuarioEmpresaActual != null)
                 {
-                    UsuarioEmpresa UsuarioEmpresaActual = db.Set<UsuarioEmpresa>().Include("Empresa").AsNoTracking().Where(x => x.UsuarioId == usuarioId && x.EmpresaId == empresaId).FirstOrDefault();
-                    if (UsuarioEmpresaActual != null)
+                    if (empresaId == 20210705001)
                     {
-                        if (empresaId == 20210705001)
+                        using (var dbK66 = new VMBOLIKContext())
                         {
-                            using (var dbK66 = new VMBOLIKContext())
-                            {
-                                //if (direccionId == "0")
-                                //{
-                                //    ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", DBNull.Value)).FirstOrDefault();
-                                //}
-                                //else
-                                //{
-                                //    ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", direccionId)).FirstOrDefault();
-                                //}
-                                ProductoActual = ObtenerItemId(id, "BOLIK", clienteId, unidad, cantidad);
-                            }
-                        }
-                        else if (empresaId == 20210705002)
-                        {
-                            //using (var dbK66 = new VMEMPAQUESContext())
-                            //{
                             //if (direccionId == "0")
                             //{
                             //    ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", DBNull.Value)).FirstOrDefault();
@@ -383,213 +368,228 @@ namespace DiamDev.Give.BLL
                             //    ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", direccionId)).FirstOrDefault();
                             //}
                             ProductoActual = ObtenerItemId(id, "BOLIK", clienteId, unidad, cantidad);
+                        }
+                    }
+                    else if (empresaId == 20210705002)
+                    {
+                        //using (var dbK66 = new VMEMPAQUESContext())
+                        //{
+                        //if (direccionId == "0")
+                        //{
+                        //    ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", DBNull.Value)).FirstOrDefault();
                         //}
-                        }
-                        else if (empresaId == 20210705003)
-                        {
-                            ProductoActual = ObtenerItemId(id, "ESCOCESA", clienteId, unidad, cantidad);
-                            //using (var dbK66 = new VMFAESContext())
-                            //{
-                            //    if (direccionId == "0")
-                            //    {
-                            //        ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", DBNull.Value)).FirstOrDefault();
-                            //    }
-                            //    else
-                            //    {
-                            //        ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", direccionId)).FirstOrDefault();
-                            //    }
-                            //}
-                        }
-                        else if (empresaId == 20210705004)
-                        {
-                            ProductoActual = ObtenerItemId(id, "GRACO", clienteId, unidad, cantidad);
-                            //using (var dbK66 = new VMGRACOContext())
-                            //{
-                            //    if (direccionId == "0")
-                            //    {
-                            //        ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", DBNull.Value)).FirstOrDefault();
-                            //    }
-                            //    else
-                            //    {
-                            //        ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", direccionId)).FirstOrDefault();
-                            //    }
-                            //}
-                        }
+                        //else
+                        //{
+                        //    ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", direccionId)).FirstOrDefault();
+                        //}
+                        ProductoActual = ObtenerItemId(id, "BOLIK", clienteId, unidad, cantidad);
+                    //}
+                    }
+                    else if (empresaId == 20210705003)
+                    {
+                        ProductoActual = ObtenerItemId(id, "ESCOCESA", clienteId, unidad, cantidad);
+                        //using (var dbK66 = new VMFAESContext())
+                        //{
+                        //    if (direccionId == "0")
+                        //    {
+                        //        ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", DBNull.Value)).FirstOrDefault();
+                        //    }
+                        //    else
+                        //    {
+                        //        ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", direccionId)).FirstOrDefault();
+                        //    }
+                        //}
+                    }
+                    else if (empresaId == 20210705004)
+                    {
+                        ProductoActual = ObtenerItemId(id, "GRACO", clienteId, unidad, cantidad);
+                        //using (var dbK66 = new VMGRACOContext())
+                        //{
+                        //    if (direccionId == "0")
+                        //    {
+                        //        ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", DBNull.Value)).FirstOrDefault();
+                        //    }
+                        //    else
+                        //    {
+                        //        ProductoActual = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_producto_x_id @ID, @Unidad, @ClienteID, @DireccionID", new SqlParameter("@ID", id), new SqlParameter("@Unidad", unidad), new SqlParameter("@ClienteID", clienteId), new SqlParameter("@DireccionID", direccionId)).FirstOrDefault();
+                        //    }
+                        //}
+                    }
 
-                        if (ProductoActual != null)
-                        {
-                            //SE OBTIENE LOS DESCUENTOS
-                            //nueva integracion con sap, ya vendra integrado el valor de descuento desde el api
-                            //DescuentoK66 DescuentoActual = db.Set<DescuentoK66>().AsNoTracking().Where(x => x.EmpresaId == empresaId && x.IDK66 == clienteId && x.ProductoId == id).FirstOrDefault();
-                            //if (DescuentoActual != null)
-                            //{
-                            //    ProductoActual.PrecioOriginal = ProductoActual.Precio;
-                            //    ProductoActual.Precio = decimal.Round(ProductoActual.Precio * (1 - DescuentoActual.Descuento), 4);
-                            //}
-                            ProductoActual.PrecioOriginal = ProductoActual.Precio;
-                            ProductoActual.Precio = ProductoActual.Precio;//decimal.Round(ProductoActual.Precio * (1 - (decimal)0.15), 4);
+                    if (ProductoActual != null)
+                    {
+                        //SE OBTIENE LOS DESCUENTOS
+                        //nueva integracion con sap, ya vendra integrado el valor de descuento desde el api
+                        //DescuentoK66 DescuentoActual = db.Set<DescuentoK66>().AsNoTracking().Where(x => x.EmpresaId == empresaId && x.IDK66 == clienteId && x.ProductoId == id).FirstOrDefault();
+                        //if (DescuentoActual != null)
+                        //{
+                        //    ProductoActual.PrecioOriginal = ProductoActual.Precio;
+                        //    ProductoActual.Precio = decimal.Round(ProductoActual.Precio * (1 - DescuentoActual.Descuento), 4);
+                        //}
+                        ProductoActual.PrecioOriginal = ProductoActual.Precio;
+                        ProductoActual.Precio = ProductoActual.Precio;//decimal.Round(ProductoActual.Precio * (1 - (decimal)0.15), 4);
 
-                            ProductoActual.InventarioDisponible = ProductoActual.InventarioTotal - ProductoActual.InventarioComprometido;
-                            if (ProductoActual.InventarioDisponible < 0)
-                            {
-                                ProductoActual.InventarioDisponible = 0;
-                            }
+                        ProductoActual.InventarioDisponible = ProductoActual.InventarioTotal - ProductoActual.InventarioComprometido;
+                        if (ProductoActual.InventarioDisponible < 0)
+                        {
+                            ProductoActual.InventarioDisponible = 0;
                         }
                     }
                 }
-                catch (Exception)
-                { }
-
-                return ProductoActual;
             }
+            catch (Exception)
+            { }
 
-            public List<ProductoK66> ObtenerExistenciaxIDK66(string id, string clienteId, long usuarioId, long empresaId)
+            return ProductoActual;
+        }
+
+        public List<ProductoK66> ObtenerExistenciaxIDK66(string id, string clienteId, long usuarioId, long empresaId)
+        {
+            List<ProductoK66> Productos = new List<ProductoK66>();
+
+            try
             {
-                List<ProductoK66> Productos = new List<ProductoK66>();
-
-                try
-                {
                     
-                    UsuarioEmpresa UsuarioEmpresaActual = db.Set<UsuarioEmpresa>().Include("Empresa").AsNoTracking().Where(x => x.UsuarioId == usuarioId && x.EmpresaId == empresaId).FirstOrDefault();
-                    if (UsuarioEmpresaActual != null)
+                UsuarioEmpresa UsuarioEmpresaActual = db.Set<UsuarioEmpresa>().Include("Empresa").AsNoTracking().Where(x => x.UsuarioId == usuarioId && x.EmpresaId == empresaId).FirstOrDefault();
+                if (UsuarioEmpresaActual != null)
+                {
+                    var Roles = db.Set<UsuarioRol>().Where(x => x.UsuarioId == usuarioId).ToList();
+                    string concatenatedRoles = string.Join(",", Roles.Select(r => r.RolId));
+                    if (empresaId == 20210705001)
                     {
-                        var Roles = db.Set<UsuarioRol>().Where(x => x.UsuarioId == usuarioId).ToList();
-                        string concatenatedRoles = string.Join(",", Roles.Select(r => r.RolId));
-                        if (empresaId == 20210705001)
-                        {
-                            //using (var dbK66 = new VMBOLIKContext())
-                            //{
-                            //    Productos = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_existencia_producto_x_id @ID, @Cliente", new SqlParameter("@ID", id), new SqlParameter("@Cliente", clienteId)).ToList();
-                            //}
-                            Productos = ObtenerItemExistencia(id, "BOLIK", clienteId, concatenatedRoles);
-                        }
-                        else if (empresaId == 20210705002)
-                        {
-                            //using (var dbK66 = new VMEMPAQUESContext())
-                            //{
-                            //    Productos = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_existencia_producto_x_id @ID, @Cliente", new SqlParameter("@ID", id), new SqlParameter("@Cliente", clienteId)).ToList();
-                            //}
-                            Productos = ObtenerItemExistencia(id, "EMPAQUES", clienteId, concatenatedRoles);
-                        }
-                        else if (empresaId == 20210705003)
-                        {
-                            //using (var dbK66 = new VMFAESContext())
-                            //{
-                            //    Productos = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_existencia_producto_x_id @ID, @Cliente", new SqlParameter("@ID", id), new SqlParameter("@Cliente", clienteId)).ToList();
-                            //}
-                            Productos = ObtenerItemExistencia(id, "ESCOCESA", clienteId, concatenatedRoles);
-                        }
-                        else if (empresaId == 20210705004)
-                        {
-                            //using (var dbK66 = new VMGRACOContext())
-                            //{
-                            //    Productos = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_existencia_producto_x_id @ID, @Cliente", new SqlParameter("@ID", id), new SqlParameter("@Cliente", clienteId)).ToList();
-                            //}
-                            Productos = ObtenerItemExistencia(id, "GRACO", clienteId, concatenatedRoles);
-                        }
+                        //using (var dbK66 = new VMBOLIKContext())
+                        //{
+                        //    Productos = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_existencia_producto_x_id @ID, @Cliente", new SqlParameter("@ID", id), new SqlParameter("@Cliente", clienteId)).ToList();
+                        //}
+                        Productos = ObtenerItemExistencia(id, "BOLIK", clienteId, concatenatedRoles);
+                    }
+                    else if (empresaId == 20210705002)
+                    {
+                        //using (var dbK66 = new VMEMPAQUESContext())
+                        //{
+                        //    Productos = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_existencia_producto_x_id @ID, @Cliente", new SqlParameter("@ID", id), new SqlParameter("@Cliente", clienteId)).ToList();
+                        //}
+                        Productos = ObtenerItemExistencia(id, "EMPAQUES", clienteId, concatenatedRoles);
+                    }
+                    else if (empresaId == 20210705003)
+                    {
+                        //using (var dbK66 = new VMFAESContext())
+                        //{
+                        //    Productos = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_existencia_producto_x_id @ID, @Cliente", new SqlParameter("@ID", id), new SqlParameter("@Cliente", clienteId)).ToList();
+                        //}
+                        Productos = ObtenerItemExistencia(id, "ESCOCESA", clienteId, concatenatedRoles);
+                    }
+                    else if (empresaId == 20210705004)
+                    {
+                        //using (var dbK66 = new VMGRACOContext())
+                        //{
+                        //    Productos = dbK66.Database.SqlQuery<ProductoK66>("dbo.sp_obtener_existencia_producto_x_id @ID, @Cliente", new SqlParameter("@ID", id), new SqlParameter("@Cliente", clienteId)).ToList();
+                        //}
+                        Productos = ObtenerItemExistencia(id, "GRACO", clienteId, concatenatedRoles);
+                    }
 
-                        if (Productos != null && Productos.Count() > 0)
+                    if (Productos != null && Productos.Count() > 0)
+                    {
+                        Productos.ForEach(p => 
                         {
-                            Productos.ForEach(p => 
+                            p.InventarioDisponible = p.Existencia - p.InventarioComprometido;
+                            if (p.InventarioDisponible < 0)
                             {
-                                p.InventarioDisponible = p.Existencia - p.InventarioComprometido;
-                                if (p.InventarioDisponible < 0)
-                                {
-                                    p.InventarioDisponible = 0;
-                                }
-                            });                            
-                        }
+                                p.InventarioDisponible = 0;
+                            }
+                        });                            
                     }
                 }
-                catch (Exception)
-                { }
-
-                return Productos;
             }
+            catch (Exception)
+            { }
 
-            public List<BodegaActivaModel> ObtenerBodegaActivaWarehouse(long empresaId)
+            return Productos;
+        }
+
+        public List<BodegaActivaModel> ObtenerBodegaActivaWarehouse(long empresaId)
+        {
+            List<BodegaActivaModel> Bodegas = new List<BodegaActivaModel>();
+
+            try
             {
-                List<BodegaActivaModel> Bodegas = new List<BodegaActivaModel>();
-
-                try
+                if (empresaId == 20210705001)
                 {
-                    if (empresaId == 20210705001)
+                    using (var dbK66 = new VMBOLIKContext())
                     {
-                        using (var dbK66 = new VMBOLIKContext())
-                        {
-                            Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_warehouse_id").ToList();
-                        }
-                    }
-                    else if (empresaId == 20210705002)
-                    {
-                        using (var dbK66 = new VMEMPAQUESContext())
-                        {
-                            Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_warehouse_id").ToList();
-                        }
-                    }
-                    else if (empresaId == 20210705003)
-                    {
-                        using (var dbK66 = new VMFAESContext())
-                        {
-                            Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_warehouse_id").ToList();
-                        }
-                    }
-                    else if (empresaId == 20210705004)
-                    {
-                        using (var dbK66 = new VMGRACOContext())
-                        {
-                            Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_warehouse_id").ToList();
-                        }
+                        Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_warehouse_id").ToList();
                     }
                 }
-                catch (Exception)
-                { }
-
-                return Bodegas;
+                else if (empresaId == 20210705002)
+                {
+                    using (var dbK66 = new VMEMPAQUESContext())
+                    {
+                        Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_warehouse_id").ToList();
+                    }
+                }
+                else if (empresaId == 20210705003)
+                {
+                    using (var dbK66 = new VMFAESContext())
+                    {
+                        Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_warehouse_id").ToList();
+                    }
+                }
+                else if (empresaId == 20210705004)
+                {
+                    using (var dbK66 = new VMGRACOContext())
+                    {
+                        Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_warehouse_id").ToList();
+                    }
+                }
             }
+            catch (Exception)
+            { }
 
-            public List<BodegaActivaModel> ObtenerBodegaActivaxWarehouse(long empresaId, string warehouseId)
+            return Bodegas;
+        }
+
+        public List<BodegaActivaModel> ObtenerBodegaActivaxWarehouse(long empresaId, string warehouseId)
+        {
+            List<BodegaActivaModel> Bodegas = new List<BodegaActivaModel>();
+
+            try
             {
-                List<BodegaActivaModel> Bodegas = new List<BodegaActivaModel>();
-
-                try
+                if (empresaId == 20210705001)
                 {
-                    if (empresaId == 20210705001)
+                    using (var dbK66 = new VMBOLIKContext())
                     {
-                        using (var dbK66 = new VMBOLIKContext())
-                        {
-                            Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_x_warehouse_id @WarehouseId", new SqlParameter("@WarehouseId", warehouseId)).ToList();
-                        }
-                    }
-                    else if (empresaId == 20210705002)
-                    {
-                        using (var dbK66 = new VMEMPAQUESContext())
-                        {
-                            Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_x_warehouse_id @WarehouseId", new SqlParameter("@WarehouseId", warehouseId)).ToList();
-                        }
-                    }
-                    else if (empresaId == 20210705003)
-                    {
-                        using (var dbK66 = new VMFAESContext())
-                        {
-                            Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_x_warehouse_id @WarehouseId", new SqlParameter("@WarehouseId", warehouseId)).ToList();
-                        }
-                    }
-                    else if (empresaId == 20210705004)
-                    {
-                        using (var dbK66 = new VMGRACOContext())
-                        {
-                            Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_x_warehouse_id @WarehouseId", new SqlParameter("@WarehouseId", warehouseId)).ToList();
-                        }
+                        Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_x_warehouse_id @WarehouseId", new SqlParameter("@WarehouseId", warehouseId)).ToList();
                     }
                 }
-                catch (Exception)
-                { }
-
-                return Bodegas;
+                else if (empresaId == 20210705002)
+                {
+                    using (var dbK66 = new VMEMPAQUESContext())
+                    {
+                        Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_x_warehouse_id @WarehouseId", new SqlParameter("@WarehouseId", warehouseId)).ToList();
+                    }
+                }
+                else if (empresaId == 20210705003)
+                {
+                    using (var dbK66 = new VMFAESContext())
+                    {
+                        Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_x_warehouse_id @WarehouseId", new SqlParameter("@WarehouseId", warehouseId)).ToList();
+                    }
+                }
+                else if (empresaId == 20210705004)
+                {
+                    using (var dbK66 = new VMGRACOContext())
+                    {
+                        Bodegas = dbK66.Database.SqlQuery<BodegaActivaModel>("dbo.sp_obtener_location_x_warehouse_id @WarehouseId", new SqlParameter("@WarehouseId", warehouseId)).ToList();
+                    }
+                }
             }
+            catch (Exception)
+            { }
 
-            public PrecioxCantidadModel ObtenerPrecioxCantidad(long empresaId, string id, string clienteId, int cantidad)
+            return Bodegas;
+        }
+
+        public PrecioxCantidadModel ObtenerPrecioxCantidad(long empresaId, string id, string clienteId, int cantidad)
             {
                 PrecioxCantidadModel PrecioActual = new PrecioxCantidadModel();
 

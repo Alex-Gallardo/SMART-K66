@@ -176,7 +176,6 @@ namespace DiamDev.Give.DAL
         // ─────────────────────────────────────────────
         // BUSCAR RECIBO EXISTENTE
         // ─────────────────────────────────────────────
-
         public ReciboCajaEncabezado BuscarRecibo(string idRecibo, string empresa)
         {
             ReciboCajaEncabezado rec = null;
@@ -273,7 +272,6 @@ namespace DiamDev.Give.DAL
         // ─────────────────────────────────────────────
         // DOCUMENTOS DISPONIBLES (MA_RECC_DOCTOS)
         // ─────────────────────────────────────────────
-
         public List<DocumentoRecibo> ObtenerDocumentos(string empresa, string clienteId, string tipoDoc)
         {
             var lista = new List<DocumentoRecibo>();
@@ -281,14 +279,19 @@ namespace DiamDev.Give.DAL
             {
                 con.Open();
                 var cmd = new SqlCommand(@"
-                    SELECT DOCTO, FECHA_DOC, MONTO_FACT, PAGADO, MONEDA,
-                           ISNULL(SERIE_FEL,'') AS SERIE_FEL,
-                           ISNULL(NUM_FEL,'')   AS NUM_FEL
+                    SELECT
+                        DOCTO,
+                        INVOICE_DATE,
+                        INVOICE_STATUS,
+                        CURRENCY_ID,
+                        MONTO_FACT,
+                        PAGADO
                     FROM MA_RECC_DOCTOS
                     WHERE ENTITY_ID   = @emp
-                      AND CUSTOMER_ID = @cli
-                      AND TIPO        = @tipo
-                    ORDER BY FECHA_DOC DESC", con);
+                        AND CUSTOMER_ID = @cli
+                        AND TIPO        = @tipo
+                    ORDER BY INVOICE_DATE DESC", con);
+
                 cmd.Parameters.AddWithValue("@emp", empresa);
                 cmd.Parameters.AddWithValue("@cli", clienteId);
                 cmd.Parameters.AddWithValue("@tipo", tipoDoc);
@@ -296,18 +299,21 @@ namespace DiamDev.Give.DAL
                 using (var r = cmd.ExecuteReader())
                 {
                     while (r.Read())
+                    {
                         lista.Add(new DocumentoRecibo
                         {
                             NoDocumento = r["DOCTO"].ToString(),
-                            FechaDoc = r["FECHA_DOC"] != DBNull.Value
-                                              ? Convert.ToDateTime(r["FECHA_DOC"])
+                            FechaDoc = r["INVOICE_DATE"] != DBNull.Value
+                                              ? Convert.ToDateTime(r["INVOICE_DATE"])
                                               : DateTime.Today,
                             MontoFact = Val(r["MONTO_FACT"]),
                             Pagado = Val(r["PAGADO"]),
-                            Moneda = r["MONEDA"].ToString(),
-                            FelSerie = r["SERIE_FEL"].ToString(),
-                            FelNumero = r["NUM_FEL"].ToString()
+                            Moneda = r["CURRENCY_ID"].ToString(),
+                            // FEL no existe en MA_RECC_DOCTOS — el usuario los ingresa manualmente
+                            FelSerie = "",
+                            FelNumero = ""
                         });
+                    }
                 }
             }
             return lista;

@@ -315,6 +315,7 @@
         gap: 6px;
         height: 100%;
         flex-wrap: wrap;
+        margin: 12px 0;
     }
 
         .zona-botones .sep-btn {
@@ -744,8 +745,8 @@
                                     <option value="FACTURA">🧾&nbsp; FACTURA</option>
                                     <option value="PEDIDO">📦&nbsp; PEDIDO</option>
                                     <option value="ANTICIPO">💰&nbsp; ANTICIPO</option>
-                                    <option value="SALDO PENDIENTE">⏳&nbsp; SALDO PENDIENTE</option>
-                                    <option value="NOTA DE CREDITO">📝&nbsp; NOTA DE CRÉDITO</option>
+                                    <!-- <option value="SALDO PENDIENTE">⏳&nbsp; SALDO PENDIENTE</option> -->
+                                    <!-- <option value="NOTA DE CREDITO">📝&nbsp; NOTA DE CRÉDITO</option> -->
                                 </select>
                             </div>
                         </div>
@@ -1197,7 +1198,7 @@ $("#cboTipoPago").on("change", function () {
 // 4. TIPO DOCUMENTO → habilitar/deshabilitar campos
 // ════════════════════════════════════════════════════════
 $("#cboTipoDoc").on("change", function () {
-    var tipo        = $(this).val();
+    var tipo = $(this).val();
     var esAntOSaldo = (tipo === "ANTICIPO" || tipo === "SALDO PENDIENTE");
 
     $("#txtNoDocDoc").prop("disabled", esAntOSaldo).val("");
@@ -1208,6 +1209,13 @@ $("#cboTipoDoc").on("change", function () {
     $("#txtTotalFact").val("");
     $("#txtPagado").val("");
     $("#txtMontoDoc").val("");
+
+    // NUEVO: al elegir FACTURA o PEDIDO con cliente ya seleccionado,
+    // abrimos solo el modal (datos desde HANA). Si prefieres solo lupa,
+    // borra este if.
+    if ((tipo === "FACTURA" || tipo === "PEDIDO") && Estado.clienteId) {
+        $("#btnBuscarDoc").trigger("click");
+    }
 });
 
 // ════════════════════════════════════════════════════════
@@ -1289,9 +1297,9 @@ $("#btnBuscarDoc").on("click", function () {
     $("#modalBuscarDoc").modal("show");
 
     $.get(URL_DOCS, {
-        empresa:   Estado.empresa,
+        empresa: Estado.empresa,
         clienteId: Estado.clienteId,
-        tipoDoc:   tipo
+        tipoDoc: tipo
     }, function (resp) {
         var tbody = $("#tbodyModalDocs");
         if (!resp.ok) {
@@ -1305,18 +1313,19 @@ $("#btnBuscarDoc").on("click", function () {
 
         tbody.empty();
         $.each(resp.data, function (_, d) {
+            var saldoDoc = (parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0));
             tbody.append(
                 '<tr>' +
                 '<td><strong>' + (d.NoDocumento || '') + '</strong></td>' +
                 '<td>' + FmtFecha(d.FechaDoc) + '</td>' +
                 '<td class="text-right">' + FmtNum(d.MontoFact) + '</td>' +
                 '<td class="text-right">' + FmtNum(d.Pagado) + '</td>' +
-                '<td class="text-right" style="color:#1a5e35;font-weight:700;">' + FmtNum(d.Saldo) + '</td>' +
+                '<td class="text-right" style="color:#1a5e35;font-weight:700;">' + FmtNum(saldoDoc) + '</td>' +
                 '<td>' + (d.Moneda || '') + '</td>' +
                 '<td>' + (d.FelSerie || '') + '</td>' +
                 '<td>' + (d.FelNumero || '') + '</td>' +
                 '<td><button class="btn btn-xs btn-success btn-selDoc" ' +
-                    'data-doc=\'' + JSON.stringify(d).replace(/'/g, "&#39;") + '\'>Seleccionar</button></td>' +
+                'data-doc=\'' + JSON.stringify(d).replace(/'/g, "&#39;") + '\'>Seleccionar</button></td>' +
                 '</tr>'
             );
         });

@@ -40,8 +40,22 @@ namespace DiamDev.Give.BLL
         }
 
         // ─── DOCUMENTOS (APK66) ───────────────────────
-        public List<DocumentoRecibo> ObtenerDocumentos(string empresa, string clienteId, string tipoDoc) =>
-            _apk.ObtenerDocumentos(empresa, clienteId, tipoDoc);
+        // ─── DOCUMENTOS ───────────────────────────────
+        /// <summary>
+        /// Enruta la fuente según el tipo:
+        ///   FACTURA / PEDIDO → SAP HANA (vista RC_FACTURAS_REC_CAJ)
+        ///   el resto         → APK66 (MA_RECC_DOCTOS), como antes.
+        /// El controller y el front no cambian: misma firma, mismo DocumentoRecibo.
+        /// </summary>
+        public List<DocumentoRecibo> ObtenerDocumentos(string empresa, string clienteId, string tipoDoc)
+        {
+            var tipo = (tipoDoc ?? "").Trim().ToUpper();
+
+            if (tipo == "FACTURA" || tipo == "PEDIDO")
+                return _hana.ObtenerFacturas(empresa, clienteId, tipo);
+
+            return _apk.ObtenerDocumentos(empresa, clienteId, tipo);
+        }
 
         // ─── GUARDAR RECIBO ───────────────────────────
         /// <summary>

@@ -6,54 +6,29 @@ using DiamDev.Give.Entities;
 namespace DiamDev.Give.DAL
 {
     /// <summary>
-    /// Repositorio de clientes desde SAP HANA.
-    /// 
-    /// NO usa HanaConnection directo — delega en HanaHelper que ya está
-    /// configurado en el proyecto con AppSettings HANA_Server / HANA_User / etc.
-    /// 
-    /// Por qué: Crystal Reports usa driver B1CRHPROXY embebido en el .rpt.
-    /// Eso NO instala el NuGet Sap.Data.Hana en el proyecto.
-    /// HanaHelper ya abstrae la conexión correctamente.
+    /// Repositorio HANA. NO usa HanaConnection directo — delega en HanaHelper
+    /// (ya configurado con AppSettings HANA_Server / HANA_User / etc.).
     /// </summary>
     public class HanaRepository
     {
-        /// <summary>
-        /// Llama al stored procedure INF_CLIENTES_REC del schema SAP
-        /// correspondiente a la empresa seleccionada.
-        /// 
-        /// Equivale al método ObtenerCodClientesSAP() / txtIdCliente_TextChanged()
-        /// del desktop (frmIngresoRecibo.vb) pero server-side y sin ListBox.
-        /// </summary>
+        // ─────────────────────────────────────────────
+        // CLIENTES (SP INF_CLIENTES_REC) — sin cambios funcionales
+        // ─────────────────────────────────────────────
         public List<ClienteHana> BuscarClientes(string empresa, string agente)
         {
             var lista = new List<ClienteHana>();
 
-            // Determinar schema SAP según empresa
-            // (igual que ResolverSchemaSapDesdeEmpresa en ReporteController)
-            string schema;
-            switch ((empresa ?? "").Trim().ToUpper())
-            {
-                case "GRACO": schema = "SBO_GRACO"; break;
-                case "FAES": schema = "SBOESCOCESA"; break;
-                case "BOLIK": schema = "SBOBOLIK"; break;
-                default:
-                    return lista;  // empresa desconocida → lista vacía
-            }
+            string schema = ResolverSchema(empresa);
+            if (schema == null) return lista; // empresa desconocida
 
-            // CALL en HANA: CALL "SCHEMA"."PROCEDURE"('parametro')
-            // Usamos comillas dobles para respetar el case del schema
             string query = string.Format(
                 "CALL \"{0}\".\"INF_CLIENTES_REC\"('{1}')",
                 schema,
-                Esc(agente ?? "")
-            );
+                Esc(agente ?? ""));
 
             try
             {
-                // HanaHelper.EjecutarConsulta ya maneja la conexión HANA
-                // con las credenciales de AppSettings (HANA_Server, HANA_User, etc.)
                 DataTable dt = HanaHelper.EjecutarConsulta(query);
-
                 foreach (DataRow row in dt.Rows)
                 {
                     lista.Add(new ClienteHana
@@ -70,7 +45,6 @@ namespace DiamDev.Give.DAL
             }
             catch (Exception ex)
             {
-                // Re-lanzamos con contexto para que el BLL lo muestre correctamente
                 throw new Exception(
                     string.Format("Error HANA al buscar clientes ({0} / {1}): {2}",
                         empresa, schema, ex.Message), ex);
@@ -79,19 +53,85 @@ namespace DiamDev.Give.DAL
             return lista;
         }
 
-        // ── Helpers privados ─────────────────────────────────────────────────
-
+        // ─────────────────────────────────────────────
+        // FACTURAS / PEDIDOS (Vista RC_FACTURAS_REC_CAJ)
+        // ─────────────────────────────────────────────
         /// <summary>
-        /// Escapa comillas simples en el parámetro para evitar SQL injection
-        /// en la llamada al stored procedure HANA.
+        /// Trae los documentos disponibles (FACTURA/PEDIDO) de un cliente
+        /// desde la vista RC_FACTURAS_REC_CAJ del schema SAP correspondiente.
+        ///
+        /// Es una VISTA "WITH READ ONLY" → la consultamos con SELECT y le
+        /// metemos el WHERE nosotros (no es un CALL).
+        ///
+        /// Devuelve DocumentoRecibo (la MISMA entidad que MA_RECC_DOCTOS)
+        /// para que el modal y la tabla del front no tengan que cambiar.
         /// </summary>
+        public List<DocumentoRecibo> ObtenerFacturas(string empresa, string clienteId, string tipoDoc)
+        {
+            var lista = new List<DocumentoRecibo>();
+
+            string schema = ResolverSchema(empresa);
+            if (schema == null) return lista;
+
+            string tipo = string.IsNullOrWhiteSpace(tipoDoc)
+                            ? "FACTURA"
+                            : tipoDoc.Trim().ToUpper();
+
+            // OJO: HanaHelper sólo recibe un string, así que escapamos comillas
+            // igual que en BuscarClientes (misma convención del proyecto para HANA).
+            // Filtramos por Tipo + CardCode. El schema ya separa por empresa.
+            string query = string.Format(
+                "SELECT \"DocNum\", \"DocDate\", \"DocCur\", \"DocTotal\", \"PaidToDate\", " +
+                "\"U_SERIE_FACE\", \"U_NUMERO_DOCUMENTO\", \"CardCode\", \"CardName\", \"Tipo\" " +
+                "FROM \"{0}\".\"RC_FACTURAS_REC_CAJ\" " +
+                "WHERE \"Tipo\" = '{1}' AND \"CardCode\" = '{2}' " +
+                "ORDER BY \"DocDate\" DESC",
+                schema, Esc(tipo), Esc(clienteId ?? ""));
+
+            try
+            {
+                DataTable dt = HanaHelper.EjecutarConsulta(query);
+                foreach (DataRow row in dt.Rows)
+                {
+                    lista.Add(new DocumentoRecibo
+                    {
+                        NoDocumento = LeerCampo(row, "DocNum"),
+                        FechaDoc = LeerFecha(row, "DocDate"),
+                        MontoFact = LeerDecimal(row, "DocTotal"),
+                        Pagado = LeerDecimal(row, "PaidToDate"),
+                        Moneda = LeerCampo(row, "DocCur"),
+                        FelSerie = LeerCampo(row, "U_SERIE_FACE"),
+                        FelNumero = LeerCampo(row, "U_NUMERO_DOCUMENTO")
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    string.Format("Error HANA al buscar facturas ({0} / {1}): {2}",
+                        empresa, schema, ex.Message), ex);
+            }
+
+            return lista;
+        }
+
+        // ── Helpers privados ──────────────────────────────────────────────
+
+        /// <summary>Mapea empresa → schema SAP. Reutilizable por clientes y facturas.</summary>
+        private static string ResolverSchema(string empresa)
+        {
+            switch ((empresa ?? "").Trim().ToUpper())
+            {
+                case "GRACO": return "SBO_GRACO";
+                case "FAES": return "SBOESCOCESA";
+                case "BOLIK": return "SBOBOLIK";
+                default: return null;
+            }
+        }
+
         private static string Esc(string valor) =>
-            valor.Replace("'", "''");
+            (valor ?? "").Replace("'", "''");
 
-        /// <summary>
-        /// Lee un campo del DataRow de forma segura — devuelve "" si es null o DBNull.
-        /// Equivalente al CStr(row(n)) que usaba el desktop.
-        /// </summary>
         private static string LeerCampo(DataRow row, string columna)
         {
             try
@@ -100,11 +140,27 @@ namespace DiamDev.Give.DAL
                     ? Convert.ToString(row[columna]) ?? ""
                     : "";
             }
-            catch
+            catch { return ""; } // si la columna no existe, no explota
+        }
+
+        private static decimal LeerDecimal(DataRow row, string columna)
+        {
+            try
             {
-                // Si la columna no existe en el resultado del SP, no explota
-                return "";
+                var v = row[columna];
+                return (v != null && v != DBNull.Value) ? Convert.ToDecimal(v) : 0m;
             }
+            catch { return 0m; }
+        }
+
+        private static DateTime LeerFecha(DataRow row, string columna)
+        {
+            try
+            {
+                var v = row[columna];
+                return (v != null && v != DBNull.Value) ? Convert.ToDateTime(v) : DateTime.Today;
+            }
+            catch { return DateTime.Today; }
         }
     }
 }

@@ -365,7 +365,7 @@
                                 <th>Item</th>
                                 <th>Descripción Item</th>
                                 <th>UoM</th>
-                                <th>Recurso</th>
+                                <!-- <th>Recurso</th> -->
                                 <th>Máquina</th>
                                 <th>Estado OT</th>
                                 <th class="num">Cant.Plan</th>
@@ -805,7 +805,6 @@
                     <td>${r.ItemID      ?? ''}</td>
                     <td>${r.DescripcionItem ?? ''}</td>
                     <td>${r.UnidadMedida   ?? ''}</td>
-                    <td>${r.CodigoRecurso  ?? ''}</td>
                     <td>${r.DescripcionRecurso ?? ''}</td>
                     <td class="${estadoCls}">${r.EstadoOT ?? ''}</td>
                     <td class="num">${fmt(r["Cantidad Planeada"])}</td>

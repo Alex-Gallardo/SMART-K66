@@ -414,45 +414,45 @@
                     </span>
                     <select id="selEmpresa" class="form-control f-control search-select">
                         <option value="">— Seleccione empresa —</option>
-                            <option value="GRACO">🏭&nbsp; Graco Pack</option>
-                            <option value="FAES">🏭&nbsp; Fabrica Escocesa</option>
-                            <option value="BOLIK">🏭&nbsp; Industrias Bolik</option>
+                        <!-- <option value="GRACO">🏭&nbsp; Graco Pack</option> -->
+                        <!-- <option value="FAES">🏭&nbsp; Fabrica Escocesa</option> -->
+                        <!-- <option value="BOLIK">🏭&nbsp; Industrias Bolik</option> -->
                     </select>
-                </div>
-            </div>
-
-            <!-- Fecha del recibo -->
-            <div class="col-md-3">
-                <span class="flabel"><i class="icon-calendar"></i> Fecha del Recibo</span>
-                <div class="input-group">
-                    <span class="input-group-addon" style="background:#eaf0fb; color:#2980b9;">
-                        <i class="icon-calendar"></i>
-                    </span>
-                    <input type="text" id="fechaRecibo"
-                           class="form-control f-control date-picker"
-                           data-date-format="yyyy-mm-dd"
-                           data-date-viewmode="years"
-                           value="@DateTime.Today.ToString("yyyy-MM-dd")"
-                           readonly="readonly" />
-                </div>
-            </div>
-
-            <!-- Info usuario -->
-            <div class="col-md-3 col-md-offset-1">
-                <div class="usuario-card" style="margin-top:4px;">
-                    <div class="usuario-avatar">
-                        <i class="icon-user"></i>
-                    </div>
-                    <div>
-                        <div class="usuario-nombre">@Model.UsuarioActual</div>
-                        <div class="usuario-planta">
-                            <i class="icon-map-marker" style="font-size:10px;"></i>
-                            Planta: <strong>@Model.PlantaUsuario</strong>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
+    </div>
+
+    <!-- Fecha del recibo -->
+                        <div class="col-md-3">
+                            <span class="flabel"><i class="icon-calendar"></i> Fecha del Recibo</span>
+                            <div class="input-group">
+                                <span class="input-group-addon" style="background:#eaf0fb; color:#2980b9;">
+                                    <i class="icon-calendar"></i>
+                                </span>
+                                <input type="text" id="fechaRecibo"
+                                       class="form-control f-control date-picker"
+                                       data-date-format="yyyy-mm-dd"
+                                       data-date-viewmode="years"
+                                       value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                       readonly="readonly" />
+                            </div>
+                        </div>
+
+                        <!-- Info usuario -->
+                        <div class="col-md-3 col-md-offset-1">
+                            <div class="usuario-card" style="margin-top:4px;">
+                                <div class="usuario-avatar">
+                                    <i class="icon-user"></i>
+                                </div>
+                                <div>
+                                    <div class="usuario-nombre">@Model.UsuarioActual</div>
+                                    <div class="usuario-planta">
+                                        <i class="icon-map-marker" style="font-size:10px;"></i>
+                                        Planta: <strong>@Model.PlantaUsuario</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+</div>
     </div>
 </div>
 
@@ -1072,6 +1072,45 @@ var URL_DOCS     = "@Url.Action("ObtenerDocumentos","ReciboCaja")";
 var URL_GUARDAR  = "@Url.Action("Guardar",          "ReciboCaja")";
 var URL_BUSCAR   = "@Url.Action("BuscarRecibo",     "ReciboCaja")";
 var URL_IMPRIMIR = "@Url.Action("Imprimir",         "ReciboCaja")";
+
+// ─── URL del endpoint de empresas del usuario ─────────────────────────
+var URL_EMPRESAS = "@Url.Action("GetEmpresasUsuario", "ReciboCaja")";
+
+// ════════════════════════════════════════════════════════
+// 0. CARGA INICIAL: empresas disponibles del usuario
+//    Llena el select solo con GRACO/FAES/BOLIK permitidas.
+// ════════════════════════════════════════════════════════
+function CargarEmpresasUsuario() {
+    $.get(URL_EMPRESAS, function (resp) {
+        if (!resp.ok) { toastr.error(resp.msg || "No se pudieron cargar las empresas."); return; }
+
+        var sel = $("#selEmpresa");
+        // Conservamos el placeholder y agregamos las del usuario
+        sel.find("option:not([value=''])").remove();
+
+        if (!resp.data || resp.data.length === 0) {
+            toastr.warning("No tiene empresas de recibos asignadas.");
+            return;
+        }
+
+        $.each(resp.data, function (_, e) {
+            sel.append($("<option>", {
+                value: e.Id,
+                text: "🏭\u00A0 " + e.Nombre
+            }));
+        });
+
+        // Si solo tiene una empresa, la seleccionamos y disparamos el cambio
+        if (resp.data.length === 1) {
+            sel.val(resp.data[0].Id).trigger("change");
+        }
+
+        // Si usas Select2 (search-select), refrescar para que vea las opciones nuevas
+        if (sel.hasClass("search-select") && $.fn.select2) {
+            sel.trigger("change.select2");
+        }
+    });
+}
 
 // ════════════════════════════════════════════════════════
 // 1. SELECCIÓN DE EMPRESA (select en lugar de botones)
@@ -1717,6 +1756,7 @@ function FmtFecha(iso) {
 }
 
 // Inicialización
-SetBotonesInicio();
+        SetBotonesInicio();
+        CargarEmpresasUsuario();   // ← NUEVO: llena el select con las empresas del usuario
     </script>
 }

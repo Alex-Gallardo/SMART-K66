@@ -18,8 +18,77 @@ namespace DiamDev.Give.BLL
         }
 
         // ─── USUARIOS ────────────────────────────────
+        /// <summary>
+        /// [LEGACY] Mantener por compatibilidad. El flujo nuevo usa ObtenerPlantaPorLogin.
+        /// </summary>
         public string ObtenerPlantaUsuario(string idUsr) =>
             _apk.ObtenerPlantaUsuario(idUsr);
+
+        /// <summary>
+        /// Resuelve la PLANTA (DEPTO) del usuario de caja a partir del login POS.
+        /// Lanza excepción con mensaje claro si el login no está vinculado en APK66,
+        /// para evitar que el INSERT del correlativo falle con un error críptico.
+        /// </summary>
+        public string ObtenerPlantaPorLogin(string login)
+        {
+            string planta = _apk.ObtenerPlantaPorLogin(login);
+            if (string.IsNullOrWhiteSpace(planta))
+                throw new System.Exception(
+                    $"El usuario '{login}' no está vinculado a un usuario de caja activo en APK66 " +
+                    $"(REC_CAJA_USUARIOS), o no tiene PLANTA asignada. " +
+                    $"Contacte al administrador para habilitarlo.");
+            return planta;
+        }
+
+        /// <summary>Devuelve el ID_USR canónico de APK66 (mayúsculas) o el login si no hay vínculo.</summary>
+        public string ObtenerIdUsrPorLogin(string login)
+        {
+            string idUsr = _apk.ObtenerIdUsrPorLogin(login);
+            return string.IsNullOrWhiteSpace(idUsr) ? (login ?? "").ToUpper() : idUsr;
+        }
+
+        // ─── EMPRESAS DISPONIBLES POR USUARIO ─────────
+        /// <summary>
+        /// Devuelve solo las empresas de RECIBOS (GRACO/FAES/BOLIK) a las que el
+        /// usuario tiene acceso según Usuario_Empresa (POS-SmartK66_DEV).
+        ///
+        /// Reutiliza UsuarioEmpresaDA/BL que ya existen. Filtra fuera EMPAQUES
+        /// (...002) y cualquier otra empresa que recibos no maneja, y deduplica
+        /// (Usuario_Empresa puede traer varias filas por empresa, una por agente).
+        /// </summary>
+        public List<dynamic> ObtenerEmpresasUsuario(long usuarioId)
+        {
+            // IDs numéricos que recibos sí maneja → su clave string para el front
+            var permitidas = new Dictionary<long, string>
+    {
+        { UsuarioEmpresaBL.ID_GRACO, "GRACO" },
+        { UsuarioEmpresaBL.ID_FAES,  "FAES"  },
+        { UsuarioEmpresaBL.ID_BOLIK, "BOLIK" }
+    };
+
+            var nombres = new Dictionary<string, string>
+    {
+        { "GRACO", "Graco Pack"       },
+        { "FAES",  "Fabrica Escocesa" },
+        { "BOLIK", "Industrias Bolik" }
+    };
+
+            var registros = new UsuarioEmpresaDA().ObtenerPorUsuarioId(usuarioId);
+
+            // Deduplicar por EmpresaId y quedarnos solo con las permitidas
+            var idsUnicos = registros
+                .Select(r => r.EmpresaId)
+                .Where(id => permitidas.ContainsKey(id))
+                .Distinct();
+
+            var resultado = new List<dynamic>();
+            foreach (var id in idsUnicos)
+            {
+                string clave = permitidas[id];
+                resultado.Add(new { Id = clave, Nombre = nombres[clave] });
+            }
+            return resultado;
+        }
 
         // ─── CLIENTES (HANA) ─────────────────────────
         /// <summary>
@@ -118,19 +187,19 @@ namespace DiamDev.Give.BLL
             _apk.BuscarRecibo(idRecibo, empresa);
 
         // ─── EMPRESAS DISPONIBLES ─────────────────────
+
         /// <summary>
-        /// Lista de empresas con sus colores y claves de permiso.
-        /// La vista filtra con CustomHelper.Permiso() para mostrar
-        /// solo las que el usuario tiene asignadas.
+        /// [LEGACY] Catálogo fijo de las 3 empresas. Mantener por si algo lo usa,
+        /// pero la vista ahora se llena con ObtenerEmpresasUsuario (filtrado por permiso).
         /// </summary>
         public List<dynamic> ObtenerEmpresas()
         {
             return new List<dynamic>
-            {
-                new { Id = "GRACO", Nombre = "Graco Pack",        Permiso = "Control.ReciboCaja.Graco", Clase = "empresa-graco" },
-                new { Id = "FAES",  Nombre = "Fabrica Escocesa",  Permiso = "Control.ReciboCaja.Faes",  Clase = "empresa-faes"  },
-                new { Id = "BOLIK", Nombre = "Industrias Bolik",  Permiso = "Control.ReciboCaja.Bolik", Clase = "empresa-bolik" }
-            };
+    {
+        new { Id = "GRACO", Nombre = "Graco Pack",       Permiso = "Control.ReciboCaja.Graco", Clase = "empresa-graco" },
+        new { Id = "FAES",  Nombre = "Fabrica Escocesa", Permiso = "Control.ReciboCaja.Faes",  Clase = "empresa-faes"  },
+        new { Id = "BOLIK", Nombre = "Industrias Bolik", Permiso = "Control.ReciboCaja.Bolik", Clase = "empresa-bolik" }
+    };
         }
     }
 }

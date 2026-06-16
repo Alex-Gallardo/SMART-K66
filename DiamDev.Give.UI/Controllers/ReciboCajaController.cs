@@ -16,6 +16,7 @@ namespace DiamDev.Give.UI.Controllers
     {
         private readonly ReciboCajaBLL _bll = new ReciboCajaBLL();
 
+        
         // ─────────────────────────────────────────────
         // GET /ReciboCaja/
         // ─────────────────────────────────────────────
@@ -24,16 +25,42 @@ namespace DiamDev.Give.UI.Controllers
         {
             CustomHelper.setTitle("Recibos de Caja", "Ingreso");
 
-            string usuario = User.Identity.Name;
-            string planta = _bll.ObtenerPlantaUsuario(usuario);
+            string login = User.Identity.Name;
+
+            // Resolvemos planta sin reventar: si el usuario no está vinculado
+            // en APK66 (ej: 'admin'), mostramos vacío y el guardado lo validará.
+            string planta = "";
+            try { planta = _bll.ObtenerPlantaPorLogin(login); }
+            catch { planta = ""; }  // no vinculado → la vista lo muestra vacío
 
             var model = new ReciboCajaIndexViewModel
             {
-                UsuarioActual = usuario,
+                UsuarioActual = login,
                 PlantaUsuario = planta
             };
 
             return View(model);
+        }
+
+        // ─────────────────────────────────────────────
+        // GET /ReciboCaja/GetEmpresasUsuario
+        // Devuelve solo las empresas (GRACO/FAES/BOLIK) que el usuario
+        // tiene asignadas en Usuario_Empresa. El select se llena con esto.
+        // ─────────────────────────────────────────────
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Ver")]
+        public JsonResult GetEmpresasUsuario()
+        {
+            try
+            {
+                long usuarioId = CustomHelper.getUserId();
+                var empresas = _bll.ObtenerEmpresasUsuario(usuarioId);
+                return Json(new { ok = true, data = empresas }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
 
         // ─────────────────────────────────────────────
@@ -83,8 +110,9 @@ namespace DiamDev.Give.UI.Controllers
         {
             try
             {
-                string usuario = User.Identity.Name;
-                string depto = _bll.ObtenerPlantaUsuario(usuario);
+                string login = User.Identity.Name;
+                string depto = _bll.ObtenerPlantaPorLogin(login);   // lanza error claro si no hay vínculo
+                string usuario = _bll.ObtenerIdUsrPorLogin(login);  // ID_USR canónico de APK66 (mayúsculas)
 
                 // Mapear ViewModel → Entity
                 var enc = new ReciboCajaEncabezado

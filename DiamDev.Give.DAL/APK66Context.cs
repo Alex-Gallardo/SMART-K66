@@ -22,11 +22,14 @@ namespace DiamDev.Give.DAL
         // USUARIOS
         // ─────────────────────────────────────────────
 
+        // ─────────────────────────────────────────────
+        // USUARIOS (APK66)
+        // ─────────────────────────────────────────────
+
         /// <summary>
-        /// Obtiene la PLANTA del usuario en APK66.
-        /// La PLANTA equivale al campo DEPTO en REC_CAJA_SERIES
-        /// (determina qué serie de numeración se usa).
-        /// NOTA: asumimos que User.Identity.Name en Smart-K66 == ID_USR en APK66.
+        /// [LEGACY] Obtiene la PLANTA desde RT_USUARIOS por ID_USR exacto.
+        /// Se mantiene por compatibilidad, pero el flujo de recibos ahora usa
+        /// ObtenerPlantaPorLogin (contra REC_CAJA_USUARIOS).
         /// </summary>
         public string ObtenerPlantaUsuario(string idUsuario)
         {
@@ -36,6 +39,53 @@ namespace DiamDev.Give.DAL
                 var cmd = new SqlCommand(
                     "SELECT ISNULL(PLANTA,'') FROM RT_USUARIOS WHERE ID_USR = @id", con);
                 cmd.Parameters.AddWithValue("@id", idUsuario);
+                return cmd.ExecuteScalar()?.ToString() ?? string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Obtiene la PLANTA del usuario de caja desde REC_CAJA_USUARIOS.
+        ///
+        /// El vínculo entre los dos mundos es:
+        ///   POS.Usuario.Login (minúsculas)  ==  APK66.REC_CAJA_USUARIOS.ID_USR (mayúsculas)
+        /// Por eso comparamos con UPPER() en ambos lados — así "ecalderon" encuentra "ECALDERON".
+        ///
+        /// Devuelve string.Empty si el login NO tiene usuario de caja vinculado
+        /// (ej: 'admin', 'prueba'). El BLL/Controller traduce eso en un error claro
+        /// ANTES de tocar la transacción del correlativo.
+        /// </summary>
+        public string ObtenerPlantaPorLogin(string login)
+        {
+            using (var con = new SqlConnection(_conn))
+            {
+                con.Open();
+                var cmd = new SqlCommand(
+                    @"SELECT ISNULL(PLANTA,'')
+              FROM REC_CAJA_USUARIOS
+              WHERE UPPER(ID_USR) = UPPER(@login)
+                AND ISNULL(ESTADO,'') <> 'INACTIVO'", con);
+                cmd.Parameters.AddWithValue("@login", login ?? "");
+                return cmd.ExecuteScalar()?.ToString() ?? string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Devuelve el ID_USR "oficial" de APK66 (en mayúsculas, como está guardado)
+        /// a partir del login POS. Útil para grabar REC_CAJA_ENC.USUARIO con el código
+        /// canónico de APK66 en vez del login en minúsculas.
+        /// Devuelve string.Empty si no hay vínculo.
+        /// </summary>
+        public string ObtenerIdUsrPorLogin(string login)
+        {
+            using (var con = new SqlConnection(_conn))
+            {
+                con.Open();
+                var cmd = new SqlCommand(
+                    @"SELECT ISNULL(ID_USR,'')
+              FROM REC_CAJA_USUARIOS
+              WHERE UPPER(ID_USR) = UPPER(@login)
+                AND ISNULL(ESTADO,'') <> 'INACTIVO'", con);
+                cmd.Parameters.AddWithValue("@login", login ?? "");
                 return cmd.ExecuteScalar()?.ToString() ?? string.Empty;
             }
         }

@@ -208,6 +208,11 @@
         margin-bottom: 12px;
     }
 
+    /* ── PANEL DOCUMENTOS EN MODO EDICIÓN (resalta el panel) ── */
+    .panel-docs.editando {
+        box-shadow: 0 0 0 2px #f39c12 inset;
+    }
+
     /* ── PANELES DE DETALLE ── */
     .panel-cobros .panel-heading {
         background: #2471a3 !important;
@@ -370,26 +375,159 @@
         background-color: #f9f9f9 !important;
         cursor: default;
     }
+
+    /* ════════════════════════════════════════════
+       MODAL BUSCAR DOCUMENTOS — rediseño
+    ════════════════════════════════════════════ */
+    #modalBuscarDoc .modal-content {
+        border: none;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(0,0,0,.25);
+    }
+
+    #modalBuscarDoc .modal-header {
+        background: linear-gradient(135deg, #1e8449, #27ae60);
+        border: none;
+    }
+
+    /* Barra de resumen (totales) */
+    .doc-resumen {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        background: #f4f9f6;
+        border: 1px solid #d4ede0;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-bottom: 12px;
+    }
+
+        .doc-resumen .resumen-item {
+            flex: 1 1 auto;
+            min-width: 120px;
+        }
+
+            .doc-resumen .resumen-item .lbl {
+                font-size: 9px;
+                text-transform: uppercase;
+                letter-spacing: .5px;
+                color: #7f8c8d;
+                font-weight: 700;
+                display: block;
+            }
+
+            .doc-resumen .resumen-item .val {
+                font-size: 18px;
+                font-weight: 700;
+                color: #1e8449;
+                line-height: 1.1;
+            }
+
+                .doc-resumen .resumen-item .val.sel {
+                    color: #2471a3;
+                }
+
+        .doc-resumen .resumen-actions {
+            flex: 0 0 auto;
+            margin-left: auto;
+        }
+
+    /* Contenedor scrollable de la tabla */
+    .doc-scroll {
+        max-height: 48vh;
+        overflow: auto;
+        border: 1px solid #e6e6e6;
+        border-radius: 6px;
+    }
+
+    /* Header sticky de la tabla del modal */
+    #tablaModalDocs thead th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: #2c3e50;
+        color: #ecf0f1;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+        border-bottom: none;
+        padding: 9px 10px !important;
+        white-space: nowrap;
+    }
+
+    #tablaModalDocs tbody td {
+        padding: 8px 10px !important;
+        vertical-align: middle !important;
+        font-size: 12.5px;
+    }
+
+    #tablaModalDocs tbody tr {
+        cursor: pointer;
+        transition: background .12s;
+    }
+
+        #tablaModalDocs tbody tr:hover {
+            background: #eaf4fb;
+        }
+
+        #tablaModalDocs tbody tr.row-sel {
+            background: #d6eaf8 !important;
+        }
+
+    #tablaModalDocs .col-saldo {
+        font-weight: 700;
+        color: #1a5e35;
+    }
+
+    #tablaModalDocs .chk-doc,
+    #chkTodosDocs {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    .fel-badge {
+        font-family: monospace;
+        font-size: 11px;
+        color: #2471a3;
+    }
+
+    /* Responsive: en pantallas chicas el modal usa casi todo el ancho */
+    @@media (max-width: 768px) {
+        #modalBuscarDoc .modal-dialog {
+            width: auto;
+            margin: 10px;
+        }
+
+        .doc-resumen .resumen-item .val {
+            font-size: 16px;
+        }
+
+        .doc-scroll {
+            max-height: 55vh;
+        }
+    }
 </style>
 
 <!--
-    
     PERMISOS DE ROLES
     Cambia los  _arroba por arrobas normales
 
      _arroba if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.ReciboCaja.Graco"))
     {
-        _arroba   <option value="GRACO">🏭&nbsp; Graco Pack</option>
+        <option value="GRACO">🏭&nbsp; Graco Pack</option>
     }
-        if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.ReciboCaja.Faes"))
+     _arroba if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.ReciboCaja.Faes"))
     {
-        _arroba   <option value="FAES">🏭&nbsp; Fabrica Escocesa</option>
+     _arroba   <option value="FAES">🏭&nbsp; Fabrica Escocesa</option>
     }
-    _arroba if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.ReciboCaja.Bolik"))
+     _arroba if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.ReciboCaja.Bolik"))
     {
         <option value="BOLIK">🏭&nbsp; Industrias Bolik</option>
     }
-    -->
+-->
 <!-- ══════════════════════════════════════════════
      SECCIÓN 1: EMPRESA + FECHA
      Rediseño: select con indicador de color
@@ -404,7 +542,6 @@
     </div>
     <div class="panel-body" style="padding: 16px 20px;">
         <div class="row" style="display:flex; align-items:flex-end; flex-wrap:wrap;">
-
             <!-- Selector de empresa -->
             <div class="col-md-4">
                 <span class="flabel"><i class="icon-building"></i> Empresa</span>
@@ -418,41 +555,39 @@
                         <!-- <option value="FAES">🏭&nbsp; Fabrica Escocesa</option> -->
                         <!-- <option value="BOLIK">🏭&nbsp; Industrias Bolik</option> -->
                     </select>
+                </div>
+            </div>
+            <!-- Fecha del recibo -->
+            <div class="col-md-3">
+                <span class="flabel"><i class="icon-calendar"></i> Fecha del Recibo</span>
+                <div class="input-group">
+                    <span class="input-group-addon" style="background:#eaf0fb; color:#2980b9;">
+                        <i class="icon-calendar"></i>
+                    </span>
+                    <input type="text" id="fechaRecibo"
+                           class="form-control f-control date-picker"
+                           data-date-format="yyyy-mm-dd"
+                           data-date-viewmode="years"
+                           value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                           readonly="readonly" />
+                </div>
+            </div>
+            <!-- Info usuario -->
+            <div class="col-md-3 col-md-offset-1">
+                <div class="usuario-card" style="margin-top:4px;">
+                    <div class="usuario-avatar">
+                        <i class="icon-user"></i>
+                    </div>
+                    <div>
+                        <div class="usuario-nombre">@Model.UsuarioActual</div>
+                        <div class="usuario-planta">
+                            <i class="icon-map-marker" style="font-size:10px;"></i>
+                            Planta: <strong>@Model.PlantaUsuario</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
-
-    <!-- Fecha del recibo -->
-                        <div class="col-md-3">
-                            <span class="flabel"><i class="icon-calendar"></i> Fecha del Recibo</span>
-                            <div class="input-group">
-                                <span class="input-group-addon" style="background:#eaf0fb; color:#2980b9;">
-                                    <i class="icon-calendar"></i>
-                                </span>
-                                <input type="text" id="fechaRecibo"
-                                       class="form-control f-control date-picker"
-                                       data-date-format="yyyy-mm-dd"
-                                       data-date-viewmode="years"
-                                       value="@DateTime.Today.ToString("yyyy-MM-dd")"
-                                       readonly="readonly" />
-                            </div>
-                        </div>
-
-                        <!-- Info usuario -->
-                        <div class="col-md-3 col-md-offset-1">
-                            <div class="usuario-card" style="margin-top:4px;">
-                                <div class="usuario-avatar">
-                                    <i class="icon-user"></i>
-                                </div>
-                                <div>
-                                    <div class="usuario-nombre">@Model.UsuarioActual</div>
-                                    <div class="usuario-planta">
-                                        <i class="icon-map-marker" style="font-size:10px;"></i>
-                                        Planta: <strong>@Model.PlantaUsuario</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-</div>
     </div>
 </div>
 
@@ -461,7 +596,6 @@
      (aparece al seleccionar empresa)
 ══════════════════════════════════════════════ -->
 <div id="panelRecibo">
-
     <!-- ── ENCABEZADO DEL RECIBO ── -->
     <div class="panel panel-default panel-empresa" id="panelEncabezado">
         <div class="panel-heading" style="background:#f7f9fa; border-bottom:1px solid #eee; padding:10px 15px;">
@@ -728,7 +862,7 @@
         </div><!-- /col cobros -->
         <!-- ═══ DERECHA: DOCUMENTOS ═══ -->
         <div class="col-md-6">
-            <div class="panel panel-default panel-docs">
+            <div class="panel panel-default panel-docs" id="panelDocs">
                 <div class="panel-heading" style="padding:10px 14px;">
                     <strong style="font-size:13px;">
                         <i class="icon-file-text"></i> Detalle de Documentos
@@ -842,6 +976,9 @@
                         <button class="btn btn-success btn-sm" id="btnAgregarDoc" style="flex:1;">
                             <i class="icon-plus"></i> Agregar Documento
                         </button>
+                        <button class="btn btn-default btn-sm" id="btnCancelarEdicionDoc" style="display:none;">
+                            <i class="icon-remove"></i> Cancelar edición
+                        </button>
                         <button class="btn btn-danger btn-sm" id="btnQuitarDoc">
                             <i class="icon-minus"></i> Quitar
                         </button>
@@ -863,11 +1000,12 @@
                                 <th class="text-right">Total F.</th>
                                 <th class="text-right">Pagado</th>
                                 <th>Serie FEL</th>
+                                <th style="width:40px;"></th>
                             </tr>
                         </thead>
                         <tbody id="tbodyDocs">
                             <tr class="tabla-vacia">
-                                <td colspan="8" class="text-center" style="padding:16px;">
+                                <td colspan="9" class="text-center" style="padding:16px;">
                                     <i class="icon-inbox" style="font-size:20px; color:#ccc;"></i><br />
                                     Sin documentos agregados
                                 </td>
@@ -944,29 +1082,51 @@
 
 </div><!-- /panelRecibo -->
 <!-- ══════════════════════════════════════════════
-     MODAL: BUSCAR DOCUMENTOS DISPONIBLES
+     MODAL: BUSCAR DOCUMENTOS DISPONIBLES (multi-selección)
 ══════════════════════════════════════════════ -->
 <div class="modal fade" id="modalBuscarDoc" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header" style="background:#1e8449; color:#fff; padding:12px 16px;">
+            <div class="modal-header" style="color:#fff; padding:14px 18px;">
                 <button type="button" class="close" data-dismiss="modal"
-                        style="color:#fff; opacity:1;">
+                        style="color:#fff; opacity:.9;">
                     &times;
                 </button>
-                <h4 class="modal-title" style="font-size:14px;">
+                <h4 class="modal-title" style="font-size:15px; font-weight:600;">
                     <i class="icon-search"></i>&nbsp; Documentos Disponibles para Cobro
                 </h4>
             </div>
-            <div class="modal-body" style="padding:12px;">
-                <div id="loadingDocs" class="text-center" style="display:none; padding:20px;">
-                    <i class="icon-spinner icon-spin icon-2x" style="color:#27ae60;"></i>
-                    <p style="margin-top:8px; color:#7f8c8d;">Consultando documentos...</p>
+            <div class="modal-body" style="padding:14px 16px;">
+
+                <!-- Barra de resumen / totales -->
+                <div class="doc-resumen">
+                    <div class="resumen-item">
+                        <span class="lbl">📄 Documentos</span>
+                        <span class="val" id="resTotalDocs">0</span>
+                    </div>
+                    <div class="resumen-item">
+                        <span class="lbl">💰 Saldo Total Disponible</span>
+                        <span class="val" id="resSaldoTotal">0.00</span>
+                    </div>
+                    <div class="resumen-item">
+                        <span class="lbl">✅ Seleccionados</span>
+                        <span class="val sel" id="resSaldoSel">0.00 <small style="font-size:11px;color:#7f8c8d;">(0)</small></span>
+                    </div>
+                    <div class="resumen-actions">
+                        <button type="button" class="btn btn-success btn-sm" id="btnAgregarSeleccionados" disabled>
+                            <i class="icon-plus"></i> Agregar Seleccionados
+                        </button>
+                    </div>
                 </div>
-                <div style="overflow-x:auto;">
-                    <table class="table table-striped table-condensed table-bordered tabla-detalle">
+
+                <!-- Tabla scrollable con header sticky -->
+                <div class="doc-scroll">
+                    <table class="table table-condensed" id="tablaModalDocs" style="margin-bottom:0;">
                         <thead>
                             <tr>
+                                <th style="width:34px; text-align:center;">
+                                    <input type="checkbox" id="chkTodosDocs" title="Seleccionar todos" />
+                                </th>
                                 <th>No. Documento</th>
                                 <th>Fecha</th>
                                 <th class="text-right">Total Fact.</th>
@@ -975,22 +1135,24 @@
                                 <th>Moneda</th>
                                 <th>Serie FEL</th>
                                 <th>Núm. FEL</th>
-                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="tbodyModalDocs">
                             <tr class="tabla-vacia">
-                                <td colspan="9" class="text-center" style="padding:20px;">
+                                <td colspan="9" class="text-center" style="padding:24px;">
                                     Seleccione empresa, cliente y tipo de documento primero.
                                 </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+
             </div>
-            <div class="modal-footer" style="padding:10px 14px;">
-                <button type="button" class="btn btn-default btn-sm"
-                        data-dismiss="modal">
+            <div class="modal-footer" style="padding:10px 16px;">
+                <span class="pull-left" style="font-size:11px; color:#95a5a6; line-height:30px;">
+                    Marque <strong>uno</strong> para editarlo, o <strong>varios</strong> para cobro masivo.
+                </span>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">
                     Cerrar
                 </button>
             </div>
@@ -1063,7 +1225,8 @@ var Estado = {
     idReciboGuardado: "",
     modoActivo:       false,
     cobros:           [],
-    documentos:       []
+    documentos:       [],
+    docEditIndex:     null   // índice de la fila en edición (null = alta nueva)
 };
 
 // ─── URLs base ────────────────────────────────────────────────────────
@@ -1078,14 +1241,12 @@ var URL_EMPRESAS = "@Url.Action("GetEmpresasUsuario", "ReciboCaja")";
 
 // ════════════════════════════════════════════════════════
 // 0. CARGA INICIAL: empresas disponibles del usuario
-//    Llena el select solo con GRACO/FAES/BOLIK permitidas.
 // ════════════════════════════════════════════════════════
 function CargarEmpresasUsuario() {
     $.get(URL_EMPRESAS, function (resp) {
         if (!resp.ok) { toastr.error(resp.msg || "No se pudieron cargar las empresas."); return; }
 
         var sel = $("#selEmpresa");
-        // Conservamos el placeholder y agregamos las del usuario
         sel.find("option:not([value=''])").remove();
 
         if (!resp.data || resp.data.length === 0) {
@@ -1100,12 +1261,10 @@ function CargarEmpresasUsuario() {
             }));
         });
 
-        // Si solo tiene una empresa, la seleccionamos y disparamos el cambio
         if (resp.data.length === 1) {
             sel.val(resp.data[0].Id).trigger("change");
         }
 
-        // Si usas Select2 (search-select), refrescar para que vea las opciones nuevas
         if (sel.hasClass("search-select") && $.fn.select2) {
             sel.trigger("change.select2");
         }
@@ -1113,20 +1272,16 @@ function CargarEmpresasUsuario() {
 }
 
 // ════════════════════════════════════════════════════════
-// 1. SELECCIÓN DE EMPRESA (select en lugar de botones)
+// 1. SELECCIÓN DE EMPRESA
 // ════════════════════════════════════════════════════════
 $("#selEmpresa").on("change", function () {
     var emp = $(this).val();
 
-    // Limpiar clases de color del addon
     var $addon = $("#empresaAddon");
     $addon.removeClass("graco faes bolik");
-
-    // Limpiar clases de color de todos los panels
     $(".panel-empresa").removeClass("graco faes bolik");
 
     if (!emp) {
-        // Sin empresa: ocultar formulario
         $("#panelRecibo").slideUp(200);
         Estado.empresa = "";
         return;
@@ -1135,20 +1290,13 @@ $("#selEmpresa").on("change", function () {
     var cfg = EMPRESA_COLORES[emp];
     if (!cfg) return;
 
-    // Aplicar color al addon
     $addon.addClass(cfg.clase);
-
-    // Aplicar color a los panels
     $(".panel-empresa").addClass(cfg.clase);
-
-    // Actualizar badge en el encabezado
     $("#badgeEmpresa").text(cfg.nombre).removeClass("graco faes bolik").addClass(cfg.clase);
 
-    // Guardar estado
     Estado.empresa    = emp;
     Estado.modoActivo = false;
 
-    // Mostrar el formulario con animación
     $("#panelRecibo").slideDown(300);
 
     LimpiarFormulario();
@@ -1237,6 +1385,10 @@ $("#cboTipoPago").on("change", function () {
 // 4. TIPO DOCUMENTO → habilitar/deshabilitar campos
 // ════════════════════════════════════════════════════════
 $("#cboTipoDoc").on("change", function () {
+    // Si estamos en modo edición, NO limpiamos ni reabrimos el modal.
+    // (Esto evita que cargar el tipo al editar borre los campos o abra el modal.)
+    if (Estado.docEditIndex !== null) return;
+
     var tipo = $(this).val();
     var esAntOSaldo = (tipo === "ANTICIPO" || tipo === "SALDO PENDIENTE");
 
@@ -1249,9 +1401,7 @@ $("#cboTipoDoc").on("change", function () {
     $("#txtPagado").val("");
     $("#txtMontoDoc").val("");
 
-    // NUEVO: al elegir FACTURA o PEDIDO con cliente ya seleccionado,
-    // abrimos solo el modal (datos desde HANA). Si prefieres solo lupa,
-    // borra este if.
+    // Al elegir FACTURA o PEDIDO con cliente ya seleccionado, abrimos el modal.
     if ((tipo === "FACTURA" || tipo === "PEDIDO") && Estado.clienteId) {
         $("#btnBuscarDoc").trigger("click");
     }
@@ -1319,8 +1469,12 @@ $(document).on("click", "#tbodyCobros tr", function () {
 });
 
 // ════════════════════════════════════════════════════════
-// 7. MODAL DOCUMENTOS DISPONIBLES (lupa)
+// 7. MODAL DOCUMENTOS DISPONIBLES (multi-selección + totales)
 // ════════════════════════════════════════════════════════
+
+// Buffer con los documentos que devolvió HANA en la última búsqueda.
+var _docsModal = [];
+
 $("#btnBuscarDoc").on("click", function () {
     var tipo = $("#cboTipoDoc").val();
     if (!Estado.empresa || !Estado.clienteId || !tipo) {
@@ -1332,7 +1486,18 @@ $("#btnBuscarDoc").on("click", function () {
         return;
     }
 
-    $("#tbodyModalDocs").html('<tr><td colspan="9" class="text-center" style="padding:24px;"><i class="icon-spinner icon-spin icon-2x" style="color:#27ae60;"></i></td></tr>');
+    // Reset UI del modal
+    _docsModal = [];
+    $("#chkTodosDocs").prop("checked", false);
+    $("#btnAgregarSeleccionados").prop("disabled", true);
+    $("#resTotalDocs").text("0");
+    $("#resSaldoTotal").text(FmtMoneda(0));
+    $("#resSaldoSel").html(FmtMoneda(0) + ' <small style="font-size:11px;color:#7f8c8d;">(0)</small>');
+
+    $("#tbodyModalDocs").html(
+        '<tr><td colspan="9" class="text-center" style="padding:28px;">' +
+        '<i class="icon-spinner icon-spin icon-2x" style="color:#27ae60;"></i>' +
+        '<div style="margin-top:8px;color:#7f8c8d;">Consultando documentos...</div></td></tr>');
     $("#modalBuscarDoc").modal("show");
 
     $.get(URL_DOCS, {
@@ -1341,53 +1506,177 @@ $("#btnBuscarDoc").on("click", function () {
         tipoDoc: tipo
     }, function (resp) {
         var tbody = $("#tbodyModalDocs");
+
         if (!resp.ok) {
-            tbody.html('<tr><td colspan="9" class="text-center text-danger">' + resp.msg + '</td></tr>');
+            tbody.html('<tr><td colspan="9" class="text-center text-danger" style="padding:20px;">' + resp.msg + '</td></tr>');
             return;
         }
         if (!resp.data || resp.data.length === 0) {
-            tbody.html('<tr><td colspan="9" class="text-center" style="padding:20px; color:#aaa;">Sin documentos disponibles para este cliente</td></tr>');
+            tbody.html('<tr><td colspan="9" class="text-center" style="padding:24px; color:#aaa;">Sin documentos disponibles para este cliente</td></tr>');
             return;
         }
 
+        _docsModal = resp.data;
         tbody.empty();
-        $.each(resp.data, function (_, d) {
+
+        var saldoTotal = 0;
+        $.each(_docsModal, function (i, d) {
             var saldoDoc = (parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0));
+            saldoTotal += saldoDoc;
+
             tbody.append(
-                '<tr>' +
+                '<tr data-idx="' + i + '">' +
+                '<td style="text-align:center;">' +
+                '<input type="checkbox" class="chk-doc" data-idx="' + i + '" />' +
+                '</td>' +
                 '<td><strong>' + (d.NoDocumento || '') + '</strong></td>' +
                 '<td>' + FmtFecha(d.FechaDoc) + '</td>' +
                 '<td class="text-right">' + FmtNum(d.MontoFact) + '</td>' +
                 '<td class="text-right">' + FmtNum(d.Pagado) + '</td>' +
-                '<td class="text-right" style="color:#1a5e35;font-weight:700;">' + FmtNum(saldoDoc) + '</td>' +
-                '<td>' + (d.Moneda || '') + '</td>' +
-                '<td>' + (d.FelSerie || '') + '</td>' +
-                '<td>' + (d.FelNumero || '') + '</td>' +
-                '<td><button class="btn btn-xs btn-success btn-selDoc" ' +
-                'data-doc=\'' + JSON.stringify(d).replace(/'/g, "&#39;") + '\'>Seleccionar</button></td>' +
+                '<td class="text-right col-saldo" data-saldo="' + saldoDoc + '">' + FmtNum(saldoDoc) + '</td>' +
+                '<td><span class="label label-info">' + (d.Moneda || '') + '</span></td>' +
+                '<td><span class="fel-badge">' + (d.FelSerie || '—') + '</span></td>' +
+                '<td><span class="fel-badge">' + (d.FelNumero || '—') + '</span></td>' +
                 '</tr>'
             );
         });
+
+        $("#resTotalDocs").text(_docsModal.length);
+        $("#resSaldoTotal").text(FmtMoneda(saldoTotal));
+        ActualizarSeleccionDocs();
     });
 });
 
-// Seleccionar documento del modal
-$(document).on("click", ".btn-selDoc", function () {
-    var d = $(this).data("doc");
-    if (!d) return;
-    $("#txtNoDocDoc").val(d.NoDocumento);
-    $("#dtpFechaDoc").val(FmtFecha(d.FechaDoc));
-    $("#txtSerieFel").val(d.FelSerie  || "");
-    $("#txtNumFel").val(d.FelNumero   || "");
-    $("#txtTotalFact").val(FmtNum(d.MontoFact));
-    $("#txtPagado").val(FmtNum(d.Pagado));
-    $("#txtMontoDoc").val((parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0)).toFixed(2));
-    $("#cboMonedaDoc").val(d.Moneda || "GTQ");
+// Click en la fila → togglear su checkbox
+$(document).on("click", "#tbodyModalDocs tr[data-idx]", function (e) {
+    if ($(e.target).is(".chk-doc")) return;
+    var chk = $(this).find(".chk-doc");
+    chk.prop("checked", !chk.prop("checked")).trigger("change");
+});
+
+// Cambio en un checkbox individual
+$(document).on("change", ".chk-doc", function () {
+    var $tr = $(this).closest("tr");
+    $tr.toggleClass("row-sel", $(this).prop("checked"));
+    ActualizarSeleccionDocs();
+    SincronizarChkTodos();
+});
+
+// "Seleccionar todos"
+$(document).on("change", "#chkTodosDocs", function () {
+    var marcar = $(this).prop("checked");
+    $("#tbodyModalDocs .chk-doc").prop("checked", marcar);
+    $("#tbodyModalDocs tr[data-idx]").toggleClass("row-sel", marcar);
+    ActualizarSeleccionDocs();
+});
+
+// Recalcula el resumen de seleccionados y habilita el botón
+function ActualizarSeleccionDocs() {
+    var saldoSel = 0, n = 0;
+    $("#tbodyModalDocs .chk-doc:checked").each(function () {
+        var saldo = parseFloat($(this).closest("tr").find(".col-saldo").data("saldo")) || 0;
+        saldoSel += saldo;
+        n++;
+    });
+    $("#resSaldoSel").html(FmtMoneda(saldoSel) +
+        ' <small style="font-size:11px;color:#7f8c8d;">(' + n + ')</small>');
+    $("#btnAgregarSeleccionados").prop("disabled", n === 0);
+}
+
+// Mantiene el "seleccionar todos" coherente
+function SincronizarChkTodos() {
+    var total = $("#tbodyModalDocs .chk-doc").length;
+    var marcados = $("#tbodyModalDocs .chk-doc:checked").length;
+    $("#chkTodosDocs").prop("checked", total > 0 && marcados === total);
+}
+
+// Agregar seleccionados:
+//   1 documento  → lo carga al panel editable (el usuario ajusta el monto)
+//   2+ documentos → cobro masivo directo a la tabla (monto = saldo)
+$("#btnAgregarSeleccionados").on("click", function () {
+    var tipo = $("#cboTipoDoc").val();
+    var indices = [];
+    $("#tbodyModalDocs .chk-doc:checked").each(function () {
+        indices.push(parseInt($(this).data("idx"), 10));
+    });
+    if (!indices.length) { toastr.info("No hay documentos seleccionados."); return; }
+
+    // ── 1 SOLO documento: cargar al panel editable ──
+    if (indices.length === 1) {
+        CargarDocEnPanel(_docsModal[indices[0]]);
+        $("#modalBuscarDoc").modal("hide");
+        toastr.info("Documento cargado. Ajuste el monto y presione Agregar Documento.");
+        return;
+    }
+
+    // ── 2+ documentos: cobro masivo ──
+    var agregados = 0, duplicados = 0, distintaMoneda = 0;
+
+    indices.forEach(function (idx) {
+        var d = _docsModal[idx];
+        if (!d) return;
+
+        var moneda = d.Moneda || "GTQ";
+        var saldo = parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0);
+
+        var yaExiste = Estado.documentos.some(function (x) {
+            return x.NoDocumento === d.NoDocumento;
+        });
+        if (yaExiste) { duplicados++; return; }
+
+        if (Estado.monedaDoc && Estado.monedaDoc !== moneda) { distintaMoneda++; return; }
+        if (!Estado.monedaDoc) Estado.monedaDoc = moneda;
+
+        Estado.documentos.push({
+            TipoDoc: tipo,
+            NoDocumento: d.NoDocumento,
+            FechaDoc: FmtFecha(d.FechaDoc),
+            Status: "",
+            Monto: saldo,
+            Moneda: moneda,
+            MontoFact: parseFloat(d.MontoFact || 0),
+            Pagado: parseFloat(d.Pagado || 0),
+            FelSerie: d.FelSerie || "",
+            FelNumero: d.FelNumero || ""
+        });
+        agregados++;
+    });
+
+    $("#spanMonedaDoc").text(Estado.monedaDoc || "—");
+    RenderizarTablaDocumentos();
+    ActualizarTotales();
+
+    if (agregados) toastr.success(agregados + " documento(s) agregado(s).");
+    if (duplicados) toastr.warning(duplicados + " ya estaban agregados (omitidos).");
+    if (distintaMoneda) toastr.error(distintaMoneda + " omitido(s) por moneda distinta a " + Estado.monedaDoc + ".");
+
     $("#modalBuscarDoc").modal("hide");
 });
 
+// Carga un documento en el panel editable "Detalle de Documentos".
+// Reutilizado por: selección única en el modal, y edición de fila.
+// - Desde el modal (objeto HANA crudo): no trae 'Monto' → usa el saldo.
+// - Desde editar fila (objeto de Estado.documentos): respeta el 'Monto' guardado.
+function CargarDocEnPanel(d) {
+    if (!d) return;
+    var saldo = parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0);
+
+    $("#txtNoDocDoc").val(d.NoDocumento);
+    $("#dtpFechaDoc").val(FmtFecha(d.FechaDoc));
+    $("#txtSerieFel").val(d.FelSerie || "");
+    $("#txtNumFel").val(d.FelNumero || "");
+    $("#txtTotalFact").val(FmtNum(d.MontoFact));
+    $("#txtPagado").val(FmtNum(d.Pagado));
+    $("#txtMontoDoc").val(FmtNum(d.Monto != null ? d.Monto : saldo));
+    $("#cboMonedaDoc").val(d.Moneda || "GTQ");
+
+    if ($("#cboMonedaDoc").hasClass("search-select") && $.fn.select2) {
+        $("#cboMonedaDoc").trigger("change.select2");
+    }
+}
+
 // ════════════════════════════════════════════════════════
-// 8. AGREGAR DOCUMENTO
+// 8. AGREGAR / ACTUALIZAR DOCUMENTO
 // ════════════════════════════════════════════════════════
 $("#btnAgregarDoc").on("click", function () {
     var tipo        = $("#cboTipoDoc").val();
@@ -1396,6 +1685,7 @@ $("#btnAgregarDoc").on("click", function () {
     var monto       = parseFloat($("#txtMontoDoc").val()) || 0;
     var moneda      = $("#cboMonedaDoc").val();
     var esAntOSaldo = (tipo === "ANTICIPO" || tipo === "SALDO PENDIENTE");
+    var editando    = (Estado.docEditIndex !== null);
 
     if (!tipo || monto <= 0) {
         toastr.warning("Tipo de documento y monto son obligatorios.");
@@ -1405,15 +1695,28 @@ $("#btnAgregarDoc").on("click", function () {
         toastr.warning("Ingrese el número de documento.");
         return;
     }
-    if (!esAntOSaldo && Estado.documentos.some(function (d) { return d.NoDocumento === nodoc; })) {
+    // Duplicado: ignoramos la propia fila cuando estamos editando
+    var dupIdx = -1;
+    for (var i = 0; i < Estado.documentos.length; i++) {
+        if (Estado.documentos[i].NoDocumento === nodoc) { dupIdx = i; break; }
+    }
+    if (!esAntOSaldo && dupIdx !== -1 && dupIdx !== Estado.docEditIndex) {
         toastr.warning("El documento " + nodoc + " ya está agregado.");
         return;
     }
+    // Validación de moneda consistente (solo si hay otros docs distintos a esta fila)
+    if (Estado.monedaDoc && Estado.monedaDoc !== moneda) {
+        var hayOtros = false;
+        for (var j = 0; j < Estado.documentos.length; j++) {
+            if (j !== Estado.docEditIndex) { hayOtros = true; break; }
+        }
+        if (hayOtros) {
+            toastr.error("Todos los documentos deben tener la misma moneda (" + Estado.monedaDoc + ").");
+            return;
+        }
+    }
 
-    if (!Estado.monedaDoc) Estado.monedaDoc = moneda;
-    $("#spanMonedaDoc").text(moneda || Estado.monedaDoc);
-
-    Estado.documentos.push({
+    var docObj = {
         TipoDoc:     tipo,
         NoDocumento: esAntOSaldo ? "" : nodoc,
         FechaDoc:    esAntOSaldo ? "" : fecha,
@@ -1424,12 +1727,45 @@ $("#btnAgregarDoc").on("click", function () {
         Pagado:      parseFloat($("#txtPagado").val())    || 0,
         FelSerie:    $("#txtSerieFel").val().trim(),
         FelNumero:   $("#txtNumFel").val().trim()
-    });
+    };
+
+    if (editando) {
+        // ── ACTUALIZAR la fila existente ──
+        Estado.documentos[Estado.docEditIndex] = docObj;
+        if (!Estado.monedaDoc) Estado.monedaDoc = moneda;
+        toastr.success("Documento actualizado.");
+        SalirModoEdicionDoc();
+    } else {
+        // ── ALTA nueva ──
+        if (!Estado.monedaDoc) Estado.monedaDoc = moneda;
+        Estado.documentos.push(docObj);
+    }
+
+    $("#spanMonedaDoc").text(Estado.monedaDoc || moneda || "—");
+
+    if (!Estado.documentos.length) Estado.monedaDoc = "";
 
     RenderizarTablaDocumentos();
     ActualizarTotales();
     LimpiarDetalleDoc();
 });
+
+// Botón "Cancelar edición" → descarta cambios y vuelve a modo alta
+$("#btnCancelarEdicionDoc").on("click", function () {
+    SalirModoEdicionDoc();
+    LimpiarDetalleDoc();
+    toastr.info("Edición cancelada.");
+});
+
+// Sale del modo edición: restaura el botón a "Agregar Documento"
+function SalirModoEdicionDoc() {
+    Estado.docEditIndex = null;
+    $("#btnAgregarDoc").html('<i class="icon-plus"></i> Agregar Documento')
+        .removeClass("btn-warning").addClass("btn-success");
+    $("#btnCancelarEdicionDoc").hide();
+    $("#panelDocs").removeClass("editando");
+    $("#tbodyDocs tr").removeClass("seleccionada");
+}
 
 // ════════════════════════════════════════════════════════
 // 9. QUITAR DOCUMENTO
@@ -1437,10 +1773,21 @@ $("#btnAgregarDoc").on("click", function () {
 $("#btnQuitarDoc").on("click", function () {
     var idx = $("#tbodyDocs tr.seleccionada").data("idx");
     if (idx === undefined) { toastr.info("Seleccione una fila para quitar."); return; }
+
+    // Si quitamos la fila que estábamos editando, salimos del modo edición
+    if (Estado.docEditIndex === idx) {
+        SalirModoEdicionDoc();
+        LimpiarDetalleDoc();
+    }
+
     Estado.documentos.splice(idx, 1);
     if (Estado.documentos.length === 0) {
         Estado.monedaDoc = "";
         $("#spanMonedaDoc").text("—");
+    }
+    // Reajustar el índice de edición si quedó desfasado por el splice
+    if (Estado.docEditIndex !== null && idx < Estado.docEditIndex) {
+        Estado.docEditIndex--;
     }
     RenderizarTablaDocumentos();
     ActualizarTotales();
@@ -1449,6 +1796,39 @@ $("#btnQuitarDoc").on("click", function () {
 $(document).on("click", "#tbodyDocs tr", function () {
     $("#tbodyDocs tr").removeClass("seleccionada");
     $(this).addClass("seleccionada");
+});
+
+// Click en el lápiz → cargar la fila en el panel en MODO EDICIÓN
+$(document).on("click", ".btn-editDoc", function (e) {
+    e.stopPropagation();  // no dispara el click de selección de fila
+    var idx = parseInt($(this).data("idx"), 10);
+    var d = Estado.documentos[idx];
+    if (!d) return;
+
+    // Activar modo edición ANTES de tocar el combo (para que el change no limpie)
+    Estado.docEditIndex = idx;
+
+    // Reflejar el tipo en el combo (el handler de la sección 4 hace return
+    // porque docEditIndex != null, así que no limpia ni reabre el modal)
+    $("#cboTipoDoc").val(d.TipoDoc);
+    if ($("#cboTipoDoc").hasClass("search-select") && $.fn.select2) {
+        $("#cboTipoDoc").trigger("change.select2");
+    }
+
+    // Cargar los valores al panel (respeta el Monto que el usuario ya tenía)
+    CargarDocEnPanel(d);
+
+    // Cambiar el botón a modo "Actualizar" + mostrar "Cancelar edición"
+    $("#btnAgregarDoc").html('<i class="icon-ok"></i> Actualizar Documento')
+        .removeClass("btn-success").addClass("btn-warning");
+    $("#btnCancelarEdicionDoc").show();
+    $("#panelDocs").addClass("editando");
+
+    // Resaltar la fila en edición
+    $("#tbodyDocs tr").removeClass("seleccionada");
+    $(this).closest("tr").addClass("seleccionada");
+
+    toastr.info("Editando documento " + (d.NoDocumento || "") + ". Ajuste y presione Actualizar.");
 });
 
 // ════════════════════════════════════════════════════════
@@ -1495,7 +1875,6 @@ $("#btnGuardar").on("click", function () {
                 toastr.success("✅ Recibo " + resp.idRecibo + " guardado correctamente.");
                 Estado.idReciboGuardado = resp.idRecibo;
                 $("#txtIdRecibo").val(resp.idRecibo);
-                // Actualizar badge de status
                 $("#badgeStatus").text("GUARDADO")
                     .removeClass("nuevo").addClass("guardado");
                 SetBotonesPostGuardado();
@@ -1549,7 +1928,6 @@ $("#btnEjecutarBusqueda").on("click", function () {
         }
         var r = resp.data;
 
-        // Rellenar encabezado
         $("#txtIdRecibo").val(r.IdRecibo);
         Estado.clienteId = r.IdCliente;
         $("#txtBuscarCliente").val(r.IdCliente + "  —  " + r.NombreCliente);
@@ -1562,7 +1940,6 @@ $("#btnEjecutarBusqueda").on("click", function () {
         $("#txtMoneda").val(r.Moneda);
         $("#txtRecFisico").val(r.RecFisico);
 
-        // Actualizar badge status
         var esGuardado = r.Status && r.Status !== "NUEVO";
         $("#badgeStatus").text(r.Status || "NUEVO")
             .removeClass("nuevo guardado")
@@ -1625,13 +2002,14 @@ function RenderizarTablaCobros() {
 function RenderizarTablaDocumentos() {
     var tbody = $("#tbodyDocs").empty();
     if (!Estado.documentos.length) {
-        tbody.html('<tr class="tabla-vacia"><td colspan="8" class="text-center" style="padding:14px;">' +
+        tbody.html('<tr class="tabla-vacia"><td colspan="9" class="text-center" style="padding:14px;">' +
                    '<i class="icon-inbox" style="font-size:18px;color:#ccc;"></i><br/>Sin documentos agregados</td></tr>');
         return;
     }
     $.each(Estado.documentos, function (i, d) {
+        var filaEdit = (Estado.docEditIndex === i) ? " seleccionada" : "";
         tbody.append(
-            $('<tr style="cursor:pointer;"></tr>').data("idx", i).html(
+            $('<tr style="cursor:pointer;" class="' + filaEdit.trim() + '"></tr>').data("idx", i).html(
                 "<td><span class='label label-default'>" + d.TipoDoc + "</span></td>" +
                 "<td><strong>" + (d.NoDocumento || "—") + "</strong></td>" +
                 "<td>" + (d.FechaDoc || "—")  + "</td>" +
@@ -1639,7 +2017,11 @@ function RenderizarTablaDocumentos() {
                 "<td><span class='label label-info'>" + d.Moneda + "</span></td>" +
                 '<td class="text-right">' + FmtNum(d.MontoFact) + "</td>" +
                 '<td class="text-right">' + FmtNum(d.Pagado)    + "</td>" +
-                "<td>" + (d.FelSerie || "—") + "</td>"
+                "<td>" + (d.FelSerie || "—") + "</td>" +
+                '<td class="text-center">' +
+                    '<button class="btn btn-xs btn-warning btn-editDoc" title="Editar" data-idx="' + i + '">' +
+                    '<i class="icon-pencil"></i></button>' +
+                '</td>'
             )
         );
     });
@@ -1662,12 +2044,10 @@ function ActualizarTotales() {
         .removeClass("saldo-ok saldo-error")
         .addClass(saldo === 0 ? "saldo-ok" : "saldo-error");
 
-    // Sincronizar campos del encabezado
     $("#txtMontoRec").val(FmtNum(tC));
     $("#txtTotalDoc").val(FmtNum(tD));
     $("#txtSaldo").val(FmtNum(saldo));
 
-    // Colorear campo saldo del encabezado
     AplicarColorSaldo();
 }
 
@@ -1687,6 +2067,7 @@ function LimpiarFormulario() {
     Estado.cobros             = [];
     Estado.documentos         = [];
     Estado.idReciboGuardado   = "";
+    Estado.docEditIndex       = null;
 
     $("#txtIdRecibo, #txtRecFisico, #txtBuscarCliente").val("");
     $("#txtNombreCliente").val("").removeClass("tiene-valor");
@@ -1710,6 +2091,11 @@ function LimpiarDetalleCobro() {
     $("#cboTipoPago, #cboBanco, #cboMonedaCobro").val("");
     $("#txtNoDocCobro, #dtpFechaCobro, #txtMontoCobro").val("");
     $("#cboBanco, #txtNoDocCobro, #dtpFechaCobro").prop("disabled", false);
+
+    // Refrescar Select2 visual tras limpiar
+    if ($.fn.select2) {
+        $("#cboTipoPago, #cboBanco, #cboMonedaCobro").filter(".search-select").trigger("change.select2");
+    }
 }
 
 function LimpiarDetalleDoc() {
@@ -1717,6 +2103,16 @@ function LimpiarDetalleDoc() {
     $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel").val("");
     $("#txtTotalFact, #txtPagado, #txtMontoDoc").val("");
     $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel, #cboMonedaDoc").prop("disabled", false);
+
+    // Refrescar Select2 para que lo visual coincida con el valor real (vacío).
+    // Usamos change.select2 (NO change) para repintar sin disparar los handlers
+    // de negocio de la sección 4.
+    if ($.fn.select2) {
+        $("#cboTipoDoc, #cboMonedaDoc").filter(".search-select").trigger("change.select2");
+    }
+
+    // Por seguridad: si quedó algún rastro de edición, lo limpiamos
+    SalirModoEdicionDoc();
 }
 
 // ════════════════════════════════════════════════════════
@@ -1743,6 +2139,16 @@ function SetBotonesPostGuardado() {
 // ════════════════════════════════════════════════════════
 function FmtNum(n) { return parseFloat(n || 0).toFixed(2); }
 
+// Igual que FmtNum pero con separador de miles (para MOSTRAR dinero).
+// Ej: 832216.62 → "832,216.62". NO usar su salida para volver a parsear.
+function FmtMoneda(n) {
+    var num = parseFloat(n || 0);
+    return num.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
 function FmtFecha(iso) {
     if (!iso) return "";
     if (typeof iso === "string" && iso.indexOf("/Date(") === 0) {
@@ -1755,8 +2161,8 @@ function FmtFecha(iso) {
     return iso.substring(0, 10);
 }
 
-// Inicialización
-        SetBotonesInicio();
-        CargarEmpresasUsuario();   // ← NUEVO: llena el select con las empresas del usuario
+// ── Inicialización ──
+SetBotonesInicio();
+CargarEmpresasUsuario();
     </script>
 }

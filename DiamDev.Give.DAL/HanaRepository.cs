@@ -39,7 +39,7 @@ namespace DiamDev.Give.DAL
                         LicTradNum = LeerCampo(row, "LicTradNum"),
                         SlpName = LeerCampo(row, "SlpName"),
                         Email = LeerCampo(row, "E_mail"),
-                        Currency = LeerCampo(row, "Currency")
+                        Currency = NormalizarMoneda(LeerCampo(row, "Currency"))
                     });
                 }
             }
@@ -79,7 +79,7 @@ namespace DiamDev.Give.DAL
                             : tipoDoc.Trim().ToUpper();
 
             // HanaHelper sólo recibe un string → escapamos comillas (misma convención
-            // que BuscarClientes). Filtramos por Tipo + CardCode.
+            // que BuscarClientes). Filtramos por Tipo + CardCode. 
             string query = string.Format(
                 "SELECT \"DocNum\", \"DocDate\", \"DocCur\", \"DocTotal\", \"PaidToDate\", " +
                 "\"U_SERIE_FACE\", \"U_NUMERO_DOCUMENTO\", \"CardCode\", \"CardName\", \"Tipo\" " +
@@ -180,6 +180,50 @@ namespace DiamDev.Give.DAL
                 return (v != null && v != DBNull.Value) ? Convert.ToDateTime(v) : DateTime.Today;
             }
             catch { return DateTime.Today; }
+        }
+
+        // ─────────────────────────────────────────────
+        // TIPO DE CAMBIO (ORTT) — GTQ por 1 USD
+        // ─────────────────────────────────────────────
+        /// <summary>
+        /// Trae la tasa USD vigente desde SAP (tabla ORTT del schema de la empresa).
+        /// Regla: la última tasa con RateDate &lt;= fecha de corte (recibo u hoy).
+        /// El filtro por fecha es CRÍTICO: SAP tiene tasas futuras cargadas
+        /// (ej. 1-dic-2026) que NO debemos tomar para un recibo de hoy.
+        /// </summary>
+        public decimal ObtenerTipoCambio(string empresa, DateTime? fecha = null)
+        {
+            string schema = ResolverSchema(empresa);
+            if (schema == null)
+                throw new Exception($"Empresa desconocida para tipo de cambio: '{empresa}'.");
+
+            string fechaCorte = (fecha ?? DateTime.Today).ToString("yyyy-MM-dd");
+
+            string query = string.Format(
+                "SELECT TOP 1 \"Rate\" " +
+                "FROM \"{0}\".\"ORTT\" " +
+                "WHERE \"Currency\" = 'USD' AND \"RateDate\" <= TO_DATE('{1}','YYYY-MM-DD') " +
+                "ORDER BY \"RateDate\" DESC",
+                schema, fechaCorte);
+
+            try
+            {
+                DataTable dt = HanaHelper.EjecutarConsulta(query);
+                if (dt.Rows.Count == 0 || dt.Rows[0][0] == DBNull.Value)
+                    throw new Exception(
+                        $"No hay tipo de cambio USD cargado en SAP ({schema}) al {fechaCorte}.");
+
+                decimal rate = Convert.ToDecimal(dt.Rows[0][0]);
+                if (rate <= 0)
+                    throw new Exception($"Tipo de cambio USD inválido en SAP ({schema}): {rate}.");
+
+                return rate;   // ej. 7.619820
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(
+                    $"Error HANA al obtener tipo de cambio ({empresa} / {schema}): {ex.Message}", ex);
+            }
         }
     }
 }

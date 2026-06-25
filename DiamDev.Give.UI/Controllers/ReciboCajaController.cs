@@ -64,6 +64,24 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         // ─────────────────────────────────────────────
+        // GET /ReciboCaja/ObtenerTipoCambioDia?empresa=GRACO
+        // Devuelve el TC USD del día para mostrarlo en la UI (referencia).
+        // ─────────────────────────────────────────────
+        [HttpGet]
+        public JsonResult ObtenerTipoCambioDia(string empresa)
+        {
+            try
+            {
+                decimal tc = _bll.ObtenerTipoCambioDia(empresa ?? "");
+                return Json(new { ok = true, tipoCambio = tc }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ─────────────────────────────────────────────
         // GET /ReciboCaja/BuscarClientes
         // Llamado por AJAX (typeahead del campo cliente)
         // ─────────────────────────────────────────────
@@ -111,8 +129,10 @@ namespace DiamDev.Give.UI.Controllers
             try
             {
                 string login = User.Identity.Name;
-                string depto = _bll.ObtenerPlantaPorLogin(login);   // lanza error claro si no hay vínculo
-                string usuario = _bll.ObtenerIdUsrPorLogin(login);  // ID_USR canónico de APK66 (mayúsculas)
+                long usuarioId = CustomHelper.getUserId();
+                string depto = _bll.ObtenerDeptoSerie(usuarioId);   // ← nuevo (lee de POS)
+                string usuario = login;                              // grabamos el login POS
+                string ip = Request.UserHostAddress;                 // para analytics
 
                 // Mapear ViewModel → Entity
                 var enc = new ReciboCajaEncabezado
@@ -154,7 +174,7 @@ namespace DiamDev.Give.UI.Controllers
                     }).ToList() ?? new List<ReciboCajaDetalle>()
                 };
 
-                var resultado = _bll.GuardarRecibo(enc, depto);
+                var resultado = _bll.GuardarRecibo(enc, depto, usuarioId, login, ip);
                 return Json(new { ok = resultado.Exito, msg = resultado.Mensaje, idRecibo = resultado.IdRecibo });
             }
             catch (Exception ex)
@@ -194,6 +214,65 @@ namespace DiamDev.Give.UI.Controllers
             var rec = _bll.BuscarRecibo(idRecibo, empresa);
             if (rec == null) return HttpNotFound("Recibo no encontrado.");
             return View(rec);
+        }
+
+        // TEMPORAL — borrar después de validar. Prueba ObtenerTipoCambio por la ruta real (HanaHelper).
+        [HttpGet]
+        public JsonResult TestTC(string empresa)
+        {
+            try
+            {
+                var hana = new DiamDev.Give.DAL.HanaRepository();
+                decimal tc = hana.ObtenerTipoCambio(empresa ?? "GRACO", null);
+                return Json(new { ok = true, empresa, tipoCambio = tc }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+        // TEMPORAL — valida que EF lee RecibosCaja_UsuarioDepto. Borrar después.
+        // TEMPORAL — versión que muestra la inner exception real. Borrar después.
+        [HttpGet]
+        public JsonResult TestDepto()
+        {
+            try
+            {
+                long uid = DiamDev.Give.UI.App_Start.CustomHelper.getUserId();
+                string depto = new DiamDev.Give.DAL.RecibosCajaUsuarioDeptoDA()
+                                   .ObtenerDeptoPorUsuarioId(uid);
+                return Json(new { ok = true, usuarioId = uid, depto }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                // Desenterrar TODA la cadena de inner exceptions
+                var msgs = new System.Collections.Generic.List<string>();
+                var e = ex;
+                while (e != null) { msgs.Add(e.Message); e = e.InnerException; }
+                return Json(new { ok = false, cadena = msgs }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // TEMPORAL — valida el cálculo dual. Borrar después.
+        [HttpGet]
+        public JsonResult TestDual(decimal monto, string moneda, decimal tc)
+        {
+            try
+            {
+                var d = DiamDev.Give.BLL.ReciboCajaBLL.CalcularMontosDuales(monto, moneda, tc);
+                return Json(new
+                {
+                    ok = true,
+                    original = new { monto, moneda },
+                    tc,
+                    gtq = d.Gtq,
+                    usd = d.Usd
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
     }
 }

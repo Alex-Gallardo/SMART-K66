@@ -104,6 +104,7 @@
     <Compile Include="ReciboCajaCobro.cs" />
     <Compile Include="ReciboCajaDetalle.cs" />
     <Compile Include="ReciboCajaEncabezado.cs" />
+    <Compile Include="RecibosCajaUsuarioDepto.cs" />
     <Compile Include="ResultadoRecibo.cs" />
     <Compile Include="UnidadK66.cs" />
     <Compile Include="Visita.cs" />

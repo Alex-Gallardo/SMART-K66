@@ -16,5 +16,10 @@ namespace DiamDev.Give.Entities
         public string NoDocumento { get; set; }  // NULL si TipoCobro = EFECTIVO
         public decimal Monto { get; set; }
         public string Moneda { get; set; }
+
+        // ── NUEVO: dual-moneda ──
+        public decimal? TipoCambio { get; set; }   // GTQ por 1 USD, congelado al guardar
+        public decimal MontoGtq { get; set; }      // equivalente en quetzales
+        public decimal MontoUsd { get; set; }      // equivalente en dólares
     }
 }

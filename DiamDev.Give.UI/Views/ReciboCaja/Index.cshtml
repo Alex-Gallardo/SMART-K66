@@ -296,13 +296,21 @@
         line-height: 1.1;
     }
 
-        .total-val.saldo-ok {
-            color: #2ecc71 !important;
-        }
+    .total-val.saldo-ok {
+        color: #2ecc71 !important;
+    }
 
-        .total-val.saldo-error {
-            color: #e74c3c !important;
-        }
+    .total-val.saldo-error {
+        color: #e74c3c !important;
+    }
+
+    .total-sub {
+        display: block;
+        font-size: 11px;
+        color: #7f8c8d;
+        line-height: 1.2;
+        margin-top: 1px;
+    }
 
     .moneda-info {
         font-size: 11px;
@@ -389,6 +397,13 @@
     #modalBuscarDoc .modal-header {
         background: linear-gradient(135deg, #1e8449, #27ae60);
         border: none;
+    }
+
+    /* Modal más ancho: usa el 90% del viewport con un tope de 1200px.
+        En pantallas grandes aprovecha el espacio; en chicas se sigue adaptando. */
+    #modalBuscarDoc.modal .modal-dialog.modal-lg {
+        width: 95% !important;
+        max-width: 1200px !important;`
     }
 
     /* Barra de resumen (totales) */
@@ -952,15 +967,15 @@
                                        step="0.01" min="0" placeholder="0.00" />
                             </div>
                         </div>
-                        <div class="col-sm-4">
-                            <div class="fgroup" style="margin-bottom:0;">
-                                <span class="flabel">Ya Pagado</span>
-                                <input type="text" id="txtPagado"
-                                       class="form-control f-control f-readonly"
-                                       readonly placeholder="0.00" />
-                            </div>
-                        </div>
-                        <div class="col-sm-4">
+                        <!--<div class="col-sm-4">
+                                <div class="fgroup" style="margin-bottom:0;">
+                                    <span class="flabel">Ya Pagado</span>
+                                    <input type="text" id="txtPagado"
+                                           class="form-control f-control f-readonly"
+                                           readonly placeholder="0.00" />
+                                </div>
+                            </div>-->
+                        <div class="col-sm-8">
                             <div class="fgroup" style="margin-bottom:0;">
                                 <span class="flabel">💱 Moneda</span>
                                 <select id="cboMonedaDoc" class="form-control f-control search-select">
@@ -1028,18 +1043,21 @@
                         <div class="total-item">
                             <span class="total-lbl">💰 Cobros</span>
                             <span class="total-val" id="spanTotalCobros">0.00</span>
+                            <span class="total-sub" id="spanTotalCobrosUsd">$ 0.00</span>
                         </div>
                         <div class="total-item">
                             <span class="total-lbl">📄 Documentos</span>
                             <span class="total-val" id="spanTotalDocs">0.00</span>
+                            <span class="total-sub" id="spanTotalDocsUsd">$ 0.00</span>
                         </div>
                         <div class="total-item">
                             <span class="total-lbl">⚖️ Saldo</span>
                             <span class="total-val" id="spanSaldo">0.00</span>
+                            <span class="total-sub" id="spanSaldoUsd">$ 0.00</span>
                         </div>
                         <div class="moneda-info">
-                            <div>Mon. Cobro: <strong id="spanMonedaCobro">—</strong></div>
-                            <div>Mon. Doc: &nbsp;<strong id="spanMonedaDoc">—</strong></div>
+                            <div><i class="icon-money"></i> T. Cambio: <strong id="spanTipoCambio">—</strong></div>
+                            <div>Mon. Base: <strong>GTQ</strong></div>
                         </div>
                     </div>
                 </div>
@@ -1084,8 +1102,8 @@
 <!-- ══════════════════════════════════════════════
      MODAL: BUSCAR DOCUMENTOS DISPONIBLES (multi-selección)
 ══════════════════════════════════════════════ -->
-<div class="modal fade" id="modalBuscarDoc" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="modalBuscarDoc" tabindex="-1" role="dialog" >
+    <div class="modal-dialog modal-lg" role="document" >
         <div class="modal-content">
             <div class="modal-header" style="color:#fff; padding:14px 18px;">
                 <button type="button" class="close" data-dismiss="modal"
@@ -1226,7 +1244,8 @@ var Estado = {
     modoActivo:       false,
     cobros:           [],
     documentos:       [],
-    docEditIndex:     null   // índice de la fila en edición (null = alta nueva)
+    docEditIndex: null,   // índice de la fila en edición (null = alta nueva)
+    tipoCambio: 0,    // TC del día, traído al elegir empresa
 };
 
 // ─── URLs base ────────────────────────────────────────────────────────
@@ -1235,6 +1254,7 @@ var URL_DOCS     = "@Url.Action("ObtenerDocumentos","ReciboCaja")";
 var URL_GUARDAR  = "@Url.Action("Guardar",          "ReciboCaja")";
 var URL_BUSCAR   = "@Url.Action("BuscarRecibo",     "ReciboCaja")";
 var URL_IMPRIMIR = "@Url.Action("Imprimir",         "ReciboCaja")";
+var URL_TIPOCAMBIO = "@Url.Action("ObtenerTipoCambioDia", "ReciboCaja")";
 
 // ─── URL del endpoint de empresas del usuario ─────────────────────────
 var URL_EMPRESAS = "@Url.Action("GetEmpresasUsuario", "ReciboCaja")";
@@ -1288,6 +1308,8 @@ $("#selEmpresa").on("change", function () {
     }
 
     var cfg = EMPRESA_COLORES[emp];
+    // Traer el tipo de cambio del día para esta empresa (referencia en vivo)
+    CargarTipoCambio(emp);
     if (!cfg) return;
 
     $addon.addClass(cfg.clase);
@@ -1303,6 +1325,28 @@ $("#selEmpresa").on("change", function () {
     SetBotonesInicio();
     AplicarColorSaldo();
 });
+
+// ════════════════════════════════════════════════════════
+// TIPO DE CAMBIO — traer del día al elegir empresa
+// ════════════════════════════════════════════════════════
+function CargarTipoCambio(empresa) {
+    $("#spanTipoCambio").text("...");
+    $.get(URL_TIPOCAMBIO, { empresa: empresa }, function (resp) {
+        if (resp.ok) {
+            Estado.tipoCambio = parseFloat(resp.tipoCambio) || 0;
+            $("#spanTipoCambio").text(Estado.tipoCambio.toFixed(4));
+        } else {
+            Estado.tipoCambio = 0;
+            $("#spanTipoCambio").text("—");
+            toastr.error("No se pudo traer el tipo de cambio: " + resp.msg);
+        }
+        ActualizarTotales();
+    }).fail(function () {
+        Estado.tipoCambio = 0;
+        $("#spanTipoCambio").text("—");
+        toastr.error("Error al consultar el tipo de cambio.");
+    });
+}
 
 // ════════════════════════════════════════════════════════
 // 2. BÚSQUEDA DE CLIENTE (typeahead con debounce)
@@ -1860,7 +1904,8 @@ $("#btnGuardar").on("click", function () {
         Moneda:        $("#txtMoneda").val(),
         RecFisico:     $("#txtRecFisico").val(),
         Cobros:        Estado.cobros,
-        Documentos:    Estado.documentos
+        Documentos: Estado.documentos,
+        TipoCambio: Estado.tipoCambio,
     };
 
     $("#btnGuardar").prop("disabled", true)
@@ -2031,22 +2076,40 @@ function RenderizarTablaDocumentos() {
 // CÁLCULO DE TOTALES
 // ════════════════════════════════════════════════════════
 function ActualizarTotales() {
-    var tC    = Estado.cobros.reduce(function (s, c) { return s + c.Monto; }, 0);
-    var tD    = Estado.documentos.reduce(function (s, d) { return s + d.Monto; }, 0);
-    var saldo = tC - tD;
+    var tc = Estado.tipoCambio || 0;
 
-    $("#spanTotalCobros").text(FmtNum(tC));
-    $("#spanTotalDocs").text(FmtNum(tD));
-    $("#spanMonedaCobro").text(Estado.monedaCobro || "—");
-    $("#spanMonedaDoc").text(Estado.monedaDoc     || "—");
+    // Sumar cobros en ambas monedas (cada línea convertida con la regla de oro)
+    var cobrosGtq = 0, cobrosUsd = 0;
+    Estado.cobros.forEach(function (c) {
+        var m = MontosDuales(c.Monto, c.Moneda, tc);
+        cobrosGtq += m.gtq; cobrosUsd += m.usd;
+    });
 
-    $("#spanSaldo").text(FmtNum(saldo))
+    // Sumar documentos en ambas monedas
+    var docsGtq = 0, docsUsd = 0;
+    Estado.documentos.forEach(function (d) {
+        var m = MontosDuales(d.Monto, d.Moneda, tc);
+        docsGtq += m.gtq; docsUsd += m.usd;
+    });
+
+    var saldoGtq = cobrosGtq - docsGtq;
+    var saldoUsd = cobrosUsd - docsUsd;
+
+    // Pintar la barra (Q grande, $ chico)
+    $("#spanTotalCobros").text("Q " + FmtNum(cobrosGtq));
+    $("#spanTotalCobrosUsd").text("$ " + FmtNum(cobrosUsd));
+    $("#spanTotalDocs").text("Q " + FmtNum(docsGtq));
+    $("#spanTotalDocsUsd").text("$ " + FmtNum(docsUsd));
+
+    $("#spanSaldo").text("Q " + FmtNum(saldoGtq))
         .removeClass("saldo-ok saldo-error")
-        .addClass(saldo === 0 ? "saldo-ok" : "saldo-error");
+        .addClass(Math.abs(saldoGtq) < 0.01 ? "saldo-ok" : "saldo-error");
+    $("#spanSaldoUsd").text("$ " + FmtNum(saldoUsd));
 
-    $("#txtMontoRec").val(FmtNum(tC));
-    $("#txtTotalDoc").val(FmtNum(tD));
-    $("#txtSaldo").val(FmtNum(saldo));
+    // Reflejar también en los campos del encabezado (en GTQ, la base)
+    $("#txtMontoRec").val(FmtNum(cobrosGtq));
+    $("#txtTotalDoc").val(FmtNum(docsGtq));
+    $("#txtSaldo").val(FmtNum(saldoGtq));
 
     AplicarColorSaldo();
 }
@@ -2080,6 +2143,7 @@ function LimpiarFormulario() {
     $("#spanTotalCobros, #spanTotalDocs").text("0.00");
     $("#spanSaldo").text("0.00").removeClass("saldo-ok saldo-error");
     $("#spanMonedaCobro, #spanMonedaDoc").text("—");
+    $("#spanTotalCobrosUsd, #spanTotalDocsUsd, #spanSaldoUsd").text("$ 0.00");
 
     RenderizarTablaCobros();
     RenderizarTablaDocumentos();
@@ -2138,6 +2202,21 @@ function SetBotonesPostGuardado() {
 // UTILIDADES
 // ════════════════════════════════════════════════════════
 function FmtNum(n) { return parseFloat(n || 0).toFixed(2); }
+
+// ════════════════════════════════════════════════════════
+// CÁLCULO DUAL (espejo de CalcularMontosDuales del BLL)
+// original = exacto, equivalente = derivado
+// ════════════════════════════════════════════════════════
+function MontosDuales(monto, moneda, tc) {
+    monto = parseFloat(monto) || 0;
+    tc = parseFloat(tc) || 0;
+    if (tc <= 0) return { gtq: 0, usd: 0 };  // sin TC no derivamos
+    if ((moneda || "").toUpperCase() === "USD") {
+        return { gtq: Math.round(monto * tc * 100) / 100, usd: monto };
+    } else {
+        return { gtq: monto, usd: Math.round((monto / tc) * 100) / 100 };
+    }
+}
 
 // Igual que FmtNum pero con separador de miles (para MOSTRAR dinero).
 // Ej: 832216.62 → "832,216.62". NO usar su salida para volver a parsear.

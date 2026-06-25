@@ -20,5 +20,10 @@ namespace DiamDev.Give.Entities
         public decimal Pagado { get; set; }
         public string FelSerie { get; set; }
         public string FelNumero { get; set; }
+
+        // ── NUEVO: dual-moneda del MONTO ──
+        public decimal? TipoCambio { get; set; }
+        public decimal MontoGtq { get; set; }
+        public decimal MontoUsd { get; set; }
     }
 }

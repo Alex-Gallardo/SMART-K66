@@ -28,6 +28,16 @@ namespace DiamDev.Give.Entities
         public DateTime FechaRegistro { get; set; }
         public string RecFisico { get; set; }
 
+        // ── NUEVO: moneda base + tipo de cambio + totales duales ──
+        public string MonedaBase { get; set; }        // 'GTQ'
+        public decimal? TipoCambio { get; set; }       // GTQ por 1 USD, congelado
+        public decimal MontoTotalRecGtq { get; set; }
+        public decimal MontoTotalRecUsd { get; set; }
+        public decimal MontoTotalDocGtq { get; set; }
+        public decimal MontoTotalDocUsd { get; set; }
+        public decimal SaldoGtq { get; set; }          // saldo que VALIDA
+        public decimal SaldoUsd { get; set; }
+
         // Listas de detalle anidadas (como los dos DataGridView del desktop)
         public List<ReciboCajaCobro> Cobros { get; set; }
         public List<ReciboCajaDetalle> Documentos { get; set; }
@@ -37,6 +47,7 @@ namespace DiamDev.Give.Entities
             Cobros = new List<ReciboCajaCobro>();
             Documentos = new List<ReciboCajaDetalle>();
             FechaRecibo = DateTime.Today;
+            MonedaBase = "GTQ";   // ← agregar esta línea
         }
     }
 }

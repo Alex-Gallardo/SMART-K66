@@ -13,8 +13,14 @@ namespace DiamDev.Give.DAL
 
         public APK66Context()
         {
+            // CUTOVER: el módulo de recibos ahora vive en POS-SmartK66 (GiveContext),
+            // NO en APK66. Solo cambiamos a qué connection string apunta;
+            // toda la lógica ADO.NET (correlativo transaccional) queda idéntica.
+
+            // Módulo de recibos: connection string dedicado.
+            // Pruebas = POS-SmartK66; producción = POS-SmartK66_DEV.
             _conn = ConfigurationManager
-                        .ConnectionStrings["APK66Context"]
+                        .ConnectionStrings["RecibosContext"]
                         .ConnectionString;
         }
 
@@ -109,13 +115,15 @@ namespace DiamDev.Give.DAL
                     try
                     {
                         // ── 1. INSERT Encabezado + UPDATE series ──────────────
-                        // El subquery genera el correlativo: SERIE + '00001', '00002', etc.
                         const string sqlEnc = @"
                             INSERT INTO REC_CAJA_ENC
                                 (ID_RECIBO, ID_EMPRESA, ID_CLIENTE, NOMBRE_CLIENTE,
                                  DIRECCION, NIT, AGENTE, CORREO, MONEDA, STATUS,
                                  MONTO_T_REC, MONTO_T_DOC, SALDO, USUARIO,
-                                 FECHA_RECIBO, FECHA_REGISTRO, REC_FISICO)
+                                 FECHA_RECIBO, FECHA_REGISTRO, REC_FISICO,
+                                 MONEDA_BASE, TIPO_CAMBIO,                                   -- ★
+                                 MONTO_T_REC_GTQ, MONTO_T_REC_USD,                           -- ★
+                                 MONTO_T_DOC_GTQ, MONTO_T_DOC_USD, SALDO_GTQ, SALDO_USD)     -- ★
                             VALUES (
                                 (SELECT (SERIE + RIGHT('0000' + CONVERT(NVARCHAR, (NUMERACION + 1)), 5))
                                  FROM REC_CAJA_SERIES
@@ -123,8 +131,9 @@ namespace DiamDev.Give.DAL
                                 @empresa, @idCliente, @nombreCliente,
                                 @direccion, @nit, @agente, @correo, @moneda, 'A',
                                 @montoRec, @montoDoc, @saldo, @usuario,
-                                @fechaRec, SYSDATETIME(), @recFisico
-                            );
+                                @fechaRec, SYSDATETIME(), @recFisico,
+                                @monedaBase, @tipoCambio,                                    -- ★
+                                @mtRecGtq, @mtRecUsd, @mtDocGtq, @mtDocUsd, @saldoGtq, @saldoUsd); -- ★
                             UPDATE REC_CAJA_SERIES
                                SET NUMERACION = NUMERACION + 1
                              WHERE EMPRESA = @empresa AND DEPTO = @depto;";
@@ -145,6 +154,15 @@ namespace DiamDev.Give.DAL
                         cmdEnc.Parameters.AddWithValue("@usuario", enc.Usuario);
                         cmdEnc.Parameters.AddWithValue("@fechaRec", enc.FechaRecibo.ToString("yyyy-MM-dd"));
                         cmdEnc.Parameters.AddWithValue("@recFisico", enc.RecFisico ?? "");
+                        // ★ nuevos parámetros duales del encabezado
+                        cmdEnc.Parameters.AddWithValue("@monedaBase", enc.MonedaBase ?? "GTQ");
+                        cmdEnc.Parameters.AddWithValue("@tipoCambio", (object)enc.TipoCambio ?? DBNull.Value);
+                        cmdEnc.Parameters.AddWithValue("@mtRecGtq", enc.MontoTotalRecGtq);
+                        cmdEnc.Parameters.AddWithValue("@mtRecUsd", enc.MontoTotalRecUsd);
+                        cmdEnc.Parameters.AddWithValue("@mtDocGtq", enc.MontoTotalDocGtq);
+                        cmdEnc.Parameters.AddWithValue("@mtDocUsd", enc.MontoTotalDocUsd);
+                        cmdEnc.Parameters.AddWithValue("@saldoGtq", enc.SaldoGtq);
+                        cmdEnc.Parameters.AddWithValue("@saldoUsd", enc.SaldoUsd);
                         cmdEnc.ExecuteNonQuery();
 
                         // ── 2. Recuperar el ID recién generado ────────────────
@@ -161,8 +179,10 @@ namespace DiamDev.Give.DAL
                         const string sqlCobro = @"
                             INSERT INTO REC_CAJA_COBRO
                                 (ID_RECIBO, ID_EMPRESA, TIPO_COBRO,
-                                 BANCO, FECHA_DOC, NO_DOCUMENTO, MONTO, MONEDA)
-                            VALUES (@id, @emp, @tipo, @banco, @fecha, @nodoc, @monto, @moneda)";
+                                 BANCO, FECHA_DOC, NO_DOCUMENTO, MONTO, MONEDA,
+                                 TIPO_CAMBIO, MONTO_GTQ, MONTO_USD)                  
+                            VALUES (@id, @emp, @tipo, @banco, @fecha, @nodoc, @monto, @moneda,
+                                    @tipoCambio, @montoGtq, @montoUsd)"; 
 
                         foreach (var c in enc.Cobros)
                         {
@@ -178,6 +198,9 @@ namespace DiamDev.Give.DAL
                             cmd.Parameters.AddWithValue("@nodoc", esEfectivo ? (object)DBNull.Value : (c.NoDocumento ?? ""));
                             cmd.Parameters.AddWithValue("@monto", c.Monto);
                             cmd.Parameters.AddWithValue("@moneda", c.Moneda ?? "");
+                            cmd.Parameters.AddWithValue("@tipoCambio", (object)c.TipoCambio ?? DBNull.Value);  // ★
+                            cmd.Parameters.AddWithValue("@montoGtq", c.MontoGtq);                              // ★
+                            cmd.Parameters.AddWithValue("@montoUsd", c.MontoUsd);                              // ★
                             cmd.ExecuteNonQuery();
                         }
 
@@ -186,10 +209,12 @@ namespace DiamDev.Give.DAL
                             INSERT INTO REC_CAJA_DET
                                 (ID_RECIBO, ID_EMPRESA, TIPO_DOC, NO_DOCUMENTO,
                                  FECHA_DOC, STATUS, MONTO, MONEDA,
-                                 MONTO_FACT, PAGADO, FEL_SERIE, FEL_NUMERO)
+                                 MONTO_FACT, PAGADO, FEL_SERIE, FEL_NUMERO,
+                                 TIPO_CAMBIO, MONTO_GTQ, MONTO_USD)                  
                             VALUES (@id, @emp, @tipo, @nodoc,
                                     @fecha, @status, @monto, @moneda,
-                                    @mfact, @pagado, @serie, @nfel)";
+                                    @mfact, @pagado, @serie, @nfel,
+                                    @tipoCambio, @montoGtq, @montoUsd)"; 
 
                         foreach (var d in enc.Documentos)
                         {
@@ -209,6 +234,9 @@ namespace DiamDev.Give.DAL
                             cmd.Parameters.AddWithValue("@pagado", d.Pagado);
                             cmd.Parameters.AddWithValue("@serie", d.FelSerie ?? "");
                             cmd.Parameters.AddWithValue("@nfel", d.FelNumero ?? "");
+                            cmd.Parameters.AddWithValue("@tipoCambio", (object)d.TipoCambio ?? DBNull.Value);  // ★
+                            cmd.Parameters.AddWithValue("@montoGtq", d.MontoGtq);                              // ★
+                            cmd.Parameters.AddWithValue("@montoUsd", d.MontoUsd);                              // ★
                             cmd.ExecuteNonQuery();
                         }
 
@@ -217,7 +245,7 @@ namespace DiamDev.Give.DAL
                     catch
                     {
                         tx.Rollback();
-                        throw;  // Re-lanza para que el BLL lo capture
+                        throw;
                     }
                 }
             }
@@ -372,6 +400,58 @@ namespace DiamDev.Give.DAL
         // Helper interno
         private static decimal Val(object o) =>
             o != null && o != DBNull.Value ? Convert.ToDecimal(o) : 0m;
+
+        // ─────────────────────────────────────────────
+        // ANALYTICS — bitácora append-only
+        // ─────────────────────────────────────────────
+        /// <summary>
+        /// Registra un evento del módulo (CREADO/EDITADO/IMPRESO/ANULADO/ERROR_GUARDADO).
+        /// Append-only: nunca actualiza ni borra. No lanza si falla (no debe tumbar
+        /// el guardado del recibo por un fallo de log).
+        /// </summary>
+        public void RegistrarEventoAnalytics(
+            string evento, string idRecibo, string idEmpresa, string depto,
+            long usuarioId, string usuarioLogin, string moneda, decimal? tipoCambio,
+            decimal montoGtq, decimal montoUsd, decimal saldoGtq,
+            string payloadJson, string ipUsuario)
+        {
+            try
+            {
+                using (var con = new SqlConnection(_conn))
+                {
+                    con.Open();
+                    var cmd = new SqlCommand(@"
+                        INSERT INTO analyticsRecibos
+                            (Evento, IdRecibo, IdEmpresa, Depto, UsuarioId, UsuarioLogin,
+                             Moneda, TipoCambio, MontoGtq, MontoUsd, SaldoGtq,
+                             PayloadJson, IpUsuario, FechaEvento)
+                        VALUES
+                            (@evento, @idRecibo, @idEmpresa, @depto, @usuarioId, @usuarioLogin,
+                             @moneda, @tipoCambio, @montoGtq, @montoUsd, @saldoGtq,
+                             @payloadJson, @ipUsuario, SYSDATETIME())", con);
+
+                    cmd.Parameters.AddWithValue("@evento", evento ?? "");
+                    cmd.Parameters.AddWithValue("@idRecibo", (object)idRecibo ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@idEmpresa", (object)idEmpresa ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@depto", (object)depto ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@usuarioId", usuarioId);
+                    cmd.Parameters.AddWithValue("@usuarioLogin", (object)usuarioLogin ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@moneda", (object)moneda ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@tipoCambio", (object)tipoCambio ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@montoGtq", montoGtq);
+                    cmd.Parameters.AddWithValue("@montoUsd", montoUsd);
+                    cmd.Parameters.AddWithValue("@saldoGtq", saldoGtq);
+                    cmd.Parameters.AddWithValue("@payloadJson", (object)payloadJson ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@ipUsuario", (object)ipUsuario ?? DBNull.Value);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch
+            {
+                // El log NO debe tumbar el guardado. Si falla, se ignora en silencio.
+                // (En producción podrías escribir a un log de archivo aquí.)
+            }
+        }
 
         public void Dispose() { }
     }

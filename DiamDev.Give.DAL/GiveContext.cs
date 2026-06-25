@@ -6,6 +6,12 @@ namespace DiamDev.Give.DAL
     public class GiveContext : DbContext
     {
 
+        // Constructor por defecto: usa "GiveContext" (producción, toda la app).
+        public GiveContext() : base("name=GiveContext") { }
+
+        // Constructor para apuntar a otra BD (recibos lo llama con "RecibosContext").
+        public GiveContext(string nombreConnectionString) : base("name=" + nombreConnectionString) { }
+
         public DbSet<Agencia> Agencias { get; set; }
 
         public DbSet<OfertaDelivery> OfertasDelivery { get; set; }
@@ -311,6 +317,8 @@ namespace DiamDev.Give.DAL
         public DbSet<EstadoSmartK66> EstadoSmartK66 { get; set; }
 
         public DbSet<UsuarioEmpresa> UsuarioEmpresas { get; set; }
+        // ── NUEVO: mapeo usuario POS → DEPTO de serie de recibos ──
+        public DbSet<RecibosCajaUsuarioDepto> RecibosCajaUsuarioDeptos { get; set; }
 
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)

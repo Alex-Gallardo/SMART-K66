@@ -126,6 +126,15 @@ namespace DiamDev.Give.BLL
             return _apk.ObtenerDocumentos(empresa, clienteId, tipo);
         }
 
+        /// <summary>
+        /// Devuelve el tipo de cambio USD vigente para una empresa (referencia para la UI).
+        /// Usa la fecha de hoy. El guardado vuelve a traerlo con la fecha del recibo.
+        /// </summary>
+        public decimal ObtenerTipoCambioDia(string empresa)
+        {
+            return _hana.ObtenerTipoCambio(empresa, DateTime.Today);
+        }
+
         // ─── GUARDAR RECIBO ───────────────────────────
         /// <summary>
         /// Valida las reglas de negocio y guarda el recibo completo.
@@ -134,45 +143,77 @@ namespace DiamDev.Give.BLL
         ///   2. Si monedas iguales → saldo debe ser 0.
         ///   3. Si monedas distintas → se guarda con advertencia (saldo permitido).
         /// </summary>
-        public ResultadoRecibo GuardarRecibo(ReciboCajaEncabezado enc, string depto)
+        public ResultadoRecibo GuardarRecibo(
+            ReciboCajaEncabezado enc, string depto,
+            long usuarioId, string usuarioLogin, string ipUsuario)
         {
             try
             {
                 if (enc.Cobros == null || !enc.Cobros.Any())
                     return ResultadoRecibo.Error("Debe agregar al menos un cobro.");
-
                 if (enc.Documentos == null || !enc.Documentos.Any())
                     return ResultadoRecibo.Error("Debe agregar al menos un documento.");
-
                 if (string.IsNullOrWhiteSpace(enc.NombreCliente))
                     return ResultadoRecibo.Error("Debe seleccionar un cliente.");
 
-                // Calcular totales
+                // ── 1. Traer el tipo de cambio de SAP (al guardar), por fecha del recibo ──
+                decimal tc;
+                try
+                {
+                    tc = _hana.ObtenerTipoCambio(enc.IdEmpresa, enc.FechaRecibo);
+                }
+                catch (Exception exTc)
+                {
+                    return ResultadoRecibo.Error("No se pudo obtener el tipo de cambio de SAP: " + exTc.Message);
+                }
+                enc.TipoCambio = tc;
+                enc.MonedaBase = "GTQ";
+                enc.Moneda = NormalizarMonedaApp(enc.Moneda);
+
+                // ── 2. Calcular los duales de cada cobro ──
+                foreach (var c in enc.Cobros)
+                {
+                    var m = CalcularMontosDuales(c.Monto, c.Moneda, tc);
+                    c.TipoCambio = tc; c.MontoGtq = m.Gtq; c.MontoUsd = m.Usd;
+                }
+                // ── 3. Calcular los duales de cada documento ──
+                foreach (var d in enc.Documentos)
+                {
+                    var m = CalcularMontosDuales(d.Monto, d.Moneda, tc);
+                    d.TipoCambio = tc; d.MontoGtq = m.Gtq; d.MontoUsd = m.Usd;
+                }
+
+                // ── 4. Totales en moneda original (legado) ──
                 enc.MontoTotalRecibo = enc.Cobros.Sum(c => c.Monto);
                 enc.MontoTotalDoc = enc.Documentos.Sum(d => d.Monto);
                 enc.Saldo = enc.MontoTotalRecibo - enc.MontoTotalDoc;
 
-                // Validar monedas y saldo (lógica original del desktop)
-                string monedaCobro = enc.Cobros.Select(c => c.Moneda).FirstOrDefault() ?? "";
-                string monedaDoc = enc.Documentos.Select(d => d.Moneda).FirstOrDefault() ?? "";
+                // ── 5. Totales DUALES (sumando líneas ya convertidas) ──
+                enc.MontoTotalRecGtq = enc.Cobros.Sum(c => c.MontoGtq);
+                enc.MontoTotalRecUsd = enc.Cobros.Sum(c => c.MontoUsd);
+                enc.MontoTotalDocGtq = enc.Documentos.Sum(d => d.MontoGtq);
+                enc.MontoTotalDocUsd = enc.Documentos.Sum(d => d.MontoUsd);
+                enc.SaldoGtq = enc.MontoTotalRecGtq - enc.MontoTotalDocGtq;
+                enc.SaldoUsd = enc.MontoTotalRecUsd - enc.MontoTotalDocUsd;
 
-                bool monedasIguales = monedaCobro == monedaDoc;
-                bool saldoCero = enc.Saldo == 0;
-
-                if (monedasIguales && !saldoCero)
+                // ── 6. VALIDACIÓN NUEVA: el saldo en GTQ debe cuadrar a 0 ──
+                // (reemplaza la vieja regla "monedas iguales -> saldo 0").
+                // Tolerancia de 1 centavo por redondeo de conversiones.
+                if (Math.Abs(enc.SaldoGtq) > 0.01m)
                     return ResultadoRecibo.Error(
-                        $"El monto de cobros ({enc.MontoTotalRecibo:N2}) " +
-                        $"no coincide con el total de documentos ({enc.MontoTotalDoc:N2}). " +
-                        $"Saldo: {enc.Saldo:N2}");
+                        $"El saldo en GTQ no cuadra (Q{enc.SaldoGtq:N2}). " +
+                        $"Cobros: Q{enc.MontoTotalRecGtq:N2} / Documentos: Q{enc.MontoTotalDocGtq:N2}.");
 
-                // Si monedas distintas, se permite guardar aunque haya saldo
-                // (el desktop mostraba advertencia pero guardaba igual)
-
+                // ── 7. Guardar (transacción ADO.NET con columnas duales) ──
                 _apk.GuardarReciboCompleto(enc, depto);
 
-                string aviso = monedasIguales
-                    ? ""
-                    : " (guardado con monedas diferentes)";
+                // ── 8. Analytics: evento CREADO (no tumba el guardado si falla) ──
+                string payload = Newtonsoft.Json.JsonConvert.SerializeObject(enc);
+                _apk.RegistrarEventoAnalytics(
+                    "CREADO", enc.IdRecibo, enc.IdEmpresa, depto,
+                    usuarioId, usuarioLogin, enc.Moneda, tc,
+                    enc.MontoTotalRecGtq, enc.MontoTotalRecUsd, enc.SaldoGtq,
+                    payload, ipUsuario);
 
                 return ResultadoRecibo.Ok(enc.IdRecibo);
             }
@@ -195,11 +236,77 @@ namespace DiamDev.Give.BLL
         public List<dynamic> ObtenerEmpresas()
         {
             return new List<dynamic>
-    {
-        new { Id = "GRACO", Nombre = "Graco Pack",       Permiso = "Control.ReciboCaja.Graco", Clase = "empresa-graco" },
-        new { Id = "FAES",  Nombre = "Fabrica Escocesa", Permiso = "Control.ReciboCaja.Faes",  Clase = "empresa-faes"  },
-        new { Id = "BOLIK", Nombre = "Industrias Bolik", Permiso = "Control.ReciboCaja.Bolik", Clase = "empresa-bolik" },
-    };
+            {
+                new { Id = "GRACO", Nombre = "Graco Pack",       Permiso = "Control.ReciboCaja.Graco", Clase = "empresa-graco" },
+                new { Id = "FAES",  Nombre = "Fabrica Escocesa", Permiso = "Control.ReciboCaja.Faes",  Clase = "empresa-faes"  },
+                new { Id = "BOLIK", Nombre = "Industrias Bolik", Permiso = "Control.ReciboCaja.Bolik", Clase = "empresa-bolik" },
+                new  { Id= "TEST_GRACO", Nombre = "test GRaco pack ", Permiso = "Control.ReciboCaja.TestGraco", Clase = "test-empresa-graco"}
+            };
         }
+
+        /// <summary>
+        /// Resuelve el DEPTO de serie del usuario POS (para armar el ID del recibo).
+        /// Reemplaza al viejo ObtenerPlantaPorLogin (que leía de APK66).
+        /// Lanza error claro si el usuario no está habilitado para recibos.
+        /// </summary>
+        public string ObtenerDeptoSerie(long usuarioId)
+        {
+            string depto = new RecibosCajaUsuarioDeptoDA().ObtenerDeptoPorUsuarioId(usuarioId);
+            if (string.IsNullOrWhiteSpace(depto))
+                throw new Exception(
+                    "El usuario no está habilitado para emitir recibos de caja " +
+                    "(sin DEPTO de serie asignado). Contacte al administrador.");
+            return depto;
+        }
+
+        // ─── CÁLCULO DUAL DE MONEDA ───────────────────────────
+        /// <summary>
+        /// Dada una línea (monto + moneda original + tipo de cambio), devuelve
+        /// los equivalentes en GTQ y USD aplicando la "regla de oro":
+        ///   - El monto en la moneda ORIGINAL es exacto.
+        ///   - El equivalente en la otra moneda se DERIVA (redondeado a 2 decimales).
+        ///
+        /// En TS sería:
+        ///   (monto, moneda, tc) => moneda==='USD'
+        ///       ? { gtq: round2(monto*tc), usd: monto }
+        ///       : { gtq: monto, usd: round2(monto/tc) }
+        /// </summary>
+        public static MontosDuales CalcularMontosDuales(decimal monto, string moneda, decimal tipoCambio)
+        {
+            if (tipoCambio <= 0)
+                throw new Exception("Tipo de cambio inválido (<= 0) al calcular montos duales.");
+
+            bool esUsd = (moneda ?? "").Trim().ToUpper() == "USD";
+
+            if (esUsd)
+                return new MontosDuales
+                {
+                    Gtq = Math.Round(monto * tipoCambio, 2),
+                    Usd = monto
+                };
+            else
+                return new MontosDuales
+                {
+                    Gtq = monto,
+                    Usd = Math.Round(monto / tipoCambio, 2)
+                };
+        }
+
+        /// <summary>Normaliza el código de moneda de la app: QTZ/Q → GTQ. USD pasa igual.</summary>
+        private static string NormalizarMonedaApp(string moneda)
+        {
+            var m = (moneda ?? "").Trim().ToUpper();
+            return (m == "QTZ" || m == "Q") ? "GTQ" : m;
+        }
+    }
+
+    /// <summary>
+    /// Resultado de CalcularMontosDuales.
+    /// En TS: type MontosDuales = { gtq: number; usd: number }
+    /// </summary>
+    public class MontosDuales
+    {
+        public decimal Gtq { get; set; }
+        public decimal Usd { get; set; }
     }
 }

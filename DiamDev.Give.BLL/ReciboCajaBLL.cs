@@ -25,9 +25,9 @@ namespace DiamDev.Give.BLL
             _apk.ObtenerPlantaUsuario(idUsr);
 
         /// <summary>
-        /// Resuelve la PLANTA (DEPTO) del usuario de caja a partir del login POS.
-        /// Lanza excepción con mensaje claro si el login no está vinculado en APK66,
-        /// para evitar que el INSERT del correlativo falle con un error críptico.
+        /// [OBSOLETO — NO USAR] Apunta a REC_CAJA_USUARIOS, tabla inexistente en la BD actual
+        /// (confirmado 2026: "Invalid object name 'REC_CAJA_USUARIOS'"). El flujo de recibos
+        /// usa ObtenerDeptoSerie(usuarioId). Conservado solo hasta verificar que nada más lo llame.
         /// </summary>
         public string ObtenerPlantaPorLogin(string login)
         {

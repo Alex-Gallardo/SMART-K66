@@ -16,7 +16,7 @@ namespace DiamDev.Give.UI.Controllers
     {
         private readonly ReciboCajaBLL _bll = new ReciboCajaBLL();
 
-        
+
         // ─────────────────────────────────────────────
         // GET /ReciboCaja/
         // ─────────────────────────────────────────────
@@ -27,16 +27,30 @@ namespace DiamDev.Give.UI.Controllers
 
             string login = User.Identity.Name;
 
-            // Resolvemos planta sin reventar: si el usuario no está vinculado
-            // en APK66 (ej: 'admin'), mostramos vacío y el guardado lo validará.
-            string planta = "";
-            try { planta = _bll.ObtenerPlantaPorLogin(login); }
-            catch { planta = ""; }  // no vinculado → la vista lo muestra vacío
+            // El header muestra el MISMO depto que numerará el recibo
+            // (RecibosCaja_UsuarioDepto en POS, vía ObtenerDeptoSerie), para que
+            // lo que ve el usuario sea exactamente lo que se grabará.
+            //
+            // Se abandonó ObtenerPlantaPorLogin: apuntaba a REC_CAJA_USUARIOS,
+            // tabla inexistente en esta BD (confirmado vía TestPlanta:
+            // "Invalid object name 'REC_CAJA_USUARIOS'").
+            string depto = "";
+            try
+            {
+                long usuarioId = CustomHelper.getUserId();
+                depto = _bll.ObtenerDeptoSerie(usuarioId);
+            }
+            catch
+            {
+                // Usuario sin DEPTO de serie asignado → header vacío.
+                // El guardado lo vuelve a validar y dará un error claro si falta.
+                depto = "";
+            }
 
             var model = new ReciboCajaIndexViewModel
             {
                 UsuarioActual = login,
-                PlantaUsuario = planta
+                PlantaUsuario = depto
             };
 
             return View(model);
@@ -273,6 +287,38 @@ namespace DiamDev.Give.UI.Controllers
             {
                 return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
             }
+        }
+
+        // TEMPORAL — diagnostica por qué la planta sale vacía en el header. Borrar después.
+        [HttpGet]
+        public JsonResult TestPlanta()
+        {
+            var info = new System.Collections.Generic.Dictionary<string, object>();
+            string login = User.Identity.Name;
+            info["login"] = login;
+
+            long uid = 0;
+            try { uid = CustomHelper.getUserId(); info["usuarioId"] = uid; }
+            catch (Exception ex) { info["usuarioId_error"] = ex.Message; }
+
+            // Ruta A: la que usa el header HOY (por login → RT_USUARIOS.PLANTA, APK66)
+            try { info["plantaPorLogin"] = _bll.ObtenerPlantaPorLogin(login); }
+            catch (Exception ex) { info["plantaPorLogin_error"] = Cadena(ex); }
+
+            // Ruta B: la que usa el GUARDADO (por usuarioId → RecibosCaja_UsuarioDepto, POS)
+            try { info["deptoSerie"] = _bll.ObtenerDeptoSerie(uid); }
+            catch (Exception ex) { info["deptoSerie_error"] = Cadena(ex); }
+
+            return Json(new { ok = true, info }, JsonRequestBehavior.AllowGet);
+        }
+
+        // Helper local: desentierra toda la cadena de inner exceptions
+        private static System.Collections.Generic.List<string> Cadena(Exception ex)
+        {
+            var msgs = new System.Collections.Generic.List<string>();
+            var e = ex;
+            while (e != null) { msgs.Add(e.Message); e = e.InnerException; }
+            return msgs;
         }
     }
 }

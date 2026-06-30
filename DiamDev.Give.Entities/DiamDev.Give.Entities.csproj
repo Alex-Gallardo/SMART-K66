@@ -106,6 +106,7 @@
     <Compile Include="ReciboCajaEncabezado.cs" />
     <Compile Include="RecibosCajaUsuarioDepto.cs" />
     <Compile Include="ResultadoRecibo.cs" />
+    <Compile Include="SapCobroAplicado.cs" />
     <Compile Include="UnidadK66.cs" />
     <Compile Include="Visita.cs" />
     <Compile Include="ProductoAlertaK66.cs" />

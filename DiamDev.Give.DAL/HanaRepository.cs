@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Data;
 using DiamDev.Give.Entities;
+using System.Data.Odbc;
+using System.Linq;
 
 namespace DiamDev.Give.DAL
 {
@@ -51,6 +53,80 @@ namespace DiamDev.Give.DAL
             }
 
             return lista;
+        }
+
+        /// <summary>
+        /// Devuelve, de un lote de IDs de recibo, cuáles ya están operados en SAP
+        /// (existen en ORCT con Canceled='N'). Si un ID tiene varias filas activas
+        /// (se anuló y se rehízo), se queda con el DocEntry más reciente.
+        /// </summary>
+        public List<SapCobroAplicado> ObtenerCobrosOperados(string empresa, List<string> idsRecibo)
+        {
+            var resultado = new List<SapCobroAplicado>();
+            if (idsRecibo == null || idsRecibo.Count == 0) return resultado;
+
+            string schema = MapEmpresaSchema(empresa);
+            if (schema == null)
+                throw new ArgumentException("Empresa sin schema HANA: " + empresa);
+
+            // Procesamos en lotes para no armar un IN gigantesco contra HANA.
+            const int TAM_LOTE = 200;
+            for (int i = 0; i < idsRecibo.Count; i += TAM_LOTE)
+            {
+                var lote = idsRecibo.Skip(i).Take(TAM_LOTE)
+                                    .Select(x => (x ?? "").Trim())
+                                    .Where(x => x.Length > 0)
+                                    .ToList();
+                if (lote.Count == 0) continue;
+
+                // Placeholders posicionales de ODBC:  ?,?,?
+                string placeholders = string.Join(",", lote.Select(_ => "?"));
+
+                string sql = string.Format(
+                    "SELECT \"DocEntry\", \"DocNum\", \"CardCode\", \"DocDate\", \"U_Recibocaja_Webapp\" " +
+                    "FROM \"{0}\".\"ORCT\" " +
+                    "WHERE \"Canceled\" = 'N' AND TRIM(\"U_Recibocaja_Webapp\") IN ({1})",
+                    schema, placeholders);
+
+                var parametros = lote
+                    .Select(id => new OdbcParameter { OdbcType = OdbcType.NVarChar, Value = id })
+                    .ToArray();
+
+                DataTable dt = HanaHelper.EjecutarConsulta(sql, parametros);
+
+                foreach (DataRow r in dt.Rows)
+                {
+                    resultado.Add(new SapCobroAplicado
+                    {
+                        IdRecibo = Convert.ToString(r["U_Recibocaja_Webapp"]).Trim(),
+                        SapDocEntry = Convert.ToInt32(r["DocEntry"]),
+                        SapDocNum = Convert.ToInt32(r["DocNum"]),
+                        CardCode = r["CardCode"] == DBNull.Value ? null : Convert.ToString(r["CardCode"]),
+                        FechaPago = r["DocDate"] == DBNull.Value ? (DateTime?)null
+                                                                    : Convert.ToDateTime(r["DocDate"])
+                    });
+                }
+            }
+
+            // Un ID con varias filas activas (anuló+rehízo) → nos quedamos con el DocEntry mayor.
+            return resultado
+                .GroupBy(x => x.IdRecibo)
+                .Select(g => g.OrderByDescending(x => x.SapDocEntry).First())
+                .ToList();
+        }
+
+        /// <summary>Mapa empresa → schema HANA. Si ya tenés uno en esta clase
+        /// (el de INF_CLIENTES_REC), borrá este y reutilizá el tuyo.</summary>
+        private static string MapEmpresaSchema(string empresa)
+        {
+            if (string.IsNullOrEmpty(empresa)) return null;
+            switch (empresa.Trim().ToUpperInvariant())
+            {
+                case "GRACO": return "SBO_GRACO";
+                case "FAES": return "SBOESCOCESA";
+                case "BOLIK": return "SBOBOLIK";
+                default: return null;
+            }
         }
 
         // ─────────────────────────────────────────────

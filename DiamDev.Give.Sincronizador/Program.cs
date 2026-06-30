@@ -12,8 +12,17 @@ namespace DiamDev.Give.Sincronizador
 {
     class Program
     {
+
+        // ── Control de cadencia para la sincronización de RECIBOS ──
+        // El loop principal gira cada 2 seg (por los pedidos), pero los recibos
+        // solo queremos revisarlos cada 5 min. Esta variable recuerda la última corrida.
+        private static DateTime _ultimoSyncRecibos = DateTime.MinValue;
+        private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromMinutes(5);
+
+
         static void Main(string[] args)
         {
+            // TestHanaCrudo();   // ← temporal, solo para diagnosticar
             while (true)
             {
                 Console.Clear();
@@ -77,9 +86,60 @@ namespace DiamDev.Give.Sincronizador
                     Console.WriteLine("----------------------------------------------");
                 }
 
+                // ════════════════════════════════════════════════════════════
+                //  SINCRONIZACIÓN DE RECIBOS DE CAJA (cada 5 min)
+                // ════════════════════════════════════════════════════════════
+                if (DateTime.Now - _ultimoSyncRecibos >= INTERVALO_RECIBOS)
+                {
+                    SincronizarRecibos();
+                    _ultimoSyncRecibos = DateTime.Now;
+                }
+
+                Thread.Sleep(2000);
+
                 Thread.Sleep(2000);
             }
         }
+
+        /// <summary>
+        /// Revisa los recibos pendientes contra SAP y marca como OPERADO los que
+        /// créditos ya aplicó. Llama al BLL (que tiene la lógica); aquí solo
+        /// orquestamos y logueamos.
+        /// </summary>
+        private static void SincronizarRecibos()
+        {
+            try
+            {
+                // LogFile.Info("Proceso en 64 bits: " + Environment.Is64BitProcess);
+                Console.WriteLine("==============================================");
+                Console.WriteLine("SINCRONIZACION DE RECIBOS DE CAJA: {0}", DateTime.Now);
+                Console.WriteLine("==============================================");
+                LogFile.Info("Inicia sincronización de recibos.");
+
+                var resultado = new ReciboCajaSyncBL().Ejecutar();
+
+                string resumen = string.Format(
+                    "Recibos revisados: {0} | Operados nuevos: {1} | Errores: {2}",
+                    resultado.Revisados, resultado.Operados, resultado.Errores.Count);
+
+                Console.WriteLine(resumen);
+                LogFile.Info(resumen);
+
+                // Detalle de errores al log (no a la consola, para no ensuciarla)
+                foreach (string err in resultado.Errores)
+                    LogFile.Error("Recibo sync: " + err);
+
+                Console.WriteLine("----------------------------------------------");
+            }
+            catch (Exception ex)
+            {
+                // Blindaje total: si algo explota, lo logueamos pero NO tumbamos
+                // el loop (los pedidos deben seguir sincronizando).
+                Console.WriteLine("ERROR GENERAL EN SYNC DE RECIBOS: {0}", ex.Message);
+                LogFile.Error("ERROR GENERAL en SincronizarRecibos", ex);
+            }
+        }
+
 
         private static string GuardarPedido(long id, string nombreInstancia) 
         {
@@ -261,5 +321,28 @@ namespace DiamDev.Give.Sincronizador
 
             return PedidoERPId;
         }
+
+        /** private static void TestHanaCrudo()
+        {
+            string cs = "Driver={HDBODBC};ServerNode=192.168.192.200:30015;UID=SYSTEM;PWD=7*Oa7!D5ulu0;CS=SBO_GRACO";
+            try
+            {
+                using (var cn = new System.Data.Odbc.OdbcConnection(cs))
+                {
+                    cn.Open();
+                    LogFile.Info("TEST HANA CRUDO: CONECTADO OK. Estado=" + cn.State);
+                    using (var cmd = new System.Data.Odbc.OdbcCommand(
+                        "SELECT COUNT(*) FROM \"SBO_GRACO\".\"ORCT\"", cn))
+                    {
+                        var n = cmd.ExecuteScalar();
+                        LogFile.Info("TEST HANA CRUDO: ORCT count = " + n);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogFile.Error("TEST HANA CRUDO FALLÓ", ex);
+            }
+        } **/
     }
 }

@@ -68,6 +68,7 @@
     <Compile Include="Pedidok66BL.cs" />
     <Compile Include="PedidoTipoSap.cs" />
     <Compile Include="ReciboCajaBLL.cs" />
+    <Compile Include="ReciboCajaSyncBL.cs" />
     <Compile Include="ReporteHanaBLL.cs" />
     <Compile Include="UsuarioEmpresaBL.cs" />
     <Compile Include="VisitaBL.cs" />

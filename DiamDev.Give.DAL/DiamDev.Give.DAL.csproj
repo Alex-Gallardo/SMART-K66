@@ -182,6 +182,7 @@
     <Compile Include="Migrations\202411042201388_202511042043344_SeAgregaCampoBodegaTablaPedidoDetalleK66.designer.cs">
       <DependentUpon>202411042201388_202511042043344_SeAgregaCampoBodegaTablaPedidoDetalleK66.cs</DependentUpon>
     </Compile>
+    <Compile Include="ReciboCajaSyncDA.cs" />
     <Compile Include="RecibosCajaUsuarioDeptoDA.cs" />
     <Compile Include="UsuarioEmpresaDA.cs" />
     <Compile Include="VMGRACOContext.cs" />

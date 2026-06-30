@@ -602,6 +602,74 @@
             margin-left: 0 !important; /* mata el margin-left:auto en mobile */
         }
     }
+
+    /* ════════════════════════════════════════════
+       FIX MOBILE: header del encabezado
+       El status baja a su línea Y se separa del cuerpo.
+    ════════════════════════════════════════════ */
+    @@media (max-width: 767px) {
+        #panelEncabezado .panel-heading > div {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 8px; /* aire entre título y badge de status */
+        }
+
+        #panelEncabezado .badge-status {
+            align-self: flex-start;
+        }
+
+        /* Clave: separar el cuerpo del header para que
+           "# Recibo" no suba a montarse sobre el badge. */
+        #panelEncabezado .panel-body {
+            padding-top: 16px !important;
+        }
+
+        .panelTitleContainer {
+            display: flex;
+            flex-direction: row !important;
+        }
+
+        .title-recibo {
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: flex-start !important;
+        }
+    }
+
+    /* ════════════════════════════════════════════
+       FIX MOBILE: barra de totales
+       En pantallas chicas los 4 bloques se apilan en
+       lugar de desbordar el ancho de la pantalla.
+    ════════════════════════════════════════════ */
+    @@media (max-width: 767px) {
+        .barra-totales {
+            flex-wrap: wrap; /* permite que los bloques bajen de línea */
+            gap: 4px 0;
+            padding: 12px 14px;
+            height: auto; /* deja de forzar altura completa */
+        }
+
+        .total-item {
+            flex: 1 1 33%; /* 3 totales por fila, repartidos parejos */
+            padding: 6px 4px;
+        }
+
+        /* El separador vertical entre totales molesta al envolver:
+            lo quitamos en mobile y usamos el espaciado del gap. */
+        .total-item + .total-item {
+            border-left: none;
+        }
+
+        .moneda-info {
+            flex: 1 1 100%; /* T. Cambio / Mon. Base ocupan su propia fila */
+            border-left: none; /* sin línea lateral en mobile */
+            border-top: 1px solid #3d5166; /* separador horizontal arriba */
+            padding-left: 0;
+            padding-top: 8px;
+            margin-top: 4px;
+            text-align: center;
+        }
+    }
 </style>
 
 <!--
@@ -694,10 +762,9 @@
     <!-- ── ENCABEZADO DEL RECIBO ── -->
     <div class="panel panel-default panel-empresa" id="panelEncabezado">
         <div class="panel-heading" style="background:#f7f9fa; border-bottom:1px solid #eee; padding:10px 15px;">
-            <div style="display:flex; align-items:center; justify-content:space-between;">
-                <h4 class="panel-title" style="margin:0; font-size:14px; color:#5d6d7e;">
-                    <i class="clip-edit-2"></i>&nbsp;
-                    <span class="sel-title-main">Encabezado del Recibo &nbsp;</span>
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;" class="panelTitleContainer">
+                <h4 class="panel-title title-recibo" style="margin:0; font-size:14px; color:#5d6d7e; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+                    <span class="sel-title-main">Encabezado del Recibo</span>
                     <span id="badgeEmpresa" class="badge-emp">—</span>
                 </h4>
                 <span id="badgeStatus" class="badge-status nuevo">NUEVO</span>
@@ -706,8 +773,9 @@
         <div class="panel-body" style="padding: 14px 18px;">
 
             <!-- Fila A: Identificadores + Totales rápidos -->
+            <!-- Fila A: Identificadores (los totales se ven en la barra inferior) -->
             <div class="row">
-                <div class="col-md-2">
+                <div class="col-md-3 col-sm-6">
                     <div class="fgroup">
                         <span class="flabel"><i class="icon-tag"></i> # Recibo</span>
                         <input type="text" id="txtIdRecibo"
@@ -718,7 +786,7 @@
                         <input type="hidden" id="hdnAgente" />
                     </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-3 col-sm-6">
                     <div class="fgroup">
                         <span class="flabel"><i class="icon-file-text"></i> Rec. Físico</span>
                         <input type="text" id="txtRecFisico"
@@ -726,41 +794,10 @@
                                maxlength="20" placeholder="Nro. físico..." />
                     </div>
                 </div>
-                <div class="col-md-2">
-                    <div class="fgroup">
-                        <span class="flabel"><i class="icon-money"></i> Monto Cobros</span>
-                        <input type="text" id="txtMontoRec"
-                               class="form-control f-control f-readonly"
-                               readonly placeholder="0.00"
-                               style="color:#1a5276; font-weight:700;" />
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="fgroup">
-                        <span class="flabel"><i class="icon-file"></i> Total Docs.</span>
-                        <input type="text" id="txtTotalDoc"
-                               class="form-control f-control f-readonly"
-                               readonly placeholder="0.00"
-                               style="color:#145a32; font-weight:700;" />
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="fgroup">
-                        <span class="flabel"><i class="icon-signal"></i> Saldo</span>
-                        <input type="text" id="txtSaldo"
-                               class="form-control f-control f-readonly"
-                               readonly placeholder="0.00"
-                               style="font-weight:700;" />
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="fgroup">
-                        <span class="flabel"><i class="icon-time"></i> Moneda</span>
-                        <input type="text" id="txtMoneda"
-                               class="form-control f-control f-readonly"
-                               readonly placeholder="—" />
-                    </div>
-                </div>
+
+                <!-- Moneda del recibo: NO se muestra (vive en la barra de totales),
+             pero SÍ se envía al backend en el payload del guardado. -->
+                <input type="hidden" id="txtMoneda" />
             </div>
 
             <div style="border-top:1px solid #f0f0f0; margin: 4px 0 12px;"></div>
@@ -1403,7 +1440,7 @@ $("#selEmpresa").on("change", function () {
 
     LimpiarFormulario();
     SetBotonesInicio();
-    AplicarColorSaldo();
+    // AplicarColorSaldo();
 });
 
 // ════════════════════════════════════════════════════════
@@ -2186,18 +2223,23 @@ function ActualizarTotales() {
         .addClass(Math.abs(saldoGtq) < 0.01 ? "saldo-ok" : "saldo-error");
     $("#spanSaldoUsd").text("$ " + FmtNum(saldoUsd));
 
+
+    // Los totales del encabezado se eliminaron de la UI; ahora viven solo en
+    // la barra de totales inferior (#spanTotalCobros / #spanTotalDocs / #spanSaldo),
+    // que ya se actualizó arriba. Nada más que reflejar aquí.
+
     // Reflejar también en los campos del encabezado (en GTQ, la base)
-    $("#txtMontoRec").val(FmtNum(cobrosGtq));
-    $("#txtTotalDoc").val(FmtNum(docsGtq));
-    $("#txtSaldo").val(FmtNum(saldoGtq));
+    // $("#txtMontoRec").val(FmtNum(cobrosGtq));
+    // $("#txtTotalDoc").val(FmtNum(docsGtq));
+    // $("#txtSaldo").val(FmtNum(saldoGtq));
 
-    AplicarColorSaldo();
+    // AplicarColorSaldo();
 }
 
-function AplicarColorSaldo() {
-    var s = parseFloat($("#txtSaldo").val()) || 0;
-    $("#txtSaldo").css("color", s === 0 ? "#1a5e35" : "#922b21");
-}
+// function AplicarColorSaldo() {
+//    var s = parseFloat($("#txtSaldo").val()) || 0;
+//    $("#txtSaldo").css("color", s === 0 ? "#1a5e35" : "#922b21");
+// }
 
 // ════════════════════════════════════════════════════════
 // LIMPIAR
@@ -2215,7 +2257,7 @@ function LimpiarFormulario() {
     $("#txtIdRecibo, #txtRecFisico, #txtBuscarCliente").val("");
     $("#txtNombreCliente").val("").removeClass("tiene-valor");
     $("#txtDireccion, #txtNit, #txtAgente, #txtCorreo, #txtMoneda").val("");
-    $("#txtMontoRec, #txtTotalDoc, #txtSaldo").val("");
+    // $("#txtMontoRec, #txtTotalDoc, #txtSaldo").val("");
     $("#txtStatus").val("NUEVO");
     $("#hdnAgente").val("");
     $("#badgeStatus").text("NUEVO").removeClass("guardado").addClass("nuevo");

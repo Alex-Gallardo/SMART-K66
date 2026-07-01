@@ -22,7 +22,6 @@ namespace DiamDev.Give.Sincronizador
 
         static void Main(string[] args)
         {
-            // TestHanaCrudo();   // ← temporal, solo para diagnosticar
             while (true)
             {
                 Console.Clear();
@@ -40,7 +39,7 @@ namespace DiamDev.Give.Sincronizador
                     Console.WriteLine("CANTIDAD DE PEDIDOS A SINCRONIZAR: {0}", PedidosPendientes.Count());
                     Console.WriteLine("----------------------------------------------");
 
-                    PedidosPendientes.ForEach(p => 
+                    PedidosPendientes.ForEach(p =>
                     {
                         try
                         {
@@ -80,7 +79,7 @@ namespace DiamDev.Give.Sincronizador
                         }
                     });
                 }
-                else 
+                else
                 {
                     Console.WriteLine("NO HAY PEDIDOS PENDIENTES DE SINCRONIZAR");
                     Console.WriteLine("----------------------------------------------");
@@ -102,15 +101,15 @@ namespace DiamDev.Give.Sincronizador
         }
 
         /// <summary>
-        /// Revisa los recibos pendientes contra SAP y marca como OPERADO los que
-        /// créditos ya aplicó. Llama al BLL (que tiene la lógica); aquí solo
-        /// orquestamos y logueamos.
+        /// Revisa los recibos contra SAP en dos direcciones:
+        ///  - PENDIENTE -> OPERADO  (créditos ya aplicó el pago).
+        ///  - OPERADO   -> PENDIENTE (se anuló en SAP) o re-apunta DocEntry (anuló+rehízo).
+        /// Llama al BLL (que tiene la lógica); aquí solo orquestamos y logueamos.
         /// </summary>
         private static void SincronizarRecibos()
         {
             try
             {
-                // LogFile.Info("Proceso en 64 bits: " + Environment.Is64BitProcess);
                 Console.WriteLine("==============================================");
                 Console.WriteLine("SINCRONIZACION DE RECIBOS DE CAJA: {0}", DateTime.Now);
                 Console.WriteLine("==============================================");
@@ -119,8 +118,14 @@ namespace DiamDev.Give.Sincronizador
                 var resultado = new ReciboCajaSyncBL().Ejecutar();
 
                 string resumen = string.Format(
-                    "Recibos revisados: {0} | Operados nuevos: {1} | Errores: {2}",
-                    resultado.Revisados, resultado.Operados, resultado.Errores.Count);
+                    "Pendientes revisados: {0} | Operados nuevos: {1} | " +
+                    "Operados revisados: {2} | Anulados: {3} | Reapuntados: {4} | Errores: {5}",
+                    resultado.Revisados,
+                    resultado.Operados,
+                    resultado.OperadosRevisados,
+                    resultado.Anulados,
+                    resultado.Reapuntados,
+                    resultado.Errores.Count);
 
                 Console.WriteLine(resumen);
                 LogFile.Info(resumen);
@@ -141,7 +146,7 @@ namespace DiamDev.Give.Sincronizador
         }
 
 
-        private static string GuardarPedido(long id, string nombreInstancia) 
+        private static string GuardarPedido(long id, string nombreInstancia)
         {
             string PedidoERPId = string.Empty;
             bool Conexion = false;
@@ -184,7 +189,7 @@ namespace DiamDev.Give.Sincronizador
                 Conexion = Dbms.OpenLocal(nombreInstancia, "SYSADM", "Kilob2020");
             }
             catch (Exception)
-            {}
+            { }
 
             if (!Conexion)
             {
@@ -273,7 +278,7 @@ namespace DiamDev.Give.Sincronizador
                         string UnidadOriginal = Detalle.SELLING_UM;
                         if (UnidadOriginal.Contains("-"))
                         {
-                            UnidadOriginal = UnidadOriginal.Replace(" ","").Trim();
+                            UnidadOriginal = UnidadOriginal.Replace(" ", "").Trim();
                             UnidadOriginal = UnidadOriginal.Substring(UnidadOriginal.IndexOf("-") + 1);
                         }
 
@@ -321,28 +326,5 @@ namespace DiamDev.Give.Sincronizador
 
             return PedidoERPId;
         }
-
-        /** private static void TestHanaCrudo()
-        {
-            string cs = "Driver={HDBODBC};ServerNode=192.168.192.200:30015;UID=SYSTEM;PWD=7*Oa7!D5ulu0;CS=SBO_GRACO";
-            try
-            {
-                using (var cn = new System.Data.Odbc.OdbcConnection(cs))
-                {
-                    cn.Open();
-                    LogFile.Info("TEST HANA CRUDO: CONECTADO OK. Estado=" + cn.State);
-                    using (var cmd = new System.Data.Odbc.OdbcCommand(
-                        "SELECT COUNT(*) FROM \"SBO_GRACO\".\"ORCT\"", cn))
-                    {
-                        var n = cmd.ExecuteScalar();
-                        LogFile.Info("TEST HANA CRUDO: ORCT count = " + n);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogFile.Error("TEST HANA CRUDO FALLÓ", ex);
-            }
-        } **/
     }
 }

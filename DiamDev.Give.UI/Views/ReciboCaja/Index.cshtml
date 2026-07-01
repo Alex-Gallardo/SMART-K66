@@ -106,6 +106,41 @@
         border: 1px solid #27ae60;
     }
 
+    .badge-status.anulado {
+        background: #fadbd8;
+        color: #a93226;
+        border: 1px solid #e74c3c;
+    }
+
+    /* ── BADGE DE SINCRONIZACIÓN CON SAP (Fase 4) ── */
+    .badge-sync {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+    }
+
+    .badge-sync.operado {
+        background: #d5f5e3;
+        color: #1e8449;
+        border: 1px solid #27ae60;
+    }
+
+    .badge-sync.pendiente {
+        background: #fef9e7;
+        color: #b9770e;
+        border: 1px solid #f1c40f;
+    }
+
+    .badge-sync.anulado {
+        background: #fadbd8;
+        color: #a93226;
+        border: 1px solid #e74c3c;
+    }
+
     /* ── CAMPO # RECIBO ── */
     #txtIdRecibo {
         font-family: 'Courier New', monospace;
@@ -767,7 +802,10 @@
                     <span class="sel-title-main">Encabezado del Recibo</span>
                     <span id="badgeEmpresa" class="badge-emp">—</span>
                 </h4>
-                <span id="badgeStatus" class="badge-status nuevo">NUEVO</span>
+                <span style="display:flex; align-items:center; gap:6px;">
+                    <span id="badgeSync" class="badge-sync" style="display:none;">—</span>
+                    <span id="badgeStatus" class="badge-status nuevo">NUEVO</span>
+                </span>
             </div>
         </div>
         <div class="panel-body" style="padding: 14px 18px;">
@@ -2102,10 +2140,13 @@ $("#btnEjecutarBusqueda").on("click", function () {
         $("#txtMoneda").val(r.Moneda);
         $("#txtRecFisico").val(r.RecFisico);
 
-        var esGuardado = r.Status && r.Status !== "NUEVO";
-        $("#badgeStatus").text(r.Status || "NUEVO")
-            .removeClass("nuevo guardado")
-            .addClass(esGuardado ? "guardado" : "nuevo");
+        // var esGuardado = r.Status && r.Status !== "NUEVO";
+        // $("#badgeStatus").text(r.Status || "NUEVO")
+        //    .removeClass("nuevo guardado")
+        //    .addClass(esGuardado ? "guardado" : "nuevo");
+        // Badge de sincronización con SAP (viene del backend Fase 4)
+        PintarBadgeSync(r.SyncEstado);
+        PintarBadgeStatus(r.Status);
 
         Estado.cobros              = r.Cobros     || [];
         Estado.documentos          = r.Documentos || [];
@@ -2260,7 +2301,9 @@ function LimpiarFormulario() {
     // $("#txtMontoRec, #txtTotalDoc, #txtSaldo").val("");
     $("#txtStatus").val("NUEVO");
     $("#hdnAgente").val("");
-    $("#badgeStatus").text("NUEVO").removeClass("guardado").addClass("nuevo");
+    //$("#badgeStatus").text("NUEVO").removeClass("guardado").addClass("nuevo");
+    PintarBadgeStatus("NUEVO");
+    PintarBadgeSync("");   // oculta el badge de sync en captura
 
     $("#spanTotalCobros, #spanTotalDocs").text("0.00");
     $("#spanSaldo").text("0.00").removeClass("saldo-ok saldo-error");
@@ -2318,6 +2361,79 @@ function SetBotonesPostGuardado() {
     $("#btnGuardar").prop("disabled", true).html('<i class="icon-save"></i> Guardar');
     $("#btnCancelar").prop("disabled", true);
     $("#btnNuevo, #btnBuscarRecibo, #btnImprimir").prop("disabled", false);
+}
+
+// ════════════════════════════════════════════════════════
+// BADGE DE SINCRONIZACIÓN (Fase 4)
+// Pinta Operado/Pendiente/Anulado según SYNC_ESTADO del recibo.
+// Si no hay estado (recibo nuevo en captura), oculta el badge.
+// ════════════════════════════════════════════════════════
+function PintarBadgeSync(syncEstado) {
+    var $b = $("#badgeSync");
+    var estado = (syncEstado || "").toUpperCase();
+
+    // Sin estado -> recibo en captura, no aplica. Ocultar.
+    if (!estado) {
+        $b.hide().text("—").removeClass("operado pendiente anulado");
+        return;
+    }
+
+    var clase, texto;
+    switch (estado) {
+        case "OPERADO": clase = "operado"; texto = "OPERADO"; break;
+        case "PENDIENTE": clase = "pendiente"; texto = "PENDIENTE"; break;
+        case "ANULADO": clase = "anulado"; texto = "ANULADO"; break;
+        default: clase = "pendiente"; texto = estado; break; // fallback defensivo
+    }
+
+    $b.removeClass("operado pendiente anulado")
+        .addClass(clase)
+        .text(texto)
+        .show();
+}
+
+// ════════════════════════════════════════════════════════
+// BADGE DE STATUS DEL RECIBO (estado del documento en sí)
+// A = Activo, X = Anulado. Muestra texto claro + tooltip explicativo.
+// Es distinto del badge de SINCRONIZACIÓN (ese refleja el estado en SAP).
+// ════════════════════════════════════════════════════════
+function PintarBadgeStatus(status) {
+    var $b = $("#badgeStatus");
+    var s = (status || "").toUpperCase();
+
+    var cfg;
+    switch (s) {
+        case "A":
+            cfg = {
+                clase: "guardado", texto: "ACTIVO",
+                tip: "Recibo activo y válido."
+            };
+            break;
+        case "X":
+            cfg = {
+                clase: "anulado", texto: "ANULADO",
+                tip: "Recibo anulado. Ya no es válido."
+            };
+            break;
+        case "":
+        case "NUEVO":
+            cfg = {
+                clase: "nuevo", texto: "NUEVO",
+                tip: "Recibo en captura, aún no guardado."
+            };
+            break;
+        default:
+            cfg = {
+                clase: "nuevo", texto: s,
+                tip: "Estado: " + s
+            };
+            break;
+    }
+
+    $b.removeClass("nuevo guardado anulado")
+        .addClass(cfg.clase)
+        .text(cfg.texto)
+        .attr("title", cfg.tip);
 }
 
 // ════════════════════════════════════════════════════════

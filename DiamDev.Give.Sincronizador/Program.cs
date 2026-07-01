@@ -118,14 +118,16 @@ namespace DiamDev.Give.Sincronizador
                 var resultado = new ReciboCajaSyncBL().Ejecutar();
 
                 string resumen = string.Format(
-                    "Pendientes revisados: {0} | Operados nuevos: {1} | " +
-                    "Operados revisados: {2} | Anulados: {3} | Reapuntados: {4} | Errores: {5}",
-                    resultado.Revisados,
-                    resultado.Operados,
-                    resultado.OperadosRevisados,
-                    resultado.Anulados,
-                    resultado.Reapuntados,
-                    resultado.Errores.Count);
+                "Pendientes revisados: {0} | Operados nuevos: {1} | Operados revisados: {2} | " +
+                "Anulados: {3} | Reapuntados: {4} | Conciliados: {5} | Descuadrados: {6} | Errores: {7}",
+                resultado.Revisados, 
+                resultado.Operados, 
+                resultado.OperadosRevisados,
+                resultado.Anulados, 
+                resultado.Reapuntados,
+                resultado.Conciliados, 
+                resultado.Descuadrados, 
+                resultado.Errores.Count);
 
                 Console.WriteLine(resumen);
                 LogFile.Info(resumen);

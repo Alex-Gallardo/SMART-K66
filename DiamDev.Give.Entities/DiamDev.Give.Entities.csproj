@@ -90,6 +90,7 @@
     <Compile Include="EmpresaBodegaActiva.cs" />
     <Compile Include="ERPPedidoDetalleK66.cs" />
     <Compile Include="EstadoxPedidoK66.cs" />
+    <Compile Include="MontoAplicadoSap.cs" />
     <Compile Include="PedidoDocumentoImportanteK66.cs" />
     <Compile Include="ERPPedidoEncabezadoK66.cs" />
     <Compile Include="PedidoPendienteK66.cs" />
@@ -104,6 +105,7 @@
     <Compile Include="ReciboCajaCobro.cs" />
     <Compile Include="ReciboCajaDetalle.cs" />
     <Compile Include="ReciboCajaEncabezado.cs" />
+    <Compile Include="ReciboMontoSql.cs" />
     <Compile Include="RecibosCajaUsuarioDepto.cs" />
     <Compile Include="ResultadoRecibo.cs" />
     <Compile Include="SapCobroAplicado.cs" />

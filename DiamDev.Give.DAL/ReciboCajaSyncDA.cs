@@ -239,5 +239,94 @@ namespace DiamDev.Give.DAL
                 cmd.ExecuteNonQuery();
             }
         }
+
+        /// <summary>
+        /// Marca (o limpia) la bandera de conciliación de un recibo OPERADO.
+        /// NO cambia SYNC_ESTADO: la conciliación es informativa, no correctiva.
+        /// Usa el prefijo [CONCIL] para no pisar observaciones de la pasada inversa.
+        ///
+        /// observacion = texto  -> escribe "[CONCIL] ..." 
+        /// observacion = null   -> limpia SOLO la parte [CONCIL] si existía (cuadra bien).
+        /// </summary>
+        public void MarcarConciliacion(string idRecibo, string empresa, string observacion)
+        {
+            // Estrategia simple y segura: guardamos la observación de conciliación en su
+            // propia forma. Como hoy la única otra fuente que escribe SYNC_OBSERVACION es
+            // la pasada inversa (anulado/reapuntado), y esos casos NO conviven con una
+            // conciliación exitosa en la misma vuelta, un overwrite controlado es suficiente.
+            // Si hay descuadre, gana el mensaje de conciliación (es lo accionable).
+            const string sqlSet = @"
+        UPDATE dbo.REC_CAJA_ENC
+        SET SYNC_OBSERVACION  = @obs,
+            SYNC_ULTIMO_CHECK = SYSDATETIME()
+        WHERE ID_RECIBO  = @idRecibo
+          AND ID_EMPRESA = @empresa
+          AND SYNC_ESTADO = 'OPERADO';";
+
+            // Si cuadra (observacion null), solo limpiamos si lo que hay es una marca [CONCIL].
+            const string sqlClear = @"
+        UPDATE dbo.REC_CAJA_ENC
+        SET SYNC_OBSERVACION  = NULL,
+            SYNC_ULTIMO_CHECK = SYSDATETIME()
+        WHERE ID_RECIBO  = @idRecibo
+          AND ID_EMPRESA = @empresa
+          AND SYNC_ESTADO = 'OPERADO'
+          AND SYNC_OBSERVACION LIKE '[[]CONCIL]%';";  // escapado: corchete literal
+
+            bool cuadra = string.IsNullOrEmpty(observacion);
+            string sql = cuadra ? sqlClear : sqlSet;
+
+            using (var cn = new SqlConnection(ConnString))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                cmd.Parameters.AddWithValue("@idRecibo", idRecibo);
+                cmd.Parameters.AddWithValue("@empresa", empresa);
+                if (!cuadra)
+                    cmd.Parameters.AddWithValue("@obs", "[CONCIL] " + observacion);
+                cn.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>
+        /// Trae, para un lote de recibos, la MONEDA y el MONTO_T_DOC necesarios
+        /// para conciliar contra RCT2. Un solo viaje a SQL.
+        /// </summary>
+        public Dictionary<string, ReciboMontoSql> ObtenerDatosConciliacion(string empresa, List<string> idsRecibo)
+        {
+            var mapa = new Dictionary<string, ReciboMontoSql>(StringComparer.OrdinalIgnoreCase);
+            if (idsRecibo == null || idsRecibo.Count == 0) return mapa;
+
+            var nombres = new List<string>();
+            using (var cn = new SqlConnection(ConnString))
+            using (var cmd = new SqlCommand { Connection = cn })
+            {
+                for (int i = 0; i < idsRecibo.Count; i++)
+                {
+                    string p = "@id" + i;
+                    nombres.Add(p);
+                    cmd.Parameters.AddWithValue(p, idsRecibo[i]);
+                }
+                cmd.Parameters.AddWithValue("@empresa", empresa);
+                cmd.CommandText =
+                    "SELECT ID_RECIBO, MONEDA, MONTO_T_DOC " +
+                    "FROM dbo.REC_CAJA_ENC " +
+                    "WHERE ID_EMPRESA = @empresa AND ID_RECIBO IN (" + string.Join(",", nombres) + ");";
+                cn.Open();
+                using (var rd = cmd.ExecuteReader())
+                    while (rd.Read())
+                    {
+                        string id = rd["ID_RECIBO"].ToString();
+                        mapa[id] = new ReciboMontoSql
+                        {
+                            IdRecibo = id,
+                            Moneda = rd["MONEDA"] == DBNull.Value ? "GTQ" : rd["MONEDA"].ToString(),
+                            MontoTDoc = rd["MONTO_T_DOC"] == DBNull.Value ? 0m
+                                                                          : Convert.ToDecimal(rd["MONTO_T_DOC"])
+                        };
+                    }
+            }
+            return mapa;
+        }
     }
 }

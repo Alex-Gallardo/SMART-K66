@@ -115,6 +115,70 @@ namespace DiamDev.Give.DAL
                 .ToList();
         }
 
+        /// <summary>
+        /// Para un lote de DocEntry de pagos (ORCT), devuelve la suma de lo aplicado
+        /// en RCT2, en ambas monedas:
+        ///   - MontoGTQ  = SUM(SumApplied)  (moneda local)
+        ///   - MontoUSD  = SUM(AppliedFC)   (moneda extranjera)
+        /// El BLL elige cuál comparar según la MONEDA del recibo.
+        ///
+        /// Enlace SAP: RCT2."DocNum" = ORCT."DocEntry" (rareza histórica de SAP B1:
+        /// la columna se llama DocNum pero guarda el DocEntry del pago).
+        ///
+        /// Un DocEntry con RCT2 vacío (anticipo) simplemente NO aparece en el
+        /// diccionario devuelto -> el BLL lo interpreta como "sin líneas que conciliar".
+        /// </summary>
+        public Dictionary<int, MontoAplicadoSap> ObtenerMontosAplicados(string empresa, List<int> docEntries)
+        {
+            var resultado = new Dictionary<int, MontoAplicadoSap>();
+            if (docEntries == null || docEntries.Count == 0) return resultado;
+
+            string schema = MapEmpresaSchema(empresa);
+            if (schema == null)
+                throw new ArgumentException("Empresa sin schema HANA: " + empresa);
+
+            // Lotes para no armar un IN gigante contra HANA (igual criterio que ObtenerCobrosOperados).
+            const int TAM_LOTE = 200;
+            var distintos = docEntries.Distinct().ToList();
+
+            for (int i = 0; i < distintos.Count; i += TAM_LOTE)
+            {
+                var lote = distintos.Skip(i).Take(TAM_LOTE).ToList();
+                if (lote.Count == 0) continue;
+
+                string placeholders = string.Join(",", lote.Select(_ => "?"));
+
+                // Agrupamos en HANA por DocNum (=DocEntry del pago) y sumamos ambas monedas.
+                string sql = string.Format(
+                    "SELECT \"DocNum\" AS \"DocEntryPago\", " +
+                    "       SUM(\"SumApplied\") AS \"TotalGTQ\", " +
+                    "       SUM(\"AppliedFC\")  AS \"TotalUSD\" " +
+                    "FROM \"{0}\".\"RCT2\" " +
+                    "WHERE \"DocNum\" IN ({1}) " +
+                    "GROUP BY \"DocNum\"",
+                    schema, placeholders);
+
+                var parametros = lote
+                    .Select(de => new OdbcParameter { OdbcType = OdbcType.Int, Value = de })
+                    .ToArray();
+
+                DataTable dt = HanaHelper.EjecutarConsulta(sql, parametros);
+
+                foreach (DataRow r in dt.Rows)
+                {
+                    int docEntry = Convert.ToInt32(r["DocEntryPago"]);
+                    resultado[docEntry] = new MontoAplicadoSap
+                    {
+                        DocEntry = docEntry,
+                        MontoGTQ = r["TotalGTQ"] == DBNull.Value ? 0m : Convert.ToDecimal(r["TotalGTQ"]),
+                        MontoUSD = r["TotalUSD"] == DBNull.Value ? 0m : Convert.ToDecimal(r["TotalUSD"])
+                    };
+                }
+            }
+
+            return resultado;
+        }
+
         /// <summary>Mapa empresa → schema HANA. Si ya tenés uno en esta clase
         /// (el de INF_CLIENTES_REC), borrá este y reutilizá el tuyo.</summary>
         private static string MapEmpresaSchema(string empresa)
@@ -190,6 +254,7 @@ namespace DiamDev.Give.DAL
 
             return lista;
         }
+
         // ── Helpers privados ──────────────────────────────────────────────
         /// <summary>
         /// Traduce el código de moneda de SAP al código canónico de la app.

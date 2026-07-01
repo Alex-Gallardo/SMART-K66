@@ -289,7 +289,11 @@ namespace DiamDev.Give.DAL
                             RecFisico = r["REC_FISICO"].ToString(),
                             FechaRecibo = r["FECHA_RECIBO"] != DBNull.Value
                                                    ? Convert.ToDateTime(r["FECHA_RECIBO"])
-                                                   : DateTime.Today
+                                                   : DateTime.Today,
+                            // ── Fase 4: estado de sincronización ──
+                            SyncEstado = r["SYNC_ESTADO"] != DBNull.Value ? r["SYNC_ESTADO"].ToString() : null,
+                            SapDocEntry = r["SAP_DOCENTRY"] != DBNull.Value ? (int?)Convert.ToInt32(r["SAP_DOCENTRY"]) : null,
+                            SapDocNum = r["SAP_DOCNUM"] != DBNull.Value ? (int?)Convert.ToInt32(r["SAP_DOCNUM"]) : null
                         };
                     }
                 }

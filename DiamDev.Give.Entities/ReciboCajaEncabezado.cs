@@ -42,6 +42,13 @@ namespace DiamDev.Give.Entities
         public List<ReciboCajaCobro> Cobros { get; set; }
         public List<ReciboCajaDetalle> Documentos { get; set; }
 
+        // ── Estado de sincronización con SAP (Fase 4) ──
+        // Se pueblan al leer desde POS-SmartK66. En un recibo recién capturado
+        // (aún no guardado) quedan en null/0 y el front oculta el badge.
+        public string SyncEstado { get; set; }   // "PENDIENTE" | "OPERADO" | "ANULADO"
+        public int? SapDocEntry { get; set; }     // nullable: null si aún no operado
+        public int? SapDocNum { get; set; }       // nullable: null si aún no operado
+
         public ReciboCajaEncabezado()
         {
             Cobros = new List<ReciboCajaCobro>();

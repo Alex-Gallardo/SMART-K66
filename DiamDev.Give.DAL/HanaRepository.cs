@@ -4,12 +4,16 @@ using System.Data;
 using DiamDev.Give.Entities;
 using System.Data.Odbc;
 using System.Linq;
+using System.Configuration;   // ← NUEVO: para leer AppSettings (ConfigurationManager)
 
 namespace DiamDev.Give.DAL
 {
     /// <summary>
     /// Repositorio HANA. NO usa HanaConnection directo — delega en HanaHelper
     /// (ya configurado con AppSettings HANA_Server / HANA_User / etc.).
+    ///
+    /// El mapeo empresa → schema HANA ahora vive en configuración (AppSettings),
+    /// no hardcodeado. Así el cutover prod↔pruebas es cambiar el .config, sin recompilar.
     /// </summary>
     public class HanaRepository
     {
@@ -65,7 +69,7 @@ namespace DiamDev.Give.DAL
             var resultado = new List<SapCobroAplicado>();
             if (idsRecibo == null || idsRecibo.Count == 0) return resultado;
 
-            string schema = MapEmpresaSchema(empresa);
+            string schema = ResolverSchema(empresa);            // ← unificado (antes MapEmpresaSchema)
             if (schema == null)
                 throw new ArgumentException("Empresa sin schema HANA: " + empresa);
 
@@ -133,7 +137,7 @@ namespace DiamDev.Give.DAL
             var resultado = new Dictionary<int, MontoAplicadoSap>();
             if (docEntries == null || docEntries.Count == 0) return resultado;
 
-            string schema = MapEmpresaSchema(empresa);
+            string schema = ResolverSchema(empresa);            // ← unificado (antes MapEmpresaSchema)
             if (schema == null)
                 throw new ArgumentException("Empresa sin schema HANA: " + empresa);
 
@@ -177,20 +181,6 @@ namespace DiamDev.Give.DAL
             }
 
             return resultado;
-        }
-
-        /// <summary>Mapa empresa → schema HANA. Si ya tenés uno en esta clase
-        /// (el de INF_CLIENTES_REC), borrá este y reutilizá el tuyo.</summary>
-        private static string MapEmpresaSchema(string empresa)
-        {
-            if (string.IsNullOrEmpty(empresa)) return null;
-            switch (empresa.Trim().ToUpperInvariant())
-            {
-                case "GRACO": return "SBO_GRACO";
-                case "FAES": return "SBOESCOCESA";
-                case "BOLIK": return "SBOBOLIK";
-                default: return null;
-            }
         }
 
         // ─────────────────────────────────────────────
@@ -259,10 +249,6 @@ namespace DiamDev.Give.DAL
         /// <summary>
         /// Traduce el código de moneda de SAP al código canónico de la app.
         /// SAP usa "QTZ" para el Quetzal; los dropdowns de la vista usan "GTQ".
-        /// Si no normalizamos, la validación de saldo cree que cobro (GTQ) y
-        /// documento (QTZ) son monedas distintas y permite saldos ≠ 0.
-        ///
-        /// Si tu SAP ya devuelve GTQ, este map es un no-op (inofensivo).
         /// </summary>
         private static string NormalizarMoneda(string monedaSap)
         {
@@ -277,16 +263,35 @@ namespace DiamDev.Give.DAL
             }
         }
 
-        /// <summary>Mapea empresa → schema SAP. Reutilizable por clientes y facturas.</summary>
+        /// <summary>
+        /// Mapea empresa → schema HANA leyendo de AppSettings (un solo lugar,
+        /// reutilizado por clientes, facturas, tipo de cambio y sincronizador).
+        ///
+        /// Claves esperadas en el .config:
+        ///   HanaSchema.GRACO / HanaSchema.FAES / HanaSchema.BOLIK
+        ///
+        /// - Empresa vacía o desconocida (no GRACO/FAES/BOLIK) → devuelve null
+        ///   (los callers lo interpretan como "sin resultados").
+        /// - Empresa conocida PERO sin su clave en el .config → lanza excepción
+        ///   clara. Es un error de despliegue: preferimos que truene con un mensaje
+        ///   entendible antes que devolver vacío en silencio (que confunde el diagnóstico).
+        /// </summary>
         private static string ResolverSchema(string empresa)
         {
-            switch ((empresa ?? "").Trim().ToUpper())
+            if (string.IsNullOrWhiteSpace(empresa)) return null;
+
+            string emp = empresa.Trim().ToUpperInvariant();
+            string schema = ConfigurationManager.AppSettings["HanaSchema." + emp];
+
+            if (string.IsNullOrWhiteSpace(schema) &&
+                (emp == "GRACO" || emp == "FAES" || emp == "BOLIK"))
             {
-                case "GRACO": return "SBO_GRACO";
-                case "FAES": return "SBOESCOCESA";
-                case "BOLIK": return "SBOBOLIK";
-                default: return null;
+                throw new Exception(
+                    "Falta la clave de AppSettings 'HanaSchema." + emp + "' en el .config. " +
+                    "Agregala (ej. \"TEST_SBOGRACO\" en pruebas, \"SBO_GRACO\" en producción).");
             }
+
+            return string.IsNullOrWhiteSpace(schema) ? null : schema.Trim();
         }
 
         private static string Esc(string valor) =>
@@ -329,8 +334,6 @@ namespace DiamDev.Give.DAL
         /// <summary>
         /// Trae la tasa USD vigente desde SAP (tabla ORTT del schema de la empresa).
         /// Regla: la última tasa con RateDate &lt;= fecha de corte (recibo u hoy).
-        /// El filtro por fecha es CRÍTICO: SAP tiene tasas futuras cargadas
-        /// (ej. 1-dic-2026) que NO debemos tomar para un recibo de hoy.
         /// </summary>
         public decimal ObtenerTipoCambio(string empresa, DateTime? fecha = null)
         {

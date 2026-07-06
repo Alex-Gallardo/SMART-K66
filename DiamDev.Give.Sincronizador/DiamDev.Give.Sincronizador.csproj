@@ -65,6 +65,7 @@
     <Reference Include="System.ComponentModel.DataAnnotations">
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core">
       <Private>True</Private>
     </Reference>
@@ -112,6 +113,10 @@
     <ProjectReference Include="..\DiamDev.Give.BLL\DiamDev.Give.BLL.csproj">
       <Project>{4eb43fe4-5329-48d6-aa2a-de130c01b61f}</Project>
       <Name>DiamDev.Give.BLL</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DiamDev.Give.DAL\DiamDev.Give.DAL.csproj">
+      <Project>{970fc862-f1cf-40d0-a78a-e30cf71eabce}</Project>
+      <Name>DiamDev.Give.DAL</Name>
     </ProjectReference>
     <ProjectReference Include="..\DiamDev.Give.Entities\DiamDev.Give.Entities.csproj">
       <Project>{58830095-0940-4008-9495-2b71ec41758e}</Project>

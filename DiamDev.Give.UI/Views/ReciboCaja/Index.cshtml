@@ -141,6 +141,16 @@
         border: 1px solid #e74c3c;
     }
 
+    /* Operado pero con descuadre de conciliación: halo ámbar de advertencia */
+    .badge-sync.concil {
+        box-shadow: 0 0 0 2px #f39c12 inset;
+        cursor: help;
+    }
+
+    .badge-sync[title]:not([title=""]) {
+        cursor: help;
+    }
+
     /* ── CAMPO # RECIBO ── */
     #txtIdRecibo {
         font-family: 'Courier New', monospace;
@@ -434,11 +444,25 @@
         border: none;
     }
 
-    /* Modal más ancho: usa el 90% del viewport con un tope de 1200px.
-        En pantallas grandes aprovecha el espacio; en chicas se sigue adaptando. */
-    #modalBuscarDoc.modal .modal-dialog.modal-lg {
-        width: 95% !important;
-        max-width: 1200px !important;
+    /* ── ANCHO DEL MODAL EN PC — doble candado ──
+       Causa raíz: el plugin de modales del theme (Clip-One) le pone al
+       .modal EXTERIOR un ancho inline fijo (~600px, estilo Bootstrap 2).
+       Nuestro .modal-dialog al 95% era 95%... de esa jaula de 600px.
+       Candado 1: liberar el .modal exterior (viewport completo, como BS3).
+       Candado 2: el dialog al 95% con tope de 1200px, centrado. */
+    @@media (min-width: 992px) {
+        #modalBuscarDoc.modal {
+            width: auto !important; /* anula el width inline del plugin */
+            left: 0 !important; /* anula el left:50% del centrado viejo */
+            right: 0 !important;
+            margin-left: 0 !important; /* anula el margin-left negativo */
+        }
+
+            #modalBuscarDoc.modal .modal-dialog.modal-lg {
+                width: 95% !important;
+                max-width: 1200px !important;
+                margin: 30px auto !important; /* centrado estándar BS3 */
+            }
     }
 
     /* Barra de resumen (totales) */
@@ -640,34 +664,55 @@
 
     /* ════════════════════════════════════════════
        FIX MOBILE: header del encabezado
-       El status baja a su línea Y se separa del cuerpo.
+       Apila: título+empresa arriba, badges abajo en su propia
+       fila con wrap. Los badges largos envuelven texto en vez
+       de desbordar sobre el cuerpo.
     ════════════════════════════════════════════ */
     @@media (max-width: 767px) {
-        #panelEncabezado .panel-heading > div {
-            flex-direction: column;
-            align-items: flex-start !important;
-            gap: 8px; /* aire entre título y badge de status */
+           /* Solucion al desface del Heading en mobile */
+           #panelEncabezado .panel-heading {
+               height: auto;
+           }
+
+        /* El contenedor del heading SIEMPRE en columna en mobile.
+           (Antes había un flex-direction:row !important que peleaba
+           con esta regla y ganaba — causa raíz del solapamiento.) */
+        #panelEncabezado .panel-heading > div.panelTitleContainer {
+            display: flex;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px;
         }
 
+        /* Título: "Encabezado del Recibo" + badge de empresa en fila,
+           envolviendo si no caben. */
+        #panelEncabezado .title-recibo {
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center !important;
+        }
+
+        /* Fila de badges (sync + status): ancho completo, con wrap.
+           Cada badge baja de línea si no cabe, en vez de desbordar. */
+        #panelEncabezado .panel-heading .badges-recibo {
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            width: 100%;
+        }
+
+        /* El badge de sync trae textos largos ("PENDIENTE (ANULADO
+           EN SAP)"): permitir que el TEXTO envuelva dentro del badge. */
+        #panelEncabezado .badge-sync,
         #panelEncabezado .badge-status {
-            align-self: flex-start;
+            white-space: normal;
+            line-height: 1.35;
+            text-align: left;
+            max-width: 100%;
         }
 
-        /* Clave: separar el cuerpo del header para que
-           "# Recibo" no suba a montarse sobre el badge. */
+        /* Aire entre el heading y el "# Recibo" del cuerpo. */
         #panelEncabezado .panel-body {
             padding-top: 16px !important;
-        }
-
-        .panelTitleContainer {
-            display: flex;
-            flex-direction: row !important;
-        }
-
-        .title-recibo {
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: flex-start !important;
         }
     }
 
@@ -802,7 +847,7 @@
                     <span class="sel-title-main">Encabezado del Recibo</span>
                     <span id="badgeEmpresa" class="badge-emp">—</span>
                 </h4>
-                <span style="display:flex; align-items:center; gap:6px;">
+                <span class="badges-recibo" style="display:flex; align-items:center; gap:6px;">
                     <span id="badgeSync" class="badge-sync" style="display:none;">—</span>
                     <span id="badgeStatus" class="badge-status nuevo">NUEVO</span>
                 </span>
@@ -2145,7 +2190,7 @@ $("#btnEjecutarBusqueda").on("click", function () {
         //    .removeClass("nuevo guardado")
         //    .addClass(esGuardado ? "guardado" : "nuevo");
         // Badge de sincronización con SAP (viene del backend Fase 4)
-        PintarBadgeSync(r.SyncEstado);
+        PintarBadgeSync(r.SyncEstado, r.SyncObservacion, r.SapDocNum);
         PintarBadgeStatus(r.Status);
 
         Estado.cobros              = r.Cobros     || [];
@@ -2193,7 +2238,7 @@ function RenderizarTablaCobros() {
             $('<tr style="cursor:pointer;"></tr>').data("idx", i).html(
                 "<td><span class='label label-default'>" + c.TipoCobro + "</span></td>" +
                 "<td>" + (c.Banco || "—")       + "</td>" +
-                "<td>" + (c.FechaDoc || "—")    + "</td>" +
+                "<td>" + (FmtFecha(c.FechaDoc) || "—")    + "</td>" +
                 "<td>" + (c.NoDocumento || "—") + "</td>" +
                 '<td class="text-right"><strong>' + FmtNum(c.Monto) + "</strong></td>" +
                 "<td><span class='label label-info'>" + c.Moneda + "</span></td>"
@@ -2215,7 +2260,7 @@ function RenderizarTablaDocumentos() {
             $('<tr style="cursor:pointer;" class="' + filaEdit.trim() + '"></tr>').data("idx", i).html(
                 "<td><span class='label label-default'>" + d.TipoDoc + "</span></td>" +
                 "<td><strong>" + (d.NoDocumento || "—") + "</strong></td>" +
-                "<td>" + (d.FechaDoc || "—")  + "</td>" +
+                "<td>" + (FmtFecha(d.FechaDoc) || "—")  + "</td>" +
                 '<td class="text-right"><strong>' + FmtNum(d.Monto) + "</strong></td>" +
                 "<td><span class='label label-info'>" + d.Moneda + "</span></td>" +
                 '<td class="text-right">' + FmtNum(d.MontoFact) + "</td>" +
@@ -2365,30 +2410,69 @@ function SetBotonesPostGuardado() {
 
 // ════════════════════════════════════════════════════════
 // BADGE DE SINCRONIZACIÓN (Fase 4)
-// Pinta Operado/Pendiente/Anulado según SYNC_ESTADO del recibo.
-// Si no hay estado (recibo nuevo en captura), oculta el badge.
+// Pinta el estado del recibo frente a SAP, con contexto:
+//   OPERADO            → verde + "SAP #DocNum"
+//   OPERADO + [CONCIL] → verde con halo ámbar ⚠ + tooltip del descuadre
+//   PENDIENTE          → ámbar
+//   PENDIENTE anulado  → ámbar + tooltip con la huella de anulación
+// Sin estado (recibo en captura) → se oculta.
 // ════════════════════════════════════════════════════════
-function PintarBadgeSync(syncEstado) {
+function PintarBadgeSync(syncEstado, syncObs, sapDocNum) {
     var $b = $("#badgeSync");
     var estado = (syncEstado || "").toUpperCase();
+    var obs = syncObs || "";
 
-    // Sin estado -> recibo en captura, no aplica. Ocultar.
     if (!estado) {
-        $b.hide().text("—").removeClass("operado pendiente anulado");
+        $b.hide().text("—")
+            .removeClass("operado pendiente anulado concil")
+            .attr("title", "");
         return;
     }
 
-    var clase, texto;
+    var clase, texto, tip;
+
     switch (estado) {
-        case "OPERADO": clase = "operado"; texto = "OPERADO"; break;
-        case "PENDIENTE": clase = "pendiente"; texto = "PENDIENTE"; break;
-        case "ANULADO": clase = "anulado"; texto = "ANULADO"; break;
-        default: clase = "pendiente"; texto = estado; break; // fallback defensivo
+        case "OPERADO":
+            clase = "operado";
+            texto = "✓ OPERADO" + (sapDocNum ? " — SAP #" + sapDocNum : "");
+            tip = "Operado en SAP por Créditos." +
+                (sapDocNum ? " Pago recibido No. " + sapDocNum + "." : "");
+            // ¿Conciliación marcó descuadre? La observación empieza con [CONCIL]
+            if (obs.indexOf("[CONCIL]") === 0) {
+                clase = "operado concil";
+                texto += " ⚠";
+                tip = obs;   // el detalle exacto: SQL=X vs SAP=Y, dif=Z
+            }
+            break;
+
+        case "PENDIENTE":
+            clase = "pendiente";
+            texto = "⏳ PENDIENTE EN SAP";
+            tip = "Aún no ha sido operado por Créditos en SAP.";
+            // ¿Volvió a pendiente por anulación? La huella queda en la observación.
+            if (obs.indexOf("Anulado en SAP") !== -1) {
+                texto = "⏳ PENDIENTE (ANULADO EN SAP)";
+                tip = obs;   // "Anulado en SAP... Era DocNum X/DocEntry Y..."
+            }
+            break;
+
+        case "ANULADO":   // defensivo: hoy la Opción A no persiste este estado
+            clase = "anulado";
+            texto = "ANULADO EN SAP";
+            tip = obs || "El pago fue anulado en SAP.";
+            break;
+
+        default:          // estado desconocido: mostrar tal cual, sin romper
+            clase = "pendiente";
+            texto = estado;
+            tip = obs;
+            break;
     }
 
-    $b.removeClass("operado pendiente anulado")
+    $b.removeClass("operado pendiente anulado concil")
         .addClass(clase)
         .text(texto)
+        .attr("title", tip)
         .show();
 }
 
@@ -2477,6 +2561,21 @@ function FmtFecha(iso) {
     }
     return iso.substring(0, 10);
 }
+
+// ════════════════════════════════════════════════════════
+// FIX ANCHO MODAL DOCUMENTOS (PC)
+// El plugin de modales del theme pone un width inline fijo sobre el
+// .modal exterior (estilo BS2). Lo neutralizamos en cada apertura para
+// que el .modal-dialog pueda expandirse al 95%/1200px del CSS.
+// Solo actúa en pantallas anchas; en mobile no toca nada.
+// ════════════════════════════════════════════════════════
+$(document).on("show.bs.modal shown.bs.modal", "#modalBuscarDoc", function () {
+    if (window.innerWidth < 992) return;   // mobile/tablet: comportamiento actual
+    this.style.setProperty("width", "auto", "important");
+    this.style.setProperty("left", "0", "important");
+    this.style.setProperty("right", "0", "important");
+    this.style.setProperty("margin-left", "0", "important");
+});
 
 // ── Inicialización ──
 SetBotonesInicio();

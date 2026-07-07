@@ -48,6 +48,7 @@ namespace DiamDev.Give.Entities
         public string SyncEstado { get; set; }   // "PENDIENTE" | "OPERADO" | "ANULADO"
         public int? SapDocEntry { get; set; }     // nullable: null si aún no operado
         public int? SapDocNum { get; set; }       // nullable: null si aún no operado
+        public string SyncObservacion { get; set; }  // ← NUEVO: detalle de anulación/descuadre (tooltip UI)
 
         public ReciboCajaEncabezado()
         {

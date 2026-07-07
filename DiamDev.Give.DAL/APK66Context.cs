@@ -290,10 +290,22 @@ namespace DiamDev.Give.DAL
                             FechaRecibo = r["FECHA_RECIBO"] != DBNull.Value
                                                    ? Convert.ToDateTime(r["FECHA_RECIBO"])
                                                    : DateTime.Today,
+
+                            // ★ Moneda dual (necesario para Imprimir.cshtml)
+                            MonedaBase = r["MONEDA_BASE"] != DBNull.Value ? r["MONEDA_BASE"].ToString() : "GTQ",
+                            TipoCambio = r["TIPO_CAMBIO"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["TIPO_CAMBIO"]) : null,
+                            MontoTotalRecGtq = Val(r["MONTO_T_REC_GTQ"]),
+                            MontoTotalRecUsd = Val(r["MONTO_T_REC_USD"]),
+                            MontoTotalDocGtq = Val(r["MONTO_T_DOC_GTQ"]),
+                            MontoTotalDocUsd = Val(r["MONTO_T_DOC_USD"]),
+                            SaldoGtq = Val(r["SALDO_GTQ"]),
+                            SaldoUsd = Val(r["SALDO_USD"]),
+
                             // ── Fase 4: estado de sincronización ──
                             SyncEstado = r["SYNC_ESTADO"] != DBNull.Value ? r["SYNC_ESTADO"].ToString() : null,
                             SapDocEntry = r["SAP_DOCENTRY"] != DBNull.Value ? (int?)Convert.ToInt32(r["SAP_DOCENTRY"]) : null,
-                            SapDocNum = r["SAP_DOCNUM"] != DBNull.Value ? (int?)Convert.ToInt32(r["SAP_DOCNUM"]) : null
+                            SapDocNum = r["SAP_DOCNUM"] != DBNull.Value ? (int?)Convert.ToInt32(r["SAP_DOCNUM"]) : null,
+                            SyncObservacion = r["SYNC_OBSERVACION"] != DBNull.Value ? r["SYNC_OBSERVACION"].ToString() : null   // ★
                         };
                     }
                 }

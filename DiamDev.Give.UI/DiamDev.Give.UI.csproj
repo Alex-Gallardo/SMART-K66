@@ -1368,6 +1368,7 @@
     <Content Include="Views\Reporte\HistorialVenta.cshtml" />
     <Content Include="Views\Reporte\HistorialEntrega.cshtml" />
     <Content Include="Views\ReciboCaja\Index.cshtml" />
+    <Content Include="Views\ReciboCaja\Imprimir.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

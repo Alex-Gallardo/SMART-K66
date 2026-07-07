@@ -108,22 +108,46 @@ namespace DiamDev.Give.BLL
                 .ToList();
         }
 
-        // ─── DOCUMENTOS (APK66) ───────────────────────
-        // ─── DOCUMENTOS ───────────────────────────────
         /// <summary>
         /// Enruta la fuente según el tipo:
         ///   FACTURA / PEDIDO → SAP HANA (vista RC_FACTURAS_REC_CAJ)
         ///   el resto         → APK66 (MA_RECC_DOCTOS), como antes.
-        /// El controller y el front no cambian: misma firma, mismo DocumentoRecibo.
+        /// Además, enriquece cada documento con MontoPendiente: cuánto está
+        /// comprometido en recibos PENDIENTES en SQL (incluye anulados-en-SAP).
+        /// El controller y el front no cambian de firma.
         /// </summary>
         public List<DocumentoRecibo> ObtenerDocumentos(string empresa, string clienteId, string tipoDoc)
         {
             var tipo = (tipoDoc ?? "").Trim().ToUpper();
 
-            if (tipo == "FACTURA" || tipo == "PEDIDO")
-                return _hana.ObtenerFacturas(empresa, clienteId, tipo);
+            List<DocumentoRecibo> lista =
+                (tipo == "FACTURA" || tipo == "PEDIDO")
+                    ? _hana.ObtenerFacturas(empresa, clienteId, tipo)
+                    : _apk.ObtenerDocumentos(empresa, clienteId, tipo);
 
-            return _apk.ObtenerDocumentos(empresa, clienteId, tipo);
+            // ── Merge de pendientes SQL sobre los documentos de la lista ──
+            // Un solo viaje a SQL; lookup O(1) por documento. Si el cálculo
+            // falla, NO tumbamos el modal: los docs salen con pendiente 0.
+            try
+            {
+                var pendientes = _apk.ObtenerPendientesPorDocumento(empresa, clienteId, tipo);
+                if (pendientes.Count > 0)
+                {
+                    foreach (var d in lista)
+                    {
+                        var key = (d.NoDocumento ?? "").Trim();
+                        if (key.Length > 0 && pendientes.TryGetValue(key, out decimal p))
+                            d.MontoPendiente = p;
+                    }
+                }
+            }
+            catch
+            {
+                // Informativo, no bloqueante: preferimos mostrar el modal sin
+                // la columna calculada a romper la búsqueda de documentos.
+            }
+
+            return lista;
         }
 
         /// <summary>

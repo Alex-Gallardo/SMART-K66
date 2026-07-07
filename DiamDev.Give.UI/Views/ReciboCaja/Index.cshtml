@@ -555,6 +555,27 @@
         color: #1a5e35;
     }
 
+    /* Comprometido en recibos PENDIENTES (SQL): ámbar cuando hay monto */
+    #tablaModalDocs .col-pendiente {
+        font-weight: 700;
+        color: #b9770e;
+    }
+
+        #tablaModalDocs .col-pendiente.sin-pend {
+            color: #bdc3c7; /* gris suave cuando es 0: no distrae */
+            font-weight: 400;
+        }
+
+    /* Disponible real (Saldo − Pendiente): rojo si quedó en 0 o negativo */
+    #tablaModalDocs .col-disponible {
+        font-weight: 700;
+        color: #2471a3;
+    }
+
+        #tablaModalDocs .col-disponible.agotado {
+            color: #a93226;
+        }
+
     #tablaModalDocs .chk-doc,
     #chkTodosDocs {
         width: 16px;
@@ -1350,6 +1371,8 @@
                                 <th class="text-right">Total Fact.</th>
                                 <th class="text-right">Pagado</th>
                                 <th class="text-right">Saldo</th>
+                                <th class="text-right" title="Comprometido en recibos aún no operados en SAP (incluye anulados en SAP)">Pendiente ⏳</th>
+                                <th class="text-right" title="Saldo − Pendiente: lo realmente cobrable hoy">Disponible</th>
                                 <th>Moneda</th>
                                 <th>Serie FEL</th>
                                 <th>Núm. FEL</th>
@@ -1357,7 +1380,7 @@
                         </thead>
                         <tbody id="tbodyModalDocs">
                             <tr class="tabla-vacia">
-                                <td colspan="9" class="text-center" style="padding:24px;">
+                                <td colspan="11" class="text-center" style="padding:24px;">
                                     Seleccione empresa, cliente y tipo de documento primero.
                                 </td>
                             </tr>
@@ -1739,7 +1762,7 @@ $("#btnBuscarDoc").on("click", function () {
     $("#resSaldoSel").html(FmtMoneda(0) + ' <small style="font-size:11px;color:#7f8c8d;">(0)</small>');
 
     $("#tbodyModalDocs").html(
-        '<tr><td colspan="9" class="text-center" style="padding:28px;">' +
+        '<tr><td colspan="11" class="text-center" style="padding:28px;">' +
         '<i class="icon-spinner icon-spin icon-2x" style="color:#27ae60;"></i>' +
         '<div style="margin-top:8px;color:#7f8c8d;">Consultando documentos...</div></td></tr>');
     $("#modalBuscarDoc").modal("show");
@@ -1752,11 +1775,11 @@ $("#btnBuscarDoc").on("click", function () {
         var tbody = $("#tbodyModalDocs");
 
         if (!resp.ok) {
-            tbody.html('<tr><td colspan="9" class="text-center text-danger" style="padding:20px;">' + resp.msg + '</td></tr>');
+            tbody.html('<tr><td colspan="11" class="text-center text-danger" style="padding:20px;">' + resp.msg + '</td></tr>');
             return;
         }
         if (!resp.data || resp.data.length === 0) {
-            tbody.html('<tr><td colspan="9" class="text-center" style="padding:24px; color:#aaa;">Sin documentos disponibles para este cliente</td></tr>');
+            tbody.html('<tr><td colspan="11" class="text-center" style="padding:24px; color:#aaa;">Sin documentos disponibles para este cliente</td></tr>');
             return;
         }
 
@@ -1765,24 +1788,37 @@ $("#btnBuscarDoc").on("click", function () {
 
         var saldoTotal = 0;
         $.each(_docsModal, function (i, d) {
-            var saldoDoc = (parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0));
-            saldoTotal += saldoDoc;
+            var saldoTotal = 0;
+            $.each(_docsModal, function (i, d) {
+                var saldoDoc = (parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0));
+                var pendiente = parseFloat(d.MontoPendiente || 0);
+                // Disponible = Total Fact − Pagado − Pendiente.
+                // (Si el negocio pide la fórmula literal "TotalFact − Pendiente",
+                //  cambiar saldoDoc por parseFloat(d.MontoFact || 0) en esta línea.)
+                var disponible = saldoDoc - pendiente;
+                saldoTotal += saldoDoc;
 
-            tbody.append(
-                '<tr data-idx="' + i + '">' +
-                '<td style="text-align:center;">' +
-                '<input type="checkbox" class="chk-doc" data-idx="' + i + '" />' +
-                '</td>' +
-                '<td><strong>' + (d.NoDocumento || '') + '</strong></td>' +
-                '<td>' + FmtFecha(d.FechaDoc) + '</td>' +
-                '<td class="text-right">' + FmtNum(d.MontoFact) + '</td>' +
-                '<td class="text-right">' + FmtNum(d.Pagado) + '</td>' +
-                '<td class="text-right col-saldo" data-saldo="' + saldoDoc + '">' + FmtNum(saldoDoc) + '</td>' +
-                '<td><span class="label label-info">' + (d.Moneda || '') + '</span></td>' +
-                '<td><span class="fel-badge">' + (d.FelSerie || '—') + '</span></td>' +
-                '<td><span class="fel-badge">' + (d.FelNumero || '—') + '</span></td>' +
-                '</tr>'
-            );
+                tbody.append(
+                    '<tr data-idx="' + i + '">' +
+                    '<td style="text-align:center;">' +
+                    '<input type="checkbox" class="chk-doc" data-idx="' + i + '" />' +
+                    '</td>' +
+                    '<td><strong>' + (d.NoDocumento || '') + '</strong></td>' +
+                    '<td>' + FmtFecha(d.FechaDoc) + '</td>' +
+                    '<td class="text-right">' + FmtNum(d.MontoFact) + '</td>' +
+                    '<td class="text-right">' + FmtNum(d.Pagado) + '</td>' +
+                    '<td class="text-right col-saldo" data-saldo="' + saldoDoc + '">' + FmtNum(saldoDoc) + '</td>' +
+                    '<td class="text-right col-pendiente' + (pendiente > 0 ? '' : ' sin-pend') + '" ' +
+                    (pendiente > 0 ? 'title="Ya comprometido en recibos pendientes de operar en SAP"' : '') + '>' +
+                    FmtNum(pendiente) + '</td>' +
+                    '<td class="text-right col-disponible' + (disponible <= 0.01 ? ' agotado' : '') + '">' +
+                    FmtNum(disponible) + '</td>' +
+                    '<td><span class="label label-info">' + (d.Moneda || '') + '</span></td>' +
+                    '<td><span class="fel-badge">' + (d.FelSerie || '—') + '</span></td>' +
+                    '<td><span class="fel-badge">' + (d.FelNumero || '—') + '</span></td>' +
+                    '</tr>'
+                );
+            });
         });
 
         $("#resTotalDocs").text(_docsModal.length);

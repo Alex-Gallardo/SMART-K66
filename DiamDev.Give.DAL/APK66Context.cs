@@ -413,6 +413,62 @@ namespace DiamDev.Give.DAL
             return lista;
         }
 
+        // ─────────────────────────────────────────────
+        // PENDIENTES POR DOCUMENTO (para el modal de docs)
+        // ─────────────────────────────────────────────
+        /// <summary>
+        /// Para un cliente+empresa+tipo, devuelve cuánto dinero está comprometido
+        /// por documento en recibos que SAP aún NO operó (SYNC_ESTADO='PENDIENTE').
+        ///
+        /// Incluye ambos casos del requerimiento en un solo filtro, porque la
+        /// Opción A del sincronizador regresa los anulados-en-SAP a PENDIENTE:
+        ///   - Pendiente activo (recibo creado, Créditos aún no opera)
+        ///   - Anulado en SAP (regresó a PENDIENTE con observación)
+        /// Excluye OPERADOS (ya reflejados en el PaidToDate de SAP) y recibos
+        /// anulados localmente (STATUS='X').
+        ///
+        /// Retorna: diccionario NO_DOCUMENTO → monto pendiente.
+        /// En TS: Record&lt;string, number&gt; para hacer lookup O(1) al mergear.
+        /// </summary>
+        public Dictionary<string, decimal> ObtenerPendientesPorDocumento(
+            string empresa, string clienteId, string tipoDoc)
+        {
+            var mapa = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+
+            const string sql = @"
+                SELECT D.NO_DOCUMENTO, SUM(D.MONTO) AS Pendiente
+                FROM REC_CAJA_DET D
+                INNER JOIN REC_CAJA_ENC E
+                        ON E.ID_RECIBO  = D.ID_RECIBO
+                       AND E.ID_EMPRESA = D.ID_EMPRESA
+                WHERE D.ID_EMPRESA   = @emp
+                  AND E.ID_CLIENTE   = @cli
+                  AND D.TIPO_DOC     = @tipo
+                  AND D.NO_DOCUMENTO IS NOT NULL
+                  AND E.SYNC_ESTADO  = 'PENDIENTE'
+                  AND ISNULL(E.STATUS, 'A') <> 'X'
+                GROUP BY D.NO_DOCUMENTO;";
+
+            using (var con = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@emp", empresa ?? "");
+                cmd.Parameters.AddWithValue("@cli", clienteId ?? "");
+                cmd.Parameters.AddWithValue("@tipo", tipoDoc ?? "");
+                con.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        string doc = r["NO_DOCUMENTO"].ToString().Trim();
+                        if (doc.Length > 0)
+                            mapa[doc] = Val(r["Pendiente"]);
+                    }
+                }
+            }
+            return mapa;
+        }
+
         // Helper interno
         private static decimal Val(object o) =>
             o != null && o != DBNull.Value ? Convert.ToDecimal(o) : 0m;

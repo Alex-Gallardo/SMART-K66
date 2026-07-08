@@ -531,6 +531,24 @@
         white-space: nowrap;
     }
 
+    /* Encabezado "Fecha" ordenable: clickeable con flecha de dirección */
+    #thFechaDocs {
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+    }
+
+    #thFechaDocs:hover {
+        background: #3d5166; /* un tono más claro que el header, feedback de hover */
+    }
+
+    #thFechaDocs .flecha-orden {
+        display: inline-block;
+        margin-left: 4px;
+        font-size: 9px;
+        color: #f1c40f; /* amarillo del theme: destaca sobre el header oscuro */
+    }
+
     #tablaModalDocs tbody td {
         padding: 8px 10px !important;
         vertical-align: middle !important;
@@ -572,9 +590,21 @@
         color: #2471a3;
     }
 
-        #tablaModalDocs .col-disponible.agotado {
-            color: #a93226;
-        }
+    #tablaModalDocs .col-disponible.agotado {
+        color: #a93226;
+    }
+
+    /* Fila sin saldo por confirmar (0 o negativo): atenuada y no seleccionable.
+       El monto negativo queda visible en rojo a propósito: es señal de
+       sobre-compromiso (recibos en tránsito > saldo de la factura). */
+    #tablaModalDocs tbody tr.row-agotada {
+        opacity: .55;
+        cursor: not-allowed;
+    }
+
+    #tablaModalDocs tbody tr.row-agotada:hover {
+        background: transparent;
+    }
 
     #tablaModalDocs .chk-doc,
     #chkTodosDocs {
@@ -1367,12 +1397,14 @@
                                     <input type="checkbox" id="chkTodosDocs" title="Seleccionar todos" />
                                 </th>
                                 <th>No. Documento</th>
-                                <th>Fecha</th>
+                                <th id="thFechaDocs" title="Click para alternar: más recientes / más antiguos">
+                                    Fecha <span class="flecha-orden" id="flechaOrdenFecha">▼</span>
+                                </th>
                                 <th class="text-right">Total Fact.</th>
                                 <th class="text-right">Pagado</th>
                                 <th class="text-right">Saldo</th>
-                                <th class="text-right" title="Comprometido en recibos aún no operados en SAP (incluye anulados en SAP)">Pendiente ⏳</th>
-                                <th class="text-right" title="Saldo − Pendiente: lo realmente cobrable hoy">Disponible</th>
+                                <th class="text-right" title="Comprometido en recibos aún no operados en SAP (incluye anulados en SAP)">Recibos en Tránsito ⏳</th>
+                                <th class="text-right" title="Saldo − Pendiente: lo realmente cobrable hoy">Saldo por Confirmar</th>
                                 <th>Moneda</th>
                                 <th>Serie FEL</th>
                                 <th>Núm. FEL</th>
@@ -1741,6 +1773,88 @@ $(document).on("click", "#tbodyCobros tr", function () {
 
 // Buffer con los documentos que devolvió HANA en la última búsqueda.
 var _docsModal = [];
+// Orden de la columna Fecha: true = más recientes primero (default,
+// igual que el ORDER BY DocDate DESC del backend).
+var _ordenFechaDesc = true;
+
+// ════════════════════════════════════════════════════════
+// Render de la tabla del modal a partir de _docsModal.
+// Extraído a función para poder re-pintar al reordenar sin
+// duplicar el markup. Preserva las selecciones por NoDocumento
+// (los índices cambian al ordenar; el número de documento no).
+// ════════════════════════════════════════════════════════
+function PintarTablaModalDocs() {
+    var tbody = $("#tbodyModalDocs");
+
+    // 1. Guardar qué documentos estaban marcados (por su clave natural)
+    var marcados = {};
+    $("#tbodyModalDocs .chk-doc:checked").each(function () {
+        var d = _docsModal[parseInt($(this).data("idx"), 10)];
+        if (d) marcados[d.NoDocumento] = true;
+    });
+
+    // 2. Ordenar el buffer por fecha (FmtFecha da "yyyy-mm-dd":
+    //    comparación de strings = comparación cronológica)
+    _docsModal.sort(function (a, b) {
+        var fa = FmtFecha(a.FechaDoc), fb = FmtFecha(b.FechaDoc);
+        if (fa === fb) return 0;
+        return (_ordenFechaDesc ? (fa > fb ? -1 : 1) : (fa > fb ? 1 : -1));
+    });
+
+    // 3. Actualizar la flecha del encabezado
+    $("#flechaOrdenFecha").text(_ordenFechaDesc ? "▼" : "▲");
+
+    // 4. Pintar las filas
+    tbody.empty();
+    var saldoTotal = 0;
+
+    $.each(_docsModal, function (i, d) {
+        var saldoDoc = (parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0));
+        var pendiente = parseFloat(d.MontoPendiente || 0);
+        var disponible = saldoDoc - pendiente;      // "Saldo por confirmar"
+        var agotado = disponible <= 0.009;       // 0 o negativo: nada cobrable
+        var sel = !agotado && marcados[d.NoDocumento] === true;
+        saldoTotal += saldoDoc;
+
+        tbody.append(
+            '<tr data-idx="' + i + '"' +
+            ' class="' + (agotado ? 'row-agotada' : (sel ? 'row-sel' : '')) + '"' +
+            (agotado ? ' title="Sin saldo por confirmar: el monto ya está comprometido en recibos en tránsito. Revise los recibos pendientes de este documento."' : '') +
+            '>' +
+            '<td style="text-align:center;">' +
+            '<input type="checkbox" class="chk-doc" data-idx="' + i + '" ' +
+            'data-disp="' + disponible + '"' +
+            (agotado ? ' disabled' : '') + (sel ? ' checked' : '') + ' />' +
+            '</td>' +
+            '<td><strong>' + (d.NoDocumento || '') + '</strong></td>' +
+            '<td>' + FmtFecha(d.FechaDoc) + '</td>' +
+            '<td class="text-right">' + FmtNum(d.MontoFact) + '</td>' +
+            '<td class="text-right">' + FmtNum(d.Pagado) + '</td>' +
+            '<td class="text-right col-saldo" data-saldo="' + saldoDoc + '">' + FmtNum(saldoDoc) + '</td>' +
+            '<td class="text-right col-pendiente' + (pendiente > 0 ? '' : ' sin-pend') + '">' +
+            FmtNum(pendiente) + '</td>' +
+            '<td class="text-right col-disponible' + (agotado ? ' agotado' : '') + '">' +
+            FmtNum(disponible) + '</td>' +
+            '<td><span class="label label-info">' + (d.Moneda || '') + '</span></td>' +
+            '<td><span class="fel-badge">' + (d.FelSerie || '—') + '</span></td>' +
+            '<td><span class="fel-badge">' + (d.FelNumero || '—') + '</span></td>' +
+            '</tr>'
+        );
+    });
+
+    // 5. Resumen y estado de controles
+    $("#resTotalDocs").text(_docsModal.length);
+    $("#resSaldoTotal").text(FmtMoneda(saldoTotal));
+    ActualizarSeleccionDocs();
+    SincronizarChkTodos();
+}
+
+// Click en el encabezado "Fecha" → alternar orden y re-pintar
+$(document).on("click", "#thFechaDocs", function () {
+    if (!_docsModal.length) return;   // tabla vacía: nada que ordenar
+    _ordenFechaDesc = !_ordenFechaDesc;
+    PintarTablaModalDocs();
+});
 
 $("#btnBuscarDoc").on("click", function () {
     var tipo = $("#cboTipoDoc").val();
@@ -1755,6 +1869,7 @@ $("#btnBuscarDoc").on("click", function () {
 
     // Reset UI del modal
     _docsModal = [];
+    _ordenFechaDesc = true;   // ← NUEVO: cada búsqueda arranca en "más recientes"
     $("#chkTodosDocs").prop("checked", false);
     $("#btnAgregarSeleccionados").prop("disabled", true);
     $("#resTotalDocs").text("0");
@@ -1784,53 +1899,17 @@ $("#btnBuscarDoc").on("click", function () {
         }
 
         _docsModal = resp.data;
-        tbody.empty();
-
-        var saldoTotal = 0;
-        $.each(_docsModal, function (i, d) {
-            var saldoTotal = 0;
-            $.each(_docsModal, function (i, d) {
-                var saldoDoc = (parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0));
-                var pendiente = parseFloat(d.MontoPendiente || 0);
-                // Disponible = Total Fact − Pagado − Pendiente.
-                // (Si el negocio pide la fórmula literal "TotalFact − Pendiente",
-                //  cambiar saldoDoc por parseFloat(d.MontoFact || 0) en esta línea.)
-                var disponible = saldoDoc - pendiente;
-                saldoTotal += saldoDoc;
-
-                tbody.append(
-                    '<tr data-idx="' + i + '">' +
-                    '<td style="text-align:center;">' +
-                    '<input type="checkbox" class="chk-doc" data-idx="' + i + '" />' +
-                    '</td>' +
-                    '<td><strong>' + (d.NoDocumento || '') + '</strong></td>' +
-                    '<td>' + FmtFecha(d.FechaDoc) + '</td>' +
-                    '<td class="text-right">' + FmtNum(d.MontoFact) + '</td>' +
-                    '<td class="text-right">' + FmtNum(d.Pagado) + '</td>' +
-                    '<td class="text-right col-saldo" data-saldo="' + saldoDoc + '">' + FmtNum(saldoDoc) + '</td>' +
-                    '<td class="text-right col-pendiente' + (pendiente > 0 ? '' : ' sin-pend') + '" ' +
-                    (pendiente > 0 ? 'title="Ya comprometido en recibos pendientes de operar en SAP"' : '') + '>' +
-                    FmtNum(pendiente) + '</td>' +
-                    '<td class="text-right col-disponible' + (disponible <= 0.01 ? ' agotado' : '') + '">' +
-                    FmtNum(disponible) + '</td>' +
-                    '<td><span class="label label-info">' + (d.Moneda || '') + '</span></td>' +
-                    '<td><span class="fel-badge">' + (d.FelSerie || '—') + '</span></td>' +
-                    '<td><span class="fel-badge">' + (d.FelNumero || '—') + '</span></td>' +
-                    '</tr>'
-                );
-            });
-        });
-
-        $("#resTotalDocs").text(_docsModal.length);
-        $("#resSaldoTotal").text(FmtMoneda(saldoTotal));
+        PintarTablaModalDocs();
+       
         ActualizarSeleccionDocs();
     });
 });
 
-// Click en la fila → togglear su checkbox
+// Click en la fila → togglear su checkbox (salvo filas agotadas)
 $(document).on("click", "#tbodyModalDocs tr[data-idx]", function (e) {
     if ($(e.target).is(".chk-doc")) return;
     var chk = $(this).find(".chk-doc");
+    if (chk.is(":disabled")) return;   // sin saldo por confirmar: no seleccionable
     chk.prop("checked", !chk.prop("checked")).trigger("change");
 });
 
@@ -1842,30 +1921,33 @@ $(document).on("change", ".chk-doc", function () {
     SincronizarChkTodos();
 });
 
-// "Seleccionar todos"
+// "Seleccionar todos" — solo marca las filas CON saldo por confirmar
 $(document).on("change", "#chkTodosDocs", function () {
     var marcar = $(this).prop("checked");
-    $("#tbodyModalDocs .chk-doc").prop("checked", marcar);
-    $("#tbodyModalDocs tr[data-idx]").toggleClass("row-sel", marcar);
+    $("#tbodyModalDocs .chk-doc:not(:disabled)").each(function () {
+        $(this).prop("checked", marcar)
+            .closest("tr").toggleClass("row-sel", marcar);
+    });
     ActualizarSeleccionDocs();
 });
 
-// Recalcula el resumen de seleccionados y habilita el botón
+// Recalcula el resumen de seleccionados y habilita el botón.
+// Suma el SALDO POR CONFIRMAR (data-disp), que es lo que realmente
+// se cargará como monto al agregar los documentos.
 function ActualizarSeleccionDocs() {
-    var saldoSel = 0, n = 0;
+    var dispSel = 0, n = 0;
     $("#tbodyModalDocs .chk-doc:checked").each(function () {
-        var saldo = parseFloat($(this).closest("tr").find(".col-saldo").data("saldo")) || 0;
-        saldoSel += saldo;
+        dispSel += parseFloat($(this).data("disp")) || 0;
         n++;
     });
-    $("#resSaldoSel").html(FmtMoneda(saldoSel) +
+    $("#resSaldoSel").html(FmtMoneda(dispSel) +
         ' <small style="font-size:11px;color:#7f8c8d;">(' + n + ')</small>');
     $("#btnAgregarSeleccionados").prop("disabled", n === 0);
 }
 
-// Mantiene el "seleccionar todos" coherente
+// Mantiene el "seleccionar todos" coherente (ignora las agotadas)
 function SincronizarChkTodos() {
-    var total = $("#tbodyModalDocs .chk-doc").length;
+    var total = $("#tbodyModalDocs .chk-doc:not(:disabled)").length;
     var marcados = $("#tbodyModalDocs .chk-doc:checked").length;
     $("#chkTodosDocs").prop("checked", total > 0 && marcados === total);
 }
@@ -1898,6 +1980,8 @@ $("#btnAgregarSeleccionados").on("click", function () {
 
         var moneda = d.Moneda || "GTQ";
         var saldo = parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0);
+        var disponible = saldo - parseFloat(d.MontoPendiente || 0);
+        if (disponible <= 0) return;   // defensivo: no debería llegar (checkbox disabled)
 
         var yaExiste = Estado.documentos.some(function (x) {
             return x.NoDocumento === d.NoDocumento;
@@ -1912,7 +1996,7 @@ $("#btnAgregarSeleccionados").on("click", function () {
             NoDocumento: d.NoDocumento,
             FechaDoc: FmtFecha(d.FechaDoc),
             Status: "",
-            Monto: saldo,
+            Monto: Math.round(disponible * 100) / 100,   // ← Saldo por confirmar, no el saldo bruto
             Moneda: moneda,
             MontoFact: parseFloat(d.MontoFact || 0),
             Pagado: parseFloat(d.Pagado || 0),
@@ -1935,11 +2019,15 @@ $("#btnAgregarSeleccionados").on("click", function () {
 
 // Carga un documento en el panel editable "Detalle de Documentos".
 // Reutilizado por: selección única en el modal, y edición de fila.
-// - Desde el modal (objeto HANA crudo): no trae 'Monto' → usa el saldo.
+// - Desde el modal (objeto HANA crudo, sin 'Monto'): precarga el
+//   SALDO POR CONFIRMAR (saldo − recibos en tránsito), clampado a 0.
 // - Desde editar fila (objeto de Estado.documentos): respeta el 'Monto' guardado.
 function CargarDocEnPanel(d) {
     if (!d) return;
     var saldo = parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0);
+    var disponible = saldo - parseFloat(d.MontoPendiente || 0);
+    if (disponible < 0) disponible = 0;   // negativo: nada que precargar
+    // (la validación monto<=0 impide agregarlo)
 
     $("#txtNoDocDoc").val(d.NoDocumento);
     $("#dtpFechaDoc").val(FmtFecha(d.FechaDoc));
@@ -1947,7 +2035,7 @@ function CargarDocEnPanel(d) {
     $("#txtNumFel").val(d.FelNumero || "");
     $("#txtTotalFact").val(FmtNum(d.MontoFact));
     $("#txtPagado").val(FmtNum(d.Pagado));
-    $("#txtMontoDoc").val(FmtNum(d.Monto != null ? d.Monto : saldo));
+    $("#txtMontoDoc").val(FmtNum(d.Monto != null ? d.Monto : disponible));
     $("#cboMonedaDoc").val(d.Moneda || "GTQ");
 
     if ($("#cboMonedaDoc").hasClass("search-select") && $.fn.select2) {

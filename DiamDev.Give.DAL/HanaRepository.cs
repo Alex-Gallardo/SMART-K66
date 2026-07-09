@@ -184,6 +184,135 @@ namespace DiamDev.Give.DAL
         }
 
         // ─────────────────────────────────────────────
+        // PAGOS COMPLETOS (Fase 5 — DESCUADRE)
+        // ─────────────────────────────────────────────
+        /// <summary>
+        /// Para un lote de recibos, devuelve TODOS los ORCT etiquetados con ellos
+        /// (activos Y anulados), con: totales del pago, lo aplicado según RCT2 y
+        /// las facturas (OINV.DocNum) que cada pago dejó aplicadas.
+        ///
+        /// A diferencia de ObtenerCobrosOperados (que filtra Canceled='N' y colapsa
+        /// a 1 fila por recibo), aquí se conserva TODO: un recibo puede tener N
+        /// pagos en SAP (ORCT manuales de Créditos con el mismo U_Recibocaja_Webapp).
+        /// </summary>
+        public List<SapPagoDetalle> ObtenerPagosSapDetalle(string empresa, List<string> idsRecibo)
+        {
+            var pagos = new List<SapPagoDetalle>();
+            if (idsRecibo == null || idsRecibo.Count == 0) return pagos;
+
+            string schema = ResolverSchema(empresa);
+            if (schema == null)
+                throw new ArgumentException("Empresa sin schema HANA: " + empresa);
+
+            const int TAM_LOTE = 200;
+
+            // ── 1) ORCT: todos los pagos etiquetados, SIN filtrar Canceled ──
+            for (int i = 0; i < idsRecibo.Count; i += TAM_LOTE)
+            {
+                var lote = idsRecibo.Skip(i).Take(TAM_LOTE)
+                                    .Select(x => (x ?? "").Trim())
+                                    .Where(x => x.Length > 0)
+                                    .ToList();
+                if (lote.Count == 0) continue;
+
+                string placeholders = string.Join(",", lote.Select(_ => "?"));
+
+                string sql = string.Format(
+                    "SELECT \"DocEntry\", \"DocNum\", \"Canceled\", \"DocDate\", \"DocCurr\", " +
+                    "       \"DocTotal\", \"DocTotalFC\", \"U_Recibocaja_Webapp\" " +
+                    "FROM \"{0}\".\"ORCT\" " +
+                    "WHERE TRIM(\"U_Recibocaja_Webapp\") IN ({1})",
+                    schema, placeholders);
+
+                var parametros = lote
+                    .Select(id => new OdbcParameter { OdbcType = OdbcType.NVarChar, Value = id })
+                    .ToArray();
+
+                DataTable dt = HanaHelper.EjecutarConsulta(sql, parametros);
+
+                foreach (DataRow r in dt.Rows)
+                {
+                    pagos.Add(new SapPagoDetalle
+                    {
+                        IdRecibo = Convert.ToString(r["U_Recibocaja_Webapp"]).Trim(),
+                        DocEntry = Convert.ToInt32(r["DocEntry"]),
+                        DocNum = Convert.ToInt32(r["DocNum"]),
+                        Canceled = "Y".Equals(Convert.ToString(r["Canceled"]).Trim(),
+                                                 StringComparison.OrdinalIgnoreCase),
+                        FechaPago = r["DocDate"] == DBNull.Value
+                                        ? (DateTime?)null : Convert.ToDateTime(r["DocDate"]),
+                        MonedaDoc = NormalizarMoneda(LeerCampo(r, "DocCurr")),
+                        DocTotalGTQ = LeerDecimal(r, "DocTotal"),
+                        DocTotalUSD = LeerDecimal(r, "DocTotalFC")
+                    });
+                }
+            }
+
+            if (pagos.Count == 0) return pagos;
+
+            // ── 2) RCT2: sumas aplicadas por pago (reutiliza el método existente) ──
+            var docEntries = pagos.Select(p => p.DocEntry).Distinct().ToList();
+            Dictionary<int, MontoAplicadoSap> sumas = ObtenerMontosAplicados(empresa, docEntries);
+
+            // ── 3) RCT2 + OINV: qué facturas dejó aplicadas cada pago ──
+            Dictionary<int, List<string>> facturas = ObtenerFacturasAplicadas(schema, docEntries);
+
+            foreach (var p in pagos)
+            {
+                if (sumas.TryGetValue(p.DocEntry, out var s))
+                {
+                    p.TieneLineasRct2 = true;
+                    p.AplicadoGTQ = s.MontoGTQ;
+                    p.AplicadoUSD = s.MontoUSD;
+                }
+                if (facturas.TryGetValue(p.DocEntry, out var f))
+                    p.FacturasAplicadas = f;
+            }
+
+            return pagos;
+        }
+
+        /// <summary>
+        /// DocNum de facturas (OINV) aplicadas por cada pago.
+        /// Enlace SAP: RCT2."DocNum" = DocEntry del PAGO (quirk histórico) y
+        /// RCT2."DocEntry" = DocEntry del documento aplicado; InvType 13 = factura.
+        /// </summary>
+        private Dictionary<int, List<string>> ObtenerFacturasAplicadas(string schema, List<int> docEntries)
+        {
+            var resultado = new Dictionary<int, List<string>>();
+            if (docEntries == null || docEntries.Count == 0) return resultado;
+
+            const int TAM_LOTE = 200;
+            for (int i = 0; i < docEntries.Count; i += TAM_LOTE)
+            {
+                var lote = docEntries.Skip(i).Take(TAM_LOTE).ToList();
+                string placeholders = string.Join(",", lote.Select(_ => "?"));
+
+                string sql = string.Format(
+                    "SELECT T1.\"DocNum\" AS \"DocEntryPago\", T2.\"DocNum\" AS \"FacturaDocNum\" " +
+                    "FROM \"{0}\".\"RCT2\" T1 " +
+                    "INNER JOIN \"{0}\".\"OINV\" T2 ON T2.\"DocEntry\" = T1.\"DocEntry\" " +
+                    "WHERE T1.\"InvType\" = 13 AND T1.\"DocNum\" IN ({1})",
+                    schema, placeholders);
+
+                var parametros = lote
+                    .Select(de => new OdbcParameter { OdbcType = OdbcType.Int, Value = de })
+                    .ToArray();
+
+                DataTable dt = HanaHelper.EjecutarConsulta(sql, parametros);
+                foreach (DataRow r in dt.Rows)
+                {
+                    int de = Convert.ToInt32(r["DocEntryPago"]);
+                    string fac = Convert.ToString(r["FacturaDocNum"]);
+                    if (!resultado.TryGetValue(de, out var lista))
+                        resultado[de] = lista = new List<string>();
+                    if (!lista.Contains(fac)) lista.Add(fac);
+                }
+            }
+            return resultado;
+        }
+
+        // ─────────────────────────────────────────────
         // FACTURAS / PEDIDOS (Vista RC_FACTURAS_REC_CAJ)
         // ─────────────────────────────────────────────
         /// <summary>

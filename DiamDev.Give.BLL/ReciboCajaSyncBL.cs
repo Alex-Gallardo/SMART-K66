@@ -8,18 +8,19 @@ namespace DiamDev.Give.BLL
 {
     /// <summary>
     /// Orquesta la sincronización de recibos:
-    ///  - Pasada normal:  PENDIENTE -> OPERADO (créditos ya operó en SAP).
-    ///  - Pasada inversa: OPERADO -> PENDIENTE si se anuló; re-apunta DocEntry si
-    ///                     se anuló+rehízo; y CONCILIA montos (SQL vs RCT2) para los
-    ///                     que siguen activos.
-    /// La conciliación NO cambia SYNC_ESTADO: solo marca SYNC_OBSERVACION.
+    ///  - Pasada normal : PENDIENTE -> OPERADO (créditos ya operó en SAP).
+    ///  - Pasada inversa: revisa OPERADO y DESCUADRE contra SAP:
+    ///      * 0 pagos activos          -> anulación TOTAL   -> PENDIENTE
+    ///      * activos que NO cuadran   -> anulación PARCIAL -> DESCUADRE
+    ///      * activos que SÍ cuadran   -> OPERADO (sana el DESCUADRE si venía de ahí)
+    ///    Un recibo puede tener N pagos ORCT (Créditos crea manuales con el mismo
+    ///    U_Recibocaja_Webapp): la conciliación SUMA todos los activos.
     /// </summary>
     public class ReciboCajaSyncBL
     {
         private static readonly string[] EMPRESAS = { "GRACO", "FAES", "BOLIK" };
 
         // Tolerancia de conciliación (App.config -> SyncToleranciaMonto). Default 0.05.
-        // Absorbe redondeo acumulado sin dejar pasar descuadres reales (de quetzales).
         private const decimal TOLERANCIA_FALLBACK = 0.05m;
 
         private readonly ReciboCajaSyncDA _sql = new ReciboCajaSyncDA();
@@ -39,10 +40,11 @@ namespace DiamDev.Give.BLL
             public int Revisados { get; set; }
             public int Operados { get; set; }
             public int OperadosRevisados { get; set; }
-            public int Anulados { get; set; }
+            public int Anulados { get; set; }        // anulación TOTAL -> PENDIENTE
             public int Reapuntados { get; set; }
             public int Conciliados { get; set; }     // revisados por conciliación
-            public int Descuadrados { get; set; }     // marcados con bandera [CONCIL]
+            public int Descuadrados { get; set; }    // transiciones NUEVAS a DESCUADRE
+            public int Sanados { get; set; }         // DESCUADRE -> OPERADO (self-healing)
             public List<string> Errores { get; } = new List<string>();
         }
 
@@ -66,7 +68,7 @@ namespace DiamDev.Give.BLL
             RevisarAnulaciones(empresa, res);   // pasada inversa + conciliación
         }
 
-        // ── Pasada normal: PENDIENTE -> OPERADO ────────────────────────────
+        // ── Pasada normal: PENDIENTE -> OPERADO (sin cambios) ──────────────
         private void ProcesarPendientes(string empresa, ResultadoSync res)
         {
             List<string> pendientes = _sql.ObtenerRecibosPendientes(empresa);
@@ -96,64 +98,80 @@ namespace DiamDev.Give.BLL
             _sql.MarcarUltimoCheckLote(noOperados, empresa);
         }
 
-        // ── Pasada inversa: anulación / reapuntado / conciliación ──────────
+        // ── Pasada inversa: anulación total / parcial / reapunte / sanación ─
         private void RevisarAnulaciones(string empresa, ResultadoSync res)
         {
-            List<SapCobroAplicado> operadosSql = _sql.ObtenerRecibosOperados(empresa);
-            if (operadosSql.Count == 0) return;
+            // OPERADO **y** DESCUADRE: los descuadrados también se re-revisan
+            // para poder sanarse solos cuando Créditos re-aplica el pago.
+            List<ReciboRevisionSql> revisar = _sql.ObtenerRecibosParaRevision(empresa);
+            if (revisar.Count == 0) return;
 
-            res.OperadosRevisados += operadosSql.Count;
+            res.OperadosRevisados += revisar.Count;
 
-            var ids = operadosSql.Select(o => o.IdRecibo).ToList();
-            List<SapCobroAplicado> activosSap = _hana.ObtenerCobrosOperados(empresa, ids);
-            var activosPorId = activosSap.ToDictionary(
-                a => a.IdRecibo, a => a, StringComparer.OrdinalIgnoreCase);
+            var ids = revisar.Select(o => o.IdRecibo).ToList();
 
-            // Para conciliar: junto los DocEntry de los que siguen activos y pido RCT2 en UN viaje.
-            var docEntriesActivos = activosSap.Select(a => a.SapDocEntry).Distinct().ToList();
-            Dictionary<int, MontoAplicadoSap> montosSap =
-                _hana.ObtenerMontosAplicados(empresa, docEntriesActivos);
+            // UN viaje a HANA por lote: TODOS los ORCT (activos y anulados),
+            // con montos RCT2 y facturas aplicadas ya resueltos.
+            List<SapPagoDetalle> pagos = _hana.ObtenerPagosSapDetalle(empresa, ids);
+            var pagosPorRecibo = pagos
+                .GroupBy(p => p.IdRecibo, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
-            // Necesito la moneda y el MONTO_T_DOC de cada recibo para conciliar.
-            // Los traigo del SQL en un solo lote (método nuevo, ver abajo).
             Dictionary<string, ReciboMontoSql> datosSql =
                 _sql.ObtenerDatosConciliacion(empresa, ids);
 
             var sinCambio = new List<string>();
 
-            foreach (var op in operadosSql)
+            foreach (var op in revisar)
             {
                 try
                 {
-                    if (activosPorId.TryGetValue(op.IdRecibo, out var sap))
-                    {
-                        // Sigue activo. ¿Cambió el DocEntry? -> reapuntar.
-                        if (sap.SapDocEntry != op.SapDocEntry)
-                        {
-                            string obs = string.Format(
-                                "Re-apuntado en SAP: DocEntry {0}->{1}, DocNum {2}->{3} ({4:dd/MM/yyyy HH:mm}).",
-                                op.SapDocEntry, sap.SapDocEntry,
-                                op.SapDocNum, sap.SapDocNum, DateTime.Now);
-                            _sql.ActualizarReferenciasSap(sap, empresa, obs);
-                            res.Reapuntados++;
-                        }
+                    pagosPorRecibo.TryGetValue(op.IdRecibo, out var pagosRecibo);
+                    pagosRecibo = pagosRecibo ?? new List<SapPagoDetalle>();
 
-                        // Conciliar montos (use el DocEntry vigente = el de SAP).
-                        ConciliarRecibo(op.IdRecibo, empresa, sap.SapDocEntry,
-                                        datosSql, montosSap, res);
+                    // Bitácora: registrar TODO lo visto en SAP (activos y anulados)
+                    _sql.UpsertSapDocs(op.IdRecibo, empresa, pagosRecibo);
 
-                        sinCambio.Add(op.IdRecibo);
-                    }
-                    else
+                    var activos = pagosRecibo.Where(p => !p.Canceled).ToList();
+
+                    // ── CASO 1: anulación TOTAL → PENDIENTE (regla de negocio) ──
+                    if (activos.Count == 0)
                     {
-                        // No está activo -> anulado -> Opción A: regresar a PENDIENTE.
-                        string obs = string.Format(
+                        string obsAnul = string.Format(
                             "Anulado en SAP (sin cobro activo). Era DocNum {0}/DocEntry {1}. " +
                             "Regresado a PENDIENTE {2:dd/MM/yyyy HH:mm}.",
                             op.SapDocNum, op.SapDocEntry, DateTime.Now);
-                        _sql.RegresarReciboAPendiente(op.IdRecibo, empresa, obs);
+
+                        _sql.LimpiarMarcasDetalle(op.IdRecibo, empresa);
+                        _sql.RegresarReciboAPendiente(op.IdRecibo, empresa, obsAnul);
                         res.Anulados++;
+                        continue;
                     }
+
+                    // ── Reapuntar SAP_DOCENTRY al pago activo más reciente ──
+                    var vigente = activos.OrderByDescending(p => p.DocEntry).First();
+                    if (vigente.DocEntry != op.SapDocEntry)
+                    {
+                        var sap = new SapCobroAplicado
+                        {
+                            IdRecibo = op.IdRecibo,
+                            SapDocEntry = vigente.DocEntry,
+                            SapDocNum = vigente.DocNum,
+                            FechaPago = vigente.FechaPago
+                        };
+                        string obsRe = string.Format(
+                            "Re-apuntado en SAP: DocEntry {0}->{1}, DocNum {2}->{3} ({4:dd/MM/yyyy HH:mm}).",
+                            op.SapDocEntry, vigente.DocEntry,
+                            op.SapDocNum, vigente.DocNum, DateTime.Now);
+                        _sql.ActualizarReferenciasSap(sap, empresa, obsRe);
+                        res.Reapuntados++;
+                    }
+
+                    // ── CASO 2/3: conciliar sumando TODOS los pagos activos ──
+                    bool quedoOperadoCuadrado = ConciliarRecibo(
+                        op, empresa, activos, pagosRecibo, datosSql, res);
+
+                    if (quedoOperadoCuadrado) sinCambio.Add(op.IdRecibo);
                 }
                 catch (Exception ex)
                 {
@@ -165,46 +183,70 @@ namespace DiamDev.Give.BLL
             _sql.MarcarUltimoCheckLote(sinCambio, empresa, "OPERADO");
         }
 
-        // ── Conciliación de un recibo ──────────────────────────────────────
-        private void ConciliarRecibo(string idRecibo, string empresa, int docEntry,
+        // ── Conciliación de un recibo (multi-ORCT) ─────────────────────────
+        // Devuelve true si el recibo quedó OPERADO cuadrado sin transición
+        // (para el lote de "último check"); false en cualquier otro caso.
+        private bool ConciliarRecibo(ReciboRevisionSql op, string empresa,
+                                     List<SapPagoDetalle> activos,
+                                     List<SapPagoDetalle> todos,
                                      Dictionary<string, ReciboMontoSql> datosSql,
-                                     Dictionary<int, MontoAplicadoSap> montosSap,
                                      ResultadoSync res)
         {
             res.Conciliados++;
 
-            if (!datosSql.TryGetValue(idRecibo, out var sql)) return; // sin datos, no concilio
+            if (!datosSql.TryGetValue(op.IdRecibo, out var sql)) return false; // sin datos, no concilio
 
-            // Anticipo: RCT2 vacío -> no aparece en montosSap. Conciliamos contra el
-            // total del pago no aplicado a facturas. Por ahora, si no hay líneas RCT2,
-            // NO marcamos descuadre (el pago existe y está activo; el monto va por ORCT).
-            if (!montosSap.TryGetValue(docEntry, out var msap))
-            {
-                _sql.MarcarConciliacion(idRecibo, empresa, null); // limpia bandera [CONCIL] si había
-                return;
-            }
-
-            // Elegir la columna de SAP según la moneda del recibo.
             bool esUSD = string.Equals((sql.Moneda ?? "").Trim(), "USD",
                                        StringComparison.OrdinalIgnoreCase);
-            decimal montoSapMoneda = esUSD ? msap.MontoUSD : msap.MontoGTQ;
+            bool eraDescuadre = string.Equals(op.SyncEstado, "DESCUADRE",
+                                              StringComparison.OrdinalIgnoreCase);
+
+            // Suma de TODOS los pagos activos (RCT2; anticipos por total ORCT)
+            decimal montoSap = activos.Sum(p => p.MontoEfectivo(esUSD));
             decimal montoSql = sql.MontoTDoc;
+            decimal diferencia = Math.Abs(montoSql - montoSap);
 
-            decimal diferencia = Math.Abs(montoSql - montoSapMoneda);
-
+            // ── Cuadra ──
             if (diferencia <= Tolerancia)
             {
-                // Cuadra: limpiar cualquier bandera [CONCIL] previa.
-                _sql.MarcarConciliacion(idRecibo, empresa, null);
+                if (eraDescuadre)
+                {
+                    // Self-healing: Créditos ya re-aplicó → DESCUADRE -> OPERADO
+                    _sql.LimpiarMarcasDetalle(op.IdRecibo, empresa);
+                    _sql.MarcarReciboCuadrado(op.IdRecibo, empresa, string.Format(
+                        "Descuadre resuelto: SQL={0:N2} = SAP={1:N2} ({2} pago(s) activo(s)) {3:dd/MM/yyyy HH:mm}.",
+                        montoSql, montoSap, activos.Count, DateTime.Now));
+                    res.Sanados++;
+                    return false;
+                }
+
+                // Ya estaba OPERADO y cuadra: limpiar bandera previa si había
+                _sql.MarcarConciliacion(op.IdRecibo, empresa, null);
+                return true;
             }
-            else
-            {
-                string obs = string.Format(
-                    "Descuadre montos ({0}): SQL={1:N2} vs SAP={2:N2}, dif={3:N2} ({4:dd/MM/yyyy HH:mm}).",
-                    esUSD ? "USD" : "GTQ", montoSql, montoSapMoneda, diferencia, DateTime.Now);
-                _sql.MarcarConciliacion(idRecibo, empresa, obs);
-                res.Descuadrados++;
-            }
+
+            // ── NO cuadra: anulación parcial (u otra causa) → DESCUADRE ──
+            var facturasActivas = activos
+                .SelectMany(p => p.FacturasAplicadas)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var anulados = todos.Where(p => p.Canceled)
+                                .Select(p => p.DocNum.ToString())
+                                .ToList();
+
+            string obs = string.Format(
+                "[DESC] Descuadre ({0}): SQL={1:N2} vs SAP activo={2:N2}, dif={3:N2}. " +
+                "Pago(s) anulado(s) en SAP: {4}. Recibido sin aplicar: {3:N2}. {5:dd/MM/yyyy HH:mm}.",
+                esUSD ? "USD" : "GTQ", montoSql, montoSap, diferencia,
+                anulados.Count == 0 ? "ninguno detectado" : "DocNum " + string.Join(", ", anulados),
+                DateTime.Now);
+
+            _sql.MarcarLineasAnuladas(op.IdRecibo, empresa, facturasActivas);
+            _sql.MarcarReciboDescuadre(op.IdRecibo, empresa, obs);
+
+            if (!eraDescuadre) res.Descuadrados++;   // solo contar la transición nueva
+            return false;
         }
     }
 }

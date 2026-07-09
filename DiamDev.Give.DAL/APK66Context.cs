@@ -418,25 +418,28 @@ namespace DiamDev.Give.DAL
         // ─────────────────────────────────────────────
         /// <summary>
         /// Para un cliente+empresa+tipo, devuelve cuánto dinero está comprometido
-        /// por documento en recibos que SAP aún NO operó (SYNC_ESTADO='PENDIENTE').
+        /// por documento en recibos "en tránsito", y en QUÉ recibos:
         ///
-        /// Incluye ambos casos del requerimiento en un solo filtro, porque la
-        /// Opción A del sincronizador regresa los anulados-en-SAP a PENDIENTE:
-        ///   - Pendiente activo (recibo creado, Créditos aún no opera)
-        ///   - Anulado en SAP (regresó a PENDIENTE con observación)
-        /// Excluye OPERADOS (ya reflejados en el PaidToDate de SAP) y recibos
-        /// anulados localmente (STATUS='X').
+        ///   a) Recibos PENDIENTES: nada de ellos está en SAP todavía, así que
+        ///      TODAS sus líneas cuentan (incluye los regresados a PENDIENTE por
+        ///      anulación TOTAL en SAP).
         ///
-        /// Retorna: diccionario NO_DOCUMENTO → monto pendiente.
-        /// En TS: Record&lt;string, number&gt; para hacer lookup O(1) al mergear.
+        ///   b) Recibos en DESCUADRE: SOLO las líneas SYNC_DOC_ESTADO='ANULADO_SAP'.
+        ///      El pago de esas líneas se revirtió en SAP (la factura reabrió y su
+        ///      PaidToDate ya NO incluye ese dinero), pero caja SÍ lo recibió.
+        ///      Las líneas 'APLICADO' NO se cuentan: su pago sigue vivo en SAP y
+        ///      PaidToDate ya lo refleja — contarlas sería descontarlas DOS veces.
+        ///
+        /// Excluye OPERADOS cuadrados y recibos anulados localmente (STATUS='X').
+        /// Retorna: diccionario NO_DOCUMENTO → { Monto, Recibos[] }.
         /// </summary>
-        public Dictionary<string, decimal> ObtenerPendientesPorDocumento(
+        public Dictionary<string, PendienteDocumento> ObtenerPendientesPorDocumento(
             string empresa, string clienteId, string tipoDoc)
         {
-            var mapa = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+            var mapa = new Dictionary<string, PendienteDocumento>(StringComparer.OrdinalIgnoreCase);
 
             const string sql = @"
-                SELECT D.NO_DOCUMENTO, SUM(D.MONTO) AS Pendiente
+                SELECT D.NO_DOCUMENTO, D.MONTO, E.ID_RECIBO, E.SYNC_ESTADO
                 FROM REC_CAJA_DET D
                 INNER JOIN REC_CAJA_ENC E
                         ON E.ID_RECIBO  = D.ID_RECIBO
@@ -445,9 +448,12 @@ namespace DiamDev.Give.DAL
                   AND E.ID_CLIENTE   = @cli
                   AND D.TIPO_DOC     = @tipo
                   AND D.NO_DOCUMENTO IS NOT NULL
-                  AND E.SYNC_ESTADO  = 'PENDIENTE'
                   AND ISNULL(E.STATUS, 'A') <> 'X'
-                GROUP BY D.NO_DOCUMENTO;";
+                  AND (
+                        E.SYNC_ESTADO = 'PENDIENTE'
+                     OR (E.SYNC_ESTADO = 'DESCUADRE' AND D.SYNC_DOC_ESTADO = 'ANULADO_SAP')
+                  )
+                ORDER BY D.NO_DOCUMENTO, E.ID_RECIBO;";
 
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(sql, con))
@@ -461,8 +467,18 @@ namespace DiamDev.Give.DAL
                     while (r.Read())
                     {
                         string doc = r["NO_DOCUMENTO"].ToString().Trim();
-                        if (doc.Length > 0)
-                            mapa[doc] = Val(r["Pendiente"]);
+                        if (doc.Length == 0) continue;
+
+                        if (!mapa.TryGetValue(doc, out var p))
+                            mapa[doc] = p = new PendienteDocumento();
+
+                        p.Monto += Val(r["MONTO"]);
+
+                        string etiqueta = string.Format("{0} ({1})",
+                            r["ID_RECIBO"],
+                            r["SYNC_ESTADO"] == DBNull.Value ? "?" : r["SYNC_ESTADO"]);
+                        if (!p.Recibos.Contains(etiqueta))
+                            p.Recibos.Add(etiqueta);
                     }
                 }
             }

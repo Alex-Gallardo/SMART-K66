@@ -220,13 +220,41 @@ namespace DiamDev.Give.UI.Controllers
 
         // ─────────────────────────────────────────────
         // GET /ReciboCaja/Imprimir/{idRecibo}/{empresa}
-        // Abre vista de impresión en nueva pestaña
+        // Abre vista de impresión en nueva pestaña.
+        // BLOQUEA recibos en DESCUADRE (validación de servidor: el disabled
+        // del botón en la vista es solo cosmético, esto es lo que manda).
         // ─────────────────────────────────────────────
         /// [Permiso("Control.ReciboCaja.Ver")]
         public ActionResult Imprimir(string idRecibo, string empresa)
         {
             var rec = _bll.BuscarRecibo(idRecibo, empresa);
             if (rec == null) return HttpNotFound("Recibo no encontrado.");
+
+            if ("DESCUADRE".Equals(rec.SyncEstado ?? "", StringComparison.OrdinalIgnoreCase))
+            {
+                string html =
+                    "<!DOCTYPE html><html><head><meta charset='utf-8'>" +
+                    "<title>Impresión bloqueada</title>" +
+                    "<style>body{font-family:Arial,sans-serif;background:#f4f6f7;display:flex;" +
+                    "align-items:center;justify-content:center;height:100vh;margin:0}" +
+                    ".box{background:#fff;border-top:5px solid #e74c3c;border-radius:8px;" +
+                    "box-shadow:0 8px 30px rgba(0,0,0,.12);padding:30px 36px;max-width:580px}" +
+                    "h2{color:#a93226;margin-top:0}p{color:#5d6d7e;font-size:14px;line-height:1.5}" +
+                    "code{background:#fdf2f0;color:#a93226;padding:2px 6px;border-radius:4px}" +
+                    ".obs{background:#fef9e7;border:1px solid #f1c40f;border-radius:5px;" +
+                    "padding:10px 12px;font-size:12.5px;color:#7d6608}</style></head><body>" +
+                    "<div class='box'><h2>⚠ Impresión bloqueada</h2>" +
+                    "<p>El recibo <code>" + Server.HtmlEncode(idRecibo ?? "") + "</code> tiene un " +
+                    "<strong>descuadre con SAP</strong>: parte del pago fue anulado y aún no ha " +
+                    "sido re-aplicado por Créditos.</p>" +
+                    "<div class='obs'>" + Server.HtmlEncode(rec.SyncObservacion ?? "") + "</div>" +
+                    "<p style='margin-top:14px;'>Cuando Créditos re-aplique el monto en SAP " +
+                    "(con el mismo recibo en <code>U_Recibocaja_Webapp</code>), el sincronizador " +
+                    "liberará la impresión automáticamente.</p></div></body></html>";
+
+                return Content(html, "text/html");
+            }
+
             return View(rec);
         }
 

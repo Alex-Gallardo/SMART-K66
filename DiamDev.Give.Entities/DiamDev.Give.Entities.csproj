@@ -101,6 +101,7 @@
     <Compile Include="DescuentoK66.cs" />
     <Compile Include="PedidoK66.cs" />
     <Compile Include="EstadoSmartK66.cs" />
+    <Compile Include="PendienteDocumento.cs" />
     <Compile Include="PrecioxCantidadModel.cs" />
     <Compile Include="ReciboCajaCobro.cs" />
     <Compile Include="ReciboCajaDetalle.cs" />
@@ -109,6 +110,7 @@
     <Compile Include="RecibosCajaUsuarioDepto.cs" />
     <Compile Include="ResultadoRecibo.cs" />
     <Compile Include="SapCobroAplicado.cs" />
+    <Compile Include="SapPagoDetalle.cs" />
     <Compile Include="UnidadK66.cs" />
     <Compile Include="Visita.cs" />
     <Compile Include="ProductoAlertaK66.cs" />

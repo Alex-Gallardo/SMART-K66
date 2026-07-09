@@ -2,21 +2,30 @@
 @{
     Layout = null;
 
-    // ── Datos de membrete por empresa ──
-    // ⚠ PLACEHOLDERS: dirección y NIT reales pendientes de confirmar (backlog P2).
+    // ── Datos de membrete por empresa (razón social + NIT reales) ──
     var empresas = new Dictionary<string, dynamic>
 {
-        { "GRACO", new { Nombre = "GRACO PACK",        Direccion = "Dirección pendiente, Guatemala", Nit = "NIT-PENDIENTE", Color = "#27ae60" } },
-        { "FAES",  new { Nombre = "FABRICA ESCOCESA",  Direccion = "Dirección pendiente, Guatemala", Nit = "NIT-PENDIENTE", Color = "#c0392b" } },
-        { "BOLIK", new { Nombre = "INDUSTRIAS BOLIK",  Direccion = "Dirección pendiente, Guatemala", Nit = "NIT-PENDIENTE", Color = "#2c3e50" } }
+        { "GRACO", new { Nombre = "GRACOPACK DE CENTROAMERICA, S.A.", Nit = "4340248-8", Color = "#27ae60" } },
+        { "FAES",  new { Nombre = "FABRICA ESCOCESA, S.A.",           Nit = "4153479-4", Color = "#c0392b" } },
+        { "BOLIK", new { Nombre = "INDUSTRIAS BOLIK, S.A.",           Nit = "4050444-1", Color = "#2c3e50" } }
     };
     var emp = empresas.ContainsKey(Model.IdEmpresa ?? "")
                 ? empresas[Model.IdEmpresa]
-                : new { Nombre = Model.IdEmpresa ?? "—", Direccion = "", Nit = "", Color = "#7f8c8d" };
+                : new { Nombre = Model.IdEmpresa ?? "—", Nit = "", Color = "#7f8c8d" };
 
     bool esOperado = string.Equals(Model.SyncEstado, "OPERADO", StringComparison.OrdinalIgnoreCase);
     bool tieneDual = Model.TipoCambio.HasValue && Model.TipoCambio.Value > 0;
-    string simbolo = (Model.Moneda ?? "GTQ") == "USD" ? "$" : "Q";
+
+    // ── Moneda única del recibo: si es USD se imprime todo en $,
+    //    en cualquier otro caso en Q. Nada de doble columna. ──
+    bool esUsd = string.Equals((Model.Moneda ?? "").Trim(), "USD", StringComparison.OrdinalIgnoreCase);
+    string simbolo = esUsd ? "$" : "Q";
+
+    // Totales en LA moneda del recibo (de las columnas duales si existen;
+    // fallback a los montos legado para recibos históricos sin dual).
+    decimal totCobros = tieneDual ? (esUsd ? Model.MontoTotalRecUsd : Model.MontoTotalRecGtq) : Model.MontoTotalRecibo;
+    decimal totDocs = tieneDual ? (esUsd ? Model.MontoTotalDocUsd : Model.MontoTotalDocGtq) : Model.MontoTotalDoc;
+    decimal totSaldo = tieneDual ? (esUsd ? Model.SaldoUsd : Model.SaldoGtq) : Model.Saldo;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -34,8 +43,8 @@
 
         /* ── Membrete ── */
         .membrete { display: flex; justify-content: space-between; align-items: flex-start;
-                    border-bottom: 3px solid @emp.Color; padding-bottom: 12px; margin-bottom: 16px; }
-        .membrete h1 { font-size: 20px; color: @emp.Color; letter-spacing: .5px; }
+                    border-bottom: 3px solid @emp.Color; padding-bottom: 12px; margin-bottom: 16px; margin-top: 2em }
+        .membrete h1 { font-size: 18px; color: @emp.Color; letter-spacing: .5px; }
         .membrete .emp-datos { font-size: 11px; color: #7f8c8d; margin-top: 3px; line-height: 1.5; }
         .recibo-num { text-align: right; }
         .recibo-num .lbl { font-size: 10px; text-transform: uppercase; color: #95a5a6; letter-spacing: .5px; }
@@ -98,12 +107,11 @@
         <button class="btn-print" onclick="window.print();">🖨 Imprimir Recibo</button>
     </div>
 
-    <!-- ── MEMBRETE ── -->
+    <!-- ── MEMBRETE (razón social + NIT; sin dirección) ── -->
     <div class="membrete">
         <div>
             <h1>@emp.Nombre</h1>
             <div class="emp-datos">
-                @emp.Direccion<br />
                 NIT: @emp.Nit
             </div>
         </div>
@@ -137,7 +145,7 @@
     </div>
 
     <!-- ── COBROS ── -->
-    <div class="titulo-seccion">Formas de Pago</div>
+    <div class="titulo-seccion">Detalle de Cobro</div>
     <table>
         <thead>
             <tr>
@@ -174,45 +182,45 @@
                 <th>Serie FEL</th>
                 <th>Núm. FEL</th>
                 <th>Fecha</th>
-                <th class="num-col">Monto</th>
+                <th class="num-col">Total Factura</th>
+                <th class="num-col">Monto Cobrado</th>
+                <th class="num-col">Saldo Pendiente</th>
                 <th>Moneda</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var d in Model.Documentos)
             {
+                // Anticipos / saldos: sin factura de referencia → sin total ni restante.
+                bool tieneFactura = d.MontoFact > 0;
+                // ★ Saldo Restante = Total Factura − Pagado (SAP) − este cobro.
+                //   (Fórmula literal del requerimiento sería: d.MontoFact - d.Monto)
+                decimal restante = d.MontoFact - d.Pagado - d.Monto;
+
                 <tr>
                     <td>@d.TipoDoc</td>
                     <td>@(string.IsNullOrWhiteSpace(d.NoDocumento) ? "—" : d.NoDocumento)</td>
                     <td>@(string.IsNullOrWhiteSpace(d.FelSerie) ? "—" : d.FelSerie)</td>
                     <td>@(string.IsNullOrWhiteSpace(d.FelNumero) ? "—" : d.FelNumero)</td>
                     <td>@(d.FechaDoc.HasValue ? d.FechaDoc.Value.ToString("dd/MM/yyyy") : "—")</td>
+                    <td class="num-col">@(tieneFactura ? d.MontoFact.ToString("N2") : "—")</td>
                     <td class="num-col">@d.Monto.ToString("N2")</td>
+                    <td class="num-col">@(tieneFactura ? restante.ToString("N2") : "—")</td>
                     <td>@d.Moneda</td>
                 </tr>
             }
         </tbody>
     </table>
 
-    <!-- ── TOTALES ── -->
+    <!-- ── TOTALES (en la moneda del recibo únicamente) ── -->
     <div class="totales">
         <table>
-            @if (tieneDual)
-            {
-                <tr><td>Total Cobros:</td><td class="num-col">Q @Model.MontoTotalRecGtq.ToString("N2")</td><td class="num-col" style="color:#95a5a6;">$ @Model.MontoTotalRecUsd.ToString("N2")</td></tr>
-                <tr><td>Total Documentos:</td><td class="num-col">Q @Model.MontoTotalDocGtq.ToString("N2")</td><td class="num-col" style="color:#95a5a6;">$ @Model.MontoTotalDocUsd.ToString("N2")</td></tr>
-                <tr class="gran-total"><td>Saldo:</td><td class="num-col">Q @Model.SaldoGtq.ToString("N2")</td><td class="num-col" style="color:#95a5a6;">$ @Model.SaldoUsd.ToString("N2")</td></tr>
-            }
-            else
-            {
-                <!-- Recibo histórico sin columnas duales: montos en moneda original -->
-                <tr><td>Total Cobros:</td><td class="num-col">@simbolo @Model.MontoTotalRecibo.ToString("N2")</td></tr>
-                <tr><td>Total Documentos:</td><td class="num-col">@simbolo @Model.MontoTotalDoc.ToString("N2")</td></tr>
-                <tr class="gran-total"><td>Saldo:</td><td class="num-col">@simbolo @Model.Saldo.ToString("N2")</td></tr>
-            }
+            <tr><td>Total Cobros:</td><td class="num-col">@simbolo @totCobros.ToString("N2")</td></tr>
+            <tr><td>Total Documentos:</td><td class="num-col">@simbolo @totDocs.ToString("N2")</td></tr>
+            <tr class="gran-total"><td>Saldo:</td><td class="num-col">@simbolo @totSaldo.ToString("N2")</td></tr>
         </table>
     </div>
-    @if (tieneDual)
+    @if (esUsd && tieneDual)
     {
         <div class="tc-nota">Tipo de cambio aplicado: Q @Model.TipoCambio.Value.ToString("N4") por US$ 1.00</div>
     }
@@ -224,7 +232,7 @@
     </div>
 
     <div class="pie">
-        Recibo generado por Smart-K66 · @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+        Recibo generado por @Model.Usuario · @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
         @if (esOperado && Model.SapDocNum.HasValue)
         {
             <text> · Operado en SAP — Pago No. @Model.SapDocNum</text>

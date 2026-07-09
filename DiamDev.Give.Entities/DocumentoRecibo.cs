@@ -27,5 +27,8 @@ namespace DiamDev.Give.Entities
         /// y se muestra en el modal de documentos disponibles.
         /// </summary>
         public decimal MontoPendiente { get; set; }
+        /// <summary>Detalle legible de qué recibos comprometen este documento
+        /// (para el tooltip de la columna "Recibos en Tránsito" del modal).</summary>
+        public string PendienteRecibos { get; set; }
     }
 }

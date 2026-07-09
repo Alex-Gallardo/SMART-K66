@@ -111,9 +111,11 @@ namespace DiamDev.Give.BLL
         /// <summary>
         /// Enruta la fuente según el tipo:
         ///   FACTURA / PEDIDO → SAP HANA (vista RC_FACTURAS_REC_CAJ)
-        ///   el resto         → APK66 (MA_RECC_DOCTOS), como antes.
-        /// Además, enriquece cada documento con MontoPendiente: cuánto está
-        /// comprometido en recibos PENDIENTES en SQL (incluye anulados-en-SAP).
+        ///   el resto         → SQL (MA_RECC_DOCTOS), como antes.
+        /// Además, enriquece cada documento con:
+        ///   - MontoPendiente:   comprometido en recibos en tránsito
+        ///                       (PENDIENTES completos + líneas ANULADO_SAP de DESCUADRES).
+        ///   - PendienteRecibos: en qué recibos está comprometido (tooltip del modal).
         /// El controller y el front no cambian de firma.
         /// </summary>
         public List<DocumentoRecibo> ObtenerDocumentos(string empresa, string clienteId, string tipoDoc)
@@ -136,8 +138,11 @@ namespace DiamDev.Give.BLL
                     foreach (var d in lista)
                     {
                         var key = (d.NoDocumento ?? "").Trim();
-                        if (key.Length > 0 && pendientes.TryGetValue(key, out decimal p))
-                            d.MontoPendiente = p;
+                        if (key.Length > 0 && pendientes.TryGetValue(key, out PendienteDocumento p))
+                        {
+                            d.MontoPendiente = p.Monto;
+                            d.PendienteRecibos = string.Join(", ", p.Recibos);
+                        }
                     }
                 }
             }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data.SqlClient;
 using DiamDev.Give.Entities;
+using System.Linq;
 
 namespace DiamDev.Give.DAL
 {
@@ -327,6 +328,211 @@ namespace DiamDev.Give.DAL
                     }
             }
             return mapa;
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        //  FASE 5 — DESCUADRE (anulación parcial en SAP)
+        // ═══════════════════════════════════════════════════════════
+
+        private static string CsRecibosF5()
+        {
+            return System.Configuration.ConfigurationManager
+                .ConnectionStrings["RecibosContext"].ConnectionString;
+        }
+
+        /// <summary>
+        /// Recibos que la pasada inversa debe revisar: OPERADO **y** DESCUADRE
+        /// (este último para el self-healing). Solo recibos locales activos.
+        /// </summary>
+        public List<ReciboRevisionSql> ObtenerRecibosParaRevision(string empresa)
+        {
+            var lista = new List<ReciboRevisionSql>();
+            using (var cn = new SqlConnection(CsRecibosF5()))
+            {
+                cn.Open();
+                using (var cmd = new SqlCommand(@"
+                    SELECT ID_RECIBO,
+                           ISNULL(SAP_DOCENTRY, 0) AS SAP_DOCENTRY,
+                           ISNULL(SAP_DOCNUM, 0)  AS SAP_DOCNUM,
+                           SYNC_ESTADO
+                    FROM dbo.REC_CAJA_ENC
+                    WHERE ID_EMPRESA = @emp
+                      AND SYNC_ESTADO IN ('OPERADO','DESCUADRE')
+                      AND STATUS = 'A'", cn))
+                {
+                    cmd.Parameters.AddWithValue("@emp", empresa);
+                    using (var rd = cmd.ExecuteReader())
+                        while (rd.Read())
+                            lista.Add(new ReciboRevisionSql
+                            {
+                                IdRecibo = Convert.ToString(rd["ID_RECIBO"]),
+                                SapDocEntry = Convert.ToInt32(rd["SAP_DOCENTRY"]),
+                                SapDocNum = Convert.ToInt32(rd["SAP_DOCNUM"]),
+                                SyncEstado = Convert.ToString(rd["SYNC_ESTADO"])
+                            });
+                }
+            }
+            return lista;
+        }
+
+        /// <summary>OPERADO/DESCUADRE → DESCUADRE, con la observación del descuadre.</summary>
+        public void MarcarReciboDescuadre(string idRecibo, string empresa, string observacion)
+        {
+            using (var cn = new SqlConnection(CsRecibosF5()))
+            {
+                cn.Open();
+                using (var cmd = new SqlCommand(@"
+                    UPDATE dbo.REC_CAJA_ENC
+                    SET SYNC_ESTADO       = 'DESCUADRE',
+                        SYNC_OBSERVACION  = @obs,
+                        SYNC_ULTIMO_CHECK = SYSDATETIME()
+                    WHERE ID_RECIBO = @id AND ID_EMPRESA = @emp", cn))
+                {
+                    cmd.Parameters.AddWithValue("@id", idRecibo);
+                    cmd.Parameters.AddWithValue("@emp", empresa);
+                    cmd.Parameters.AddWithValue("@obs", (object)observacion ?? DBNull.Value);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        /// <summary>DESCUADRE → OPERADO (self-healing: SAP volvió a cuadrar).</summary>
+        public void MarcarReciboCuadrado(string idRecibo, string empresa, string observacion)
+        {
+            using (var cn = new SqlConnection(CsRecibosF5()))
+            {
+                cn.Open();
+                using (var cmd = new SqlCommand(@"
+                    UPDATE dbo.REC_CAJA_ENC
+                    SET SYNC_ESTADO       = 'OPERADO',
+                        SYNC_OBSERVACION  = @obs,
+                        SYNC_ULTIMO_CHECK = SYSDATETIME()
+                    WHERE ID_RECIBO = @id AND ID_EMPRESA = @emp", cn))
+                {
+                    cmd.Parameters.AddWithValue("@id", idRecibo);
+                    cmd.Parameters.AddWithValue("@emp", empresa);
+                    cmd.Parameters.AddWithValue("@obs", (object)observacion ?? DBNull.Value);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        /// <summary>Borra las marcas SYNC_DOC_ESTADO del detalle (al sanar o al regresar a PENDIENTE).</summary>
+        public void LimpiarMarcasDetalle(string idRecibo, string empresa)
+        {
+            using (var cn = new SqlConnection(CsRecibosF5()))
+            {
+                cn.Open();
+                using (var cmd = new SqlCommand(@"
+                    UPDATE dbo.REC_CAJA_DET
+                    SET SYNC_DOC_ESTADO = NULL
+                    WHERE ID_RECIBO = @id AND ID_EMPRESA = @emp", cn))
+                {
+                    cmd.Parameters.AddWithValue("@id", idRecibo);
+                    cmd.Parameters.AddWithValue("@emp", empresa);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Marca las líneas del detalle según lo que SAP reporta:
+        ///  - FACTURA/PEDIDO cuyo NO_DOCUMENTO está aplicado por pagos ACTIVOS → 'APLICADO'
+        ///  - FACTURA/PEDIDO que NO está en esa lista → 'ANULADO_SAP'
+        /// Las líneas ANTICIPO/SALDO PENDIENTE (NO_DOCUMENTO NULL) no se marcan:
+        /// las cubre el estado global DESCUADRE del encabezado.
+        /// </summary>
+        public void MarcarLineasAnuladas(string idRecibo, string empresa, List<string> facturasActivas)
+        {
+            facturasActivas = facturasActivas ?? new List<string>();
+
+            using (var cn = new SqlConnection(CsRecibosF5()))
+            {
+                cn.Open();
+                using (var tx = cn.BeginTransaction())
+                {
+                    // 1) Por defecto, toda línea FACTURA/PEDIDO queda ANULADO_SAP
+                    using (var cmd = new SqlCommand(@"
+                        UPDATE dbo.REC_CAJA_DET
+                        SET SYNC_DOC_ESTADO = 'ANULADO_SAP'
+                        WHERE ID_RECIBO = @id AND ID_EMPRESA = @emp
+                          AND TIPO_DOC IN ('FACTURA','PEDIDO')", cn, tx))
+                    {
+                        cmd.Parameters.AddWithValue("@id", idRecibo);
+                        cmd.Parameters.AddWithValue("@emp", empresa);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    // 2) Las que SAP reporta aplicadas por pagos ACTIVOS → APLICADO
+                    if (facturasActivas.Count > 0)
+                    {
+                        var nombres = facturasActivas.Select((f, i) => "@f" + i).ToList();
+                        string sql = string.Format(@"
+                            UPDATE dbo.REC_CAJA_DET
+                            SET SYNC_DOC_ESTADO = 'APLICADO'
+                            WHERE ID_RECIBO = @id AND ID_EMPRESA = @emp
+                              AND NO_DOCUMENTO IN ({0})", string.Join(",", nombres));
+
+                        using (var cmd = new SqlCommand(sql, cn, tx))
+                        {
+                            cmd.Parameters.AddWithValue("@id", idRecibo);
+                            cmd.Parameters.AddWithValue("@emp", empresa);
+                            for (int i = 0; i < facturasActivas.Count; i++)
+                                cmd.Parameters.AddWithValue("@f" + i, facturasActivas[i]);
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    tx.Commit();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Bitácora 1 recibo ↔ N pagos SAP: registra/actualiza cada ORCT visto
+        /// (activo o anulado) en REC_CAJA_SAP_DOCS. UPDATE + INSERT si no existía
+        /// (patrón upsert clásico; la UNIQUE (ID_EMPRESA, SAP_DOCENTRY) lo protege).
+        /// </summary>
+        public void UpsertSapDocs(string idRecibo, string empresa, List<SapPagoDetalle> pagos)
+        {
+            if (pagos == null || pagos.Count == 0) return;
+
+            using (var cn = new SqlConnection(CsRecibosF5()))
+            {
+                cn.Open();
+                foreach (var p in pagos)
+                {
+                    bool esUSD = "USD".Equals(p.MonedaDoc, StringComparison.OrdinalIgnoreCase);
+                    string facturas = string.Join(",", p.FacturasAplicadas ?? new List<string>());
+
+                    using (var cmd = new SqlCommand(@"
+                        UPDATE dbo.REC_CAJA_SAP_DOCS
+                        SET SAP_DOCNUM = @docnum, MONTO = @monto, MONEDA = @mon,
+                            CANCELED = @canc, FACTURAS = @fact,
+                            FECHA_ULT_CHECK = SYSDATETIME()
+                        WHERE ID_EMPRESA = @emp AND SAP_DOCENTRY = @docentry;
+
+                        IF @@ROWCOUNT = 0
+                        INSERT INTO dbo.REC_CAJA_SAP_DOCS
+                            (ID_RECIBO, ID_EMPRESA, SAP_DOCENTRY, SAP_DOCNUM, MONTO,
+                             MONEDA, CANCELED, FACTURAS, FECHA_ULT_CHECK)
+                        VALUES
+                            (@id, @emp, @docentry, @docnum, @monto,
+                             @mon, @canc, @fact, SYSDATETIME());", cn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", idRecibo);
+                        cmd.Parameters.AddWithValue("@emp", empresa);
+                        cmd.Parameters.AddWithValue("@docentry", p.DocEntry);
+                        cmd.Parameters.AddWithValue("@docnum", p.DocNum);
+                        cmd.Parameters.AddWithValue("@monto", p.MontoEfectivo(esUSD));
+                        cmd.Parameters.AddWithValue("@mon", esUSD ? "USD" : "GTQ");
+                        cmd.Parameters.AddWithValue("@canc", p.Canceled ? "Y" : "N");
+                        cmd.Parameters.AddWithValue("@fact",
+                            string.IsNullOrEmpty(facturas) ? (object)DBNull.Value : facturas);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
         }
     }
 }

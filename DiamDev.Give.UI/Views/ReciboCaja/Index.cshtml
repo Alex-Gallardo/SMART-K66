@@ -141,6 +141,15 @@
         border: 1px solid #e74c3c;
     }
 
+    /* Descuadre con SAP: anulación parcial detectada por el sincronizador */
+    .badge-sync.descuadre {
+        background: #fdebd0;
+        color: #ba4a00;
+        border: 1px solid #e67e22;
+        box-shadow: 0 0 0 2px #e74c3c inset;
+        cursor: help;
+    }
+
     /* Operado pero con descuadre de conciliación: halo ámbar de advertencia */
     .badge-sync.concil {
         box-shadow: 0 0 0 2px #f39c12 inset;
@@ -906,6 +915,21 @@
         </div>
         <div class="panel-body" style="padding: 14px 18px;">
 
+            <!-- ── ALERTA DE DESCUADRE (Fase 5) ── -->
+            <div id="alertaDescuadre" class="alert alert-danger"
+                 style="display:none; margin:0 0 14px; border-left:4px solid #e74c3c;">
+                <strong><i class="icon-warning-sign"></i> Descuadre con SAP</strong>
+                <!-- <div id="alertaDescuadreDetalle"style="margin-top:5px; font-size:12.5px; font-family:monospace;"></div> -->
+                <div style="margin-top:6px; font-size:12px;">
+                    Parte del pago de este recibo fue <strong>anulado en SAP</strong> y el monto
+                    aún no ha sido re-aplicado por Créditos. La <strong>
+                        impresión está
+                        bloqueada
+                    </strong>. El sincronizador liberará el recibo automáticamente
+                    cuando los montos vuelvan a cuadrar.
+                </div>
+            </div>
+
             <!-- Fila A: Identificadores + Totales rápidos -->
             <!-- Fila A: Identificadores (los totales se ven en la barra inferior) -->
             <div class="row">
@@ -930,7 +954,7 @@
                 </div>
 
                 <!-- Moneda del recibo: NO se muestra (vive en la barra de totales),
-             pero SÍ se envía al backend en el payload del guardado. -->
+        pero SÍ se envía al backend en el payload del guardado. -->
                 <input type="hidden" id="txtMoneda" />
             </div>
 
@@ -1038,11 +1062,18 @@
                                     <option value="INDUSTRIAL">🏛️&nbsp; INDUSTRIAL</option>
                                     <option value="G&T CONTINENTAL">🏛️&nbsp; G&amp;T CONTINENTAL</option>
                                     <option value="BAM">🏛️&nbsp; BAM</option>
+                                    <option value="BAM DOLAR">🏛️&nbsp; BAM DOLAR</option>
+                                    <option value="BAC">🏛️&nbsp; BAC</option>
+                                    <option value="BAC DOLAR">🏛️&nbsp; BAC DOLAR</option>
+                                    <option value="OCEAN BAK">🏛️&nbsp; OCEAN BAK</option>
                                     <option value="AGROMERCANTIL">🏛️&nbsp; AGROMERCANTIL</option>
                                     <option value="OCCIDENTE">🏛️&nbsp; OCCIDENTE</option>
                                     <option value="PROMERICA">🏛️&nbsp; PROMERICA</option>
                                     <option value="BANTRAB">🏛️&nbsp; BANTRAB</option>
                                     <option value="REFORMADOR">🏛️&nbsp; REFORMADOR</option>
+                                    <option value="CITI BANK">🏛️&nbsp; CITI BANK</option>
+                                    <option value="FICOHSA">🏛️&nbsp; FICOHSA</option>
+                                    <option value="CHN">🏛️&nbsp; CHN</option>
                                 </select>
                             </div>
                         </div>
@@ -1831,8 +1862,15 @@ function PintarTablaModalDocs() {
             '<td class="text-right">' + FmtNum(d.MontoFact) + '</td>' +
             '<td class="text-right">' + FmtNum(d.Pagado) + '</td>' +
             '<td class="text-right col-saldo" data-saldo="' + saldoDoc + '">' + FmtNum(saldoDoc) + '</td>' +
-            '<td class="text-right col-pendiente' + (pendiente > 0 ? '' : ' sin-pend') + '">' +
-            FmtNum(pendiente) + '</td>' +
+            '<td class="text-right col-pendiente' + (pendiente > 0 ? '' : ' sin-pend') + '"' +
+            (d.PendienteRecibos
+                ? ' title="Comprometido en: ' + d.PendienteRecibos + '"'
+                : '') + '>' +
+            FmtNum(pendiente) +
+            (d.PendienteRecibos && d.PendienteRecibos.indexOf("DESCUADRE") !== -1
+                ? ' <span style="color:#e74c3c;" title="Incluye recibo(s) con DESCUADRE en SAP">⚠</span>'
+                : '') +
+            '</td>' +
             '<td class="text-right col-disponible' + (agotado ? ' agotado' : '') + '">' +
             FmtNum(disponible) + '</td>' +
             '<td><span class="label label-info">' + (d.Moneda || '') + '</span></td>' +
@@ -2328,6 +2366,15 @@ $("#btnEjecutarBusqueda").on("click", function () {
         ActualizarTotales();
         SetBotonesPostGuardado();
 
+        // Bloqueo de impresión por descuadre (el servidor también lo valida:
+        // esto solo es feedback visual; la validación real vive en el controller)
+        if ((r.SyncEstado || "").toUpperCase() === "DESCUADRE") {
+            $("#btnImprimir").prop("disabled", true)
+                .attr("title", "Impresión bloqueada: recibo con descuadre frente a SAP.");
+        } else {
+            $("#btnImprimir").attr("title", "");
+        }
+
         $("#modalBuscarRecibo").modal("hide");
         toastr.success("Recibo " + r.IdRecibo + " cargado.");
     });
@@ -2542,62 +2589,75 @@ function SetBotonesPostGuardado() {
 // Sin estado (recibo en captura) → se oculta.
 // ════════════════════════════════════════════════════════
 function PintarBadgeSync(syncEstado, syncObs, sapDocNum) {
-    var $b = $("#badgeSync");
-    var estado = (syncEstado || "").toUpperCase();
-    var obs = syncObs || "";
+var $b = $("#badgeSync");
+var estado = (syncEstado || "").toUpperCase();
+var obs = syncObs || "";
 
-    if (!estado) {
-        $b.hide().text("—")
-            .removeClass("operado pendiente anulado concil")
-            .attr("title", "");
-        return;
-    }
+// Alerta de descuadre: visible SOLO en estado DESCUADRE
+if (estado === "DESCUADRE") {
+    $("#alertaDescuadreDetalle").text(obs ||
+        "Los montos del recibo no coinciden con los pagos activos en SAP.");
+    $("#alertaDescuadre").slideDown(200);
+} else {
+    $("#alertaDescuadre").hide();
+}
 
-    var clase, texto, tip;
+if (!estado) {
+    $b.hide().text("—")
+        .removeClass("operado pendiente anulado concil descuadre")
+        .attr("title", "");
+    return;
+}
 
-    switch (estado) {
-        case "OPERADO":
-            clase = "operado";
-            texto = "✓ OPERADO" + (sapDocNum ? " — SAP #" + sapDocNum : "");
-            tip = "Operado en SAP por Créditos." +
-                (sapDocNum ? " Pago recibido No. " + sapDocNum + "." : "");
-            // ¿Conciliación marcó descuadre? La observación empieza con [CONCIL]
-            if (obs.indexOf("[CONCIL]") === 0) {
-                clase = "operado concil";
-                texto += " ⚠";
-                tip = obs;   // el detalle exacto: SQL=X vs SAP=Y, dif=Z
-            }
-            break;
+var clase, texto, tip;
 
-        case "PENDIENTE":
-            clase = "pendiente";
-            texto = "⏳ PENDIENTE EN SAP";
-            tip = "Aún no ha sido operado por Créditos en SAP.";
-            // ¿Volvió a pendiente por anulación? La huella queda en la observación.
-            if (obs.indexOf("Anulado en SAP") !== -1) {
-                texto = "⏳ PENDIENTE (ANULADO EN SAP)";
-                tip = obs;   // "Anulado en SAP... Era DocNum X/DocEntry Y..."
-            }
-            break;
-
-        case "ANULADO":   // defensivo: hoy la Opción A no persiste este estado
-            clase = "anulado";
-            texto = "ANULADO EN SAP";
-            tip = obs || "El pago fue anulado en SAP.";
-            break;
-
-        default:          // estado desconocido: mostrar tal cual, sin romper
-            clase = "pendiente";
-            texto = estado;
+switch (estado) {
+    case "OPERADO":
+        clase = "operado";
+        texto = "✓ OPERADO" + (sapDocNum ? " — SAP #" + sapDocNum : "");
+        tip = "Operado en SAP por Créditos." +
+            (sapDocNum ? " Pago recibido No. " + sapDocNum + "." : "");
+        if (obs.indexOf("[CONCIL]") === 0) {
+            clase = "operado concil";
+            texto += " ⚠";
             tip = obs;
-            break;
-    }
+        }
+        break;
 
-    $b.removeClass("operado pendiente anulado concil")
-        .addClass(clase)
-        .text(texto)
-        .attr("title", tip)
-        .show();
+    case "DESCUADRE":
+        clase = "descuadre";
+        texto = "⚠ DESCUADRE CON SAP";
+        tip = obs || "Parte del pago fue anulado en SAP; el monto no cuadra.";
+        break;
+
+    case "PENDIENTE":
+        clase = "pendiente";
+        texto = "⏳ PENDIENTE EN SAP";
+        tip = "Aún no ha sido operado por Créditos en SAP.";
+        if (obs.indexOf("Anulado en SAP") !== -1) {
+            texto = "⏳ PENDIENTE (ANULADO EN SAP)";
+            tip = obs;
+        }
+        break;
+
+    case "ANULADO":
+        clase = "anulado";
+        texto = "ANULADO EN SAP";
+        tip = obs || "El pago fue anulado en SAP.";
+        break;
+
+    default:
+        clase = "pendiente";
+        texto = estado;
+        tip = obs;
+        break;
+}
+
+$b.removeClass("operado pendiente anulado concil descuadre")
+    .addClass(clase)
+    .text(texto)
+    .attr("title", tip)
+    .show();
 }
 
 // ════════════════════════════════════════════════════════

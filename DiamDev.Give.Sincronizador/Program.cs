@@ -20,8 +20,8 @@ namespace DiamDev.Give.Sincronizador
         private static DateTime _ultimoSyncRecibos = DateTime.MinValue;
 
         // =========== CAMBIAR A 5 MIN (PRODUCCION) ============================================
-        private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromMinutes(5);
-        // private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromSeconds(30); // DEMO: volver a FromMinutes(5) después
+        // private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromMinutes(5);
+        private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromSeconds(30); // DEMO: volver a FromMinutes(5) después
 
         static void Main(string[] args)
         {
@@ -285,7 +285,8 @@ namespace DiamDev.Give.Sincronizador
 
                 string resumen = string.Format(
                 "Pendientes revisados: {0} | Operados nuevos: {1} | Operados revisados: {2} | " +
-                "Anulados: {3} | Reapuntados: {4} | Conciliados: {5} | Descuadrados: {6} | Errores: {7}",
+                "Anulados: {3} | Reapuntados: {4} | Conciliados: {5} | Descuadrados: {6} | " +
+                "Sanados: {7} | Errores: {8}",
                 resultado.Revisados,
                 resultado.Operados,
                 resultado.OperadosRevisados,
@@ -293,6 +294,7 @@ namespace DiamDev.Give.Sincronizador
                 resultado.Reapuntados,
                 resultado.Conciliados,
                 resultado.Descuadrados,
+                resultado.Sanados,
                 resultado.Errores.Count);
 
                 Console.WriteLine(resumen);

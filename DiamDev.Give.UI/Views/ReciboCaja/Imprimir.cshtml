@@ -1,102 +1,26 @@
 ﻿@model DiamDev.Give.Entities.ReciboCajaEncabezado
 @{
     Layout = null;
-
-    // ── Datos de membrete por empresa (razón social + NIT reales + logo) ──
-    var empresas = new Dictionary<string, dynamic>
+    // Color del botón según empresa (el resto del membrete lo resuelve el parcial)
+    var coloresBtn = new Dictionary<string, string>
 {
-        { "GRACO", new { Nombre = "GRACOPACK DE CENTROAMERICA, S.A.", Nit = "4340248-8", Color = "#27ae60", Logo = "LogoGraco.svg" } },
-        { "FAES",  new { Nombre = "FABRICA ESCOCESA, S.A.",           Nit = "4153479-4", Color = "#c0392b", Logo = "LogoFaes.svg" } },
-        { "BOLIK", new { Nombre = "INDUSTRIAS BOLIK, S.A.",           Nit = "4050444-1", Color = "#2c3e50", Logo = "LogoBolik.svg" } }
+        { "GRACO", "#27ae60" }, { "FAES", "#c0392b" }, { "BOLIK", "#2c3e50" }
     };
-    var emp = empresas.ContainsKey(Model.IdEmpresa ?? "")
-                ? empresas[Model.IdEmpresa]
-                : new { Nombre = Model.IdEmpresa ?? "—", Nit = "", Color = "#7f8c8d", Logo = "" };
-
-    bool esOperado = string.Equals(Model.SyncEstado, "OPERADO", StringComparison.OrdinalIgnoreCase);
-    bool tieneDual = Model.TipoCambio.HasValue && Model.TipoCambio.Value > 0;
-
-    // ── Moneda única del recibo: si es USD se imprime todo en $,
-    //    en cualquier otro caso en Q. Nada de doble columna. ──
-    bool esUsd = string.Equals((Model.Moneda ?? "").Trim(), "USD", StringComparison.OrdinalIgnoreCase);
-    string simbolo = esUsd ? "$" : "Q";
-
-    // Totales en LA moneda del recibo (de las columnas duales si existen;
-    // fallback a los montos legado para recibos históricos sin dual).
-    decimal totCobros = tieneDual ? (esUsd ? Model.MontoTotalRecUsd : Model.MontoTotalRecGtq) : Model.MontoTotalRecibo;
-    decimal totDocs = tieneDual ? (esUsd ? Model.MontoTotalDocUsd : Model.MontoTotalDocGtq) : Model.MontoTotalDoc;
-    decimal totSaldo = tieneDual ? (esUsd ? Model.SaldoUsd : Model.SaldoGtq) : Model.Saldo;
-
-    // ── No. Recibo SAP: siempre se muestra el label; el valor solo si está operado ──
-    string noReciboSap = (esOperado && Model.SapDocNum.HasValue) ? Model.SapDocNum.Value.ToString() : "";
+    string colorBtn = coloresBtn.ContainsKey(Model.IdEmpresa ?? "")
+                        ? coloresBtn[Model.IdEmpresa] : "#7f8c8d";
 }
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="utf-8" />
-    <title>Recibo @Model.IdRecibo — @emp.Nombre</title>
+    <title>Recibo @Model.IdRecibo</title>
+    @Html.Partial("_ReciboImpresionEstilos")
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 12px; color: #2c3e50;
-            max-width: 800px; margin: 0 auto; padding: 24px;
-            background: #fff;
-        }
-
-        /* ── Membrete ── */
-        .membrete { display: flex; justify-content: space-between; align-items: flex-start;
-                    border-bottom: 3px solid @emp.Color; padding-bottom: 12px; margin-bottom: 16px; margin-top: 2em }
-        .membrete-izq { display: flex; align-items: center; gap: 14px; }
-        .logo-emp { height: 52px; width: auto; max-width: 140px; }
-        .membrete h1 { font-size: 18px; color: @emp.Color; letter-spacing: .5px; }
-        .membrete .emp-datos { font-size: 11px; color: #7f8c8d; margin-top: 3px; line-height: 1.5; }
-        .recibo-num { text-align: right; }
-        .recibo-num .lbl { font-size: 10px; text-transform: uppercase; color: #95a5a6; letter-spacing: .5px; }
-        .recibo-num .num { font-family: 'Courier New', monospace; font-size: 20px; font-weight: 700; letter-spacing: 2px; }
-        .recibo-num .num-sap { font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700;
-                               letter-spacing: 1px; min-height: 17px; }
-        .recibo-num .fecha { font-size: 11px; color: #7f8c8d; margin-top: 3px; }
-
-        /* ── Datos del cliente ── */
-        .bloque { border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 14px; margin-bottom: 14px; }
-        .bloque h3 { font-size: 10px; text-transform: uppercase; letter-spacing: .5px;
-                     color: #95a5a6; margin-bottom: 6px; }
-        .fila-datos { display: flex; flex-wrap: wrap; gap: 4px 24px; }
-        .dato { min-width: 160px; }
-        .dato .k { font-size: 10px; color: #95a5a6; text-transform: uppercase; }
-        .dato .v { font-weight: 600; }
-
-        /* ── Tablas ── */
-        table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
-        th { background: #f2f3f4; font-size: 10px; text-transform: uppercase; letter-spacing: .3px;
-             color: #7f8c8d; padding: 6px 8px; text-align: left; border-bottom: 2px solid #ddd; }
-        td { padding: 6px 8px; border-bottom: 1px solid #f0f0f0; }
-        .num-col { text-align: right; font-variant-numeric: tabular-nums; }
-        th.num-col { text-align: right; }
-        .titulo-seccion { font-size: 12px; font-weight: 700; color: #2c3e50;
-                          border-left: 3px solid @emp.Color; padding-left: 8px; margin: 14px 0 6px; }
-
-        /* ── Totales ── */
-        .totales { display: flex; justify-content: flex-end; }
-        .totales table { width: auto; min-width: 300px; margin-bottom: 0; }
-        .totales td { border-bottom: none; padding: 3px 10px; }
-        .totales .gran-total td { border-top: 2px solid #2c3e50; font-weight: 700; font-size: 13px; }
-        .tc-nota { text-align: right; font-size: 10px; color: #95a5a6; margin-top: 4px; }
-
-        /* ── Firmas ── */
-        .firmas { display: flex; justify-content: space-around; margin-top: 60px; }
-        .firma { text-align: center; width: 220px; }
-        .firma .linea { border-top: 1px solid #2c3e50; padding-top: 5px; font-size: 11px; }
-
-        .pie { margin-top: 30px; text-align: center; font-size: 10px; color: #bdc3c7; }
-
-        /* ── Botón imprimir (no sale en papel) ── */
+        body { max-width: 800px; margin: 0 auto; padding: 24px; background: #fff;
+               font-family: Arial, Helvetica, sans-serif; }
         .no-print { text-align: center; margin-bottom: 16px; }
-        .btn-print { background: @emp.Color; color: #fff; border: none; border-radius: 4px;
+        .btn-print { background: @colorBtn; color: #fff; border: none; border-radius: 4px;
                      padding: 10px 26px; font-size: 14px; cursor: pointer; }
-
-        .num-sap { border: 1px solid #cacaca; border-radius: 6px; padding: 0.2em 1em; }
         @@media print {
             .no-print { display: none; }
             body { padding: 0; }
@@ -109,144 +33,7 @@
         <button class="btn-print" onclick="window.print();">🖨 Imprimir Recibo</button>
     </div>
 
-    <!-- ── MEMBRETE (logo + razón social + NIT; sin dirección) ── -->
-    <div class="membrete">
-        <div class="membrete-izq">
-            @if (!string.IsNullOrWhiteSpace((string)emp.Logo))
-            {
-                <img class="logo-emp"
-                     src="@Url.Content("~/Content/img/logos/" + emp.Logo)"
-                     alt="@emp.Nombre"
-                     onerror="this.style.display='none';" />
-            }
-            <div>
-                <h1>@emp.Nombre</h1>
-                <div class="emp-datos">
-                    NIT: @emp.Nit
-                </div>
-            </div>
-        </div>
-        <div class="recibo-num">
-            <div class="lbl">Recibo de Caja</div>
-            <div class="num">@Model.IdRecibo</div>
-            <div class="lbl" style="margin-top:5px;">No. Recibo SAP</div>
-            <div class="num-sap">@noReciboSap</div>
-            <div class="fecha">Fecha: @Model.FechaRecibo.ToString("dd/MM/yyyy")</div>
-            @if (!string.IsNullOrWhiteSpace(Model.RecFisico))
-            {
-                <div class="fecha">Rec. Físico: @Model.RecFisico</div>
-            }
-        </div>
-    </div>
-
-    <!-- ── CLIENTE ── -->
-    <div class="bloque">
-        <h3>Datos del Cliente</h3>
-        <div class="fila-datos">
-            <div class="dato"><div class="k">Código</div><div class="v">@Model.IdCliente</div></div>
-            <div class="dato" style="flex:1;"><div class="k">Nombre</div><div class="v">@Model.NombreCliente</div></div>
-            <div class="dato"><div class="k">NIT</div><div class="v">@Model.Nit</div></div>
-        </div>
-        <div class="fila-datos" style="margin-top:6px;">
-            <div class="dato" style="flex:1;"><div class="k">Dirección</div><div class="v">@Model.Direccion</div></div>
-            <div class="dato"><div class="k">Agente</div><div class="v">@Model.Agente</div></div>
-        </div>
-    </div>
-
-    <!-- ── COBROS ── -->
-    <div class="titulo-seccion">Detalle de Cobro</div>
-    <table>
-        <thead>
-            <tr>
-                <th>Tipo</th>
-                <th>Banco</th>
-                <th>No. Documento</th>
-                <th>Fecha Doc.</th>
-                <th class="num-col">Monto</th>
-                <th>Moneda</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var c in Model.Cobros)
-            {
-                <tr>
-                    <td>@c.TipoCobro</td>
-                    <td>@(string.IsNullOrWhiteSpace(c.Banco) ? "—" : c.Banco)</td>
-                    <td>@(string.IsNullOrWhiteSpace(c.NoDocumento) ? "—" : c.NoDocumento)</td>
-                    <td>@(c.FechaDoc.HasValue ? c.FechaDoc.Value.ToString("dd/MM/yyyy") : "—")</td>
-                    <td class="num-col">@c.Monto.ToString("N2")</td>
-                    <td>@c.Moneda</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-
-    <!-- ── DOCUMENTOS ── -->
-    <div class="titulo-seccion">Documentos Cobrados</div>
-    <table>
-        <thead>
-            <tr>
-                <th>Tipo</th>
-                <th>No. Documento</th>
-                <th>Serie FEL</th>
-                <th>Núm. FEL</th>
-                <th>Fecha</th>
-                <th class="num-col">Total Factura</th>
-                <th class="num-col">Monto Cobrado</th>
-                <th class="num-col">Saldo Pendiente</th>
-                <th>Moneda</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var d in Model.Documentos)
-            {
-                // Anticipos / saldos: sin factura de referencia → sin total ni restante.
-                bool tieneFactura = d.MontoFact > 0;
-                // ★ Saldo Restante = Total Factura − Pagado (SAP) − este cobro.
-                //   (Fórmula literal del requerimiento sería: d.MontoFact - d.Monto)
-                decimal restante = d.MontoFact - d.Pagado - d.Monto;
-
-                <tr>
-                    <td>@d.TipoDoc</td>
-                    <td>@(string.IsNullOrWhiteSpace(d.NoDocumento) ? "—" : d.NoDocumento)</td>
-                    <td>@(string.IsNullOrWhiteSpace(d.FelSerie) ? "—" : d.FelSerie)</td>
-                    <td>@(string.IsNullOrWhiteSpace(d.FelNumero) ? "—" : d.FelNumero)</td>
-                    <td>@(d.FechaDoc.HasValue ? d.FechaDoc.Value.ToString("dd/MM/yyyy") : "—")</td>
-                    <td class="num-col">@(tieneFactura ? d.MontoFact.ToString("N2") : "—")</td>
-                    <td class="num-col">@d.Monto.ToString("N2")</td>
-                    <td class="num-col">@(tieneFactura ? restante.ToString("N2") : "—")</td>
-                    <td>@d.Moneda</td>
-                </tr>
-            }
-        </tbody>
-    </table>
-
-    <!-- ── TOTALES (en la moneda del recibo únicamente) ── -->
-    <div class="totales">
-        <table>
-            <tr><td>Total Cobros:</td><td class="num-col">@simbolo @totCobros.ToString("N2")</td></tr>
-            <tr><td>Total Documentos:</td><td class="num-col">@simbolo @totDocs.ToString("N2")</td></tr>
-            <tr class="gran-total"><td>Saldo:</td><td class="num-col">@simbolo @totSaldo.ToString("N2")</td></tr>
-        </table>
-    </div>
-    @if (esUsd && tieneDual)
-    {
-        <div class="tc-nota">Tipo de cambio aplicado: Q @Model.TipoCambio.Value.ToString("N4") por US$ 1.00</div>
-    }
-
-    <!-- ── FIRMAS ── -->
-    <div class="firmas">
-        <div class="firma"><div class="linea">Recibí Conforme<br />@Model.Usuario</div></div>
-        <div class="firma"><div class="linea">Entregué Conforme<br />Cliente</div></div>
-    </div>
-
-    <div class="pie">
-        Recibo generado por @Model.Usuario · @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
-        @if (esOperado && Model.SapDocNum.HasValue)
-        {
-            <text> · Operado en SAP — Pago No. @Model.SapDocNum</text>
-        }
-    </div>
+    @Html.Partial("_ReciboImpresion", Model)
 
 </body>
 </html>

@@ -1,0 +1,103 @@
+﻿@model List<DiamDev.Give.Entities.ReciboCajaEncabezado>
+@{
+    Layout = null;
+    var omitidos = ViewBag.Omitidos as List<string> ?? new List<string>();
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Impresión de Recibos (@Model.Count)</title>
+    @Html.Partial("_ReciboImpresionEstilos")
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #eee;
+        }
+
+        /* Barra superior: NO sale en la impresión */
+        .barra-lote {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+            .barra-lote .btn-imprimir {
+                background: #27ae60;
+                color: #fff;
+                border: none;
+                border-radius: 4px;
+                padding: 8px 18px;
+                font-size: 14px;
+                font-weight: 700;
+                cursor: pointer;
+            }
+
+        .aviso-omitidos {
+            background: #fef9e7;
+            border: 1px solid #f1c40f;
+            color: #7d6608;
+            padding: 8px 18px;
+            font-size: 12px;
+        }
+
+        /* Un recibo por página al imprimir */
+        .pagina-recibo {
+            background: #fff;
+            margin: 14px auto;
+            max-width: 800px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.15);
+        }
+
+        @@media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: #fff;
+            }
+
+            .pagina-recibo {
+                box-shadow: none;
+                margin: 0;
+                max-width: none;
+                page-break-after: always;
+            }
+
+                .pagina-recibo:last-child {
+                    page-break-after: auto;
+                }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="barra-lote no-print">
+        <strong>🖨 Lote de impresión — @Model.Count recibo(s)</strong>
+        <button class="btn-imprimir" onclick="window.print()">Imprimir todo</button>
+        <span style="font-size:11px; color:#95a5a6;">Cada recibo sale en su propia página.</span>
+    </div>
+
+    @if (omitidos.Count > 0)
+    {
+        <div class="aviso-omitidos no-print">
+            <strong>⚠ @omitidos.Count omitido(s):</strong> @string.Join(" • ", omitidos)
+        </div>
+    }
+
+    @foreach (var rec in Model)
+    {
+        <div class="pagina-recibo">
+            @Html.Partial("_ReciboImpresion", rec)
+        </div>
+    }
+
+</body>
+</html>

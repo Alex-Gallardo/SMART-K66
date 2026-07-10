@@ -1,0 +1,170 @@
+﻿@model DiamDev.Give.Entities.ReciboCajaEncabezado
+@{
+    // ── Datos de membrete por empresa (razón social + NIT reales + logo) ──
+    var empresas = new Dictionary<string, dynamic>
+{
+        { "GRACO", new { Nombre = "GRACOPACK DE CENTROAMERICA, S.A.", Nit = "4340248-8", Color = "#27ae60", Logo = "LogoGraco.svg" } },
+        { "FAES",  new { Nombre = "FABRICA ESCOCESA, S.A.",           Nit = "4153479-4", Color = "#c0392b", Logo = "LogoFaes.svg" } },
+        { "BOLIK", new { Nombre = "INDUSTRIAS BOLIK, S.A.",           Nit = "4050444-1", Color = "#2c3e50", Logo = "LogoBolik.svg" } }
+    };
+    var emp = empresas.ContainsKey(Model.IdEmpresa ?? "")
+                ? empresas[Model.IdEmpresa]
+                : new { Nombre = Model.IdEmpresa ?? "—", Nit = "", Color = "#7f8c8d", Logo = "" };
+
+    bool esOperado = string.Equals(Model.SyncEstado, "OPERADO", StringComparison.OrdinalIgnoreCase);
+    bool tieneDual = Model.TipoCambio.HasValue && Model.TipoCambio.Value > 0;
+
+    // ── Moneda única del recibo: si es USD se imprime todo en $,
+    //    en cualquier otro caso en Q. Nada de doble columna. ──
+    bool esUsd = string.Equals((Model.Moneda ?? "").Trim(), "USD", StringComparison.OrdinalIgnoreCase);
+    string simbolo = esUsd ? "$" : "Q";
+
+    // Totales en LA moneda del recibo (duales si existen; fallback legado).
+    decimal totCobros = tieneDual ? (esUsd ? Model.MontoTotalRecUsd : Model.MontoTotalRecGtq) : Model.MontoTotalRecibo;
+    decimal totDocs = tieneDual ? (esUsd ? Model.MontoTotalDocUsd : Model.MontoTotalDocGtq) : Model.MontoTotalDoc;
+    decimal totSaldo = tieneDual ? (esUsd ? Model.SaldoUsd : Model.SaldoGtq) : Model.Saldo;
+
+    // ── No. Recibo SAP: siempre se muestra el label; el valor solo si está operado ──
+    string noReciboSap = (esOperado && Model.SapDocNum.HasValue) ? Model.SapDocNum.Value.ToString() : "";
+}
+<div class="recibo-doc">
+
+    <!-- ── MEMBRETE (logo + razón social + NIT; sin dirección) ── -->
+    <div class="membrete" style="border-bottom-color:@emp.Color;">
+        <div class="membrete-izq">
+            @if (!string.IsNullOrWhiteSpace((string)emp.Logo))
+            {
+                <img class="logo-emp"
+                     src="@Url.Content("~/Content/img/logos/" + emp.Logo)"
+                     alt="@emp.Nombre"
+                     onerror="this.style.display='none';" />
+            }
+            <div>
+                <h1 style="color:@emp.Color;">@emp.Nombre</h1>
+                <div class="emp-datos">
+                    NIT: @emp.Nit
+                </div>
+            </div>
+        </div>
+        <div class="recibo-num">
+            <div class="lbl">Recibo de Caja</div>
+            <div class="num">@Model.IdRecibo</div>
+            <div class="lbl" style="margin-top:5px;">No. Recibo SAP</div>
+            <div class="num-sap">@noReciboSap</div>
+            <div class="fecha">Fecha: @Model.FechaRecibo.ToString("dd/MM/yyyy")</div>
+            @if (!string.IsNullOrWhiteSpace(Model.RecFisico))
+            {
+                <div class="fecha">Rec. Físico: @Model.RecFisico</div>
+            }
+        </div>
+    </div>
+
+    <!-- ── CLIENTE ── -->
+    <div class="bloque">
+        <h3>Datos del Cliente</h3>
+        <div class="fila-datos">
+            <div class="dato"><div class="k">Código</div><div class="v">@Model.IdCliente</div></div>
+            <div class="dato" style="flex:1;"><div class="k">Nombre</div><div class="v">@Model.NombreCliente</div></div>
+            <div class="dato"><div class="k">NIT</div><div class="v">@Model.Nit</div></div>
+        </div>
+        <div class="fila-datos" style="margin-top:6px;">
+            <div class="dato" style="flex:1;"><div class="k">Dirección</div><div class="v">@Model.Direccion</div></div>
+            <div class="dato"><div class="k">Agente</div><div class="v">@Model.Agente</div></div>
+        </div>
+    </div>
+
+    <!-- ── COBROS ── -->
+    <div class="titulo-seccion" style="border-left-color:@emp.Color;">Detalle de Cobro</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Banco</th>
+                <th>No. Documento</th>
+                <th>Fecha Doc.</th>
+                <th class="num-col">Monto</th>
+                <th>Moneda</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in Model.Cobros)
+            {
+                <tr>
+                    <td>@c.TipoCobro</td>
+                    <td>@(string.IsNullOrWhiteSpace(c.Banco) ? "—" : c.Banco)</td>
+                    <td>@(string.IsNullOrWhiteSpace(c.NoDocumento) ? "—" : c.NoDocumento)</td>
+                    <td>@(c.FechaDoc.HasValue ? c.FechaDoc.Value.ToString("dd/MM/yyyy") : "—")</td>
+                    <td class="num-col">@c.Monto.ToString("N2")</td>
+                    <td>@c.Moneda</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- ── DOCUMENTOS ── -->
+    <div class="titulo-seccion" style="border-left-color:@emp.Color;">Documentos Cobrados</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>No. Documento</th>
+                <th>Serie FEL</th>
+                <th>Núm. FEL</th>
+                <th>Fecha</th>
+                <th class="num-col">Total Factura</th>
+                <th class="num-col">Monto Cobrado</th>
+                <th class="num-col">Saldo Pendiente</th>
+                <th>Moneda</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in Model.Documentos)
+            {
+                // Anticipos / saldos: sin factura de referencia → sin total ni restante.
+                bool tieneFactura = d.MontoFact > 0;
+                // ★ Saldo Restante = Total Factura − Pagado (SAP) − este cobro.
+                decimal restante = d.MontoFact - d.Pagado - d.Monto;
+
+                <tr>
+                    <td>@d.TipoDoc</td>
+                    <td>@(string.IsNullOrWhiteSpace(d.NoDocumento) ? "—" : d.NoDocumento)</td>
+                    <td>@(string.IsNullOrWhiteSpace(d.FelSerie) ? "—" : d.FelSerie)</td>
+                    <td>@(string.IsNullOrWhiteSpace(d.FelNumero) ? "—" : d.FelNumero)</td>
+                    <td>@(d.FechaDoc.HasValue ? d.FechaDoc.Value.ToString("dd/MM/yyyy") : "—")</td>
+                    <td class="num-col">@(tieneFactura ? d.MontoFact.ToString("N2") : "—")</td>
+                    <td class="num-col">@d.Monto.ToString("N2")</td>
+                    <td class="num-col">@(tieneFactura ? restante.ToString("N2") : "—")</td>
+                    <td>@d.Moneda</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- ── TOTALES (en la moneda del recibo únicamente) ── -->
+    <div class="totales">
+        <table>
+            <tr><td>Total Cobros:</td><td class="num-col">@simbolo @totCobros.ToString("N2")</td></tr>
+            <tr><td>Total Documentos:</td><td class="num-col">@simbolo @totDocs.ToString("N2")</td></tr>
+            <tr class="gran-total"><td>Saldo:</td><td class="num-col">@simbolo @totSaldo.ToString("N2")</td></tr>
+        </table>
+    </div>
+    @if (esUsd && tieneDual)
+    {
+        <div class="tc-nota">Tipo de cambio aplicado: Q @Model.TipoCambio.Value.ToString("N4") por US$ 1.00</div>
+    }
+
+    <!-- ── FIRMAS ── -->
+    <div class="firmas">
+        <div class="firma"><div class="linea">Recibí Conforme<br />@Model.Usuario</div></div>
+        <div class="firma"><div class="linea">Entregué Conforme<br />Cliente</div></div>
+    </div>
+
+    <div class="pie">
+        Recibo generado por @Model.Usuario · @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+        @if (esOperado && Model.SapDocNum.HasValue)
+        {
+            <text> · Operado en SAP — Pago No. @Model.SapDocNum</text>
+        }
+    </div>
+
+</div>

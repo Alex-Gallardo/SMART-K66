@@ -279,6 +279,35 @@
         color: #1e8449;
         border: 1px solid #27ae60;
     }
+
+    /* ── Selección para impresión masiva ── */
+    #tablaDash .chk-imp, #chkTodosImp {
+        width: 15px;
+        height: 15px;
+        cursor: pointer;
+    }
+
+        #tablaDash .chk-imp:disabled {
+            cursor: not-allowed;
+        }
+
+    #tablaDash td.td-chk {
+        text-align: center;
+    }
+
+    #tablaDash tr.row-imp-sel td {
+        background: #eaf4fb !important;
+    }
+
+    #badgeImpSel {
+        background: #fff;
+        color: #1e8449;
+        border-radius: 10px;
+        padding: 1px 7px;
+        font-size: 10px;
+        font-weight: 700;
+        margin-left: 3px;
+    }
 </style>
 
 <div class="panel panel-default" style="border-top:4px solid #2c3e50;">
@@ -359,12 +388,16 @@
                     <button id="btnLimpiarFiltros" class="btn btn-default btn-xs" title="Quitar todos los filtros">
                         <i class="icon-remove"></i> Limpiar
                     </button>
+                    <button id="btnImprimirSel" class="btn btn-primary btn-xs" disabled
+                            title="Imprimir los recibos seleccionados en un solo documento">
+                        <i class="icon-print"></i> Imprimir<span id="badgeImpSel">0</span>
+                    </button>
                     <button id="btnExportExcel" class="btn btn-success btn-xs" title="Exportar con formato para créditos">
                         <i class="icon-table"></i> Excel
                     </button>
-                    <button id="btnExportCsv" class="btn btn-default btn-xs" title="Exportar lo visible a CSV">
-                        <i class="icon-download-alt"></i> CSV
-                    </button>
+                    <!-- <button id="btnExportCsv" class="btn btn-default btn-xs" title="Exportar lo visible a CSV">
+        <i class="icon-download-alt"></i> CSV
+    </button> -->
                 </div>
             </div>
 
@@ -405,6 +438,9 @@
             <table class="table table-condensed" id="tablaDash" style="margin-bottom:0;">
                 <thead>
                     <tr>
+                        <th style="width:34px; text-align:center;">
+                            <input type="checkbox" id="chkTodosImp" title="Seleccionar todos los imprimibles" />
+                        </th>
                         <th>Situación</th>
                         <th>Recibo</th>
                         <th>Empresa</th>
@@ -418,7 +454,7 @@
                     </tr>
                 </thead>
                 <tbody id="tbodyDash">
-                    <tr><td colspan="10" class="text-center" style="padding:24px; color:#aaa;">Cargando...</td></tr>
+                    <tr><td colspan="11" class="text-center" style="padding:24px; color:#aaa;">Cargando...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -432,7 +468,8 @@ var URL_RESUMEN = "@Url.Action("GetDashboardResumen","ReciboCaja")";
 var URL_DETALLE = "@Url.Action("GetDashboardDetalle","ReciboCaja")";
 var URL_INDEX   = "@Url.Action("Index","ReciboCaja")";
 var DIAS_UMBRAL = parseInt("@@ViewBag.DiasUmbral") || 3;
-var TOPE_FILAS  = 500;   // espejo del TOP 500 del backend
+var TOPE_FILAS = 500;   // espejo del TOP 500 del backend
+var URL_IMPRIMIR_LOTE = "@Url.Action("ImprimirLote","ReciboCaja")";
 
 var Filtro = {
     empresa: "", situacion: "TODOS",
@@ -441,7 +478,26 @@ var Filtro = {
     texto: ""
 };
 
-var _filas = [];   // buffer de la última respuesta del servidor
+    var _filas = [];   // buffer de la última respuesta del servidor
+
+    // ── Selección para impresión: clave "ID|EMPRESA" ────────
+    // Vive fuera del DOM (como estado en React): sobrevive a los
+    // re-render del filtro de texto y al auto-refresh de 60s.
+    var _sel = {};
+
+    function KeySel(f) { return f.IdRecibo + "|" + f.IdEmpresa; }
+
+    function ActualizarBotonImprimir() {
+        var n = Object.keys(_sel).length;
+        $("#btnImprimirSel").prop("disabled", n === 0);
+        $("#badgeImpSel").text(n);
+    }
+
+    function SincronizarChkTodosImp() {
+        var total = $("#tbodyDash .chk-imp:not(:disabled)").length;
+        var marcados = $("#tbodyDash .chk-imp:checked").length;
+        $("#chkTodosImp").prop("checked", total > 0 && marcados === total);
+    }
 
 function FmtMoneda(n) {
     return parseFloat(n || 0).toLocaleString("en-US",
@@ -478,7 +534,7 @@ function CargarResumen() {
 //          + cliente (texto libre sobre el buffer)
 // ════════════════════════════════════════════════════════
 function CargarDetalle() {
-    $("#tbodyDash").html('<tr><td colspan="10" class="text-center" style="padding:20px;">' +
+    $("#tbodyDash").html('<tr><td colspan="11" class="text-center" style="padding:20px;">' +
         '<i class="icon-spinner icon-spin"></i> Consultando...</td></tr>');
 
     $.get(URL_DETALLE, {
@@ -489,11 +545,16 @@ function CargarDetalle() {
         incluirOperados: Filtro.incluirOperados
     }, function (resp) {
         if (!resp.ok) {
-            $("#tbodyDash").html('<tr><td colspan="10" class="text-center text-danger" style="padding:20px;">' +
+            $("#tbodyDash").html('<tr><td colspan="11" class="text-center text-danger" style="padding:20px;">' +
                 Esc(resp.msg) + '</td></tr>');
             return;
         }
         _filas = resp.data || [];
+        // Poda: des-seleccionar lo que ya no está en el resultado del servidor
+        var validas = {};
+        $.each(_filas, function (_, f) { validas[KeySel(f)] = true; });
+        Object.keys(_sel).forEach(function (k) { if (!validas[k]) delete _sel[k]; });
+        ActualizarBotonImprimir();
         PintarDetalle();
     });
 }
@@ -517,7 +578,7 @@ function PintarDetalle() {
     $("#lblConteo").html(conteo);
 
     if (!visibles.length) {
-        tbody.html('<tr><td colspan="10" class="text-center" style="padding:24px; color:#27ae60;">' +
+        tbody.html('<tr><td colspan="11" class="text-center" style="padding:24px; color:#27ae60;">' +
             '<i class="icon-ok-circle"></i> Nada que revisar con este filtro.</td></tr>');
         return;
     }
@@ -526,8 +587,15 @@ function PintarDetalle() {
         var urlAbrir = URL_INDEX +
             "?idRecibo=" + encodeURIComponent(f.IdRecibo) +
             "&empresa="  + encodeURIComponent(f.IdEmpresa);
+        var esImprimible = (f.Situacion !== "DESCUADRE");
+        var key = KeySel(f);
+        var sel = esImprimible && _sel[key];
         tbody.append(
-            '<tr>' +
+            '<tr class="' + (sel ? 'row-imp-sel' : '') + '">' +
+            '<td class="td-chk">' +
+            '<input type="checkbox" class="chk-imp" data-key="' + key + '"' +
+            (esImprimible ? '' : ' disabled title="Bloqueado: recibo con descuadre frente a SAP"') +
+            (sel ? ' checked' : '') + ' /></td>' +
             '<td><span class="sit-badge sit-' + f.Situacion + '">' + f.Situacion.replace("_", " ") + '</span></td>' +
             '<td><strong style="font-family:monospace;">' + Esc(f.IdRecibo) + '</strong></td>' +
             '<td><span class="emp-badge emp-' + f.IdEmpresa + '">' + f.IdEmpresa + '</span></td>' +
@@ -543,6 +611,9 @@ function PintarDetalle() {
                 '<i class="icon-external-link"></i></a></td>' +
             '</tr>');
     });
+
+    SincronizarChkTodosImp();
+    ActualizarBotonImprimir();
 }
 
 function CargarTodo() { CargarResumen(); CargarDetalle(); }
@@ -777,6 +848,39 @@ $("#btnExportExcel").on("click", function () {
     a.click();
     document.body.removeChild(a);
     toastr.success(visibles.length + " fila(s) exportada(s) a Excel.");
+});
+
+// ════════════════════════════════════════════════════════
+// IMPRESIÓN MASIVA
+// ════════════════════════════════════════════════════════
+$(document).on("change", "#tbodyDash .chk-imp", function () {
+    var key = $(this).data("key");
+    if ($(this).prop("checked")) _sel[key] = true;
+    else delete _sel[key];
+    $(this).closest("tr").toggleClass("row-imp-sel", $(this).prop("checked"));
+    ActualizarBotonImprimir();
+    SincronizarChkTodosImp();
+});
+
+$("#chkTodosImp").on("change", function () {
+    var marcar = $(this).prop("checked");
+    $("#tbodyDash .chk-imp:not(:disabled)").each(function () {
+        var key = $(this).data("key");
+        if (marcar) _sel[key] = true; else delete _sel[key];
+        $(this).prop("checked", marcar)
+            .closest("tr").toggleClass("row-imp-sel", marcar);
+    });
+    ActualizarBotonImprimir();
+});
+
+$("#btnImprimirSel").on("click", function () {
+    var keys = Object.keys(_sel);
+    if (!keys.length) return;
+    if (keys.length > 50) {
+        toastr.warning("Máximo 50 recibos por lote. Tiene " + keys.length + " seleccionados.");
+        return;
+    }
+    window.open(URL_IMPRIMIR_LOTE + "?ids=" + encodeURIComponent(keys.join(",")), "_blank");
 });
 
 // Auto-refresh cada 60s (solo si la pestaña está visible)

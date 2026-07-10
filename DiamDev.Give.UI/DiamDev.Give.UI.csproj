@@ -1374,6 +1374,9 @@
     <Content Include="Views\ReciboCaja\Imprimir.cshtml" />
     <Content Include="Views\ReciboCaja\Dashboard.cshtml" />
     <Content Include="Views\ReciboCaja\Series.cshtml" />
+    <Content Include="Views\ReciboCaja\ImprimirLote.cshtml" />
+    <Content Include="Views\ReciboCaja\_ReciboImpresionEstilos.cshtml" />
+    <Content Include="Views\ReciboCaja\_ReciboImpresion.cshtml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

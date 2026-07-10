@@ -258,6 +258,51 @@ namespace DiamDev.Give.UI.Controllers
             return View(rec);
         }
 
+        // ─────────────────────────────────────────────
+        // GET /ReciboCaja/ImprimirLote?ids=RG12-07520|GRACO,RG12-07521|GRACO
+        // Junta varios recibos en UN documento imprimible (un recibo por página).
+        // Re-valida en servidor: omite DESCUADRES y no encontrados, y lo informa.
+        // ─────────────────────────────────────────────
+        // [Permiso("Control.ReciboCaja.Ver")]
+        public ActionResult ImprimirLote(string ids)
+        {
+            var recibos = new List<ReciboCajaEncabezado>();
+            var omitidos = new List<string>();
+
+            var pares = (ids ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                   .Take(50);   // tope de seguridad, espejo del front
+
+            foreach (var par in pares)
+            {
+                var partes = par.Split('|');
+                if (partes.Length != 2) continue;
+                string id = partes[0].Trim(), emp = partes[1].Trim();
+
+                var rec = _bll.BuscarRecibo(id, emp);
+                if (rec == null)
+                {
+                    omitidos.Add(id + " (no encontrado)");
+                }
+                else if ("DESCUADRE".Equals(rec.SyncEstado ?? "", StringComparison.OrdinalIgnoreCase))
+                {
+                    omitidos.Add(id + " (descuadre con SAP: impresión bloqueada)");
+                }
+                else
+                {
+                    recibos.Add(rec);
+                }
+            }
+
+            if (recibos.Count == 0)
+                return Content("<html><body style='font-family:Arial;padding:40px;'>" +
+                    "<h3>⚠ Nada para imprimir</h3><p>Ningún recibo del lote es imprimible:</p><ul><li>" +
+                    string.Join("</li><li>", omitidos.Select(Server.HtmlEncode)) +
+                    "</li></ul></body></html>", "text/html");
+
+            ViewBag.Omitidos = omitidos;
+            return View(recibos);
+        }
+
         private readonly ReciboCajaAdminBLL _admin = new ReciboCajaAdminBLL();
 
         // ═════════════════════════════════════════════

@@ -2764,5 +2764,29 @@ $(document).on("show.bs.modal shown.bs.modal", "#modalBuscarDoc", function () {
 // ── Inicialización ──
 SetBotonesInicio();
 CargarEmpresasUsuario();
+
+// ── Deep-link desde el Dashboard: ?idRecibo=X&empresa=Y ──
+// Espera a que el select de empresas se llene (CargarEmpresasUsuario es
+// async), selecciona la empresa y dispara la búsqueda del recibo.
+(function () {
+    var qs = new URLSearchParams(window.location.search);
+    var idQ = qs.get("idRecibo"), empQ = (qs.get("empresa") || "").toUpperCase();
+    if (!idQ || !empQ) return;
+
+    var intentos = 0;
+    var espera = setInterval(function () {
+        intentos++;
+        var $opt = $("#selEmpresa option[value='" + empQ + "']");
+        if ($opt.length) {
+            clearInterval(espera);
+            $("#selEmpresa").val(empQ).trigger("change");
+            $("#txtBuscarIdRecibo").val(idQ);
+            $("#btnEjecutarBusqueda").trigger("click");
+        } else if (intentos > 20) {   // ~10s: el usuario no tiene esa empresa asignada
+            clearInterval(espera);
+            toastr.warning("No tiene acceso a la empresa " + empQ + " para abrir el recibo " + idQ + ".");
+        }
+    }, 500);
+})();
     </script>
 }

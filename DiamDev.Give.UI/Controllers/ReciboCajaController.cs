@@ -258,6 +258,124 @@ namespace DiamDev.Give.UI.Controllers
             return View(rec);
         }
 
+        private readonly ReciboCajaAdminBLL _admin = new ReciboCajaAdminBLL();
+
+        // ═════════════════════════════════════════════
+        //  DASHBOARD DE SUPERVISIÓN
+        // ═════════════════════════════════════════════
+        // [Permiso("Control.ReciboCaja.Dashboard")]
+        public ActionResult Dashboard()
+        {
+            CustomHelper.setTitle("Recibos de Caja", "Supervisión");
+            ViewBag.DiasUmbral = _admin.DiasUmbral;
+            return View();
+        }
+
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Dashboard")]
+        public JsonResult GetDashboardResumen(string empresa)
+        {
+            try
+            {
+                var r = _admin.ObtenerResumen(empresa);
+                return Json(new { ok = true, data = r }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Dashboard")]
+        public JsonResult GetDashboardDetalle(string empresa, string situacion)
+        {
+            try
+            {
+                var filas = _admin.ObtenerDetalle(empresa, situacion);
+                return Json(new { ok = true, data = filas }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ═════════════════════════════════════════════
+        //  MANTENIMIENTO DE SERIES
+        // ═════════════════════════════════════════════
+        // [Permiso("Control.ReciboCaja.Series")]
+        public ActionResult Series()
+        {
+            CustomHelper.setTitle("Recibos de Caja", "Series de Numeración");
+            return View();
+        }
+
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Series")]
+        public JsonResult GetSeries()
+        {
+            try
+            {
+                var lista = _admin.ObtenerSeries();
+                // Proyección explícita: incluye los calculados (ProximoId, Inconsistente)
+                var data = lista.Select(s => new
+                {
+                    s.RowId,
+                    s.Empresa,
+                    s.Depto,
+                    s.Serie,
+                    s.Numeracion,
+                    s.SerieNc,
+                    s.NumeracionNc,
+                    s.MaxUsado,
+                    s.ProximoId,
+                    s.Inconsistente
+                }).ToList();
+                return Json(new { ok = true, data }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        // [Permiso("Control.ReciboCaja.Series")]
+        public JsonResult GuardarSerie(ReciboCajaSerie request)
+        {
+            try
+            {
+                var r = _admin.GuardarSerie(request ?? new ReciboCajaSerie());
+                return Json(new
+                {
+                    ok = r.Exito,
+                    msg = r.Exito
+                    ? "Serie guardada. Próximo recibo: " + r.IdRecibo
+                    : r.Mensaje
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = "Error inesperado: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        // [Permiso("Control.ReciboCaja.Series")]
+        public JsonResult EliminarSerie(int rowId)
+        {
+            try
+            {
+                var r = _admin.EliminarSerie(rowId);
+                return Json(new { ok = r.Exito, msg = r.Exito ? "Serie eliminada." : r.Mensaje });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = "Error inesperado: " + ex.Message });
+            }
+        }
+
         // TEMPORAL — borrar después de validar. Prueba ObtenerTipoCambio por la ruta real (HanaHelper).
         [HttpGet]
         public JsonResult TestTC(string empresa)

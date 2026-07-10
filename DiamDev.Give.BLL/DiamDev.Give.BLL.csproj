@@ -67,6 +67,7 @@
     <Compile Include="Descuentok66BL.cs" />
     <Compile Include="Pedidok66BL.cs" />
     <Compile Include="PedidoTipoSap.cs" />
+    <Compile Include="ReciboCajaAdminBLL.cs" />
     <Compile Include="ReciboCajaBLL.cs" />
     <Compile Include="ReciboCajaSyncBL.cs" />
     <Compile Include="ReporteHanaBLL.cs" />

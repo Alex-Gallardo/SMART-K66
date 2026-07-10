@@ -103,6 +103,7 @@
     <Compile Include="EstadoSmartK66.cs" />
     <Compile Include="PendienteDocumento.cs" />
     <Compile Include="PrecioxCantidadModel.cs" />
+    <Compile Include="ReciboCajaAdmin.cs" />
     <Compile Include="ReciboCajaCobro.cs" />
     <Compile Include="ReciboCajaDetalle.cs" />
     <Compile Include="ReciboCajaEncabezado.cs" />

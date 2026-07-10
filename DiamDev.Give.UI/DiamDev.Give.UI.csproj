@@ -592,6 +592,9 @@
     <Content Include="Content\fancybox\source\jquery.fancybox.css" />
     <Content Include="Content\fancybox\source\jquery.fancybox.js" />
     <Content Include="Content\fancybox\source\jquery.fancybox.pack.js" />
+    <Content Include="Content\img\logos\logoBolik.svg" />
+    <Content Include="Content\img\logos\LogoFaes.svg" />
+    <Content Include="Content\img\logos\LogoGraco.svg" />
     <Content Include="Content\PagedList.css" />
     <Content Include="Content\Site.css" />
     <Content Include="Content\themes\base\accordion.css" />

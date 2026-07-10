@@ -359,6 +359,9 @@
                     <button id="btnLimpiarFiltros" class="btn btn-default btn-xs" title="Quitar todos los filtros">
                         <i class="icon-remove"></i> Limpiar
                     </button>
+                    <button id="btnExportExcel" class="btn btn-success btn-xs" title="Exportar con formato para créditos">
+                        <i class="icon-table"></i> Excel
+                    </button>
                     <button id="btnExportCsv" class="btn btn-default btn-xs" title="Exportar lo visible a CSV">
                         <i class="icon-download-alt"></i> CSV
                     </button>
@@ -428,7 +431,7 @@
 var URL_RESUMEN = "@Url.Action("GetDashboardResumen","ReciboCaja")";
 var URL_DETALLE = "@Url.Action("GetDashboardDetalle","ReciboCaja")";
 var URL_INDEX   = "@Url.Action("Index","ReciboCaja")";
-var DIAS_UMBRAL = parseInt("@ViewBag.DiasUmbral") || 3;
+var DIAS_UMBRAL = parseInt("@@ViewBag.DiasUmbral") || 3;
 var TOPE_FILAS  = 500;   // espejo del TOP 500 del backend
 
 var Filtro = {
@@ -651,8 +654,10 @@ $("#btnExportCsv").on("click", function () {
         ].join(","));
     });
 
-    // \uFEFF = BOM: sin él, Excel muestra mal los acentos del cliente/observación
-    var blob = new Blob(["\uFEFF" + filas.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    // "sep=," en la primera línea le dice a Excel qué separador usar,
+    // sin importar la configuración regional de Windows del usuario.
+    var blob = new Blob(["\uFEFF" + "sep=,\r\n" + filas.join("\r\n")],
+        { type: "text/csv;charset=utf-8;" });
     var a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = "supervision_recibos_" + FechaISO(new Date()) + ".csv";
@@ -660,6 +665,118 @@ $("#btnExportCsv").on("click", function () {
     a.click();
     document.body.removeChild(a);
     toastr.success(visibles.length + " fila(s) exportada(s).");
+});
+
+// ════════════════════════════════════════════════════════
+// EXPORTAR EXCEL CON FORMATO (HTML → .xls)
+// Excel abre tablas HTML respetando estilos: colores, anchos,
+// negritas y formatos numéricos (mso-number-format).
+// Exporta LO VISIBLE: respeta todos los filtros activos.
+// ════════════════════════════════════════════════════════
+$("#btnExportExcel").on("click", function () {
+    var txt = (Filtro.texto || "").toUpperCase();
+    var visibles = _filas.filter(function (f) {
+        if (!txt) return true;
+        return (f.IdRecibo || "").toUpperCase().indexOf(txt) !== -1 ||
+               (f.NombreCliente || "").toUpperCase().indexOf(txt) !== -1 ||
+               (f.Usuario || "").toUpperCase().indexOf(txt) !== -1;
+    });
+    if (!visibles.length) { toastr.info("No hay filas para exportar."); return; }
+
+    // ── Colores por situación (espejo de los badges del dashboard) ──
+    var COLORES_SIT = {
+        "DESCUADRE":   { bg: "#FADBD8", fg: "#A93226" },
+        "ANULADO_SAP": { bg: "#FEF9E7", fg: "#B9770E" },
+        "ENVEJECIDO":  { bg: "#FDEBD0", fg: "#BA4A00" },
+        "PENDIENTE":   { bg: "#EAF4FB", fg: "#2471A3" },
+        "OPERADO":     { bg: "#D5F5E3", fg: "#1E8449" }
+    };
+
+    // ── Resumen de filtros aplicados (para que el Excel sea auto-explicativo) ──
+    var partes = [];
+    partes.push("Empresa: " + (Filtro.empresa || "Todas"));
+    partes.push("Situación: " + (Filtro.situacion === "TODOS" ? "Todas" : Filtro.situacion));
+    if (Filtro.fechaIni || Filtro.fechaFin)
+        partes.push("Rango: " + (Filtro.fechaIni || "inicio") + " → " + (Filtro.fechaFin || "hoy"));
+    if (Filtro.incluirOperados) partes.push("Incluye operados");
+    if (Filtro.texto) partes.push("Búsqueda: \"" + Filtro.texto + "\"");
+    var filtrosTexto = partes.join("   |   ");
+
+    var totalMonto = visibles.reduce(function (s, f) { return s + (parseFloat(f.MontoGtq) || 0); }, 0);
+
+    // ── Construcción del documento ──
+    // mso-number-format:'\@@'       → fuerza TEXTO (protege IDs de recibo)
+    // mso-number-format:'#,##0.00' → número con miles y 2 decimales REAL
+    //   (el valor viaja crudo en la celda: se puede sumar/filtrar en Excel)
+    var html =
+    '<html xmlns:x="urn:schemas-microsoft-com:office:excel">' +
+    '<head><meta charset="utf-8" />' +
+    '<style>' +
+        'td, th { font-family: Calibri, Arial, sans-serif; font-size: 11pt; vertical-align: middle; }' +
+        '.titulo   { font-size: 16pt; font-weight: bold; color: #2C3E50; }' +
+        '.subt     { font-size: 9pt; color: #7F8C8D; }' +
+        '.hdr      { background: #2C3E50; color: #FFFFFF; font-weight: bold; font-size: 9pt;' +
+                    ' border: .5pt solid #1A252F; text-align: center; }' +
+        '.c        { border: .5pt solid #D5DBDB; }' +
+        '.mono     { font-family: Consolas, monospace; font-weight: bold; }' +
+        '.num      { text-align: right; mso-number-format: "#,##0.00"; }' +
+        '.entero   { text-align: center; mso-number-format: "0"; }' +
+        '.txt      { mso-number-format: "\\@@"; }' +
+        '.total    { background: #ECF0F1; font-weight: bold; border: .5pt solid #BDC3C7; }' +
+        '.diasAlto { color: #A93226; font-weight: bold; }' +
+    '</style></head><body>' +
+    '<table>' +
+    '<tr><td colspan="9" class="titulo">Supervisi&oacute;n de Recibos de Caja</td></tr>' +
+    '<tr><td colspan="9" class="subt">' + Esc(filtrosTexto) + '</td></tr>' +
+    '<tr><td colspan="9" class="subt">Generado: ' + new Date().toLocaleString() +
+        ' &nbsp;&mdash;&nbsp; ' + visibles.length + ' recibo(s)</td></tr>' +
+    '<tr><td colspan="9"></td></tr>' +
+    '<tr>' +
+        '<td class="hdr" width="110">Situaci&oacute;n</td>' +
+        '<td class="hdr" width="110">Recibo</td>' +
+        '<td class="hdr" width="70">Empresa</td>' +
+        '<td class="hdr" width="260">Cliente</td>' +
+        '<td class="hdr" width="100">Monto (Q)</td>' +
+        '<td class="hdr" width="90">Usuario</td>' +
+        '<td class="hdr" width="85">Fecha</td>' +
+        '<td class="hdr" width="45">D&iacute;as</td>' +
+        '<td class="hdr" width="420">Observaci&oacute;n</td>' +
+    '</tr>';
+
+    $.each(visibles, function (_, f) {
+        var col = COLORES_SIT[f.Situacion] || { bg: "#FFFFFF", fg: "#000000" };
+        var diasAlto = (f.Situacion !== "OPERADO" && f.DiasAntiguedad >= DIAS_UMBRAL);
+        html +=
+        '<tr>' +
+            '<td class="c txt" style="background:' + col.bg + '; color:' + col.fg +
+                '; font-weight:bold; text-align:center;">' + f.Situacion.replace("_", " ") + '</td>' +
+            '<td class="c txt mono">' + Esc(f.IdRecibo) + '</td>' +
+            '<td class="c txt" style="text-align:center;">' + Esc(f.IdEmpresa) + '</td>' +
+            '<td class="c txt">' + Esc(f.NombreCliente) + '</td>' +
+            '<td class="c num">' + (parseFloat(f.MontoGtq) || 0) + '</td>' +
+            '<td class="c txt">' + Esc(f.Usuario) + '</td>' +
+            '<td class="c txt" style="text-align:center;">' + Esc(f.FechaRegistro) + '</td>' +
+            '<td class="c entero' + (diasAlto ? ' diasAlto' : '') + '">' + f.DiasAntiguedad + '</td>' +
+            '<td class="c txt">' + Esc(f.SyncObservacion) + '</td>' +
+        '</tr>';
+    });
+
+    html +=
+    '<tr>' +
+        '<td class="total" colspan="4" style="text-align:right;">TOTAL (' + visibles.length + ' recibos)</td>' +
+        '<td class="total num">' + totalMonto + '</td>' +
+        '<td class="total" colspan="4"></td>' +
+    '</tr>' +
+    '</table></body></html>';
+
+    var blob = new Blob(["\uFEFF" + html], { type: "application/vnd.ms-excel" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "supervision_recibos_" + FechaISO(new Date()) + ".xls";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    toastr.success(visibles.length + " fila(s) exportada(s) a Excel.");
 });
 
 // Auto-refresh cada 60s (solo si la pestaña está visible)

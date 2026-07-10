@@ -2,16 +2,16 @@
 @{
     Layout = null;
 
-    // ── Datos de membrete por empresa (razón social + NIT reales) ──
+    // ── Datos de membrete por empresa (razón social + NIT reales + logo) ──
     var empresas = new Dictionary<string, dynamic>
 {
-        { "GRACO", new { Nombre = "GRACOPACK DE CENTROAMERICA, S.A.", Nit = "4340248-8", Color = "#27ae60" } },
-        { "FAES",  new { Nombre = "FABRICA ESCOCESA, S.A.",           Nit = "4153479-4", Color = "#c0392b" } },
-        { "BOLIK", new { Nombre = "INDUSTRIAS BOLIK, S.A.",           Nit = "4050444-1", Color = "#2c3e50" } }
+        { "GRACO", new { Nombre = "GRACOPACK DE CENTROAMERICA, S.A.", Nit = "4340248-8", Color = "#27ae60", Logo = "LogoGraco.svg" } },
+        { "FAES",  new { Nombre = "FABRICA ESCOCESA, S.A.",           Nit = "4153479-4", Color = "#c0392b", Logo = "LogoFaes.svg" } },
+        { "BOLIK", new { Nombre = "INDUSTRIAS BOLIK, S.A.",           Nit = "4050444-1", Color = "#2c3e50", Logo = "LogoBolik.svg" } }
     };
     var emp = empresas.ContainsKey(Model.IdEmpresa ?? "")
                 ? empresas[Model.IdEmpresa]
-                : new { Nombre = Model.IdEmpresa ?? "—", Nit = "", Color = "#7f8c8d" };
+                : new { Nombre = Model.IdEmpresa ?? "—", Nit = "", Color = "#7f8c8d", Logo = "" };
 
     bool esOperado = string.Equals(Model.SyncEstado, "OPERADO", StringComparison.OrdinalIgnoreCase);
     bool tieneDual = Model.TipoCambio.HasValue && Model.TipoCambio.Value > 0;
@@ -26,6 +26,9 @@
     decimal totCobros = tieneDual ? (esUsd ? Model.MontoTotalRecUsd : Model.MontoTotalRecGtq) : Model.MontoTotalRecibo;
     decimal totDocs = tieneDual ? (esUsd ? Model.MontoTotalDocUsd : Model.MontoTotalDocGtq) : Model.MontoTotalDoc;
     decimal totSaldo = tieneDual ? (esUsd ? Model.SaldoUsd : Model.SaldoGtq) : Model.Saldo;
+
+    // ── No. Recibo SAP: siempre se muestra el label; el valor solo si está operado ──
+    string noReciboSap = (esOperado && Model.SapDocNum.HasValue) ? Model.SapDocNum.Value.ToString() : "";
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -44,19 +47,16 @@
         /* ── Membrete ── */
         .membrete { display: flex; justify-content: space-between; align-items: flex-start;
                     border-bottom: 3px solid @emp.Color; padding-bottom: 12px; margin-bottom: 16px; margin-top: 2em }
+        .membrete-izq { display: flex; align-items: center; gap: 14px; }
+        .logo-emp { height: 52px; width: auto; max-width: 140px; }
         .membrete h1 { font-size: 18px; color: @emp.Color; letter-spacing: .5px; }
         .membrete .emp-datos { font-size: 11px; color: #7f8c8d; margin-top: 3px; line-height: 1.5; }
         .recibo-num { text-align: right; }
         .recibo-num .lbl { font-size: 10px; text-transform: uppercase; color: #95a5a6; letter-spacing: .5px; }
         .recibo-num .num { font-family: 'Courier New', monospace; font-size: 20px; font-weight: 700; letter-spacing: 2px; }
+        .recibo-num .num-sap { font-family: 'Courier New', monospace; font-size: 14px; font-weight: 700;
+                               letter-spacing: 1px; min-height: 17px; }
         .recibo-num .fecha { font-size: 11px; color: #7f8c8d; margin-top: 3px; }
-
-        /* ── Referencia SAP (solo si operado) ── */
-        .sap-ref {
-            display: inline-block; margin-top: 5px; padding: 2px 8px;
-            border: 1px solid #27ae60; border-radius: 3px;
-            font-size: 10px; color: #1e8449; font-weight: 700;
-        }
 
         /* ── Datos del cliente ── */
         .bloque { border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 14px; margin-bottom: 14px; }
@@ -95,6 +95,8 @@
         .no-print { text-align: center; margin-bottom: 16px; }
         .btn-print { background: @emp.Color; color: #fff; border: none; border-radius: 4px;
                      padding: 10px 26px; font-size: 14px; cursor: pointer; }
+
+        .num-sap { border: 1px solid #cacaca; border-radius: 6px; padding: 0.2em 1em; }
         @@media print {
             .no-print { display: none; }
             body { padding: 0; }
@@ -107,25 +109,32 @@
         <button class="btn-print" onclick="window.print();">🖨 Imprimir Recibo</button>
     </div>
 
-    <!-- ── MEMBRETE (razón social + NIT; sin dirección) ── -->
+    <!-- ── MEMBRETE (logo + razón social + NIT; sin dirección) ── -->
     <div class="membrete">
-        <div>
-            <h1>@emp.Nombre</h1>
-            <div class="emp-datos">
-                NIT: @emp.Nit
+        <div class="membrete-izq">
+            @if (!string.IsNullOrWhiteSpace((string)emp.Logo))
+            {
+                <img class="logo-emp"
+                     src="@Url.Content("~/Content/img/logos/" + emp.Logo)"
+                     alt="@emp.Nombre"
+                     onerror="this.style.display='none';" />
+            }
+            <div>
+                <h1>@emp.Nombre</h1>
+                <div class="emp-datos">
+                    NIT: @emp.Nit
+                </div>
             </div>
         </div>
         <div class="recibo-num">
             <div class="lbl">Recibo de Caja</div>
             <div class="num">@Model.IdRecibo</div>
+            <div class="lbl" style="margin-top:5px;">No. Recibo SAP</div>
+            <div class="num-sap">@noReciboSap</div>
             <div class="fecha">Fecha: @Model.FechaRecibo.ToString("dd/MM/yyyy")</div>
             @if (!string.IsNullOrWhiteSpace(Model.RecFisico))
             {
                 <div class="fecha">Rec. Físico: @Model.RecFisico</div>
-            }
-            @if (esOperado && Model.SapDocNum.HasValue)
-            {
-                <span class="sap-ref">✓ Ref. SAP: @Model.SapDocNum</span>
             }
         </div>
     </div>

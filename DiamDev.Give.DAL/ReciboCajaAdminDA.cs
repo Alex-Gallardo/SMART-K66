@@ -73,31 +73,47 @@ namespace DiamDev.Give.DAL
         }
 
         /// <summary>
-        /// Recibos "con novedad" (DESCUADRE + PENDIENTE). La clasificación fina
-        /// (ANULADO_SAP / ENVEJECIDO) se hace en C# para no duplicar reglas en SQL.
+        /// Recibos para el grid del dashboard:
+        ///  - Siempre: DESCUADRE + PENDIENTE (lo problemático, sin importar fecha... 
+        ///    salvo que el usuario acote el rango explícitamente).
+        ///  - Opcional: OPERADO (incluirOperados=true) para auditoría por fechas.
+        /// Rango de fechas sobre FECHA_REGISTRO, inclusive en ambos extremos
+        /// (el fin se compara con &lt; fin+1día porque la columna es datetime).
+        /// TOP 500 como red de seguridad: con operados + rango amplio el set
+        /// puede crecer mucho; el front avisa si se alcanzó el tope.
         /// </summary>
-        public List<DashboardFilaRecibo> ObtenerDetalle(string empresa, int diasUmbral)
+        public List<DashboardFilaRecibo> ObtenerDetalle(string empresa, int diasUmbral,
+            DateTime? fechaIni, DateTime? fechaFin, bool incluirOperados)
         {
             var lista = new List<DashboardFilaRecibo>();
 
             const string sql = @"
-                SELECT ID_RECIBO, ID_EMPRESA, NOMBRE_CLIENTE, USUARIO,
+                SELECT TOP 500
+                       ID_RECIBO, ID_EMPRESA, NOMBRE_CLIENTE, USUARIO,
                        ISNULL(MONTO_T_DOC_GTQ,0) AS MONTO_GTQ,
                        SYNC_ESTADO, ISNULL(SYNC_OBSERVACION,'') AS OBS,
                        FECHA_REGISTRO,
                        DATEDIFF(DAY, FECHA_REGISTRO, SYSDATETIME()) AS DIAS
                 FROM dbo.REC_CAJA_ENC
                 WHERE ISNULL(STATUS,'A') <> 'X'
-                  AND SYNC_ESTADO IN ('PENDIENTE','DESCUADRE')
                   AND (@emp = '' OR ID_EMPRESA = @emp)
+                  AND ( SYNC_ESTADO IN ('PENDIENTE','DESCUADRE')
+                        OR (@incOper = 1 AND SYNC_ESTADO = 'OPERADO') )
+                  AND (@fIni IS NULL OR FECHA_REGISTRO >= @fIni)
+                  AND (@fFin IS NULL OR FECHA_REGISTRO < DATEADD(DAY, 1, @fFin))
                 ORDER BY
-                    CASE SYNC_ESTADO WHEN 'DESCUADRE' THEN 0 ELSE 1 END,
+                    CASE SYNC_ESTADO WHEN 'DESCUADRE' THEN 0
+                                     WHEN 'PENDIENTE' THEN 1
+                                     ELSE 2 END,
                     DIAS DESC;";
 
             using (var cn = new SqlConnection(Cs()))
             using (var cmd = new SqlCommand(sql, cn))
             {
                 cmd.Parameters.AddWithValue("@emp", empresa ?? "");
+                cmd.Parameters.AddWithValue("@incOper", incluirOperados ? 1 : 0);
+                cmd.Parameters.AddWithValue("@fIni", (object)fechaIni ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@fFin", (object)fechaFin ?? DBNull.Value);
                 cn.Open();
                 using (var rd = cmd.ExecuteReader())
                 {
@@ -109,6 +125,7 @@ namespace DiamDev.Give.DAL
 
                         string situacion;
                         if (estado == "DESCUADRE") situacion = "DESCUADRE";
+                        else if (estado == "OPERADO") situacion = "OPERADO";
                         else if (obs.IndexOf("Anulado en SAP",
                                  StringComparison.OrdinalIgnoreCase) >= 0) situacion = "ANULADO_SAP";
                         else if (dias >= diasUmbral) situacion = "ENVEJECIDO";

@@ -33,9 +33,22 @@ namespace DiamDev.Give.BLL
         public DashboardResumenRecibos ObtenerResumen(string empresa) =>
             _da.ObtenerResumen(NormalizarEmpresa(empresa), DiasUmbral);
 
-        public List<DashboardFilaRecibo> ObtenerDetalle(string empresa, string situacion)
+        public List<DashboardFilaRecibo> ObtenerDetalle(string empresa, string situacion,
+            string fechaIni, string fechaFin, bool incluirOperados)
         {
-            var filas = _da.ObtenerDetalle(NormalizarEmpresa(empresa), DiasUmbral);
+            // Parseo defensivo de fechas: string vacío o basura → sin filtro
+            DateTime? fIni = DateTime.TryParse(fechaIni, out DateTime fi) ? fi : (DateTime?)null;
+            DateTime? fFin = DateTime.TryParse(fechaFin, out DateTime ff) ? ff : (DateTime?)null;
+
+            // Rango invertido (desde > hasta): lo corregimos en silencio intercambiando
+            if (fIni.HasValue && fFin.HasValue && fIni > fFin)
+            {
+                var tmp = fIni; fIni = fFin; fFin = tmp;
+            }
+
+            var filas = _da.ObtenerDetalle(NormalizarEmpresa(empresa), DiasUmbral,
+                                           fIni, fFin, incluirOperados);
+
             var sit = (situacion ?? "").Trim().ToUpper();
             if (sit.Length == 0 || sit == "TODOS") return filas;
             return filas.Where(f => f.Situacion == sit).ToList();

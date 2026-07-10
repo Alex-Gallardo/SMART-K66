@@ -288,11 +288,13 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpGet]
         // [Permiso("Control.ReciboCaja.Dashboard")]
-        public JsonResult GetDashboardDetalle(string empresa, string situacion)
+        public JsonResult GetDashboardDetalle(string empresa, string situacion,
+             string fechaIni, string fechaFin, bool incluirOperados = false)
         {
             try
             {
-                var filas = _admin.ObtenerDetalle(empresa, situacion);
+                var filas = _admin.ObtenerDetalle(empresa, situacion,
+                                                  fechaIni, fechaFin, incluirOperados);
                 return Json(new { ok = true, data = filas }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)

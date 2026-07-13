@@ -2,160 +2,529 @@
     ViewBag.Title = "Reportes";
 }
 
-<h2><i class="icon-edit-sign teal"></i> Reportes</h2>
-<hr />
-
 @* ════════════════════════════════════════════════════════════
-     COLLAPSE 1 — INVENTARIOS
+     ESTILOS — Rediseño UI/UX (solo presentación)
+     No modifica IDs, clases funcionales ni lógica existente.
     ════════════════════════════════════════════════════════════ *@
-@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Inventario"))
-{
-    <div class="panel panel-default">
-        <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseInventario">
-            <h4 class="panel-title">
-                <i class="icon-folder-open teal"></i>
-                <strong> Inventario</strong>
-                <span class="pull-right"><i class="icon-angle-down"></i></span>
-            </h4>
+<style>
+    /* ── Tokens de la página ─────────────────────────────── */
+    .rpt-page {
+        --rpt-teal: #169f98;
+        --rpt-dark: #2c3e50;
+        --rpt-border: #e4e9ee;
+        --rpt-bg: #f7f9fb;
+    }
+
+    /* ── Encabezado + toolbar ────────────────────────────── */
+    .rpt-header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 6px;
+    }
+
+        .rpt-header h2 {
+            margin: 0 0 4px 0;
+            font-weight: 600;
+            color: #2c3e50;
+            letter-spacing: -0.5px;
+        }
+
+        .rpt-header .rpt-subtitulo {
+            color: #95a5a6;
+            font-size: 13px;
+            margin: 0;
+        }
+
+    .rpt-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .rpt-buscador {
+        position: relative;
+        min-width: 260px;
+    }
+
+        .rpt-buscador .icon-search {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #b0bec5;
+            pointer-events: none;
+        }
+
+        .rpt-buscador input {
+            height: 36px;
+            padding-left: 34px;
+            border: 1px solid #dce3e9;
+            border-radius: 18px;
+            font-size: 13px;
+            width: 100%;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+
+            .rpt-buscador input:focus {
+                outline: none;
+                border-color: #169f98;
+                box-shadow: 0 0 0 3px rgba(22, 159, 152, 0.12);
+            }
+
+    #rptToggleTodo {
+        height: 36px;
+        border-radius: 18px;
+        font-size: 12px;
+        padding: 0 16px;
+        border: 1px solid #dce3e9;
+        background: #fff;
+        color: #607d8b;
+        transition: all .15s ease;
+    }
+
+        #rptToggleTodo:hover {
+            border-color: #169f98;
+            color: #169f98;
+        }
+
+    /* ── Paneles de sección (collapse) ───────────────────── */
+    .rpt-page .panel.panel-default {
+        border: 1px solid #e4e9ee;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(44, 62, 80, 0.05);
+        overflow: hidden;
+        margin-bottom: 16px;
+        transition: box-shadow .2s ease;
+    }
+
+        .rpt-page .panel.panel-default:hover {
+            box-shadow: 0 3px 10px rgba(44, 62, 80, 0.08);
+        }
+
+    .rpt-page .panel-heading {
+        background: #fff;
+        border-bottom: 1px solid transparent;
+        border-left: 4px solid #169f98;
+        padding: 14px 18px;
+        transition: background .15s ease;
+    }
+
+        .rpt-page .panel-heading:hover {
+            background: #f7fafb;
+        }
+
+        .rpt-page .panel-heading.rpt-open {
+            border-bottom-color: #e4e9ee;
+            background: #fbfdfe;
+        }
+
+    .rpt-page .panel-title {
+        font-size: 15px;
+        color: #2c3e50;
+        display: block;
+    }
+
+        .rpt-page .panel-title > i:first-child {
+            margin-right: 6px;
+            font-size: 16px;
+        }
+    /* Chevron animado */
+    .rpt-page .panel-heading .icon-angle-down {
+        transition: transform .25s ease;
+        color: #b0bec5;
+        font-size: 18px;
+    }
+
+    .rpt-page .panel-heading.rpt-open .icon-angle-down {
+        transform: rotate(180deg);
+        color: #169f98;
+    }
+    /* Contador de reportes por sección */
+    .rpt-count {
+        background: #eef2f5;
+        color: #78909c;
+        font-weight: 600;
+        font-size: 11px;
+        margin-right: 12px;
+        margin-top: 1px;
+        min-width: 22px;
+    }
+
+    .rpt-page .panel-body {
+        background: #f7f9fb;
+        padding: 18px 14px 6px 14px;
+    }
+    /* Mensaje "sin resultados" al filtrar */
+    .rpt-page .panel.rpt-sin-resultados .panel-body::after {
+        content: "Ningún reporte coincide con la búsqueda en esta sección.";
+        display: block;
+        text-align: center;
+        color: #b0bec5;
+        font-size: 13px;
+        font-style: italic;
+        padding: 10px 0 18px 0;
+    }
+
+    /* ── Cards de reporte ────────────────────────────────── */
+    .rpt-page .core-box {
+        background: #fff;
+        border: 1px solid #e4e9ee;
+        border-top: 3px solid #169f98; /* fallback si no hay empresa */
+        border-radius: 8px;
+        padding: 16px 16px 14px 16px;
+        margin-bottom: 16px;
+        min-height: 132px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    }
+
+        .rpt-page .core-box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(44, 62, 80, 0.12);
+        }
+
+        .rpt-page .core-box .heading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+            .rpt-page .core-box .heading h2 {
+                font-size: 14px;
+                font-weight: 600;
+                color: #37474f;
+                margin: 0;
+                line-height: 1.35;
+                letter-spacing: 0;
+            }
+
+        .rpt-page .core-box .circle-icon {
+            flex-shrink: 0;
+            width: 42px;
+            height: 42px;
+            line-height: 42px;
+            font-size: 17px;
+            border-radius: 50%;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+        }
+        /* "Ver Reporte" como botón pill */
+        .rpt-page .core-box .view-more {
+            align-self: flex-start;
+            font-size: 12px;
+            font-weight: 600;
+            color: #169f98;
+            border: 1px solid rgba(22, 159, 152, 0.35);
+            border-radius: 14px;
+            padding: 5px 14px;
+            text-decoration: none;
+            transition: background .15s ease, color .15s ease;
+        }
+
+            .rpt-page .core-box .view-more:hover,
+            .rpt-page .core-box:hover .view-more {
+                background: #169f98;
+                color: #fff;
+                text-decoration: none;
+            }
+
+            .rpt-page .core-box .view-more i {
+                font-size: 10px;
+                margin-left: 4px;
+            }
+
+    /* ── Acento de color por empresa (via data-empresa-id) ─
+       Cubre ambas variantes de markup:
+       .card-empresa en la col  ó  .card-empresa en el core-box */
+    .card-empresa[data-empresa-id="20210705001"] .core-box,
+    .core-box.card-empresa[data-empresa-id="20210705001"] {
+        border-top-color: #e7505a; /* Bolik */
+    }
+
+    .card-empresa[data-empresa-id="20210705003"] .core-box,
+    .core-box.card-empresa[data-empresa-id="20210705003"] {
+        border-top-color: #c0392b; /* Faes  */
+    }
+
+    .card-empresa[data-empresa-id="20210705004"] .core-box,
+    .core-box.card-empresa[data-empresa-id="20210705004"] {
+        border-top-color: #27ae60; /* Graco */
+    }
+
+    /* Ocultamiento por búsqueda (independiente de .hide() de permisos) */
+    .rpt-filtered {
+        display: none !important;
+    }
+
+    /* ── Modales ─────────────────────────────────────────── */
+    .rpt-page-modals .modal-content,
+    .modal .modal-content {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 12px 40px rgba(20, 35, 50, 0.25);
+        overflow: hidden;
+    }
+
+    .modal .modal-header {
+        background: #fbfdfe;
+        border-bottom: 3px solid #169f98;
+        padding: 14px 20px;
+    }
+
+    .modal .modal-title {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+        .modal .modal-title i {
+            margin-right: 6px;
+        }
+
+    .modal .modal-body {
+        padding: 20px 20px 8px 20px;
+    }
+
+    .modal .control-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        color: #78909c;
+    }
+
+    .modal .form-control {
+        border-radius: 5px;
+        border-color: #dce3e9;
+        box-shadow: none;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+        .modal .form-control:focus {
+            border-color: #169f98;
+            box-shadow: 0 0 0 3px rgba(22, 159, 152, 0.12);
+        }
+
+    .modal hr {
+        border-top-color: #eef2f5;
+    }
+
+    .modal .modal-footer {
+        background: #fbfdfe;
+        border-top: 1px solid #eef2f5;
+        padding: 12px 20px;
+    }
+
+    .modal .btn {
+        border-radius: 5px;
+        font-size: 13px;
+    }
+
+    .modal .btn-primary {
+        background: #169f98;
+        border-color: #169f98;
+        font-weight: 600;
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+        .modal .btn-primary:hover,
+        .modal .btn-primary:focus {
+            background: #11837d;
+            border-color: #11837d;
+        }
+
+    .modal .btn-default {
+        color: #78909c;
+    }
+
+    /* ── Responsive + accesibilidad ──────────────────────── */
+    @@media (max-width: 767px) {
+        .rpt-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .rpt-buscador {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .rpt-page .core-box {
+            min-height: 0;
+        }
+    }
+
+    @@media (prefers-reduced-motion: reduce) {
+        .rpt-page * {
+            transition: none !important;
+        }
+    }
+</style>
+
+<div class="rpt-page">
+
+    @* ── Encabezado + buscador + expandir/colapsar ───────── *@
+    <div class="rpt-header">
+        <div>
+            <h2><i class="icon-edit-sign teal"></i> Reportes</h2>
+            <p class="rpt-subtitulo">Selecciona una sección y genera el reporte en PDF</p>
         </div>
-        <div id="collapseInventario" class="panel-collapse collapse">
-            <div class="panel-body">
-
-                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Bolik"))
-                {
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-archive circle-icon circle-red"></i>
-                                <h2>Inventario Bolik</h2>
-                            </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirInventario('@Url.Action("InventarioBolik", "Reporte")')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                        </div>
-                    </div>
-                }
-
-                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Escocesa"))
-                {
-                    <div class="col-md-3">
-                        <div class="core-box card-empresa" data-empresa-id="20210705003">
-                            <div class="heading">
-                                <i class="clip-archive circle-icon circle-bricky"></i>
-                                <h2>Inventario Escocesa</h2>
-                            </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirInventario('@Url.Action("InventarioEscocesa", "Reporte")')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                        </div>
-                    </div>
-                }
-
-                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Graco"))
-                {
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-archive circle-icon circle-green"></i>
-                                <h2>Inventario Graco</h2>
-                            </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirInventario('@Url.Action("InventarioGraco", "Reporte")')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                        </div>
-                    </div>
-                }
+        <div class="rpt-toolbar">
+            <div class="rpt-buscador">
+                <i class="icon-search"></i>
+                <input type="text" id="rptBuscar" class="form-control"
+                       placeholder="Buscar reporte... (ej: cartera, backorder)"
+                       autocomplete="off" />
             </div>
+            <button type="button" id="rptToggleTodo" class="btn">
+                <i class="icon-resize-full"></i> <span>Expandir todo</span>
+            </button>
         </div>
     </div>
-}
+    <hr />
 
-@* ════════════════════════════════════════════════════════════
-     COLLAPSE 2 — VENTAS
-    ════════════════════════════════════════════════════════════ *@
-@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Ventas"))
-{
-    <div class="panel panel-default">
-        <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseVentas">
-            <h4 class="panel-title">
-                <i class="clip-stats teal"></i>
-                <strong> Ventas</strong>
-                <span class="pull-right"><i class="icon-angle-down"></i></span>
-            </h4>
-        </div>
-        <div id="collapseVentas" class="panel-collapse collapse">
-            <div class="panel-body">
+    @* ════════════════════════════════════════════════════════════
+         COLLAPSE 1 — INVENTARIOS
+        ════════════════════════════════════════════════════════════ *@
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Inventario"))
+    {
+        <div class="panel panel-default">
+            <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseInventario">
+                <h4 class="panel-title">
+                    <i class="icon-folder-open teal"></i>
+                    <strong> Inventario</strong>
+                    <span class="pull-right"><i class="icon-angle-down"></i></span>
+                    <span class="badge rpt-count pull-right"></span>
+                </h4>
+            </div>
+            <div id="collapseInventario" class="panel-collapse collapse">
+                <div class="panel-body">
 
-                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Ventas_Detalle_Factura"))
-                {
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-clipboard circle-icon circle-red"></i>
-                                <h2>Detalle Facturas Bolik</h2>
+                    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Bolik"))
+                    {
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-archive circle-icon circle-red"></i>
+                                    <h2>Inventario Bolik</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirInventario('@Url.Action("InventarioBolik", "Reporte")')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                             </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirDetalleFacturasEmpresa('@Url.Action("DetalleFacturasBolik", "Reporte")', 'Detalle Facturas Bolik', '20210705001')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
-                    </div>
+                    }
 
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-clipboard circle-icon circle-bricky"></i>
-                                <h2>Detalle Facturas Faes</h2>
+                    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Escocesa"))
+                    {
+                        <div class="col-md-3">
+                            <div class="core-box card-empresa" data-empresa-id="20210705003">
+                                <div class="heading">
+                                    <i class="clip-archive circle-icon circle-bricky"></i>
+                                    <h2>Inventario Escocesa</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirInventario('@Url.Action("InventarioEscocesa", "Reporte")')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                             </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirDetalleFacturasEmpresa('@Url.Action("DetalleFacturasFaes", "Reporte")', 'Detalle Facturas Faes', '20210705003')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
-                    </div>
+                    }
 
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-clipboard circle-icon circle-green"></i>
-                                <h2>Detalle Facturas Graco</h2>
+                    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Inventario_Graco"))
+                    {
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-archive circle-icon circle-green"></i>
+                                    <h2>Inventario Graco</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirInventario('@Url.Action("InventarioGraco", "Reporte")')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                             </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirDetalleFacturasEmpresa('@Url.Action("DetalleFacturasGraco", "Reporte")', 'Detalle Facturas Graco', '20210705004')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
-                    </div>
-                }
-
+                    }
+                    <div class="clearfix"></div>
+                </div>
             </div>
         </div>
-    </div>
-}
+    }
 
-@* ════════════════════════════════════════════════════════════
-     COLLAPSE 3 — CXC
-    ════════════════════════════════════════════════════════════ *@
-@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_CXC"))
-{
-    <div class="panel panel-default">
-        <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseCXC">
-            <h4 class="panel-title">
-                <i class="clip-archive teal"></i>
-                <strong> CXC</strong>
-                <span class="pull-right"><i class="icon-angle-down"></i></span>
-            </h4>
-        </div>
-        <div id="collapseCXC" class="panel-collapse collapse">
-            <div class="panel-body">
+    @* ════════════════════════════════════════════════════════════
+         COLLAPSE 2 — VENTAS
+        ════════════════════════════════════════════════════════════ *@
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Ventas"))
+    {
+        <div class="panel panel-default">
+            <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseVentas">
+                <h4 class="panel-title">
+                    <i class="clip-stats teal"></i>
+                    <strong> Ventas</strong>
+                    <span class="pull-right"><i class="icon-angle-down"></i></span>
+                    <span class="badge rpt-count pull-right"></span>
+                </h4>
+            </div>
+            <div id="collapseVentas" class="panel-collapse collapse">
+                <div class="panel-body">
 
-                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.CXC_Estado_De_Cuenta"))
-                {
+                    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Ventas_Detalle_Factura"))
+                    {
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-clipboard circle-icon circle-red"></i>
+                                    <h2>Detalle Facturas Bolik</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirDetalleFacturasEmpresa('@Url.Action("DetalleFacturasBolik", "Reporte")', 'Detalle Facturas Bolik', '20210705001')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-clipboard circle-icon circle-bricky"></i>
+                                    <h2>Detalle Facturas Faes</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirDetalleFacturasEmpresa('@Url.Action("DetalleFacturasFaes", "Reporte")', 'Detalle Facturas Faes', '20210705003')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-clipboard circle-icon circle-green"></i>
+                                    <h2>Detalle Facturas Graco</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirDetalleFacturasEmpresa('@Url.Action("DetalleFacturasGraco", "Reporte")', 'Detalle Facturas Graco', '20210705004')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                            </div>
+                        </div>
+                    }
+
+
+
                     <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
                         <div class="core-box">
                             <div class="heading">
-                                <i class="clip-history circle-icon circle-red"></i>
-                                <h2>Estado de Cuenta Bolik</h2>
+                                <i class="clip-users circle-icon circle-red"></i>
+                                <h2>Cartera Clientes Bolik</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="pedirEstadoCuenta('@Url.Action("EstadoDeCuentaBolik", "Reporte")', 'Estado de Cuenta Bolik', '20210705001')"
+                               onclick="pedirCarteraClientes('@Url.Action("CarteraClientesBolik", "Reporte")', 'Cartera de Clientes Bolik', '20210705001')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>
@@ -163,11 +532,11 @@
                     <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
                         <div class="core-box">
                             <div class="heading">
-                                <i class="clip-history circle-icon circle-bricky"></i>
-                                <h2>Estado de Cuenta Faes</h2>
+                                <i class="clip-users circle-icon circle-bricky"></i>
+                                <h2>Cartera Clientes Faes</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="pedirEstadoCuenta('@Url.Action("EstadoDeCuentaFaes", "Reporte")', 'Estado de Cuenta Faes', '20210705003')"
+                               onclick="pedirCarteraClientes('@Url.Action("CarteraClientesFaes", "Reporte")', 'Cartera de Clientes Faes', '20210705003')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>
@@ -175,143 +544,209 @@
                     <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
                         <div class="core-box">
                             <div class="heading">
-                                <i class="clip-history circle-icon circle-green"></i>
-                                <h2>Estado de Cuenta Graco</h2>
+                                <i class="clip-users circle-icon circle-green"></i>
+                                <h2>Cartera Clientes Graco</h2>
                             </div>
                             <a href="javascript:void(0)"
-                               onclick="pedirEstadoCuenta('@Url.Action("EstadoDeCuentaGraco", "Reporte")', 'Estado de Cuenta Graco', '20210705004')"
+                               onclick="pedirCarteraClientes('@Url.Action("CarteraClientesGraco", "Reporte")', 'Cartera de Clientes Graco', '20210705004')"
                                class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
                     </div>
-                }
 
+                    <div class="clearfix"></div>
+                </div>
             </div>
         </div>
-    </div>
-}
+    }
 
-@* ════════════════════════════════════════════════════════════
-     COLLAPSE 4 — DISTRIBUCIÓN
-    ════════════════════════════════════════════════════════════ *@
-@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Distribucion"))
-{
-    <div class="panel panel-default">
-        <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseDistibucion">
-            <h4 class="panel-title">
-                <i class="icon-truck teal"></i>
-                <strong> Distribución</strong>
-                <span class="pull-right"><i class="icon-angle-down"></i></span>
-            </h4>
+    @* ════════════════════════════════════════════════════════════
+         COLLAPSE 3 — CXC
+        ════════════════════════════════════════════════════════════ *@
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_CXC"))
+    {
+        <div class="panel panel-default">
+            <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseCXC">
+                <h4 class="panel-title">
+                    <i class="clip-archive teal"></i>
+                    <strong> CXC</strong>
+                    <span class="pull-right"><i class="icon-angle-down"></i></span>
+                    <span class="badge rpt-count pull-right"></span>
+                </h4>
+            </div>
+            <div id="collapseCXC" class="panel-collapse collapse">
+                <div class="panel-body">
+
+                    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.CXC_Estado_De_Cuenta"))
+                    {
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-history circle-icon circle-red"></i>
+                                    <h2>Estado de Cuenta Bolik</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirEstadoCuenta('@Url.Action("EstadoDeCuentaBolik", "Reporte")', 'Estado de Cuenta Bolik', '20210705001')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-history circle-icon circle-bricky"></i>
+                                    <h2>Estado de Cuenta Faes</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirEstadoCuenta('@Url.Action("EstadoDeCuentaFaes", "Reporte")', 'Estado de Cuenta Faes', '20210705003')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-history circle-icon circle-green"></i>
+                                    <h2>Estado de Cuenta Graco</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirEstadoCuenta('@Url.Action("EstadoDeCuentaGraco", "Reporte")', 'Estado de Cuenta Graco', '20210705004')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="clearfix"></div>
+                </div>
+            </div>
         </div>
-        <div id="collapseDistibucion" class="panel-collapse collapse">
-            <div class="panel-body">
+    }
 
-                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Bolik"))
-                {
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-data circle-icon circle-teal"></i>
-                                <h2>Backorder Bolik</h2>
+    @* ════════════════════════════════════════════════════════════
+         COLLAPSE 4 — DISTRIBUCIÓN
+        ════════════════════════════════════════════════════════════ *@
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte_Distribucion"))
+    {
+        <div class="panel panel-default">
+            <div class="panel-heading" style="cursor:pointer" data-toggle="collapse" data-target="#collapseDistibucion">
+                <h4 class="panel-title">
+                    <i class="icon-truck teal"></i>
+                    <strong> Distribución</strong>
+                    <span class="pull-right"><i class="icon-angle-down"></i></span>
+                    <span class="badge rpt-count pull-right"></span>
+                </h4>
+            </div>
+            <div id="collapseDistibucion" class="panel-collapse collapse">
+                <div class="panel-body">
+
+                    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Bolik"))
+                    {
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-data circle-icon circle-teal"></i>
+                                    <h2>Backorder Bolik</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirBackorder('@Url.Action("BackorderAgenteBolik", "Reporte")', 'Backorder Bolik', '20210705001')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                             </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirBackorder('@Url.Action("BackorderAgenteBolik", "Reporte")', 'Backorder Bolik', '20210705001')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
-                    </div>
-                }
+                    }
 
-                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Graco"))
-                {
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-data circle-icon circle-teal"></i>
-                                <h2>Backorder Graco</h2>
+                    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Graco"))
+                    {
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-data circle-icon circle-teal"></i>
+                                    <h2>Backorder Graco</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirBackorder('@Url.Action("BackorderAgenteGraco", "Reporte")', 'Backorder Graco', '20210705004')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                             </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirBackorder('@Url.Action("BackorderAgenteGraco", "Reporte")', 'Backorder Graco', '20210705004')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
-                    </div>
-                }
+                    }
 
-                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Faes"))
-                {
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-data circle-icon circle-teal"></i>
-                                <h2>Backorder Faes</h2>
+                    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Backorder_Faes"))
+                    {
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-data circle-icon circle-teal"></i>
+                                    <h2>Backorder Faes</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirBackorder('@Url.Action("BackorderAgenteFaes", "Reporte")', 'Backorder Faes', '20210705003')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                             </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirBackorder('@Url.Action("BackorderAgenteFaes", "Reporte")', 'Backorder Faes', '20210705003')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
-                    </div>
-                }
+                    }
 
-                @* Despachos en Ruta — un card por empresa, misma lógica que Backorder *@
-                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Estado_Pedido"))
-                {
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-truck circle-icon circle-red"></i>
-                                <h2>Estado Pedido Bolik</h2>
+                    @* Despachos en Ruta — un card por empresa, misma lógica que Backorder *@
+                    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Estado_Pedido"))
+                    {
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-truck circle-icon circle-red"></i>
+                                    <h2>Estado Pedido Bolik</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirDespachos('@Url.Action("DespachosEnRutaBolik", "Reporte")', 'Despachos Bolik', '20210705001')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                             </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirDespachos('@Url.Action("DespachosEnRutaBolik", "Reporte")', 'Despachos Bolik', '20210705001')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
-                    </div>
 
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-truck circle-icon circle-bricky"></i>
-                                <h2>Estado Pedido Faes</h2>
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705003">
+                            <div class="core-box">
+                                <div class="heading">
+                                    <i class="clip-truck circle-icon circle-bricky"></i>
+                                    <h2>Estado Pedido Faes</h2>
+                                </div>
+                                <a href="javascript:void(0)"
+                                   onclick="pedirDespachos('@Url.Action("DespachosEnRutaFaes", "Reporte")', 'Despachos Faes', '20210705003')"
+                                   class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                             </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirDespachos('@Url.Action("DespachosEnRutaFaes", "Reporte")', 'Despachos Faes', '20210705003')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                         </div>
-                    </div>
 
-                    <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
-                        <div class="core-box">
-                            <div class="heading">
-                                <i class="clip-truck circle-icon circle-green"></i>
-                                <h2>Estado Pedido Graco</h2>
-                            </div>
-                            <a href="javascript:void(0)"
-                               onclick="pedirDespachos('@Url.Action("DespachosEnRutaGraco", "Reporte")', 'Despachos Graco', '20210705004')"
-                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
-                        </div>
-                    </div>
-                }
-
-                @* Ruta — ahora abre modal con Empresa + Agente (ya no es directo) (DEPRECADO) *@
-                @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Ruta"))
-                {
-                    @*<div class="col-md-3">
+                        <div class="col-md-3 card-empresa" data-empresa-id="20210705004">
                             <div class="core-box">
                                 <div class="heading">
                                     <i class="clip-truck circle-icon circle-green"></i>
-                                    <h2>Ruta</h2>
+                                    <h2>Estado Pedido Graco</h2>
                                 </div>
                                 <a href="javascript:void(0)"
-                                   onclick="pedirDespachos('Url.Action("DespachosEnRutaDia", "Reporte")')"
+                                   onclick="pedirDespachos('@Url.Action("DespachosEnRutaGraco", "Reporte")', 'Despachos Graco', '20210705004')"
                                    class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
                             </div>
-                        </div>*@
-                    <div></div>
-                }
+                        </div>
+                    }
 
+                    @* Ruta — ahora abre modal con Empresa + Agente (ya no es directo) (DEPRECADO) *@
+                    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Distribucion_Ruta"))
+                    {
+                        @*<div class="col-md-3">
+                                <div class="core-box">
+                                    <div class="heading">
+                                        <i class="clip-truck circle-icon circle-green"></i>
+                                        <h2>Ruta</h2>
+                                    </div>
+                                    <a href="javascript:void(0)"
+                                       onclick="pedirDespachos('Url.Action("DespachosEnRutaDia", "Reporte")')"
+                                       class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                                </div>
+                            </div>*@
+                        <div></div>
+                    }
+
+                    <div class="clearfix"></div>
+                </div>
             </div>
         </div>
-    </div>
-}
+    }
+
+</div> @* ── FIN .rpt-page ── *@
 
 @* ════════════════════════════════════════════════════════════
      MODAL — INVENTARIO
@@ -707,6 +1142,55 @@
     </div>
 </div>
 
+@* ════════════════════════════════════════════════════════════
+     MODAL — CARTERA DE CLIENTES (por empresa)
+     Parámetros: Agente | Fecha Corte | Cliente
+    ════════════════════════════════════════════════════════════ *@
+<div class="modal fade" id="modalCartera" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">
+                    <i class="clip-users teal"></i>
+                    <span id="modalCarteraTitulo">Cartera de Clientes</span>
+                </h4>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="control-label">
+                        Agente <small class="text-muted" id="carteraAgenteHelp"></small>
+                    </label>
+                    <select id="carteraAgente" class="form-control"></select>
+                </div>
+                <hr style="margin:8px 0" />
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">Fecha de Corte <span class="text-danger">*</span></label>
+                            <input type="text" id="carteraFechaCorte" class="form-control date-picker"
+                                   data-date-format="yyyy-mm-dd"
+                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label">Código Cliente <small class="text-muted">(vacío = todos)</small></label>
+                            <input type="text" id="carteraCliente" class="form-control" placeholder="Ej: CL0001" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnVerCartera">
+                    <i class="icon-file-pdf-alt"></i> Ver PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 @* ════════════════════════════════════════════════════════════
      JAVASCRIPT
@@ -725,6 +1209,8 @@
     var _empresaIdEstadoCuenta = null;
     var _empresaIdDFEmpresa = null;
     var _empresaIdDespachos = null;
+    var _urlCarteraBase = "";
+    var _empresaIdCartera = null;
 
     var EMP_BOLIK = "20210705001";
     var EMP_FAES  = "20210705003";
@@ -822,6 +1308,23 @@
             window.open(url, "_blank");
         });
 
+        // ── Cartera de Clientes ───────────────────────────────────
+        $("#btnVerCartera").on("click", function () {
+            var ag = $("#carteraAgente").val();
+            var fc = $("#carteraFechaCorte").val().trim();
+            var cl = $("#carteraCliente").val().trim();
+
+            if (!fc) { toastr.error("La fecha de corte es obligatoria"); return; }
+
+            var url = _urlCarteraBase
+                + "?fechaCorte=" + encodeURIComponent(fc)
+                + "&agente=" + encodeURIComponent(ag);
+            if (cl) url += "&cliente=" + encodeURIComponent(cl);
+
+            $("#modalCartera").modal("hide");
+            window.open(url, "_blank");
+        });
+
         // ── Estado Pedido (ahora incluye Empresa) ─────────────
         $("#btnVerRuta").on("click", function () {
             var emp = $("#rutaEmpresa").val();
@@ -900,6 +1403,10 @@
                 case "modalDespachos":
                     $("#btnVerDespachos").click();
                     break;
+
+                case "modalCartera":
+                    $("#btnVerCartera").click();
+                    break;
             }
         });
 
@@ -914,6 +1421,7 @@
         $.getJSON('@Url.Action("GetUserEmpresaInfo", "Reporte")', function (data) {
             _userEmpresaInfo = data;
             aplicarVisibilidadReportes();
+            rptActualizarContadores();   // ← UI: refrescar contadores tras aplicar visibilidad
         }).fail(function () {
             console.warn("[ReporteIndex] No se pudo cargar info de empresas del usuario.");
         });
@@ -1030,6 +1538,16 @@
         $("#dfEmpresaCliente, #dfEmpresaCodigo, #dfEmpresaProducto").val("");
         $("#modalDetalleFacturasEmpresa").modal("show");
         setTimeout(function () { $("#dfEmpresaAgente").focus(); }, 400);
+        }
+
+    function pedirCarteraClientes(urlBase, titulo, empresaId) {
+        _urlCarteraBase = urlBase;
+        _empresaIdCartera = empresaId ? empresaId.toString() : null;
+        $("#modalCarteraTitulo").text(titulo || "Cartera de Clientes");
+        poblarSelectAgentes($("#carteraAgente"), _empresaIdCartera, "#carteraAgenteHelp");
+        $("#carteraCliente").val("");
+        $("#modalCartera").modal("show");
+        setTimeout(function () { $("#carteraAgente").focus(); }, 400);
     }
 
     /**
@@ -1120,6 +1638,93 @@
             }
         }
     }
+
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  MEJORAS UI/UX — solo presentación (NO altera datos ni lógica)
+    //  Todo lo de abajo es aditivo: si se borra este bloque, la página
+    //  sigue funcionando exactamente igual que antes.
+    // ═══════════════════════════════════════════════════════════════════
+
+    /** Determina si un card está oculto por permisos (.hide()) o por búsqueda (.rpt-filtered) */
+    function rptCardOculta($box) {
+        var $col = $box.closest("[class*='col-']");
+        var $wrap = $col.length ? $col : $box;
+        var estiloCol = ($wrap.attr("style") || "");
+        var estiloBox = ($box.attr("style") || "");
+        return $wrap.hasClass("rpt-filtered") || $box.hasClass("rpt-filtered") ||
+               estiloCol.indexOf("display: none") !== -1 ||
+               estiloBox.indexOf("display: none") !== -1;
+    }
+
+    /** Actualiza el badge contador de cada sección */
+    function rptActualizarContadores() {
+        $(".rpt-page .panel.panel-default").each(function () {
+            var visibles = 0;
+            $(this).find(".panel-body .core-box").each(function () {
+                if (!rptCardOculta($(this))) visibles++;
+            });
+            $(this).find(".rpt-count").text(visibles);
+        });
+    }
+
+    $(document).ready(function () {
+
+        // 1. Chevron animado: rota al abrir/cerrar la sección
+        $(".rpt-page .panel-collapse")
+            .on("shown.bs.collapse", function () {
+                $(this).prev(".panel-heading").addClass("rpt-open");
+            })
+            .on("hidden.bs.collapse", function () {
+                $(this).prev(".panel-heading").removeClass("rpt-open");
+            });
+
+        // 2. Card completa clickeable: delega al link "Ver Reporte"
+        $(document).on("click", ".rpt-page .core-box", function (e) {
+            if ($(e.target).closest("a").length) return;   // el link ya lo maneja
+            var link = $(this).find("a.view-more").get(0);
+            if (link) link.click();
+        });
+
+        // 3. Buscador de reportes en vivo
+        $("#rptBuscar").on("input", function () {
+            var q = $(this).val().toLowerCase().trim();
+
+            $(".rpt-page .panel-body .core-box").each(function () {
+                var texto = $(this).find("h2").text().toLowerCase();
+                var $col  = $(this).closest("[class*='col-']");
+                var $obj  = $col.length ? $col : $(this);
+                $obj.toggleClass("rpt-filtered", !!q && texto.indexOf(q) === -1);
+            });
+
+            // Con búsqueda activa, abrir todas las secciones para ver resultados
+            if (q) $(".rpt-page .panel-collapse").collapse("show");
+
+            // Marcar secciones sin coincidencias
+            $(".rpt-page .panel.panel-default").each(function () {
+                var visibles = 0;
+                $(this).find(".panel-body .core-box").each(function () {
+                    if (!rptCardOculta($(this))) visibles++;
+                });
+                $(this).toggleClass("rpt-sin-resultados", !!q && visibles === 0);
+            });
+
+            rptActualizarContadores();
+        });
+
+        // 4. Expandir / Colapsar todas las secciones
+        var _rptExpandido = false;
+        $("#rptToggleTodo").on("click", function () {
+            _rptExpandido = !_rptExpandido;
+            $(".rpt-page .panel-collapse").collapse(_rptExpandido ? "show" : "hide");
+            $(this).find("span").text(_rptExpandido ? "Colapsar todo" : "Expandir todo");
+            $(this).find("i").attr("class", _rptExpandido ? "icon-resize-small" : "icon-resize-full");
+        });
+
+        // 5. Contadores iniciales (antes de que llegue el AJAX de empresas;
+        //    cargarInfoEmpresaUsuario los refresca al terminar)
+        rptActualizarContadores();
+    });
 
     </script>
 }

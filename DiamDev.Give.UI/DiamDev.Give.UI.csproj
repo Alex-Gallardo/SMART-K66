@@ -687,6 +687,7 @@
     <Content Include="Reports\Crystal\Reporte despachos en ruta Bolik.rpt" />
     <Content Include="Reports\Crystal\Reporte despachos en ruta Faes.rpt" />
     <Content Include="Reports\Crystal\Reporte despachos en ruta Graco.rpt" />
+    <Content Include="Reports\Crystal\Cartera de Clientes.rpt" />
     <None Include="Reports\Inventario.xsd">
       <Generator>MSDataSetGenerator</Generator>
       <LastGenOutput>Inventario2.Designer.cs</LastGenOutput>

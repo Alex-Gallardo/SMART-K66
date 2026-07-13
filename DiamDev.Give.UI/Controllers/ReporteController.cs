@@ -977,6 +977,86 @@ namespace DiamDev.Give.UI.Controllers
             catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Detalle Facturas Graco"); }
         }
 
+        // ══════════════════════════════════════════════════════════════════════
+        //  CARTERA DE CLIENTES — un action por empresa, mismo .rpt
+        //  Parámetros del .rpt (verificados con DiagParametros):
+        //    FECHA CORTE (fecha) | AGENTE | CLIENTE | Empresa
+        //  ⚠️ Los nombres son EXACTOS: "FECHA CORTE" con espacio, "Empresa" en mixto.
+        // ══════════════════════════════════════════════════════════════════════
+
+        public ActionResult CarteraClientesBolik(string fechaCorte = "",
+                                                 string agente = "",
+                                                 string cliente = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Cartera de Clientes.rpt"));
+
+                // Schema HANA de Bolik (mismo patrón que Estado de Cuenta)
+                AplicarConexionHana(rpt, "SBOBOLIK");
+
+                if (string.IsNullOrWhiteSpace(fechaCorte))
+                    throw new Exception("La Fecha de Corte es obligatoria.");
+
+                TrySetParametro(rpt, "FECHA CORTE", Convert.ToDateTime(fechaCorte));
+                TrySetParametro(rpt, "AGENTE", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
+                TrySetParametro(rpt, "CLIENTE", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
+                TrySetParametro(rpt, "Empresa", "BOLIK");
+
+                return ExportarPdf(rpt, "Cartera_Clientes_Bolik");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Cartera de Clientes Bolik"); }
+        }
+
+        public ActionResult CarteraClientesFaes(string fechaCorte = "",
+                                                string agente = "",
+                                                string cliente = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Cartera de Clientes.rpt"));
+
+                AplicarConexionHana(rpt, "SBOESCOCESA");
+
+                if (string.IsNullOrWhiteSpace(fechaCorte))
+                    throw new Exception("La Fecha de Corte es obligatoria.");
+
+                TrySetParametro(rpt, "FECHA CORTE", Convert.ToDateTime(fechaCorte));
+                TrySetParametro(rpt, "AGENTE", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
+                TrySetParametro(rpt, "CLIENTE", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
+                TrySetParametro(rpt, "Empresa", "FAES");
+
+                return ExportarPdf(rpt, "Cartera_Clientes_Faes");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Cartera de Clientes Faes"); }
+        }
+
+        public ActionResult CarteraClientesGraco(string fechaCorte = "",
+                                                 string agente = "",
+                                                 string cliente = "")
+        {
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Cartera de Clientes.rpt"));
+
+                AplicarConexionHana(rpt, "SBO_GRACO");
+
+                if (string.IsNullOrWhiteSpace(fechaCorte))
+                    throw new Exception("La Fecha de Corte es obligatoria.");
+
+                TrySetParametro(rpt, "FECHA CORTE", Convert.ToDateTime(fechaCorte));
+                TrySetParametro(rpt, "AGENTE", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
+                TrySetParametro(rpt, "CLIENTE", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
+                TrySetParametro(rpt, "Empresa", "GRACO");
+
+                return ExportarPdf(rpt, "Cartera_Clientes_Graco");
+            }
+            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Cartera de Clientes Graco"); }
+        }
+
         // ── Helpers internos ──────────────────────────────────────────────────
 
         /// <summary>

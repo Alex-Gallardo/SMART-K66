@@ -252,6 +252,103 @@ namespace DiamDev.Give.BLL
             }
         }
 
+        // Límites del motivo de anulación (espejo del front; el máximo = tamaño
+        // real de la columna MOTIVO en REC_CAJA_ENC: nvarchar(150))
+        private const int MIN_MOTIVO_ANULACION = 10;
+        private const int MAX_MOTIVO_ANULACION = 150;
+
+        // ─────────────────────────────────────────────
+        // ANULAR RECIBO — reglas de negocio:
+        //   1. Motivo obligatorio (>= MIN_MOTIVO_ANULACION caracteres reales).
+        //   2. El recibo debe existir y no estar ya anulado.
+        //   3. NO se puede anular si ya fue OPERADO en SAP o está en
+        //      DESCUADRE: primero Créditos debe anular el pago en SAP.
+        // Deja triple rastro: MOTIVO + ANULADO_POR + FECHA_ANULACION en el
+        // encabezado, y evento ANULADO en analyticsRecibos (motivo en payload).
+        // ─────────────────────────────────────────────
+        public ResultadoRecibo AnularRecibo(
+            string idRecibo, string empresa, string motivo,
+            long usuarioId, string usuarioLogin, string ipUsuario)
+        {
+            var res = new ResultadoRecibo { Exito = false, IdRecibo = idRecibo };
+
+            if (string.IsNullOrWhiteSpace(idRecibo) || string.IsNullOrWhiteSpace(empresa))
+            {
+                res.Mensaje = "Debe indicar el número de recibo y la empresa.";
+                return res;
+            }
+
+            // ── Validación del motivo (espejo de la del front) ──
+            motivo = (motivo ?? "").Trim();
+            if (motivo.Length < MIN_MOTIVO_ANULACION)
+            {
+                res.Mensaje = "Debe indicar el motivo de la anulación (mínimo " +
+                              MIN_MOTIVO_ANULACION + " caracteres).";
+                return res;
+            }
+            if (motivo.Length > MAX_MOTIVO_ANULACION)
+                motivo = motivo.Substring(0, MAX_MOTIVO_ANULACION);
+
+            var rec = BuscarRecibo(idRecibo, empresa);
+            if (rec == null)
+            {
+                res.Mensaje = "El recibo " + idRecibo + " no existe para la empresa " + empresa + ".";
+                return res;
+            }
+
+            if ("X".Equals((rec.Status ?? "").Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                res.Mensaje = "El recibo " + idRecibo + " ya está anulado" +
+                              (string.IsNullOrWhiteSpace(rec.AnuladoPor)
+                                  ? "."
+                                  : " (por " + rec.AnuladoPor +
+                                    (rec.FechaAnulacion.HasValue
+                                        ? " el " + rec.FechaAnulacion.Value.ToString("dd/MM/yyyy HH:mm")
+                                        : "") + ").");
+                return res;
+            }
+
+            string sync = (rec.SyncEstado ?? "").Trim().ToUpperInvariant();
+            if (sync == "OPERADO")
+            {
+                res.Mensaje = "No se puede anular: el recibo ya fue OPERADO en SAP" +
+                              (rec.SapDocNum.HasValue ? " (Pago No. " + rec.SapDocNum + ")" : "") +
+                              ". Solicite a Créditos anular primero el pago en SAP.";
+                return res;
+            }
+            if (sync == "DESCUADRE")
+            {
+                res.Mensaje = "No se puede anular: el recibo está en DESCUADRE con SAP. " +
+                              "Debe resolverse la conciliación antes de anularlo.";
+                return res;
+            }
+
+            int filas = _apk.AnularRecibo(idRecibo, empresa, usuarioLogin, motivo);
+            if (filas == 0)
+            {
+                res.Mensaje = "El recibo no pudo anularse (posiblemente ya fue anulado por otro usuario).";
+                return res;
+            }
+
+            // ── Analytics: evento ANULADO con el motivo en el payload ──
+            string payload = Newtonsoft.Json.JsonConvert.SerializeObject(new
+            {
+                Motivo = motivo,
+                SyncEstadoAlAnular = rec.SyncEstado,
+                MontoTRec = rec.MontoTotalRecibo,
+                Moneda = rec.Moneda
+            });
+            _apk.RegistrarEventoAnalytics(
+                "ANULADO", idRecibo, empresa, null,
+                usuarioId, usuarioLogin, rec.Moneda, rec.TipoCambio,
+                rec.MontoTotalRecGtq, rec.MontoTotalRecUsd, rec.SaldoGtq,
+                payload, ipUsuario);
+
+            res.Exito = true;
+            res.Mensaje = "Recibo " + idRecibo + " anulado correctamente.";
+            return res;
+        }
+
         // ─── BUSCAR RECIBO ────────────────────────────
         public ReciboCajaEncabezado BuscarRecibo(string idRecibo, string empresa) =>
             _apk.BuscarRecibo(idRecibo, empresa);

@@ -305,8 +305,13 @@ namespace DiamDev.Give.DAL
                             SyncEstado = r["SYNC_ESTADO"] != DBNull.Value ? r["SYNC_ESTADO"].ToString() : null,
                             SapDocEntry = r["SAP_DOCENTRY"] != DBNull.Value ? (int?)Convert.ToInt32(r["SAP_DOCENTRY"]) : null,
                             SapDocNum = r["SAP_DOCNUM"] != DBNull.Value ? (int?)Convert.ToInt32(r["SAP_DOCNUM"]) : null,
-                            SyncObservacion = r["SYNC_OBSERVACION"] != DBNull.Value ? r["SYNC_OBSERVACION"].ToString() : null   // ★
-                        };
+                            SyncObservacion = r["SYNC_OBSERVACION"] != DBNull.Value ? r["SYNC_OBSERVACION"].ToString() : null,   // ★
+                            // ── Auditoría de anulación ──
+                                                                                                                                 // ── Auditoría de anulación ──
+                            AnuladoPor = r["ANULADO_POR"] != DBNull.Value ? r["ANULADO_POR"].ToString() : null,
+                            MotivoAnulacion = r["MOTIVO"] != DBNull.Value ? r["MOTIVO"].ToString() : null,
+                            FechaAnulacion = r["FECHA_ANULACION"] != DBNull.Value ? (DateTime?)Convert.ToDateTime(r["FECHA_ANULACION"]) : null
+                            };
                     }
                 }
 
@@ -361,6 +366,38 @@ namespace DiamDev.Give.DAL
                 }
             }
             return rec;
+        }
+
+        // ─────────────────────────────────────────────
+        // ANULAR RECIBO: STATUS='X' + auditoría.
+        //   MOTIVO          (legacy, nvarchar(150)) ← el porqué
+        //   ANULADO_POR     (nueva)                 ← el quién
+        //   FECHA_ANULACION (nueva)                 ← el cuándo
+        // El AND STATUS='A' es el candado anti-carrera.
+        // Devuelve filas afectadas (0 = no existía o ya anulado).
+        // ─────────────────────────────────────────────
+        public int AnularRecibo(string idRecibo, string empresa, string usuario, string motivo)
+        {
+            using (var con = new SqlConnection(_conn))
+            {
+                con.Open();
+                using (var cmd = new SqlCommand(
+                    @"UPDATE REC_CAJA_ENC
+                 SET STATUS          = 'X',
+                     ANULADO_POR     = @usuario,
+                     MOTIVO          = @motivo,
+                     FECHA_ANULACION = SYSDATETIME()
+               WHERE ID_RECIBO  = @id
+                 AND ID_EMPRESA = @emp
+                 AND STATUS     = 'A'", con))
+                {
+                    cmd.Parameters.AddWithValue("@id", idRecibo);
+                    cmd.Parameters.AddWithValue("@emp", empresa);
+                    cmd.Parameters.AddWithValue("@usuario", usuario ?? "");
+                    cmd.Parameters.AddWithValue("@motivo", motivo ?? "");
+                    return cmd.ExecuteNonQuery();
+                }
+            }
         }
 
         // ─────────────────────────────────────────────

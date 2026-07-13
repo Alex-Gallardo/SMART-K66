@@ -219,6 +219,8 @@ namespace DiamDev.Give.Sincronizador
                                     Console.WriteLine("          OBSERVACION : {0}",
                                         rd["SYNC_OBSERVACION"] == DBNull.Value ? "(NULL)" : rd["SYNC_OBSERVACION"]);
                                 }
+                                if ("X".Equals(rd["STATUS"]?.ToString(), StringComparison.OrdinalIgnoreCase))
+                                    Console.WriteLine("   ⚠ ANULADO EN WEB (STATUS=X): invisible para el sync por diseño.");
                                 else
                                 {
                                     Console.WriteLine("   SQL  → ✗ El recibo NO existe en esta BD ({0}).", "REC_CAJA_ENC");

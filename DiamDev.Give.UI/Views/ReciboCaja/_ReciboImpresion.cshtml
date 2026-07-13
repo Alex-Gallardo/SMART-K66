@@ -26,8 +26,14 @@
 
     // ── No. Recibo SAP: siempre se muestra el label; el valor solo si está operado ──
     string noReciboSap = (esOperado && Model.SapDocNum.HasValue) ? Model.SapDocNum.Value.ToString() : "";
+
+    bool esAnulado = "X".Equals((Model.Status ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
 }
 <div class="recibo-doc">
+    @if (esAnulado)
+    {
+        <div class="marca-anulado">ANULADO</div>
+    }
 
     <!-- ── MEMBRETE (logo + razón social + NIT; sin dirección) ── -->
     <div class="membrete" style="border-bottom-color:@emp.Color;">
@@ -161,6 +167,22 @@
 
     <div class="pie">
         Recibo generado por @Model.Usuario · @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+        @if (esAnulado)
+        {
+            <text> · <span style="color:#a93226; font-weight:700;">ANULADO</span></text>
+            if (!string.IsNullOrWhiteSpace(Model.AnuladoPor))
+            {
+                <text> por @Model.AnuladoPor</text>
+            }
+            if (Model.FechaAnulacion.HasValue)
+            {
+                <text> el @Model.FechaAnulacion.Value.ToString("dd/MM/yyyy HH:mm")</text>
+            }
+            if (!string.IsNullOrWhiteSpace(Model.MotivoAnulacion))
+            {
+                <text> — Motivo: @Model.MotivoAnulacion</text>
+            }
+        }
         @if (esOperado && Model.SapDocNum.HasValue)
         {
             <text> · Operado en SAP — Pago No. @Model.SapDocNum</text>

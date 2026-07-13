@@ -55,7 +55,8 @@ namespace DiamDev.Give.DAL
                 SELECT TOP (@top) ID_RECIBO
                 FROM dbo.REC_CAJA_ENC
                 WHERE SYNC_ESTADO = 'PENDIENTE'
-                  AND ID_EMPRESA  = @empresa
+                AND ID_EMPRESA  = @empresa
+                AND ISNULL(STATUS, 'A') <> 'X'   -- anulados en web: invisibles para el sync
                 ORDER BY CASE WHEN SYNC_ULTIMO_CHECK IS NULL THEN 0 ELSE 1 END, -- nuevos primero
                          SYNC_ULTIMO_CHECK ASC,                                 -- luego el más viejo
                          ROWID ASC;                                             -- DESEMPATE estable (PK única)";
@@ -86,8 +87,9 @@ namespace DiamDev.Give.DAL
                     SYNC_ULTIMO_CHECK = SYSDATETIME(),
                     SYNC_OBSERVACION  = NULL
                 WHERE ID_RECIBO  = @idRecibo
-                  AND ID_EMPRESA = @empresa
-                  AND SYNC_ESTADO = 'PENDIENTE';";
+                    AND ID_EMPRESA = @empresa
+                    AND SYNC_ESTADO = 'PENDIENTE'
+                    AND ISNULL(STATUS, 'A') <> 'X';"; // carrera: anulado durante el viaje a HANA
 
             using (var cn = new SqlConnection(ConnString))
             using (var cmd = new SqlCommand(sql, cn))
@@ -112,6 +114,7 @@ namespace DiamDev.Give.DAL
         ///   - anulación (ya no aparece activo en SAP)
         ///   - anuló+rehízo (sigue activo pero con DocEntry distinto)
         /// </summary>
+        /// [OBSOLETO — sustituido por ObtenerRecibosParaRevision]
         public List<SapCobroAplicado> ObtenerRecibosOperados(string empresa, int? top = null)
         {
             int lote = top ?? LoteDefault;
@@ -164,8 +167,9 @@ namespace DiamDev.Give.DAL
                     SYNC_ULTIMO_CHECK = SYSDATETIME(),
                     SYNC_OBSERVACION  = @obs
                 WHERE ID_RECIBO  = @idRecibo
-                  AND ID_EMPRESA = @empresa
-                  AND SYNC_ESTADO = 'OPERADO';";
+                    AND ID_EMPRESA = @empresa
+                    AND SYNC_ESTADO = 'OPERADO'
+                    AND ISNULL(STATUS, 'A') <> 'X';"; // no "revivir" recibos anulados en web
 
             using (var cn = new SqlConnection(ConnString))
             using (var cmd = new SqlCommand(sql, cn))

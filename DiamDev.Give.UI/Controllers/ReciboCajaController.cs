@@ -259,6 +259,30 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         // ─────────────────────────────────────────────
+        // POST /ReciboCaja/Anular
+        // Las reglas viven en el BLL; el disabled del botón es cosmético.
+        // ─────────────────────────────────────────────
+        [HttpPost]
+        // [Permiso("Control.ReciboCaja.Anular")]
+        public JsonResult Anular(string idRecibo, string empresa, string motivo)
+        {
+            try
+            {
+                string login = User.Identity.Name;
+                long usuarioId = CustomHelper.getUserId();
+                string ip = Request.UserHostAddress;
+
+                var r = _bll.AnularRecibo(idRecibo ?? "", empresa ?? "", motivo ?? "",
+                                          usuarioId, login, ip);
+                return Json(new { ok = r.Exito, msg = r.Mensaje });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = "Error inesperado: " + ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────
         // GET /ReciboCaja/ImprimirLote?ids=RG12-07520|GRACO,RG12-07521|GRACO
         // Junta varios recibos en UN documento imprimible (un recibo por página).
         // Re-valida en servidor: omite DESCUADRES y no encontrados, y lo informa.

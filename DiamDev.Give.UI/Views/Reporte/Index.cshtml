@@ -185,68 +185,67 @@
         transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
 
-        .rpt-page .core-box:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(44, 62, 80, 0.12);
-        }
+    .rpt-page .core-box:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(44, 62, 80, 0.12);
+    }
 
-        .rpt-page .core-box .heading {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
+    .rpt-page .core-box .heading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
 
-            .rpt-page .core-box .heading h2 {
-                font-size: 14px;
-                font-weight: 600;
-                color: #37474f;
-                margin: 0;
-                line-height: 1.35;
-                letter-spacing: 0;
-            }
+    .rpt-page .core-box .heading h2 {
+        font-size: 14px;
+        font-weight: 600;
+        color: #37474f;
+        margin: 0;
+        line-height: 1em !important;
+    }
 
-        .rpt-page .core-box .circle-icon {
-            flex-shrink: 0;
-            width: 42px;
-            height: 42px;
-            line-height: 42px;
-            font-size: 17px;
-            border-radius: 50%;
-            text-align: center;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-        }
-        /* "Ver Reporte" como botón pill */
-        .rpt-page .core-box .view-more {
-            align-self: flex-start;
-            font-size: 12px;
-            font-weight: 600;
-            color: #169f98;
-            border: 1px solid rgba(22, 159, 152, 0.35);
-            border-radius: 14px;
-            padding: 5px 14px;
-            text-decoration: none;
-            transition: background .15s ease, color .15s ease;
-        }
+    .rpt-page .core-box .circle-icon {
+        flex-shrink: 0;
+        width: 42px;
+        height: 42px;
+        line-height: 42px;
+        font-size: 17px;
+        border-radius: 50%;
+        text-align: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    }
+    /* "Ver Reporte" como botón pill */
+    .rpt-page .core-box .view-more {
+        align-self: flex-start;
+        font-size: 12px;
+        font-weight: 600;
+        color: #169f98;
+        border: 1px solid rgba(22, 159, 152, 0.35);
+        border-radius: 14px;
+        padding: 5px 14px;
+        text-decoration: none;
+        transition: background .15s ease, color .15s ease;
+    }
 
-            .rpt-page .core-box .view-more:hover,
-            .rpt-page .core-box:hover .view-more {
-                background: #169f98;
-                color: #fff;
-                text-decoration: none;
-            }
+    .rpt-page .core-box .view-more:hover,
+    .rpt-page .core-box:hover .view-more {
+        background: #169f98;
+        color: #fff;
+        text-decoration: none;
+    }
 
-            .rpt-page .core-box .view-more i {
-                font-size: 10px;
-                margin-left: 4px;
-            }
+    .rpt-page .core-box .view-more i {
+        font-size: 10px;
+        margin-left: 4px;
+    }
 
     /* ── Acento de color por empresa (via data-empresa-id) ─
        Cubre ambas variantes de markup:
        .card-empresa en la col  ó  .card-empresa en el core-box */
     .card-empresa[data-empresa-id="20210705001"] .core-box,
     .core-box.card-empresa[data-empresa-id="20210705001"] {
-        border-top-color: #e7505a; /* Bolik */
+        border-top-color: #000000; /* Bolik */
     }
 
     .card-empresa[data-empresa-id="20210705003"] .core-box,

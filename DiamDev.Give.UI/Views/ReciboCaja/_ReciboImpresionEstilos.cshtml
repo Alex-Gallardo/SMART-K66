@@ -218,4 +218,35 @@
             border-radius: 6px;
             padding: 0.2em 1em;
         }
+    /* ── MARCA DE AGUA "ANULADO" ──
+   position:absolute (no fixed) a propósito: el parcial se reutiliza
+   en ImprimirLote y un fixed marcaría TODAS las páginas del lote. */
+    .recibo-doc {
+        position: relative;
+    }
+
+    .marca-anulado {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-35deg);
+        font-size: 130px;
+        font-weight: 900;
+        letter-spacing: 14px;
+        color: rgba(127, 140, 141, .18); /* gris translúcido: se lee el contenido debajo */
+        text-transform: uppercase;
+        white-space: nowrap;
+        z-index: 50;
+        pointer-events: none; /* no bloquea clicks ni selección de texto */
+        user-select: none;
+    }
+
+    @@media print {
+        .marca-anulado {
+            /* Chrome no imprime colores de fondo por defecto, pero esto es
+           color de TEXTO: sí se imprime. Forzamos fidelidad por si acaso. */
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
 </style>

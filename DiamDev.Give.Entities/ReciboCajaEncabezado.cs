@@ -50,6 +50,11 @@ namespace DiamDev.Give.Entities
         public int? SapDocNum { get; set; }       // nullable: null si aún no operado
         public string SyncObservacion { get; set; }  // ← NUEVO: detalle de anulación/descuadre (tooltip UI)
 
+        // ── Auditoría de anulación ──
+        public string AnuladoPor { get; set; }
+        public DateTime? FechaAnulacion { get; set; }
+        public string MotivoAnulacion { get; set; }
+
         public ReciboCajaEncabezado()
         {
             Cobros = new List<ReciboCajaCobro>();

@@ -1768,6 +1768,43 @@ $("#cboTipoPago").on("change", function () {
 });
 
 // ════════════════════════════════════════════════════════
+// 3.5 CAMBIO DE MONEDA → convertir montos del panel
+// Guardamos la moneda previa en data("monedaPrev") para saber
+// la dirección de la conversión. Los seteos programáticos usan
+// change.select2, que NO dispara estos handlers (a propósito).
+// ════════════════════════════════════════════════════════
+$("#cboMonedaCobro").on("change", function () {
+    var nueva = $(this).val();
+    var previa = $(this).data("monedaPrev") || "";
+    $(this).data("monedaPrev", nueva);
+
+    if (!previa || !nueva || previa === nueva) return;
+    if (!(Estado.tipoCambio > 0)) {
+        toastr.warning("No hay tipo de cambio del día: el monto no se convirtió.");
+        return;
+    }
+    var v = ConvertirMonto($("#txtMontoCobro").val(), previa, nueva, Estado.tipoCambio);
+    if (v !== null) $("#txtMontoCobro").val(v.toFixed(2));
+});
+
+$("#cboMonedaDoc").on("change", function () {
+    var nueva = $(this).val();
+    var previa = $(this).data("monedaPrev") || "";
+    $(this).data("monedaPrev", nueva);
+
+    if (!previa || !nueva || previa === nueva) return;
+    if (!(Estado.tipoCambio > 0)) {
+        toastr.warning("No hay tipo de cambio del día: los montos no se convirtieron.");
+        return;
+    }
+    // Convierte los tres campos de dinero del panel
+    ["#txtMontoDoc", "#txtTotalFact", "#txtPagado"].forEach(function (sel) {
+        var v = ConvertirMonto($(sel).val(), previa, nueva, Estado.tipoCambio);
+        if (v !== null) $(sel).val(v.toFixed(2));
+    });
+});
+
+// ════════════════════════════════════════════════════════
 // 4. TIPO DOCUMENTO → habilitar/deshabilitar campos
 // ════════════════════════════════════════════════════════
 $("#cboTipoDoc").on("change", function () {
@@ -2131,6 +2168,7 @@ function CargarDocEnPanel(d) {
     $("#txtPagado").val(FmtNum(d.Pagado));
     $("#txtMontoDoc").val(FmtNum(d.Monto != null ? d.Monto : disponible));
     $("#cboMonedaDoc").val(d.Moneda || "GTQ");
+    $("#cboMonedaDoc").data("monedaPrev", d.Moneda || "GTQ");
 
     if ($("#cboMonedaDoc").hasClass("search-select") && $.fn.select2) {
         $("#cboMonedaDoc").trigger("change.select2");
@@ -2672,6 +2710,7 @@ function LimpiarDetalleCobro() {
     $("#cboTipoPago, #cboBanco, #cboMonedaCobro").val("");
     $("#txtNoDocCobro, #dtpFechaCobro, #txtMontoCobro").val("");
     $("#cboBanco, #txtNoDocCobro, #dtpFechaCobro").prop("disabled", false);
+    $("#cboMonedaCobro").data("monedaPrev", "");
 
     // Refrescar Select2 visual tras limpiar
     if ($.fn.select2) {
@@ -2684,6 +2723,7 @@ function LimpiarDetalleDoc() {
     $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel").val("");
     $("#txtTotalFact, #txtPagado, #txtMontoDoc").val("");
     $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel, #cboMonedaDoc").prop("disabled", false);
+    $("#cboMonedaDoc").data("monedaPrev", "");
 
     // Refrescar Select2 para que lo visual coincida con el valor real (vacío).
     // Usamos change.select2 (NO change) para repintar sin disparar los handlers
@@ -2847,6 +2887,17 @@ function PintarBadgeStatus(status) {
 // UTILIDADES
 // ════════════════════════════════════════════════════════
 function FmtNum(n) { return parseFloat(n || 0).toFixed(2); }
+
+// Convierte un monto entre GTQ y USD usando el TC del día.
+// Devuelve null si no hay nada que convertir (sin valor, sin TC, misma moneda).
+function ConvertirMonto(valor, de, a, tc) {
+    valor = parseFloat(valor);
+    tc = parseFloat(tc) || 0;
+    if (isNaN(valor) || !de || !a || de === a || tc <= 0) return null;
+    if (de === "GTQ" && a === "USD") return Math.round((valor / tc) * 100) / 100;
+    if (de === "USD" && a === "GTQ") return Math.round((valor * tc) * 100) / 100;
+    return null;
+}
 
 // ════════════════════════════════════════════════════════
 // CÁLCULO DUAL (espejo de CalcularMontosDuales del BLL)

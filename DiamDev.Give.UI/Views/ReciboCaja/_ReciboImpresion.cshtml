@@ -1,4 +1,5 @@
 ﻿@model DiamDev.Give.Entities.ReciboCajaEncabezado
+@using System.Linq
 @{
     // ── Datos de membrete por empresa (razón social + NIT reales + logo) ──
     var empresas = new Dictionary<string, dynamic>
@@ -14,12 +15,30 @@
     bool esOperado = string.Equals(Model.SyncEstado, "OPERADO", StringComparison.OrdinalIgnoreCase);
     bool tieneDual = Model.TipoCambio.HasValue && Model.TipoCambio.Value > 0;
 
-    // ── Moneda única del recibo: si es USD se imprime todo en $,
-    //    en cualquier otro caso en Q. Nada de doble columna. ──
     bool esUsd = string.Equals((Model.Moneda ?? "").Trim(), "USD", StringComparison.OrdinalIgnoreCase);
     string simbolo = esUsd ? "$" : "Q";
 
-    // Totales en LA moneda del recibo (duales si existen; fallback legado).
+    // ── ¿Se usaron dólares en alguna línea del recibo? ──
+    Func<string, bool> esMonedaUsd = m =>
+        "USD".Equals((m ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
+
+    bool usaDolares = esUsd
+        || (Model.Cobros != null && Model.Cobros.Any(c => esMonedaUsd(c.Moneda)))
+        || (Model.Documentos != null && Model.Documentos.Any(d => esMonedaUsd(d.Moneda)));
+
+    // Imprimimos en dual SOLO si hubo dólares Y tenemos TC para derivar.
+    // Recibo 100% GTQ (o legado sin TC): una sola moneda, como siempre.
+    bool mostrarDual = usaDolares && tieneDual;
+
+    decimal tc = Model.TipoCambio ?? 0;
+
+    // Conversores por línea (misma regla de oro del BLL: original exacto, derivado redondeado)
+    Func<decimal, string, decimal> aGtq = (m, mon) =>
+        esMonedaUsd(mon) ? Math.Round(m * tc, 2) : m;
+    Func<decimal, string, decimal> aUsd = (m, mon) =>
+        esMonedaUsd(mon) ? m : (tc > 0 ? Math.Round(m / tc, 2) : 0);
+
+    // Totales: duales si existen; fallback legado en la moneda del recibo.
     decimal totCobros = tieneDual ? (esUsd ? Model.MontoTotalRecUsd : Model.MontoTotalRecGtq) : Model.MontoTotalRecibo;
     decimal totDocs = tieneDual ? (esUsd ? Model.MontoTotalDocUsd : Model.MontoTotalDocGtq) : Model.MontoTotalDoc;
     decimal totSaldo = tieneDual ? (esUsd ? Model.SaldoUsd : Model.SaldoGtq) : Model.Saldo;
@@ -88,7 +107,15 @@
                 <th>Banco</th>
                 <th>No. Documento</th>
                 <th>Fecha Doc.</th>
-                <th class="num-col">Monto</th>
+                @if (mostrarDual)
+                {
+                    <th class="num-col">Monto Q</th>
+                    <th class="num-col">Monto $</th>
+                }
+                else
+                {
+                    <th class="num-col">Monto</th>
+                }
                 <th>Moneda</th>
             </tr>
         </thead>
@@ -100,7 +127,15 @@
                     <td>@(string.IsNullOrWhiteSpace(c.Banco) ? "—" : c.Banco)</td>
                     <td>@(string.IsNullOrWhiteSpace(c.NoDocumento) ? "—" : c.NoDocumento)</td>
                     <td>@(c.FechaDoc.HasValue ? c.FechaDoc.Value.ToString("dd/MM/yyyy") : "—")</td>
-                    <td class="num-col">@c.Monto.ToString("N2")</td>
+                    @if (mostrarDual)
+                    {
+                        <td class="num-col">@aGtq(c.Monto, c.Moneda).ToString("N2")</td>
+                        <td class="num-col">@aUsd(c.Monto, c.Moneda).ToString("N2")</td>
+                    }
+                    else
+                    {
+                        <td class="num-col">@c.Monto.ToString("N2")</td>
+                    }
                     <td>@c.Moneda</td>
                 </tr>
             }
@@ -118,7 +153,15 @@
                 <th>Núm. FEL</th>
                 <th>Fecha</th>
                 <th class="num-col">Total Factura</th>
-                <th class="num-col">Monto Cobrado</th>
+                @if (mostrarDual)
+                {
+                    <th class="num-col">Cobrado Q</th>
+                    <th class="num-col">Cobrado $</th>
+                }
+                else
+                {
+                    <th class="num-col">Monto Cobrado</th>
+                }
                 <th class="num-col">Saldo Pendiente</th>
                 <th>Moneda</th>
             </tr>
@@ -129,6 +172,7 @@
                 // Anticipos / saldos: sin factura de referencia → sin total ni restante.
                 bool tieneFactura = d.MontoFact > 0;
                 // ★ Saldo Restante = Total Factura − Pagado (SAP) − este cobro.
+                //   (Se calcula en la moneda ORIGINAL de la factura: no se mezcla con el TC.)
                 decimal restante = d.MontoFact - d.Pagado - d.Monto;
 
                 <tr>
@@ -138,7 +182,15 @@
                     <td>@(string.IsNullOrWhiteSpace(d.FelNumero) ? "—" : d.FelNumero)</td>
                     <td>@(d.FechaDoc.HasValue ? d.FechaDoc.Value.ToString("dd/MM/yyyy") : "—")</td>
                     <td class="num-col">@(tieneFactura ? d.MontoFact.ToString("N2") : "—")</td>
-                    <td class="num-col">@d.Monto.ToString("N2")</td>
+                    @if (mostrarDual)
+                    {
+                        <td class="num-col">@aGtq(d.Monto, d.Moneda).ToString("N2")</td>
+                        <td class="num-col">@aUsd(d.Monto, d.Moneda).ToString("N2")</td>
+                    }
+                    else
+                    {
+                        <td class="num-col">@d.Monto.ToString("N2")</td>
+                    }
                     <td class="num-col">@(tieneFactura ? restante.ToString("N2") : "—")</td>
                     <td>@d.Moneda</td>
                 </tr>
@@ -146,15 +198,37 @@
         </tbody>
     </table>
 
-    <!-- ── TOTALES (en la moneda del recibo únicamente) ── -->
+    <!-- ── TOTALES ── -->
     <div class="totales">
         <table>
-            <tr><td>Total Cobros:</td><td class="num-col">@simbolo @totCobros.ToString("N2")</td></tr>
-            <tr><td>Total Documentos:</td><td class="num-col">@simbolo @totDocs.ToString("N2")</td></tr>
-            <tr class="gran-total"><td>Saldo:</td><td class="num-col">@simbolo @totSaldo.ToString("N2")</td></tr>
+            @if (mostrarDual)
+            {
+                // Dual: Quetzales + Dólares, tomados de los totales duales del recibo
+                <tr>
+                    <td>Total Cobros:</td>
+                    <td class="num-col">Q @Model.MontoTotalRecGtq.ToString("N2")</td>
+                    <td class="num-col">$ @Model.MontoTotalRecUsd.ToString("N2")</td>
+                </tr>
+                <tr>
+                    <td>Total Documentos:</td>
+                    <td class="num-col">Q @Model.MontoTotalDocGtq.ToString("N2")</td>
+                    <td class="num-col">$ @Model.MontoTotalDocUsd.ToString("N2")</td>
+                </tr>
+                <tr class="gran-total">
+                    <td>Saldo:</td>
+                    <td class="num-col">Q @Model.SaldoGtq.ToString("N2")</td>
+                    <td class="num-col">$ @Model.SaldoUsd.ToString("N2")</td>
+                </tr>
+            }
+            else
+            {
+                <tr><td>Total Cobros:</td><td class="num-col">@simbolo @totCobros.ToString("N2")</td></tr>
+                <tr><td>Total Documentos:</td><td class="num-col">@simbolo @totDocs.ToString("N2")</td></tr>
+                <tr class="gran-total"><td>Saldo:</td><td class="num-col">@simbolo @totSaldo.ToString("N2")</td></tr>
+            }
         </table>
     </div>
-    @if (esUsd && tieneDual)
+    @if (mostrarDual)
     {
         <div class="tc-nota">Tipo de cambio aplicado: Q @Model.TipoCambio.Value.ToString("N4") por US$ 1.00</div>
     }

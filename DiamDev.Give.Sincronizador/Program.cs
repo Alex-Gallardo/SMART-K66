@@ -21,7 +21,8 @@ namespace DiamDev.Give.Sincronizador
 
         // =========== CAMBIAR A 5 MIN (PRODUCCION) ============================================
         // private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromMinutes(5);
-        private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromSeconds(30); // DEMO: volver a FromMinutes(5) después
+        private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromMinutes(5);
+        // private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromSeconds(30); // DEMO: volver a FromMinutes(5) después
 
         static void Main(string[] args)
         {

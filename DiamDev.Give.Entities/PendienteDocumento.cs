@@ -13,6 +13,12 @@ namespace DiamDev.Give.Entities
     {
         public decimal Monto { get; set; }
 
+        /// <summary>Suma dual en quetzales.</summary>
+        public decimal MontoGtq { get; set; }
+
+        /// <summary>Suma dual en dólares.</summary>
+        public decimal MontoUsd { get; set; }
+
         /// <summary>Recibos que comprometen este documento, con su estado.
         /// Ej: ["RG12-07510 (PENDIENTE)", "RG12-07522 (DESCUADRE)"]</summary>
         public List<string> Recibos { get; set; } = new List<string>();

@@ -157,6 +157,9 @@ namespace DiamDev.Give.BLL
             // ── Merge de pendientes SQL sobre los documentos de la lista ──
             // Un solo viaje a SQL; lookup O(1) por documento. Si el cálculo
             // falla, NO tumbamos el modal: los docs salen con pendiente 0.
+            // MONEDA DUAL: el pendiente se toma en LA MISMA moneda del documento
+            // (MontoUsd para facturas USD, MontoGtq para GTQ) para que la resta
+            // Saldo − Pendiente del modal sea siempre peras con peras.
             try
             {
                 var pendientes = _apk.ObtenerPendientesPorDocumento(empresa, clienteId, tipo);
@@ -167,7 +170,9 @@ namespace DiamDev.Give.BLL
                         var key = (d.NoDocumento ?? "").Trim();
                         if (key.Length > 0 && pendientes.TryGetValue(key, out PendienteDocumento p))
                         {
-                            d.MontoPendiente = p.Monto;
+                            bool docEsUsd = "USD".Equals((d.Moneda ?? "").Trim(),
+                                                         StringComparison.OrdinalIgnoreCase);
+                            d.MontoPendiente = docEsUsd ? p.MontoUsd : p.MontoGtq;
                             d.PendienteRecibos = string.Join(", ", p.Recibos);
                         }
                     }
@@ -180,6 +185,16 @@ namespace DiamDev.Give.BLL
             }
 
             return lista;
+        }
+
+        /// <summary>
+        /// Anticipos EN TRÁNSITO del cliente para la barra informativa del modal.
+        /// Informativo, no bloqueante: si falla devuelve null y el modal sale sin barra.
+        /// </summary>
+        public AnticipoTransito ObtenerAnticiposTransito(string empresa, string clienteId)
+        {
+            try { return _apk.ObtenerAnticiposTransito(empresa ?? "", clienteId ?? ""); }
+            catch { return null; }
         }
 
         /// <summary>

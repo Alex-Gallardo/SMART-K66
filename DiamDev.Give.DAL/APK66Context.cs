@@ -499,7 +499,13 @@ namespace DiamDev.Give.DAL
         ///      PaidToDate ya lo refleja — contarlas sería descontarlas DOS veces.
         ///
         /// Excluye OPERADOS cuadrados y recibos anulados localmente (STATUS='X').
-        /// Retorna: diccionario NO_DOCUMENTO → { Monto, Recibos[] }.
+        ///
+        /// MONEDA DUAL: además del MONTO original (legacy), acumula MONTO_GTQ y
+        /// MONTO_USD por documento. El BLL elige cuál restar según la MONEDA del
+        /// documento — antes se restaba el MONTO en su moneda original contra el
+        /// saldo de la factura en OTRA moneda (mismo bug que la vista de HANA).
+        ///
+        /// Retorna: diccionario NO_DOCUMENTO → { Monto, MontoGtq, MontoUsd, Recibos[] }.
         /// </summary>
         public Dictionary<string, PendienteDocumento> ObtenerPendientesPorDocumento(
             string empresa, string clienteId, string tipoDoc)
@@ -507,21 +513,24 @@ namespace DiamDev.Give.DAL
             var mapa = new Dictionary<string, PendienteDocumento>(StringComparer.OrdinalIgnoreCase);
 
             const string sql = @"
-                SELECT D.NO_DOCUMENTO, D.MONTO, E.ID_RECIBO, E.SYNC_ESTADO
-                FROM REC_CAJA_DET D
-                INNER JOIN REC_CAJA_ENC E
-                        ON E.ID_RECIBO  = D.ID_RECIBO
-                       AND E.ID_EMPRESA = D.ID_EMPRESA
-                WHERE D.ID_EMPRESA   = @emp
-                  AND E.ID_CLIENTE   = @cli
-                  AND D.TIPO_DOC     = @tipo
-                  AND D.NO_DOCUMENTO IS NOT NULL
-                  AND ISNULL(E.STATUS, 'A') <> 'X'
-                  AND (
-                        E.SYNC_ESTADO = 'PENDIENTE'
-                     OR (E.SYNC_ESTADO = 'DESCUADRE' AND D.SYNC_DOC_ESTADO = 'ANULADO_SAP')
-                  )
-                ORDER BY D.NO_DOCUMENTO, E.ID_RECIBO;";
+        SELECT D.NO_DOCUMENTO, D.MONTO, D.MONEDA,
+               ISNULL(D.MONTO_GTQ, 0) AS MONTO_GTQ,
+               ISNULL(D.MONTO_USD, 0) AS MONTO_USD,
+               E.ID_RECIBO, E.SYNC_ESTADO
+        FROM REC_CAJA_DET D
+        INNER JOIN REC_CAJA_ENC E
+                ON E.ID_RECIBO  = D.ID_RECIBO
+               AND E.ID_EMPRESA = D.ID_EMPRESA
+        WHERE D.ID_EMPRESA   = @emp
+          AND E.ID_CLIENTE   = @cli
+          AND D.TIPO_DOC     = @tipo
+          AND D.NO_DOCUMENTO IS NOT NULL
+          AND ISNULL(E.STATUS, 'A') <> 'X'
+          AND (
+                ISNULL(E.SYNC_ESTADO, 'PENDIENTE') = 'PENDIENTE'
+             OR (E.SYNC_ESTADO = 'DESCUADRE' AND D.SYNC_DOC_ESTADO = 'ANULADO_SAP')
+          )
+        ORDER BY D.NO_DOCUMENTO, E.ID_RECIBO;";
 
             using (var con = new SqlConnection(_conn))
             using (var cmd = new SqlCommand(sql, con))
@@ -540,7 +549,23 @@ namespace DiamDev.Give.DAL
                         if (!mapa.TryGetValue(doc, out var p))
                             mapa[doc] = p = new PendienteDocumento();
 
-                        p.Monto += Val(r["MONTO"]);
+                        decimal monto = Val(r["MONTO"]);
+                        decimal gtq = Val(r["MONTO_GTQ"]);
+                        decimal usd = Val(r["MONTO_USD"]);
+
+                        // Fallback líneas históricas sin duales (pre-migración)
+                        if (gtq == 0m && usd == 0m && monto != 0m)
+                        {
+                            if ("USD".Equals((r["MONEDA"] ?? "").ToString().Trim(),
+                                             StringComparison.OrdinalIgnoreCase))
+                                usd = monto;
+                            else
+                                gtq = monto;
+                        }
+
+                        p.Monto += monto;      // legacy: se conserva por compatibilidad
+                        p.MontoGtq += gtq;
+                        p.MontoUsd += usd;
 
                         string etiqueta = string.Format("{0} ({1})",
                             r["ID_RECIBO"],
@@ -551,6 +576,84 @@ namespace DiamDev.Give.DAL
                 }
             }
             return mapa;
+        }
+
+        // ─────────────────────────────────────────────
+        // ANTICIPOS EN TRÁNSITO (barra informativa del modal de docs)
+        // ─────────────────────────────────────────────
+        /// <summary>
+        /// Suma los ANTICIPOS "en tránsito" de un cliente: dinero que caja ya recibió
+        /// pero que aún no está operado (o quedó revertido) en SAP. Mismo criterio que
+        /// ObtenerPendientesPorDocumento:
+        ///   a) Recibos PENDIENTES (SYNC_ESTADO NULL cuenta como PENDIENTE: recibo
+        ///      recién creado que el sincronizador aún no toca).
+        ///   b) Recibos en DESCUADRE: solo líneas SYNC_DOC_ESTADO='ANULADO_SAP'.
+        /// Excluye anulados localmente (STATUS='X').
+        /// Devuelve totales DUALES (GTQ y USD) + los IDs de recibo involucrados.
+        /// </summary>
+        public AnticipoTransito ObtenerAnticiposTransito(string empresa, string clienteId)
+        {
+            var resultado = new AnticipoTransito();
+            var recibos = new List<string>();
+
+            const string sql = @"
+        SELECT E.ID_RECIBO,
+               D.MONTO,
+               ISNULL(D.MONTO_GTQ, 0) AS MONTO_GTQ,
+               ISNULL(D.MONTO_USD, 0) AS MONTO_USD,
+               D.MONEDA
+        FROM REC_CAJA_DET D
+        INNER JOIN REC_CAJA_ENC E
+                ON E.ID_RECIBO  = D.ID_RECIBO
+               AND E.ID_EMPRESA = D.ID_EMPRESA
+        WHERE E.ID_EMPRESA = @emp
+          AND E.ID_CLIENTE = @cli
+          AND D.TIPO_DOC   = 'ANTICIPO'
+          AND ISNULL(E.STATUS, 'A') <> 'X'
+          AND (
+                ISNULL(E.SYNC_ESTADO, 'PENDIENTE') = 'PENDIENTE'
+             OR (E.SYNC_ESTADO = 'DESCUADRE' AND D.SYNC_DOC_ESTADO = 'ANULADO_SAP')
+          )
+        ORDER BY E.ID_RECIBO;";
+
+            using (var con = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(sql, con))
+            {
+                cmd.Parameters.AddWithValue("@emp", empresa ?? "");
+                cmd.Parameters.AddWithValue("@cli", clienteId ?? "");
+                con.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        decimal gtq = Val(r["MONTO_GTQ"]);
+                        decimal usd = Val(r["MONTO_USD"]);
+
+                        // Fallback para líneas históricas SIN duales (pre-migración):
+                        // el MONTO original cuenta en su propia moneda; la otra queda en 0
+                        // (mejor subestimar el equivalente que inventarlo sin TC).
+                        if (gtq == 0m && usd == 0m)
+                        {
+                            decimal monto = Val(r["MONTO"]);
+                            if ("USD".Equals((r["MONEDA"] ?? "").ToString().Trim(),
+                                             StringComparison.OrdinalIgnoreCase))
+                                usd = monto;
+                            else
+                                gtq = monto;
+                        }
+
+                        resultado.Gtq += gtq;
+                        resultado.Usd += usd;
+
+                        string id = Convert.ToString(r["ID_RECIBO"]).Trim();
+                        if (!recibos.Contains(id)) recibos.Add(id);
+                    }
+                }
+            }
+
+            resultado.Cantidad = recibos.Count;
+            resultado.Recibos = string.Join(", ", recibos);
+            return resultado;
         }
 
         // Helper interno

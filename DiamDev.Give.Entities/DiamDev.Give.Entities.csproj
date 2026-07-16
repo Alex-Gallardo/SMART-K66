@@ -81,6 +81,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnticipoTransito.cs" />
     <Compile Include="AutenticarToken.cs" />
     <Compile Include="BodegaActivaModel.cs" />
     <Compile Include="ClienteHana.cs" />

@@ -1416,7 +1416,15 @@
                 </h4>
             </div>
             <div class="modal-body" style="padding:14px 16px;">
-
+                <!-- Barra informativa: anticipos del cliente en tránsito -->
+                <div id="barAnticipos" class="alert alert-info"
+                     style="display:none; padding:8px 14px; margin-bottom:12px;
+            font-size:12.5px; border-left:4px solid #2471a3;">
+                    <i class="icon-info-sign"></i>
+                    Este cliente tiene <strong id="antMonto"></strong> en
+                    <strong>anticipos en tránsito</strong> (aún no operados en SAP):
+                    <span id="antRecibos" style="font-family:monospace;"></span>
+                </div>
                 <!-- Barra de resumen / totales -->
                 <div class="doc-resumen">
                     <div class="resumen-item">
@@ -2166,6 +2174,7 @@ $("#btnBuscarDoc").on("click", function () {
     $("#resTotalDocs").text("0");
     $("#resSaldoTotal").text(FmtMoneda(0));
     $("#resSaldoSel").html(FmtMoneda(0) + ' <small style="font-size:11px;color:#7f8c8d;">(0)</small>');
+    $("#barAnticipos").hide();   // ← NUEVO: cada búsqueda arranca sin barra
 
     $("#tbodyModalDocs").html(
         '<tr><td colspan="11" class="text-center" style="padding:28px;">' +
@@ -2191,6 +2200,7 @@ $("#btnBuscarDoc").on("click", function () {
 
         _docsModal = resp.data;
         PintarTablaModalDocs();
+        PintarBarAnticipos(resp.anticipos);   // ← NUEVO
 
         ActualizarSeleccionDocs();
     });
@@ -3094,6 +3104,21 @@ function MontosDuales(monto, moneda, tc) {
     } else {
         return { gtq: monto, usd: Math.round((monto / tc) * 100) / 100 };
     }
+}
+
+// ════════════════════════════════════════════════════════
+// BARRA DE ANTICIPOS EN TRÁNSITO (modal de documentos)
+// Muestra los totales duales (Q y $) de los anticipos del
+// cliente que aún no fueron operados en SAP. Solo informativa:
+// NO altera saldos ni disponibles de las facturas.
+// ════════════════════════════════════════════════════════
+function PintarBarAnticipos(a) {
+    var $bar = $("#barAnticipos");
+    if (!a || !(a.Cantidad > 0)) { $bar.hide(); return; }
+
+    $("#antMonto").text("Q " + FmtMoneda(a.Gtq) + "  ($ " + FmtMoneda(a.Usd) + ")");
+    $("#antRecibos").text(a.Recibos || "");
+    $bar.show();
 }
 
 // Igual que FmtNum pero con separador de miles (para MOSTRAR dinero).

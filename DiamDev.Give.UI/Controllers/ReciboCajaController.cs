@@ -116,7 +116,9 @@ namespace DiamDev.Give.UI.Controllers
 
         // ─────────────────────────────────────────────
         // GET /ReciboCaja/ObtenerDocumentos
-        // Llamado por AJAX al abrir el modal de búsqueda de documentos
+        // Llamado por AJAX al abrir el modal de búsqueda de documentos.
+        // Además de los documentos, devuelve los ANTICIPOS en tránsito del
+        // cliente (barra informativa del modal).
         // ─────────────────────────────────────────────
         [HttpGet]
         // [Permiso("Control.ReciboCaja.Ver")]
@@ -125,7 +127,9 @@ namespace DiamDev.Give.UI.Controllers
             try
             {
                 var docs = _bll.ObtenerDocumentos(empresa ?? "", clienteId ?? "", tipoDoc ?? "");
-                return Json(new { ok = true, data = docs }, JsonRequestBehavior.AllowGet);
+                var anticipos = _bll.ObtenerAnticiposTransito(empresa ?? "", clienteId ?? "");
+                return Json(new { ok = true, data = docs, anticipos },
+                            JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {

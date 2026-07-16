@@ -693,6 +693,11 @@
             min-width: 170px;
         }
 
+        .selector-grid .sel-codigo {
+            flex: 1 1 240px;
+            min-width: 200px;
+        }
+
         .selector-grid .sel-usuario {
             flex: 1 1 240px;
             min-width: 220px;
@@ -832,7 +837,7 @@
         <h4 class="panel-title">
             <i class="clip-archive"></i>
             <span class="sel-title-main">Recibos de Caja</span>
-            <small class="sel-title-sub">Seleccione empresa y fecha para comenzar</small>
+            <small class="sel-title-sub">Seleccione empresa y operador para comenzar</small>
         </h4>
     </div>
     <div class="panel-body" style="padding:16px 18px;">
@@ -848,6 +853,19 @@
                     <select id="selEmpresa" class="form-control f-control search-select">
                         <option value="">— Seleccione empresa —</option>
                         <!-- Las opciones se cargan vía CargarEmpresasUsuario() -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Código / Operador (Usuario_Empresa) -->
+            <div class="sel-codigo" id="wrapCodigo" style="display:none;">
+                <span class="flabel"><i class="icon-user"></i> Operar como</span>
+                <div class="input-group">
+                    <span class="input-group-addon" style="background:#eaf0fb; color:#2980b9;">
+                        <i class="icon-user"></i>
+                    </span>
+                    <select id="selCodigo" class="form-control f-control search-select">
+                        <option value="">— Seleccione código —</option>
                     </select>
                 </div>
             </div>
@@ -876,10 +894,13 @@
                         <i class="icon-user"></i>
                     </div>
                     <div>
-                        <div class="usuario-nombre">@Model.UsuarioActual</div>
+                        <div class="usuario-nombre">
+                            @Model.UsuarioActual
+                            <span id="lblOperadorCodigo" style="color:#2980b9; font-weight:600;"></span>
+                        </div>
                         <div class="usuario-planta">
                             <i class="icon-map-marker" style="font-size:10px;"></i>
-                            Depto: <strong>@(string.IsNullOrWhiteSpace(Model.PlantaUsuario) ? "—" : Model.PlantaUsuario)</strong>
+                            Depto: <strong id="lblOperadorDepto">—</strong>
                         </div>
                     </div>
                 </div>
@@ -1244,14 +1265,11 @@
                                        step="0.01" min="0" placeholder="0.00" />
                             </div>
                         </div>
-                        <!--<div class="col-sm-4">
-                                <div class="fgroup" style="margin-bottom:0;">
-                                    <span class="flabel">Ya Pagado</span>
-                                    <input type="text" id="txtPagado"
-                                           class="form-control f-control f-readonly"
-                                           readonly placeholder="0.00" />
-                                </div>
-                            </div>-->
+                        <!-- Ya Pagado: OCULTO en la UI pero debe existir en el DOM.
+    El JS lo lee al agregar el documento (docObj.Pagado) y lo
+    convierte al cambiar moneda. Estaba comentado y por eso
+    todo doc agregado desde el panel grababa PAGADO = 0. -->
+                        <input type="hidden" id="txtPagado" />
                         <div class="col-sm-8">
                             <div class="fgroup" style="margin-bottom:0;">
                                 <span class="flabel">💱 Moneda</span>
@@ -1576,17 +1594,23 @@ var EMPRESA_COLORES = {
 
 // ─── Estado global ────────────────────────────────────────────────────
 var Estado = {
-    empresa:          "",
-    agente:           "",
-    clienteId:        "",
-    monedaCobro:      "",
-    monedaDoc:        "",
+    empresa: "",
+    agente: "",     // agente DEL CLIENTE (SlpName) — se graba en AGENTE
+    clienteId: "",
+    monedaCobro: "",
+    monedaDoc: "",
     idReciboGuardado: "",
-    modoActivo:       false,
-    cobros:           [],
-    documentos:       [],
+    modoActivo: false,
+    cobros: [],
+    documentos: [],
     docEditIndex: null,   // índice de la fila en edición (null = alta nueva)
-    tipoCambio: 0,    // TC del día, traído al elegir empresa
+    tipoCambio: 0,      // TC del día, traído al elegir empresa
+
+    // ── Operador (Usuario_Empresa) ──
+    codigoUsuario: "",     // Codigo elegido tal cual ("12-RODOLFO", "JORGE")
+    agenteOperador: "",     // texto parseado ("RODOLFO") → filtra typeahead de clientes
+    deptoOperador: ""      // MISMO texto parseado → DEPTO de la serie (feedback UI;
+    // la resolución real la hace el servidor al guardar)
 };
 
 // ─── URLs base ────────────────────────────────────────────────────────
@@ -1601,6 +1625,9 @@ var URL_ANULAR = "@Url.Action("Anular", "ReciboCaja")";
 // ─── URL del endpoint de empresas del usuario ─────────────────────────
 var URL_EMPRESAS = "@Url.Action("GetEmpresasUsuario", "ReciboCaja")";
 
+// Buffer: empresas + códigos del usuario (respuesta de GetEmpresasUsuario)
+var _empresasUsuario = [];
+
 // ════════════════════════════════════════════════════════
 // 0. CARGA INICIAL: empresas disponibles del usuario
 // ════════════════════════════════════════════════════════
@@ -1608,23 +1635,25 @@ function CargarEmpresasUsuario() {
     $.get(URL_EMPRESAS, function (resp) {
         if (!resp.ok) { toastr.error(resp.msg || "No se pudieron cargar las empresas."); return; }
 
+        _empresasUsuario = resp.data || [];
+
         var sel = $("#selEmpresa");
         sel.find("option:not([value=''])").remove();
 
-        if (!resp.data || resp.data.length === 0) {
+        if (!_empresasUsuario.length) {
             toastr.warning("No tiene empresas de recibos asignadas.");
             return;
         }
 
-        $.each(resp.data, function (_, e) {
+        $.each(_empresasUsuario, function (_, e) {
             sel.append($("<option>", {
                 value: e.Id,
                 text: "🏭\u00A0 " + e.Nombre
             }));
         });
 
-        if (resp.data.length === 1) {
-            sel.val(resp.data[0].Id).trigger("change");
+        if (_empresasUsuario.length === 1) {
+            sel.val(_empresasUsuario[0].Id).trigger("change");
         }
 
         if (sel.hasClass("search-select") && $.fn.select2) {
@@ -1635,6 +1664,9 @@ function CargarEmpresasUsuario() {
 
 // ════════════════════════════════════════════════════════
 // 1. SELECCIÓN DE EMPRESA
+// El formulario NO se muestra aquí: solo se puebla "Operar como".
+// Quien decide desplegar el formulario es la selección de OPERADOR
+// (con auto-selección si hay uno solo). Empresa sola ≠ listo para operar.
 // ════════════════════════════════════════════════════════
 $("#selEmpresa").on("change", function () {
     var emp = $(this).val();
@@ -1643,14 +1675,21 @@ $("#selEmpresa").on("change", function () {
     $addon.removeClass("graco faes bolik");
     $(".panel-empresa").removeClass("graco faes bolik");
 
+    // Cambio de empresa (o deselección): el formulario baja SIEMPRE.
+    // Volverá a subir cuando haya un operador válido elegido.
+    OcultarPanelRecibo();
+
     if (!emp) {
-        $("#panelRecibo").slideUp(200);
+        $("#wrapCodigo").hide();
         Estado.empresa = "";
+        Estado.codigoUsuario = "";
+        Estado.agenteOperador = "";
+        Estado.deptoOperador = "";
+        PintarCardOperador(null);
         return;
     }
 
     var cfg = EMPRESA_COLORES[emp];
-    // Traer el tipo de cambio del día para esta empresa (referencia en vivo)
     CargarTipoCambio(emp);
     if (!cfg) return;
 
@@ -1658,15 +1697,127 @@ $("#selEmpresa").on("change", function () {
     $(".panel-empresa").addClass(cfg.clase);
     $("#badgeEmpresa").text(cfg.nombre).removeClass("graco faes bolik").addClass(cfg.clase);
 
-    Estado.empresa    = emp;
+    Estado.empresa = emp;
     Estado.modoActivo = false;
 
-    $("#panelRecibo").slideDown(300);
+    PoblarCodigos(emp);   // ← si hay 1 solo operador, esto termina mostrando el form
+});
 
+// ════════════════════════════════════════════════════════
+// 1.5 OPERADORES DEL USUARIO ("Operar como")
+// 1 operador  → se auto-selecciona.
+// 2+ operadores → obligado a elegir antes de crear.
+// Cambiar de operador REINICIA el recibo en captura (clientes,
+// cobros, documentos, totales) porque cada operador ve SU cartera.
+// ════════════════════════════════════════════════════════
+function PoblarCodigos(emp) {
+    var sel = $("#selCodigo");
+    sel.find("option:not([value=''])").remove();
+    Estado.codigoUsuario = "";
+    Estado.agenteOperador = "";
+    Estado.deptoOperador = "";
+    PintarCardOperador(null);
+
+    var e = null;
+    for (var i = 0; i < _empresasUsuario.length; i++) {
+        if (_empresasUsuario[i].Id === emp) { e = _empresasUsuario[i]; break; }
+    }
+
+    var codigos = (e && e.Codigos) || [];
+    if (!codigos.length) {
+        $("#wrapCodigo").hide();
+        toastr.warning("No tiene operadores asignados en esta empresa. Contacte al administrador.");
+        return;
+    }
+
+    $.each(codigos, function (_, c) {
+        var sinDepto = !(c.Depto || "").length;
+        sel.append(
+            $("<option>", {
+                value: c.Codigo,
+                // Marcamos visualmente los operadores sin serie
+                text: "👤\u00A0 " + c.Codigo + (sinDepto ? "  ⚠ (sin serie)" : "")
+            }).data("info", c)
+        );
+    });
+
+    $("#wrapCodigo").show();
+
+    if (codigos.length === 1) {
+        sel.val(codigos[0].Codigo).trigger("change");   // auto-selección
+    } else {
+        toastr.info("Tiene " + codigos.length + " operadores en esta empresa: elija con cuál operará.");
+    }
+
+    if (sel.hasClass("search-select") && $.fn.select2) {
+        sel.trigger("change.select2");
+    }
+}
+
+$("#selCodigo").on("change", function () {
+    // ── CAMBIO DE OPERADOR = BORRÓN Y CUENTA NUEVA ──
+    // Cada operador tiene su propia cartera de clientes y su propia serie:
+    // nada de lo capturado con el operador anterior es válido para el nuevo.
     LimpiarFormulario();
     SetBotonesInicio();
-    // AplicarColorSaldo();
+    $("#dropdownClientes").hide().empty();
+
+    var cod = $(this).val();
+    if (!cod) {
+        Estado.codigoUsuario = "";
+        Estado.agenteOperador = "";
+        Estado.deptoOperador = "";
+        PintarCardOperador(null);
+        OcultarPanelRecibo();   // sin operador no hay formulario
+        return;
+    }
+
+    var info = $(this).find("option:selected").data("info") || {};
+    Estado.codigoUsuario = cod;
+    Estado.agenteOperador = info.Agente || "";
+    Estado.deptoOperador = (info.Depto || "").trim();
+
+    PintarCardOperador(info);
+
+    if (!Estado.deptoOperador) {
+        // Operador sin serie: avisamos y el formulario NO se despliega.
+        // (El guardado en servidor lo rechazaría igual; esto es UX temprana.)
+        toastr.error("El operador '" + cod + "' no tiene serie/depto asignado. " +
+            "No podrá emitir recibos con él. Contacte al administrador.");
+        OcultarPanelRecibo();
+        return;
+    }
+
+    // ── Empresa + operador válido: AHORA sí se despliega el formulario ──
+    MostrarPanelRecibo();
 });
+
+// ════════════════════════════════════════════════════════
+// Mostrar / ocultar el formulario del recibo.
+// Única puerta de entrada/salida del panel: nadie más debe
+// llamar slideDown/slideUp sobre #panelRecibo directamente.
+// ════════════════════════════════════════════════════════
+function MostrarPanelRecibo() {
+    LimpiarFormulario();
+    SetBotonesInicio();
+    $("#panelRecibo").slideDown(300);
+}
+
+function OcultarPanelRecibo() {
+    $("#panelRecibo").slideUp(200);
+    Estado.modoActivo = false;
+}
+
+// Pinta la tarjeta "Info usuario" con el operador activo y su depto
+function PintarCardOperador(info) {
+    if (!info) {
+        $("#lblOperadorCodigo").text("");
+        $("#lblOperadorDepto").text("—");
+        return;
+    }
+    $("#lblOperadorCodigo").text(" · " + info.Codigo);
+    $("#lblOperadorDepto").text(info.Depto && info.Depto.length ? info.Depto : "— (sin serie)");
+}
 
 // ════════════════════════════════════════════════════════
 // TIPO DE CAMBIO — traer del día al elegir empresa
@@ -1699,6 +1850,15 @@ $("#txtBuscarCliente").on("input", function () {
     clearTimeout(timerCliente);
     var texto = $(this).val().trim();
 
+    // Guarda de secuencia: sin operador elegido NO se busca.
+    // (El formulario debería estar oculto, pero si algo se cuela,
+    // esta es la barrera real del lado del cliente.)
+    if (!Estado.codigoUsuario || !Estado.deptoOperador) {
+        $("#dropdownClientes").hide().empty();
+        toastr.warning("Seleccione primero el operador (campo \"Operar como\").");
+        return;
+    }
+
     if (texto.length < 2) {
         $("#dropdownClientes").hide().empty();
         return;
@@ -1707,7 +1867,7 @@ $("#txtBuscarCliente").on("input", function () {
     timerCliente = setTimeout(function () {
         $.get(URL_CLIENTES, {
             empresa: Estado.empresa,
-            agente:  Estado.agente,
+            agente: Estado.agenteOperador,   // ← antes: Estado.agente
             filtro:  texto
         }, function (resp) {
             if (!resp.ok) { toastr.error(resp.msg); return; }
@@ -2335,6 +2495,8 @@ $(document).on("click", ".btn-editDoc", function (e) {
 // 10. GUARDAR
 // ════════════════════════════════════════════════════════
 $("#btnGuardar").on("click", function () {
+    if (!Estado.codigoUsuario) { toastr.error("Seleccione el operador con el que emitirá."); return; }
+    if (!Estado.deptoOperador) { toastr.error("El operador seleccionado no tiene serie/depto asignado."); return; }
     if (!Estado.cobros.length)     { toastr.error("Agregue al menos un cobro.");    return; }
     if (!Estado.documentos.length) { toastr.error("Agregue al menos un documento."); return; }
 
@@ -2359,6 +2521,7 @@ $("#btnGuardar").on("click", function () {
         Correo:        $("#txtCorreo").val(),
         Moneda:        $("#txtMoneda").val(),
         RecFisico:     $("#txtRecFisico").val(),
+        CodigoUsuario: Estado.codigoUsuario,   // ← NUEVO
         Cobros:        Estado.cobros,
         Documentos: Estado.documentos,
         TipoCambio: Estado.tipoCambio,
@@ -2429,6 +2592,10 @@ $("#btnEjecutarBusqueda").on("click", function () {
         }
         var r = resp.data;
 
+        // Ver un recibo existente NO requiere operador: se despliega
+        // el formulario en modo consulta (los botones de creación siguen
+        // gobernados por las guardas de operador).
+        $("#panelRecibo").slideDown(300);
         $("#txtIdRecibo").val(r.IdRecibo);
         Estado.clienteId = r.IdCliente;
         $("#txtBuscarCliente").val(r.IdCliente + "  —  " + r.NombreCliente);
@@ -2440,6 +2607,11 @@ $("#btnEjecutarBusqueda").on("click", function () {
         $("#txtCorreo").val(r.Correo);
         $("#txtMoneda").val(r.Moneda);
         $("#txtRecFisico").val(r.RecFisico);
+
+        // Mostrar con qué código se emitió (históricos no tienen: se ignora)
+        if (r.CodigoUsuario) {
+            toastr.info("Emitido con el código: " + r.CodigoUsuario);
+        }
 
         // var esGuardado = r.Status && r.Status !== "NUEVO";
         // $("#badgeStatus").text(r.Status || "NUEVO")
@@ -2487,6 +2659,16 @@ $("#btnEjecutarBusqueda").on("click", function () {
 // 13. NUEVO y CANCELAR
 // ════════════════════════════════════════════════════════
 $("#btnNuevo").on("click", function () {
+    if (!Estado.codigoUsuario) {
+        toastr.warning("Seleccione primero el operador (campo \"Operar como\").");
+        $("#selCodigo").focus();
+        return;
+    }
+    if (!Estado.deptoOperador) {
+        toastr.error("El operador '" + Estado.codigoUsuario + "' no tiene serie/depto asignado. " +
+            "No puede emitir recibos. Contacte al administrador.");
+        return;
+    }
     LimpiarFormulario();
     SetBotonesActivos();
     Estado.modoActivo = true;

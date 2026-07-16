@@ -25,6 +25,7 @@ namespace DiamDev.Give.UI.Models
         public string Correo { get; set; }
         public string Moneda { get; set; }
         public string RecFisico { get; set; }
+        public string CodigoUsuario { get; set; }
 
         public List<CobroRequest> Cobros { get; set; }
         public List<DocumentoRequest> Documentos { get; set; }

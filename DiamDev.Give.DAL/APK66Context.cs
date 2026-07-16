@@ -101,6 +101,24 @@ namespace DiamDev.Give.DAL
         // ─────────────────────────────────────────────
 
         /// <summary>
+        /// ¿Existe una serie de numeración para (EMPRESA, DEPTO)?
+        /// Se valida ANTES de la transacción del guardado: si falta, el subquery
+        /// del correlativo devolvería NULL y el INSERT fallaría con un error críptico.
+        /// </summary>
+        public bool ExisteSerie(string empresa, string depto)
+        {
+            using (var con = new SqlConnection(_conn))
+            {
+                con.Open();
+                var cmd = new SqlCommand(
+                    "SELECT COUNT(*) FROM REC_CAJA_SERIES WHERE EMPRESA = @emp AND DEPTO = @depto", con);
+                cmd.Parameters.AddWithValue("@emp", empresa ?? "");
+                cmd.Parameters.AddWithValue("@depto", depto ?? "");
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+            }
+        }
+
+        /// <summary>
         /// Inserta encabezado + cobros + documentos en una sola transacción.
         /// Si cualquier paso falla, hace ROLLBACK automático.
         /// Después del guardado, enc.IdRecibo queda poblado con el ID generado.
@@ -121,6 +139,7 @@ namespace DiamDev.Give.DAL
                                  DIRECCION, NIT, AGENTE, CORREO, MONEDA, STATUS,
                                  MONTO_T_REC, MONTO_T_DOC, SALDO, USUARIO,
                                  FECHA_RECIBO, FECHA_REGISTRO, REC_FISICO,
+                                 CODIGO_USUARIO_EMPRESA,                                     -- ★ CÓDIGO
                                  MONEDA_BASE, TIPO_CAMBIO,                                   -- ★
                                  MONTO_T_REC_GTQ, MONTO_T_REC_USD,                           -- ★
                                  MONTO_T_DOC_GTQ, MONTO_T_DOC_USD, SALDO_GTQ, SALDO_USD)     -- ★
@@ -132,6 +151,7 @@ namespace DiamDev.Give.DAL
                                 @direccion, @nit, @agente, @correo, @moneda, 'A',
                                 @montoRec, @montoDoc, @saldo, @usuario,
                                 @fechaRec, SYSDATETIME(), @recFisico,
+                                @codigoUE,                                                   -- ★ CÓDIGO
                                 @monedaBase, @tipoCambio,                                    -- ★
                                 @mtRecGtq, @mtRecUsd, @mtDocGtq, @mtDocUsd, @saldoGtq, @saldoUsd); -- ★
                             UPDATE REC_CAJA_SERIES
@@ -154,6 +174,13 @@ namespace DiamDev.Give.DAL
                         cmdEnc.Parameters.AddWithValue("@usuario", enc.Usuario);
                         cmdEnc.Parameters.AddWithValue("@fechaRec", enc.FechaRecibo.ToString("yyyy-MM-dd"));
                         cmdEnc.Parameters.AddWithValue("@recFisico", enc.RecFisico ?? "");
+                        // ★ CÓDIGO: código de Usuario_Empresa con el que se emitió.
+                        // NULL (no cadena vacía) si viniera vacío — así los históricos
+                        // y los nuevos "sin código" se ven igual en los reportes.
+                        cmdEnc.Parameters.AddWithValue("@codigoUE",
+                            string.IsNullOrWhiteSpace(enc.CodigoUsuario)
+                                ? (object)DBNull.Value
+                                : enc.CodigoUsuario.Trim());
                         // ★ nuevos parámetros duales del encabezado
                         cmdEnc.Parameters.AddWithValue("@monedaBase", enc.MonedaBase ?? "GTQ");
                         cmdEnc.Parameters.AddWithValue("@tipoCambio", (object)enc.TipoCambio ?? DBNull.Value);
@@ -182,7 +209,7 @@ namespace DiamDev.Give.DAL
                                  BANCO, FECHA_DOC, NO_DOCUMENTO, MONTO, MONEDA,
                                  TIPO_CAMBIO, MONTO_GTQ, MONTO_USD)                  
                             VALUES (@id, @emp, @tipo, @banco, @fecha, @nodoc, @monto, @moneda,
-                                    @tipoCambio, @montoGtq, @montoUsd)"; 
+                                    @tipoCambio, @montoGtq, @montoUsd)";
 
                         foreach (var c in enc.Cobros)
                         {
@@ -214,7 +241,7 @@ namespace DiamDev.Give.DAL
                             VALUES (@id, @emp, @tipo, @nodoc,
                                     @fecha, @status, @monto, @moneda,
                                     @mfact, @pagado, @serie, @nfel,
-                                    @tipoCambio, @montoGtq, @montoUsd)"; 
+                                    @tipoCambio, @montoGtq, @montoUsd)";
 
                         foreach (var d in enc.Documentos)
                         {
@@ -287,6 +314,10 @@ namespace DiamDev.Give.DAL
                             Saldo = Val(r["SALDO"]),
                             Usuario = r["USUARIO"].ToString(),
                             RecFisico = r["REC_FISICO"].ToString(),
+                            // ★ CÓDIGO: con qué código de Usuario_Empresa se emitió (null en históricos)
+                            CodigoUsuario = r["CODIGO_USUARIO_EMPRESA"] != DBNull.Value
+                                                ? r["CODIGO_USUARIO_EMPRESA"].ToString()
+                                                : null,
                             FechaRecibo = r["FECHA_RECIBO"] != DBNull.Value
                                                    ? Convert.ToDateTime(r["FECHA_RECIBO"])
                                                    : DateTime.Today,

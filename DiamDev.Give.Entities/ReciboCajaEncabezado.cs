@@ -55,6 +55,12 @@ namespace DiamDev.Give.Entities
         public DateTime? FechaAnulacion { get; set; }
         public string MotivoAnulacion { get; set; }
 
+        /// <summary>
+        /// Código de Usuario_Empresa con el que se emitió el recibo
+        /// (ej: "12-RAUL DIAZ", "MANUEL"). Deja rastro de quién operó.
+        /// </summary>
+        public string CodigoUsuario { get; set; }
+
         public ReciboCajaEncabezado()
         {
             Cobros = new List<ReciboCajaCobro>();

@@ -49,44 +49,71 @@ namespace DiamDev.Give.BLL
 
         // ─── EMPRESAS DISPONIBLES POR USUARIO ─────────
         /// <summary>
-        /// Devuelve solo las empresas de RECIBOS (GRACO/FAES/BOLIK) a las que el
-        /// usuario tiene acceso según Usuario_Empresa (POS-SmartK66_DEV).
-        ///
-        /// Reutiliza UsuarioEmpresaDA/BL que ya existen. Filtra fuera EMPAQUES
-        /// (...002) y cualquier otra empresa que recibos no maneja, y deduplica
-        /// (Usuario_Empresa puede traer varias filas por empresa, una por agente).
+        /// Empresas de RECIBOS del usuario + los OPERADORES (códigos) de cada una.
+        /// Cada operador incluye su Depto (Usuario_Empresa.SERIE_SAP), que es el
+        /// DEPTO con el que se numerará el recibo en REC_CAJA_SERIES.
+        /// Depto vacío = operador NO habilitado para emitir (el front lo avisa y
+        /// el guardado lo rechaza).
         /// </summary>
         public List<dynamic> ObtenerEmpresasUsuario(long usuarioId)
         {
-            // IDs numéricos que recibos sí maneja → su clave string para el front
             var permitidas = new Dictionary<long, string>
-    {
-        { UsuarioEmpresaBL.ID_GRACO, "GRACO" },
-        { UsuarioEmpresaBL.ID_FAES,  "FAES"  },
-        { UsuarioEmpresaBL.ID_BOLIK, "BOLIK" }
-    };
+            {
+                { UsuarioEmpresaBL.ID_GRACO, "GRACO" },
+                { UsuarioEmpresaBL.ID_FAES,  "FAES"  },
+                { UsuarioEmpresaBL.ID_BOLIK, "BOLIK" }
+            };
 
             var nombres = new Dictionary<string, string>
-    {
-        { "GRACO", "Graco Pack"       },
-        { "FAES",  "Fabrica Escocesa" },
-        { "BOLIK", "Industrias Bolik" }
-    };
+            {
+                { "GRACO", "Graco Pack"       },
+                { "FAES",  "Fabrica Escocesa" },
+                { "BOLIK", "Industrias Bolik" }
+            };
 
             var registros = new UsuarioEmpresaDA().ObtenerPorUsuarioId(usuarioId);
-
-            // Deduplicar por EmpresaId y quedarnos solo con las permitidas
-            var idsUnicos = registros
-                .Select(r => r.EmpresaId)
-                .Where(id => permitidas.ContainsKey(id))
-                .Distinct();
+            var ueBl = new UsuarioEmpresaBL();
 
             var resultado = new List<dynamic>();
-            foreach (var id in idsUnicos)
+
+            foreach (var grupo in registros
+                         .Where(r => permitidas.ContainsKey(r.EmpresaId))
+                         .GroupBy(r => r.EmpresaId))
             {
-                string clave = permitidas[id];
-                resultado.Add(new { Id = clave, Nombre = nombres[clave] });
+                string clave = permitidas[grupo.Key];
+
+                var codigos = grupo
+                    .Where(r => !string.IsNullOrWhiteSpace(r.Codigo))
+                    // GroupBy por Codigo = Distinct que conserva el registro completo
+                    // (necesitamos SERIE_SAP, no solo el string del código)
+                    .GroupBy(r => r.Codigo.Trim(), StringComparer.OrdinalIgnoreCase)
+                    .Select(g =>
+                    {
+                        var reg = g.First();
+                        var p = ueBl.ParseCodigo(reg.Codigo);
+                        return new
+                        {
+                            Codigo = reg.Codigo.Trim(),
+                            SapId = p.SapId,
+                            // El texto del código ("12-RODOLFO" → "RODOLFO") cumple
+                            // DOBLE rol: es el AGENTE (filtra clientes en HANA) y es
+                            // el DEPTO (numera la serie en REC_CAJA_SERIES).
+                            // SERIE_SAP NO se usa aquí: vincula con SAP, irrelevante
+                            // para recibos.
+                            Agente = p.AgenteNombre,
+                            Depto = p.AgenteNombre
+                        };
+                    })
+                    .ToList();
+
+                resultado.Add(new
+                {
+                    Id = clave,
+                    Nombre = nombres[clave],
+                    Codigos = codigos
+                });
             }
+
             return resultado;
         }
 
@@ -184,6 +211,12 @@ namespace DiamDev.Give.BLL
                     return ResultadoRecibo.Error("Debe agregar al menos un documento.");
                 if (string.IsNullOrWhiteSpace(enc.NombreCliente))
                     return ResultadoRecibo.Error("Debe seleccionar un cliente.");
+
+                // ── 0. Validar el CÓDIGO con el que opera (Usuario_Empresa) ──
+                // El operador (CodigoUsuario) ya fue validado por ObtenerDeptoOperador
+                // en el controller (pertenencia + depto parseado + serie existente).
+                // Aquí solo normalizamos para grabarlo limpio.
+                enc.CodigoUsuario = (enc.CodigoUsuario ?? "").Trim();
 
                 // ── 1. Traer el tipo de cambio de SAP (al guardar), por fecha del recibo ──
                 decimal tc;
@@ -385,6 +418,56 @@ namespace DiamDev.Give.BLL
             return depto;
         }
 
+        /// <summary>
+        /// Resuelve el DEPTO de numeración del OPERADOR elegido (Usuario_Empresa).
+        /// Reemplaza a ObtenerDeptoSerie(usuarioId) en el flujo de guardado:
+        /// el depto ya no depende del usuario logueado, sino del operador.
+        ///
+        /// Valida (con errores claros, en orden):
+        ///   1. Que venga un código.
+        ///   2. Que el código pertenezca al usuario logueado para ESA empresa
+        ///      (seguridad: el POST se puede falsificar; la UI es cosmética).
+        ///   3. Que el operador tenga SERIE_SAP (depto) asignado.
+        ///   4. Que exista la serie (EMPRESA, DEPTO) en REC_CAJA_SERIES.
+        /// </summary>
+        public string ObtenerDeptoOperador(long usuarioId, string empresa, string codigo)
+        {
+            codigo = (codigo ?? "").Trim();
+            string emp = (empresa ?? "").Trim().ToUpper();
+
+            if (codigo.Length == 0)
+                throw new Exception("Debe seleccionar el operador con el que emitirá el recibo.");
+
+            if (!_empresaIds.TryGetValue(emp, out long empId))
+                throw new Exception("Empresa no válida para recibos: '" + empresa + "'.");
+
+            var reg = new UsuarioEmpresaDA()
+                .ObtenerPorUsuarioId(usuarioId)
+                .FirstOrDefault(r => r.EmpresaId == empId &&
+                                     string.Equals((r.Codigo ?? "").Trim(), codigo,
+                                                   StringComparison.OrdinalIgnoreCase));
+
+            if (reg == null)
+                throw new Exception("El operador '" + codigo + "' no está asignado a su usuario " +
+                                    "para la empresa " + emp + ".");
+
+            // El DEPTO es el texto del código: "12-RODOLFO" → "RODOLFO", "JORGE" → "JORGE".
+            // (ParseCodigo ya maneja ambos formatos, con y sin guion.)
+            string depto = new UsuarioEmpresaBL().ParseCodigo(reg.Codigo).AgenteNombre;
+            if (string.IsNullOrWhiteSpace(depto))
+                throw new Exception("El operador '" + codigo + "' no tiene un depto válido " +
+                                    "(código vacío o mal formado en Usuario_Empresa). " +
+                                    "Contacte al administrador.");
+            depto = depto.Trim();
+
+            if (!_apk.ExisteSerie(emp, depto))
+                throw new Exception("No existe serie de numeración para la empresa " + emp +
+                                    " con el depto '" + depto + "' (REC_CAJA_SERIES). " +
+                                    "Contacte al administrador.");
+
+            return depto;
+        }
+
         // ─── CÁLCULO DUAL DE MONEDA ───────────────────────────
         /// <summary>
         /// Dada una línea (monto + moneda original + tipo de cambio), devuelve
@@ -424,6 +507,15 @@ namespace DiamDev.Give.BLL
             var m = (moneda ?? "").Trim().ToUpper();
             return (m == "QTZ" || m == "Q") ? "GTQ" : m;
         }
+
+        // Mapa inverso: clave string de recibos → Id numérico de Usuario_Empresa
+        private static readonly Dictionary<string, long> _empresaIds =
+            new Dictionary<string, long>
+            {
+        { "GRACO", UsuarioEmpresaBL.ID_GRACO },
+        { "FAES",  UsuarioEmpresaBL.ID_FAES  },
+        { "BOLIK", UsuarioEmpresaBL.ID_BOLIK }
+            };
     }
 
     /// <summary>

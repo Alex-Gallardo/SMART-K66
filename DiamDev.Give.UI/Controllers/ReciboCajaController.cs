@@ -144,7 +144,9 @@ namespace DiamDev.Give.UI.Controllers
             {
                 string login = User.Identity.Name;
                 long usuarioId = CustomHelper.getUserId();
-                string depto = _bll.ObtenerDeptoSerie(usuarioId);   // ← nuevo (lee de POS)
+                // El DEPTO/serie ahora es DEL OPERADOR elegido, no del usuario logueado.
+                // Valida: pertenencia del código, SERIE_SAP asignado y serie existente.
+                string depto = _bll.ObtenerDeptoOperador(usuarioId, request.IdEmpresa, request.CodigoUsuario);
                 string usuario = login;                              // grabamos el login POS
                 string ip = Request.UserHostAddress;                 // para analytics
 
@@ -160,6 +162,7 @@ namespace DiamDev.Give.UI.Controllers
                     Correo = request.Correo,
                     Moneda = request.Moneda,
                     RecFisico = request.RecFisico,
+                    CodigoUsuario = request.CodigoUsuario,   // ← NUEVO: código de Usuario_Empresa elegido
                     Usuario = usuario,
                     FechaRecibo = DateTime.TryParse(request.FechaRecibo, out var fd) ? fd : DateTime.Today,
 

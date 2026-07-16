@@ -152,7 +152,7 @@
                 <th>Serie FEL</th>
                 <th>Núm. FEL</th>
                 <th>Fecha</th>
-                <th class="num-col">Total Factura</th>
+                <th class="num-col">Saldo Factura</th>
                 @if (mostrarDual)
                 {
                     <th class="num-col">Cobrado Q</th>
@@ -169,11 +169,15 @@
         <tbody>
             @foreach (var d in Model.Documentos)
             {
-                // Anticipos / saldos: sin factura de referencia → sin total ni restante.
+                // Anticipos / saldos: sin factura de referencia → sin saldo ni restante.
                 bool tieneFactura = d.MontoFact > 0;
-                // ★ Saldo Restante = Total Factura − Pagado (SAP) − este cobro.
-                //   (Se calcula en la moneda ORIGINAL de la factura: no se mezcla con el TC.)
-                decimal restante = d.MontoFact - d.Pagado - d.Monto;
+                // ★ Saldo Factura = lo que la factura debía en SAP AL MOMENTO DE LA CAPTURA
+                //   (MontoFact − Pagado guardados en la línea). Es una foto de captura:
+                //   NO se recalcula al imprimir, para que el papel sea auditable.
+                decimal saldoFactura = d.MontoFact - d.Pagado;
+                // ★ Saldo Pendiente = después de este cobro. La fila cuenta la historia:
+                //   debía (Saldo Factura) − cobré (Monto) = queda (Saldo Pendiente).
+                decimal restante = saldoFactura - d.Monto;
 
                 <tr>
                     <td>@d.TipoDoc</td>
@@ -181,7 +185,7 @@
                     <td>@(string.IsNullOrWhiteSpace(d.FelSerie) ? "—" : d.FelSerie)</td>
                     <td>@(string.IsNullOrWhiteSpace(d.FelNumero) ? "—" : d.FelNumero)</td>
                     <td>@(d.FechaDoc.HasValue ? d.FechaDoc.Value.ToString("dd/MM/yyyy") : "—")</td>
-                    <td class="num-col">@(tieneFactura ? d.MontoFact.ToString("N2") : "—")</td>
+                    <td class="num-col">@(tieneFactura ? saldoFactura.ToString("N2") : "—")</td>
                     @if (mostrarDual)
                     {
                         <td class="num-col">@aGtq(d.Monto, d.Moneda).ToString("N2")</td>

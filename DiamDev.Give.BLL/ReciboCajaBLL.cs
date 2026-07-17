@@ -96,15 +96,16 @@ namespace DiamDev.Give.BLL
                        {
                            Codigo = reg.Codigo.Trim(),
                            SapId = p.SapId,
-                           // AGENTE: nombre parseado ("15-PABLO GAITAN" → "PABLO GAITAN").
-                           // DEPTO: declarado en Usuario_Empresa.DEPTO_RECIBO.
-                           // SERIE: prefijo real de REC_CAJA_SERIES — solo para
-                           // mostrarla en la card del operador (feedback UI).
                            Agente = p.AgenteNombre,
                            Depto = depto,
                            Serie = depto.Length > 0
                                        ? _apk.ObtenerSerieDeDepto(clave, depto)
-                                       : ""
+                                       : "",
+                           // Flag de venta de mostrador: la regla vive AQUÍ (BLL),
+                           // el front solo la consume. Un solo lugar que mantener.
+                           EncabezadoEditable = string.Equals(
+                               p.AgenteNombre, OPERADOR_ENCABEZADO_EDITABLE,
+                               StringComparison.OrdinalIgnoreCase)
                        };
                    })
                     // Solo operadores habilitados para recibos: DEPTO_RECIBO con valor.
@@ -316,6 +317,11 @@ namespace DiamDev.Give.BLL
             }
         }
 
+        // Operador especial de venta de mostrador: con él, el encabezado del
+        // recibo (cliente, dirección, NIT, agente, correo) es capturable a mano.
+        // Se compara contra el NOMBRE parseado del código ("1-SALA DE VENTAS" →
+        // "SALA DE VENTAS"), así funciona en las 3 empresas aunque el número cambie.
+        private const string OPERADOR_ENCABEZADO_EDITABLE = "SALA DE VENTAS";
         // Límites del motivo de anulación (espejo del front; el máximo = tamaño
         // real de la columna MOTIVO en REC_CAJA_ENC: nvarchar(150))
         private const int MIN_MOTIVO_ANULACION = 10;

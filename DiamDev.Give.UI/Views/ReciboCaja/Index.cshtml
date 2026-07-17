@@ -439,6 +439,25 @@
         cursor: default;
     }
 
+    /* ── MODO ENCABEZADO EDITABLE (operador SALA DE VENTAS) ──
+       Los campos normalmente derivados de SAP se vuelven capturables.
+       Borde azul a la izquierda = "aquí puedes escribir". */
+    .encabezado-libre #txtNombreCliente,
+    .encabezado-libre #txtDireccion,
+    .encabezado-libre #txtNit,
+    .encabezado-libre #txtAgente,
+    .encabezado-libre #txtCorreo {
+        background: #fff !important;
+        border-left: 3px solid #2980b9;
+        cursor: text;
+    }
+
+    .badge-status.edicion-libre {
+        background: #eaf0fb;
+        color: #2471a3;
+        border: 1px solid #2980b9;
+    }
+
     /* ════════════════════════════════════════════
        MODAL BUSCAR DOCUMENTOS — rediseño
     ════════════════════════════════════════════ */
@@ -925,6 +944,11 @@
                     <span id="badgeEmpresa" class="badge-emp">—</span>
                 </h4>
                 <span class="badges-recibo" style="display:flex; align-items:center; gap:6px;">
+                    <span id="badgeEdicionLibre" class="badge-status edicion-libre"
+                          style="display:none;"
+                          title="Operador SALA DE VENTAS: los datos del cliente se capturan manualmente y se guardan tal como se escriban.">
+                        ✏️ ENCABEZADO EDITABLE
+                    </span>
                     <span id="badgeSync" class="badge-sync" style="display:none;">—</span>
                     <span id="badgeStatus" class="badge-status nuevo">NUEVO</span>
                 </span>
@@ -1618,6 +1642,7 @@ var Estado = {
     cobros: [],
     documentos: [],
     docEditIndex: null,   // índice de la fila en edición (null = alta nueva)
+    encabezadoEditable: false,   // true = operador SALA DE VENTAS: encabezado capturable
     cobroEditIndex: null,   // índice del cobro en edición (null = alta nueva)
     tipoCambio: 0,      // TC del día, traído al elegir empresa
 
@@ -1784,6 +1809,7 @@ $("#selCodigo").on("change", function () {
         Estado.deptoOperador = "";
         PintarCardOperador(null);
         OcultarPanelRecibo();   // sin operador no hay formulario
+        Estado.encabezadoEditable = false;
         return;
     }
 
@@ -1793,6 +1819,8 @@ $("#selCodigo").on("change", function () {
     Estado.deptoOperador = (info.Depto || "").trim();
 
     PintarCardOperador(info);
+    // Flag de venta de mostrador: viene calculado del BLL
+    Estado.encabezadoEditable = (info.EncabezadoEditable === true);
 
     if (!Estado.deptoOperador) {
         // Operador sin serie: avisamos y el formulario NO se despliega.
@@ -1815,7 +1843,11 @@ $("#selCodigo").on("change", function () {
 function MostrarPanelRecibo() {
     LimpiarFormulario();
     SetBotonesInicio();
+    AplicarModoEncabezado(Estado.encabezadoEditable);
     $("#panelRecibo").slideDown(300);
+    if (Estado.encabezadoEditable) {
+        toastr.info("Operador SALA DE VENTAS: puede escribir los datos del cliente directamente en el encabezado.");
+    }
 }
 
 function OcultarPanelRecibo() {
@@ -1834,6 +1866,27 @@ function PintarCardOperador(info) {
     }
     $("#lblOperadorCodigo").text(" · " + (info.Agente || info.Codigo));
     $("#lblOperadorSerie").text(info.Serie && info.Serie.length ? info.Serie : "— (sin serie)");
+}
+
+// ════════════════════════════════════════════════════════
+// MODO ENCABEZADO EDITABLE (operador SALA DE VENTAS)
+// editable=true  → cliente/dirección/NIT/agente/correo capturables.
+// editable=false → readonly, derivados del typeahead (modo normal).
+// El typeahead SIGUE funcionando en ambos modos: en editable sirve
+// para precargar y luego corregir a mano.
+// ════════════════════════════════════════════════════════
+var CAMPOS_ENCABEZADO = "#txtNombreCliente, #txtDireccion, #txtNit, #txtAgente, #txtCorreo";
+
+function AplicarModoEncabezado(editable) {
+    if (editable) {
+        $(CAMPOS_ENCABEZADO).prop("readonly", false).removeClass("f-readonly");
+        $("#panelEncabezado").addClass("encabezado-libre");
+        $("#badgeEdicionLibre").show();
+    } else {
+        $(CAMPOS_ENCABEZADO).prop("readonly", true).addClass("f-readonly");
+        $("#panelEncabezado").removeClass("encabezado-libre");
+        $("#badgeEdicionLibre").hide();
+    }
 }
 
 // ════════════════════════════════════════════════════════
@@ -2622,6 +2675,11 @@ $("#btnGuardar").on("click", function () {
     if (!Estado.deptoOperador) { toastr.error("El operador seleccionado no tiene serie/depto asignado."); return; }
     if (!Estado.cobros.length)     { toastr.error("Agregue al menos un cobro.");    return; }
     if (!Estado.documentos.length) { toastr.error("Agregue al menos un documento."); return; }
+    if (Estado.encabezadoEditable && !$("#txtNombreCliente").val().trim()) {
+        toastr.error("Escriba el nombre del cliente en el encabezado.");
+        $("#txtNombreCliente").focus();
+        return;
+    }
 
     var tC    = Estado.cobros.reduce(function (s, c) { return s + c.Monto; }, 0);
     var tD    = Estado.documentos.reduce(function (s, d) { return s + d.Monto; }, 0);
@@ -2640,7 +2698,9 @@ $("#btnGuardar").on("click", function () {
         NombreCliente: $("#txtNombreCliente").val(),
         Direccion:     $("#txtDireccion").val(),
         Nit:           $("#txtNit").val(),
-        Agente:        $("#hdnAgente").val(),
+        // Modo normal: agente del cliente elegido en el typeahead (hidden).
+        // Modo SALA DE VENTAS: lo que el usuario escribió en el campo visible.
+        Agente: Estado.encabezadoEditable ? $("#txtAgente").val() : $("#hdnAgente").val(),
         Correo:        $("#txtCorreo").val(),
         Moneda:        $("#txtMoneda").val(),
         RecFisico:     $("#txtRecFisico").val(),
@@ -2719,6 +2779,7 @@ $("#btnEjecutarBusqueda").on("click", function () {
         // el formulario en modo consulta (los botones de creación siguen
         // gobernados por las guardas de operador).
         $("#panelRecibo").slideDown(300);
+        AplicarModoEncabezado(false);   // consulta = solo lectura, siempre
         $("#txtIdRecibo").val(r.IdRecibo);
         Estado.clienteId = r.IdCliente;
         $("#txtBuscarCliente").val(r.IdCliente + "  —  " + r.NombreCliente);
@@ -2794,6 +2855,7 @@ $("#btnNuevo").on("click", function () {
     }
     LimpiarFormulario();
     SetBotonesActivos();
+    AplicarModoEncabezado(Estado.encabezadoEditable);
     Estado.modoActivo = true;
     $("#txtBuscarCliente").focus();
 });

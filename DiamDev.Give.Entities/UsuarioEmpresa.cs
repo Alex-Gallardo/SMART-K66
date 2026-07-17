@@ -26,5 +26,11 @@ namespace DiamDev.Give.Entities
 
         [Column("SERIE_SAP")]
         public string SERIE_SAP { get; set; }
+        /// <summary>
+        /// DEPTO de la serie de recibos de caja para este operador.
+        /// Empata con REC_CAJA_SERIES.DEPTO (junto con la EMPRESA).
+        /// NULL = este operador NO emite recibos (se oculta del select "Operar como").
+        /// </summary>
+        public string DEPTO_RECIBO { get; set; }
     }
 }

@@ -50,10 +50,10 @@ namespace DiamDev.Give.BLL
         // ─── EMPRESAS DISPONIBLES POR USUARIO ─────────
         /// <summary>
         /// Empresas de RECIBOS del usuario + los OPERADORES (códigos) de cada una.
-        /// Cada operador incluye su Depto (Usuario_Empresa.SERIE_SAP), que es el
+        /// Cada operador incluye su Depto (Usuario_Empresa.DEPTO_RECIBO), que es el
         /// DEPTO con el que se numerará el recibo en REC_CAJA_SERIES.
-        /// Depto vacío = operador NO habilitado para emitir (el front lo avisa y
-        /// el guardado lo rechaza).
+        /// Solo se devuelven operadores con DEPTO_RECIBO asignado; una empresa sin
+        /// ningún operador válido NO se devuelve (no tendría nada que ofrecer).
         /// </summary>
         public List<dynamic> ObtenerEmpresasUsuario(long usuarioId)
         {
@@ -85,7 +85,7 @@ namespace DiamDev.Give.BLL
                 var codigos = grupo
                     .Where(r => !string.IsNullOrWhiteSpace(r.Codigo))
                     // GroupBy por Codigo = Distinct que conserva el registro completo
-                    // (necesitamos SERIE_SAP, no solo el string del código)
+                    // (necesitamos DEPTO_RECIBO, no solo el string del código)
                     .GroupBy(r => r.Codigo.Trim(), StringComparer.OrdinalIgnoreCase)
                     .Select(g =>
                     {
@@ -95,16 +95,24 @@ namespace DiamDev.Give.BLL
                         {
                             Codigo = reg.Codigo.Trim(),
                             SapId = p.SapId,
-                            // El texto del código ("12-RODOLFO" → "RODOLFO") cumple
-                            // DOBLE rol: es el AGENTE (filtra clientes en HANA) y es
-                            // el DEPTO (numera la serie en REC_CAJA_SERIES).
-                            // SERIE_SAP NO se usa aquí: vincula con SAP, irrelevante
-                            // para recibos.
+                            // AGENTE: nombre parseado del código ("12-RODOLFO DIAZ" →
+                            // "RODOLFO DIAZ") — filtra la cartera de clientes en HANA.
+                            // DEPTO: viene DECLARADO en Usuario_Empresa.DEPTO_RECIBO
+                            // ("RODOLFO") — empata con REC_CAJA_SERIES.DEPTO.
+                            // Ya NO se deriva del código: parsear daba "RODOLFO DIAZ",
+                            // que nunca empataba con la serie "RODOLFO".
                             Agente = p.AgenteNombre,
-                            Depto = p.AgenteNombre
+                            Depto = (reg.DEPTO_RECIBO ?? "").Trim()
                         };
                     })
+                    // Solo operadores habilitados para recibos: DEPTO_RECIBO con valor.
+                    // NULL o vacío = no emite → no aparece en "Operar como".
+                    .Where(c => c.Depto.Length > 0)
                     .ToList();
+
+                // Empresa sin operadores válidos: no se ofrece en el select.
+                // (Elegirla solo llevaría al aviso "no tiene operadores".)
+                if (codigos.Count == 0) continue;
 
                 resultado.Add(new
                 {
@@ -419,31 +427,18 @@ namespace DiamDev.Give.BLL
         }
 
         /// <summary>
-        /// Resuelve el DEPTO de serie del usuario POS (para armar el ID del recibo).
-        /// Reemplaza al viejo ObtenerPlantaPorLogin (que leía de APK66).
-        /// Lanza error claro si el usuario no está habilitado para recibos.
-        /// </summary>
-        public string ObtenerDeptoSerie(long usuarioId)
-        {
-            string depto = new RecibosCajaUsuarioDeptoDA().ObtenerDeptoPorUsuarioId(usuarioId);
-            if (string.IsNullOrWhiteSpace(depto))
-                throw new Exception(
-                    "El usuario no está habilitado para emitir recibos de caja " +
-                    "(sin DEPTO de serie asignado). Contacte al administrador.");
-            return depto;
-        }
-
-        /// <summary>
         /// Resuelve el DEPTO de numeración del OPERADOR elegido (Usuario_Empresa).
-        /// Reemplaza a ObtenerDeptoSerie(usuarioId) en el flujo de guardado:
-        /// el depto ya no depende del usuario logueado, sino del operador.
         ///
         /// Valida (con errores claros, en orden):
         ///   1. Que venga un código.
         ///   2. Que el código pertenezca al usuario logueado para ESA empresa
         ///      (seguridad: el POST se puede falsificar; la UI es cosmética).
-        ///   3. Que el operador tenga SERIE_SAP (depto) asignado.
+        ///   3. Que el operador tenga DEPTO_RECIBO asignado (= habilitado para emitir).
         ///   4. Que exista la serie (EMPRESA, DEPTO) en REC_CAJA_SERIES.
+        ///
+        /// El DEPTO viene DECLARADO en Usuario_Empresa.DEPTO_RECIBO. Ya no se
+        /// parsea del Codigo: el parseo daba "RODOLFO DIAZ" y la serie se llama
+        /// "RODOLFO" — nunca empataban. Ahora el vínculo es explícito y por datos.
         /// </summary>
         public string ObtenerDeptoOperador(long usuarioId, string empresa, string codigo)
         {
@@ -466,14 +461,12 @@ namespace DiamDev.Give.BLL
                 throw new Exception("El operador '" + codigo + "' no está asignado a su usuario " +
                                     "para la empresa " + emp + ".");
 
-            // El DEPTO es el texto del código: "12-RODOLFO" → "RODOLFO", "JORGE" → "JORGE".
-            // (ParseCodigo ya maneja ambos formatos, con y sin guion.)
-            string depto = new UsuarioEmpresaBL().ParseCodigo(reg.Codigo).AgenteNombre;
-            if (string.IsNullOrWhiteSpace(depto))
-                throw new Exception("El operador '" + codigo + "' no tiene un depto válido " +
-                                    "(código vacío o mal formado en Usuario_Empresa). " +
+            // DEPTO declarado, no derivado.
+            string depto = (reg.DEPTO_RECIBO ?? "").Trim();
+            if (depto.Length == 0)
+                throw new Exception("El operador '" + codigo + "' no tiene DEPTO_RECIBO asignado " +
+                                    "en Usuario_Empresa: no está habilitado para emitir recibos. " +
                                     "Contacte al administrador.");
-            depto = depto.Trim();
 
             if (!_apk.ExisteSerie(emp, depto))
                 throw new Exception("No existe serie de numeración para la empresa " + emp +

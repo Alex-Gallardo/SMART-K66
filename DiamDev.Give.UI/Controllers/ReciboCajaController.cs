@@ -25,32 +25,14 @@ namespace DiamDev.Give.UI.Controllers
         {
             CustomHelper.setTitle("Recibos de Caja", "Ingreso");
 
-            string login = User.Identity.Name;
-
-            // El header muestra el MISMO depto que numerará el recibo
-            // (RecibosCaja_UsuarioDepto en POS, vía ObtenerDeptoSerie), para que
-            // lo que ve el usuario sea exactamente lo que se grabará.
-            //
-            // Se abandonó ObtenerPlantaPorLogin: apuntaba a REC_CAJA_USUARIOS,
-            // tabla inexistente en esta BD (confirmado vía TestPlanta:
-            // "Invalid object name 'REC_CAJA_USUARIOS'").
-            string depto = "";
-            try
-            {
-                long usuarioId = CustomHelper.getUserId();
-                depto = _bll.ObtenerDeptoSerie(usuarioId);
-            }
-            catch
-            {
-                // Usuario sin DEPTO de serie asignado → header vacío.
-                // El guardado lo vuelve a validar y dará un error claro si falta.
-                depto = "";
-            }
-
+            // El DEPTO ya no se resuelve por usuario logueado (RecibosCaja_UsuarioDepto,
+            // retirada del flujo): ahora depende del OPERADOR elegido en "Operar como"
+            // (Usuario_Empresa.DEPTO_RECIBO). La tarjeta del header la pinta el JS
+            // vía PintarCardOperador() al seleccionar operador.
             var model = new ReciboCajaIndexViewModel
             {
-                UsuarioActual = login,
-                PlantaUsuario = depto
+                UsuarioActual = User.Identity.Name,
+                PlantaUsuario = ""   // legado: el ViewModel la conserva, pero ya nadie la usa
             };
 
             return View(model);
@@ -469,27 +451,6 @@ namespace DiamDev.Give.UI.Controllers
                 return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
-        // TEMPORAL — valida que EF lee RecibosCaja_UsuarioDepto. Borrar después.
-        // TEMPORAL — versión que muestra la inner exception real. Borrar después.
-        [HttpGet]
-        public JsonResult TestDepto()
-        {
-            try
-            {
-                long uid = DiamDev.Give.UI.App_Start.CustomHelper.getUserId();
-                string depto = new DiamDev.Give.DAL.RecibosCajaUsuarioDeptoDA()
-                                   .ObtenerDeptoPorUsuarioId(uid);
-                return Json(new { ok = true, usuarioId = uid, depto }, JsonRequestBehavior.AllowGet);
-            }
-            catch (Exception ex)
-            {
-                // Desenterrar TODA la cadena de inner exceptions
-                var msgs = new System.Collections.Generic.List<string>();
-                var e = ex;
-                while (e != null) { msgs.Add(e.Message); e = e.InnerException; }
-                return Json(new { ok = false, cadena = msgs }, JsonRequestBehavior.AllowGet);
-            }
-        }
 
         // TEMPORAL — valida el cálculo dual. Borrar después.
         [HttpGet]
@@ -511,29 +472,6 @@ namespace DiamDev.Give.UI.Controllers
             {
                 return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
             }
-        }
-
-        // TEMPORAL — diagnostica por qué la planta sale vacía en el header. Borrar después.
-        [HttpGet]
-        public JsonResult TestPlanta()
-        {
-            var info = new System.Collections.Generic.Dictionary<string, object>();
-            string login = User.Identity.Name;
-            info["login"] = login;
-
-            long uid = 0;
-            try { uid = CustomHelper.getUserId(); info["usuarioId"] = uid; }
-            catch (Exception ex) { info["usuarioId_error"] = ex.Message; }
-
-            // Ruta A: la que usa el header HOY (por login → RT_USUARIOS.PLANTA, APK66)
-            try { info["plantaPorLogin"] = _bll.ObtenerPlantaPorLogin(login); }
-            catch (Exception ex) { info["plantaPorLogin_error"] = Cadena(ex); }
-
-            // Ruta B: la que usa el GUARDADO (por usuarioId → RecibosCaja_UsuarioDepto, POS)
-            try { info["deptoSerie"] = _bll.ObtenerDeptoSerie(uid); }
-            catch (Exception ex) { info["deptoSerie_error"] = Cadena(ex); }
-
-            return Json(new { ok = true, info }, JsonRequestBehavior.AllowGet);
         }
 
         // Helper local: desentierra toda la cadena de inner exceptions

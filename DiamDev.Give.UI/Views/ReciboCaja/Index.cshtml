@@ -262,8 +262,9 @@
         margin-bottom: 12px;
     }
 
-    /* ── PANEL DOCUMENTOS EN MODO EDICIÓN (resalta el panel) ── */
-    .panel-docs.editando {
+    /* ── PANELES EN MODO EDICIÓN (resalta el panel activo) ── */
+    .panel-docs.editando,
+    .panel-cobros.editando {
         box-shadow: 0 0 0 2px #f39c12 inset;
     }
 
@@ -899,8 +900,8 @@
                             <span id="lblOperadorCodigo" style="color:#2980b9; font-weight:600;"></span>
                         </div>
                         <div class="usuario-planta">
-                            <i class="icon-map-marker" style="font-size:10px;"></i>
-                            Depto: <strong id="lblOperadorDepto">—</strong>
+                            <i class="icon-tag" style="font-size:10px;"></i>
+                            Serie: <strong id="lblOperadorSerie">—</strong>
                         </div>
                     </div>
                 </div>
@@ -1048,7 +1049,7 @@
 
         <!-- ═══ IZQUIERDA: COBROS ═══ -->
         <div class="col-md-6">
-            <div class="panel panel-default panel-cobros">
+            <div class="panel panel-default panel-cobros" id="panelCobros">
                 <div class="panel-heading" style="padding:10px 14px;">
                     <strong style="font-size:13px;">
                         <i class="icon-money"></i> Detalle de Cobros
@@ -1074,22 +1075,23 @@
                                 <span class="flabel">Banco</span>
                                 <select id="cboBanco" class="form-control f-control search-select">
                                     <option value="">— Seleccionar —</option>
+                                    <option value="AGROMERCANTIL">🏛️&nbsp; AGROMERCANTIL</option>
                                     <option value="BANRURAL">🏛️&nbsp; BANRURAL</option>
-                                    <option value="INDUSTRIAL">🏛️&nbsp; INDUSTRIAL</option>
-                                    <option value="G&T CONTINENTAL">🏛️&nbsp; G&amp;T CONTINENTAL</option>
+                                    <option value="BANTRAB">🏛️&nbsp; BANTRAB</option>
                                     <option value="BAM">🏛️&nbsp; BAM</option>
                                     <option value="BAM DOLAR">🏛️&nbsp; BAM DOLAR</option>
                                     <option value="BAC">🏛️&nbsp; BAC</option>
                                     <option value="BAC DOLAR">🏛️&nbsp; BAC DOLAR</option>
-                                    <option value="OCEAN BAK">🏛️&nbsp; OCEAN BAK</option>
-                                    <option value="AGROMERCANTIL">🏛️&nbsp; AGROMERCANTIL</option>
-                                    <option value="OCCIDENTE">🏛️&nbsp; OCCIDENTE</option>
-                                    <option value="PROMERICA">🏛️&nbsp; PROMERICA</option>
-                                    <option value="BANTRAB">🏛️&nbsp; BANTRAB</option>
-                                    <option value="REFORMADOR">🏛️&nbsp; REFORMADOR</option>
+                                    <option value="CHN">🏛️&nbsp; CHN</option>
                                     <option value="CITI BANK">🏛️&nbsp; CITI BANK</option>
                                     <option value="FICOHSA">🏛️&nbsp; FICOHSA</option>
-                                    <option value="CHN">🏛️&nbsp; CHN</option>
+                                    <option value="G&T CONTINENTAL">🏛️&nbsp; G&amp;T CONTINENTAL</option>
+                                    <option value="INDUSTRIAL">🏛️&nbsp; INDUSTRIAL</option>
+                                    <option value="INTERBANCO">🏛️&nbsp; INTERBANCO</option>
+                                    <option value="OCEAN BAK">🏛️&nbsp; OCEAN BAK</option>
+                                    <option value="OCCIDENTE">🏛️&nbsp; OCCIDENTE</option>
+                                    <option value="PROMERICA">🏛️&nbsp; PROMERICA</option>
+                                    <option value="REFORMADOR">🏛️&nbsp; REFORMADOR</option>
                                 </select>
                             </div>
                         </div>
@@ -1140,6 +1142,9 @@
                         <button class="btn btn-primary btn-sm" id="btnAgregarCobro" style="flex:1;">
                             <i class="icon-plus"></i> Agregar Cobro
                         </button>
+                        <button class="btn btn-default btn-sm" id="btnCancelarEdicionCobro" style="display:none;">
+                            <i class="icon-remove"></i> Cancelar edición
+                        </button>
                         <button class="btn btn-danger btn-sm" id="btnQuitarCobro">
                             <i class="icon-minus"></i> Quitar
                         </button>
@@ -1159,11 +1164,12 @@
                                 <th>Documento</th>
                                 <th class="text-right">Monto</th>
                                 <th>Mon.</th>
+                                <th style="width:40px;"></th>
                             </tr>
                         </thead>
                         <tbody id="tbodyCobros">
                             <tr class="tabla-vacia">
-                                <td colspan="6" class="text-center" style="padding:16px;">
+                                <td colspan="7" class="text-center" style="padding:16px;">
                                     <i class="icon-inbox" style="font-size:20px; color:#ccc;"></i><br />
                                     Sin cobros agregados
                                 </td>
@@ -1612,6 +1618,7 @@ var Estado = {
     cobros: [],
     documentos: [],
     docEditIndex: null,   // índice de la fila en edición (null = alta nueva)
+    cobroEditIndex: null,   // índice del cobro en edición (null = alta nueva)
     tipoCambio: 0,      // TC del día, traído al elegir empresa
 
     // ── Operador (Usuario_Empresa) ──
@@ -1816,15 +1823,17 @@ function OcultarPanelRecibo() {
     Estado.modoActivo = false;
 }
 
-// Pinta la tarjeta "Info usuario" con el operador activo y su depto
+// Pinta la tarjeta "Info usuario" con el operador activo y su SERIE.
+// Muestra el NOMBRE parseado ("PABLO GAITAN"), no el código crudo
+// ("15-PABLO GAITAN"): el número solo le importa a SAP, no al humano.
 function PintarCardOperador(info) {
     if (!info) {
         $("#lblOperadorCodigo").text("");
-        $("#lblOperadorDepto").text("—");
+        $("#lblOperadorSerie").text("—");
         return;
     }
-    $("#lblOperadorCodigo").text(" · " + info.Codigo);
-    $("#lblOperadorDepto").text(info.Depto && info.Depto.length ? info.Depto : "— (sin serie)");
+    $("#lblOperadorCodigo").text(" · " + (info.Agente || info.Codigo));
+    $("#lblOperadorSerie").text(info.Serie && info.Serie.length ? info.Serie : "— (sin serie)");
 }
 
 // ════════════════════════════════════════════════════════
@@ -1987,7 +1996,19 @@ $("#cboTipoDoc").on("change", function () {
     $("#dtpFechaDoc").prop("disabled", esAntOSaldo).val("");
     $("#txtSerieFel").val("").prop("disabled", esAntOSaldo);
     $("#txtNumFel").val("").prop("disabled", esAntOSaldo);
-    $("#cboMonedaDoc").val("").prop("disabled", esAntOSaldo);
+
+    // MONEDA: SIEMPRE habilitada. Un anticipo puede ser GTQ o USD —
+    // la elige el cajero. (Antes se deshabilitaba junto con los demás
+    // campos y quedaba "muerta": Select2 sobre un select disabled se ve
+    // normal pero ignora los clicks.)
+    $("#cboMonedaDoc").prop("disabled", false).val("");
+    $("#cboMonedaDoc").data("monedaPrev", "");
+    if ($("#cboMonedaDoc").hasClass("search-select") && $.fn.select2) {
+        // change.select2 = repintar lo visual SIN disparar el handler de
+        // conversión de la sección 3.5 (regla de la casa)
+        $("#cboMonedaDoc").trigger("change.select2");
+    }
+
     $("#txtTotalFact").val("");
     $("#txtPagado").val("");
     $("#txtMontoDoc").val("");
@@ -1999,44 +2020,126 @@ $("#cboTipoDoc").on("change", function () {
 });
 
 // ════════════════════════════════════════════════════════
-// 5. AGREGAR COBRO
+// 5. AGREGAR / ACTUALIZAR COBRO
 // ════════════════════════════════════════════════════════
 $("#btnAgregarCobro").on("click", function () {
-    var tipo   = $("#cboTipoPago").val();
-    var banco  = $("#cboBanco").val();
-    var nodoc  = $("#txtNoDocCobro").val().trim();
-    var fecha  = $("#dtpFechaCobro").val();
-    var monto  = parseFloat($("#txtMontoCobro").val()) || 0;
+    var tipo = $("#cboTipoPago").val();
+    var banco = $("#cboBanco").val();
+    var nodoc = $("#txtNoDocCobro").val().trim();
+    var fecha = $("#dtpFechaCobro").val();
+    var monto = parseFloat($("#txtMontoCobro").val()) || 0;
     var moneda = $("#cboMonedaCobro").val();
+    var editando = (Estado.cobroEditIndex !== null);
 
     if (!tipo || !moneda || monto <= 0) {
         toastr.warning("Tipo de pago, monto y moneda son obligatorios.");
         return;
     }
+    // Moneda consistente: se ignora la propia fila cuando estamos editando
+    // (así se puede corregir la moneda del ÚNICO cobro capturado).
     if (Estado.monedaCobro && Estado.monedaCobro !== moneda) {
-        toastr.error("Todos los cobros deben tener la misma moneda (" + Estado.monedaCobro + ").");
-        return;
+        var hayOtros = false;
+        for (var j = 0; j < Estado.cobros.length; j++) {
+            if (j !== Estado.cobroEditIndex) { hayOtros = true; break; }
+        }
+        if (hayOtros) {
+            toastr.error("Todos los cobros deben tener la misma moneda (" + Estado.monedaCobro + ").");
+            return;
+        }
     }
     if (tipo !== "EFECTIVO" && (!banco || !nodoc)) {
         toastr.warning("Para " + tipo + " se requiere banco y número de documento.");
         return;
     }
 
-    Estado.monedaCobro = moneda;
-    $("#spanMonedaCobro").text(moneda);
-
-    Estado.cobros.push({
-        TipoCobro:   tipo,
-        Banco:       tipo === "EFECTIVO" ? "" : banco,
-        FechaDoc:    tipo === "EFECTIVO" ? "" : fecha,
+    var cobroObj = {
+        TipoCobro: tipo,
+        Banco: tipo === "EFECTIVO" ? "" : banco,
+        FechaDoc: tipo === "EFECTIVO" ? "" : fecha,
         NoDocumento: tipo === "EFECTIVO" ? "" : nodoc,
-        Monto:       monto,
-        Moneda:      moneda
-    });
+        Monto: monto,
+        Moneda: moneda
+    };
+
+    if (editando) {
+        // ── ACTUALIZAR la fila existente ──
+        Estado.cobros[Estado.cobroEditIndex] = cobroObj;
+        toastr.success("Cobro actualizado.");
+        SalirModoEdicionCobro();
+    } else {
+        // ── ALTA nueva ──
+        Estado.cobros.push(cobroObj);
+    }
+
+    // La moneda vigente se RECALCULA del arreglo (fuente de verdad),
+    // no se acumula: cubre el caso de editar el único cobro y cambiarle
+    // la moneda, donde la variable vieja quedaría desactualizada.
+    Estado.monedaCobro = Estado.cobros.length ? Estado.cobros[0].Moneda : "";
+    $("#spanMonedaCobro").text(Estado.monedaCobro || "—");
 
     RenderizarTablaCobros();
     ActualizarTotales();
     LimpiarDetalleCobro();
+});
+
+// Botón "Cancelar edición" (cobros) → descarta cambios, vuelve a modo alta
+$("#btnCancelarEdicionCobro").on("click", function () {
+    SalirModoEdicionCobro();
+    LimpiarDetalleCobro();
+    toastr.info("Edición cancelada.");
+});
+
+// Sale del modo edición de cobros: restaura el botón a "Agregar Cobro"
+function SalirModoEdicionCobro() {
+    Estado.cobroEditIndex = null;
+    $("#btnAgregarCobro").html('<i class="icon-plus"></i> Agregar Cobro')
+        .removeClass("btn-warning").addClass("btn-primary");
+    $("#btnCancelarEdicionCobro").hide();
+    $("#panelCobros").removeClass("editando");
+    $("#tbodyCobros tr").removeClass("seleccionada");
+}
+
+// Carga un cobro de la tabla al panel editable, respetando la regla
+// EFECTIVO (banco/fecha/doc deshabilitados). Se setea el tipo con .val()
+// SIN disparar el handler de la sección 3 (que limpiaría los campos);
+// el estado disabled lo aplicamos aquí a mano.
+function CargarCobroEnPanel(c) {
+    if (!c) return;
+    var esEfectivo = c.TipoCobro === "EFECTIVO";
+
+    $("#cboTipoPago").val(c.TipoCobro);
+    $("#cboBanco").val(c.Banco || "").prop("disabled", esEfectivo);
+    $("#txtNoDocCobro").val(c.NoDocumento || "").prop("disabled", esEfectivo);
+    $("#dtpFechaCobro").val(c.FechaDoc || "").prop("disabled", esEfectivo);
+    $("#txtMontoCobro").val(FmtNum(c.Monto));   // FmtNum: SIN comas, es un input
+    $("#cboMonedaCobro").val(c.Moneda || "");
+    $("#cboMonedaCobro").data("monedaPrev", c.Moneda || "");
+
+    if ($.fn.select2) {
+        $("#cboTipoPago, #cboBanco, #cboMonedaCobro")
+            .filter(".search-select").trigger("change.select2");
+    }
+}
+
+// Click en el lápiz de un cobro → MODO EDICIÓN
+$(document).on("click", ".btn-editCobro", function (e) {
+    e.stopPropagation();  // no dispara el click de selección de fila
+    var idx = parseInt($(this).data("idx"), 10);
+    var c = Estado.cobros[idx];
+    if (!c) return;
+
+    Estado.cobroEditIndex = idx;
+    CargarCobroEnPanel(c);
+
+    $("#btnAgregarCobro").html('<i class="icon-ok"></i> Actualizar Cobro')
+        .removeClass("btn-primary").addClass("btn-warning");
+    $("#btnCancelarEdicionCobro").show();
+    $("#panelCobros").addClass("editando");
+
+    $("#tbodyCobros tr").removeClass("seleccionada");
+    $(this).closest("tr").addClass("seleccionada");
+
+    toastr.info("Editando cobro de " + c.TipoCobro + ". Ajuste y presione Actualizar.");
 });
 
 // ════════════════════════════════════════════════════════
@@ -2045,10 +2148,20 @@ $("#btnAgregarCobro").on("click", function () {
 $("#btnQuitarCobro").on("click", function () {
     var idx = $("#tbodyCobros tr.seleccionada").data("idx");
     if (idx === undefined) { toastr.info("Seleccione una fila para quitar."); return; }
+
+    // Si quitamos la fila en edición, salimos del modo edición
+    if (Estado.cobroEditIndex === idx) {
+        SalirModoEdicionCobro();
+        LimpiarDetalleCobro();
+    }
+
     Estado.cobros.splice(idx, 1);
-    if (Estado.cobros.length === 0) {
-        Estado.monedaCobro = "";
-        $("#spanMonedaCobro").text("—");
+    Estado.monedaCobro = Estado.cobros.length ? Estado.cobros[0].Moneda : "";
+    $("#spanMonedaCobro").text(Estado.monedaCobro || "—");
+
+    // Reajustar el índice de edición si quedó desfasado por el splice
+    if (Estado.cobroEditIndex !== null && idx < Estado.cobroEditIndex) {
+        Estado.cobroEditIndex--;
     }
     RenderizarTablaCobros();
     ActualizarTotales();
@@ -2766,19 +2879,24 @@ $("#txtConfirmarAnulacion").on("input", function () {
 function RenderizarTablaCobros() {
     var tbody = $("#tbodyCobros").empty();
     if (!Estado.cobros.length) {
-        tbody.html('<tr class="tabla-vacia"><td colspan="6" class="text-center" style="padding:14px;">' +
-                   '<i class="icon-inbox" style="font-size:18px;color:#ccc;"></i><br/>Sin cobros agregados</td></tr>');
+        tbody.html('<tr class="tabla-vacia"><td colspan="7" class="text-center" style="padding:14px;">' +
+            '<i class="icon-inbox" style="font-size:18px;color:#ccc;"></i><br/>Sin cobros agregados</td></tr>');
         return;
     }
     $.each(Estado.cobros, function (i, c) {
+        var filaEdit = (Estado.cobroEditIndex === i) ? " seleccionada" : "";
         tbody.append(
-            $('<tr style="cursor:pointer;"></tr>').data("idx", i).html(
+            $('<tr style="cursor:pointer;" class="' + filaEdit.trim() + '"></tr>').data("idx", i).html(
                 "<td><span class='label label-default'>" + c.TipoCobro + "</span></td>" +
-                "<td>" + (c.Banco || "—")       + "</td>" +
-                "<td>" + (FmtFecha(c.FechaDoc) || "—")    + "</td>" +
+                "<td>" + (c.Banco || "—") + "</td>" +
+                "<td>" + (FmtFecha(c.FechaDoc) || "—") + "</td>" +
                 "<td>" + (c.NoDocumento || "—") + "</td>" +
-                '<td class="text-right"><strong>' + FmtNum(c.Monto) + "</strong></td>" +
-                "<td><span class='label label-info'>" + c.Moneda + "</span></td>"
+                '<td class="text-right"><strong>' + FmtMoneda(c.Monto) + "</strong></td>" +
+                "<td><span class='label label-info'>" + c.Moneda + "</span></td>" +
+                '<td class="text-center">' +
+                '<button class="btn btn-xs btn-warning btn-editCobro" title="Editar" data-idx="' + i + '">' +
+                '<i class="icon-pencil"></i></button>' +
+                '</td>'
             )
         );
     });
@@ -2798,10 +2916,10 @@ function RenderizarTablaDocumentos() {
                 "<td><span class='label label-default'>" + d.TipoDoc + "</span></td>" +
                 "<td><strong>" + (d.NoDocumento || "—") + "</strong></td>" +
                 "<td>" + (FmtFecha(d.FechaDoc) || "—")  + "</td>" +
-                '<td class="text-right"><strong>' + FmtNum(d.Monto) + "</strong></td>" +
+                '<td class="text-right"><strong>' + FmtMoneda(d.Monto) + "</strong></td>" +
                 "<td><span class='label label-info'>" + d.Moneda + "</span></td>" +
-                '<td class="text-right">' + FmtNum(d.MontoFact) + "</td>" +
-                '<td class="text-right">' + FmtNum(d.Pagado)    + "</td>" +
+                '<td class="text-right">' + FmtMoneda(d.MontoFact) + "</td>" +
+                '<td class="text-right">' + FmtMoneda(d.Pagado) + "</td>" +
                 "<td>" + (d.FelSerie || "—") + "</td>" +
                 '<td class="text-center">' +
                     '<button class="btn btn-xs btn-warning btn-editDoc" title="Editar" data-idx="' + i + '">' +
@@ -2875,7 +2993,8 @@ function LimpiarFormulario() {
     Estado.cobros             = [];
     Estado.documentos         = [];
     Estado.idReciboGuardado   = "";
-    Estado.docEditIndex       = null;
+    Estado.docEditIndex = null;
+    Estado.cobroEditIndex = null;
 
     $("#txtIdRecibo, #txtRecFisico, #txtBuscarCliente").val("");
     $("#txtNombreCliente").val("").removeClass("tiene-valor");
@@ -2908,6 +3027,9 @@ function LimpiarDetalleCobro() {
     if ($.fn.select2) {
         $("#cboTipoPago, #cboBanco, #cboMonedaCobro").filter(".search-select").trigger("change.select2");
     }
+
+    // Por seguridad: si quedó algún rastro de edición, lo limpiamos
+    SalirModoEdicionCobro();
 }
 
 function LimpiarDetalleDoc() {
@@ -3078,7 +3200,13 @@ function PintarBadgeStatus(status) {
 // ════════════════════════════════════════════════════════
 // UTILIDADES
 // ════════════════════════════════════════════════════════
-function FmtNum(n) { return parseFloat(n || 0).toFixed(2); }
+function FmtNum(n) {
+    var v = parseFloat(n || 0);
+    // Residuo de redondeo (|v| < medio centavo): es CERO. Mata el "-0.00",
+    // que a dos decimales se mostraría igual que 0.00 pero con signo.
+    if (Math.abs(v) < 0.005) v = 0;
+    return v.toFixed(2);
+}
 
 // Convierte un monto entre GTQ y USD usando el TC del día.
 // Devuelve null si no hay nada que convertir (sin valor, sin TC, misma moneda).
@@ -3122,9 +3250,11 @@ function PintarBarAnticipos(a) {
 }
 
 // Igual que FmtNum pero con separador de miles (para MOSTRAR dinero).
-// Ej: 832216.62 → "832,216.62". NO usar su salida para volver a parsear.
+// Ej: 832216.62 → "832,216.62". NO usar su salida para volver a parsear
+// (parseFloat("1,000.00") === 1: la coma corta el número).
 function FmtMoneda(n) {
     var num = parseFloat(n || 0);
+    if (Math.abs(num) < 0.005) num = 0;   // mismo clamp que FmtNum: mata el "-0.00"
     return num.toLocaleString("en-US", {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2

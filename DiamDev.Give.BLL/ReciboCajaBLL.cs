@@ -87,24 +87,26 @@ namespace DiamDev.Give.BLL
                     // GroupBy por Codigo = Distinct que conserva el registro completo
                     // (necesitamos DEPTO_RECIBO, no solo el string del código)
                     .GroupBy(r => r.Codigo.Trim(), StringComparer.OrdinalIgnoreCase)
-                    .Select(g =>
-                    {
-                        var reg = g.First();
-                        var p = ueBl.ParseCodigo(reg.Codigo);
-                        return new
-                        {
-                            Codigo = reg.Codigo.Trim(),
-                            SapId = p.SapId,
-                            // AGENTE: nombre parseado del código ("12-RODOLFO DIAZ" →
-                            // "RODOLFO DIAZ") — filtra la cartera de clientes en HANA.
-                            // DEPTO: viene DECLARADO en Usuario_Empresa.DEPTO_RECIBO
-                            // ("RODOLFO") — empata con REC_CAJA_SERIES.DEPTO.
-                            // Ya NO se deriva del código: parsear daba "RODOLFO DIAZ",
-                            // que nunca empataba con la serie "RODOLFO".
-                            Agente = p.AgenteNombre,
-                            Depto = (reg.DEPTO_RECIBO ?? "").Trim()
-                        };
-                    })
+                   .Select(g =>
+                   {
+                       var reg = g.First();
+                       var p = ueBl.ParseCodigo(reg.Codigo);
+                       string depto = (reg.DEPTO_RECIBO ?? "").Trim();
+                       return new
+                       {
+                           Codigo = reg.Codigo.Trim(),
+                           SapId = p.SapId,
+                           // AGENTE: nombre parseado ("15-PABLO GAITAN" → "PABLO GAITAN").
+                           // DEPTO: declarado en Usuario_Empresa.DEPTO_RECIBO.
+                           // SERIE: prefijo real de REC_CAJA_SERIES — solo para
+                           // mostrarla en la card del operador (feedback UI).
+                           Agente = p.AgenteNombre,
+                           Depto = depto,
+                           Serie = depto.Length > 0
+                                       ? _apk.ObtenerSerieDeDepto(clave, depto)
+                                       : ""
+                       };
+                   })
                     // Solo operadores habilitados para recibos: DEPTO_RECIBO con valor.
                     // NULL o vacío = no emite → no aparece en "Operar como".
                     .Where(c => c.Depto.Length > 0)
@@ -281,10 +283,16 @@ namespace DiamDev.Give.BLL
                 enc.SaldoGtq = enc.MontoTotalRecGtq - enc.MontoTotalDocGtq;
                 enc.SaldoUsd = enc.MontoTotalRecUsd - enc.MontoTotalDocUsd;
 
-                // ── 6. VALIDACIÓN NUEVA: el saldo en GTQ debe cuadrar a 0 ──
-                // (reemplaza la vieja regla "monedas iguales -> saldo 0").
-                // Tolerancia de 1 centavo por redondeo de conversiones.
-                if (Math.Abs(enc.SaldoGtq) > 0.01m)
+                // ── 6. Normalizar saldos y validar el cuadre ──
+                // Redondeo a 2 decimales + clamp del residuo (±0.01) a CERO EXACTO.
+                // Sin esto, los redondeos por línea dejaban saldos de "-0.01"/"-0.00"
+                // que pasaban la tolerancia y se GRABABAN negativos. Regla:
+                // recibo cuadrado = SALDO 0.00 positivo, siempre.
+                enc.Saldo = NormalizarSaldo(enc.Saldo);
+                enc.SaldoGtq = NormalizarSaldo(enc.SaldoGtq);
+                enc.SaldoUsd = NormalizarSaldo(enc.SaldoUsd);
+
+                if (enc.SaldoGtq != 0m)
                     return ResultadoRecibo.Error(
                         $"El saldo en GTQ no cuadra (Q{enc.SaldoGtq:N2}). " +
                         $"Cobros: Q{enc.MontoTotalRecGtq:N2} / Documentos: Q{enc.MontoTotalDocGtq:N2}.");
@@ -507,6 +515,21 @@ namespace DiamDev.Give.BLL
                     Gtq = monto,
                     Usd = Math.Round(monto / tipoCambio, 2)
                 };
+        }
+
+        // Tolerancia de cuadre por redondeo de conversiones (1 centavo)
+        private const decimal TOLERANCIA_SALDO = 0.01m;
+
+        /// <summary>
+        /// Redondea un saldo a 2 decimales y colapsa el residuo de redondeo
+        /// (|saldo| ≤ 1 centavo) a CERO EXACTO. Así nunca se graba ni se
+        /// muestra un "-0.01"/"-0.00" en un recibo que en realidad cuadra.
+        /// En TS: s => Math.abs(round2(s)) <= 0.01 ? 0 : round2(s)
+        /// </summary>
+        private static decimal NormalizarSaldo(decimal saldo)
+        {
+            saldo = Math.Round(saldo, 2);
+            return Math.Abs(saldo) <= TOLERANCIA_SALDO ? 0.00m : saldo;
         }
 
         /// <summary>Normaliza el código de moneda de la app: QTZ/Q → GTQ. USD pasa igual.</summary>

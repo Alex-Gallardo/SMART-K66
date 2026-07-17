@@ -119,6 +119,24 @@ namespace DiamDev.Give.DAL
         }
 
         /// <summary>
+        /// Devuelve la SERIE (prefijo, ej. "RG12-") configurada para
+        /// (EMPRESA, DEPTO) en REC_CAJA_SERIES, o string.Empty si no existe.
+        /// Solo lectura: se usa para mostrarla en la UI (card del operador).
+        /// </summary>
+        public string ObtenerSerieDeDepto(string empresa, string depto)
+        {
+            using (var con = new SqlConnection(_conn))
+            {
+                con.Open();
+                var cmd = new SqlCommand(
+                    "SELECT ISNULL(SERIE,'') FROM REC_CAJA_SERIES WHERE EMPRESA = @emp AND DEPTO = @depto", con);
+                cmd.Parameters.AddWithValue("@emp", empresa ?? "");
+                cmd.Parameters.AddWithValue("@depto", depto ?? "");
+                return cmd.ExecuteScalar()?.ToString() ?? string.Empty;
+            }
+        }
+
+        /// <summary>
         /// Inserta encabezado + cobros + documentos en una sola transacción.
         /// Si cualquier paso falla, hace ROLLBACK automático.
         /// Después del guardado, enc.IdRecibo queda poblado con el ID generado.

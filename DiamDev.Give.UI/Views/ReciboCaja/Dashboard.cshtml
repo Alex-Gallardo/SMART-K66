@@ -280,6 +280,64 @@
         border: 1px solid #27ae60;
     }
 
+    /* ── MEJORAS UI/UX · Recibos anulados (STATUS = 'X') ── */
+    .sit-ANULADO {
+        background: #eaecee;
+        color: #566573;
+        border: 1px solid #909497;
+        text-decoration: line-through;
+    }
+
+    .dash-card.c-anulweb {
+        border-top-color: #566573;
+    }
+
+    .dash-card.c-anulweb .num {
+        color: #566573;
+    }
+
+    #tablaDash tr.row-anulado td {
+        background: #fbfcfc;
+        color: #909497;
+    }
+
+    #tablaDash tr.row-anulado td strong {
+        text-decoration: line-through;
+    }
+
+    /* ── MEJORAS UI/UX · Badge de alcance del usuario ── */
+    .badge-alcance {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .3px;
+        color: #fff;
+        background: #7f8c8d;
+        white-space: nowrap;
+    }
+
+        .badge-alcance.global {
+            background: #2c3e50;
+        }
+
+        .badge-alcance.sin-acceso {
+            background: #e74c3c;
+        }
+
+    #avisoSinAcceso {
+        display: none;
+        background: #fdf2f0;
+        border: 1px solid #e74c3c;
+        border-left-width: 4px;
+        border-radius: 5px;
+        padding: 10px 14px;
+        margin-bottom: 12px;
+        font-size: 12.5px;
+        color: #a93226;
+    }
+
     /* ── Selección para impresión masiva ── */
     #tablaDash .chk-imp, #chkTodosImp {
         width: 15px;
@@ -336,11 +394,15 @@
             <span class="flabel" style="margin:0; font-size:10px; text-transform:uppercase; color:#95a5a6; font-weight:700;">Empresa:</span>
             <div class="btn-group" id="grpEmpresa">
                 <button class="btn btn-default btn-sm activa" data-emp="">Todas</button>
-                <button class="btn btn-default btn-sm" data-emp="GRACO">Graco</button>
-                <button class="btn btn-default btn-sm" data-emp="FAES">Faes</button>
-                <button class="btn btn-default btn-sm" data-emp="BOLIK">Bolik</button>
             </div>
+            <span id="badgeAlcance" class="badge-alcance" title="Alcance de datos de su usuario">…</span>
             <span id="lblActualizado" style="font-size:11px; color:#95a5a6; margin-left:auto;"></span>
+        </div>
+
+        <div id="avisoSinAcceso">
+            <strong>⚠ Sin operadores asignados.</strong>
+            Su usuario no tiene registros en <em>Usuario_Empresa</em>, por lo que el dashboard
+            no muestra recibos. Solicite al administrador que le asigne al menos un operador.
         </div>
 
         <!-- ── FILTROS DEL GRID (las cards no se filtran por fecha: son la foto actual) ── -->
@@ -381,6 +443,14 @@
                 </label>
             </div>
 
+            <div class="flt">
+                <span class="flt-lbl">&nbsp;</span>
+                <label class="chk-operados" title="Incluir recibos anulados desde la web (STATUS = X). Las fechas se aplican sobre la fecha de anulación.">
+                    <input type="checkbox" id="chkAnulados" />
+                    Incluir anulados 🚫
+                </label>
+            </div>
+
             <div class="flt" style="margin-left:auto;">
                 <span class="flt-lbl">&nbsp;</span>
                 <div style="display:flex; gap:6px; align-items:center;">
@@ -396,8 +466,8 @@
                         <i class="icon-table"></i> Excel
                     </button>
                     <!-- <button id="btnExportCsv" class="btn btn-default btn-xs" title="Exportar lo visible a CSV">
-        <i class="icon-download-alt"></i> CSV
-    </button> -->
+                    <i class="icon-download-alt"></i> CSV
+                </button> -->
                 </div>
             </div>
 
@@ -419,6 +489,11 @@
                 <div class="num" id="cardAnulados">—</div>
                 <div class="lbl">↩ Anulados en SAP</div>
                 <div class="sub">Esperan re-operación</div>
+            </div>
+            <div class="dash-card c-anulweb" data-sit="ANULADO" title="Recibos anulados desde la web este mes (STATUS = X). No se sincronizan.">
+                <div class="num" id="cardAnuladosWeb">—</div>
+                <div class="lbl">🚫 Anulados (mes)</div>
+                <div class="sub" id="cardAnuladosWebMonto"></div>
             </div>
             <div class="dash-card c-pendiente" data-sit="TODOS" title="Ver todo lo que está en tránsito">
                 <div class="num" id="cardPendientes">—</div>
@@ -471,10 +546,25 @@ var DIAS_UMBRAL = parseInt("@@ViewBag.DiasUmbral") || 3;
 var TOPE_FILAS = 500;   // espejo del TOP 500 del backend
 var URL_IMPRIMIR_LOTE = "@Url.Action("ImprimirLote","ReciboCaja")";
 
+// ── Etiqueta legible por situación ────────────────────────────
+// NO derivamos la etiqueta con .replace("_"," "): "ANULADO_SAP" daría
+// "ANULADO SAP" pero "ANULADO" (web) daría "ANULADO" a secas, y en pantalla
+// serían casi la misma palabra para dos cosas MUY distintas:
+//   ANULADO SAP → el pago se revirtió en SAP, el recibo sigue vivo.
+//   ANULADO WEB → el recibo está muerto, solo se audita.
+var ETIQUETA_SIT = {
+    "ANULADO": "ANULADO WEB",
+    "ANULADO_SAP": "ANULADO SAP"
+};
+function LabelSit(s) {
+    return ETIQUETA_SIT[s] || (s || "").replace("_", " ");
+}
+
 var Filtro = {
     empresa: "", situacion: "TODOS",
     fechaIni: "", fechaFin: "",
     incluirOperados: false,
+    incluirAnulados: false,
     texto: ""
 };
 
@@ -523,11 +613,57 @@ function CargarResumen() {
         $("#cardEnvejecidos").text(d.PendientesEnvejecidos);
         $("#cardAnulados").text(d.PendientesAnulados);
         $("#cardPendientes").text(d.PendientesTotal);
+        $("#cardAnuladosWeb").text(d.AnuladosMes);
+        $("#cardAnuladosWebMonto").text(d.AnuladosMes > 0
+            ? "Q " + FmtMoneda(d.AnuladosMesMontoGtq) + " anulados" : "Sin anulaciones este mes");
         $("#cardOperadosHoy").text(d.OperadosHoy);
         $("#cardOperadosSemana").text(d.OperadosSemana + " en los últimos 7 días");
         $("#lblActualizado").text("Actualizado: " + new Date().toLocaleTimeString());
+        PintarAlcance(resp);
     });
-}
+        }
+
+        // ════════════════════════════════════════════════════════
+        // ALCANCE: badge + botones de empresa según Usuario_Empresa
+        // ════════════════════════════════════════════════════════
+        // Los botones se pintan UNA sola vez (_alcancePintado). CargarResumen corre
+        // cada 60s, y re-pintarlos en cada ciclo borraría la empresa activa del
+        // usuario a media revisión. El badge sí se actualiza siempre: es solo texto.
+        var _alcancePintado = false;
+
+        function PintarAlcance(resp) {
+            // Badge
+            var $b = $("#badgeAlcance").removeClass("global sin-acceso");
+            if (resp.global) {
+                $b.addClass("global").text("👁 Global")
+                    .attr("title", "Ve todos los recibos de las 3 empresas");
+            } else if (resp.sinAcceso) {
+                $b.addClass("sin-acceso").text("⚠ Sin operadores")
+                    .attr("title", "Su usuario no tiene registros en Usuario_Empresa");
+            } else {
+                $b.text("👤 " + resp.operadores + " operador(es)")
+                    .attr("title", "Solo ve los recibos emitidos con sus códigos de Usuario_Empresa");
+            }
+
+            $("#avisoSinAcceso").toggle(!!resp.sinAcceso);
+
+            // Botones de empresa (una sola vez)
+            if (_alcancePintado) return;
+            _alcancePintado = true;
+
+            var NOMBRES = { GRACO: "Graco", FAES: "Faes", BOLIK: "Bolik" };
+            var emps = resp.empresas || [];
+
+            // Con una sola empresa, "Todas" y esa empresa muestran lo mismo:
+            // dos botones idénticos solo generan dudas. Se deja únicamente "Todas".
+            if (emps.length <= 1) return;
+
+            var $g = $("#grpEmpresa");
+            $.each(emps, function (_, e) {
+                $g.append('<button class="btn btn-default btn-sm" data-emp="' + e + '">' +
+                    (NOMBRES[e] || e) + '</button>');
+            });
+        }
 
 // ════════════════════════════════════════════════════════
 // DETALLE: servidor (empresa/situación/fechas/operados)
@@ -542,7 +678,8 @@ function CargarDetalle() {
         situacion: Filtro.situacion,
         fechaIni: Filtro.fechaIni,
         fechaFin: Filtro.fechaFin,
-        incluirOperados: Filtro.incluirOperados
+        incluirOperados: Filtro.incluirOperados,
+        incluirAnulados: Filtro.incluirAnulados
     }, function (resp) {
         if (!resp.ok) {
             $("#tbodyDash").html('<tr><td colspan="11" class="text-center text-danger" style="padding:20px;">' +
@@ -586,29 +723,47 @@ function PintarDetalle() {
     $.each(visibles, function (_, f) {
         var urlAbrir = URL_INDEX +
             "?idRecibo=" + encodeURIComponent(f.IdRecibo) +
-            "&empresa="  + encodeURIComponent(f.IdEmpresa);
+            "&empresa=" + encodeURIComponent(f.IdEmpresa);
+
+        var esAnulado = (f.Situacion === "ANULADO");
+        // Los anulados SÍ son imprimibles: la vista de impresión les pone la
+        // marca de agua diagonal "ANULADO", así que no hay riesgo de que un
+        // recibo muerto pase por vivo. Solo el DESCUADRE queda bloqueado.
         var esImprimible = (f.Situacion !== "DESCUADRE");
         var key = KeySel(f);
         var sel = esImprimible && _sel[key];
+
+        var clases = (sel ? "row-imp-sel " : "") + (esAnulado ? "row-anulado" : "");
+
+        // Un anulado nunca es "atrasado": está muerto, nadie lo está esperando.
+        var diasAlto = (!esAnulado && f.Situacion !== "OPERADO" &&
+            f.DiasAntiguedad >= DIAS_UMBRAL);
+
+        var tipFila = esAnulado
+            ? ("Anulado por " + (f.AnuladoPor || "?") +
+                (f.FechaAnulacion ? " el " + f.FechaAnulacion : "") +
+                (f.MotivoAnulacion ? " — Motivo: " + f.MotivoAnulacion : ""))
+            : "";
+
         tbody.append(
-            '<tr class="' + (sel ? 'row-imp-sel' : '') + '">' +
+            '<tr class="' + clases + '"' +
+            (tipFila ? ' title="' + Esc(tipFila) + '"' : '') + '>' +
             '<td class="td-chk">' +
             '<input type="checkbox" class="chk-imp" data-key="' + key + '"' +
             (esImprimible ? '' : ' disabled title="Bloqueado: recibo con descuadre frente a SAP"') +
             (sel ? ' checked' : '') + ' /></td>' +
-            '<td><span class="sit-badge sit-' + f.Situacion + '">' + f.Situacion.replace("_", " ") + '</span></td>' +
+            '<td><span class="sit-badge sit-' + f.Situacion + '">' + LabelSit(f.Situacion) + '</span></td>' +
             '<td><strong style="font-family:monospace;">' + Esc(f.IdRecibo) + '</strong></td>' +
             '<td><span class="emp-badge emp-' + f.IdEmpresa + '">' + f.IdEmpresa + '</span></td>' +
             '<td>' + Esc(f.NombreCliente) + '</td>' +
             '<td class="text-right"><strong>' + FmtMoneda(f.MontoGtq) + '</strong></td>' +
             '<td>' + Esc(f.Usuario) + '</td>' +
             '<td>' + Esc(f.FechaRegistro) + '</td>' +
-            '<td class="text-right' +
-                ((f.Situacion !== "OPERADO" && f.DiasAntiguedad >= DIAS_UMBRAL) ? ' dias-alto' : '') + '">' +
-                f.DiasAntiguedad + '</td>' +
+            '<td class="text-right' + (diasAlto ? ' dias-alto' : '') + '">' +
+            f.DiasAntiguedad + '</td>' +
             '<td class="obs" title="' + Esc(f.SyncObservacion) + '">' + Esc(f.SyncObservacion) + '</td>' +
             '<td><a class="btn btn-xs btn-info" target="_blank" href="' + urlAbrir + '" title="Abrir en la vista de recibos">' +
-                '<i class="icon-external-link"></i></a></td>' +
+            '<i class="icon-external-link"></i></a></td>' +
             '</tr>');
     });
 
@@ -623,7 +778,10 @@ function CargarTodo() { CargarResumen(); CargarDetalle(); }
 // ════════════════════════════════════════════════════════
 
 // Empresa (afecta cards + grid)
-$("#grpEmpresa button").on("click", function () {
+// Delegado: los botones se crean dinámicamente en PintarAlcance, y un binding
+// directo solo alcanza a los que existían al cargar la página. Es el mismo
+// motivo por el que en el DOM se usa event delegation para listas dinámicas.
+$(document).on("click", "#grpEmpresa button", function () {
     $("#grpEmpresa button").removeClass("activa btn-primary").addClass("btn-default");
     $(this).addClass("activa");
     Filtro.empresa = $(this).data("emp");
@@ -677,6 +835,12 @@ $("#chkOperados").on("change", function () {
     CargarDetalle();
 });
 
+// Incluir anulados (STATUS='X')
+$("#chkAnulados").on("change", function () {
+    Filtro.incluirAnulados = $(this).is(":checked");
+    CargarDetalle();
+});
+
 // Texto libre: cliente-side sobre el buffer, con debounce corto
 var timerTxt = null;
 $("#fltTexto").on("input", function () {
@@ -691,12 +855,12 @@ $("#fltTexto").on("input", function () {
 // Limpiar todo
 $("#btnLimpiarFiltros").on("click", function () {
     Filtro.situacion = "TODOS"; Filtro.fechaIni = ""; Filtro.fechaFin = "";
-    Filtro.incluirOperados = false; Filtro.texto = "";
+    Filtro.incluirOperados = false; Filtro.incluirAnulados = false; Filtro.texto = "";
     $(".dash-card").removeClass("activa");
     $("#grpPresets button").removeClass("activa")
         .filter("[data-preset='todo']").addClass("activa");
     $("#fltFechaIni, #fltFechaFin, #fltTexto").val("");
-    $("#chkOperados").prop("checked", false);
+    $("#chkOperados, #chkAnulados").prop("checked", false);
     CargarDetalle();
 });
 
@@ -756,11 +920,12 @@ $("#btnExportExcel").on("click", function () {
 
     // ── Colores por situación (espejo de los badges del dashboard) ──
     var COLORES_SIT = {
-        "DESCUADRE":   { bg: "#FADBD8", fg: "#A93226" },
+        "DESCUADRE": { bg: "#FADBD8", fg: "#A93226" },
         "ANULADO_SAP": { bg: "#FEF9E7", fg: "#B9770E" },
-        "ENVEJECIDO":  { bg: "#FDEBD0", fg: "#BA4A00" },
-        "PENDIENTE":   { bg: "#EAF4FB", fg: "#2471A3" },
-        "OPERADO":     { bg: "#D5F5E3", fg: "#1E8449" }
+        "ENVEJECIDO": { bg: "#FDEBD0", fg: "#BA4A00" },
+        "PENDIENTE": { bg: "#EAF4FB", fg: "#2471A3" },
+        "OPERADO": { bg: "#D5F5E3", fg: "#1E8449" },
+        "ANULADO": { bg: "#EAECEE", fg: "#566573" }
     };
 
     // ── Resumen de filtros aplicados (para que el Excel sea auto-explicativo) ──
@@ -820,7 +985,7 @@ $("#btnExportExcel").on("click", function () {
         html +=
         '<tr>' +
             '<td class="c txt" style="background:' + col.bg + '; color:' + col.fg +
-                '; font-weight:bold; text-align:center;">' + f.Situacion.replace("_", " ") + '</td>' +
+        '; font-weight:bold; text-align:center;">' + LabelSit(f.Situacion) + '</td>' +
             '<td class="c txt mono">' + Esc(f.IdRecibo) + '</td>' +
             '<td class="c txt" style="text-align:center;">' + Esc(f.IdEmpresa) + '</td>' +
             '<td class="c txt">' + Esc(f.NombreCliente) + '</td>' +

@@ -321,11 +321,74 @@ namespace DiamDev.Give.UI.Controllers
         // ═════════════════════════════════════════════
         //  DASHBOARD DE SUPERVISIÓN
         // ═════════════════════════════════════════════
+
+        /// <summary>Permiso que otorga visión global del dashboard (sin filtro por operador).</summary>
+        private const string PERMISO_DASHBOARD_GLOBAL = "Control.ReciboCaja.DashboardGlobal";
+
+        /// <summary>
+        /// ¿El usuario ve TODO el dashboard, o solo sus operadores de Usuario_Empresa?
+        ///
+        /// Dos mecanismos, en OR:
+        ///   1. PERMISO (principal): pregunta por CAPACIDAD, no por identidad. Si
+        ///      mañana nace el rol "CREDITOS SR", se le asigna el permiso en la BD
+        ///      y funciona sin tocar código.
+        ///   2. NOMBRE DE ROL en Web.config (red de seguridad): mientras el permiso
+        ///      no exista en la BD, Permiso() devuelve false y NADIE sería global —
+        ///      Créditos abriría un dashboard vacío. Esta lista evita ese hueco.
+        ///      Cuando el permiso esté creado y probado, vacía la clave del config.
+        ///
+        /// Los try/catch son deliberados: si el subsistema de permisos falla, la
+        /// respuesta correcta es "no es global" (FALLA CERRADO), no una pantalla
+        /// de error ni —mucho peor— acceso total.
+        /// </summary>
+        private bool EsGlobalActual()
+        {
+            // 1) Permiso explícito
+            try
+            {
+                if (CustomHelper.Permiso(PERMISO_DASHBOARD_GLOBAL)) return true;
+            }
+            catch { /* permiso inexistente o subsistema caído → no es global */ }
+
+            // 2) Fallback por nombre de rol (Web.config → DashboardRolesGlobales)
+            try
+            {
+                return _admin.EsRolGlobal(RolUsuarioActual());
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// ⚠ PENDIENTE: nombre del rol del usuario logueado, para el fallback de
+        /// Web.config. Devuelve "" mientras no se conecte, y "" nunca es global
+        /// → todos quedan restringidos a su alcance. Es el default seguro.
+        ///
+        /// No lo cableé a ciegas: CustomHelper no expone el rol, y adivinar el
+        /// nombre de la propiedad en la entidad Usuario es exactamente el error
+        /// que ya nos costó una ronda con INVOICE_DATE / CURRENCY_ID.
+        /// Se completa en cuanto veamos Usuario.cs.
+        /// </summary>
+        private string RolUsuarioActual()
+        {
+            return "";
+        }
+
+        /// <summary>Alcance del usuario logueado. Un solo punto de construcción.</summary>
+        private AlcanceRecibos AlcanceActual()
+        {
+            return _admin.ObtenerAlcance(CustomHelper.getUserId(), EsGlobalActual());
+        }
+
         // [Permiso("Control.ReciboCaja.Dashboard")]
         public ActionResult Dashboard()
         {
             CustomHelper.setTitle("Recibos de Caja", "Supervisión");
             ViewBag.DiasUmbral = _admin.DiasUmbral;
+
+            var alcance = AlcanceActual();
+            ViewBag.AlcanceGlobal = alcance.Global;
+            ViewBag.AlcanceTexto = alcance.Descripcion;
+
             return View();
         }
 
@@ -335,8 +398,18 @@ namespace DiamDev.Give.UI.Controllers
         {
             try
             {
-                var r = _admin.ObtenerResumen(empresa);
-                return Json(new { ok = true, data = r }, JsonRequestBehavior.AllowGet);
+                var alcance = AlcanceActual();
+                var r = _admin.ObtenerResumen(empresa, alcance);
+                return Json(new
+                {
+                    ok = true,
+                    data = r,
+                    global = alcance.Global,
+                    operadores = alcance.Pares.Count,
+                    sinAcceso = alcance.SinAcceso,
+                    empresas = alcance.Empresas,
+                    alcanceTexto = alcance.Descripcion
+                }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
@@ -347,12 +420,19 @@ namespace DiamDev.Give.UI.Controllers
         [HttpGet]
         // [Permiso("Control.ReciboCaja.Dashboard")]
         public JsonResult GetDashboardDetalle(string empresa, string situacion,
-             string fechaIni, string fechaFin, bool incluirOperados = false)
+             string fechaIni, string fechaFin,
+             bool incluirOperados = false, bool incluirAnulados = false)
         {
             try
             {
+                // El alcance se resuelve SIEMPRE en el servidor. Nunca viaja por
+                // querystring: el front es cosmético y se puede falsificar desde F12.
+                var alcance = AlcanceActual();
+
                 var filas = _admin.ObtenerDetalle(empresa, situacion,
-                                                  fechaIni, fechaFin, incluirOperados);
+                                                  fechaIni, fechaFin,
+                                                  incluirOperados, incluirAnulados,
+                                                  alcance);
                 return Json(new { ok = true, data = filas }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)

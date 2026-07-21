@@ -29,29 +29,145 @@ namespace DiamDev.Give.BLL
             }
         }
 
-        // ─── DASHBOARD ────────────────────────────────
-        public DashboardResumenRecibos ObtenerResumen(string empresa) =>
-            _da.ObtenerResumen(NormalizarEmpresa(empresa), DiasUmbral);
+        // ═════════════════════════════════════════════
+        //  ALCANCE POR USUARIO_EMPRESA
+        // ═════════════════════════════════════════════
 
-        public List<DashboardFilaRecibo> ObtenerDetalle(string empresa, string situacion,
-            string fechaIni, string fechaFin, bool incluirOperados)
-        {
-            // Parseo defensivo de fechas: string vacío o basura → sin filtro
-            DateTime? fIni = DateTime.TryParse(fechaIni, out DateTime fi) ? fi : (DateTime?)null;
-            DateTime? fFin = DateTime.TryParse(fechaFin, out DateTime ff) ? ff : (DateTime?)null;
-
-            // Rango invertido (desde > hasta): lo corregimos en silencio intercambiando
-            if (fIni.HasValue && fFin.HasValue && fIni > fFin)
+        /// <summary>Id numérico de Usuario_Empresa → clave string de recibos.</summary>
+        private static readonly Dictionary<long, string> EMPRESAS_POR_ID =
+            new Dictionary<long, string>
             {
-                var tmp = fIni; fIni = fFin; fFin = tmp;
+                { UsuarioEmpresaBL.ID_GRACO, "GRACO" },
+                { UsuarioEmpresaBL.ID_FAES,  "FAES"  },
+                { UsuarioEmpresaBL.ID_BOLIK, "BOLIK" }
+            };
+
+        /// <summary>
+        /// Roles que ven TODO el dashboard, desde Web.config:
+        ///   &lt;add key="DashboardRolesGlobales" value="CREDITOS,ADMINISTRACION,..." /&gt;
+        /// En config y no en código para que agregar un rol no obligue a
+        /// recompilar y republicar. Mismo criterio que DashboardDiasEnvejecido.
+        /// Si la clave no existe o el rol viene vacío → NO es global (falla cerrado).
+        /// </summary>
+        public bool EsRolGlobal(string rol)
+        {
+            if (string.IsNullOrWhiteSpace(rol)) return false;
+
+            string raw = ConfigurationManager.AppSettings["DashboardRolesGlobales"] ?? "";
+            if (raw.Trim().Length == 0) return false;
+
+            string r = rol.Trim();
+            return raw.Split(',')
+                      .Select(x => x.Trim())
+                      .Any(x => x.Length > 0 &&
+                                string.Equals(x, r, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Resuelve QUÉ puede ver el usuario en el dashboard.
+        ///
+        /// Se compara el PAR (empresa, código), no el código suelto: la misma
+        /// persona tiene código distinto por empresa (FAES '13-PABLO GAITAN' vs
+        /// GRACO '15-PABLO GAITAN') y códigos iguales existen en empresas
+        /// distintas ('2-GERENCIA'). Comparar solo el código perdería datos
+        /// propios y expondría ajenos.
+        ///
+        /// A diferencia de ObtenerEmpresasUsuario, aquí NO se exige DEPTO_RECIBO:
+        /// ese requisito es para EMITIR (necesita serie de numeración), no para
+        /// CONSULTAR. Un código sin depto pero con recibos históricos debe verlos.
+        ///
+        /// Si el usuario no tiene ningún par → SinAcceso = true y el DA aplica
+        /// "AND 1 = 0". Es intencional: sin asignaciones, no ve nada.
+        /// </summary>
+        /// <param name="esGlobal">
+        /// Ya resuelto por el Controller (permiso + fallback de rol). El BLL no
+        /// consulta permisos: eso es contexto HTTP/sesión y vive en la capa UI.
+        /// Mantener esa frontera es lo que permite testear el BLL sin un request.
+        /// </param>
+        public AlcanceRecibos ObtenerAlcance(long usuarioId, bool esGlobal)
+        {
+            var alcance = new AlcanceRecibos { Global = esGlobal };
+            if (alcance.Global) return alcance;
+
+            var registros = new UsuarioEmpresaDA().ObtenerPorUsuarioId(usuarioId);
+
+            foreach (var r in registros)
+            {
+                if (!EMPRESAS_POR_ID.TryGetValue(r.EmpresaId, out string emp)) continue;
+
+                string cod = (r.Codigo ?? "").Trim();
+                if (cod.Length == 0) continue;   // sin código no puede haber match
+
+                // Distinct manual por (empresa, código): Codigo es parte de la PK
+                // compuesta, pero pueden venir repetidos por otras columnas.
+                bool yaEsta = alcance.Pares.Any(p =>
+                    string.Equals(p.Empresa, emp, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(p.Codigo, cod, StringComparison.OrdinalIgnoreCase));
+
+                if (!yaEsta)
+                    alcance.Pares.Add(new AlcancePar { Empresa = emp, Codigo = cod });
             }
 
-            var filas = _da.ObtenerDetalle(NormalizarEmpresa(empresa), DiasUmbral,
-                                           fIni, fFin, incluirOperados);
+            return alcance;
+        }
 
-            var sit = (situacion ?? "").Trim().ToUpper();
-            if (sit.Length == 0 || sit == "TODOS") return filas;
-            return filas.Where(f => f.Situacion == sit).ToList();
+        // ─── DASHBOARD ────────────────────────────────
+        public DashboardResumenRecibos ObtenerResumen(string empresa, AlcanceRecibos alcance) =>
+            _da.ObtenerResumen(NormalizarEmpresa(empresa), DiasUmbral, alcance);
+
+        /// <summary>
+        /// Detalle del dashboard. Reparto de responsabilidades:
+        ///   - El DA decide QUÉ UNIVERSO traer (vivos / +operados / +anulados),
+        ///     porque eso vive en el WHERE y no se puede filtrar después.
+        ///   - El BLL filtra por SITUACIÓN en memoria, porque la situación es
+        ///     una clasificación DERIVADA (depende del umbral de días, del texto
+        ///     de la observación, etc.) que ya calculó el DA fila por fila.
+        ///
+        /// "ANULADO" es el caso especial: implica cambiar el universo, no solo
+        /// filtrar el resultado. Por eso enciende traerAnulados.
+        /// </summary>
+        public List<DashboardFilaRecibo> ObtenerDetalle(
+            string empresa, string situacion,
+            string fechaIni, string fechaFin,
+            bool incluirOperados, bool incluirAnulados,
+            AlcanceRecibos alcance)
+        {
+            DateTime? fIni = ParseFechaDash(fechaIni);
+            DateTime? fFin = ParseFechaDash(fechaFin);
+
+            situacion = (situacion ?? "TODOS").Trim().ToUpperInvariant();
+            if (situacion.Length == 0) situacion = "TODOS";
+
+            // La card dice "ANTIGUO", el DA clasifica como "ENVEJECIDO".
+            // Traducimos aquí para no tocar ninguno de los dos extremos.
+            if (situacion == "ANTIGUO") situacion = "ENVEJECIDO";
+
+            // Ver ObtenerDetalle del DA: cuando la situación ES "ANULADO" no basta
+            // con AMPLIAR el universo, hay que RECORTARLO. Si dejáramos entrar los
+            // vivos, el TOP 500 se los comería y el filtro en memoria de abajo
+            // devolvería lista vacía con la card marcando 4.
+            bool soloAnulados = (situacion == "ANULADO");
+            bool traerAnulados = soloAnulados || incluirAnulados;
+
+            var filas = _da.ObtenerDetalle(empresa ?? "", DiasUmbral,
+                                           fIni, fFin,
+                                           incluirOperados, traerAnulados, soloAnulados,
+                                           alcance);
+
+            if (situacion == "TODOS") return filas;
+
+            return filas
+                .Where(f => string.Equals(f.Situacion, situacion,
+                                          StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        /// <summary>Convierte "yyyy-MM-dd" del front a DateTime? (vacío = sin filtro).</summary>
+        private static DateTime? ParseFechaDash(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return null;
+            DateTime d;
+            return DateTime.TryParse(s.Trim(), out d) ? d : (DateTime?)null;
         }
 
         // ─── SERIES ───────────────────────────────────

@@ -459,6 +459,7 @@ namespace DiamDev.Give.UI.Controllers
         [HttpPost]
         public JsonResult ConsultaClienteK66(string search, long empresaId)
         {
+            var xx = CustomHelper.getUserId();
             List<ClienteConsultaModel> Clientes = new ClienteBL().BuscarClientexNombreK66(search, CustomHelper.getUserId(), empresaId);
             return Json(Clientes, JsonRequestBehavior.AllowGet);
         }

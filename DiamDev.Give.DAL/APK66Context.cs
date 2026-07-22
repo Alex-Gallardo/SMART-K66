@@ -137,6 +137,43 @@ namespace DiamDev.Give.DAL
         }
 
         /// <summary>
+        /// Resuelve el DEPTO (cobrador) de un recibo a partir del prefijo de su ID.
+        ///
+        /// REC_CAJA_ENC no guarda DEPTO, pero el ID lo lleva embebido:
+        ///   "RG12-08542" → serie "RG12-" → DEPTO "RODOLFO"
+        ///
+        /// ORDER BY LEN(SERIE) DESC gana el match más específico: si existieran
+        /// "RG1-" y "RG12-", el ID "RG12-00001" debe resolver a la segunda.
+        ///
+        /// Devuelve "" si no hay serie que coincida, y NUNCA lanza: se usa para
+        /// enriquecer eventos de bitácora, y un fallo acá jamás debe tumbar la
+        /// operación que lo generó (misma regla que RegistrarEventoAnalytics).
+        /// </summary>
+        public string ObtenerDeptoDeRecibo(string idRecibo, string empresa)
+        {
+            if (string.IsNullOrWhiteSpace(idRecibo)) return string.Empty;
+
+            try
+            {
+                using (var con = new SqlConnection(_conn))
+                {
+                    con.Open();
+                    var cmd = new SqlCommand(@"
+                        SELECT TOP 1 ISNULL(DEPTO,'')
+                        FROM REC_CAJA_SERIES
+                        WHERE EMPRESA = @emp
+                          AND ISNULL(SERIE,'') <> ''
+                          AND @id LIKE SERIE + '%'
+                        ORDER BY LEN(SERIE) DESC", con);
+                    cmd.Parameters.AddWithValue("@id", idRecibo.Trim());
+                    cmd.Parameters.AddWithValue("@emp", empresa ?? "");
+                    return cmd.ExecuteScalar()?.ToString() ?? string.Empty;
+                }
+            }
+            catch { return string.Empty; }
+        }
+
+        /// <summary>
         /// Inserta encabezado + cobros + documentos en una sola transacción.
         /// Si cualquier paso falla, hace ROLLBACK automático.
         /// Después del guardado, enc.IdRecibo queda poblado con el ID generado.

@@ -256,17 +256,28 @@ namespace DiamDev.Give.BLL
                 }
                 enc.TipoCambio = tc;
                 enc.MonedaBase = "GTQ";
-                enc.Moneda = NormalizarMonedaApp(enc.Moneda);
+
+                // ★ FIX (moneda '##'): antes era NormalizarMonedaApp(enc.Moneda), que
+                // solo corregía QTZ/Q y dejaba pasar cualquier otra cosa. El typeahead
+                // de clientes copia OCRD.Currency de SAP al encabezado, y para socios
+                // MULTIMONEDA ese campo vale '##' — así se colaron 11 recibos.
+                enc.Moneda = NormalizarMonedaEncabezado(enc);
 
                 // ── 2. Calcular los duales de cada cobro ──
+                // ★ FIX: se normaliza la moneda de la LÍNEA antes de calcular, para que
+                // lo que se graba en REC_CAJA_COBRO.MONEDA coincida con la moneda que
+                // realmente usó CalcularMontosDuales. Antes, un "QTZ" se calculaba como
+                // GTQ pero se guardaba como "QTZ": la etiqueta mentía sobre el cálculo.
                 foreach (var c in enc.Cobros)
                 {
+                    c.Moneda = NormalizarMonedaLinea(c.Moneda);
                     var m = CalcularMontosDuales(c.Monto, c.Moneda, tc);
                     c.TipoCambio = tc; c.MontoGtq = m.Gtq; c.MontoUsd = m.Usd;
                 }
                 // ── 3. Calcular los duales de cada documento ──
                 foreach (var d in enc.Documentos)
                 {
+                    d.Moneda = NormalizarMonedaLinea(d.Moneda);   // ★ FIX
                     var m = CalcularMontosDuales(d.Monto, d.Moneda, tc);
                     d.TipoCambio = tc; d.MontoGtq = m.Gtq; d.MontoUsd = m.Usd;
                 }
@@ -401,6 +412,12 @@ namespace DiamDev.Give.BLL
             }
 
             // ── Analytics: evento ANULADO con el motivo en el payload ──
+            // ★ FIX: el DEPTO ya no viaja NULL. REC_CAJA_ENC no lo guarda, pero el
+            // ID del recibo lleva el prefijo de serie ("RG12-08542" → "RODOLFO"),
+            // así que se deriva. Sin esto, las anulaciones quedaban sin cobrador y
+            // el ranking por depto de Analytics las perdía.
+            string deptoAnul = _apk.ObtenerDeptoDeRecibo(idRecibo, empresa);
+
             string payload = Newtonsoft.Json.JsonConvert.SerializeObject(new
             {
                 Motivo = motivo,
@@ -409,7 +426,8 @@ namespace DiamDev.Give.BLL
                 Moneda = rec.Moneda
             });
             _apk.RegistrarEventoAnalytics(
-                "ANULADO", idRecibo, empresa, null,
+                "ANULADO", idRecibo, empresa,
+                string.IsNullOrWhiteSpace(deptoAnul) ? null : deptoAnul,   // ★ FIX
                 usuarioId, usuarioLogin, rec.Moneda, rec.TipoCambio,
                 rec.MontoTotalRecGtq, rec.MontoTotalRecUsd, rec.SaldoGtq,
                 payload, ipUsuario);
@@ -435,8 +453,10 @@ namespace DiamDev.Give.BLL
             {
                 new { Id = "GRACO", Nombre = "Graco Pack",       Permiso = "Control.ReciboCaja.Graco", Clase = "empresa-graco" },
                 new { Id = "FAES",  Nombre = "Fabrica Escocesa", Permiso = "Control.ReciboCaja.Faes",  Clase = "empresa-faes"  },
-                new { Id = "BOLIK", Nombre = "Industrias Bolik", Permiso = "Control.ReciboCaja.Bolik", Clase = "empresa-bolik" },
-                new  { Id= "TEST_GRACO", Nombre = "test GRaco pack ", Permiso = "Control.ReciboCaja.TestGraco", Clase = "test-empresa-graco"}
+                new { Id = "BOLIK", Nombre = "Industrias Bolik", Permiso = "Control.ReciboCaja.Bolik", Clase = "empresa-bolik" }
+                // ★ FIX: se quitó la entrada "TEST_GRACO" (dato de prueba). Estamos en
+                // producción y este método es público: cualquier consumo futuro habría
+                // ofrecido una empresa inexistente.
             };
         }
 
@@ -545,6 +565,58 @@ namespace DiamDev.Give.BLL
             return (m == "QTZ" || m == "Q") ? "GTQ" : m;
         }
 
+        // ─── ★ FIX · NORMALIZACIÓN ESTRICTA DE MONEDA ──────────────
+        // NormalizarMonedaApp es una LISTA BLANCA de correcciones conocidas
+        // (QTZ/Q → GTQ): todo lo demás pasa intacto. Eso está bien para limpiar
+        // alias, pero no valida. Los dos métodos de abajo sí cierran el conjunto
+        // a {GTQ, USD}, que son los únicos valores que el sistema entiende.
+
+        /// <summary>
+        /// Moneda del ENCABEZADO. Si no es GTQ ni USD, se deriva de las líneas
+        /// (cobros primero, luego documentos), que son la fuente confiable: salen
+        /// de los selects del formulario, no de SAP.
+        ///
+        /// El caso real: SAP B1 usa '##' en OCRD.Currency para marcar socios de
+        /// negocio MULTIMONEDA. INF_CLIENTES_REC lo devuelve, el typeahead lo copia
+        /// al encabezado, y así se grabaron 11 recibos con MONEDA = '##'.
+        ///
+        /// Último recurso: GTQ, la moneda base del sistema.
+        /// </summary>
+        public static string NormalizarMonedaEncabezado(ReciboCajaEncabezado enc)
+        {
+            if (enc == null) return "GTQ";
+
+            string m = NormalizarMonedaApp(enc.Moneda);
+            if (m == "GTQ" || m == "USD") return m;
+
+            if (enc.Cobros != null)
+                foreach (var c in enc.Cobros)
+                {
+                    string mc = NormalizarMonedaApp(c.Moneda);
+                    if (mc == "GTQ" || mc == "USD") return mc;
+                }
+
+            if (enc.Documentos != null)
+                foreach (var d in enc.Documentos)
+                {
+                    string md = NormalizarMonedaApp(d.Moneda);
+                    if (md == "GTQ" || md == "USD") return md;
+                }
+
+            return "GTQ";
+        }
+
+        /// <summary>
+        /// Moneda de una LÍNEA (cobro o documento). Solo hay dos valores válidos.
+        /// Cualquier otra cosa cae a GTQ — que es exactamente lo que ya hacía
+        /// CalcularMontosDuales con su `esUsd ? ... : else GTQ`. Acá solo alineamos
+        /// la ETIQUETA con el cálculo: ningún monto cambia.
+        /// </summary>
+        private static string NormalizarMonedaLinea(string moneda)
+        {
+            return NormalizarMonedaApp(moneda) == "USD" ? "USD" : "GTQ";
+        }
+
         // Mapa inverso: clave string de recibos → Id numérico de Usuario_Empresa
         private static readonly Dictionary<string, long> _empresaIds =
             new Dictionary<string, long>
@@ -564,4 +636,5 @@ namespace DiamDev.Give.BLL
         public decimal Gtq { get; set; }
         public decimal Usd { get; set; }
     }
+
 }

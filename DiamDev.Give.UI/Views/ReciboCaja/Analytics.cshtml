@@ -1,0 +1,988 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* ── Tarjetas KPI ── */
+    .an-cards {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .an-card {
+        flex: 1 1 165px;
+        min-width: 150px;
+        background: #fff;
+        border-radius: 8px;
+        border: 1px solid #e5e8ea;
+        border-top: 4px solid #bdc3c7;
+        padding: 14px 16px;
+    }
+
+        .an-card .num {
+            font-size: 26px;
+            font-weight: 700;
+            line-height: 1.1;
+            color: #2c3e50;
+        }
+
+        .an-card .lbl {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+            color: #95a5a6;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+
+        .an-card .sub {
+            font-size: 11px;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+
+        .an-card.k-recibos {
+            border-top-color: #3498db;
+        }
+
+            .an-card.k-recibos .num {
+                color: #2471a3;
+            }
+
+        .an-card.k-monto {
+            border-top-color: #27ae60;
+        }
+
+            .an-card.k-monto .num {
+                color: #1e8449;
+            }
+
+        .an-card.k-ticket {
+            border-top-color: #16a085;
+        }
+
+            .an-card.k-ticket .num {
+                color: #117a65;
+            }
+
+        .an-card.k-anul {
+            border-top-color: #e74c3c;
+        }
+
+            .an-card.k-anul .num {
+                color: #a93226;
+            }
+
+        .an-card.k-users {
+            border-top-color: #8e44ad;
+        }
+
+            .an-card.k-users .num {
+                color: #6c3483;
+            }
+
+        .an-card.k-ips {
+            border-top-color: #e67e22;
+        }
+
+            .an-card.k-ips .num {
+                color: #ba4a00;
+            }
+
+        .an-card.k-print {
+            border-top-color: #7f8c8d;
+        }
+
+            .an-card.k-print .num {
+                color: #5d6d7e;
+            }
+
+        .an-card.k-fail {
+            border-top-color: #d35400;
+        }
+
+            .an-card.k-fail .num {
+                color: #a04000;
+            }
+
+    /* ── Toolbar ── */
+    .an-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+        .an-toolbar .flabel {
+            margin: 0;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #95a5a6;
+            font-weight: 700;
+        }
+
+        .an-toolbar .btn-group .btn {
+            padding: 3px 10px;
+            font-size: 11px;
+        }
+
+            .an-toolbar .btn-group .btn.activa {
+                background: #2c3e50;
+                color: #fff;
+                border-color: #2c3e50;
+            }
+
+    /* ── Bloques de gráfica ── */
+    .an-box {
+        background: #fff;
+        border: 1px solid #e5e8ea;
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 16px;
+    }
+
+        .an-box h5 {
+            margin: 0 0 10px;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            color: #5d6d7e;
+            font-weight: 700;
+        }
+
+            .an-box h5 small {
+                text-transform: none;
+                letter-spacing: 0;
+                color: #95a5a6;
+                font-weight: 400;
+                font-size: 11px;
+            }
+
+    /* ── Alerta de moneda inválida ── */
+    #avisoMoneda {
+        display: none;
+        background: #fef9e7;
+        border: 1px solid #f1c40f;
+        border-left-width: 4px;
+        border-radius: 5px;
+        padding: 10px 14px;
+        margin-bottom: 12px;
+        font-size: 12.5px;
+        color: #7d6608;
+    }
+
+    /* ── Mapa de calor (CSS puro, sin plugin) ── */
+    .heat-wrap {
+        overflow-x: auto;
+    }
+
+    .heat-grid {
+        display: grid;
+        grid-template-columns: 42px repeat(24, minmax(24px,1fr));
+        gap: 2px;
+        min-width: 700px;
+    }
+
+    .heat-h {
+        font-size: 9px;
+        color: #95a5a6;
+        text-align: center;
+        font-weight: 700;
+    }
+
+    .heat-d {
+        font-size: 10px;
+        color: #7f8c8d;
+        font-weight: 700;
+        line-height: 22px;
+    }
+
+    .heat-c {
+        height: 22px;
+        border-radius: 3px;
+        background: #eef2f3;
+        cursor: default;
+    }
+
+        .heat-c.v {
+            background: #2980b9;
+        }
+
+    .heat-leg {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        font-size: 10px;
+        color: #95a5a6;
+    }
+
+        .heat-leg i {
+            width: 16px;
+            height: 10px;
+            border-radius: 2px;
+            background: #2980b9;
+            display: inline-block;
+        }
+
+    /* ── Tablas ── */
+    .an-tabla {
+        width: 100%;
+        margin-bottom: 0;
+    }
+
+        .an-tabla th {
+            background: #2c3e50;
+            color: #ecf0f1;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            white-space: nowrap;
+        }
+
+        .an-tabla td {
+            vertical-align: middle !important;
+            font-size: 12.5px;
+        }
+
+        .an-tabla .mono {
+            font-family: monospace;
+            font-weight: 700;
+        }
+
+    .emp-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+        background: #95a5a6;
+    }
+
+    .emp-GRACO {
+        background: #27ae60;
+    }
+
+    .emp-FAES {
+        background: #c0392b;
+    }
+
+    .emp-BOLIK {
+        background: #2c3e50;
+    }
+
+    .geo-pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 700;
+        background: #eaf4fb;
+        color: #2471a3;
+        border: 1px solid #aed6f1;
+    }
+
+        .geo-pill.movil {
+            background: #f4ecf7;
+            color: #6c3483;
+            border-color: #d7bde2;
+        }
+
+        .geo-pill.proxy {
+            background: #fdebd0;
+            color: #ba4a00;
+            border-color: #f5cba7;
+        }
+
+        .geo-pill.nores {
+            background: #f4f6f6;
+            color: #95a5a6;
+            border-color: #e5e8ea;
+        }
+
+        .geo-pill.extran {
+            background: #fadbd8;
+            color: #a93226;
+            border-color: #f5b7b1;
+        }
+
+    .txt-muted-sm {
+        font-size: 11px;
+        color: #95a5a6;
+    }
+
+    @@media (max-width:767px) {
+        .an-card .num {
+            font-size: 21px;
+        }
+    }
+</style>
+
+<div class="panel panel-default" style="border-top:4px solid #8e44ad;">
+    <div class="panel-heading" style="background:#f7f9fa; border-bottom:1px solid #eee;">
+        <h4 class="panel-title" style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:#5d6d7e; font-size:13px;">
+            <i class="clip-stats"></i>
+            <span style="font-weight:700;">Analytics de Recibos de Caja</span>
+            <small style="color:#95a5a6;">Comportamiento del módulo y de sus usuarios</small>
+            <span style="margin-left:auto; display:flex; gap:6px;">
+                <a href="@Url.Action("Dashboard","ReciboCaja")" class="btn btn-default btn-xs">
+                    <i class="icon-dashboard"></i> Supervisión
+                </a>
+                <a href="@Url.Action("Series","ReciboCaja")" class="btn btn-default btn-xs">
+                    <i class="icon-cogs"></i> Series
+                </a>
+                <button id="btnExportExcel" class="btn btn-success btn-xs">
+                    <i class="icon-table"></i> Excel
+                </button>
+                <button id="btnRefrescar" class="btn btn-primary btn-xs">
+                    <i class="icon-refresh"></i> Actualizar
+                </button>
+            </span>
+        </h4>
+    </div>
+    <div class="panel-body">
+
+        <!-- ── Toolbar ── -->
+        <div class="an-toolbar">
+            <span class="flabel">Empresa:</span>
+            <div class="btn-group" id="grpEmpresa">
+                <button class="btn btn-default btn-sm activa" data-emp="">Todas</button>
+                <button class="btn btn-default btn-sm" data-emp="GRACO">Graco</button>
+                <button class="btn btn-default btn-sm" data-emp="FAES">Faes</button>
+                <button class="btn btn-default btn-sm" data-emp="BOLIK">Bolik</button>
+            </div>
+
+            <span class="flabel" style="margin-left:10px;">Periodo:</span>
+            <div class="btn-group" id="grpPeriodo">
+                <button class="btn btn-default btn-sm activa" data-per="7d">Últimos 7 días</button>
+                <button class="btn btn-default btn-sm" data-per="mes">Este mes</button>
+                <button class="btn btn-default btn-sm" data-per="todo">Todo</button>
+            </div>
+
+            <span id="lblRango" class="txt-muted-sm" style="margin-left:6px;"></span>
+            <span id="lblActualizado" class="txt-muted-sm" style="margin-left:auto;"></span>
+        </div>
+
+        <div id="avisoMoneda"></div>
+
+        <!-- ── KPIs ── -->
+        <div class="an-cards">
+            <div class="an-card k-recibos">
+                <div class="num" id="kRecibos">—</div>
+                <div class="lbl">Recibos creados</div>
+                <div class="sub" id="kRecibosSub">&nbsp;</div>
+            </div>
+            <div class="an-card k-monto">
+                <div class="num" id="kMonto">—</div>
+                <div class="lbl">Monto registrado</div>
+                <div class="sub" id="kMontoSub">&nbsp;</div>
+            </div>
+            <div class="an-card k-ticket">
+                <div class="num" id="kTicket">—</div>
+                <div class="lbl">Ticket promedio</div>
+                <div class="sub">Por recibo creado</div>
+            </div>
+            <div class="an-card k-anul" title="Anulaciones ocurridas en el periodo dividido entre recibos creados en el mismo periodo. Es una tasa de actividad, no de cohorte.">
+                <div class="num" id="kAnul">—</div>
+                <div class="lbl">Anulaciones</div>
+                <div class="sub" id="kAnulSub">&nbsp;</div>
+            </div>
+            <div class="an-card k-users">
+                <div class="num" id="kUsers">—</div>
+                <div class="lbl">Usuarios activos</div>
+                <div class="sub" id="kUsersSub">&nbsp;</div>
+            </div>
+            <div class="an-card k-ips">
+                <div class="num" id="kIps">—</div>
+                <div class="lbl">Puntos de acceso</div>
+                <div class="sub">IPs distintas</div>
+            </div>
+            <div class="an-card k-print" title="Impresiones registradas. Un recibo puede imprimirse varias veces: reimpresiones frecuentes suelen indicar un problema de proceso.">
+                <div class="num" id="kImpresos">—</div>
+                <div class="lbl">Impresiones</div>
+                <div class="sub" id="kImpresosSub">&nbsp;</div>
+            </div>
+            <div class="an-card k-fail" title="Rechazos por regla de negocio y fallas técnicas al guardar.">
+                <div class="num" id="kFallos">—</div>
+                <div class="lbl">Guardados fallidos</div>
+                <div class="sub" id="kFallosSub">&nbsp;</div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-8">
+                <div class="an-box">
+                    <h5>Ranking de usuarios <small>— por monto registrado</small></h5>
+                    <div id="chartUsuarios" style="height:340px;"></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="an-box">
+                    <h5>Distribución por empresa</h5>
+                    <div id="chartEmpresas" style="height:340px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Serie diaria ── -->
+        <div class="an-box">
+            <h5>Actividad diaria <small>— recibos creados por empresa</small></h5>
+            <div id="chartSerie" style="height:280px;"></div>
+        </div>
+
+        <!-- ── Mapa de calor ── -->
+        <div class="an-box">
+            <h5>Cuándo se cobra <small>— hora del día × día de la semana</small></h5>
+            <div class="heat-wrap"><div class="heat-grid" id="heatGrid"></div></div>
+            <div class="heat-leg">
+                <span>Menos</span><i style="opacity:.15"></i><i style="opacity:.4"></i>
+                <i style="opacity:.7"></i><i style="opacity:1"></i><span>Más</span>
+                <span style="margin-left:12px;" id="heatMax"></span>
+            </div>
+        </div>
+
+        <!-- ── Anulaciones ── -->
+        <div class="an-box">
+            <h5>Anulaciones <small>— motivo tomado del payload del evento</small></h5>
+            <div style="overflow-x:auto; border:1px solid #e6e6e6; border-radius:6px;">
+                <table class="table table-condensed an-tabla" id="tablaAnul">
+                    <thead>
+                        <tr>
+                            <th>Recibo</th>
+                            <th>Empresa</th>
+                            <th>Usuario</th>
+                            <th class="text-right">Monto (Q)</th>
+                            <th>Estado al anular</th>
+                            <th>Motivo</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbAnul">
+                        <tr><td colspan="7" class="text-center" style="padding:20px; color:#aaa;">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── Accesos y geolocalización ── -->
+        <div class="an-box">
+            <h5>
+                Accesos y ubicación
+                <small>— IP: clic en la ubicación abre Google Maps</small>
+                <button id="btnResolverGeo" class="btn btn-default btn-xs" style="float:right; margin-top:-3px;">
+                    <i class="icon-map-marker"></i> Resolver ubicaciones
+                </button>
+            </h5>
+            <div class="txt-muted-sm" style="margin-bottom:8px;">
+                En conexiones móviles suele apuntar al nodo del operador y no al lugar físico del usuario:
+                sirve para detectar accesos anómalos, no para verificar dónde estuvo una persona.
+            </div>
+            <div style="overflow-x:auto; border:1px solid #e6e6e6; border-radius:6px;">
+                <table class="table table-condensed an-tabla" id="tablaGeo">
+                    <thead>
+                        <tr>
+                            <th>IP</th>
+                            <th>Ubicación</th>
+                            <th>Proveedor</th>
+                            <th>Usuarios</th>
+                            <th class="text-right">Eventos</th>
+                            <th>Primero</th>
+                            <th>Último</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbGeo">
+                        <tr><td colspan="7" class="text-center" style="padding:20px; color:#aaa;">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── Detalle de usuarios ── -->
+        <div class="an-box">
+            <h5>Detalle por usuario</h5>
+            <div style="overflow-x:auto; border:1px solid #e6e6e6; border-radius:6px;">
+                <table class="table table-condensed an-tabla" id="tablaUsuarios">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Depto</th>
+                            <th class="text-right">Recibos</th>
+                            <th class="text-right">Monto (Q)</th>
+                            <th class="text-right">Ticket (Q)</th>
+                            <th class="text-right">Anulados</th>
+                            <th class="text-center">Empresas</th>
+                            <th>Última actividad</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbUsuarios">
+                        <tr><td colspan="8" class="text-center" style="padding:20px; color:#aaa;">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+var URL_ANALYTICS = "@Url.Action("GetAnalytics","ReciboCaja")";
+var URL_GEO       = "@Url.Action("ResolverGeoIp","ReciboCaja")";
+
+var COLOR_EMP = { GRACO:"#27ae60", FAES:"#c0392b", BOLIK:"#2c3e50" };
+var DIAS = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+
+var Filtro = { empresa:"", periodo:"7d" };
+var _data  = null;   // último paquete recibido (fuente de la exportación)
+
+// ── Utilidades ──────────────────────────────────────────────
+function Esc(t){ return $("<span>").text(t == null ? "" : t).html(); }
+function Fm(n){ return parseFloat(n||0).toLocaleString("en-US",
+    {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function Fm0(n){ return parseFloat(n||0).toLocaleString("en-US",
+    {minimumFractionDigits:0, maximumFractionDigits:0}); }
+function FechaISO(d){ return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2); }
+
+// Las fechas de .NET llegan como "/Date(1234567890000)/" en JsonResult.
+// En TS sería un `new Date(Number(s.match(/\d+/)[0]))`. Acá igual, pero
+// tolerante: si ya viene como ISO o como null, no rompe.
+function FechaNet(v){
+    if (!v) return null;
+    var m = /\/Date\((-?\d+)/.exec(v);
+    if (m) return new Date(parseInt(m[1], 10));
+    var d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+}
+function FmFecha(v, conHora){
+    var d = FechaNet(v);
+    if (!d) return "—";
+    var s = FechaISO(d);
+    return conHora ? s + " " + ("0"+d.getHours()).slice(-2) + ":" + ("0"+d.getMinutes()).slice(-2) : s;
+}
+
+// Wrapper de Highcharts: el theme trae una versión que no sé cuál es.
+// Las versiones 5+ exponen Highcharts.chart(); las viejas solo el plugin
+// jQuery $(el).highcharts(). Esto cubre las dos sin que tengas que tocar nada.
+function MkChart(id, opts){
+    if (!window.Highcharts){ $("#"+id).html('<div class="text-center" style="padding:40px; color:#c0392b;">Highcharts no está cargado.</div>'); return; }
+    if (typeof Highcharts.chart === "function") return Highcharts.chart(id, opts);
+    return $("#"+id).highcharts(opts);
+}
+
+// ════════════════════════════════════════════════════════════
+// CARGA
+// ════════════════════════════════════════════════════════════
+function Cargar(){
+    $("#tbUsuarios,#tbAnul,#tbGeo").html(
+        '<tr><td colspan="8" class="text-center" style="padding:20px;">' +
+        '<i class="icon-spinner icon-spin"></i> Consultando...</td></tr>');
+
+    $.get(URL_ANALYTICS, { periodo:Filtro.periodo, empresa:Filtro.empresa }, function(resp){
+        if (!resp.ok){ toastr.error(resp.msg); return; }
+        _data = resp.data;
+
+        $("#lblRango").text(resp.rango.ini
+            ? "Rango: " + resp.rango.ini + " → " + resp.rango.fin
+            : "Rango: histórico completo");
+        $("#lblActualizado").text("Actualizado: " + new Date().toLocaleTimeString());
+
+        PintarKpis(_data.Resumen);
+        PintarSerie(_data.Serie);
+        PintarUsuariosChart(_data.Usuarios);
+        PintarEmpresas(_data.Empresas);
+        PintarHeat(_data.Heat);
+        PintarTablaUsuarios(_data.Usuarios);
+        PintarAnulaciones(_data.Anulaciones);
+        PintarGeo(_data.Accesos);
+    }).fail(function(){ toastr.error("No se pudo consultar Analytics."); });
+}
+
+// ── KPIs ────────────────────────────────────────────────────
+function PintarKpis(r){
+    $("#kRecibos").text(Fm0(r.Creados));
+    $("#kRecibosSub").text(r.EnUsd > 0 ? r.EnUsd + " en USD" : "Todos en quetzales");
+    $("#kMonto").text("Q " + Fm0(r.MontoCreado));
+    $("#kMontoSub").text("Registrado en el periodo");
+    $("#kTicket").text("Q " + Fm0(r.TicketPromedio));
+    $("#kAnul").text(Fm0(r.Anulados));
+    $("#kAnulSub").text(r.Anulados > 0
+        ? r.TasaAnulacion + "% · Q " + Fm0(r.MontoAnulado) : "Sin anulaciones");
+    $("#kUsers").text(Fm0(r.UsuariosActivos));
+    $("#kUsersSub").text(r.DeptosActivos + " depto(s)");
+    $("#kIps").text(Fm0(r.IpsDistintas));
+
+    $("#kImpresos").text(Fm0(r.Impresos));
+    // Ratio de reimpresión: >1 significa que se reimprime. Solo tiene sentido
+    // si ya hay impresiones registradas; si el evento no está instrumentado,
+    // mostrar "0.00 por recibo" sería peor que no decir nada.
+    $("#kImpresosSub").text(r.Impresos > 0 && r.Creados > 0
+        ? (r.Impresos / r.Creados).toFixed(2) + " por recibo"
+        : "Sin registro aún");
+
+    var fallos = (r.Errores || 0) + (r.Rechazos || 0);
+    $("#kFallos").text(Fm0(fallos));
+    $("#kFallosSub").text(fallos > 0
+        ? r.Rechazos + " rechazo(s) · " + r.Errores + " error(es)"
+        : "Sin fallos registrados");
+
+    // Alerta de moneda inválida: visible, no escondida en un promedio.
+    if (r.MonedaRara > 0){
+        $("#avisoMoneda").html(
+            '<strong>⚠ ' + r.MonedaRara + ' recibo(s) con moneda no reconocida</strong> ' +
+            'por Q ' + Fm(r.MontoMonedaRara) + '. El valor <code>##</code> es un marcador de ' +
+            'SAP Business One para "moneda local" que se está filtrando al guardar el recibo. ' +
+            'Estos montos entran en los totales pero su moneda de origen no es confiable.').show();
+    } else { $("#avisoMoneda").hide(); }
+}
+
+// ── Serie diaria (columnas apiladas por empresa) ────────────
+function PintarSerie(serie){
+    var dias = [], mapa = {};
+    $.each(serie, function(_, s){
+        var d = FmFecha(s.Dia, false);
+        if (dias.indexOf(d) === -1) dias.push(d);
+        mapa[s.IdEmpresa] = mapa[s.IdEmpresa] || {};
+        mapa[s.IdEmpresa][d] = s.Recibos;
+    });
+    dias.sort();
+
+    var series = [];
+    $.each(mapa, function(emp, porDia){
+        series.push({
+            name: emp,
+            color: COLOR_EMP[emp] || "#95a5a6",
+            data: $.map(dias, function(d){ return porDia[d] || 0; })
+        });
+    });
+
+    MkChart("chartSerie", {
+        chart:{ type:"column", backgroundColor:"transparent" },
+        title:{ text:null }, credits:{ enabled:false },
+        xAxis:{ categories:dias, labels:{ style:{ fontSize:"10px" } } },
+        yAxis:{ title:{ text:"Recibos" }, allowDecimals:false,
+                gridLineColor:"#eef2f3" },
+        legend:{ itemStyle:{ fontSize:"11px", fontWeight:"normal" } },
+        tooltip:{ shared:true },
+        plotOptions:{ column:{ stacking:"normal", borderWidth:0, groupPadding:.08 } },
+        series: series.length ? series : [{ name:"Sin datos", data:[] }]
+    });
+}
+
+// ── Ranking de usuarios (barras horizontales, top 12) ───────
+function PintarUsuariosChart(us){
+    var top = us.slice(0, 12);
+    MkChart("chartUsuarios", {
+        chart:{ type:"bar", backgroundColor:"transparent" },
+        title:{ text:null }, credits:{ enabled:false },
+        xAxis:{ categories: $.map(top, function(u){ return u.UsuarioLogin; }),
+                labels:{ style:{ fontSize:"11px" } } },
+        yAxis:{ title:{ text:"Monto registrado (Q)" }, gridLineColor:"#eef2f3" },
+        legend:{ enabled:false },
+        tooltip:{ formatter: function(){
+            var u = top[this.point.index];
+            return "<b>" + u.UsuarioLogin + "</b><br/>Q " + Fm(u.MontoCreado) +
+                   "<br/>" + u.Creados + " recibo(s)" +
+                   (u.Anulados > 0 ? "<br/><span style='color:#c0392b'>" + u.Anulados + " anulado(s)</span>" : "");
+        }},
+        plotOptions:{ bar:{ borderWidth:0, color:"#2980b9",
+                            dataLabels:{ enabled:false } } },
+        series:[{ name:"Monto", data: $.map(top, function(u){ return u.MontoCreado; }) }]
+    });
+}
+
+// ── Distribución por empresa (dona) ─────────────────────────
+function PintarEmpresas(emps){
+    MkChart("chartEmpresas", {
+        chart:{ type:"pie", backgroundColor:"transparent" },
+        title:{ text:null }, credits:{ enabled:false },
+        tooltip:{ pointFormat:"<b>{point.y}</b> recibos ({point.percentage:.1f}%)" },
+        plotOptions:{ pie:{ innerSize:"55%", borderWidth:2,
+            dataLabels:{ enabled:true, style:{ fontSize:"11px", fontWeight:"normal" },
+                         format:"{point.name}<br/>{point.percentage:.0f}%" } } },
+        series:[{ name:"Recibos", data: $.map(emps, function(e){
+            return { name:e.IdEmpresa, y:e.Recibos, color: COLOR_EMP[e.IdEmpresa] || "#95a5a6" };
+        })}]
+    });
+}
+
+// ── Mapa de calor (CSS grid, sin plugin) ────────────────────
+function PintarHeat(celdas){
+    var mapa = {}, max = 0;
+    $.each(celdas, function(_, c){
+        mapa[c.DiaSemana + "-" + c.Hora] = c.Recibos;
+        if (c.Recibos > max) max = c.Recibos;
+    });
+
+    var h = '<div></div>';                       // esquina vacía
+    for (var x = 0; x < 24; x++)
+        h += '<div class="heat-h">' + x + '</div>';
+
+    for (var d = 0; d < 7; d++){
+        h += '<div class="heat-d">' + DIAS[d] + '</div>';
+        for (var x = 0; x < 24; x++){
+            var v = mapa[d + "-" + x] || 0;
+            // Piso de .12 para que un valor de 1 no sea invisible.
+            var op = max > 0 && v > 0 ? (0.12 + 0.88 * (v / max)) : 0;
+            h += '<div class="heat-c' + (v ? ' v' : '') + '"' +
+                 (v ? ' style="opacity:' + op.toFixed(2) + '"' : '') +
+                 ' title="' + DIAS[d] + ' ' + x + ':00 — ' + v + ' recibo(s)"></div>';
+        }
+    }
+    $("#heatGrid").html(h);
+    $("#heatMax").text(max > 0 ? "Máximo: " + max + " recibos en una hora" : "Sin datos en el periodo");
+}
+
+// ── Tabla de usuarios ───────────────────────────────────────
+function PintarTablaUsuarios(us){
+    var tb = $("#tbUsuarios").empty();
+    if (!us.length){
+        tb.html('<tr><td colspan="8" class="text-center" style="padding:24px; color:#aaa;">Sin actividad en el periodo.</td></tr>');
+        return;
+    }
+    $.each(us, function(_, u){
+        tb.append('<tr>' +
+            '<td class="mono">' + Esc(u.UsuarioLogin) + '</td>' +
+            '<td>' + Esc(u.Depto) + (u.Deptos > 1 ? ' <span class="txt-muted-sm">(+' + (u.Deptos-1) + ')</span>' : '') + '</td>' +
+            '<td class="text-right">' + Fm0(u.Creados) + '</td>' +
+            '<td class="text-right"><strong>' + Fm(u.MontoCreado) + '</strong></td>' +
+            '<td class="text-right">' + Fm(u.Ticket) + '</td>' +
+            '<td class="text-right"' + (u.Anulados > 0 ? ' style="color:#a93226; font-weight:700;"' : '') + '>' +
+                (u.Anulados || 0) + '</td>' +
+            '<td class="text-center">' + u.Empresas + '</td>' +
+            '<td class="txt-muted-sm">' + FmFecha(u.Ultimo, true) + '</td>' +
+        '</tr>');
+    });
+}
+
+// ── Tabla de anulaciones ────────────────────────────────────
+function PintarAnulaciones(an){
+    var tb = $("#tbAnul").empty();
+    if (!an.length){
+        tb.html('<tr><td colspan="7" class="text-center" style="padding:24px; color:#27ae60;">' +
+                '<i class="icon-ok-circle"></i> Sin anulaciones en el periodo.</td></tr>');
+        return;
+    }
+    $.each(an, function(_, a){
+        tb.append('<tr>' +
+            '<td class="mono">' + Esc(a.IdRecibo) + '</td>' +
+            '<td><span class="emp-badge emp-' + Esc(a.IdEmpresa) + '">' + Esc(a.IdEmpresa) + '</span></td>' +
+            '<td>' + Esc(a.UsuarioLogin) + '</td>' +
+            '<td class="text-right"><strong>' + Fm(a.MontoGtq) + '</strong></td>' +
+            '<td class="txt-muted-sm">' + Esc(a.EstadoAlAnular || "—") + '</td>' +
+            '<td>' + Esc(a.Motivo || "(sin motivo registrado)") + '</td>' +
+            '<td class="txt-muted-sm">' + FmFecha(a.FechaEvento, true) + '</td>' +
+        '</tr>');
+    });
+}
+
+// ── Tabla de accesos + geo ──────────────────────────────────
+function PintarGeo(acc){
+    var tb = $("#tbGeo").empty();
+    if (!acc.length){
+        tb.html('<tr><td colspan="7" class="text-center" style="padding:24px; color:#aaa;">Sin accesos registrados.</td></tr>');
+        return;
+    }
+    $.each(acc, function(_, a){
+        var ubic, pill = "";
+        if (a.EstadoGeo === "OK" && a.Ciudad){
+            var txt = Esc(a.Ciudad) + (a.Region ? ", " + Esc(a.Region) : "") +
+                      (a.Pais ? " · " + Esc(a.Pais) : "");
+            if (a.Latitud != null && a.Longitud != null){
+                var url = "https://www.google.com/maps?q=" + a.Latitud + "," + a.Longitud;
+                ubic = '<a href="' + url + '" target="_blank" rel="noopener">' +
+                       '<i class="icon-map-marker"></i> ' + txt + '</a>';
+            } else { ubic = txt; }
+
+            if (a.CodigoPais && a.CodigoPais !== "GT")
+                pill += ' <span class="geo-pill extran">Fuera de GT</span>';
+            if (a.EsMovil) pill += ' <span class="geo-pill movil">Móvil</span>';
+            if (a.EsProxy) pill += ' <span class="geo-pill proxy">Proxy/VPN</span>';
+        }
+        else if (a.EstadoGeo === "PRIVADA"){
+            ubic = '<span class="geo-pill">Red interna</span>';
+        }
+        else if (a.EstadoGeo === "FALLO"){
+            ubic = '<span class="geo-pill nores">No se pudo resolver</span>';
+        }
+        else {
+            ubic = '<span class="geo-pill nores">Sin resolver</span>';
+        }
+
+        tb.append('<tr>' +
+            '<td class="mono">' + Esc(a.Ip) + '</td>' +
+            '<td>' + ubic + pill + '</td>' +
+            '<td class="txt-muted-sm">' + Esc(a.Isp || "—") + '</td>' +
+            '<td class="txt-muted-sm" title="' + Esc(a.ListaUsuarios) + '">' +
+                Esc(a.ListaUsuarios || "—") + '</td>' +
+            '<td class="text-right">' + Fm0(a.Eventos) + '</td>' +
+            '<td class="txt-muted-sm">' + FmFecha(a.Primero, true) + '</td>' +
+            '<td class="txt-muted-sm">' + FmFecha(a.Ultimo, true) + '</td>' +
+        '</tr>');
+    });
+}
+
+// ════════════════════════════════════════════════════════════
+// EVENTOS
+// ════════════════════════════════════════════════════════════
+$("#grpEmpresa button").on("click", function(){
+    $("#grpEmpresa button").removeClass("activa");
+    $(this).addClass("activa");
+    Filtro.empresa = $(this).data("emp");
+    Cargar();
+});
+
+$("#grpPeriodo button").on("click", function(){
+    $("#grpPeriodo button").removeClass("activa");
+    $(this).addClass("activa");
+    Filtro.periodo = $(this).data("per");
+    Cargar();
+});
+
+$("#btnRefrescar").on("click", Cargar);
+
+// Resolver geolocalización: acción explícita, nunca automática.
+$("#btnResolverGeo").on("click", function(){
+    var $b = $(this).prop("disabled", true)
+                    .html('<i class="icon-spinner icon-spin"></i> Resolviendo...');
+    $.post(URL_GEO, {}, function(r){
+        if (r.ok){
+            toastr.success(r.msg);
+            Cargar();
+        } else {
+            toastr.error(r.msg, "", { timeOut: 12000 });
+        }
+    }).fail(function(){
+        toastr.error("No se pudo ejecutar la resolución de ubicaciones.");
+    }).always(function(){
+        $b.prop("disabled", false).html('<i class="icon-map-marker"></i> Resolver ubicaciones');
+    });
+});
+
+// ════════════════════════════════════════════════════════════
+// EXPORTAR EXCEL (HTML → .xls, mismo patrón del Dashboard)
+// Tres bloques en una sola hoja: usuarios, anulaciones, accesos.
+// ════════════════════════════════════════════════════════════
+$("#btnExportExcel").on("click", function(){
+    if (!_data){ toastr.info("Todavía no hay datos cargados."); return; }
+
+    var r = _data.Resumen;
+    var per = $("#grpPeriodo button.activa").text();
+    var emp = Filtro.empresa || "Todas";
+
+    var html =
+    '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8" /><style>' +
+      'td, th { font-family: Calibri, Arial, sans-serif; font-size: 11pt; vertical-align: middle; }' +
+      '.titulo { font-size:16pt; font-weight:bold; color:#6C3483; }' +
+      '.subt   { font-size:9pt; color:#7F8C8D; }' +
+      '.sec    { font-size:12pt; font-weight:bold; color:#2C3E50; }' +
+      '.hdr    { background:#2C3E50; color:#FFFFFF; font-weight:bold; font-size:9pt;' +
+                ' border:.5pt solid #1A252F; text-align:center; }' +
+      '.c      { border:.5pt solid #D5DBDB; }' +
+      '.mono   { font-family:Consolas, monospace; font-weight:bold; }' +
+      '.num    { text-align:right; mso-number-format:"#,##0.00"; }' +
+      '.ent    { text-align:center; mso-number-format:"0"; }' +
+      '.txt    { mso-number-format:"\\@@"; }' +
+      '.total  { background:#ECF0F1; font-weight:bold; border:.5pt solid #BDC3C7; }' +
+      '.alerta { color:#A93226; font-weight:bold; }' +
+    '</style></head><body><table>' +
+    '<tr><td colspan="8" class="titulo">Analytics de Recibos de Caja</td></tr>' +
+    '<tr><td colspan="8" class="subt">Empresa: ' + Esc(emp) + '   |   Periodo: ' + Esc(per) +
+        '   |   ' + Esc($("#lblRango").text()) + '</td></tr>' +
+    '<tr><td colspan="8" class="subt">Generado: ' + new Date().toLocaleString() + '</td></tr>' +
+    '<tr><td colspan="8"></td></tr>' +
+
+    /* Resumen */
+    '<tr><td colspan="8" class="sec">Resumen</td></tr>' +
+    '<tr><td class="c txt">Recibos creados</td><td class="c ent">' + r.Creados + '</td>' +
+        '<td class="c txt">Monto registrado (Q)</td><td class="c num">' + r.MontoCreado + '</td>' +
+        '<td class="c txt">Ticket promedio (Q)</td><td class="c num">' + r.TicketPromedio + '</td>' +
+        '<td class="c txt">Usuarios activos</td><td class="c ent">' + r.UsuariosActivos + '</td></tr>' +
+    '<tr><td class="c txt">Anulaciones</td><td class="c ent">' + r.Anulados + '</td>' +
+        '<td class="c txt">Monto anulado (Q)</td><td class="c num">' + r.MontoAnulado + '</td>' +
+        '<td class="c txt">Tasa de anulación (%)</td><td class="c num">' + r.TasaAnulacion + '</td>' +
+        '<td class="c txt">IPs distintas</td><td class="c ent">' + r.IpsDistintas + '</td></tr>' +
+    (r.MonedaRara > 0
+        ? '<tr><td colspan="8" class="c txt alerta">ATENCION: ' + r.MonedaRara +
+          ' recibo(s) con moneda no reconocida por Q ' + Fm(r.MontoMonedaRara) + '</td></tr>'
+        : '') +
+    '<tr><td colspan="8"></td></tr>';
+
+    /* Usuarios */
+    html += '<tr><td colspan="8" class="sec">Detalle por usuario</td></tr>' +
+    '<tr><td class="hdr" width="110">Usuario</td><td class="hdr" width="110">Depto</td>' +
+        '<td class="hdr" width="70">Recibos</td><td class="hdr" width="110">Monto (Q)</td>' +
+        '<td class="hdr" width="100">Ticket (Q)</td><td class="hdr" width="70">Anulados</td>' +
+        '<td class="hdr" width="70">Empresas</td><td class="hdr" width="130">Ultima actividad</td></tr>';
+    var totMonto = 0;
+    $.each(_data.Usuarios, function(_, u){
+        totMonto += parseFloat(u.MontoCreado) || 0;
+        html += '<tr>' +
+            '<td class="c txt mono">' + Esc(u.UsuarioLogin) + '</td>' +
+            '<td class="c txt">' + Esc(u.Depto) + '</td>' +
+            '<td class="c ent">' + u.Creados + '</td>' +
+            '<td class="c num">' + (parseFloat(u.MontoCreado)||0) + '</td>' +
+            '<td class="c num">' + (parseFloat(u.Ticket)||0) + '</td>' +
+            '<td class="c ent">' + (u.Anulados||0) + '</td>' +
+            '<td class="c ent">' + u.Empresas + '</td>' +
+            '<td class="c txt">' + FmFecha(u.Ultimo, true) + '</td></tr>';
+    });
+    html += '<tr><td class="total" colspan="3" style="text-align:right;">TOTAL</td>' +
+            '<td class="total num">' + totMonto + '</td>' +
+            '<td class="total" colspan="4"></td></tr><tr><td colspan="8"></td></tr>';
+
+    /* Anulaciones */
+    html += '<tr><td colspan="8" class="sec">Anulaciones</td></tr>' +
+    '<tr><td class="hdr" width="110">Recibo</td><td class="hdr" width="70">Empresa</td>' +
+        '<td class="hdr" width="110">Usuario</td><td class="hdr" width="110">Monto (Q)</td>' +
+        '<td class="hdr" width="110">Estado al anular</td><td class="hdr" width="320">Motivo</td>' +
+        '<td class="hdr" width="130">Fecha</td><td class="hdr" width="20"></td></tr>';
+    if (!_data.Anulaciones.length)
+        html += '<tr><td class="c txt" colspan="8">Sin anulaciones en el periodo.</td></tr>';
+    $.each(_data.Anulaciones, function(_, a){
+        html += '<tr>' +
+            '<td class="c txt mono">' + Esc(a.IdRecibo) + '</td>' +
+            '<td class="c txt" style="text-align:center;">' + Esc(a.IdEmpresa) + '</td>' +
+            '<td class="c txt">' + Esc(a.UsuarioLogin) + '</td>' +
+            '<td class="c num">' + (parseFloat(a.MontoGtq)||0) + '</td>' +
+            '<td class="c txt">' + Esc(a.EstadoAlAnular || "") + '</td>' +
+            '<td class="c txt">' + Esc(a.Motivo || "(sin motivo)") + '</td>' +
+            '<td class="c txt">' + FmFecha(a.FechaEvento, true) + '</td><td class="c"></td></tr>';
+    });
+    html += '<tr><td colspan="8"></td></tr>';
+
+    /* Accesos */
+    html += '<tr><td colspan="8" class="sec">Accesos y ubicacion</td></tr>' +
+    '<tr><td colspan="8" class="subt">La ubicacion proviene del proveedor de internet. ' +
+        'En conexiones moviles apunta al nodo del operador, no al lugar fisico del usuario.</td></tr>' +
+    '<tr><td class="hdr" width="120">IP</td><td class="hdr" width="110">Pais</td>' +
+        '<td class="hdr" width="110">Region</td><td class="hdr" width="110">Ciudad</td>' +
+        '<td class="hdr" width="180">Proveedor</td><td class="hdr" width="180">Usuarios</td>' +
+        '<td class="hdr" width="70">Eventos</td><td class="hdr" width="130">Ultimo acceso</td></tr>';
+    $.each(_data.Accesos, function(_, a){
+        html += '<tr>' +
+            '<td class="c txt mono">' + Esc(a.Ip) + '</td>' +
+            '<td class="c txt">' + Esc(a.Pais || "") + '</td>' +
+            '<td class="c txt">' + Esc(a.Region || "") + '</td>' +
+            '<td class="c txt">' + Esc(a.Ciudad || "") + '</td>' +
+            '<td class="c txt">' + Esc(a.Isp || "") + '</td>' +
+            '<td class="c txt">' + Esc(a.ListaUsuarios || "") + '</td>' +
+            '<td class="c ent">' + a.Eventos + '</td>' +
+            '<td class="c txt">' + FmFecha(a.Ultimo, true) + '</td></tr>';
+    });
+
+    html += '</table></body></html>';
+
+    var blob = new Blob(["\uFEFF" + html], { type:"application/vnd.ms-excel" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "analytics_recibos_" + FechaISO(new Date()) + ".xls";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    toastr.success("Analytics exportado a Excel.");
+});
+
+Cargar();
+    </script>
+}

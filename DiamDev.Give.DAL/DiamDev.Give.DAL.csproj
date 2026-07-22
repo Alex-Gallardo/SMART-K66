@@ -55,6 +55,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnalyticsRecibosDA.cs" />
     <Compile Include="APK66Context.cs" />
     <Compile Include="HanaHelper.cs" />
     <Compile Include="HanaRepository.cs" />

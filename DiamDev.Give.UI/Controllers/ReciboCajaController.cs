@@ -178,10 +178,32 @@ namespace DiamDev.Give.UI.Controllers
                 };
 
                 var resultado = _bll.GuardarRecibo(enc, depto, usuarioId, login, ip);
+
+                // Rechazo por regla de negocio: NO es una falla técnica, pero
+                // saber cuáles se repiten dice mucho sobre dónde falla la UI.
+                if (!resultado.Exito)
+                    _analytics.RegistrarEventoSimple("RECHAZO_GUARDADO", request.IdEmpresa,
+                        usuarioId, login, ip, resultado.Mensaje,
+                        new { request.IdCliente, request.Moneda, Depto = depto });
+
                 return Json(new { ok = resultado.Exito, msg = resultado.Mensaje, idRecibo = resultado.IdRecibo });
             }
             catch (Exception ex)
             {
+                // Falla técnica. Envuelto en su propio try porque acá ya estamos
+                // en terreno inestable: CustomHelper.getUserId() podría ser justo
+                // lo que reventó, y un throw dentro del catch se lleva la respuesta.
+                try
+                {
+                    _analytics.RegistrarEventoSimple("ERROR_GUARDADO",
+                        request != null ? request.IdEmpresa : null,
+                        CustomHelper.getUserId(), User.Identity.Name,
+                        Request.UserHostAddress,
+                        ex.Message,
+                        new { Tipo = ex.GetType().Name });
+                }
+                catch { }
+
                 return Json(new { ok = false, msg = "Error inesperado: " + ex.Message });
             }
         }
@@ -243,6 +265,11 @@ namespace DiamDev.Give.UI.Controllers
 
                 return Content(html, "text/html");
             }
+
+            _analytics.RegistrarEvento("IMPRESO", rec,
+                                       CustomHelper.getUserId(),
+                                       User.Identity.Name,
+                                       Request.UserHostAddress);
 
             return View(rec);
         }
@@ -311,6 +338,15 @@ namespace DiamDev.Give.UI.Controllers
                     "<h3>⚠ Nada para imprimir</h3><p>Ningún recibo del lote es imprimible:</p><ul><li>" +
                     string.Join("</li><li>", omitidos.Select(Server.HtmlEncode)) +
                     "</li></ul></body></html>", "text/html");
+
+            // Un evento por recibo: cada uno se imprimió de verdad. El lote está
+            // topado en 50, y SqlConnection usa pool, así que son ~50 inserts
+            // baratos sobre conexiones reutilizadas, no 50 handshakes de red.
+            long uid = CustomHelper.getUserId();
+            string login = User.Identity.Name;
+            string ipLote = Request.UserHostAddress;
+            foreach (var r in recibos)
+                _analytics.RegistrarEvento("IMPRESO", r, uid, login, ipLote, "lote");
 
             ViewBag.Omitidos = omitidos;
             return View(recibos);
@@ -438,6 +474,80 @@ namespace DiamDev.Give.UI.Controllers
             catch (Exception ex)
             {
                 return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ═════════════════════════════════════════════
+        //  ANALYTICS
+        // ═════════════════════════════════════════════
+        //  A diferencia del Dashboard, Analytics NO filtra por operador:
+        //  muestra las 3 empresas y todos los usuarios. El único control
+        //  es el permiso Control.ReciboCaja.Analytics.
+        //
+        //  ⚠️ Los [Permiso] van comentados igual que el resto del controller.
+        //  Descomentalos DESPUÉS de correr el INSERT del permiso en la BD y
+        //  de verificar que tu usuario lo tiene: si el permiso no existe,
+        //  Permiso() devuelve false y te quedás afuera de tu propia pantalla.
+        private readonly ReciboCajaAnalyticsBLL _analytics = new ReciboCajaAnalyticsBLL();
+
+        // [Permiso("Control.ReciboCaja.Analytics")]
+        public ActionResult Analytics()
+        {
+            CustomHelper.setTitle("Recibos de Caja", "Analytics");
+            return View();
+        }
+
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Analytics")]
+        public JsonResult GetAnalytics(string periodo, string empresa)
+        {
+            try
+            {
+                var filtro = _analytics.ResolverPeriodo(periodo, empresa);
+                var p = _analytics.Obtener(periodo, empresa);
+
+                return Json(new
+                {
+                    ok = true,
+                    data = p,
+                    rango = new
+                    {
+                        ini = filtro.FechaIni.HasValue
+                              ? filtro.FechaIni.Value.ToString("yyyy-MM-dd") : null,
+                        fin = filtro.FechaFin.HasValue
+                              ? filtro.FechaFin.Value.AddDays(-1).ToString("yyyy-MM-dd") : null
+                    }
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // POST y no GET a propósito: dispara una llamada a un servicio externo
+        // y escribe en la BD. Un GET podría ejecutarse solo desde un <img> o
+        // por el prefetch del navegador.
+        [HttpPost]
+        // [Permiso("Control.ReciboCaja.Analytics")]
+        public JsonResult ResolverGeoIp()
+        {
+            try
+            {
+                var r = _analytics.ResolverPendientes();
+                return Json(new
+                {
+                    ok = r.Exito,
+                    msg = r.Mensaje,
+                    pendientes = r.Pendientes,
+                    resueltas = r.Resueltas,
+                    privadas = r.Privadas,
+                    fallidas = r.Fallidas
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = "Error inesperado: " + ex.Message });
             }
         }
 

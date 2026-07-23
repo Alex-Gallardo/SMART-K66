@@ -2127,7 +2127,7 @@ $("#cboTipoDoc").on("change", function () {
             var moneda = $("#cboMonedaCobro").val();
             var editando = (Estado.cobroEditIndex !== null);
 
-            if (!tipo || !moneda || monto <= 0 || !fecha) {
+            if (!tipo || !moneda || monto <= 0 ) {
         toastr.warning("Tipo de pago, monto, fecha y moneda son obligatorios.");
         return;
     }

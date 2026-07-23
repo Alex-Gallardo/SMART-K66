@@ -160,8 +160,17 @@ namespace DiamDev.Give.BLL
         {
             var tipo = (tipoDoc ?? "").Trim().ToUpper();
 
+            // ── Corto-circuito: tipos sin referencia documental ──
+            // ANTICIPO / DIFERENCIA / SALDO PENDIENTE no tienen catálogo que
+            // consultar. El front no debería llamar acá (la lupa está disabled),
+            // pero el endpoint es público: sin esta guarda, un GET manual con
+            // tipoDoc=DIFERENCIA se iría a MA_RECC_DOCTOS a buscar filas que no
+            // existen. Devolver vacío es la respuesta correcta, no un error.
+            if (TiposDocumentoRecibo.EsSinDocumento(tipo))
+                return new List<DocumentoRecibo>();
+
             List<DocumentoRecibo> lista =
-                (tipo == "FACTURA" || tipo == "PEDIDO")
+                TiposDocumentoRecibo.EsConsultableHana(tipo)
                     ? _hana.ObtenerFacturas(empresa, clienteId, tipo)
                     : _apk.ObtenerDocumentos(empresa, clienteId, tipo);
 

@@ -114,6 +114,7 @@
     <Compile Include="ResultadoRecibo.cs" />
     <Compile Include="SapCobroAplicado.cs" />
     <Compile Include="SapPagoDetalle.cs" />
+    <Compile Include="TiposDocumentoRecibo.cs" />
     <Compile Include="UnidadK66.cs" />
     <Compile Include="Visita.cs" />
     <Compile Include="ProductoAlertaK66.cs" />

@@ -1222,6 +1222,7 @@
                                     <option value="FACTURA">🧾&nbsp; FACTURA</option>
                                     <option value="PEDIDO">📦&nbsp; PEDIDO</option>
                                     <option value="ANTICIPO">💰&nbsp; ANTICIPO</option>
+                                    <option value="DIFERENCIA">🧮&nbsp; DIFERENCIA</option>
                                     <!-- <option value="SALDO PENDIENTE">⏳&nbsp; SALDO PENDIENTE</option> -->
                                     <!-- <option value="NOTA DE CREDITO">📝&nbsp; NOTA DE CRÉDITO</option> -->
                                 </select>
@@ -1665,6 +1666,49 @@ var URL_ANULAR = "@Url.Action("Anular", "ReciboCaja")";
 // ─── URL del endpoint de empresas del usuario ─────────────────────────
 var URL_EMPRESAS = "@Url.Action("GetEmpresasUsuario", "ReciboCaja")";
 
+// ════════════════════════════════════════════════════════
+// TIPOS DE DOCUMENTO SIN REFERENCIA DOCUMENTAL
+// Espejo de TiposDocumentoRecibo.EsSinDocumento() (Entities).
+// ANTICIPO / DIFERENCIA / SALDO PENDIENTE no apuntan a una factura de
+// SAP: no llevan No. Documento, fecha ni FEL. Solo MONTO y MONEDA.
+//
+// ⚠ Si algún día se agrega un tipo nuevo, hay que tocar DOS listas:
+//    esta y la de TiposDocumentoRecibo.cs. Es el precio de que el front
+//    no pueda leer C#. La del servidor es la que manda: si se
+//    desincronizan, la UI mentirá pero la BD quedará correcta.
+// ════════════════════════════════════════════════════════
+var TIPOS_DOC_SIN_REFERENCIA = ["ANTICIPO", "SALDO PENDIENTE", "DIFERENCIA"];
+
+function EsTipoSinDocumento(tipo) {
+    return TIPOS_DOC_SIN_REFERENCIA.indexOf(
+        (tipo || "").trim().toUpperCase()) !== -1;
+}
+
+// Único lugar que decide qué campos del panel de documentos son
+// capturables. Lo llaman el change del combo (alta) y el modo edición,
+// para que editar un ANTICIPO/DIFERENCIA muestre el mismo bloqueo que
+// crearlo (antes no: al editar, los campos quedaban habilitados aunque
+// el guardado los forzara a NULL igual — la UI mentía).
+// Devuelve el booleano para que el llamador no tenga que recalcularlo.
+function AplicarBloqueoTipoDoc(tipo) {
+    var esSinDoc = EsTipoSinDocumento(tipo);
+
+    $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel")
+        .prop("disabled", esSinDoc);
+
+    // La lupa tampoco tiene sentido: no hay catálogo que buscar.
+    $("#btnBuscarDoc").prop("disabled", esSinDoc)
+        .attr("title", esSinDoc
+            ? "Este tipo no referencia documentos de SAP"
+            : "Buscar documento disponible");
+
+    // MONEDA: SIEMPRE habilitada. Una DIFERENCIA puede ser GTQ o USD,
+    // igual que un ANTICIPO — la elige el cajero.
+    $("#cboMonedaDoc").prop("disabled", false);
+
+    return esSinDoc;
+}
+
 // Buffer: empresas + códigos del usuario (respuesta de GetEmpresasUsuario)
 var _empresasUsuario = [];
 
@@ -2043,18 +2087,17 @@ $("#cboTipoDoc").on("change", function () {
     if (Estado.docEditIndex !== null) return;
 
     var tipo = $(this).val();
-    var esAntOSaldo = (tipo === "ANTICIPO" || tipo === "SALDO PENDIENTE");
 
-    $("#txtNoDocDoc").prop("disabled", esAntOSaldo).val("");
-    $("#dtpFechaDoc").prop("disabled", esAntOSaldo).val("");
-    $("#txtSerieFel").val("").prop("disabled", esAntOSaldo);
-    $("#txtNumFel").val("").prop("disabled", esAntOSaldo);
+    // Bloqueo de campos: una sola función, una sola regla.
+    AplicarBloqueoTipoDoc(tipo);
 
-    // MONEDA: SIEMPRE habilitada. Un anticipo puede ser GTQ o USD —
-    // la elige el cajero. (Antes se deshabilitaba junto con los demás
-    // campos y quedaba "muerta": Select2 sobre un select disabled se ve
-    // normal pero ignora los clicks.)
-    $("#cboMonedaDoc").prop("disabled", false).val("");
+    // Limpieza de campos (alta nueva)
+    $("#txtNoDocDoc").val("");
+    $("#dtpFechaDoc").val("");
+    $("#txtSerieFel").val("");
+    $("#txtNumFel").val("");
+
+    $("#cboMonedaDoc").val("");
     $("#cboMonedaDoc").data("monedaPrev", "");
     if ($("#cboMonedaDoc").hasClass("search-select") && $.fn.select2) {
         // change.select2 = repintar lo visual SIN disparar el handler de
@@ -2075,17 +2118,17 @@ $("#cboTipoDoc").on("change", function () {
 // ════════════════════════════════════════════════════════
 // 5. AGREGAR / ACTUALIZAR COBRO
 // ════════════════════════════════════════════════════════
-$("#btnAgregarCobro").on("click", function () {
-    var tipo = $("#cboTipoPago").val();
-    var banco = $("#cboBanco").val();
-    var nodoc = $("#txtNoDocCobro").val().trim();
-    var fecha = $("#dtpFechaCobro").val();
-    var monto = parseFloat($("#txtMontoCobro").val()) || 0;
-    var moneda = $("#cboMonedaCobro").val();
-    var editando = (Estado.cobroEditIndex !== null);
+        $("#btnAgregarCobro").on("click", function () {
+            var tipo = $("#cboTipoPago").val();
+            var banco = $("#cboBanco").val();
+            var nodoc = $("#txtNoDocCobro").val().trim();
+            var fecha = $("#dtpFechaCobro").val();
+            var monto = parseFloat($("#txtMontoCobro").val()) || 0;
+            var moneda = $("#cboMonedaCobro").val();
+            var editando = (Estado.cobroEditIndex !== null);
 
-    if (!tipo || !moneda || monto <= 0) {
-        toastr.warning("Tipo de pago, monto y moneda son obligatorios.");
+            if (!tipo || !moneda || monto <= 0 || !fecha) {
+        toastr.warning("Tipo de pago, monto, fecha y moneda son obligatorios.");
         return;
     }
     // Moneda consistente: se ignora la propia fila cuando estamos editando
@@ -2327,8 +2370,11 @@ $("#btnBuscarDoc").on("click", function () {
         toastr.warning("Seleccione empresa, cliente y tipo de documento primero.");
         return;
     }
-    if (tipo === "ANTICIPO" || tipo === "SALDO PENDIENTE") {
-        toastr.info("Para " + tipo + " no se busca un documento específico.");
+    // Guarda de servidor-de-pobre: aunque el botón esté disabled, un
+    // trigger("click") programático llegaría igual hasta acá.
+    if (EsTipoSinDocumento(tipo)) {
+        toastr.info("Para " + tipo + " no se busca un documento específico: " +
+            "solo indique monto y moneda.");
         return;
     }
 
@@ -2515,28 +2561,31 @@ function CargarDocEnPanel(d) {
 // 8. AGREGAR / ACTUALIZAR DOCUMENTO
 // ════════════════════════════════════════════════════════
 $("#btnAgregarDoc").on("click", function () {
-    var tipo        = $("#cboTipoDoc").val();
-    var nodoc       = $("#txtNoDocDoc").val().trim();
-    var fecha       = $("#dtpFechaDoc").val();
-    var monto       = parseFloat($("#txtMontoDoc").val()) || 0;
-    var moneda      = $("#cboMonedaDoc").val();
-    var esAntOSaldo = (tipo === "ANTICIPO" || tipo === "SALDO PENDIENTE");
-    var editando    = (Estado.docEditIndex !== null);
+    var tipo = $("#cboTipoDoc").val();
+    var nodoc = $("#txtNoDocDoc").val().trim();
+    var fecha = $("#dtpFechaDoc").val();
+    var monto = parseFloat($("#txtMontoDoc").val()) || 0;
+    var moneda = $("#cboMonedaDoc").val();
+    var esSinDoc = EsTipoSinDocumento(tipo);   // ← ANTICIPO / DIFERENCIA / SALDO PEND.
+    var editando = (Estado.docEditIndex !== null);
 
     if (!tipo || monto <= 0) {
         toastr.warning("Tipo de documento y monto son obligatorios.");
         return;
     }
-    if (!esAntOSaldo && !nodoc) {
+    if (!esSinDoc && !nodoc) {
         toastr.warning("Ingrese el número de documento.");
         return;
     }
-    // Duplicado: ignoramos la propia fila cuando estamos editando
+    // Duplicado: ignoramos la propia fila cuando estamos editando.
+    // Los tipos sin documento quedan fuera del chequeo a propósito:
+    // su NoDocumento es "" y se podrían capturar VARIAS diferencias
+    // en el mismo recibo (una por moneda, por ejemplo).
     var dupIdx = -1;
     for (var i = 0; i < Estado.documentos.length; i++) {
         if (Estado.documentos[i].NoDocumento === nodoc) { dupIdx = i; break; }
     }
-    if (!esAntOSaldo && dupIdx !== -1 && dupIdx !== Estado.docEditIndex) {
+    if (!esSinDoc && dupIdx !== -1 && dupIdx !== Estado.docEditIndex) {
         toastr.warning("El documento " + nodoc + " ya está agregado.");
         return;
     }
@@ -2553,16 +2602,16 @@ $("#btnAgregarDoc").on("click", function () {
     }
 
     var docObj = {
-        TipoDoc:     tipo,
-        NoDocumento: esAntOSaldo ? "" : nodoc,
-        FechaDoc:    esAntOSaldo ? "" : fecha,
-        Status:      "",
-        Monto:       monto,
-        Moneda:      moneda,
-        MontoFact:   parseFloat($("#txtTotalFact").val()) || 0,
-        Pagado:      parseFloat($("#txtPagado").val())    || 0,
-        FelSerie:    $("#txtSerieFel").val().trim(),
-        FelNumero:   $("#txtNumFel").val().trim()
+        TipoDoc: tipo,
+        NoDocumento: esSinDoc ? "" : nodoc,
+        FechaDoc: esSinDoc ? "" : fecha,
+        Status: "",
+        Monto: monto,
+        Moneda: moneda,
+        MontoFact: parseFloat($("#txtTotalFact").val()) || 0,
+        Pagado: parseFloat($("#txtPagado").val()) || 0,
+        FelSerie: $("#txtSerieFel").val().trim(),
+        FelNumero: $("#txtNumFel").val().trim()
     };
 
     if (editando) {
@@ -2650,6 +2699,10 @@ $(document).on("click", ".btn-editDoc", function (e) {
     if ($("#cboTipoDoc").hasClass("search-select") && $.fn.select2) {
         $("#cboTipoDoc").trigger("change.select2");
     }
+
+    // ← NUEVA: el change hizo return, así que el bloqueo lo aplicamos a mano.
+    // Sin esto, editar una DIFERENCIA mostraba No.Documento/Fecha/FEL editables.
+    AplicarBloqueoTipoDoc(d.TipoDoc);
 
     // Cargar los valores al panel (respeta el Monto que el usuario ya tenía)
     CargarDocEnPanel(d);
@@ -3100,6 +3153,10 @@ function LimpiarDetalleDoc() {
     $("#txtTotalFact, #txtPagado, #txtMontoDoc").val("");
     $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel, #cboMonedaDoc").prop("disabled", false);
     $("#cboMonedaDoc").data("monedaPrev", "");
+
+    // La lupa vuelve a su estado neutro (sin tipo elegido no hay bloqueo)
+    $("#btnBuscarDoc").prop("disabled", false)
+        .attr("title", "Buscar documento disponible");
 
     // Refrescar Select2 para que lo visual coincida con el valor real (vacío).
     // Usamos change.select2 (NO change) para repintar sin disparar los handlers

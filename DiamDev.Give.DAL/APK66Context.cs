@@ -300,16 +300,21 @@ namespace DiamDev.Give.DAL
 
                         foreach (var d in enc.Documentos)
                         {
-                            bool esAntOSaldo = d.TipoDoc == "ANTICIPO" || d.TipoDoc == "SALDO PENDIENTE";
+                            // Regla de NULLs centralizada en Entities: ANTICIPO,
+                            // DIFERENCIA y SALDO PENDIENTE no referencian un
+                            // documento de SAP, así que NO_DOCUMENTO / FECHA_DOC /
+                            // STATUS van NULL (réplica del UpdateNull() del desktop).
+                            bool esSinDoc = TiposDocumentoRecibo.EsSinDocumento(d.TipoDoc);
+
                             var cmd = new SqlCommand(sqlDet, con, tx);
                             cmd.Parameters.AddWithValue("@id", enc.IdRecibo);
                             cmd.Parameters.AddWithValue("@emp", enc.IdEmpresa);
                             cmd.Parameters.AddWithValue("@tipo", d.TipoDoc ?? "");
-                            cmd.Parameters.AddWithValue("@nodoc", esAntOSaldo ? (object)DBNull.Value : (d.NoDocumento ?? ""));
-                            cmd.Parameters.AddWithValue("@fecha", esAntOSaldo || !d.FechaDoc.HasValue
+                            cmd.Parameters.AddWithValue("@nodoc", esSinDoc ? (object)DBNull.Value : (d.NoDocumento ?? ""));
+                            cmd.Parameters.AddWithValue("@fecha", esSinDoc || !d.FechaDoc.HasValue
                                                                        ? (object)DBNull.Value
                                                                        : d.FechaDoc.Value.ToString("yyyy-MM-dd"));
-                            cmd.Parameters.AddWithValue("@status", esAntOSaldo ? (object)DBNull.Value : (d.Status ?? ""));
+                            cmd.Parameters.AddWithValue("@status", esSinDoc ? (object)DBNull.Value : (d.Status ?? ""));
                             cmd.Parameters.AddWithValue("@monto", d.Monto);
                             cmd.Parameters.AddWithValue("@moneda", d.Moneda ?? "");
                             cmd.Parameters.AddWithValue("@mfact", d.MontoFact);

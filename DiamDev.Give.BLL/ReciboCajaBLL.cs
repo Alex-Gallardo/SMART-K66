@@ -247,6 +247,21 @@ namespace DiamDev.Give.BLL
                 if (string.IsNullOrWhiteSpace(enc.NombreCliente))
                     return ResultadoRecibo.Error("Debe seleccionar un cliente.");
 
+                // ── Fecha del cobro OBLIGATORIA (todas las formas de pago) ──
+                // La fecha representa CUÁNDO SE RECIBIÓ EL DINERO, así que aplica
+                // igual a efectivo que a cheque o transferencia. Antes solo se
+                // exigía para los no-efectivo y el DAL forzaba NULL en EFECTIVO.
+                //
+                // Esta es la validación REAL: la del front (Index.cshtml) es UX.
+                // El POST se puede armar a mano con Postman y llegar hasta acá.
+                // NO se valida el rango de la fecha: el negocio permite cualquier
+                // fecha (pasada o futura), es decisión del cajero.
+                var cobroSinFecha = enc.Cobros.FirstOrDefault(c => !c.FechaDoc.HasValue);
+                if (cobroSinFecha != null)
+                    return ResultadoRecibo.Error(
+                        $"El cobro de tipo '{cobroSinFecha.TipoCobro}' no tiene fecha. " +
+                        $"La fecha del cobro es obligatoria para todas las formas de pago.");
+
                 // ── 0. Validar el CÓDIGO con el que opera (Usuario_Empresa) ──
                 // El operador (CodigoUsuario) ya fue validado por ObtenerDeptoOperador
                 // en el controller (pertenencia + depto parseado + serie existente).

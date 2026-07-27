@@ -42,6 +42,7 @@
     .panel-empresa {
         border-top: 4px solid var(--c-default);
         transition: border-top-color 0.3s ease;
+        border-radius: 1em;
     }
 
         .panel-empresa.graco {
@@ -55,6 +56,10 @@
         .panel-empresa.bolik {
             border-top-color: var(--c-bolik);
         }
+
+    .panel-heading {
+        padding-left: 1.5em;
+    }
 
     /* ── BADGE DE EMPRESA en heading ── */
     .badge-emp {
@@ -857,7 +862,6 @@
         <h4 class="panel-title">
             <i class="clip-archive"></i>
             <span class="sel-title-main">Recibos de Caja</span>
-            <small class="sel-title-sub">Seleccione empresa y operador para comenzar</small>
         </h4>
     </div>
     <div class="panel-body" style="padding:16px 18px;">
@@ -1132,7 +1136,10 @@
                         </div>
                         <div class="col-sm-6">
                             <div class="fgroup">
-                                <span class="flabel"><i class="icon-calendar"></i> Fecha Documento</span>
+                                <span class="flabel">
+                                    <i class="icon-calendar"></i> Fecha del Cobro
+                                    <span style="color:#e74c3c;" title="Campo obligatorio">*</span>
+                                </span>
                                 <input type="text" id="dtpFechaCobro"
                                        class="form-control f-control date-picker"
                                        data-date-format="yyyy-mm-dd"
@@ -1297,9 +1304,9 @@
                             </div>
                         </div>
                         <!-- Ya Pagado: OCULTO en la UI pero debe existir en el DOM.
-    El JS lo lee al agregar el documento (docObj.Pagado) y lo
-    convierte al cambiar moneda. Estaba comentado y por eso
-    todo doc agregado desde el panel grababa PAGADO = 0. -->
+                        El JS lo lee al agregar el documento (docObj.Pagado) y lo
+                        convierte al cambiar moneda. Estaba comentado y por eso
+                        todo doc agregado desde el panel grababa PAGADO = 0. -->
                         <input type="hidden" id="txtPagado" />
                         <div class="col-sm-8">
                             <div class="fgroup" style="margin-bottom:0;">
@@ -1666,6 +1673,13 @@ var URL_ANULAR = "@Url.Action("Anular", "ReciboCaja")";
 // ─── URL del endpoint de empresas del usuario ─────────────────────────
 var URL_EMPRESAS = "@Url.Action("GetEmpresasUsuario", "ReciboCaja")";
 
+// ─── Fecha de hoy (formato del date-picker) ───────────────────────────
+// Razor la resuelve en el servidor al renderizar la vista. La usamos para
+// repoblar la fecha del cobro después de cada alta: siendo un campo
+// obligatorio, dejarlo vacío obligaría al cajero a re-escribirlo en cada
+// línea del mismo recibo.
+var FECHA_HOY = "@DateTime.Today.ToString("yyyy-MM-dd")";
+
 // ════════════════════════════════════════════════════════
 // TIPOS DE DOCUMENTO SIN REFERENCIA DOCUMENTAL
 // Espejo de TiposDocumentoRecibo.EsSinDocumento() (Entities).
@@ -1788,6 +1802,41 @@ $("#selEmpresa").on("change", function () {
 });
 
 // ════════════════════════════════════════════════════════
+// ORDEN DE OPERADORES ("Operar como")
+//
+// Los códigos vienen como "12-RODOLFO DIAZ", "1-SALA DE VENTAS",
+// "10-EDUARDO CALDERON". Ordenados como TEXTO darían 1, 10, 12, 2, 3...
+// Es el clásico orden lexicográfico: en JS puro te pasa igual con
+//     ["10","2","1"].sort()   →   ["1","10","2"]
+// porque el sort por defecto compara strings, no números.
+//
+// Solución: extraer el prefijo numérico y ordenar por el NÚMERO real.
+// Los códigos SIN prefijo numérico (existe "JORGE" en la BD) no pueden
+// competir por número, así que se mandan al final y se desempatan
+// alfabéticamente. Sin esto, parseInt("JORGE") daría NaN y NaN rompe
+// cualquier comparación (NaN - 5 → NaN → sort impredecible).
+// ════════════════════════════════════════════════════════
+var ORDEN_SIN_NUMERO = 999999;   // sentinela: empuja al final de la lista
+
+function ClaveOrdenCodigo(codigo) {
+    var m = /^\s*(\d+)/.exec(codigo || "");
+    return m ? parseInt(m[1], 10) : ORDEN_SIN_NUMERO;
+}
+
+function OrdenarCodigos(codigos) {
+    // .slice() = copia superficial. NO mutamos el arreglo original porque
+    // vive dentro de _empresasUsuario, que se reutiliza cada vez que el
+    // usuario cambia de empresa. (Array.sort() ordena IN PLACE en JS.)
+    return (codigos || []).slice().sort(function (a, b) {
+        var na = ClaveOrdenCodigo(a.Codigo);
+        var nb = ClaveOrdenCodigo(b.Codigo);
+        if (na !== nb) return na - nb;
+        // Empate (mismo número, o ambos sin número): desempate alfabético
+        return (a.Codigo || "").localeCompare(b.Codigo || "");
+    });
+}
+
+// ════════════════════════════════════════════════════════
 // 1.5 OPERADORES DEL USUARIO ("Operar como")
 // 1 operador  → se auto-selecciona.
 // 2+ operadores → obligado a elegir antes de crear.
@@ -1807,7 +1856,9 @@ function PoblarCodigos(emp) {
         if (_empresasUsuario[i].Id === emp) { e = _empresasUsuario[i]; break; }
     }
 
-    var codigos = (e && e.Codigos) || [];
+    // ANTES:  var codigos = (e && e.Codigos) || [];
+    // ★ CAMBIO: ordenados por prefijo numérico ascendente
+    var codigos = OrdenarCodigos((e && e.Codigos) || []);
     if (!codigos.length) {
         $("#wrapCodigo").hide();
         toastr.warning("No tiene operadores asignados en esta empresa. Contacte al administrador.");
@@ -2033,12 +2084,22 @@ $(document).on("click", function (e) {
 
 // ════════════════════════════════════════════════════════
 // 3. TIPO DE PAGO → habilitar/deshabilitar campos
+// ★ CAMBIO: la FECHA ya no se deshabilita ni se limpia.
+//   Es la fecha en que se recibió el dinero: aplica a EFECTIVO igual
+//   que a cheque/transferencia. Solo BANCO y NO. DOCUMENTO siguen la
+//   vieja regla (no existen en un pago en efectivo).
 // ════════════════════════════════════════════════════════
 $("#cboTipoPago").on("change", function () {
     var esEfectivo = $(this).val() === "EFECTIVO";
+
     $("#cboBanco").prop("disabled", esEfectivo).val("");
     $("#txtNoDocCobro").prop("disabled", esEfectivo).val("");
-    $("#dtpFechaCobro").prop("disabled", esEfectivo).val("");
+
+    // La fecha SIEMPRE habilitada y SIEMPRE con valor de arranque.
+    $("#dtpFechaCobro").prop("disabled", false);
+    if (!$("#dtpFechaCobro").val()) {
+        $("#dtpFechaCobro").val(FECHA_HOY);
+    }
 });
 
 // ════════════════════════════════════════════════════════
@@ -2119,16 +2180,19 @@ $("#cboTipoDoc").on("change", function () {
 // 5. AGREGAR / ACTUALIZAR COBRO
 // ════════════════════════════════════════════════════════
 $("#btnAgregarCobro").on("click", function () {
-            var tipo = $("#cboTipoPago").val();
-            var banco = $("#cboBanco").val();
-            var nodoc = $("#txtNoDocCobro").val().trim();
-            var fecha = $("#dtpFechaCobro").val();
-            var monto = parseFloat($("#txtMontoCobro").val()) || 0;
-            var moneda = $("#cboMonedaCobro").val();
-            var editando = (Estado.cobroEditIndex !== null);
+    var tipo = $("#cboTipoPago").val();
+    var banco = $("#cboBanco").val();
+    var nodoc = $("#txtNoDocCobro").val().trim();
+    var fecha = $("#dtpFechaCobro").val();
+    var monto = parseFloat($("#txtMontoCobro").val()) || 0;
+    var moneda = $("#cboMonedaCobro").val();
+    var editando = (Estado.cobroEditIndex !== null);
 
-            if (!tipo || !moneda || monto <= 0 ) {
+    // ★ CAMBIO: se agrega !fecha. El mensaje YA decía "fecha", pero el if
+    //   nunca la validaba: la UI mentía desde antes de este requerimiento.
+    if (!tipo || !moneda || monto <= 0 || !fecha) {
         toastr.warning("Tipo de pago, monto, fecha y moneda son obligatorios.");
+        if (!fecha) $("#dtpFechaCobro").focus();
         return;
     }
     // Moneda consistente: se ignora la propia fila cuando estamos editando
@@ -2151,7 +2215,7 @@ $("#btnAgregarCobro").on("click", function () {
     var cobroObj = {
         TipoCobro: tipo,
         Banco: tipo === "EFECTIVO" ? "" : banco,
-        FechaDoc: tipo === "EFECTIVO" ? "" : fecha,
+        FechaDoc: fecha,                                  // ★ CAMBIO: siempre, sin ternario
         NoDocumento: tipo === "EFECTIVO" ? "" : nodoc,
         Monto: monto,
         Moneda: moneda
@@ -2196,9 +2260,9 @@ function SalirModoEdicionCobro() {
 }
 
 // Carga un cobro de la tabla al panel editable, respetando la regla
-// EFECTIVO (banco/fecha/doc deshabilitados). Se setea el tipo con .val()
-// SIN disparar el handler de la sección 3 (que limpiaría los campos);
-// el estado disabled lo aplicamos aquí a mano.
+// EFECTIVO (banco/doc deshabilitados — la FECHA ya NO, ver cambio ★).
+// Se setea el tipo con .val() SIN disparar el handler de la sección 3
+// (que limpiaría los campos); el estado disabled lo aplicamos a mano.
 function CargarCobroEnPanel(c) {
     if (!c) return;
     var esEfectivo = c.TipoCobro === "EFECTIVO";
@@ -2206,7 +2270,14 @@ function CargarCobroEnPanel(c) {
     $("#cboTipoPago").val(c.TipoCobro);
     $("#cboBanco").val(c.Banco || "").prop("disabled", esEfectivo);
     $("#txtNoDocCobro").val(c.NoDocumento || "").prop("disabled", esEfectivo);
-    $("#dtpFechaCobro").val(c.FechaDoc || "").prop("disabled", esEfectivo);
+
+    // ★ CAMBIO: fecha siempre habilitada + FmtFecha().
+    // El FmtFecha corrige un bug latente: al editar un cobro de un recibo
+    // CARGADO con "Buscar", la fecha viene del servidor como "/Date(...)/"
+    // y se pintaba cruda en el input. Antes casi no se notaba porque en
+    // EFECTIVO el campo iba deshabilitado; ahora sería visible siempre.
+    $("#dtpFechaCobro").val(FmtFecha(c.FechaDoc) || FECHA_HOY).prop("disabled", false);
+
     $("#txtMontoCobro").val(FmtNum(c.Monto));   // FmtNum: SIN comas, es un input
     $("#cboMonedaCobro").val(c.Moneda || "");
     $("#cboMonedaCobro").data("monedaPrev", c.Moneda || "");
@@ -3134,7 +3205,13 @@ function LimpiarFormulario() {
 
 function LimpiarDetalleCobro() {
     $("#cboTipoPago, #cboBanco, #cboMonedaCobro").val("");
-    $("#txtNoDocCobro, #dtpFechaCobro, #txtMontoCobro").val("");
+    $("#txtNoDocCobro, #txtMontoCobro").val("");
+
+    // ★ CAMBIO: la fecha NO se vacía, se repuebla con hoy.
+    // Es campo obligatorio: si quedara vacío, el cajero tendría que
+    // re-escribirla en cada cobro del mismo recibo (fricción pura).
+    $("#dtpFechaCobro").val(FECHA_HOY);
+
     $("#cboBanco, #txtNoDocCobro, #dtpFechaCobro").prop("disabled", false);
     $("#cboMonedaCobro").data("monedaPrev", "");
 

@@ -268,15 +268,27 @@ namespace DiamDev.Give.DAL
 
                         foreach (var c in enc.Cobros)
                         {
+                            // BANCO y NO_DOCUMENTO siguen siendo NULL en EFECTIVO:
+                            // no hay banco ni número de cheque que registrar.
                             bool esEfectivo = c.TipoCobro?.ToUpper() == "EFECTIVO";
+
                             var cmd = new SqlCommand(sqlCobro, con, tx);
                             cmd.Parameters.AddWithValue("@id", enc.IdRecibo);
                             cmd.Parameters.AddWithValue("@emp", enc.IdEmpresa);
                             cmd.Parameters.AddWithValue("@tipo", c.TipoCobro ?? "");
                             cmd.Parameters.AddWithValue("@banco", esEfectivo ? (object)DBNull.Value : (c.Banco ?? ""));
-                            cmd.Parameters.AddWithValue("@fecha", esEfectivo || !c.FechaDoc.HasValue
+
+                            // ★ CAMBIO: la FECHA_DOC ya NO se anula en EFECTIVO.
+                            // Cambió su significado de negocio: antes era "fecha del
+                            // documento bancario" (cheque/transferencia); ahora es
+                            // "fecha en que se recibió el dinero", y eso existe para
+                            // TODA forma de pago. El BLL la valida como obligatoria.
+                            // El DBNull queda solo como red de seguridad para datos
+                            // que lleguen sin fecha por otra vía (no debería pasar).
+                            cmd.Parameters.AddWithValue("@fecha", !c.FechaDoc.HasValue
                                                                        ? (object)DBNull.Value
                                                                        : c.FechaDoc.Value.ToString("yyyy-MM-dd"));
+
                             cmd.Parameters.AddWithValue("@nodoc", esEfectivo ? (object)DBNull.Value : (c.NoDocumento ?? ""));
                             cmd.Parameters.AddWithValue("@monto", c.Monto);
                             cmd.Parameters.AddWithValue("@moneda", c.Moneda ?? "");

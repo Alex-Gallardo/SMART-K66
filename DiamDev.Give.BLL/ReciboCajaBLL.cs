@@ -218,12 +218,102 @@ namespace DiamDev.Give.BLL
         }
 
         /// <summary>
-        /// Devuelve el tipo de cambio USD vigente para una empresa (referencia para la UI).
-        /// Usa la fecha de hoy. El guardado vuelve a traerlo con la fecha del recibo.
+        /// TC USD de una fecha (referencia para la UI). Si no se indica fecha, hoy.
+        /// El guardado NO confía en esto: vuelve a resolver el TC por cada cobro
+        /// en el servidor. Acá solo alimentamos la previsualización de totales.
         /// </summary>
-        public decimal ObtenerTipoCambioDia(string empresa)
+        public decimal ObtenerTipoCambioDia(string empresa, DateTime? fecha = null)
         {
-            return _hana.ObtenerTipoCambio(empresa, DateTime.Today);
+            return ObtenerTipoCambioFecha(empresa, fecha ?? DateTime.Today);
+        }
+
+        // ═════════════════════════════════════════════════════════
+        // TIPO DE CAMBIO POR FECHA
+        // ═════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Días hacia atrás que se buscan si la fecha exacta no tiene TC en ORTT.
+        /// SAP no publica tasa los fines de semana ni feriados: un cobro con fecha
+        /// de sábado NO debe reventar el guardado, debe tomar la del viernes
+        /// (que es exactamente lo que hace el banco).
+        /// 7 días cubre feriados largos (Semana Santa, fin de año).
+        /// </summary>
+        private const int MAX_DIAS_RETROCESO_TC = 7;
+
+        /// <summary>
+        /// TC vigente para una fecha. Si esa fecha no tiene tasa publicada,
+        /// retrocede día a día hasta MAX_DIAS_RETROCESO_TC.
+        ///
+        /// El try/catch por iteración es deliberado: no sabemos si el repositorio
+        /// devuelve 0 o lanza cuando no hay fila en ORTT. Tratamos ambos casos
+        /// como "no hay tasa ese día" y seguimos buscando. Si tras el retroceso
+        /// no hay nada, ahí sí lanzamos con un mensaje que dice la fecha exacta.
+        ///
+        /// Fechas futuras: también funcionan. El bucle arranca en la fecha del
+        /// cobro y camina hacia atrás, así que un cobro fechado mañana termina
+        /// tomando el TC de hoy.
+        /// </summary>
+        public decimal ObtenerTipoCambioFecha(string empresa, DateTime fecha)
+        {
+            for (int i = 0; i <= MAX_DIAS_RETROCESO_TC; i++)
+            {
+                DateTime f = fecha.Date.AddDays(-i);
+                decimal tc;
+                try { tc = _hana.ObtenerTipoCambio(empresa, f); }
+                catch { tc = 0m; }
+                if (tc > 0m) return tc;
+            }
+
+            throw new Exception(
+                $"No hay tipo de cambio publicado en SAP (ORTT) para {empresa} " +
+                $"en la fecha {fecha:dd/MM/yyyy} ni en los {MAX_DIAS_RETROCESO_TC} días anteriores.");
+        }
+
+        /// <summary>
+        /// Igual que ObtenerTipoCambioFecha, pero con caché por fecha dentro de
+        /// UNA operación de guardado. Un recibo con 5 cobros del mismo día hace
+        /// UN viaje a HANA, no cinco.
+        ///
+        /// En TS sería un Map&lt;string, number&gt; que vive lo que dura la función.
+        /// A propósito NO es estático: un caché de proceso serviría TC viejos
+        /// después de que Finanzas corrija una tasa en SAP.
+        /// </summary>
+        private decimal ObtenerTipoCambioFechaCacheado(
+            string empresa, DateTime fecha, IDictionary<DateTime, decimal> cache)
+        {
+            DateTime clave = fecha.Date;
+            decimal tc;
+            if (cache.TryGetValue(clave, out tc)) return tc;
+
+            tc = ObtenerTipoCambioFecha(empresa, clave);
+            cache[clave] = tc;
+            return tc;
+        }
+
+        /// <summary>Escala del TC que se graba. 6 decimales = el estándar de ORTT.</summary>
+        private const int DECIMALES_TIPO_CAMBIO = 6;
+
+        /// <summary>
+        /// TC "efectivo" del recibo: promedio de los TC de los cobros PONDERADO
+        /// por el monto de cada uno. Es la tasa a la que realmente entró el dinero.
+        ///
+        ///     tc = Σ(MontoGtq) / Σ(MontoUsd)
+        ///
+        /// Requiere que los cobros YA tengan sus duales calculados.
+        /// Devuelve 0 si no se puede calcular (el llamador decide el fallback).
+        ///
+        /// Con un solo cobro —o varios del mismo día— el resultado es exactamente
+        /// el TC de ese día: el caso normal no cambia de comportamiento.
+        /// </summary>
+        public static decimal CalcularTipoCambioPonderado(IEnumerable<ReciboCajaCobro> cobros)
+        {
+            if (cobros == null) return 0m;
+
+            decimal gtq = 0m, usd = 0m;
+            foreach (var c in cobros) { gtq += c.MontoGtq; usd += c.MontoUsd; }
+
+            if (usd <= 0m || gtq <= 0m) return 0m;
+            return Math.Round(gtq / usd, DECIMALES_TIPO_CAMBIO);
         }
 
         // ─── GUARDAR RECIBO ───────────────────────────
@@ -235,8 +325,8 @@ namespace DiamDev.Give.BLL
         ///   3. Si monedas distintas → se guarda con advertencia (saldo permitido).
         /// </summary>
         public ResultadoRecibo GuardarRecibo(
-            ReciboCajaEncabezado enc, string depto,
-            long usuarioId, string usuarioLogin, string ipUsuario)
+             ReciboCajaEncabezado enc, string depto,
+             long usuarioId, string usuarioLogin, string ipUsuario)
         {
             try
             {
@@ -248,70 +338,90 @@ namespace DiamDev.Give.BLL
                     return ResultadoRecibo.Error("Debe seleccionar un cliente.");
 
                 // ── Fecha del cobro OBLIGATORIA (todas las formas de pago) ──
-                // La fecha representa CUÁNDO SE RECIBIÓ EL DINERO, así que aplica
-                // igual a efectivo que a cheque o transferencia. Antes solo se
-                // exigía para los no-efectivo y el DAL forzaba NULL en EFECTIVO.
-                //
-                // Esta es la validación REAL: la del front (Index.cshtml) es UX.
-                // El POST se puede armar a mano con Postman y llegar hasta acá.
-                // NO se valida el rango de la fecha: el negocio permite cualquier
-                // fecha (pasada o futura), es decisión del cajero.
+                // Ahora esta validación es DOBLEMENTE crítica: la fecha ya no solo
+                // documenta cuándo entró el dinero, es la CLAVE con la que se busca
+                // el tipo de cambio. Sin fecha no hay TC, y sin TC no hay recibo.
                 var cobroSinFecha = enc.Cobros.FirstOrDefault(c => !c.FechaDoc.HasValue);
                 if (cobroSinFecha != null)
                     return ResultadoRecibo.Error(
                         $"El cobro de tipo '{cobroSinFecha.TipoCobro}' no tiene fecha. " +
-                        $"La fecha del cobro es obligatoria para todas las formas de pago.");
+                        $"La fecha del cobro es obligatoria: con ella se busca el tipo de cambio.");
 
-                // ── 0. Validar el CÓDIGO con el que opera (Usuario_Empresa) ──
-                // El operador (CodigoUsuario) ya fue validado por ObtenerDeptoOperador
-                // en el controller (pertenencia + depto parseado + serie existente).
-                // Aquí solo normalizamos para grabarlo limpio.
+                // ── 0. Normalizar el código del operador ──
                 enc.CodigoUsuario = (enc.CodigoUsuario ?? "").Trim();
 
-                // ── 1. Traer el tipo de cambio de SAP (al guardar), por fecha del recibo ──
-                decimal tc;
+                // ── 1. TC de CADA COBRO, por SU PROPIA FECHA ──────────────────
+                // ★ CAMBIO CENTRAL: antes había un solo TC (fecha del recibo)
+                // aplicado a todo. Ahora cada cobro se convierte con la tasa del
+                // día en que entró el dinero. El caché evita repetir el viaje a
+                // HANA cuando varios cobros comparten fecha (el caso normal).
+                var cacheTc = new Dictionary<DateTime, decimal>();
                 try
                 {
-                    tc = _hana.ObtenerTipoCambio(enc.IdEmpresa, enc.FechaRecibo);
+                    foreach (var c in enc.Cobros)
+                    {
+                        c.Moneda = NormalizarMonedaLinea(c.Moneda);
+
+                        decimal tcCobro = ObtenerTipoCambioFechaCacheado(
+                            enc.IdEmpresa, c.FechaDoc.Value, cacheTc);
+
+                        var m = CalcularMontosDuales(c.Monto, c.Moneda, tcCobro);
+                        c.TipoCambio = tcCobro;   // ← queda grabado en REC_CAJA_COBRO
+                        c.MontoGtq = m.Gtq;
+                        c.MontoUsd = m.Usd;
+                    }
                 }
                 catch (Exception exTc)
                 {
-                    return ResultadoRecibo.Error("No se pudo obtener el tipo de cambio de SAP: " + exTc.Message);
+                    return ResultadoRecibo.Error(
+                        "No se pudo obtener el tipo de cambio de SAP: " + exTc.Message);
                 }
-                enc.TipoCambio = tc;
+
+                // ── 1b. TC EFECTIVO del recibo (ponderado por los cobros) ─────
+                // Es la tasa a la que realmente entró el dinero. Los documentos
+                // se valúan con ella para que el cuadre en GTQ siga dando 0.
+                decimal tcRecibo = CalcularTipoCambioPonderado(enc.Cobros);
+                if (tcRecibo <= 0m)
+                {
+                    // Fallback defensivo: no debería pasar (los duales siempre se
+                    // llenan). Si pasa, la fecha del recibo es lo menos malo.
+                    try
+                    {
+                        tcRecibo = ObtenerTipoCambioFechaCacheado(
+                            enc.IdEmpresa, enc.FechaRecibo, cacheTc);
+                    }
+                    catch (Exception exTc)
+                    {
+                        return ResultadoRecibo.Error(
+                            "No se pudo obtener el tipo de cambio de SAP: " + exTc.Message);
+                    }
+                }
+
+                enc.TipoCambio = tcRecibo;
                 enc.MonedaBase = "GTQ";
 
-                // ★ FIX (moneda '##'): antes era NormalizarMonedaApp(enc.Moneda), que
-                // solo corregía QTZ/Q y dejaba pasar cualquier otra cosa. El typeahead
-                // de clientes copia OCRD.Currency de SAP al encabezado, y para socios
-                // MULTIMONEDA ese campo vale '##' — así se colaron 11 recibos.
+                // Moneda del encabezado: '##' (socio multimoneda de SAP) se corrige
+                // derivándola de las líneas. Sin cambios respecto de antes.
                 enc.Moneda = NormalizarMonedaEncabezado(enc);
 
-                // ── 2. Calcular los duales de cada cobro ──
-                // ★ FIX: se normaliza la moneda de la LÍNEA antes de calcular, para que
-                // lo que se graba en REC_CAJA_COBRO.MONEDA coincida con la moneda que
-                // realmente usó CalcularMontosDuales. Antes, un "QTZ" se calculaba como
-                // GTQ pero se guardaba como "QTZ": la etiqueta mentía sobre el cálculo.
-                foreach (var c in enc.Cobros)
-                {
-                    c.Moneda = NormalizarMonedaLinea(c.Moneda);
-                    var m = CalcularMontosDuales(c.Monto, c.Moneda, tc);
-                    c.TipoCambio = tc; c.MontoGtq = m.Gtq; c.MontoUsd = m.Usd;
-                }
-                // ── 3. Calcular los duales de cada documento ──
+                // ── 2. Duales de cada DOCUMENTO, con el TC efectivo del recibo ─
+                // Un documento no tiene "fecha de cobro": se cancela con el dinero
+                // que entró, así que hereda la tasa de ese dinero.
                 foreach (var d in enc.Documentos)
                 {
-                    d.Moneda = NormalizarMonedaLinea(d.Moneda);   // ★ FIX
-                    var m = CalcularMontosDuales(d.Monto, d.Moneda, tc);
-                    d.TipoCambio = tc; d.MontoGtq = m.Gtq; d.MontoUsd = m.Usd;
+                    d.Moneda = NormalizarMonedaLinea(d.Moneda);
+                    var m = CalcularMontosDuales(d.Monto, d.Moneda, tcRecibo);
+                    d.TipoCambio = tcRecibo;
+                    d.MontoGtq = m.Gtq;
+                    d.MontoUsd = m.Usd;
                 }
 
-                // ── 4. Totales en moneda original (legado) ──
+                // ── 3. Totales en moneda original (legado) ──
                 enc.MontoTotalRecibo = enc.Cobros.Sum(c => c.Monto);
                 enc.MontoTotalDoc = enc.Documentos.Sum(d => d.Monto);
                 enc.Saldo = enc.MontoTotalRecibo - enc.MontoTotalDoc;
 
-                // ── 5. Totales DUALES (sumando líneas ya convertidas) ──
+                // ── 4. Totales DUALES (sumando líneas ya convertidas) ──
                 enc.MontoTotalRecGtq = enc.Cobros.Sum(c => c.MontoGtq);
                 enc.MontoTotalRecUsd = enc.Cobros.Sum(c => c.MontoUsd);
                 enc.MontoTotalDocGtq = enc.Documentos.Sum(d => d.MontoGtq);
@@ -319,11 +429,7 @@ namespace DiamDev.Give.BLL
                 enc.SaldoGtq = enc.MontoTotalRecGtq - enc.MontoTotalDocGtq;
                 enc.SaldoUsd = enc.MontoTotalRecUsd - enc.MontoTotalDocUsd;
 
-                // ── 6. Normalizar saldos y validar el cuadre ──
-                // Redondeo a 2 decimales + clamp del residuo (±0.01) a CERO EXACTO.
-                // Sin esto, los redondeos por línea dejaban saldos de "-0.01"/"-0.00"
-                // que pasaban la tolerancia y se GRABABAN negativos. Regla:
-                // recibo cuadrado = SALDO 0.00 positivo, siempre.
+                // ── 5. Normalizar saldos y validar el cuadre ──
                 enc.Saldo = NormalizarSaldo(enc.Saldo);
                 enc.SaldoGtq = NormalizarSaldo(enc.SaldoGtq);
                 enc.SaldoUsd = NormalizarSaldo(enc.SaldoUsd);
@@ -331,16 +437,17 @@ namespace DiamDev.Give.BLL
                 if (enc.SaldoGtq != 0m)
                     return ResultadoRecibo.Error(
                         $"El saldo en GTQ no cuadra (Q{enc.SaldoGtq:N2}). " +
-                        $"Cobros: Q{enc.MontoTotalRecGtq:N2} / Documentos: Q{enc.MontoTotalDocGtq:N2}.");
+                        $"Cobros: Q{enc.MontoTotalRecGtq:N2} / Documentos: Q{enc.MontoTotalDocGtq:N2}. " +
+                        $"Tipo de cambio aplicado: {enc.TipoCambio:N6}.");
 
-                // ── 7. Guardar (transacción ADO.NET con columnas duales) ──
+                // ── 6. Guardar (transacción ADO.NET con columnas duales) ──
                 _apk.GuardarReciboCompleto(enc, depto);
 
-                // ── 8. Analytics: evento CREADO (no tumba el guardado si falla) ──
+                // ── 7. Analytics: evento CREADO ──
                 string payload = Newtonsoft.Json.JsonConvert.SerializeObject(enc);
                 _apk.RegistrarEventoAnalytics(
                     "CREADO", enc.IdRecibo, enc.IdEmpresa, depto,
-                    usuarioId, usuarioLogin, enc.Moneda, tc,
+                    usuarioId, usuarioLogin, enc.Moneda, tcRecibo,
                     enc.MontoTotalRecGtq, enc.MontoTotalRecUsd, enc.SaldoGtq,
                     payload, ipUsuario);
 

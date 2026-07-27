@@ -1195,12 +1195,13 @@
                                 <th>Documento</th>
                                 <th class="text-right">Monto</th>
                                 <th>Mon.</th>
+                                <th class="text-right" title="Tipo de cambio de la fecha de este cobro">T.CAMBIO.</th>
                                 <th style="width:40px;"></th>
                             </tr>
                         </thead>
                         <tbody id="tbodyCobros">
                             <tr class="tabla-vacia">
-                                <td colspan="7" class="text-center" style="padding:16px;">
+                                <td colspan="8" class="text-center" style="padding:16px;">
                                     <i class="icon-inbox" style="font-size:20px; color:#ccc;"></i><br />
                                     Sin cobros agregados
                                 </td>
@@ -1676,9 +1677,65 @@ var URL_EMPRESAS = "@Url.Action("GetEmpresasUsuario", "ReciboCaja")";
 // ─── Fecha de hoy (formato del date-picker) ───────────────────────────
 // Razor la resuelve en el servidor al renderizar la vista. La usamos para
 // repoblar la fecha del cobro después de cada alta: siendo un campo
-// obligatorio, dejarlo vacío obligaría al cajero a re-escribirlo en cada
+// obligatorio, dejarlo vacío obligaría al agente a re-escribirlo en cada
 // línea del mismo recibo.
 var FECHA_HOY = "@DateTime.Today.ToString("yyyy-MM-dd")";
+
+// ════════════════════════════════════════════════════════
+// TIPO DE CAMBIO POR FECHA DE COBRO
+// Cada cobro se convierte con la tasa del día en que entró el dinero.
+// El servidor RECALCULA todo al guardar: esto es solo previsualización.
+// Si el front y el servidor difirieran, manda el servidor.
+// ════════════════════════════════════════════════════════
+
+// Caché "fecha (yyyy-mm-dd) → tipo de cambio". Equivale a un Map<string,number>
+// que vive mientras el usuario esté en la pantalla.
+var _tcPorFecha = {};
+
+// Resuelve el TC de una fecha y lo entrega por callback.
+// Es asíncrono a la fuerza: el TC vive en SAP, no en el navegador.
+function ResolverTcFecha(fecha, callback) {
+    if (!fecha || !Estado.empresa) { callback(0); return; }
+
+    if (_tcPorFecha[fecha] !== undefined) { callback(_tcPorFecha[fecha]); return; }
+
+    $.get(URL_TIPOCAMBIO, { empresa: Estado.empresa, fecha: fecha }, function (resp) {
+        var tc = (resp && resp.ok) ? (parseFloat(resp.tipoCambio) || 0) : 0;
+        if (tc > 0) {
+            _tcPorFecha[fecha] = tc;
+        } else {
+            toastr.error("No hay tipo de cambio para la fecha " + fecha +
+                (resp && resp.msg ? ": " + resp.msg : "."));
+        }
+        callback(tc);
+    }).fail(function () {
+        toastr.error("Error al consultar el tipo de cambio de la fecha " + fecha + ".");
+        callback(0);
+    });
+}
+
+// TC efectivo del recibo: espejo de CalcularTipoCambioPonderado del BLL.
+//   tc = Σ(gtq de los cobros) / Σ(usd de los cobros)
+// Con un solo cobro (o varios del mismo día) devuelve exactamente el TC de ese día.
+function TipoCambioRecibo() {
+    var gtq = 0, usd = 0;
+    Estado.cobros.forEach(function (c) {
+        var m = MontosDuales(c.Monto, c.Moneda, c.TipoCambio || Estado.tipoCambio);
+        gtq += m.gtq; usd += m.usd;
+    });
+    if (usd <= 0 || gtq <= 0) return Estado.tipoCambio || 0;
+    return Math.round((gtq / usd) * 1e6) / 1e6;   // 6 decimales, igual que el BLL
+}
+
+// ¿Los cobros tienen tasas distintas? Solo para avisar al usuario en la barra.
+function HayTcMixto() {
+    var vistos = {};
+    for (var i = 0; i < Estado.cobros.length; i++) {
+        var tc = Estado.cobros[i].TipoCambio || 0;
+        if (tc > 0) vistos[tc.toFixed(6)] = true;
+    }
+    return Object.keys(vistos).length > 1;
+}
 
 // ════════════════════════════════════════════════════════
 // TIPOS DE DOCUMENTO SIN REFERENCIA DOCUMENTAL
@@ -1987,15 +2044,15 @@ function AplicarModoEncabezado(editable) {
 // ════════════════════════════════════════════════════════
 // TIPO DE CAMBIO — traer del día al elegir empresa
 // ════════════════════════════════════════════════════════
-function CargarTipoCambio(empresa) {
+function CargarTipoCambio(empresa, fecha) {
+    fecha = fecha || $("#fechaRecibo").val() || FECHA_HOY;
     $("#spanTipoCambio").text("...");
-    $.get(URL_TIPOCAMBIO, { empresa: empresa }, function (resp) {
+    $.get(URL_TIPOCAMBIO, { empresa: empresa, fecha: fecha }, function (resp) {
         if (resp.ok) {
             Estado.tipoCambio = parseFloat(resp.tipoCambio) || 0;
-            $("#spanTipoCambio").text(Estado.tipoCambio.toFixed(4));
+            if (Estado.tipoCambio > 0) _tcPorFecha[fecha] = Estado.tipoCambio;
         } else {
             Estado.tipoCambio = 0;
-            $("#spanTipoCambio").text("—");
             toastr.error("No se pudo traer el tipo de cambio: " + resp.msg);
         }
         ActualizarTotales();
@@ -2108,19 +2165,27 @@ $("#cboTipoPago").on("change", function () {
 // la dirección de la conversión. Los seteos programáticos usan
 // change.select2, que NO dispara estos handlers (a propósito).
 // ════════════════════════════════════════════════════════
-$("#cboMonedaCobro").on("change", function () {
-    var nueva = $(this).val();
-    var previa = $(this).data("monedaPrev") || "";
-    $(this).data("monedaPrev", nueva);
+    $("#cboMonedaCobro").on("change", function () {
+        var nueva = $(this).val();
+        var previa = $(this).data("monedaPrev") || "";
+        $(this).data("monedaPrev", nueva);
 
-    if (!previa || !nueva || previa === nueva) return;
-    if (!(Estado.tipoCambio > 0)) {
-        toastr.warning("No hay tipo de cambio del día: el monto no se convirtió.");
-        return;
-    }
-    var v = ConvertirMonto($("#txtMontoCobro").val(), previa, nueva, Estado.tipoCambio);
-    if (v !== null) $("#txtMontoCobro").val(v.toFixed(2));
-});
+        if (!previa || !nueva || previa === nueva) return;
+
+        // ★ El TC de conversión es el de la FECHA DEL COBRO que está en el panel,
+        // no el del día. Si el cajero fecha el cobro el 15 y hoy es 27, convertir
+        // con el TC de hoy le daría un monto que no corresponde.
+        var fecha = $("#dtpFechaCobro").val() || FECHA_HOY;
+
+        ResolverTcFecha(fecha, function (tc) {
+            if (!(tc > 0)) {
+                toastr.warning("No hay tipo de cambio para el " + fecha + ": el monto no se convirtió.");
+                return;
+            }
+            var v = ConvertirMonto($("#txtMontoCobro").val(), previa, nueva, tc);
+            if (v !== null) $("#txtMontoCobro").val(v.toFixed(2));
+        });
+    });
 
 $("#cboMonedaDoc").on("change", function () {
     var nueva = $(this).val();
@@ -2128,13 +2193,15 @@ $("#cboMonedaDoc").on("change", function () {
     $(this).data("monedaPrev", nueva);
 
     if (!previa || !nueva || previa === nueva) return;
-    if (!(Estado.tipoCambio > 0)) {
-        toastr.warning("No hay tipo de cambio del día: los montos no se convirtieron.");
+    // ANTES: if (!(Estado.tipoCambio > 0)) { ... }
+    //        ConvertirMonto(..., Estado.tipoCambio)
+    var tcDoc = TipoCambioRecibo();
+    if (!(tcDoc > 0)) {
+        toastr.warning("No hay tipo de cambio disponible: los montos no se convirtieron.");
         return;
     }
-    // Convierte los tres campos de dinero del panel
     ["#txtMontoDoc", "#txtTotalFact", "#txtPagado"].forEach(function (sel) {
-        var v = ConvertirMonto($(sel).val(), previa, nueva, Estado.tipoCambio);
+        var v = ConvertirMonto($(sel).val(), previa, nueva, tcDoc);
         if (v !== null) $(sel).val(v.toFixed(2));
     });
 });
@@ -2188,15 +2255,11 @@ $("#btnAgregarCobro").on("click", function () {
     var moneda = $("#cboMonedaCobro").val();
     var editando = (Estado.cobroEditIndex !== null);
 
-    // ★ CAMBIO: se agrega !fecha. El mensaje YA decía "fecha", pero el if
-    //   nunca la validaba: la UI mentía desde antes de este requerimiento.
     if (!tipo || !moneda || monto <= 0 || !fecha) {
         toastr.warning("Tipo de pago, monto, fecha y moneda son obligatorios.");
         if (!fecha) $("#dtpFechaCobro").focus();
         return;
     }
-    // Moneda consistente: se ignora la propia fila cuando estamos editando
-    // (así se puede corregir la moneda del ÚNICO cobro capturado).
     if (Estado.monedaCobro && Estado.monedaCobro !== moneda) {
         var hayOtros = false;
         for (var j = 0; j < Estado.cobros.length; j++) {
@@ -2212,34 +2275,45 @@ $("#btnAgregarCobro").on("click", function () {
         return;
     }
 
-    var cobroObj = {
-        TipoCobro: tipo,
-        Banco: tipo === "EFECTIVO" ? "" : banco,
-        FechaDoc: fecha,                                  // ★ CAMBIO: siempre, sin ternario
-        NoDocumento: tipo === "EFECTIVO" ? "" : nodoc,
-        Monto: monto,
-        Moneda: moneda
-    };
+    // ★ NUEVO: el TC se resuelve por la FECHA DEL COBRO, no la del recibo.
+    // Bloqueamos el botón mientras viaja la consulta para que un doble click
+    // no agregue el cobro dos veces.
+    var $btn = $(this).prop("disabled", true);
 
-    if (editando) {
-        // ── ACTUALIZAR la fila existente ──
-        Estado.cobros[Estado.cobroEditIndex] = cobroObj;
-        toastr.success("Cobro actualizado.");
-        SalirModoEdicionCobro();
-    } else {
-        // ── ALTA nueva ──
-        Estado.cobros.push(cobroObj);
-    }
+    ResolverTcFecha(fecha, function (tcCobro) {
+        $btn.prop("disabled", false);
 
-    // La moneda vigente se RECALCULA del arreglo (fuente de verdad),
-    // no se acumula: cubre el caso de editar el único cobro y cambiarle
-    // la moneda, donde la variable vieja quedaría desactualizada.
-    Estado.monedaCobro = Estado.cobros.length ? Estado.cobros[0].Moneda : "";
-    $("#spanMonedaCobro").text(Estado.monedaCobro || "—");
+        if (!(tcCobro > 0)) {
+            toastr.error("No se puede agregar el cobro: no hay tipo de cambio para el " +
+                fecha + ". Verifique la fecha o avise a Finanzas.");
+            return;
+        }
 
-    RenderizarTablaCobros();
-    ActualizarTotales();
-    LimpiarDetalleCobro();
+        var cobroObj = {
+            TipoCobro: tipo,
+            Banco: tipo === "EFECTIVO" ? "" : banco,
+            FechaDoc: fecha,
+            NoDocumento: tipo === "EFECTIVO" ? "" : nodoc,
+            Monto: monto,
+            Moneda: moneda,
+            TipoCambio: tcCobro       // ★ solo para previsualizar; el servidor recalcula
+        };
+
+        if (editando) {
+            Estado.cobros[Estado.cobroEditIndex] = cobroObj;
+            toastr.success("Cobro actualizado (T.C. " + tcCobro.toFixed(4) + ").");
+            SalirModoEdicionCobro();
+        } else {
+            Estado.cobros.push(cobroObj);
+        }
+
+        Estado.monedaCobro = Estado.cobros.length ? Estado.cobros[0].Moneda : "";
+        $("#spanMonedaCobro").text(Estado.monedaCobro || "—");
+
+        RenderizarTablaCobros();
+        ActualizarTotales();
+        LimpiarDetalleCobro();
+    });
 });
 
 // Botón "Cancelar edición" (cobros) → descarta cambios, vuelve a modo alta
@@ -2929,7 +3003,13 @@ $("#btnEjecutarBusqueda").on("click", function () {
         PintarBadgeSync(r.SyncEstado, r.SyncObservacion, r.SapDocNum);
         PintarBadgeStatus(r.Status);
 
-        Estado.cobros              = r.Cobros     || [];
+        Estado.cobros = r.Cobros || [];
+        // Recibos guardados: cada cobro trae su propio TIPO_CAMBIO desde la BD.
+        // Si es un recibo histórico (pre-cambio) el campo puede venir vacío;
+        // en ese caso cae al TC del encabezado, que era el único que había.
+        Estado.cobros.forEach(function (c) {
+            c.TipoCambio = parseFloat(c.TipoCambio) || parseFloat(r.TipoCambio) || 0;
+        });
         Estado.documentos          = r.Documentos || [];
         Estado.idReciboGuardado    = r.IdRecibo;
         if (Estado.cobros.length)     Estado.monedaCobro = Estado.cobros[0].Moneda;
@@ -3065,12 +3145,13 @@ $("#txtConfirmarAnulacion").on("input", function () {
 function RenderizarTablaCobros() {
     var tbody = $("#tbodyCobros").empty();
     if (!Estado.cobros.length) {
-        tbody.html('<tr class="tabla-vacia"><td colspan="7" class="text-center" style="padding:14px;">' +
+        tbody.html('<tr class="tabla-vacia"><td colspan="8" class="text-center" style="padding:14px;">' +
             '<i class="icon-inbox" style="font-size:18px;color:#ccc;"></i><br/>Sin cobros agregados</td></tr>');
         return;
     }
     $.each(Estado.cobros, function (i, c) {
         var filaEdit = (Estado.cobroEditIndex === i) ? " seleccionada" : "";
+        var tc = c.TipoCambio || 0;
         tbody.append(
             $('<tr style="cursor:pointer;" class="' + filaEdit.trim() + '"></tr>').data("idx", i).html(
                 "<td><span class='label label-default'>" + c.TipoCobro + "</span></td>" +
@@ -3079,6 +3160,9 @@ function RenderizarTablaCobros() {
                 "<td>" + (c.NoDocumento || "—") + "</td>" +
                 '<td class="text-right"><strong>' + FmtMoneda(c.Monto) + "</strong></td>" +
                 "<td><span class='label label-info'>" + c.Moneda + "</span></td>" +
+                '<td class="text-right" style="font-family:monospace;color:#7f8c8d;" ' +
+                'title="Tipo de cambio del ' + (FmtFecha(c.FechaDoc) || "?") + '">' +
+                (tc > 0 ? tc.toFixed(4) : "—") + "</td>" +
                 '<td class="text-center">' +
                 '<button class="btn btn-xs btn-warning btn-editCobro" title="Editar" data-idx="' + i + '">' +
                 '<i class="icon-pencil"></i></button>' +
@@ -3120,26 +3204,27 @@ function RenderizarTablaDocumentos() {
 // CÁLCULO DE TOTALES
 // ════════════════════════════════════════════════════════
 function ActualizarTotales() {
-    var tc = Estado.tipoCambio || 0;
+    // TC efectivo del recibo (ponderado por los cobros). Los documentos se
+    // valúan con él para que el saldo en GTQ pueda dar 0.
+    var tcRecibo = TipoCambioRecibo();
 
-    // Sumar cobros en ambas monedas (cada línea convertida con la regla de oro)
+    // Cobros: CADA UNO con el TC de su propia fecha
     var cobrosGtq = 0, cobrosUsd = 0;
     Estado.cobros.forEach(function (c) {
-        var m = MontosDuales(c.Monto, c.Moneda, tc);
+        var m = MontosDuales(c.Monto, c.Moneda, c.TipoCambio || tcRecibo);
         cobrosGtq += m.gtq; cobrosUsd += m.usd;
     });
 
-    // Sumar documentos en ambas monedas
+    // Documentos: todos con el TC efectivo del recibo
     var docsGtq = 0, docsUsd = 0;
     Estado.documentos.forEach(function (d) {
-        var m = MontosDuales(d.Monto, d.Moneda, tc);
+        var m = MontosDuales(d.Monto, d.Moneda, tcRecibo);
         docsGtq += m.gtq; docsUsd += m.usd;
     });
 
     var saldoGtq = cobrosGtq - docsGtq;
     var saldoUsd = cobrosUsd - docsUsd;
 
-    // Pintar la barra (Q grande, $ chico)
     $("#spanTotalCobros").text("Q " + FmtNum(cobrosGtq));
     $("#spanTotalCobrosUsd").text("$ " + FmtNum(cobrosUsd));
     $("#spanTotalDocs").text("Q " + FmtNum(docsGtq));
@@ -3150,17 +3235,19 @@ function ActualizarTotales() {
         .addClass(Math.abs(saldoGtq) < 0.01 ? "saldo-ok" : "saldo-error");
     $("#spanSaldoUsd").text("$ " + FmtNum(saldoUsd));
 
-
-    // Los totales del encabezado se eliminaron de la UI; ahora viven solo en
-    // la barra de totales inferior (#spanTotalCobros / #spanTotalDocs / #spanSaldo),
-    // que ya se actualizó arriba. Nada más que reflejar aquí.
-
-    // Reflejar también en los campos del encabezado (en GTQ, la base)
-    // $("#txtMontoRec").val(FmtNum(cobrosGtq));
-    // $("#txtTotalDoc").val(FmtNum(docsGtq));
-    // $("#txtSaldo").val(FmtNum(saldoGtq));
-
-    // AplicarColorSaldo();
+    // ★ El TC de la barra ahora es el EFECTIVO del recibo. Si los cobros tienen
+    // fechas con tasas distintas, lo decimos: un número solo sería mentira.
+    if (tcRecibo > 0) {
+        var mixto = HayTcMixto();
+        $("#spanTipoCambio")
+            .text(tcRecibo.toFixed(4) + (mixto ? " (ponderado)" : ""))
+            .attr("title", mixto
+                ? "Los cobros tienen fechas con distinto tipo de cambio. " +
+                "Este es el promedio ponderado por monto, y es el que se aplica a los documentos."
+                : "Tipo de cambio de la fecha del cobro.");
+    } else {
+        $("#spanTipoCambio").text("—").attr("title", "");
+    }
 }
 
 // function AplicarColorSaldo() {

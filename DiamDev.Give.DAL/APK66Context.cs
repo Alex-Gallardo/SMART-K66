@@ -436,7 +436,14 @@ namespace DiamDev.Give.DAL
                                                   : (DateTime?)null,
                                 NoDocumento = r["NO_DOCUMENTO"].ToString(),
                                 Monto = Val(r["MONTO"]),
-                                Moneda = r["MONEDA"].ToString()
+                                Moneda = r["MONEDA"].ToString(),
+                                // ★ NUEVO: el TC con el que se convirtió ESTE cobro.
+                                // Necesario para reimprimir/reconsultar sin recalcular.
+                                TipoCambio = r["TIPO_CAMBIO"] != DBNull.Value
+                                                  ? (decimal?)Convert.ToDecimal(r["TIPO_CAMBIO"])
+                                                  : null,
+                                MontoGtq = Val(r["MONTO_GTQ"]),
+                                MontoUsd = Val(r["MONTO_USD"])
                             });
                     }
                 }

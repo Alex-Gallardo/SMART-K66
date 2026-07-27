@@ -60,16 +60,29 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         // ─────────────────────────────────────────────
-        // GET /ReciboCaja/ObtenerTipoCambioDia?empresa=GRACO
-        // Devuelve el TC USD del día para mostrarlo en la UI (referencia).
+        // GET /ReciboCaja/ObtenerTipoCambioDia?empresa=GRACO&fecha=2026-07-15
+        // Devuelve el TC USD de una FECHA (no solo del día de hoy).
+        // 'fecha' es opcional: sin ella responde el TC de hoy, así el JS viejo
+        // que no la manda sigue funcionando igual.
         // ─────────────────────────────────────────────
         [HttpGet]
-        public JsonResult ObtenerTipoCambioDia(string empresa)
+        public JsonResult ObtenerTipoCambioDia(string empresa, string fecha)
         {
             try
             {
-                decimal tc = _bll.ObtenerTipoCambioDia(empresa ?? "");
-                return Json(new { ok = true, tipoCambio = tc }, JsonRequestBehavior.AllowGet);
+                DateTime f;
+                DateTime? fechaConsulta = DateTime.TryParse(fecha, out f)
+                                              ? (DateTime?)f.Date
+                                              : null;
+
+                decimal tc = _bll.ObtenerTipoCambioDia(empresa ?? "", fechaConsulta);
+
+                return Json(new
+                {
+                    ok = true,
+                    tipoCambio = tc,
+                    fecha = (fechaConsulta ?? DateTime.Today).ToString("yyyy-MM-dd")
+                }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {

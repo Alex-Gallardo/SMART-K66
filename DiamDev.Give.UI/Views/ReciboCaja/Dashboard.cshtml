@@ -165,16 +165,57 @@
         white-space: nowrap;
     }
 
+    /* ── Observación traducida (lenguaje de negocio, no técnico) ── */
     #tablaDash .obs {
-        font-family: monospace;
-        font-size: 11px;
-        color: #7f8c8d;
-        max-width: 340px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        max-width: 380px;
+        white-space: normal; /* ahora envuelve: el mensaje corto cabe en 1-2 líneas */
+        font-size: 12px;
+        line-height: 1.35;
+        color: #2c3e50;
         cursor: help;
     }
+
+        #tablaDash .obs .obs-msg {
+            display: block;
+            font-weight: 600;
+        }
+
+        #tablaDash .obs .obs-accion {
+            display: block;
+            font-size: 11px;
+            color: #7f8c8d;
+            margin-top: 2px;
+        }
+
+        /* Texto original: solo aparece si el traductor NO reconoció el mensaje */
+        #tablaDash .obs .obs-tecnico {
+            display: block;
+            font-family: monospace;
+            font-size: 10px;
+            color: #95a5a6;
+            margin-top: 2px;
+        }
+
+        #tablaDash .obs.obs-alerta .obs-msg {
+            color: #a93226;
+        }
+
+        #tablaDash .obs.obs-aviso .obs-msg {
+            color: #ba4a00;
+        }
+
+        #tablaDash .obs.obs-ok .obs-msg {
+            color: #1e8449;
+        }
+
+        #tablaDash .obs.obs-info .obs-msg {
+            color: #2471a3;
+        }
+
+        #tablaDash .obs.obs-neutro .obs-msg {
+            color: #7f8c8d;
+            font-weight: 400;
+        }
 
     #tablaDash .dias-alto {
         color: #a93226;
@@ -558,7 +599,173 @@ var ETIQUETA_SIT = {
 };
 function LabelSit(s) {
     return ETIQUETA_SIT[s] || (s || "").replace("_", " ");
+        }
+
+// ════════════════════════════════════════════════════════
+// TRADUCTOR DE OBSERVACIONES  (técnico → lenguaje de Créditos)
+//
+// La BD guarda el mensaje TÉCNICO completo (auditoría: montos, DocNum,
+// timestamps). Aquí solo lo INTERPRETAMOS para pantalla. El dato crudo
+// nunca se toca.
+//
+// ⚠ CONTRATO: los patrones que se buscan abajo los genera
+//   ReciboCajaSyncBL (métodos RevisarAnulaciones / ConciliarRecibo).
+//   Si allá cambia el formato del mensaje, hay que ajustar aquí.
+//   Diseño defensivo: si NADA matchea, se muestra el texto original
+//   (nunca se oculta información ni se inventa un mensaje).
+//
+// Devuelve: { clase, corto, detalle, accion, tecnico }
+//   corto   → lo que se ve en la celda
+//   accion  → "qué hacer" (se muestra inline solo si es accionable)
+//   detalle → tooltip completo
+//   tecnico → texto crudo (solo cuando no se reconoció el patrón)
+// ════════════════════════════════════════════════════════
+
+// "12,275.25" → 12275.25   (parseFloat("12,275.25") daría 12: la coma corta)
+function ObsNum(s) {
+    var v = parseFloat(String(s == null ? "" : s).replace(/,/g, ""));
+    return isNaN(v) ? 0 : v;
 }
+
+// Monto con el símbolo de LA moneda del mensaje (¡no siempre es Q!)
+function ObsMonto(v, moneda) {
+    return ((moneda || "GTQ").toUpperCase() === "USD" ? "$ " : "Q ") + FmtMoneda(v);
+}
+
+// Primer grupo de captura de una regex, o "" si no matchea
+function ObsCap(txt, re) {
+    var m = (txt || "").match(re);
+    return (m && m[1]) ? m[1].trim() : "";
+}
+
+function ObsCorta(s, n) {
+    s = s || "";
+    return s.length > n ? s.substring(0, n - 1) + "…" : s;
+}
+
+function InterpretarObservacion(f) {
+    var raw = (f.SyncObservacion || "").trim();
+    var sit = (f.Situacion || "").toUpperCase();
+    var dias = parseInt(f.DiasAntiguedad, 10) || 0;
+    var obs = raw.replace(/^\[(DESC|CONCIL)\]\s*/i, "");   // marcadores internos fuera
+
+    // ── 1. ANULADO EN LA WEB: manda la auditoría, no el sync ──
+    if (sit === "ANULADO") {
+        return {
+            clase: "obs-neutro",
+            corto: "Recibo anulado" + (f.AnuladoPor ? " por " + f.AnuladoPor : "") +
+                (f.MotivoAnulacion ? " — " + ObsCorta(f.MotivoAnulacion, 60) : ""),
+            detalle: "Este recibo fue anulado desde el sistema" +
+                (f.AnuladoPor ? " por " + f.AnuladoPor : "") +
+                (f.FechaAnulacion ? " el " + f.FechaAnulacion : "") + ". " +
+                (f.MotivoAnulacion ? "Motivo: " + f.MotivoAnulacion + ". " : "") +
+                "Ya no se envía a SAP y no debe operarse.",
+            accion: "", tecnico: ""
+        };
+    }
+
+    // ── 2. DIFERENCIA RESUELTA (el sync se sanó solo) ──
+    if (/descuadre resuelto/i.test(obs) && sit !== "DESCUADRE") {
+        return {
+            clase: "obs-ok",
+            corto: "Diferencia resuelta: ya cuadra con SAP",
+            detalle: "El monto del recibo volvió a coincidir con lo aplicado en SAP. " +
+                "El recibo quedó operado y la impresión está habilitada.",
+            accion: "", tecnico: ""
+        };
+    }
+
+    // ── 3. DESCUADRE: lo más accionable del dashboard ──
+    if (sit === "DESCUADRE" || /descuadre\s*\((usd|gtq)\)/i.test(obs)) {
+        var mon = ObsCap(obs, /descuadre\s*\((usd|gtq)\)/i) || "GTQ";
+        var falta = ObsNum(ObsCap(obs, /dif\s*=\s*([\d.,]+)/i));
+        var totRec = ObsNum(ObsCap(obs, /SQL\s*=\s*([\d.,]+)/i));
+        var enSap = ObsNum(ObsCap(obs, /SAP\s+activo\s*=\s*([\d.,]+)/i));
+        var anulados = ObsCap(obs, /anulado\(s\)\s+en\s+SAP:\s*([^.]+)\./i);
+        var docs = (!anulados || /ninguno/i.test(anulados))
+            ? "" : anulados.replace(/DocNum/ig, "No.");
+
+        return {
+            clase: "obs-alerta",
+            corto: falta > 0
+                ? "Faltan " + ObsMonto(falta, mon) + " por aplicar en SAP"
+                : "El monto del recibo no coincide con SAP",
+            detalle: "Se anuló un pago de este recibo en SAP. " +
+                "El recibo es por " + ObsMonto(totRec, mon) +
+                " y en SAP solo hay " + ObsMonto(enSap, mon) + " aplicados: " +
+                "faltan " + ObsMonto(falta, mon) + "." +
+                (docs ? " Pago(s) anulado(s) en SAP: " + docs + "." : "") +
+                " Mientras no cuadre, la impresión de este recibo está bloqueada.",
+            accion: "Vuelva a aplicar el monto faltante en SAP con el mismo número de recibo.",
+            tecnico: ""
+        };
+    }
+
+    // ── 4. PAGO ANULADO EN SAP (el recibo volvió a pendientes) ──
+    if (/anulado en sap/i.test(obs)) {
+        var docAnul = ObsCap(obs, /Era\s+DocNum\s*(\d+)/i);
+        return {
+            clase: "obs-aviso",
+            corto: "El pago fue anulado en SAP",
+            detalle: "El pago que ya estaba aplicado se anuló en SAP" +
+                (docAnul ? " (pago No. " + docAnul + ")" : "") + ". " +
+                "El recibo regresó a la lista de pendientes y espera que se vuelva a operar.",
+            accion: "Si el cobro sigue siendo válido, aplíquelo de nuevo en SAP con el mismo número de recibo.",
+            tecnico: ""
+        };
+    }
+
+    // ── 5. PAGO REHECHO EN SAP (anuló + volvió a crear) ──
+    if (/re-?apuntado/i.test(obs)) {
+        var docNuevo = ObsCap(obs, /DocNum\s*\d+\s*->\s*(\d+)/i);
+        return {
+            clase: "obs-info",
+            corto: "El pago se rehízo en SAP" + (docNuevo ? " (ahora No. " + docNuevo + ")" : ""),
+            detalle: "El pago original fue anulado y se registró uno nuevo en SAP. " +
+                "El sistema ya quedó enlazado al pago vigente.",
+            accion: "", tecnico: ""
+        };
+    }
+
+    // ── 6. Sin mensaje del sync: hablamos por la situación ──
+    if (sit === "OPERADO") {
+        return {
+            clase: "obs-ok", corto: "Pago aplicado en SAP",
+            detalle: "Créditos ya aplicó el pago de este recibo en SAP. Nada pendiente.",
+            accion: "", tecnico: ""
+        };
+    }
+    if (sit === "ENVEJECIDO" || (sit === "PENDIENTE" && dias >= DIAS_UMBRAL)) {
+        return {
+            clase: "obs-aviso",
+            corto: "Lleva " + dias + " día(s) esperando aplicación en SAP",
+            detalle: "Este recibo se capturó hace " + dias + " día(s) y todavía no se " +
+                "aplica el pago en SAP. Lo normal son menos de " + DIAS_UMBRAL + " día(s).",
+            accion: "Verifique el cobro y aplíquelo en SAP.",
+            tecnico: ""
+        };
+    }
+    if (sit === "PENDIENTE" || !raw) {
+        return {
+            clase: "obs-neutro",
+            corto: "Esperando que se aplique en SAP" + (dias > 0 ? " (hace " + dias + " día(s))" : ""),
+            detalle: "El recibo está capturado y en espera de que Créditos aplique el pago en SAP.",
+            accion: "", tecnico: ""
+        };
+    }
+
+    // ── 7. FALLBACK: no reconocimos el patrón → mostramos el original ──
+    // (pasa si cambió el formato en ReciboCajaSyncBL: preferimos texto feo
+    //  y verdadero antes que ocultar información)
+    return {
+        clase: "obs-neutro",
+        corto: ObsCorta(obs, 90),
+        detalle: raw,
+        accion: "",
+        tecnico: obs.length > 90 ? "" : ""
+    };
+}
+
 
 var Filtro = {
     empresa: "", situacion: "TODOS",
@@ -703,15 +910,15 @@ function PintarDetalle() {
     var visibles = _filas.filter(function (f) {
         if (!txt) return true;
         return (f.IdRecibo || "").toUpperCase().indexOf(txt) !== -1 ||
-               (f.NombreCliente || "").toUpperCase().indexOf(txt) !== -1 ||
-               (f.Usuario || "").toUpperCase().indexOf(txt) !== -1;
+            (f.NombreCliente || "").toUpperCase().indexOf(txt) !== -1 ||
+            (f.Usuario || "").toUpperCase().indexOf(txt) !== -1;
     });
 
     // Contador "mostrando X de Y" + aviso de tope del servidor
     var conteo = "Mostrando " + visibles.length + " de " + _filas.length;
     if (_filas.length >= TOPE_FILAS)
         conteo += ' <span class="tope" title="El servidor limita a ' + TOPE_FILAS +
-                  ' filas: acote el rango de fechas para ver todo">(tope alcanzado ⚠)</span>';
+            ' filas: acote el rango de fechas para ver todo">(tope alcanzado ⚠)</span>';
     $("#lblConteo").html(conteo);
 
     if (!visibles.length) {
@@ -727,8 +934,7 @@ function PintarDetalle() {
 
         var esAnulado = (f.Situacion === "ANULADO");
         // Los anulados SÍ son imprimibles: la vista de impresión les pone la
-        // marca de agua diagonal "ANULADO", así que no hay riesgo de que un
-        // recibo muerto pase por vivo. Solo el DESCUADRE queda bloqueado.
+        // marca de agua diagonal "ANULADO". Solo el DESCUADRE queda bloqueado.
         var esImprimible = (f.Situacion !== "DESCUADRE");
         var key = KeySel(f);
         var sel = esImprimible && _sel[key];
@@ -739,18 +945,20 @@ function PintarDetalle() {
         var diasAlto = (!esAnulado && f.Situacion !== "OPERADO" &&
             f.DiasAntiguedad >= DIAS_UMBRAL);
 
-        var tipFila = esAnulado
-            ? ("Anulado por " + (f.AnuladoPor || "?") +
-                (f.FechaAnulacion ? " el " + f.FechaAnulacion : "") +
-                (f.MotivoAnulacion ? " — Motivo: " + f.MotivoAnulacion : ""))
-            : "";
+        // ── Observación traducida a lenguaje de negocio ──
+        var info = InterpretarObservacion(f);
+        // Tooltip = explicación completa + qué hacer (el title respeta \n)
+        var tip = info.detalle + (info.accion ? "\n\n👉 Qué hacer: " + info.accion : "");
+        // La acción se muestra inline SOLO cuando hay algo que hacer:
+        // así el grid no se llena de "No requiere acción".
+        var mostrarAccion = info.accion &&
+            (info.clase === "obs-alerta" || info.clase === "obs-aviso");
 
         tbody.append(
-            '<tr class="' + clases + '"' +
-            (tipFila ? ' title="' + Esc(tipFila) + '"' : '') + '>' +
+            '<tr class="' + clases + '">' +
             '<td class="td-chk">' +
             '<input type="checkbox" class="chk-imp" data-key="' + key + '"' +
-            (esImprimible ? '' : ' disabled title="Bloqueado: recibo con descuadre frente a SAP"') +
+            (esImprimible ? '' : ' disabled title="Bloqueado: este recibo tiene una diferencia con SAP sin resolver"') +
             (sel ? ' checked' : '') + ' /></td>' +
             '<td><span class="sit-badge sit-' + f.Situacion + '">' + LabelSit(f.Situacion) + '</span></td>' +
             '<td><strong style="font-family:monospace;">' + Esc(f.IdRecibo) + '</strong></td>' +
@@ -759,10 +967,15 @@ function PintarDetalle() {
             '<td class="text-right"><strong>' + FmtMoneda(f.MontoGtq) + '</strong></td>' +
             '<td>' + Esc(f.Usuario) + '</td>' +
             '<td>' + Esc(f.FechaRegistro) + '</td>' +
-            '<td class="text-right' + (diasAlto ? ' dias-alto' : '') + '">' +
+            '<td class="text-right' + (diasAlto ? ' dias-alto' : '') + '"' +
+            (diasAlto ? ' title="Lleva más de ' + DIAS_UMBRAL + ' días sin aplicarse en SAP"' : '') + '>' +
             f.DiasAntiguedad + '</td>' +
-            '<td class="obs" title="' + Esc(f.SyncObservacion) + '">' + Esc(f.SyncObservacion) + '</td>' +
-            '<td><a class="btn btn-xs btn-info" target="_blank" href="' + urlAbrir + '" title="Abrir en la vista de recibos">' +
+            '<td class="obs ' + info.clase + '" title="' + Esc(tip) + '">' +
+            '<span class="obs-msg">' + Esc(info.corto) + '</span>' +
+            (mostrarAccion ? '<span class="obs-accion">' + Esc(info.accion) + '</span>' : '') +
+            (info.tecnico ? '<span class="obs-tecnico">' + Esc(info.tecnico) + '</span>' : '') +
+            '</td>' +
+            '<td><a class="btn btn-xs btn-info" target="_blank" href="' + urlAbrir + '" title="Abrir este recibo">' +
             '<i class="icon-external-link"></i></a></td>' +
             '</tr>');
     });
@@ -962,11 +1175,11 @@ $("#btnExportExcel").on("click", function () {
         '.diasAlto { color: #A93226; font-weight: bold; }' +
     '</style></head><body>' +
     '<table>' +
-    '<tr><td colspan="9" class="titulo">Supervisi&oacute;n de Recibos de Caja</td></tr>' +
-    '<tr><td colspan="9" class="subt">' + Esc(filtrosTexto) + '</td></tr>' +
-    '<tr><td colspan="9" class="subt">Generado: ' + new Date().toLocaleString() +
+    '<tr><td colspan="10" class="titulo">Supervisi&oacute;n de Recibos de Caja</td></tr>' +
+    '<tr><td colspan="10" class="subt">' + Esc(filtrosTexto) + '</td></tr>' +
+    '<tr><td colspan="10" class="subt">Generado: ' + new Date().toLocaleString() +
         ' &nbsp;&mdash;&nbsp; ' + visibles.length + ' recibo(s)</td></tr>' +
-    '<tr><td colspan="9"></td></tr>' +
+    '<tr><td colspan="10"></td></tr>' +
     '<tr>' +
         '<td class="hdr" width="110">Situaci&oacute;n</td>' +
         '<td class="hdr" width="110">Recibo</td>' +
@@ -976,10 +1189,12 @@ $("#btnExportExcel").on("click", function () {
         '<td class="hdr" width="90">Usuario</td>' +
         '<td class="hdr" width="85">Fecha</td>' +
         '<td class="hdr" width="45">D&iacute;as</td>' +
-        '<td class="hdr" width="420">Observaci&oacute;n</td>' +
+        '<td class="hdr" width="300">Qu&eacute; pas&oacute;</td>' +
+        '<td class="hdr" width="380">Detalle t&eacute;cnico</td>' +
     '</tr>';
 
     $.each(visibles, function (_, f) {
+        var info = InterpretarObservacion(f);
         var col = COLORES_SIT[f.Situacion] || { bg: "#FFFFFF", fg: "#000000" };
         var diasAlto = (f.Situacion !== "OPERADO" && f.DiasAntiguedad >= DIAS_UMBRAL);
         html +=
@@ -993,15 +1208,16 @@ $("#btnExportExcel").on("click", function () {
             '<td class="c txt">' + Esc(f.Usuario) + '</td>' +
             '<td class="c txt" style="text-align:center;">' + Esc(f.FechaRegistro) + '</td>' +
             '<td class="c entero' + (diasAlto ? ' diasAlto' : '') + '">' + f.DiasAntiguedad + '</td>' +
-            '<td class="c txt">' + Esc(f.SyncObservacion) + '</td>' +
+        '<td class="c txt">' + Esc(info.corto + (info.accion ? " — " + info.accion : "")) + '</td>' +
+        '<td class="c txt">' + Esc(f.SyncObservacion) + '</td>' +
         '</tr>';
     });
 
     html +=
     '<tr>' +
-        '<td class="total" colspan="4" style="text-align:right;">TOTAL (' + visibles.length + ' recibos)</td>' +
+        '<td class="total" colspan="5" style="text-align:right;">TOTAL (' + visibles.length + ' recibos)</td>' +
         '<td class="total num">' + totalMonto + '</td>' +
-        '<td class="total" colspan="4"></td>' +
+        '<td class="total" colspan="5"></td>' +
     '</tr>' +
     '</table></body></html>';
 

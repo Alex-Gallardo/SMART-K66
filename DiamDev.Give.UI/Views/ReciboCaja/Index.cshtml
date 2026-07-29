@@ -964,7 +964,7 @@
             <div id="alertaDescuadre" class="alert alert-danger"
                  style="display:none; margin:0 0 14px; border-left:4px solid #e74c3c;">
                 <strong><i class="icon-warning-sign"></i> Descuadre con SAP</strong>
-                <!-- <div id="alertaDescuadreDetalle"style="margin-top:5px; font-size:12.5px; font-family:monospace;"></div> -->
+                <div id="alertaDescuadreDetalle" style="margin-top:6px; font-size:12.5px;"></div>
                 <div style="margin-top:6px; font-size:12px;">
                     Parte del pago de este recibo fue <strong>anulado en SAP</strong> y el monto
                     aún no ha sido re-aplicado por Créditos. El recibo <strong>
@@ -974,6 +974,9 @@
                     sincronizador liberará el recibo automáticamente cuando los montos
                     vuelvan a cuadrar.
                 </div>
+                <div id="alertaDescuadreRef"
+                     style="margin-top:6px; font-size:10px; font-family:monospace;
+                            color:#c0a0a0; word-break:break-word;"></div>
             </div>
 
             <!-- Fila A: Identificadores + Totales rápidos -->
@@ -1000,7 +1003,7 @@
                 </div>
 
                 <!-- Moneda del recibo: NO se muestra (vive en la barra de totales),
-                pero SÍ se envía al backend en el payload del guardado. -->
+        pero SÍ se envía al backend en el payload del guardado. -->
                 <input type="hidden" id="txtMoneda" />
             </div>
 
@@ -3472,8 +3475,20 @@ var obs = syncObs || "";
 
 // Alerta de descuadre: visible SOLO en estado DESCUADRE
 if (estado === "DESCUADRE") {
-    $("#alertaDescuadreDetalle").text(obs ||
-        "Los montos del recibo no coinciden con los pagos activos en SAP.");
+    var infoDesc = InterpretarSyncObs(obs, estado);
+    if (infoDesc.interpretado) {
+        var lis = infoDesc.lineas.map(function (l) {
+            return "<li>" + EscHtml(l) + "</li>";
+        }).join("");
+        $("#alertaDescuadreDetalle").html(
+            '<div style="font-weight:700;">' + EscHtml(infoDesc.titulo) + '</div>' +
+            '<ul style="margin:4px 0 0 18px; padding:0; list-style:disc;">' + lis + '</ul>');
+        $("#alertaDescuadreRef").text("Ref. técnica: " + infoDesc.original);
+    } else {
+        $("#alertaDescuadreDetalle").text(obs ||
+            "Los montos del recibo no coinciden con los pagos activos en SAP.");
+        $("#alertaDescuadreRef").text("");
+    }
     $("#alertaDescuadre").slideDown(200);
 } else {
     $("#alertaDescuadre").hide();
@@ -3494,17 +3509,20 @@ switch (estado) {
         texto = "✓ OPERADO" + (sapDocNum ? " — SAP #" + sapDocNum : "");
         tip = "Operado en SAP por Créditos." +
             (sapDocNum ? " Pago recibido No. " + sapDocNum + "." : "");
+        // ── Al inicio del switch/case OPERADO, dentro del if de [CONCIL] ──
+        // case "OPERADO", dentro del if de [CONCIL]:
         if (obs.indexOf("[CONCIL]") === 0) {
             clase = "operado concil";
             texto += " ⚠";
-            tip = obs;
+            tip = TooltipSyncObs(obs, tip, estado);
         }
         break;
 
     case "DESCUADRE":
         clase = "descuadre";
         texto = "⚠ DESCUADRE CON SAP";
-        tip = obs || "Parte del pago fue anulado en SAP; el monto no cuadra.";
+        tip = TooltipSyncObs(obs,
+            "Parte del pago fue anulado en SAP; el monto no cuadra.", estado);
         break;
 
     case "PENDIENTE":
@@ -3513,20 +3531,20 @@ switch (estado) {
         tip = "Aún no ha sido operado por Créditos en SAP.";
         if (obs.indexOf("Anulado en SAP") !== -1) {
             texto = "⏳ PENDIENTE (ANULADO EN SAP)";
-            tip = obs;
+            tip = TooltipSyncObs(obs, tip, estado);
         }
         break;
 
     case "ANULADO":
         clase = "anulado";
         texto = "ANULADO EN SAP";
-        tip = obs || "El pago fue anulado en SAP.";
+        tip = TooltipSyncObs(obs, "El pago fue anulado en SAP.", estado);
         break;
 
     default:
         clase = "pendiente";
         texto = estado;
-        tip = obs;
+        tip = TooltipSyncObs(obs, "", estado);
         break;
 }
 
@@ -3579,6 +3597,212 @@ function PintarBadgeStatus(status) {
         .addClass(cfg.clase)
         .text(cfg.texto)
         .attr("title", cfg.tip);
+}
+
+// ════════════════════════════════════════════════════════
+// INTÉRPRETE DE SYNC_OBSERVACION (espejo de
+// SyncObservacionInterprete.Interpretar() en Entities)
+//
+// ⚠ DOS LISTAS, UNA REGLA — igual que TIPOS_DOC_SIN_REFERENCIA:
+// si algún día cambia el formato del mensaje del Sincronizador hay que
+// tocar ESTA función y la de C#. La de C# es la de referencia.
+//
+// El mensaje de la BD NO se modifica nunca: esto solo lo LEE.
+// Si no reconoce el formato → interpretado:false y el llamador muestra
+// el texto crudo. Degradar, no mentir.
+// ════════════════════════════════════════════════════════
+var _RX_OBS = {
+    etiqueta: /^\s*\[([A-Z_]+)\]/i,
+    moneda: /descuadre\s*\(\s*([A-Za-z]{3})\s*\)/i,
+    sql: /\bSQL\s*=\s*(-?[\d.,]+)/i,
+    sap: /\bSAP\s*(?:activo)?\s*=\s*(-?[\d.,]+)/i,
+    dif: /\bdif(?:erencia)?\s*=\s*(-?[\d.,]+)/i,
+    anulados: /anulado\(s\)\s*en\s*SAP\s*:\s*([^.]*)/i,
+    sinAplicar: /sin\s*aplicar\s*:\s*(-?[\d.,]+)/i,
+    fecha: /(\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2})/,
+    anuladoSap: /anulado\s+en\s+SAP/i,
+    reapuntado: /re-?apuntado\s+en\s+SAP/i,
+    docNumCambio: /DocNum\s*(\d+)\s*-\s*>\s*(\d+)/i,
+    docEntCambio: /DocEntry\s*(\d+)\s*-\s*>\s*(\d+)/i,
+    eraDocNum: /Era\s+DocNum\s*(\d+)/i,
+    regresadoPend: /Regresado\s+a\s+PENDIENTE/i
+};
+
+// Extrae un número del mensaje. Devuelve null si no está.
+// (El regex se come el punto final de la oración: "10.00." → hay que limpiar.)
+function _ObsNumero(rx, txt) {
+    var m = rx.exec(txt);
+    if (!m) return null;
+    var s = (m[1] || "").replace(/[.,\s]+$/, "");
+    var ultPunto = s.lastIndexOf("."), ultComa = s.lastIndexOf(",");
+    s = (ultComa > ultPunto)
+        ? s.replace(/\./g, "").replace(",", ".")   // formato europeo
+        : s.replace(/,/g, "");                      // quitar separador de miles
+    var v = parseFloat(s);
+    return isNaN(v) ? null : v;
+}
+
+function _ObsSimbolo(txt) {
+    var m = _RX_OBS.moneda.exec(txt);
+    var mon = m ? m[1].toUpperCase() : "GTQ";
+    if (mon === "USD") return "$";
+    if (mon === "GTQ") return "Q";
+    return mon;
+}
+
+function _ObsEsNinguno(t) {
+    t = (t || "").toLowerCase();
+    return !t.length || t.indexOf("ninguno") !== -1 ||
+        t.indexOf("ninguna") !== -1 || t.indexOf("no se detect") !== -1;
+        }
+
+        // "DocNum 1019443" → "No. 1019443" (ver HumanizarDocNums en Entities)
+        function _ObsHumanizarDocs(t) {
+            return (t || "").replace(/Doc(?:Num|Entry)\s*/gi, "No. ");
+        }
+
+        function InterpretarSyncObs(obs, syncEstado) {
+            var r = {
+                interpretado: false, etiqueta: "", titulo: "",
+                lineas: [], accion: "", original: (obs || "").toString().trim(), texto: ""
+            };
+            if (!r.original) return r;
+
+            var EPS = 0.005;    // medio centavo: mismo criterio que EPSILON del cuadre
+            var TOL = 0.01;     // 1 centavo: espejo de TOLERANCIA_REDONDEO en Entities
+            var txt = r.original;
+            var estado = (syncEstado || "").toString().trim().toUpperCase();
+
+            var mTag = _RX_OBS.etiqueta.exec(txt);
+            r.etiqueta = mTag ? mTag[1].toUpperCase() : "";
+
+            var sim = _ObsSimbolo(txt);
+            var mFec = _RX_OBS.fecha.exec(txt);
+            var fecha = mFec ? mFec[1] : "";
+
+            function M(v) { return sim + " " + FmtMoneda(v); }   // FmtMoneda ya existe acá
+            function Fecha(etq) {
+                if (fecha) r.lineas.push(etq + ": " + fecha.replace(" ", " a las ") + ".");
+            }
+
+            // ── CASO A: re-apuntado (cambió el pago en SAP). Estado OPERADO. ──
+            if (_RX_OBS.reapuntado.test(txt)) {
+                var dn = _RX_OBS.docNumCambio.exec(txt);
+                var de = _RX_OBS.docEntCambio.exec(txt);
+
+                r.titulo = "Recibo operado en SAP. El número de pago cambió.";
+                r.lineas.push("El pago original fue anulado en SAP y Créditos lo volvió a crear. " +
+                    "El sistema ya apunta al pago vigente.");
+                if (dn) r.lineas.push("Pago anterior: No. " + dn[1] + "  ·  Pago vigente: No. " + dn[2] + ".");
+                else if (de) r.lineas.push("Referencia interna de SAP: " + de[1] + " → " + de[2] + ".");
+
+                r.accion = "No requiere acción: el recibo está correctamente aplicado. Si tiene una " +
+                    "impresión anterior, el «No. Recibo SAP» que aparece ahí quedó obsoleto — " +
+                    "vuelva a imprimir el recibo.";
+                Fecha("Actualizado el");
+                r.interpretado = true;
+            }
+            // ── CASO B: pago anulado en SAP, recibo devuelto a PENDIENTE ──
+            else if (_RX_OBS.anuladoSap.test(txt)) {
+                var era = _RX_OBS.eraDocNum.exec(txt);
+
+                r.titulo = "El pago de este recibo fue anulado en SAP.";
+                r.lineas.push("El dinero sí fue recibido en caja, pero el pago ya no existe en el " +
+                    "sistema contable.");
+                if (era) r.lineas.push("Pago anulado: No. " + era[1] + ".");
+                if (_RX_OBS.regresadoPend.test(txt) || estado === "PENDIENTE")
+                    r.lineas.push("El recibo regresó a PENDIENTE: espera que Créditos vuelva a aplicarlo.");
+
+                r.accion = "Créditos debe volver a aplicar el pago en SAP. El recibo conserva su " +
+                    "validez como comprobante de pago.";
+                Fecha("Detectado el");
+                r.interpretado = true;
+            }
+            // ── CASO C: nota de conciliación (0 filas en prod: redacción genérica) ──
+            else if (r.etiqueta === "CONCIL") {
+                r.titulo = "Recibo operado en SAP, con observación de conciliación.";
+                r.lineas.push("El pago ya fue aplicado por Créditos en SAP.");
+                r.accion = "No requiere acción del agente. La nota queda como historial del recibo " +
+                    "para control de Créditos.";
+                Fecha("Última revisión automática");
+                r.interpretado = true;
+            }
+            else {
+                // ── CASO D: descuadre con montos ──
+                var recibo = _ObsNumero(_RX_OBS.sql, txt);
+                var sap = _ObsNumero(_RX_OBS.sap, txt);
+                var dif = _ObsNumero(_RX_OBS.dif, txt);
+                var sinAplicar = _ObsNumero(_RX_OBS.sinAplicar, txt);
+                var mAnu = _RX_OBS.anulados.exec(txt);
+                var anulados = mAnu ? (mAnu[1] || "").trim() : "";
+
+                if (dif === null && recibo !== null && sap !== null) dif = recibo - sap;
+
+                if (recibo !== null || sap !== null || dif !== null) {
+                    var d = (dif === null) ? 0 : dif;
+                    var abs = Math.abs(d);
+
+                    if (abs > EPS && abs <= TOL) {
+                        r.titulo = "Diferencia mínima de " + M(abs) + " frente a SAP (redondeo).";
+                        r.accion = "No hay dinero faltante: es residuo de conversión de moneda. " +
+                            "El sincronizador reintenta automáticamente; si el recibo no se " +
+                            "libera, avise a Sistemas.";
+                    } else if (d > EPS) {
+                        r.titulo = "Faltan " + M(d) + " por aplicar en SAP.";
+                        r.accion = "Créditos debe aplicar la diferencia en SAP. El recibo se libera " +
+                            "automáticamente cuando los montos vuelvan a cuadrar. Mientras " +
+                            "esté en descuadre, el recibo NO puede anularse.";
+                    } else if (d < -EPS) {
+                        r.titulo = "En SAP hay " + M(abs) + " aplicados de más frente a este recibo.";
+                        r.accion = "Créditos debe revisar los pagos aplicados en SAP para este recibo. " +
+                            "Mientras esté en descuadre, el recibo NO puede anularse.";
+                    } else {
+                        r.titulo = "El recibo está en revisión con SAP.";
+                        r.accion = "El sincronizador volverá a verificarlo automáticamente.";
+                    }
+
+                    if (recibo !== null) r.lineas.push("Este recibo registra " + M(recibo) + " recibidos en caja.");
+                    if (sap !== null) r.lineas.push("En SAP hay " + M(sap) + " aplicados a documentos del cliente.");
+                    if (dif !== null) r.lineas.push("Diferencia: " + M(abs) +
+                        (d < -EPS ? " aplicados en exceso en SAP." : " sin aplicar en SAP."));
+
+                    if (anulados.length) {
+                        r.lineas.push(_ObsEsNinguno(anulados)
+                            ? "No se detectaron pagos anulados en SAP."
+                            : "Pago(s) anulado(s) en SAP: " + _ObsHumanizarDocs(anulados) + ".");
+                    }
+                    if (sinAplicar !== null && Math.abs(sinAplicar - abs) > EPS) {
+                        r.lineas.push("Monto recibido en caja que todavía no se aplica: " + M(sinAplicar) + ".");
+                    }
+                    Fecha("Última revisión automática");
+                    r.interpretado = true;
+                }
+            }
+
+            if (r.interpretado) {
+                r.texto = r.titulo + "\n" +
+                    r.lineas.map(function (l) { return "• " + l; }).join("\n") +
+                    (r.accion ? "\n\n" + r.accion : "");
+            }
+            return r;
+        }
+
+// Tooltip listo para el atributo title (acepta "\n", NO acepta HTML).
+// A diferencia del papel, acá SÍ dejamos la ref. técnica: quien ve esta
+// pantalla es personal interno y le sirve para reportar a soporte.
+function TooltipSyncObs(obs, fallback, syncEstado) {
+    var info = InterpretarSyncObs(obs, syncEstado);
+    if (!info.interpretado) return (obs || fallback || "");
+    return info.texto + "\n\nRef.: " + info.original;
+}
+
+// Escape mínimo para inyectar texto de la BD como HTML.
+// (En JS puro no existe algo como el escape automático de Razor: si el
+// mensaje trajera "<" y lo pegamos con .html(), rompe el DOM.)
+function EscHtml(s) {
+    return (s || "").toString()
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 // ════════════════════════════════════════════════════════

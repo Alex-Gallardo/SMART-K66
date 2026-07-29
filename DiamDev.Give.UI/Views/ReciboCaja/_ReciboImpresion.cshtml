@@ -114,6 +114,13 @@
     // ser proporcional al significado.
     bool enConciliacion = "DESCUADRE".Equals((Model.SyncEstado ?? "").Trim(),
                                              StringComparison.OrdinalIgnoreCase);
+
+    // ── Traducción legible del log de sincronización ──
+    // La BD guarda el mensaje técnico; acá solo lo interpretamos para el papel.
+    // ★ El SyncEstado va como 2º parámetro: el mismo texto significa distinto
+    // en OPERADO (nota histórica) que en DESCUADRE (problema abierto).
+    var obsLegible = SyncObservacionInterprete.Interpretar(
+                         Model.SyncObservacion, Model.SyncEstado);
 }
 <div class="recibo-doc">
     @if (esAnulado)
@@ -160,10 +167,6 @@
                 del pago en el sistema contable está siendo revisada por el departamento de
                 Créditos. Este documento conserva su validez como comprobante de pago.
             </div>
-            @if (!string.IsNullOrWhiteSpace(Model.SyncObservacion))
-            {
-                <div class="bd-obs">Ref.: @Model.SyncObservacion</div>
-            }
         </div>
     }
 

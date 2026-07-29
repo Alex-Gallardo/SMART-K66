@@ -414,7 +414,7 @@
         <h4 class="panel-title" style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:#5d6d7e; font-size:13px;">
             <i class="clip-stats"></i>
             <span style="font-weight:700;">Supervisión de Recibos</span>
-            <small style="color:#95a5a6;">Salud del módulo frente a SAP</small>
+            <small style="color:#95a5a6;"></small>
             <span style="margin-left:auto; display:flex; gap:6px;">
                 <a href="@Url.Action("Series","ReciboCaja")" class="btn btn-default btn-xs" title="Mantenimiento de series de numeración">
                     <i class="icon-cogs"></i> Series
@@ -583,7 +583,7 @@
 var URL_RESUMEN = "@Url.Action("GetDashboardResumen","ReciboCaja")";
 var URL_DETALLE = "@Url.Action("GetDashboardDetalle","ReciboCaja")";
 var URL_INDEX   = "@Url.Action("Index","ReciboCaja")";
-var DIAS_UMBRAL = parseInt("@@ViewBag.DiasUmbral") || 3;
+var DIAS_UMBRAL = parseInt("@ViewBag.DiasUmbral") || 3;
 var TOPE_FILAS = 500;   // espejo del TOP 500 del backend
 var URL_IMPRIMIR_LOTE = "@Url.Action("ImprimirLote","ReciboCaja")";
 

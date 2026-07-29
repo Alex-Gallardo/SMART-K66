@@ -219,12 +219,20 @@ namespace DiamDev.Give.Sincronizador
                                         rd["SAP_DOCENTRY"], rd["SAP_DOCNUM"], rd["STATUS"]);
                                     Console.WriteLine("          OBSERVACION : {0}",
                                         rd["SYNC_OBSERVACION"] == DBNull.Value ? "(NULL)" : rd["SYNC_OBSERVACION"]);
+
+                                    // ★ FIX: la lectura de STATUS va DENTRO del Read().
+                                    // Afuera, un recibo inexistente hacía throw y uno
+                                    // activo se reportaba como "no existe".
+                                    if ("X".Equals(rd["STATUS"] == DBNull.Value
+                                                       ? "" : rd["STATUS"].ToString(),
+                                                   StringComparison.OrdinalIgnoreCase))
+                                        Console.WriteLine("   ⚠ ANULADO EN WEB (STATUS=X): invisible para el sync por diseño.");
+                                    else
+                                        Console.WriteLine("   ✓ Recibo ACTIVO en SQL.");
                                 }
-                                if ("X".Equals(rd["STATUS"]?.ToString(), StringComparison.OrdinalIgnoreCase))
-                                    Console.WriteLine("   ⚠ ANULADO EN WEB (STATUS=X): invisible para el sync por diseño.");
                                 else
                                 {
-                                    Console.WriteLine("   SQL  → ✗ El recibo NO existe en esta BD ({0}).", "REC_CAJA_ENC");
+                                    Console.WriteLine("   SQL  → ✗ El recibo NO existe en esta BD (REC_CAJA_ENC).");
                                 }
                             }
                         }

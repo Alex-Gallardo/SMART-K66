@@ -2,6 +2,8 @@
 @{
     Layout = null;
     var omitidos = ViewBag.Omitidos as List<string> ?? new List<string>();
+    // Cuántos del lote salen con banda de conciliación (los pone el controller).
+    int enConciliacion = ViewBag.EnConciliacion != null ? (int)ViewBag.EnConciliacion : 0;
 }
 <!DOCTYPE html>
 <html lang="es">
@@ -15,7 +17,6 @@
             margin: 0;
             background: #eee;
         }
-
         /* Barra superior: NO sale en la impresión */
         .barra-lote {
             background: #2c3e50;
@@ -45,7 +46,16 @@
             padding: 8px 18px;
             font-size: 12px;
         }
-
+        /* Aviso de conciliación: mismo tono ámbar que la banda del recibo,
+           para que quien lo lee reconozca el sello antes de imprimir. */
+        .aviso-concil {
+            background: #fef5e7;
+            border: 1px solid #e67e22;
+            border-left-width: 4px;
+            color: #ba4a00;
+            padding: 8px 18px;
+            font-size: 12px;
+        }
         /* Un recibo por página al imprimir */
         .pagina-recibo {
             background: #fff;
@@ -78,26 +88,31 @@
     </style>
 </head>
 <body>
-
     <div class="barra-lote no-print">
         <strong>🖨 Lote de impresión — @Model.Count recibo(s)</strong>
         <button class="btn-imprimir" onclick="window.print()">Imprimir todo</button>
         <span style="font-size:11px; color:#95a5a6;">Cada recibo sale en su propia página.</span>
     </div>
-
+    @if (enConciliacion > 0)
+    {
+        <div class="aviso-concil no-print">
+            <strong>⚠ @enConciliacion recibo(s) en conciliación con SAP.</strong>
+            Se imprimen igual que el resto, con una banda de advertencia visible
+            en el documento. El dinero fue recibido; lo que está en revisión es
+            la aplicación del pago en SAP.
+        </div>
+    }
     @if (omitidos.Count > 0)
     {
         <div class="aviso-omitidos no-print">
             <strong>⚠ @omitidos.Count omitido(s):</strong> @string.Join(" • ", omitidos)
         </div>
     }
-
     @foreach (var rec in Model)
     {
         <div class="pagina-recibo">
             @Html.Partial("_ReciboImpresion", rec)
         </div>
     }
-
 </body>
 </html>

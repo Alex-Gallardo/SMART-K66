@@ -243,10 +243,20 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         // ─────────────────────────────────────────────
-        // GET /ReciboCaja/Imprimir/{idRecibo}/{empresa}
+        // GET /ReciboCaja/Imprimir?idRecibo=X&empresa=Y
         // Abre vista de impresión en nueva pestaña.
-        // BLOQUEA recibos en DESCUADRE (validación de servidor: el disabled
-        // del botón en la vista es solo cosmético, esto es lo que manda).
+        //
+        // ★ CAMBIO: los recibos en DESCUADRE YA NO se bloquean.
+        //
+        // Causa raíz: el recibo se imprime AUTOMÁTICAMENTE al guardarse, y el
+        // sincronizador detecta el descuadre DESPUÉS. El cliente ya tiene su
+        // papel — bloquear solo impedía la REimpresión, que es justo la que
+        // Créditos necesita para investigar la diferencia.
+        //
+        // Además el descuadre NO invalida el recibo: el dinero entró a caja.
+        // Lo que está en disputa es contra qué facturas quedó aplicado en SAP.
+        // El control correcto no es esconder el documento, es SELLARLO (banda
+        // de conciliación en _ReciboImpresion.cshtml) y REGISTRAR quién lo sacó.
         // ─────────────────────────────────────────────
         /// [Permiso("Control.ReciboCaja.Ver")]
         public ActionResult Imprimir(string idRecibo, string empresa)
@@ -254,35 +264,16 @@ namespace DiamDev.Give.UI.Controllers
             var rec = _bll.BuscarRecibo(idRecibo, empresa);
             if (rec == null) return HttpNotFound("Recibo no encontrado.");
 
-            if ("DESCUADRE".Equals(rec.SyncEstado ?? "", StringComparison.OrdinalIgnoreCase))
-            {
-                string html =
-                    "<!DOCTYPE html><html><head><meta charset='utf-8'>" +
-                    "<title>Impresión bloqueada</title>" +
-                    "<style>body{font-family:Arial,sans-serif;background:#f4f6f7;display:flex;" +
-                    "align-items:center;justify-content:center;height:100vh;margin:0}" +
-                    ".box{background:#fff;border-top:5px solid #e74c3c;border-radius:8px;" +
-                    "box-shadow:0 8px 30px rgba(0,0,0,.12);padding:30px 36px;max-width:580px}" +
-                    "h2{color:#a93226;margin-top:0}p{color:#5d6d7e;font-size:14px;line-height:1.5}" +
-                    "code{background:#fdf2f0;color:#a93226;padding:2px 6px;border-radius:4px}" +
-                    ".obs{background:#fef9e7;border:1px solid #f1c40f;border-radius:5px;" +
-                    "padding:10px 12px;font-size:12.5px;color:#7d6608}</style></head><body>" +
-                    "<div class='box'><h2>⚠ Impresión bloqueada</h2>" +
-                    "<p>El recibo <code>" + Server.HtmlEncode(idRecibo ?? "") + "</code> tiene un " +
-                    "<strong>descuadre con SAP</strong>: parte del pago fue anulado y aún no ha " +
-                    "sido re-aplicado por Créditos.</p>" +
-                    "<div class='obs'>" + Server.HtmlEncode(rec.SyncObservacion ?? "") + "</div>" +
-                    "<p style='margin-top:14px;'>Cuando Créditos re-aplique el monto en SAP " +
-                    "(con el mismo recibo en <code>U_Recibocaja_Webapp</code>), el sincronizador " +
-                    "liberará la impresión automáticamente.</p></div></body></html>";
+            bool enConciliacion = "DESCUADRE".Equals(rec.SyncEstado ?? "",
+                                                     StringComparison.OrdinalIgnoreCase);
 
-                return Content(html, "text/html");
-            }
-
+            // El detalle diferencia una impresión normal de una en conciliación.
+            // Bloquear no dejaba rastro de nada; esto sí es auditable.
             _analytics.RegistrarEvento("IMPRESO", rec,
                                        CustomHelper.getUserId(),
                                        User.Identity.Name,
-                                       Request.UserHostAddress);
+                                       Request.UserHostAddress,
+                                       enConciliacion ? "descuadre" : null);
 
             return View(rec);
         }
@@ -314,7 +305,13 @@ namespace DiamDev.Give.UI.Controllers
         // ─────────────────────────────────────────────
         // GET /ReciboCaja/ImprimirLote?ids=RG12-07520|GRACO,RG12-07521|GRACO
         // Junta varios recibos en UN documento imprimible (un recibo por página).
-        // Re-valida en servidor: omite DESCUADRES y no encontrados, y lo informa.
+        //
+        // ★ CAMBIO: los DESCUADRE ya no se omiten del lote. Salen impresos con
+        // su banda de conciliación, igual que en la impresión individual. Un
+        // lote de 30 recibos donde 2 desaparecían —y el aviso vivía en una
+        // barra que nadie lee— era peor que imprimirlos marcados.
+        // 'omitidos' queda SOLO para lo que de verdad no se puede imprimir:
+        // recibos que no existen.
         // ─────────────────────────────────────────────
         // [Permiso("Control.ReciboCaja.Ver")]
         public ActionResult ImprimirLote(string ids)
@@ -333,17 +330,9 @@ namespace DiamDev.Give.UI.Controllers
 
                 var rec = _bll.BuscarRecibo(id, emp);
                 if (rec == null)
-                {
                     omitidos.Add(id + " (no encontrado)");
-                }
-                else if ("DESCUADRE".Equals(rec.SyncEstado ?? "", StringComparison.OrdinalIgnoreCase))
-                {
-                    omitidos.Add(id + " (descuadre con SAP: impresión bloqueada)");
-                }
                 else
-                {
                     recibos.Add(rec);
-                }
             }
 
             if (recibos.Count == 0)
@@ -359,9 +348,15 @@ namespace DiamDev.Give.UI.Controllers
             string login = User.Identity.Name;
             string ipLote = Request.UserHostAddress;
             foreach (var r in recibos)
-                _analytics.RegistrarEvento("IMPRESO", r, uid, login, ipLote, "lote");
+                _analytics.RegistrarEvento("IMPRESO", r, uid, login, ipLote,
+                    "DESCUADRE".Equals(r.SyncEstado ?? "", StringComparison.OrdinalIgnoreCase)
+                        ? "lote descuadre" : "lote");
 
+            // Contador para la barra del lote: cuántos salen sellados.
             ViewBag.Omitidos = omitidos;
+            ViewBag.EnConciliacion = recibos.Count(r =>
+                "DESCUADRE".Equals(r.SyncEstado ?? "", StringComparison.OrdinalIgnoreCase));
+
             return View(recibos);
         }
 

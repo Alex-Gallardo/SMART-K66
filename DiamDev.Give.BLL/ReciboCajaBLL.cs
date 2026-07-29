@@ -232,41 +232,26 @@ namespace DiamDev.Give.BLL
         // ═════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Días hacia atrás que se buscan si la fecha exacta no tiene TC en ORTT.
-        /// SAP no publica tasa los fines de semana ni feriados: un cobro con fecha
-        /// de sábado NO debe reventar el guardado, debe tomar la del viernes
-        /// (que es exactamente lo que hace el banco).
-        /// 7 días cubre feriados largos (Semana Santa, fin de año).
-        /// </summary>
-        private const int MAX_DIAS_RETROCESO_TC = 7;
-
-        /// <summary>
-        /// TC vigente para una fecha. Si esa fecha no tiene tasa publicada,
-        /// retrocede día a día hasta MAX_DIAS_RETROCESO_TC.
+        /// TC vigente para una fecha, según SAP.
         ///
-        /// El try/catch por iteración es deliberado: no sabemos si el repositorio
-        /// devuelve 0 o lanza cuando no hay fila en ORTT. Tratamos ambos casos
-        /// como "no hay tasa ese día" y seguimos buscando. Si tras el retroceso
-        /// no hay nada, ahí sí lanzamos con un mensaje que dice la fecha exacta.
+        /// NO hace retroceso día a día: la consulta de HanaRepository ya usa
+        /// "RateDate &lt;= @fecha ORDER BY RateDate DESC", o sea que devuelve
+        /// la última tasa publicada hasta esa fecha. Fines de semana y feriados
+        /// quedan cubiertos por SAP, igual que en el banco. Si acá agregáramos
+        /// un bucle, cada iteración repetiría exactamente la misma consulta.
         ///
-        /// Fechas futuras: también funcionan. El bucle arranca en la fecha del
-        /// cobro y camina hacia atrás, así que un cobro fechado mañana termina
-        /// tomando el TC de hoy.
+        /// Fechas futuras también funcionan: caen a la última tasa vigente.
+        /// Si no hay NINGUNA tasa, ObtenerTipoCambio lanza con mensaje propio.
         /// </summary>
         public decimal ObtenerTipoCambioFecha(string empresa, DateTime fecha)
         {
-            for (int i = 0; i <= MAX_DIAS_RETROCESO_TC; i++)
-            {
-                DateTime f = fecha.Date.AddDays(-i);
-                decimal tc;
-                try { tc = _hana.ObtenerTipoCambio(empresa, f); }
-                catch { tc = 0m; }
-                if (tc > 0m) return tc;
-            }
+            decimal tc = _hana.ObtenerTipoCambio(empresa, fecha.Date);
 
-            throw new Exception(
-                $"No hay tipo de cambio publicado en SAP (ORTT) para {empresa} " +
-                $"en la fecha {fecha:dd/MM/yyyy} ni en los {MAX_DIAS_RETROCESO_TC} días anteriores.");
+            if (tc <= 0m)
+                throw new Exception(
+                    $"Tipo de cambio inválido en SAP para {empresa} al {fecha:dd/MM/yyyy}.");
+
+            return tc;
         }
 
         /// <summary>

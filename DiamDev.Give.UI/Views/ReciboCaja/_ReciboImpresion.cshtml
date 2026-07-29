@@ -1,5 +1,6 @@
 ﻿@model DiamDev.Give.Entities.ReciboCajaEncabezado
 @using System.Linq
+@using DiamDev.Give.Entities
 @{
     // ── Datos de membrete por empresa (razón social + NIT reales + logo) ──
     var empresas = new Dictionary<string, dynamic>
@@ -14,11 +15,31 @@
 
     bool esOperado = string.Equals(Model.SyncEstado, "OPERADO", StringComparison.OrdinalIgnoreCase);
     bool tieneDual = Model.TipoCambio.HasValue && Model.TipoCambio.Value > 0;
+
+    // TC del ENCABEZADO = el PONDERADO del recibo. Es el que se aplicó a los
+    // DOCUMENTOS (que no tienen fecha de cobro propia). Los COBROS usan el suyo.
     decimal tc = Model.TipoCambio ?? 0;
 
     Func<string, bool> esMonedaUsd = m =>
         "USD".Equals((m ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
     Func<string, string> simboloDe = m => esMonedaUsd(m) ? "$" : "Q";
+
+    var cobros = Model.Cobros ?? new List<ReciboCajaCobro>();
+    var documentos = Model.Documentos ?? new List<ReciboCajaDetalle>();
+
+    // Lector numérico tolerante al tipo declarado: ReciboCajaCobro.TipoCambio
+    // puede ser decimal o decimal?. Convert.ToDecimal(object) cubre ambos
+    // (null → 0). En TS sería: v => Number(v ?? 0)
+    Func<object, decimal> num = v => v == null ? 0m : Convert.ToDecimal(v);
+
+    // TC de UNA línea de cobro: el de SU fecha. Fallback al del encabezado
+    // para recibos históricos (anteriores al TC por fecha), donde la línea
+    // no tiene tasa propia guardada.
+    Func<ReciboCajaCobro, decimal> tcDeCobro = c =>
+    {
+        decimal t = num(c.TipoCambio);
+        return t > 0 ? t : tc;
+    };
 
     // ════════════════════════════════════════════════════════
     // MONEDA EFECTIVA DEL RECIBO — se decide por las LÍNEAS
@@ -27,10 +48,10 @@
     // typeahead), NO la moneda en que se cobró. Un cliente en USD puede
     // pagar en quetzales. Lo que manda para imprimir es la moneda real
     // de los cobros y documentos.
-    bool hayUsd = (Model.Cobros != null && Model.Cobros.Any(c => esMonedaUsd(c.Moneda)))
-               || (Model.Documentos != null && Model.Documentos.Any(d => esMonedaUsd(d.Moneda)));
-    bool hayGtq = (Model.Cobros != null && Model.Cobros.Any(c => !esMonedaUsd(c.Moneda)))
-               || (Model.Documentos != null && Model.Documentos.Any(d => !esMonedaUsd(d.Moneda)));
+    bool hayUsd = cobros.Any(c => esMonedaUsd(c.Moneda))
+               || documentos.Any(d => esMonedaUsd(d.Moneda));
+    bool hayGtq = cobros.Any(c => !esMonedaUsd(c.Moneda))
+               || documentos.Any(d => !esMonedaUsd(d.Moneda));
 
     // Sin líneas (caso legado/raro): último recurso, el encabezado.
     if (!hayUsd && !hayGtq)
@@ -42,17 +63,36 @@
     bool unicaEsUsd = hayUsd && !hayGtq; // 100% dólares
 
     // DUAL solo si de verdad hay mezcla Y tenemos TC para derivar.
-    // (Mixto sin TC solo puede ocurrir en recibos legados anteriores al
-    //  cálculo dual; en ese caso cada línea se imprime en su moneda.)
     bool mostrarDual = esMixto && tieneDual;
 
     string simbolo = unicaEsUsd ? "$" : "Q";
 
-    // Conversores por línea (regla de oro del BLL: original exacto, derivado redondeado)
-    Func<decimal, string, decimal> aGtq = (m, mon) =>
-        esMonedaUsd(mon) ? Math.Round(m * tc, 2) : m;
-    Func<decimal, string, decimal> aUsd = (m, mon) =>
-        esMonedaUsd(mon) ? m : (tc > 0 ? Math.Round(m / tc, 2) : 0);
+    // ¿Los cobros usaron tasas distintas? Redondeamos a 6 decimales (escala
+    // de ORTT) antes de comparar: sin eso, dos tasas idénticas con basura
+    // decimal contarían como dos.
+    var tcsCobros = cobros.Select(c => Math.Round(tcDeCobro(c), 6))
+                          .Where(t => t > 0)
+                          .Distinct()
+                          .ToList();
+    bool tcMixto = tcsCobros.Count > 1;
+    decimal tcUnico = tcsCobros.Count == 1 ? tcsCobros[0] : tc;
+
+    // Columna "T. Cambio" en el detalle de cobros: SOLO si hay dólares de por
+    // medio. En un recibo 100% GTQ no hubo ninguna conversión, y una tasa
+    // impresa ahí solo genera preguntas del cliente.
+    bool mostrarTcCobro = tieneDual && hayUsd;
+
+    // Conversores CON TC explícito (regla de oro del BLL: el monto en la
+    // moneda ORIGINAL es exacto, el equivalente se DERIVA).
+    Func<decimal, string, decimal, decimal> aGtqCon = (m, mon, t) =>
+        esMonedaUsd(mon) ? Math.Round(m * t, 2) : m;
+    Func<decimal, string, decimal, decimal> aUsdCon = (m, mon, t) =>
+        esMonedaUsd(mon) ? m : (t > 0 ? Math.Round(m / t, 2) : 0);
+
+    // DOCUMENTOS: siempre con el TC del encabezado (ponderado), porque así
+    // exactamente los calculó y guardó el BLL. Peras con peras.
+    Func<decimal, string, decimal> aGtq = (m, mon) => aGtqCon(m, mon, tc);
+    Func<decimal, string, decimal> aUsd = (m, mon) => aUsdCon(m, mon, tc);
 
     // Totales de UNA moneda (cuando no hay mezcla): duales guardados; fallback legado.
     decimal totCobros = tieneDual ? (unicaEsUsd ? Model.MontoTotalRecUsd : Model.MontoTotalRecGtq) : Model.MontoTotalRecibo;
@@ -66,6 +106,14 @@
     string noReciboSap = (esOperado && Model.SapDocNum.HasValue) ? Model.SapDocNum.Value.ToString() : "";
 
     bool esAnulado = "X".Equals((Model.Status ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
+
+    // ★ NUEVO — Recibo con descuadre frente a SAP.
+    // NO invalida el documento (el dinero se recibió): solo avisa que la
+    // aplicación contable en SAP está en revisión. Por eso es una banda
+    // informativa ámbar y no una marca de agua roja — el peso visual debe
+    // ser proporcional al significado.
+    bool enConciliacion = "DESCUADRE".Equals((Model.SyncEstado ?? "").Trim(),
+                                             StringComparison.OrdinalIgnoreCase);
 }
 <div class="recibo-doc">
     @if (esAnulado)
@@ -103,6 +151,22 @@
         </div>
     </div>
 
+    @if (enConciliacion)
+    {
+        <div class="banda-descuadre">
+            <div class="bd-titulo">⚠ Recibo en conciliación con SAP</div>
+            <div class="bd-texto">
+                El dinero de este recibo <strong>fue recibido en caja</strong>. La aplicación
+                del pago en el sistema contable está siendo revisada por el departamento de
+                Créditos. Este documento conserva su validez como comprobante de pago.
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.SyncObservacion))
+            {
+                <div class="bd-obs">Ref.: @Model.SyncObservacion</div>
+            }
+        </div>
+    }
+
     <!-- ── CLIENTE ── -->
     <div class="bloque">
         <h3>Datos del Cliente</h3>
@@ -125,7 +189,7 @@
                 <th>Tipo</th>
                 <th>Banco</th>
                 <th>No. Documento</th>
-                <th>Fecha Doc.</th>
+                <th>Fecha del Cobro</th>
                 @if (mostrarDual)
                 {
                     <th class="num-col">Monto Q</th>
@@ -136,11 +200,20 @@
                     <th class="num-col">Monto @simbolo</th>
                 }
                 <th>Moneda</th>
+                @if (mostrarTcCobro)
+                {
+                    <th class="num-col">T. Cambio</th>
+                }
             </tr>
         </thead>
         <tbody>
             @foreach (var c in Model.Cobros)
             {
+                // ★ El TC de ESTA línea, no el del encabezado. Antes se convertía
+                // todo con el ponderado y las columnas no sumaban el total (que sí
+                // viene de los duales guardados por el BLL).
+                decimal tcC = tcDeCobro(c);
+
                 <tr>
                     <td>@c.TipoCobro</td>
                     <td>@(string.IsNullOrWhiteSpace(c.Banco) ? "—" : c.Banco)</td>
@@ -148,14 +221,18 @@
                     <td>@(c.FechaDoc.HasValue ? c.FechaDoc.Value.ToString("dd/MM/yyyy") : "—")</td>
                     @if (mostrarDual)
                     {
-                        <td class="num-col">@aGtq(c.Monto, c.Moneda).ToString("N2")</td>
-                        <td class="num-col">@aUsd(c.Monto, c.Moneda).ToString("N2")</td>
+                        <td class="num-col">@aGtqCon(c.Monto, c.Moneda, tcC).ToString("N2")</td>
+                        <td class="num-col">@aUsdCon(c.Monto, c.Moneda, tcC).ToString("N2")</td>
                     }
                     else
                     {
                         <td class="num-col">@c.Monto.ToString("N2")</td>
                     }
                     <td>@c.Moneda</td>
+                    @if (mostrarTcCobro)
+                    {
+                        <td class="num-col tc-col">@tcC.ToString("N4")</td>
+                    }
                 </tr>
             }
         </tbody>
@@ -260,7 +337,21 @@
     </div>
     @if (mostrarNotaTc)
     {
-        <div class="tc-nota">Tipo de cambio aplicado: Q @Model.TipoCambio.Value.ToString("N4") por US$ 1.00</div>
+        // La nota deja de mentir cuando hay varias tasas. Antes decía "Tipo de
+        // cambio aplicado: Q X" en singular, aunque ninguna línea se hubiera
+        // convertido con esa X.
+        if (tcMixto)
+        {
+            <div class="tc-nota">
+                Cada cobro fue valuado al tipo de cambio vigente en <strong>su propia fecha</strong>
+                (ver columna T. Cambio). Los documentos se valuaron al tipo de cambio
+                <strong>ponderado</strong> del recibo: Q @tc.ToString("N4") por US$ 1.00.
+            </div>
+        }
+        else
+        {
+            <div class="tc-nota">Tipo de cambio aplicado: Q @tcUnico.ToString("N4") por US$ 1.00</div>
+        }
     }
 
     <!-- ── FIRMAS ── -->
@@ -290,6 +381,10 @@
         @if (esOperado && Model.SapDocNum.HasValue)
         {
             <text> · Operado en SAP — Pago No. @Model.SapDocNum</text>
+        }
+        @if (enConciliacion)
+        {
+            <text> · <span style="color:#ba4a00; font-weight:700;">En conciliación con SAP</span></text>
         }
     </div>
 

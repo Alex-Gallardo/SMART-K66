@@ -218,6 +218,59 @@
             border-radius: 6px;
             padding: 0.2em 1em;
         }
+
+        /* Columna "T. Cambio" del detalle de cobros: es dato de respaldo,
+           no protagonista. Gris y un punto más chico que el monto para que
+           el ojo siga yendo primero a las cifras de dinero. */
+        .recibo-doc .tc-col {
+            font-size: 11px;
+            color: #7f8c8d;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ── BANDA "EN CONCILIACIÓN" (descuadre con SAP) ──
+           Ámbar, no rojo: el documento es VÁLIDO, solo está en revisión.
+           El rojo queda reservado para ANULADO, que sí invalida. */
+        .recibo-doc .banda-descuadre {
+            border: 1px solid #e67e22;
+            border-left: 5px solid #e67e22;
+            background: #fef5e7;
+            border-radius: 4px;
+            padding: 9px 14px;
+            margin-bottom: 14px;
+        }
+
+            .recibo-doc .banda-descuadre .bd-titulo {
+                font-size: 12px;
+                font-weight: 700;
+                color: #ba4a00;
+                margin-bottom: 3px;
+            }
+
+            .recibo-doc .banda-descuadre .bd-texto {
+                font-size: 11px;
+                color: #7d6608;
+                line-height: 1.45;
+            }
+
+            .recibo-doc .banda-descuadre .bd-obs {
+                font-family: 'Courier New', monospace;
+                font-size: 10px;
+                color: #95a5a6;
+                margin-top: 5px;
+                word-break: break-word;
+            }
+
+    @@media print {
+        /* Chrome NO imprime fondos por defecto. Sin esto la banda saldría
+           blanca en papel y el sello se perdería justo donde más importa.
+           (La marca ANULADO no lo necesita: es color de TEXTO, no de fondo.) */
+        .recibo-doc .banda-descuadre {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+
     /* ── MARCA DE AGUA "ANULADO" ──
    position:absolute (no fixed) a propósito: el parcial se reutiliza
    en ImprimirLote y un fixed marcaría TODAS las páginas del lote. */

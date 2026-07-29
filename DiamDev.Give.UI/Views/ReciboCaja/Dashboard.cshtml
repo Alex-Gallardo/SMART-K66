@@ -670,7 +670,7 @@ function InterpretarObservacion(f) {
             clase: "obs-ok",
             corto: "Diferencia resuelta: ya cuadra con SAP",
             detalle: "El monto del recibo volvió a coincidir con lo aplicado en SAP. " +
-                "El recibo quedó operado y la impresión está habilitada.",
+                "El recibo quedó operado y ya no lleva sello de conciliación.",
             accion: "", tecnico: ""
         };
     }
@@ -695,7 +695,7 @@ function InterpretarObservacion(f) {
                 " y en SAP solo hay " + ObsMonto(enSap, mon) + " aplicados: " +
                 "faltan " + ObsMonto(falta, mon) + "." +
                 (docs ? " Pago(s) anulado(s) en SAP: " + docs + "." : "") +
-                " Mientras no cuadre, la impresión de este recibo está bloqueada.",
+                " El recibo puede imprimirse: sale con un sello de conciliación.",
             accion: "Volver a aplicar el monto faltante en SAP con el mismo número de recibo.",
             tecnico: ""
         };
@@ -933,17 +933,31 @@ function PintarDetalle() {
             "&empresa=" + encodeURIComponent(f.IdEmpresa);
 
         var esAnulado = (f.Situacion === "ANULADO");
-        // Los anulados SÍ son imprimibles: la vista de impresión les pone la
-        // marca de agua diagonal "ANULADO". Solo el DESCUADRE queda bloqueado.
-        var esImprimible = (f.Situacion !== "DESCUADRE");
+        var esDescuadre = (f.Situacion === "DESCUADRE");
+
+        // ★ CAMBIO: TODO recibo es imprimible.
+        // Antes el DESCUADRE quedaba fuera del lote (checkbox disabled),
+        // espejando un bloqueo del servidor que YA NO EXISTE. Bloquear la
+        // reimpresión no protegía nada —el recibo se imprime solo al
+        // guardarse, mucho antes de que el sincronizador detecte el
+        // descuadre— y le quitaba la copia justo a Créditos, que es quien
+        // debe investigar. Ahora los DESCUADRE salen con banda ámbar de
+        // conciliación y los ANULADO con su marca de agua: el papel se
+        // auto-explica, y cada impresión queda registrada en analytics.
         var key = KeySel(f);
-        var sel = esImprimible && _sel[key];
+        var sel = !!_sel[key];
 
         var clases = (sel ? "row-imp-sel " : "") + (esAnulado ? "row-anulado" : "");
 
         // Un anulado nunca es "atrasado": está muerto, nadie lo está esperando.
         var diasAlto = (!esAnulado && f.Situacion !== "OPERADO" &&
             f.DiasAntiguedad >= DIAS_UMBRAL);
+
+        // Aviso —no bloqueo— de lo que va a salir en el papel.
+        var tipChk = esDescuadre
+            ? "Se imprimirá con un sello de \u0022en conciliaci\u00f3n con SAP\u0022"
+            : (esAnulado ? "Se imprimir\u00e1 con la marca de agua ANULADO"
+                : "Incluir en el lote de impresi\u00f3n");
 
         // ── Observación traducida a lenguaje de negocio ──
         var info = InterpretarObservacion(f);
@@ -958,7 +972,7 @@ function PintarDetalle() {
             '<tr class="' + clases + '">' +
             '<td class="td-chk">' +
             '<input type="checkbox" class="chk-imp" data-key="' + key + '"' +
-            (esImprimible ? '' : ' disabled title="Bloqueado: este recibo tiene una diferencia con SAP sin resolver"') +
+            ' title="' + tipChk + '"' +
             (sel ? ' checked' : '') + ' /></td>' +
             '<td><span class="sit-badge sit-' + f.Situacion + '">' + LabelSit(f.Situacion) + '</span></td>' +
             '<td><strong style="font-family:monospace;">' + Esc(f.IdRecibo) + '</strong></td>' +

@@ -967,11 +967,12 @@
                 <!-- <div id="alertaDescuadreDetalle"style="margin-top:5px; font-size:12.5px; font-family:monospace;"></div> -->
                 <div style="margin-top:6px; font-size:12px;">
                     Parte del pago de este recibo fue <strong>anulado en SAP</strong> y el monto
-                    aún no ha sido re-aplicado por Créditos. La <strong>
-                        impresión está
-                        bloqueada
-                    </strong>. El sincronizador liberará el recibo automáticamente
-                    cuando los montos vuelvan a cuadrar.
+                    aún no ha sido re-aplicado por Créditos. El recibo <strong>
+                        sí puede
+                        imprimirse
+                    </strong>: saldrá con un sello de "en conciliación". El
+                    sincronizador liberará el recibo automáticamente cuando los montos
+                    vuelvan a cuadrar.
                 </div>
             </div>
 
@@ -3122,11 +3123,12 @@ $("#btnEjecutarBusqueda").on("click", function () {
         ActualizarTotales();
         SetBotonesPostGuardado();
 
-        // Bloqueo de impresión por descuadre (el servidor también lo valida:
-        // esto solo es feedback visual; la validación real vive en el controller)
+        // ★ CAMBIO: el DESCUADRE ya NO bloquea la impresión (el servidor
+        // tampoco lo hace). Solo avisamos por tooltip qué va a salir en el
+        // papel, para que nadie se sorprenda con la banda ámbar.
         if ((r.SyncEstado || "").toUpperCase() === "DESCUADRE") {
-            $("#btnImprimir").prop("disabled", true)
-                .attr("title", "Impresión bloqueada: recibo con descuadre frente a SAP.");
+            $("#btnImprimir").attr("title",
+                "El recibo está en conciliación con SAP: se imprimirá con un sello de advertencia.");
         } else {
             $("#btnImprimir").attr("title", "");
         }

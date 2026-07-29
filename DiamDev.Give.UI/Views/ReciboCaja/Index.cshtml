@@ -1648,6 +1648,8 @@ var Estado = {
     monedaDoc: "",
     idReciboGuardado: "",
     modoActivo: false,
+    modoActivo: false,
+    faseGuardado: false,   // ★ ¿la etapa actual permite guardar? (la refina el saldo)
     cobros: [],
     documentos: [],
     docEditIndex: null,   // índice de la fila en edición (null = alta nueva)
@@ -1733,9 +1735,103 @@ function HayTcMixto() {
     for (var i = 0; i < Estado.cobros.length; i++) {
         var tc = Estado.cobros[i].TipoCambio || 0;
         if (tc > 0) vistos[tc.toFixed(6)] = true;
-    }
-    return Object.keys(vistos).length > 1;
 }
+return Object.keys(vistos).length > 1;
+    }
+
+    // ════════════════════════════════════════════════════════
+    // CUADRE DEL RECIBO — espejo de ValidarYNormalizarCuadre del BLL
+    // ════════════════════════════════════════════════════════
+    // EPSILON = medio centavo. Por debajo de eso NO hay dinero, solo error de
+    // punto flotante.
+    //
+    // ¿Por qué 0.005 y no 0.01? Porque en JS los números son binarios:
+    //     1000.01 - 1000.02  →  -0.009999999999990905
+    // que es MENOR que 0.01. Con el umbral viejo, un centavo real de diferencia
+    // se pintaba verde. Además 0.005 es el MISMO umbral que ya usa FmtNum() para
+    // mostrar, así que "lo que se ve es lo que se valida": si la barra dice
+    // 0.00 cuadra; si dice -0.01 no cuadra. Se acabó la contradicción.
+    // ════════════════════════════════════════════════════════
+    var EPSILON = 0.005;
+
+    function EsCero(n) {
+        return Math.abs(parseFloat(n) || 0) < EPSILON;
+    }
+
+    // Calcula TODOS los totales de una vez. Única fuente de verdad del front:
+    // la consume la barra (pintar) y la guarda del botón Guardar (decidir).
+    // Antes cada quien recalculaba por su cuenta y podían discrepar.
+    function CalcularTotales() {
+        var tcRecibo = TipoCambioRecibo();
+
+        var cobrosGtq = 0, cobrosUsd = 0, cobrosOrig = 0;
+        Estado.cobros.forEach(function (c) {
+            var m = MontosDuales(c.Monto, c.Moneda, c.TipoCambio || tcRecibo);
+            cobrosGtq += m.gtq; cobrosUsd += m.usd;
+            cobrosOrig += parseFloat(c.Monto) || 0;
+        });
+
+        var docsGtq = 0, docsUsd = 0, docsOrig = 0;
+        Estado.documentos.forEach(function (d) {
+            var m = MontosDuales(d.Monto, d.Moneda, tcRecibo);
+            docsGtq += m.gtq; docsUsd += m.usd;
+            docsOrig += parseFloat(d.Monto) || 0;
+        });
+
+        // ¿Cuántas monedas distintas hay? (un objeto usado como Set)
+        var monedas = {};
+        Estado.cobros.forEach(function (c) { monedas[(c.Moneda || "GTQ").toUpperCase()] = 1; });
+        Estado.documentos.forEach(function (d) { monedas[(d.Moneda || "GTQ").toUpperCase()] = 1; });
+        var lista = Object.keys(monedas);
+
+        return {
+            tc: tcRecibo,
+            cobrosGtq: cobrosGtq, cobrosUsd: cobrosUsd,
+            docsGtq: docsGtq, docsUsd: docsUsd,
+            saldoGtq: cobrosGtq - docsGtq,
+            saldoUsd: cobrosUsd - docsUsd,
+            saldoOriginal: cobrosOrig - docsOrig,   // ← solo tiene sentido si hay 1 moneda
+            monedaUniforme: lista.length === 1,
+            moneda: lista.length === 1 ? lista[0] : "",
+            hayLineas: (Estado.cobros.length + Estado.documentos.length) > 0
+        };
+    }
+
+    // ¿El SALDO cuadra? (solo el número, sin exigir que haya líneas)
+    function SaldoCuadra(t) {
+        // Una sola moneda → resta exacta, tolerancia CERO.
+        if (t.monedaUniforme) return EsCero(t.saldoOriginal);
+        // Multimoneda → se juzga en GTQ, con el residuo de conversión.
+        return Math.abs(t.saldoGtq) <= 0.01 + EPSILON;
+    }
+
+    // ¿El recibo está en condiciones de guardarse? Devuelve "" si sí,
+    // o el motivo si no. El texto se reusa como tooltip del botón.
+    function MotivoNoGuardable(t) {
+        if (!Estado.cobros.length) return "Agregue al menos un cobro.";
+        if (!Estado.documentos.length) return "Agregue al menos un documento.";
+        if (!SaldoCuadra(t)) {
+            var dif = t.monedaUniforme ? t.saldoOriginal : t.saldoGtq;
+            var mon = t.monedaUniforme ? t.moneda : "GTQ";
+            return "El recibo no cuadra: diferencia de " + mon + " " + FmtNum(dif) +
+                ". El saldo debe ser exactamente 0.00.";
+        }
+        return "";
+    }
+
+    // ÚNICO dueño del estado del botón Guardar. Nadie más debe tocar
+    // su .prop("disabled") — misma regla de la casa que MostrarPanelRecibo().
+    function RefrescarBotonGuardar() {
+        var t = CalcularTotales();
+        var motivo = MotivoNoGuardable(t);
+        var habilitado = Estado.faseGuardado && motivo === "";
+
+        $("#btnGuardar")
+            .prop("disabled", !habilitado)
+            .attr("title", habilitado
+                ? "Guardar el recibo"
+                : (Estado.faseGuardado ? motivo : "Presione «Nuevo» para capturar un recibo."));
+    }
 
 // ════════════════════════════════════════════════════════
 // TIPOS DE DOCUMENTO SIN REFERENCIA DOCUMENTAL
@@ -2871,41 +2967,46 @@ $(document).on("click", ".btn-editDoc", function (e) {
 $("#btnGuardar").on("click", function () {
     if (!Estado.codigoUsuario) { toastr.error("Seleccione el operador con el que emitirá."); return; }
     if (!Estado.deptoOperador) { toastr.error("El operador seleccionado no tiene serie/depto asignado."); return; }
-    if (!Estado.cobros.length)     { toastr.error("Agregue al menos un cobro.");    return; }
-    if (!Estado.documentos.length) { toastr.error("Agregue al menos un documento."); return; }
+
+    // ★ GUARDA DE CUADRE — red de seguridad del lado del cliente.
+    // El botón ya está deshabilitado cuando no cuadra, pero un
+    // trigger("click") programático o un estado viejo llegarían hasta acá.
+    // (La validación REAL vive en el BLL; esto es UX.)
+    var t = CalcularTotales();
+    var motivo = MotivoNoGuardable(t);
+    if (motivo) { toastr.error(motivo); RefrescarBotonGuardar(); return; }
+
     if (Estado.encabezadoEditable && !$("#txtNombreCliente").val().trim()) {
         toastr.error("Escriba el nombre del cliente en el encabezado.");
         $("#txtNombreCliente").focus();
         return;
     }
 
-    var tC    = Estado.cobros.reduce(function (s, c) { return s + c.Monto; }, 0);
-    var tD    = Estado.documentos.reduce(function (s, d) { return s + d.Monto; }, 0);
-    var saldo = tC - tD;
-
-    if (Estado.monedaCobro !== Estado.monedaDoc && saldo !== 0) {
-        if (!confirm("⚠ Monedas diferentes (Cobro: " + Estado.monedaCobro +
-                     " / Doc: " + Estado.monedaDoc + ").\n¿Desea guardar de todas formas?")) return;
+    // Multimoneda: ya sabemos que cuadra en GTQ (pasó MotivoNoGuardable),
+    // pero conviene que el cajero sepa bajo qué criterio se aprobó.
+    if (!t.monedaUniforme) {
+        if (!confirm("⚠ El recibo mezcla monedas (Cobros: " + Estado.monedaCobro +
+            " / Documentos: " + Estado.monedaDoc + ").\n" +
+            "El cuadre se evalúa en GTQ (Q " + FmtNum(t.saldoGtq) + ").\n\n" +
+            "¿Desea continuar?")) return;
     }
     if (!confirm("¿Confirmar guardado del recibo?")) return;
 
     var payload = {
-        IdEmpresa:     Estado.empresa,
-        FechaRecibo:   $("#fechaRecibo").val(),
-        IdCliente:     Estado.clienteId,
+        IdEmpresa: Estado.empresa,
+        FechaRecibo: $("#fechaRecibo").val(),
+        IdCliente: Estado.clienteId,
         NombreCliente: $("#txtNombreCliente").val(),
-        Direccion:     $("#txtDireccion").val(),
-        Nit:           $("#txtNit").val(),
-        // Modo normal: agente del cliente elegido en el typeahead (hidden).
-        // Modo SALA DE VENTAS: lo que el usuario escribió en el campo visible.
+        Direccion: $("#txtDireccion").val(),
+        Nit: $("#txtNit").val(),
         Agente: Estado.encabezadoEditable ? $("#txtAgente").val() : $("#hdnAgente").val(),
-        Correo:        $("#txtCorreo").val(),
-        Moneda:        $("#txtMoneda").val(),
-        RecFisico:     $("#txtRecFisico").val(),
-        CodigoUsuario: Estado.codigoUsuario,   // ← NUEVO
-        Cobros:        Estado.cobros,
+        Correo: $("#txtCorreo").val(),
+        Moneda: $("#txtMoneda").val(),
+        RecFisico: $("#txtRecFisico").val(),
+        CodigoUsuario: Estado.codigoUsuario,
+        Cobros: Estado.cobros,
         Documentos: Estado.documentos,
-        TipoCambio: Estado.tipoCambio,
+        TipoCambio: Estado.tipoCambio
     };
 
     $("#btnGuardar").prop("disabled", true)
@@ -2925,15 +3026,16 @@ $("#btnGuardar").on("click", function () {
                 SetBotonesPostGuardado();
                 AbrirImpresion(resp.idRecibo, Estado.empresa);
             } else {
+                // El servidor rechazó por regla de negocio (p.ej. no cuadra).
                 toastr.error(resp.msg);
-                $("#btnGuardar").prop("disabled", false)
-                    .html('<i class="icon-save"></i> Guardar');
+                $("#btnGuardar").html('<i class="icon-save"></i> Guardar');
+                RefrescarBotonGuardar();   // ← NO reactivamos a ciegas
             }
         },
         error: function () {
             toastr.error("Error de conexión al guardar. Intente nuevamente.");
-            $("#btnGuardar").prop("disabled", false)
-                .html('<i class="icon-save"></i> Guardar');
+            $("#btnGuardar").html('<i class="icon-save"></i> Guardar');
+            RefrescarBotonGuardar();
         }
     });
 });
@@ -3204,43 +3306,28 @@ function RenderizarTablaDocumentos() {
 // CÁLCULO DE TOTALES
 // ════════════════════════════════════════════════════════
 function ActualizarTotales() {
-    // TC efectivo del recibo (ponderado por los cobros). Los documentos se
-    // valúan con él para que el saldo en GTQ pueda dar 0.
-    var tcRecibo = TipoCambioRecibo();
+    var t = CalcularTotales();
 
-    // Cobros: CADA UNO con el TC de su propia fecha
-    var cobrosGtq = 0, cobrosUsd = 0;
-    Estado.cobros.forEach(function (c) {
-        var m = MontosDuales(c.Monto, c.Moneda, c.TipoCambio || tcRecibo);
-        cobrosGtq += m.gtq; cobrosUsd += m.usd;
-    });
+    $("#spanTotalCobros").text("Q " + FmtNum(t.cobrosGtq));
+    $("#spanTotalCobrosUsd").text("$ " + FmtNum(t.cobrosUsd));
+    $("#spanTotalDocs").text("Q " + FmtNum(t.docsGtq));
+    $("#spanTotalDocsUsd").text("$ " + FmtNum(t.docsUsd));
 
-    // Documentos: todos con el TC efectivo del recibo
-    var docsGtq = 0, docsUsd = 0;
-    Estado.documentos.forEach(function (d) {
-        var m = MontosDuales(d.Monto, d.Moneda, tcRecibo);
-        docsGtq += m.gtq; docsUsd += m.usd;
-    });
-
-    var saldoGtq = cobrosGtq - docsGtq;
-    var saldoUsd = cobrosUsd - docsUsd;
-
-    $("#spanTotalCobros").text("Q " + FmtNum(cobrosGtq));
-    $("#spanTotalCobrosUsd").text("$ " + FmtNum(cobrosUsd));
-    $("#spanTotalDocs").text("Q " + FmtNum(docsGtq));
-    $("#spanTotalDocsUsd").text("$ " + FmtNum(docsUsd));
-
-    $("#spanSaldo").text("Q " + FmtNum(saldoGtq))
+    // ★ FIX DEL VERDE MENTIROSO.
+    // Antes: Math.abs(saldoGtq) < 0.01  →  -0.00999...  pasaba como OK.
+    // Ahora la misma función que decide si se puede guardar decide el color:
+    // imposible que el botón y el color se contradigan.
+    // Sin líneas todavía → neutro (ni verde ni rojo): no hay nada que juzgar.
+    $("#spanSaldo").text("Q " + FmtNum(t.saldoGtq))
         .removeClass("saldo-ok saldo-error")
-        .addClass(Math.abs(saldoGtq) < 0.01 ? "saldo-ok" : "saldo-error");
-    $("#spanSaldoUsd").text("$ " + FmtNum(saldoUsd));
+        .addClass(!t.hayLineas ? "" : (SaldoCuadra(t) ? "saldo-ok" : "saldo-error"));
+    $("#spanSaldoUsd").text("$ " + FmtNum(t.saldoUsd));
 
-    // ★ El TC de la barra ahora es el EFECTIVO del recibo. Si los cobros tienen
-    // fechas con tasas distintas, lo decimos: un número solo sería mentira.
-    if (tcRecibo > 0) {
+    // TC efectivo del recibo (ponderado por los cobros)
+    if (t.tc > 0) {
         var mixto = HayTcMixto();
         $("#spanTipoCambio")
-            .text(tcRecibo.toFixed(4) + (mixto ? " (ponderado)" : ""))
+            .text(t.tc.toFixed(4) + (mixto ? " (ponderado)" : ""))
             .attr("title", mixto
                 ? "Los cobros tienen fechas con distinto tipo de cambio. " +
                 "Este es el promedio ponderado por monto, y es el que se aplica a los documentos."
@@ -3248,6 +3335,9 @@ function ActualizarTotales() {
     } else {
         $("#spanTipoCambio").text("—").attr("title", "");
     }
+
+    // ★ Cada cambio de montos re-evalúa si el recibo puede guardarse.
+    RefrescarBotonGuardar();
 }
 
 // function AplicarColorSaldo() {
@@ -3335,24 +3425,33 @@ function LimpiarDetalleDoc() {
 
 // ════════════════════════════════════════════════════════
 // CONTROL DE BOTONES
+// ★ #btnGuardar ya NO se habilita/deshabilita acá. Estas funciones solo
+// declaran la FASE (¿estamos capturando?); si el recibo cuadra o no lo
+// decide RefrescarBotonGuardar(). Un solo dueño = ningún estado imposible.
 // ════════════════════════════════════════════════════════
 function SetBotonesInicio() {
-    $("#btnGuardar, #btnCancelar, #btnImprimir").prop("disabled", true);
+    Estado.faseGuardado = false;
+    $("#btnCancelar, #btnImprimir").prop("disabled", true);
     $("#btnNuevo, #btnBuscarRecibo").prop("disabled", false);
     $("#btnGuardar").html('<i class="icon-save"></i> Guardar');
     $("#btnAnular").prop("disabled", true);
+    RefrescarBotonGuardar();
 }
 function SetBotonesActivos() {
-    $("#btnGuardar, #btnCancelar").prop("disabled", false);
+    Estado.faseGuardado = true;
+    $("#btnCancelar").prop("disabled", false);
     $("#btnNuevo, #btnBuscarRecibo").prop("disabled", true);
     $("#btnImprimir").prop("disabled", true);
     $("#btnAnular").prop("disabled", true);
+    RefrescarBotonGuardar();   // ← arranca deshabilitado: aún no hay cobros
 }
 function SetBotonesPostGuardado() {
-    $("#btnGuardar").prop("disabled", true).html('<i class="icon-save"></i> Guardar');
+    Estado.faseGuardado = false;
+    $("#btnGuardar").html('<i class="icon-save"></i> Guardar');
     $("#btnCancelar").prop("disabled", true);
     $("#btnNuevo, #btnBuscarRecibo, #btnImprimir").prop("disabled", false);
-    $("#btnAnular").prop("disabled", false);  // recibo recién guardado = PENDIENTE, anulable
+    $("#btnAnular").prop("disabled", false);
+    RefrescarBotonGuardar();
 }
 
 // ════════════════════════════════════════════════════════

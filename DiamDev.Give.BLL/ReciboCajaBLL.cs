@@ -429,10 +429,11 @@ namespace DiamDev.Give.BLL
                 enc.SaldoGtq = enc.MontoTotalRecGtq - enc.MontoTotalDocGtq;
                 enc.SaldoUsd = enc.MontoTotalRecUsd - enc.MontoTotalDocUsd;
 
-                // ── 5. Normalizar saldos y validar el cuadre ──
-                enc.Saldo = NormalizarSaldo(enc.Saldo);
-                enc.SaldoGtq = NormalizarSaldo(enc.SaldoGtq);
-                enc.SaldoUsd = NormalizarSaldo(enc.SaldoUsd);
+                // ── 5. Validar el cuadre y normalizar saldos ──
+                // ★ FIX: una sola puerta. Antes se colapsaba el saldo y DESPUÉS
+                // se comparaba contra cero — la comparación nunca podía fallar.
+                var errorCuadre = ValidarYNormalizarCuadre(enc);
+                if (errorCuadre != null) return errorCuadre;
 
                 if (enc.SaldoGtq != 0m)
                     return ResultadoRecibo.Error(
@@ -674,19 +675,112 @@ namespace DiamDev.Give.BLL
                 };
         }
 
-        // Tolerancia de cuadre por redondeo de conversiones (1 centavo)
-        private const decimal TOLERANCIA_SALDO = 0.01m;
+        // ═════════════════════════════════════════════════════════
+        // CUADRE DEL RECIBO — dos reglas, no una
+        // ═════════════════════════════════════════════════════════
+        // ANTES: UNA tolerancia de ±0.01 sobre el saldo en GTQ, aplicada
+        // ANTES de validar (NormalizarSaldo colapsaba y recién después se
+        // comparaba contra 0). Resultado: Q1,000.01 contra Q1,000.02 se
+        // grababa con SALDO = 0.00. La validación miraba un número ya
+        // "corregido" — sanitizar antes de verificar es el orden invertido.
+        //
+        // La tolerancia SÍ tiene razón de ser, pero solo donde hay redondeo:
+        // al derivar el equivalente de una moneda a otra. Si todas las líneas
+        // están en la MISMA moneda no hay derivación posible, y un centavo
+        // es un monto mal capturado.
+        // ═════════════════════════════════════════════════════════
 
         /// <summary>
-        /// Redondea un saldo a 2 decimales y colapsa el residuo de redondeo
-        /// (|saldo| ≤ 1 centavo) a CERO EXACTO. Así nunca se graba ni se
-        /// muestra un "-0.01"/"-0.00" en un recibo que en realidad cuadra.
-        /// En TS: s => Math.abs(round2(s)) <= 0.01 ? 0 : round2(s)
+        /// Residuo aceptable al DERIVAR equivalentes entre monedas (por línea).
+        /// Nunca se aplica a una resta dentro de una misma moneda.
         /// </summary>
-        private static decimal NormalizarSaldo(decimal saldo)
+        private const decimal TOLERANCIA_CONVERSION = 0.01m;
+
+        /// <summary>
+        /// ¿Todas las líneas (cobros + documentos) usan la MISMA moneda?
+        /// En TS sería:
+        ///     new Set([...cobros, ...docs].map(x => x.moneda)).size === 1
+        /// HashSet es el Set de C#: ignora duplicados, y su Count al final
+        /// nos dice cuántas monedas distintas hay en juego.
+        /// </summary>
+        private static bool EsMonedaUniforme(ReciboCajaEncabezado enc, out string moneda)
         {
-            saldo = Math.Round(saldo, 2);
-            return Math.Abs(saldo) <= TOLERANCIA_SALDO ? 0.00m : saldo;
+            moneda = null;
+            var monedas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (enc.Cobros != null)
+                foreach (var c in enc.Cobros) monedas.Add(NormalizarMonedaLinea(c.Moneda));
+            if (enc.Documentos != null)
+                foreach (var d in enc.Documentos) monedas.Add(NormalizarMonedaLinea(d.Moneda));
+
+            if (monedas.Count != 1) return false;
+            moneda = monedas.First();
+            return true;
+        }
+
+        private static int TotalLineas(ReciboCajaEncabezado enc)
+        {
+            return (enc.Cobros == null ? 0 : enc.Cobros.Count) +
+                   (enc.Documentos == null ? 0 : enc.Documentos.Count);
+        }
+
+        /// <summary>
+        /// Redondea los saldos y valida el cuadre.
+        /// Devuelve NULL si el recibo cuadra; si no, el error a devolver.
+        ///
+        /// Patrón: "devuelvo el error en vez de lanzarlo". En TS sería
+        ///     const err = validar(); if (err) return err;
+        /// Un throw acá terminaría en el catch genérico de GuardarRecibo y
+        /// el cajero vería "Error al guardar: ..." en vez del mensaje real.
+        /// </summary>
+        private static ResultadoRecibo ValidarYNormalizarCuadre(ReciboCajaEncabezado enc)
+        {
+            enc.Saldo = Math.Round(enc.Saldo, 2);
+            enc.SaldoGtq = Math.Round(enc.SaldoGtq, 2);
+            enc.SaldoUsd = Math.Round(enc.SaldoUsd, 2);
+
+            string monedaUnica;
+            if (EsMonedaUniforme(enc, out monedaUnica))
+            {
+                // ── CASO NORMAL: una sola moneda ⇒ resta exacta, tolerancia CERO ──
+                if (enc.Saldo != 0m)
+                    return ResultadoRecibo.Error(
+                        $"El recibo NO cuadra: diferencia de {monedaUnica} {enc.Saldo:N2}. " +
+                        $"Cobros: {monedaUnica} {enc.MontoTotalRecibo:N2} / " +
+                        $"Documentos: {monedaUnica} {enc.MontoTotalDoc:N2}. " +
+                        $"El saldo debe ser exactamente 0.00 para poder guardar.");
+
+                // El saldo en la moneda ORIGINAL cuadró exacto. Lo que quede en la
+                // moneda derivada es residuo de redondeo línea por línea (regla de
+                // oro: el original es exacto, el equivalente se deriva).
+                //
+                // Techo de seguridad: 1 centavo POR LÍNEA. Si el residuo lo supera
+                // no es redondeo, es un bug de cálculo — y un bug no se tapa
+                // poniendo el saldo en cero.
+                decimal techo = TOLERANCIA_CONVERSION * TotalLineas(enc);
+                if (Math.Abs(enc.SaldoGtq) > techo || Math.Abs(enc.SaldoUsd) > techo)
+                    return ResultadoRecibo.Error(
+                        $"Inconsistencia interna en la conversión de moneda: el saldo " +
+                        $"original es 0.00 pero el derivado da GTQ {enc.SaldoGtq:N2} / " +
+                        $"USD {enc.SaldoUsd:N2}. El recibo NO se guardó. Avise a Sistemas.");
+
+                enc.SaldoGtq = 0.00m;
+                enc.SaldoUsd = 0.00m;
+                return null;
+            }
+
+            // ── RECIBO MULTIMONEDA: se juzga en GTQ, la moneda base ──
+            // Acá comparar la moneda original no tiene sentido (sería restar
+            // dólares a quetzales), y el residuo de conversión es real.
+            if (Math.Abs(enc.SaldoGtq) > TOLERANCIA_CONVERSION)
+                return ResultadoRecibo.Error(
+                    $"El saldo en GTQ no cuadra (Q{enc.SaldoGtq:N2}). " +
+                    $"Cobros: Q{enc.MontoTotalRecGtq:N2} / " +
+                    $"Documentos: Q{enc.MontoTotalDocGtq:N2}.");
+
+            enc.SaldoGtq = 0.00m;
+            enc.SaldoUsd = 0.00m;
+            return null;
         }
 
         /// <summary>Normaliza el código de moneda de la app: QTZ/Q → GTQ. USD pasa igual.</summary>

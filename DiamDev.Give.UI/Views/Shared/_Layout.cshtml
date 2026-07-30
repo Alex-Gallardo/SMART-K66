@@ -69,14 +69,15 @@
         <div class="container app-navbar-container">
             <div class="navbar-header">
                 <!-- start: RESPONSIVE MENU TOGGLER -->
-                <button data-target=".navbar-collapse" data-toggle="collapse" class="navbar-toggle" type="button"
-                        aria-label="Abrir menu principal" aria-expanded="false">
+                <button data-target="#app-sidebar" data-toggle="collapse" class="navbar-toggle" type="button"
+                        aria-label="Abrir menu principal" aria-controls="app-sidebar" aria-expanded="false">
                     <span class="clip-list-2"></span>
                 </button>
                 <!-- end: RESPONSIVE MENU TOGGLER -->
                 <!-- start: LOGO -->
                 <a class="navbar-brand app-brand" href="@Url.Action("Dashboard", "Inicio")">
-                    <span class="app-brand-mark" aria-hidden="true">K66</span>
+                    <img class="app-brand-logo" src="@Url.Content("~/Content/assets/images/logo.png")"
+                         alt="Grupo K66" />
                     <span class="app-brand-copy">
                         <span class="app-brand-name">Smart K66</span>
                         <span class="app-brand-context">@agenciaNombre</span>
@@ -123,7 +124,8 @@
     <div class="main-container app-main-container">
         <div class="navbar-content">
             <!-- start: SIDEBAR -->
-            <div class="main-navigation navbar-collapse collapse app-sidebar" aria-label="Navegacion principal">
+            <div class="main-navigation navbar-collapse collapse app-sidebar" id="app-sidebar"
+                 aria-label="Navegacion principal">
                 <!-- start: MAIN MENU TOGGLER BUTTON -->
                 <button type="button" class="navigation-toggler" aria-label="Contraer menu lateral"
                         aria-expanded="true">
@@ -144,6 +146,8 @@
                 <!-- end: MAIN NAVIGATION MENU -->
             </div>
             <!-- end: SIDEBAR -->
+            <button type="button" class="app-sidebar-backdrop" aria-label="Cerrar menu principal"
+                    aria-hidden="true" tabindex="-1"></button>
         </div>
         <!-- start: PAGE -->
         <main class="main-content" id="main-content" tabindex="-1">

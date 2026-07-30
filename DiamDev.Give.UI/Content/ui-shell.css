@@ -80,7 +80,7 @@ body.app-shell .app-navbar {
     border-bottom: 1px solid var(--k66-border);
     box-shadow: var(--k66-shadow-sm);
     min-height: var(--k66-navbar-height);
-    z-index: 1030;
+    z-index: 1050;
 }
 
 body.app-shell .app-navbar-container {
@@ -91,6 +91,7 @@ body.app-shell .app-navbar-container {
 }
 
 body.app-shell .app-navbar .navbar-header {
+    background: transparent !important;
     min-height: var(--k66-navbar-height);
     width: var(--k66-sidebar-width);
 }
@@ -109,19 +110,13 @@ body.app-shell .app-navbar .app-brand:focus {
     width: 100%;
 }
 
-.app-brand-mark {
-    align-items: center;
-    background: linear-gradient(135deg, var(--k66-primary), #60a5fa);
-    border-radius: 10px;
-    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.24);
-    color: #ffffff;
-    display: inline-flex;
-    flex: 0 0 40px;
-    font-size: 13px;
-    font-weight: 800;
-    height: 40px;
-    justify-content: center;
-    letter-spacing: 0.04em;
+.app-brand-logo {
+    display: block;
+    flex: 0 0 72px;
+    height: 48px;
+    max-width: none;
+    object-fit: contain;
+    width: 72px;
 }
 
 .app-brand-copy,
@@ -156,6 +151,7 @@ body.app-shell .app-navbar .navbar-tools > ul {
 }
 
 body.app-shell .app-navbar .navbar-tools > ul > li.dropdown {
+    border: 0 !important;
     margin: 0;
 }
 
@@ -278,13 +274,50 @@ body.app-shell .app-sidebar {
     bottom: 0;
     box-shadow: 8px 0 24px rgba(15, 23, 42, 0.08);
     left: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
     padding: 12px 0 24px;
     position: fixed;
+    scrollbar-color: #475569 transparent;
+    scrollbar-width: thin;
     top: var(--k66-navbar-height);
     width: var(--k66-sidebar-width) !important;
     z-index: 900;
+}
+
+body.app-shell .app-sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+body.app-shell .app-sidebar::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+body.app-shell .app-sidebar::-webkit-scrollbar-thumb {
+    background: #475569;
+    border-radius: 999px;
+}
+
+body.app-shell .app-sidebar::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+.app-sidebar-backdrop {
+    background: rgba(15, 23, 42, 0.48);
+    border: 0;
+    bottom: 0;
+    display: block;
+    left: 0;
+    opacity: 0;
+    padding: 0;
+    pointer-events: none;
+    position: fixed;
+    right: 0;
+    top: var(--k66-navbar-height);
+    transition: opacity 180ms ease, visibility 0s linear 180ms;
+    visibility: hidden;
+    z-index: 1040;
 }
 
 body.app-shell .navigation-toggler {
@@ -308,6 +341,7 @@ body.app-shell .navigation-toggler:focus {
 }
 
 body.app-shell ul.main-navigation-menu {
+    margin: 0;
     padding: 0 10px;
 }
 
@@ -590,6 +624,8 @@ body.app-shell #loadingspinner {
 
 @media (min-width: 768px) {
     body.app-shell .app-sidebar {
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
         position: fixed;
         width: var(--k66-sidebar-width) !important;
     }
@@ -611,6 +647,12 @@ body.app-shell #loadingspinner {
 
     body.app-shell.navigation-small .app-brand-copy {
         display: none;
+    }
+
+    body.app-shell.navigation-small .app-brand-logo {
+        flex-basis: 68px;
+        height: 46px;
+        width: 68px;
     }
 
     body.app-shell.navigation-small .main-content,
@@ -638,52 +680,168 @@ body.app-shell #loadingspinner {
         margin-right: 0;
     }
 
-    body.app-shell.navigation-small ul.main-navigation-menu > li:hover {
-        width: var(--k66-sidebar-width);
+    body.app-shell:not(.navigation-small) .navigation-toggler {
+        display: flex !important;
     }
 
-    body.app-shell.navigation-small ul.main-navigation-menu > li:hover > ul.sub-menu {
-        left: var(--k66-sidebar-small-width);
-        width: calc(var(--k66-sidebar-width) - var(--k66-sidebar-small-width));
+    body.app-shell:not(.navigation-small) ul.main-navigation-menu > li > a > .title {
+        display: inline !important;
+        padding-left: 0 !important;
+    }
+
+    body.app-shell:not(.navigation-small) ul.main-navigation-menu > li > a .icon-arrow {
+        display: inline-block !important;
+    }
+
+    body.app-shell:not(.navigation-small) ul.main-navigation-menu > li:hover {
+        position: relative !important;
+        width: auto !important;
+    }
+
+    body.app-shell:not(.navigation-small) ul.main-navigation-menu > li:hover > a:after {
+        display: none !important;
+    }
+
+    body.app-shell:not(.navigation-small) ul.main-navigation-menu li > ul.sub-menu {
+        left: auto !important;
+        position: static !important;
+        top: auto !important;
+        width: auto !important;
+    }
+
+    body.app-shell:not(.navigation-small) ul.main-navigation-menu li.open > ul.sub-menu {
+        display: block !important;
+    }
+
+    body.app-shell:not(.navigation-small) ul.main-navigation-menu li:not(.open) > ul.sub-menu,
+    body.app-shell:not(.navigation-small) ul.main-navigation-menu li:not(.open):hover > ul.sub-menu {
+        display: none !important;
+    }
+
+    body.app-shell.navigation-small ul.main-navigation-menu > li,
+    body.app-shell.navigation-small ul.main-navigation-menu > li:hover {
+        position: relative !important;
+        width: auto !important;
+    }
+
+    body.app-shell.navigation-small ul.main-navigation-menu > li > a:after {
+        display: none !important;
+    }
+
+    body.app-shell.navigation-small ul.main-navigation-menu > li > a > .title,
+    body.app-shell.navigation-small ul.main-navigation-menu > li:hover > a > .title,
+    body.app-shell.navigation-small ul.main-navigation-menu > li:hover .title {
+        display: none !important;
+        padding-left: 0 !important;
+    }
+
+    body.app-shell.navigation-small ul.main-navigation-menu > li > a .icon-arrow {
+        display: none !important;
+    }
+
+    body.app-shell.navigation-small ul.main-navigation-menu li > ul.sub-menu,
+    body.app-shell.navigation-small ul.main-navigation-menu li:hover > ul.sub-menu {
+        display: none !important;
+        left: auto !important;
+        position: static !important;
+        top: auto !important;
+        width: auto !important;
     }
 }
 
 /* Mobile navigation */
 
 @media (max-width: 767px) {
+    body.app-shell {
+        overflow-x: hidden;
+    }
+
+    body.app-shell.app-navigation-open {
+        overflow: hidden;
+    }
+
+    body.app-shell .app-navbar {
+        background: var(--k66-surface) !important;
+        min-height: var(--k66-navbar-height);
+    }
+
     body.app-shell .app-navbar-container {
-        padding-right: 8px;
+        min-height: var(--k66-navbar-height);
+        padding: 0 10px;
+        position: relative;
     }
 
     body.app-shell .app-navbar .navbar-header {
+        align-items: center;
+        display: flex;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
         min-height: var(--k66-navbar-height);
+        position: relative;
         width: 100%;
     }
 
     body.app-shell .app-navbar .navbar-toggle {
+        align-items: center;
         background: var(--k66-primary);
         border: 0;
         border-radius: var(--k66-radius-sm);
         color: #ffffff;
-        margin: 14px 8px 0 0;
-        padding: 9px 11px;
+        display: flex !important;
+        float: none;
+        height: 42px;
+        justify-content: center;
+        margin: 0;
+        padding: 0;
+        position: absolute;
+        right: 0;
+        top: 11px;
+        width: 42px;
+    }
+
+    body.app-shell .app-navbar .navbar-toggle:hover,
+    body.app-shell .app-navbar .navbar-toggle:focus {
+        background: var(--k66-primary-dark) !important;
+    }
+
+    body.app-shell .app-navbar .navbar-toggle span {
+        font-size: 20px;
+        line-height: 1;
     }
 
     body.app-shell .app-navbar .app-brand {
-        padding-left: 14px;
-        width: auto;
+        gap: 8px;
+        max-width: calc(100% - 108px);
+        padding: 8px 0;
+        width: auto !important;
+    }
+
+    body.app-shell .app-navbar .app-brand-logo {
+        flex-basis: 60px;
+        height: 44px;
+        width: 60px;
+    }
+
+    body.app-shell .app-brand-context {
+        display: none;
+    }
+
+    body.app-shell .app-brand-name {
+        font-size: 15px;
     }
 
     body.app-shell .app-navbar .navbar-tools {
         background: transparent;
         border: 0;
+        height: var(--k66-navbar-height);
+        margin: 0;
         position: absolute;
-        right: 58px;
+        right: 50px;
         top: 0;
     }
 
     body.app-shell .app-navbar .navbar-tools > ul {
-        padding-top: 8px;
+        padding: 8px 0;
     }
 
     body.app-shell .app-navbar .app-user-copy,
@@ -692,8 +850,19 @@ body.app-shell #loadingspinner {
     }
 
     body.app-shell .app-navbar li.dropdown.current-user .app-user-menu {
+        min-height: 48px;
         padding-left: 6px;
         padding-right: 6px;
+    }
+
+    body.app-shell .app-navbar .app-user-dropdown {
+        left: auto;
+        margin-top: 4px;
+        max-width: calc(100vw - 24px);
+        min-width: 230px;
+        position: fixed;
+        right: 12px;
+        top: calc(var(--k66-navbar-height) - 4px);
     }
 
     body.app-shell .app-main-container {
@@ -701,14 +870,91 @@ body.app-shell #loadingspinner {
     }
 
     body.app-shell .app-sidebar {
-        bottom: auto;
-        box-shadow: var(--k66-shadow-md);
-        max-height: calc(100vh - var(--k66-navbar-height)) !important;
-        padding-top: 12px;
-        position: fixed;
-        right: 0;
+        bottom: 0;
+        box-shadow: 18px 0 42px rgba(15, 23, 42, 0.22);
+        display: block !important;
+        height: calc(100vh - var(--k66-navbar-height)) !important;
+        height: calc(100dvh - var(--k66-navbar-height)) !important;
+        left: 0;
+        margin: 0;
+        max-height: none !important;
+        max-width: 316px;
+        overflow-x: hidden !important;
+        overflow-y: auto !important;
+        padding: 14px 0 28px;
+        pointer-events: none;
+        position: fixed !important;
+        right: auto;
         top: var(--k66-navbar-height);
-        width: 100% !important;
+        transform: translate3d(-102%, 0, 0);
+        transition: transform 220ms ease, visibility 0s linear 220ms;
+        visibility: hidden;
+        width: calc(100% - 48px) !important;
+        z-index: 1045;
+    }
+
+    body.app-shell.app-navigation-open .app-sidebar {
+        pointer-events: auto;
+        transform: translate3d(0, 0, 0);
+        transition-delay: 0s;
+        visibility: visible;
+    }
+
+    body.app-shell.app-navigation-open .app-sidebar-backdrop {
+        opacity: 1;
+        pointer-events: auto;
+        transition-delay: 0s;
+        visibility: visible;
+    }
+
+    body.app-shell .navigation-toggler {
+        display: none !important;
+    }
+
+    body.app-shell ul.main-navigation-menu {
+        padding: 0 12px;
+    }
+
+    body.app-shell ul.main-navigation-menu > li,
+    body.app-shell ul.main-navigation-menu > li:hover {
+        position: relative !important;
+        width: auto !important;
+    }
+
+    body.app-shell ul.main-navigation-menu > li > a {
+        justify-content: flex-start;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    body.app-shell ul.main-navigation-menu > li > a > .title,
+    body.app-shell ul.main-navigation-menu > li:hover .title {
+        display: inline !important;
+        padding-left: 0 !important;
+    }
+
+    body.app-shell ul.main-navigation-menu > li > a .icon-arrow {
+        display: inline-block !important;
+    }
+
+    body.app-shell ul.main-navigation-menu > li:hover > a:after {
+        display: none !important;
+    }
+
+    body.app-shell ul.main-navigation-menu li > ul.sub-menu {
+        left: auto !important;
+        position: static !important;
+        top: auto !important;
+        width: auto !important;
+    }
+
+    body.app-shell ul.main-navigation-menu li.open > ul.sub-menu {
+        display: block !important;
+    }
+
+    body.app-shell ul.main-navigation-menu li:not(.open) > ul.sub-menu,
+    body.app-shell ul.main-navigation-menu li:not(.open):hover > ul.sub-menu {
+        display: none !important;
     }
 
     body.app-shell .main-content {
@@ -757,9 +1003,10 @@ body.app-shell #loadingspinner {
         gap: 8px;
     }
 
-    .app-brand-mark {
-        flex-basis: 36px;
-        height: 36px;
+    .app-brand-logo {
+        flex-basis: 56px;
+        height: 42px;
+        width: 56px;
     }
 }
 

@@ -8,14 +8,14 @@
 
             @if (string.IsNullOrWhiteSpace(item.Action) && string.IsNullOrWhiteSpace(item.Controller))
             {
-                <a href="javascript:void(0)">
+                <a class="app-menu-link" href="javascript:void(0)" aria-expanded="false">
                     <span class="title"> @(item.Titulo) </span><i class="icon-arrow"></i>                   
                     <span class="selected"></span>
                 </a>
             }
             else
             {
-                <a href="@Url.Action(item.Action, item.Controller)">
+                <a class="app-menu-link" href="@Url.Action(item.Action, item.Controller)">
                     <span class="title">@item.Titulo</span>
                     @if (item.MenuId == -5)
                     {
@@ -62,7 +62,7 @@
 
             @if (item.Items != null)
             {
-                <ul class="sub-menu">
+                <ul class="sub-menu" aria-label="Submenu de @item.Titulo">
                     @Html.Partial("_SubMenu", item.Items)
                 </ul>
             }

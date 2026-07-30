@@ -1,22 +1,22 @@
 ﻿@if (Request.IsAuthenticated)
 {
     <li>
-        <a rel="" href="@Url.Action("ReiniciarPassword", "Seguridad", new { id = DiamDev.Give.UI.App_Start.CustomHelper.getUserId() })">
-            <i class="clip-key-2"></i>
-            Reiniciar Password
+        <a class="app-user-action" rel="" href="@Url.Action("ReiniciarPassword", "Seguridad", new { id = DiamDev.Give.UI.App_Start.CustomHelper.getUserId() })">
+            <i class="clip-key-2" aria-hidden="true"></i>
+            <span>Reiniciar password</span>
         </a>
     </li>
     <li>
-        <a rel="" href="javascript:document.getElementById('logoutForm').submit()">
-            <i class="clip-exit"></i>
-            Salir
-        </a>  
+        @using (Html.BeginForm("LogOff", "Seguridad", FormMethod.Post, new { id = "logoutForm", @class = "app-logout-form" }))
+        {
+            @Html.AntiForgeryToken()
+            <a class="app-user-action app-user-action-danger" rel="" href="#"
+               onclick="document.getElementById('logoutForm').submit(); return false;">
+                <i class="clip-exit" aria-hidden="true"></i>
+                <span>Salir</span>
+            </a>
+        }
     </li>
-   
-    using (Html.BeginForm("LogOff", "Seguridad", FormMethod.Post, new { id = "logoutForm" })) 
-    {
-            @Html.AntiForgeryToken()            
-    }
 } 
 else 
 {    

@@ -4,15 +4,15 @@
 {
     foreach (var Item in Model)
     {
-        <li>
-		    <a href="javascript:void(0)"><i class="@(Item.IconName)"></i>
+        <li class="app-menu-group">
+		    <a class="app-menu-link" href="javascript:void(0)" aria-expanded="false"><i class="@(Item.IconName)" aria-hidden="true"></i>
 			    <span class="title"> @(Item.Titulo) </span><i class="icon-arrow"></i>
 			    <span class="selected"></span>
 		    </a>
 
             @if (Item.Items != null)
             {
-                <ul class="sub-menu">
+                <ul class="sub-menu" aria-label="Submenu de @Item.Titulo">
                     @Html.Partial("_SubMenu", Item.Items)
                 </ul>
             }

@@ -1,0 +1,773 @@
+/*
+ * Smart K66 application shell
+ * Loaded after the legacy template styles so the existing MVC views,
+ * Bootstrap components and permission-driven navigation keep working.
+ */
+
+:root {
+    --k66-sidebar: #0f172a;
+    --k66-sidebar-hover: #1e293b;
+    --k66-primary: #2563eb;
+    --k66-primary-dark: #1d4ed8;
+    --k66-primary-soft: #eff6ff;
+    --k66-surface: #ffffff;
+    --k66-background: #f6f8fb;
+    --k66-border: #e2e8f0;
+    --k66-text: #0f172a;
+    --k66-muted: #64748b;
+    --k66-danger: #dc2626;
+    --k66-sidebar-width: 248px;
+    --k66-sidebar-small-width: 72px;
+    --k66-navbar-height: 64px;
+    --k66-footer-height: 48px;
+    --k66-radius-sm: 8px;
+    --k66-radius-md: 12px;
+    --k66-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+    --k66-shadow-md: 0 12px 30px rgba(15, 23, 42, 0.12);
+}
+
+html,
+body.app-shell {
+    min-height: 100%;
+}
+
+body.app-shell {
+    background: var(--k66-background) !important;
+    color: var(--k66-text);
+    font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+body.app-shell a,
+body.app-shell button,
+body.app-shell input,
+body.app-shell select,
+body.app-shell textarea {
+    transition: background-color 160ms ease, border-color 160ms ease,
+        color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+body.app-shell a:focus,
+body.app-shell button:focus,
+body.app-shell input:focus,
+body.app-shell select:focus,
+body.app-shell textarea:focus {
+    outline: 3px solid rgba(37, 99, 235, 0.25);
+    outline-offset: 2px;
+}
+
+.app-skip-link {
+    background: var(--k66-primary);
+    border-radius: 0 0 var(--k66-radius-sm) var(--k66-radius-sm);
+    color: #ffffff !important;
+    left: 24px;
+    padding: 10px 16px;
+    position: fixed;
+    top: -60px;
+    z-index: 12000;
+}
+
+.app-skip-link:focus {
+    top: 0;
+}
+
+/* Navbar */
+
+body.app-shell .app-navbar {
+    background: var(--k66-surface) !important;
+    border: 0;
+    border-bottom: 1px solid var(--k66-border);
+    box-shadow: var(--k66-shadow-sm);
+    min-height: var(--k66-navbar-height);
+    z-index: 1030;
+}
+
+body.app-shell .app-navbar-container {
+    min-height: var(--k66-navbar-height);
+    padding-left: 0;
+    padding-right: 24px;
+    width: 100%;
+}
+
+body.app-shell .app-navbar .navbar-header {
+    min-height: var(--k66-navbar-height);
+    width: var(--k66-sidebar-width);
+}
+
+body.app-shell .app-navbar .app-brand,
+body.app-shell .app-navbar .app-brand:hover,
+body.app-shell .app-navbar .app-brand:focus {
+    align-items: center;
+    color: var(--k66-text) !important;
+    display: flex;
+    gap: 12px;
+    height: var(--k66-navbar-height);
+    margin: 0;
+    padding: 10px 20px;
+    text-decoration: none;
+    width: 100%;
+}
+
+.app-brand-mark {
+    align-items: center;
+    background: linear-gradient(135deg, var(--k66-primary), #60a5fa);
+    border-radius: 10px;
+    box-shadow: 0 6px 14px rgba(37, 99, 235, 0.24);
+    color: #ffffff;
+    display: inline-flex;
+    flex: 0 0 40px;
+    font-size: 13px;
+    font-weight: 800;
+    height: 40px;
+    justify-content: center;
+    letter-spacing: 0.04em;
+}
+
+.app-brand-copy,
+.app-user-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.app-brand-name {
+    color: var(--k66-text);
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+}
+
+.app-brand-context {
+    color: var(--k66-muted);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.3;
+    max-width: 154px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.app-shell .app-navbar .navbar-tools > ul {
+    margin: 0;
+    padding: 8px 0;
+}
+
+body.app-shell .app-navbar .navbar-tools > ul > li.dropdown {
+    margin: 0;
+}
+
+body.app-shell .app-navbar li.dropdown.current-user .app-user-menu,
+body.app-shell .app-navbar li.dropdown.current-user .app-user-menu:hover,
+body.app-shell .app-navbar li.dropdown.current-user .app-user-menu:focus {
+    align-items: center;
+    background: transparent;
+    border-radius: var(--k66-radius-sm);
+    color: var(--k66-text) !important;
+    display: flex;
+    gap: 10px;
+    min-height: 48px;
+    padding: 6px 10px;
+    text-decoration: none;
+}
+
+body.app-shell .app-navbar li.dropdown.current-user.open .app-user-menu,
+body.app-shell .app-navbar li.dropdown.current-user .app-user-menu:hover {
+    background: #f1f5f9;
+}
+
+.app-user-avatar {
+    align-items: center;
+    background: var(--k66-primary-soft);
+    border: 1px solid #bfdbfe;
+    border-radius: 50%;
+    color: var(--k66-primary-dark);
+    display: inline-flex;
+    flex: 0 0 36px;
+    font-size: 14px;
+    font-weight: 700;
+    height: 36px;
+    justify-content: center;
+}
+
+.app-user-label {
+    color: var(--k66-muted);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+body.app-shell .app-navbar .username {
+    color: var(--k66-text);
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.3;
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.app-shell .app-navbar .app-user-menu > i {
+    color: var(--k66-muted) !important;
+    font-size: 11px;
+    margin-left: 2px;
+}
+
+body.app-shell .app-user-dropdown {
+    background: var(--k66-surface);
+    border: 1px solid var(--k66-border);
+    border-radius: var(--k66-radius-md);
+    box-shadow: var(--k66-shadow-md);
+    margin-top: 8px;
+    min-width: 230px;
+    overflow: hidden;
+    padding: 8px;
+    right: 0;
+}
+
+body.app-shell .app-user-dropdown > li > a,
+body.app-shell .app-user-dropdown .app-user-action {
+    align-items: center;
+    border: 0 !important;
+    border-radius: 7px !important;
+    color: #334155;
+    display: flex;
+    font-size: 13px;
+    font-weight: 500;
+    gap: 10px;
+    padding: 10px 12px !important;
+    text-decoration: none;
+}
+
+body.app-shell .app-user-dropdown > li > a:hover,
+body.app-shell .app-user-dropdown > li > a:focus,
+body.app-shell .app-user-dropdown .app-user-action:hover,
+body.app-shell .app-user-dropdown .app-user-action:focus {
+    background: #f1f5f9 !important;
+    color: var(--k66-text);
+}
+
+body.app-shell .app-user-dropdown .app-user-action-danger {
+    color: var(--k66-danger);
+}
+
+.app-logout-form {
+    margin: 0;
+}
+
+body.app-shell .dropdown-backdrop {
+    background: transparent;
+}
+
+/* Sidebar */
+
+body.app-shell .app-main-container {
+    background: var(--k66-background) !important;
+    margin-top: var(--k66-navbar-height);
+    min-height: calc(100vh - var(--k66-navbar-height));
+}
+
+body.app-shell .app-sidebar {
+    background: var(--k66-sidebar) !important;
+    border: 0;
+    bottom: 0;
+    box-shadow: 8px 0 24px rgba(15, 23, 42, 0.08);
+    left: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 12px 0 24px;
+    position: fixed;
+    top: var(--k66-navbar-height);
+    width: var(--k66-sidebar-width) !important;
+    z-index: 900;
+}
+
+body.app-shell .navigation-toggler {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--k66-radius-sm);
+    color: #94a3b8;
+    display: flex;
+    height: 34px;
+    justify-content: center;
+    margin: 0 14px 12px auto;
+    padding: 0;
+    width: 34px;
+}
+
+body.app-shell .navigation-toggler:hover,
+body.app-shell .navigation-toggler:focus {
+    background: rgba(255, 255, 255, 0.14) !important;
+    color: #ffffff;
+}
+
+body.app-shell ul.main-navigation-menu {
+    padding: 0 10px;
+}
+
+body.app-shell ul.main-navigation-menu > li {
+    margin: 3px 0;
+}
+
+body.app-shell ul.main-navigation-menu li > a {
+    border: 0;
+    border-radius: var(--k66-radius-sm);
+    color: #cbd5e1;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    min-height: 44px;
+    padding: 12px 12px;
+}
+
+body.app-shell ul.main-navigation-menu > li > a {
+    align-items: center;
+    display: flex;
+}
+
+body.app-shell ul.main-navigation-menu li > a > i:first-child {
+    color: #94a3b8;
+    flex: 0 0 24px;
+    font-size: 18px;
+    margin-right: 10px;
+    text-align: center;
+}
+
+body.app-shell ul.main-navigation-menu li > a .title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.app-shell ul.main-navigation-menu li > a .icon-arrow {
+    color: #64748b;
+    margin-left: auto;
+    margin-right: 0;
+}
+
+body.app-shell ul.main-navigation-menu > li.open > a,
+body.app-shell ul.main-navigation-menu > li > a:hover,
+body.app-shell ul.main-navigation-menu > li > a:focus,
+body.app-shell ul.main-navigation-menu > li:hover > a {
+    background: var(--k66-sidebar-hover) !important;
+    color: #ffffff;
+}
+
+body.app-shell ul.main-navigation-menu > li.active > a {
+    background: var(--k66-primary) !important;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+    color: #ffffff;
+}
+
+body.app-shell ul.main-navigation-menu > li.active > a > i:first-child,
+body.app-shell ul.main-navigation-menu > li.open > a > i:first-child,
+body.app-shell ul.main-navigation-menu > li > a:hover > i:first-child {
+    color: #ffffff;
+}
+
+body.app-shell ul.main-navigation-menu > li.active > a .selected,
+body.app-shell ul.main-navigation-menu > li.active > a .selected:before {
+    display: none !important;
+}
+
+body.app-shell ul.main-navigation-menu li > ul.sub-menu {
+    background: transparent !important;
+    margin: 4px 0 8px;
+    padding: 0 0 0 12px;
+}
+
+body.app-shell ul.main-navigation-menu li > ul.sub-menu > li {
+    margin-top: 2px !important;
+}
+
+body.app-shell ul.main-navigation-menu li > ul.sub-menu > li > a {
+    color: #94a3b8;
+    font-size: 13px;
+    min-height: 38px;
+    padding: 9px 10px 9px 34px !important;
+    position: relative;
+}
+
+body.app-shell ul.main-navigation-menu li > ul.sub-menu > li > a:before {
+    background: #475569;
+    border-radius: 50%;
+    content: "";
+    height: 5px;
+    left: 17px;
+    position: absolute;
+    top: 17px;
+    width: 5px;
+}
+
+body.app-shell ul.main-navigation-menu li > ul.sub-menu > li.open > a,
+body.app-shell ul.main-navigation-menu li > ul.sub-menu > li.active > a,
+body.app-shell ul.main-navigation-menu li > ul.sub-menu > li > a:hover,
+body.app-shell ul.main-navigation-menu li > ul.sub-menu > li > a:focus {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+}
+
+body.app-shell ul.main-navigation-menu .badge {
+    background: #ef4444;
+    border: 2px solid var(--k66-sidebar);
+    border-radius: 999px;
+    color: #ffffff;
+    font-size: 10px;
+    margin-left: auto;
+    min-width: 22px;
+    padding: 3px 6px;
+}
+
+/* Page content */
+
+body.app-shell .main-content {
+    background: var(--k66-background) !important;
+    margin-left: var(--k66-sidebar-width) !important;
+    min-height: calc(100vh - var(--k66-navbar-height) - var(--k66-footer-height));
+}
+
+body.app-shell .main-content > .app-content-container {
+    background: transparent;
+    border: 0;
+    padding: 24px 30px 40px;
+}
+
+body.app-shell #style_selector {
+    display: none;
+}
+
+body.app-shell .app-page-heading {
+    background: var(--k66-surface);
+    border: 1px solid var(--k66-border);
+    border-radius: var(--k66-radius-md);
+    box-shadow: var(--k66-shadow-sm);
+    margin-bottom: 24px;
+    padding: 16px 20px 18px;
+}
+
+body.app-shell .app-breadcrumb {
+    background: transparent;
+    border: 0;
+    color: var(--k66-muted);
+    font-size: 12px;
+    height: auto;
+    margin: 0 0 8px;
+    padding: 0;
+}
+
+body.app-shell .app-breadcrumb > li + li:before {
+    color: #cbd5e1;
+    content: "/";
+    padding: 0 8px;
+}
+
+body.app-shell .app-breadcrumb a {
+    color: var(--k66-muted);
+    font-weight: 500;
+}
+
+body.app-shell .app-breadcrumb a:hover,
+body.app-shell .app-breadcrumb a:focus {
+    color: var(--k66-primary);
+    text-decoration: none;
+}
+
+body.app-shell .app-breadcrumb i {
+    color: #94a3b8;
+    font-size: 13px;
+    margin-right: 4px;
+}
+
+body.app-shell .app-page-header {
+    border: 0;
+    margin: 0;
+    padding: 0;
+}
+
+body.app-shell .app-page-header h1 {
+    color: var(--k66-text);
+    font-family: inherit;
+    font-size: 27px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    margin: 0;
+}
+
+body.app-shell .app-page-header h1 small {
+    color: var(--k66-muted);
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    margin-left: 8px;
+}
+
+body.app-shell .panel {
+    border-color: var(--k66-border);
+    border-radius: var(--k66-radius-md);
+    box-shadow: var(--k66-shadow-sm);
+}
+
+body.app-shell .panel-heading {
+    border-radius: var(--k66-radius-md) var(--k66-radius-md) 0 0;
+}
+
+body.app-shell .btn {
+    border-radius: 7px;
+    font-weight: 600;
+}
+
+body.app-shell .btn-primary {
+    background-color: var(--k66-primary);
+    border-color: var(--k66-primary);
+}
+
+body.app-shell .btn-primary:hover,
+body.app-shell .btn-primary:focus {
+    background-color: var(--k66-primary-dark);
+    border-color: var(--k66-primary-dark);
+}
+
+body.app-shell .form-control {
+    border-color: #cbd5e1;
+    border-radius: 7px;
+    box-shadow: none;
+}
+
+body.app-shell .form-control:focus {
+    border-color: var(--k66-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* Footer and loading state */
+
+body.app-shell .app-footer {
+    background: var(--k66-background) !important;
+    border-top: 1px solid var(--k66-border);
+    color: var(--k66-muted);
+    font-size: 12px;
+    height: var(--k66-footer-height);
+    margin-left: var(--k66-sidebar-width);
+    padding: 9px 24px;
+}
+
+body.app-shell .go-top {
+    background: var(--k66-surface) !important;
+    border: 1px solid var(--k66-border);
+    border-radius: 7px;
+    color: var(--k66-muted);
+    height: 30px;
+    margin: 0;
+    padding: 0;
+    width: 30px;
+}
+
+body.app-shell .go-top:hover,
+body.app-shell .go-top:focus {
+    background: var(--k66-primary-soft) !important;
+    border-color: #bfdbfe;
+    color: var(--k66-primary);
+}
+
+body.app-shell #loading {
+    backdrop-filter: blur(2px);
+    background: rgba(248, 250, 252, 0.82);
+}
+
+body.app-shell #loadingspinner {
+    color: var(--k66-text);
+    font-size: 15px;
+    font-weight: 600;
+}
+
+/* Collapsed desktop navigation */
+
+@media (min-width: 768px) {
+    body.app-shell .app-sidebar {
+        position: fixed;
+        width: var(--k66-sidebar-width) !important;
+    }
+
+    body.app-shell .main-content {
+        margin-left: var(--k66-sidebar-width) !important;
+    }
+
+    body.app-shell.navigation-small .app-navbar .navbar-header,
+    body.app-shell.navigation-small .app-sidebar {
+        width: var(--k66-sidebar-small-width) !important;
+    }
+
+    body.app-shell.navigation-small .app-brand {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    body.app-shell.navigation-small .app-brand-copy {
+        display: none;
+    }
+
+    body.app-shell.navigation-small .main-content,
+    body.app-shell.navigation-small .app-footer {
+        margin-left: var(--k66-sidebar-small-width) !important;
+    }
+
+    body.app-shell.navigation-small .navigation-toggler {
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    body.app-shell.navigation-small ul.main-navigation-menu {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    body.app-shell.navigation-small ul.main-navigation-menu > li > a {
+        justify-content: center;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    body.app-shell.navigation-small ul.main-navigation-menu > li > a > i:first-child {
+        margin-right: 0;
+    }
+
+    body.app-shell.navigation-small ul.main-navigation-menu > li:hover {
+        width: var(--k66-sidebar-width);
+    }
+
+    body.app-shell.navigation-small ul.main-navigation-menu > li:hover > ul.sub-menu {
+        left: var(--k66-sidebar-small-width);
+        width: calc(var(--k66-sidebar-width) - var(--k66-sidebar-small-width));
+    }
+}
+
+/* Mobile navigation */
+
+@media (max-width: 767px) {
+    body.app-shell .app-navbar-container {
+        padding-right: 8px;
+    }
+
+    body.app-shell .app-navbar .navbar-header {
+        min-height: var(--k66-navbar-height);
+        width: 100%;
+    }
+
+    body.app-shell .app-navbar .navbar-toggle {
+        background: var(--k66-primary);
+        border: 0;
+        border-radius: var(--k66-radius-sm);
+        color: #ffffff;
+        margin: 14px 8px 0 0;
+        padding: 9px 11px;
+    }
+
+    body.app-shell .app-navbar .app-brand {
+        padding-left: 14px;
+        width: auto;
+    }
+
+    body.app-shell .app-navbar .navbar-tools {
+        background: transparent;
+        border: 0;
+        position: absolute;
+        right: 58px;
+        top: 0;
+    }
+
+    body.app-shell .app-navbar .navbar-tools > ul {
+        padding-top: 8px;
+    }
+
+    body.app-shell .app-navbar .app-user-copy,
+    body.app-shell .app-navbar .app-user-menu > i {
+        display: none;
+    }
+
+    body.app-shell .app-navbar li.dropdown.current-user .app-user-menu {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    body.app-shell .app-main-container {
+        margin-top: var(--k66-navbar-height);
+    }
+
+    body.app-shell .app-sidebar {
+        bottom: auto;
+        box-shadow: var(--k66-shadow-md);
+        max-height: calc(100vh - var(--k66-navbar-height)) !important;
+        padding-top: 12px;
+        position: fixed;
+        right: 0;
+        top: var(--k66-navbar-height);
+        width: 100% !important;
+    }
+
+    body.app-shell .main-content {
+        margin-left: 0 !important;
+        min-height: calc(100vh - var(--k66-navbar-height));
+    }
+
+    body.app-shell .main-content > .app-content-container {
+        padding: 16px 14px 28px;
+    }
+
+    body.app-shell .app-page-heading {
+        margin-bottom: 16px;
+        padding: 14px 16px 16px;
+    }
+
+    body.app-shell .app-page-header h1 {
+        font-size: 23px;
+    }
+
+    body.app-shell .app-page-header h1 small {
+        display: block;
+        margin-left: 0;
+        margin-top: 4px;
+    }
+
+    body.app-shell .app-footer {
+        height: auto;
+        margin-left: 0;
+        min-height: var(--k66-footer-height);
+        padding-left: 14px;
+        padding-right: 14px;
+    }
+}
+
+@media (max-width: 420px) {
+    .app-brand-context {
+        display: none;
+    }
+
+    .app-brand-name {
+        font-size: 14px;
+    }
+
+    body.app-shell .app-navbar .app-brand {
+        gap: 8px;
+    }
+
+    .app-brand-mark {
+        flex-basis: 36px;
+        height: 36px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.app-shell *,
+    body.app-shell *:before,
+    body.app-shell *:after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}

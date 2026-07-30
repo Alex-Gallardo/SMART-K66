@@ -1,5 +1,12 @@
 ﻿<!DOCTYPE html>
-<html lang="en" class="no-js">
+@{
+    var usuarioNombre = Convert.ToString(Session["Nombre"]);
+    var usuarioInicial = string.IsNullOrWhiteSpace(usuarioNombre)
+        ? "U"
+        : usuarioNombre.Trim().Substring(0, 1).ToUpperInvariant();
+    var agenciaNombre = DiamDev.Give.UI.App_Start.CustomHelper.getAgenciaNombre();
+}
+<html lang="es" class="no-js">
 <head>
 
     <title>Smart K66 - @ViewBag.Title</title>
@@ -38,6 +45,7 @@
     <link rel="stylesheet" type="text/css" href="~/Content/fancybox/source/helpers/jquery.fancybox-thumbs.css?v=1.0.7" />
     <link href="~/Content/toastr.min.css" rel="stylesheet" />
     <link href="~/Content/Site.css" rel="stylesheet" />
+    <link href="~/Content/ui-shell.css" rel="stylesheet" />
     <style type="text/css">
         .fancybox-custom .fancybox-skin 
         {
@@ -53,20 +61,26 @@
 
     <link rel="shortcut icon" href="~/favicon.ico" />
 </head>
-<body>
+<body class="app-shell">
+    <a class="app-skip-link" href="#main-content">Saltar al contenido principal</a>
     <!-- start: HEADER -->
-    <div class="navbar navbar-inverse navbar-fixed-top">
+    <div class="navbar navbar-inverse navbar-fixed-top app-navbar">
         <!-- start: TOP NAVIGATION CONTAINER -->
-        <div class="container">
+        <div class="container app-navbar-container">
             <div class="navbar-header">
                 <!-- start: RESPONSIVE MENU TOGGLER -->
-                <button data-target=".navbar-collapse" data-toggle="collapse" class="navbar-toggle" type="button">
+                <button data-target=".navbar-collapse" data-toggle="collapse" class="navbar-toggle" type="button"
+                        aria-label="Abrir menu principal" aria-expanded="false">
                     <span class="clip-list-2"></span>
                 </button>
                 <!-- end: RESPONSIVE MENU TOGGLER -->
                 <!-- start: LOGO -->
-                <a class="navbar-brand" href="@Url.Action("Dashboard", "Inicio")">                     
-                    @DiamDev.Give.UI.App_Start.CustomHelper.getAgenciaNombre()                
+                <a class="navbar-brand app-brand" href="@Url.Action("Dashboard", "Inicio")">
+                    <span class="app-brand-mark" aria-hidden="true">K66</span>
+                    <span class="app-brand-copy">
+                        <span class="app-brand-name">Smart K66</span>
+                        <span class="app-brand-context">@agenciaNombre</span>
+                    </span>
                 </a>
                 <!-- end: LOGO -->
             </div>
@@ -84,14 +98,17 @@
                     <!-- end: MESSAGE DROPDOWN -->
                     <!-- start: USER DROPDOWN -->
                     <li class="dropdown current-user">
-                        <a data-toggle="dropdown" class="dropdown-toggle" href="#">
-                            <span class="username">@Session["Nombre"]</span>
+                        <a data-toggle="dropdown" class="dropdown-toggle app-user-menu" href="#"
+                           aria-haspopup="true" aria-expanded="false">
+                            <span class="app-user-avatar" aria-hidden="true">@usuarioInicial</span>
+                            <span class="app-user-copy">
+                                <span class="app-user-label">Usuario</span>
+                                <span class="username">@usuarioNombre</span>
+                            </span>
                             <i class="clip-chevron-down"></i>
                         </a>
-                        <ul class="dropdown-menu">
-                            <li>
-                                @Html.Partial("_LoginPartial")
-                            </li>
+                        <ul class="dropdown-menu app-user-dropdown" role="menu">
+                            @Html.Partial("_LoginPartial")
                         </ul>
                     </li>
                     <!-- end: USER DROPDOWN -->
@@ -103,21 +120,22 @@
     </div>
     <!-- end: HEADER -->
     <!-- start: MAIN CONTAINER -->
-    <div class="main-container">
+    <div class="main-container app-main-container">
         <div class="navbar-content">
             <!-- start: SIDEBAR -->
-            <div class="main-navigation navbar-collapse collapse">
+            <div class="main-navigation navbar-collapse collapse app-sidebar" aria-label="Navegacion principal">
                 <!-- start: MAIN MENU TOGGLER BUTTON -->
-                <div class="navigation-toggler">
+                <button type="button" class="navigation-toggler" aria-label="Contraer menu lateral"
+                        aria-expanded="true">
                     <i class="clip-chevron-left"></i>
                     <i class="clip-chevron-right"></i>
-                </div>
+                </button>
                 <!-- end: MAIN MENU TOGGLER BUTTON -->
                 <!-- start: MAIN NAVIGATION MENU -->
                 <ul class="main-navigation-menu">
-                    <li class="active open">
-                        <a href="@Url.Action("Dashboard", "Inicio")">
-                            <i class="clip-home-3"></i>
+                    <li class="active open app-menu-home">
+                        <a class="app-menu-link" href="@Url.Action("Dashboard", "Inicio")">
+                            <i class="clip-home-3" aria-hidden="true"></i>
                             <span class="title">Inicio</span><span class="selected"></span>
                         </a>
                     </li>
@@ -128,7 +146,7 @@
             <!-- end: SIDEBAR -->
         </div>
         <!-- start: PAGE -->
-        <div class="main-content">
+        <main class="main-content" id="main-content" tabindex="-1">
             <!-- start: PANEL CONFIGURATION MODAL FORM -->
             <div class="modal fade" id="panel-config" tabindex="-1" role="dialog" aria-hidden="true">
                 <div class="modal-dialog">
@@ -157,7 +175,7 @@
             </div>
             <!-- /.modal -->
             <!-- end: SPANEL CONFIGURATION MODAL FORM -->
-            <div class="container">
+            <div class="container app-content-container">
                 <!-- start: PAGE HEADER -->
                 <div class="row">
                     <div class="col-sm-12">
@@ -167,19 +185,21 @@
                         </div>
                         <!-- end: STYLE SELECTOR BOX -->
                         <!-- start: PAGE TITLE & BREADCRUMB -->
-                        <ol class="breadcrumb">
-                            <li>
-                                <i class="clip-home-3"></i>
-                                <a href="@Url.Action("Dashboard", "Inicio")">
-                                    Inicio
-                                </a>
-                            </li>
-                            <li class="active">
-                                @Session["Encabezado"]
-                            </li>
-                        </ol>
-                        <div class="page-header">
-                            <h1>@Session["Encabezado"] <small>@Session["SubEncabezado"]</small></h1>
+                        <div class="app-page-heading">
+                            <ol class="breadcrumb app-breadcrumb">
+                                <li>
+                                    <i class="clip-home-3" aria-hidden="true"></i>
+                                    <a href="@Url.Action("Dashboard", "Inicio")">
+                                        Inicio
+                                    </a>
+                                </li>
+                                <li class="active">
+                                    @Session["Encabezado"]
+                                </li>
+                            </ol>
+                            <div class="page-header app-page-header">
+                                <h1>@Session["Encabezado"] <small>@Session["SubEncabezado"]</small></h1>
+                            </div>
                         </div>
                         <!-- end: PAGE TITLE & BREADCRUMB -->
                     </div>
@@ -190,22 +210,24 @@
                 @RenderBody()
                 <!-- end: PAGE CONTENT-->
             </div>
-        </div>
+        </main>
         <!-- end: PAGE -->
     </div>
 
 <!-- start: FOOTER -->
-<div class="footer clearfix">
+<div class="footer clearfix app-footer">
     <div class="footer-inner">
-        @DateTime.Now.Year © - GRUPO K66
+        <span>@DateTime.Now.Year © GRUPO K66</span>
     </div>
     <div class="footer-items">
-        <span class="go-top"><i class="clip-chevron-up"></i></span>
+        <button type="button" class="go-top" aria-label="Volver al inicio de la pagina">
+            <i class="clip-chevron-up" aria-hidden="true"></i>
+        </button>
     </div>
 </div>
 <!-- end: FOOTER -->
 
-<div id="loading">
+<div id="loading" role="status" aria-live="polite">
     <div id="loadingcontent">
         <p id="loadingspinner">
             Procesando...

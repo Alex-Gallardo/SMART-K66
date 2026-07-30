@@ -19,7 +19,7 @@
                     Fecha Inicial<span class="symbol required"></span>
                 </label>
                 <div class="input-group">
-                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@(ViewBag.fechaInicial == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaInicial)" required>
                     <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
                 </div>
             </div>
@@ -30,9 +30,38 @@
                     Fecha Final<span class="symbol required"></span>
                 </label>
                 <div class="input-group">
-                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit();" required>
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@(ViewBag.fechaFinal == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaFinal)" onchange="this.form.submit();" required>
                     <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
                 </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<form action="" method="get">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    No. Documento
+                </label>
+                <input type="number" placeholder="No. del Documento" class="form-control" id="documento" name="documento" value="@Html.Raw(ViewBag.documento)" autocomplete="off" />
+            </div>
+        </div>
+        <button class="btn btn-primary" style="margin-bottom: -58px;" type="submit">
+            <i class="clip-search-3"></i> Buscar
+        </button>
+    </div>
+</form>
+<br />
+<form action="" method="get">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Proveedor
+                </label>
+                @Html.DropDownList("proveedor", (SelectList)ViewBag.Proveedores, "--Seleccione un Proveedor--", new { @class = "form-control search-select", onchange = "this.form.submit();" })
             </div>
         </div>
     </div>
@@ -60,7 +89,12 @@
                 <table class="table table-hover" id="sample-table-1">
                     <thead>
                         <tr>
+                            <th>Agencia</th>
+                            <th>Estado</th>
+                            <th>Categoria</th>
                             <th>Fecha</th>
+                            <th>ID</th>
+                            <th>F. Proveedor</th>
                             <th>Proveedor</th>
                             <th>Productos</th>
                             <th>Total</th>
@@ -71,15 +105,42 @@
                         @foreach (var Movimiento in Model)
                         {
                             <tr>
+                                <td>@(Movimiento.Agencia == null ? "No Disponible" : Movimiento.Agencia.Nombre)</td>
+                                <td>@(Movimiento.MovimientoEstado == null ? "No Disponible" : Movimiento.MovimientoEstado.Nombre)</td>
+                                <td>@(Movimiento.MovimientoCategoria == null ? "No Disponible" : Movimiento.MovimientoCategoria.Nombre)</td>
                                 <td>@Movimiento.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@Movimiento.MovimientoId</td>
+                                <td>@(string.IsNullOrWhiteSpace(Movimiento.Documento) ? "No Disponible" : Movimiento.Documento)</td>
                                 <td>@(Movimiento.Proveedor == null ? "No Disponible" : Movimiento.Proveedor.Nombre)</td>
-                                <td>@(Movimiento.Detalles == null ? 0 : Movimiento.Detalles.Count())</td>
-                                <td>@(Movimiento.Detalles == null ? "Q0.00" : Movimiento.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C"))</td>
+                                <td>@(Movimiento.Detalles == null ? 0 : Movimiento.Anulada ? 0 : Movimiento.Detalles.Count())</td>
+                                <td>@(Movimiento.Detalles == null ? "Q0.0000" : Movimiento.Anulada ? "Q0.0000" : Movimiento.Detalles.Sum(x => x.Cantidad * x.PrecioCosto).ToString("C4"))</td>
                                 <td class="center">
                                     <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        @if (!Movimiento.Operado)
+                                        {
+                                            if (!Movimiento.Anulada)
+                                            {
+                                                <a href="@Url.Action("Editar", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                                <a href="@Url.Action("Aprobar", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Aprobar"><i class="clip-checkmark"></i></a>
+                                            }
+                                        }
+                                        @if (!Movimiento.Operado)
+                                        {
+                                            if (!Movimiento.Anulada)
+                                            {
+                                                <a href="@Url.Action("Anular", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" class="btn btn-bricky tooltips" data-placement="top" data-original-title="Anular Ingreso"><i class="clip-close"></i></a>
+                                            }
+                                        }
                                         <a href="@Url.Action("Detalle", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Ingreso"><i class="clip-stack-empty"></i></a>
-                                        <a href="@Url.Action("Boleta", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
-                                        <a href="@Url.Action("Excel", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" class="btn btn-teal"><i class="clip-file-excel"></i></a>
+                                        @if (!Movimiento.Operado && !Movimiento.Anulada)
+                                        {
+                                            <a href="@Url.Action("Boleta_Sin_Aprobar", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
+                                        }
+                                        @if (Movimiento.Operado && !Movimiento.Anulada)
+                                        {
+                                            <a href="@Url.Action("Boleta", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
+                                            <a href="@Url.Action("Excel", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Generar Etiquetas"><i class="clip-file-excel"></i></a>
+                                        }
                                     </div>
                                     <div class="visible-xs visible-sm hidden-md hidden-lg">
                                         <div class="btn-group">
@@ -87,16 +148,60 @@
                                                 <i class="icon-cog"></i> <span class="caret"></span>
                                             </a>
                                             <ul role="menu" class="dropdown-menu pull-right">
+                                                @if (!Movimiento.Operado)
+                                                {
+                                                    if (!Movimiento.Anulada)
+                                                    {
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Producto_Ingreso", new { id = Movimiento.MovimientoId })">
+                                                                <i class="icon-edit"></i> Editar
+                                                            </a>
+                                                        </li>
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Aprobar", "Producto_Ingreso", new { id = Movimiento.MovimientoId })">
+                                                                <i class="clip-checkmark"></i> Aprobar
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                }
+                                                @if (!Movimiento.Operado)
+                                                {
+                                                    if (!Movimiento.Anulada)
+                                                    {
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Anular", "Producto_Ingreso", new { id = Movimiento.MovimientoId })">
+                                                                <i class="clip-close"></i> Anular Ingreso
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                }
                                                 <li role="presentation">
                                                     <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Producto_Ingreso", new { id = Movimiento.MovimientoId })">
                                                         <i class="clip-stack-empty"></i> Detalle del Ingreso
                                                     </a>
                                                 </li>
-                                                <li role="presentation">
-                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" target="_blank">
-                                                        <i class="clip-file-pdf"></i> Ver Boleta
-                                                    </a>
-                                                </li>
+                                                @if (!Movimiento.Operado && !Movimiento.Anulada)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta_Sin_Aprobar", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" target="_blank">
+                                                            <i class="clip-file-pdf"></i> Ver Boleta
+                                                        </a>
+                                                    </li>
+
+                                                }
+                                                @if (Movimiento.Operado && !Movimiento.Anulada)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Producto_Ingreso", new { id = Movimiento.MovimientoId })" target="_blank">
+                                                            <i class="clip-file-pdf"></i> Ver Boleta
+                                                        </a>
+                                                    </li>
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Excel", "Producto_Ingreso", new { id = Movimiento.MovimientoId })">
+                                                            <i class="clip-file-excel"></i> Generar Etiquetas
+                                                        </a>
+                                                    </li>
+                                                }
                                             </ul>
                                         </div>
                                     </div>
@@ -115,8 +220,17 @@
 {
     <script type="text/javascript">
         $(document).ready(function () {
-            if ('@TempData["Producto-Ingreso-Success"]' == "OK") {
+            if ('@TempData["Producto-Ingreso-Success"]' == "OK")
+            {
                 toastr.success('El ingreso se guardó exitosamente');
+            }
+            else if ('@TempData["Producto-Ingreso_Aprobar-Success"]' == "OK")
+            {
+                toastr.success('El ingreso se aprobo exitosamente');
+            }
+            else if ('@TempData["Producto-Ingreso_Anular-Success"]' == "OK")
+            {
+                toastr.success('El ingreso se anulo exitosamente');
             }
         });
     </script>

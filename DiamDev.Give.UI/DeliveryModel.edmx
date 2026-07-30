@@ -1,0 +1,334 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+    <Schema Namespace="DeliveryModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <Function Name="KpiDelivery" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="Agencia" Type="bigint" Mode="In" />
+          <Parameter Name="FechaInicial" Type="date" Mode="In" />
+          <Parameter Name="FechaFinal" Type="date" Mode="In" />
+        </Function>
+        <Function Name="sp_cuentaporcobrar_historico" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="Agencia" Type="bigint" Mode="In" />
+          <Parameter Name="FechaInicial" Type="date" Mode="In" />
+          <Parameter Name="FechaFinal" Type="date" Mode="In" />
+        </Function>
+        <Function Name="sp_despachosportransporte_fecha" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="Agencia" Type="bigint" Mode="In" />
+          <Parameter Name="FechaInicial" Type="date" Mode="In" />
+          <Parameter Name="FechaFinal" Type="date" Mode="In" />
+        </Function>
+        <Function Name="sp_recibos_anulados" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="Agencia" Type="bigint" Mode="In" />
+          <Parameter Name="FechaInicial" Type="date" Mode="In" />
+          <Parameter Name="FechaFinal" Type="date" Mode="In" />
+        </Function>
+        <Function Name="sp_topclientes" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="FechaInicial" Type="date" Mode="In" />
+          <Parameter Name="FechaFinal" Type="date" Mode="In" />
+        </Function>
+        <Function Name="sp_ventas_despachadas_por_dia" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="Agencia" Type="bigint" Mode="In" />
+          <Parameter Name="FechaInicial" Type="date" Mode="In" />
+          <Parameter Name="FechaFinal" Type="date" Mode="In" />
+        </Function>
+        <Function Name="sp_ventascomparativa" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="FechaInicial" Type="date" Mode="In" />
+          <Parameter Name="FechaFinal" Type="date" Mode="In" />
+        </Function>
+        <Function Name="sp_ventasporproductotop" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="Agencia" Type="bigint" Mode="In" />
+          <Parameter Name="FechaInicial" Type="date" Mode="In" />
+          <Parameter Name="FechaFinal" Type="date" Mode="In" />
+        </Function>
+        <Function Name="sp_ventasxvendedor_cons" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="FechaInicial" Type="date" Mode="In" />
+          <Parameter Name="FechaFinal" Type="date" Mode="In" />
+        </Function>
+        <Function Name="sp_ventasxvendedor_cons_det" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="FechaInicial" Type="date" Mode="In" />
+          <Parameter Name="FechaFinal" Type="date" Mode="In" />
+        </Function>
+        <EntityContainer Name="DeliveryModelStoreContainer" />
+      </Schema></edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="DeliveryModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityContainer Name="DeliveryREntities" annotation:LazyLoadingEnabled="true" >
+          <FunctionImport Name="KpiDelivery" ReturnType="Collection(DeliveryModel.KpiDelivery_Result)">
+            <Parameter Name="Agencia" Mode="In" Type="Int64" />
+            <Parameter Name="FechaInicial" Mode="In" Type="DateTime" />
+            <Parameter Name="FechaFinal" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="sp_topclientes" ReturnType="Collection(DeliveryModel.sp_topclientes_Result)">
+            <Parameter Name="FechaInicial" Mode="In" Type="DateTime" />
+            <Parameter Name="FechaFinal" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="sp_cuentaporcobrar_historico" ReturnType="Collection(DeliveryModel.sp_cuentaporcobrar_historico_Result)">
+            <Parameter Name="Agencia" Mode="In" Type="Int64" />
+            <Parameter Name="FechaInicial" Mode="In" Type="DateTime" />
+            <Parameter Name="FechaFinal" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="sp_recibos_anulados" ReturnType="Collection(DeliveryModel.sp_recibos_anulados_Result)">
+            <Parameter Name="Agencia" Mode="In" Type="Int64" />
+            <Parameter Name="FechaInicial" Mode="In" Type="DateTime" />
+            <Parameter Name="FechaFinal" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="sp_ventas_despachadas_por_dia" ReturnType="Collection(DeliveryModel.sp_ventas_despachadas_por_dia_Result)">
+            <Parameter Name="Agencia" Mode="In" Type="Int64" />
+            <Parameter Name="FechaInicial" Mode="In" Type="DateTime" />
+            <Parameter Name="FechaFinal" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="sp_despachosportransporte_fecha" ReturnType="Collection(DeliveryModel.sp_despachosportransporte_fecha_Result)">
+            <Parameter Name="Agencia" Mode="In" Type="Int64" />
+            <Parameter Name="FechaInicial" Mode="In" Type="DateTime" />
+            <Parameter Name="FechaFinal" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="sp_ventascomparativa" ReturnType="Collection(DeliveryModel.sp_ventascomparativa_Result)">
+            <Parameter Name="FechaInicial" Mode="In" Type="DateTime" />
+            <Parameter Name="FechaFinal" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="sp_ventasxvendedor_cons" ReturnType="Collection(DeliveryModel.sp_ventasxvendedor_cons_Result)">
+            <Parameter Name="FechaInicial" Mode="In" Type="DateTime" />
+            <Parameter Name="FechaFinal" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="sp_ventasxvendedor_cons_det" ReturnType="Collection(DeliveryModel.sp_ventasxvendedor_cons_det_Result)">
+            <Parameter Name="FechaInicial" Mode="In" Type="DateTime" />
+            <Parameter Name="FechaFinal" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="sp_ventasporproductotop" ReturnType="Collection(DeliveryModel.sp_ventasporproductotop_Result)">
+            <Parameter Name="Agencia" Mode="In" Type="Int64" />
+            <Parameter Name="FechaInicial" Mode="In" Type="DateTime" />
+            <Parameter Name="FechaFinal" Mode="In" Type="DateTime" />
+          </FunctionImport>
+        </EntityContainer>
+        <ComplexType Name="KpiDelivery_Result">
+          <Property Type="Int64" Name="Recibo_Id" Nullable="false" />
+          <Property Type="String" Name="Cliente" Nullable="false" MaxLength="300" />
+          <Property Type="DateTime" Name="Fecha_Hora_Recibo" Nullable="true" Precision="23" />
+          <Property Type="DateTime" Name="Fecha_Hora_CocinaFin" Nullable="true" Precision="23" />
+          <Property Type="DateTime" Name="Fecha_Hora_Despacho" Nullable="true" Precision="23" />
+          <Property Type="Int32" Name="KpiCocina" Nullable="true" />
+          <Property Type="Int32" Name="KpiDespacho" Nullable="true" />
+          <Property Type="Int32" Name="KpiTotal" Nullable="true" />
+        </ComplexType>
+        <ComplexType Name="sp_topclientes_Result">
+          <Property Type="String" Name="Nombre" Nullable="false" MaxLength="300" />
+          <Property Type="String" Name="No_Telefono" Nullable="true" MaxLength="20" />
+          <Property Type="String" Name="Direccion" Nullable="false" MaxLength="500" />
+          <Property Type="Int32" Name="CantidadPedidos" Nullable="false" />
+          <Property Type="Decimal" Name="MontoPedido" Nullable="false" Precision="38" Scale="6" />
+        </ComplexType>
+        <ComplexType Name="sp_cuentaporcobrar_historico_Result">
+          <Property Type="Int64" Name="Recibo_Id" Nullable="false" />
+          <Property Type="DateTime" Name="FechaRecibo" Nullable="false" Precision="23" />
+          <Property Type="String" Name="Nombre" Nullable="false" MaxLength="300" />
+          <Property Type="Decimal" Name="MontoRecibo" Nullable="true" Precision="38" Scale="6" />
+          <Property Type="Decimal" Name="MontoPago" Nullable="false" Precision="18" Scale="4" />
+          <Property Type="String" Name="FormaPago" Nullable="false" MaxLength="300" />
+          <Property Type="DateTime" Name="FechaPago" Nullable="false" Precision="23" />
+          <Property Type="String" Name="UsuarioCreo" Nullable="false" MaxLength="200" />
+          <Property Type="String" Name="UsuarioRecibioPago" Nullable="false" MaxLength="200" />
+        </ComplexType>
+        <ComplexType Name="sp_recibos_anulados_Result">
+          <Property Type="Int64" Name="Recibo_Id" Nullable="false" />
+          <Property Type="DateTime" Name="Fecha_Hora_Recibo" Nullable="true" Precision="23" />
+          <Property Type="DateTime" Name="Fecha_Anular" Nullable="true" Precision="23" />
+          <Property Type="String" Name="Nombre" Nullable="false" MaxLength="300" />
+          <Property Type="String" Name="MotivoAnulacion" Nullable="true" />
+          <Property Type="String" Name="UsuarioCreo" Nullable="false" MaxLength="200" />
+          <Property Type="String" Name="UsuarioAnulo" Nullable="false" MaxLength="200" />
+          <Property Type="Decimal" Name="MontoRecibo" Nullable="true" Precision="38" Scale="6" />
+        </ComplexType>
+        <ComplexType Name="sp_ventas_despachadas_por_dia_Result">
+          <Property Type="DateTime" Name="Fecha" Nullable="false" Precision="23" />
+          <Property Type="Int32" Name="Cantidad" Nullable="true" />
+          <Property Type="Decimal" Name="Total" Nullable="true" Precision="38" Scale="6" />
+          <Property Type="Decimal" Name="Efectivo" Nullable="false" Precision="38" Scale="4" />
+          <Property Type="Decimal" Name="TarjetaCredito" Nullable="false" Precision="38" Scale="4" />
+          <Property Type="Decimal" Name="PagaditoPagos" Nullable="false" Precision="38" Scale="4" />
+          <Property Type="Decimal" Name="Cortesia" Nullable="false" Precision="38" Scale="4" />
+          <Property Type="Decimal" Name="Cheque" Nullable="false" Precision="38" Scale="4" />
+          <Property Type="Decimal" Name="CuentasPorCobrarDia" Nullable="true" Precision="38" Scale="4" />
+        </ComplexType>
+        <ComplexType Name="sp_despachosportransporte_fecha_Result">
+          <Property Type="DateTime" Name="Fecha" Nullable="false" Precision="23" />
+          <Property Type="String" Name="Transporte" Nullable="true" MaxLength="500" />
+          <Property Type="Int32" Name="Atendidos" Nullable="true" />
+        </ComplexType>
+        <ComplexType Name="sp_ventascomparativa_Result">
+          <Property Type="Int64" Name="Agencia_Id" Nullable="false" />
+          <Property Type="String" Name="Agencia" Nullable="false" MaxLength="300" />
+          <Property Type="Int32" Name="Cantidad" Nullable="true" />
+          <Property Type="Decimal" Name="Total" Nullable="true" Precision="38" Scale="6" />
+        </ComplexType>
+        <ComplexType Name="sp_ventasxvendedor_cons_Result">
+          <Property Type="Int64" Name="Vendedor_Id" Nullable="false" />
+          <Property Type="String" Name="Vendedor" Nullable="false" MaxLength="300" />
+          <Property Type="Int32" Name="Cantidad" Nullable="true" />
+          <Property Type="Decimal" Name="Total" Nullable="true" Precision="38" Scale="6" />
+        </ComplexType>
+        <ComplexType Name="sp_ventasxvendedor_cons_det_Result">
+          <Property Type="DateTime" Name="Fecha" Nullable="false" Precision="23" />
+          <Property Type="Int64" Name="Vendedor_Id" Nullable="false" />
+          <Property Type="String" Name="Vendedor" Nullable="false" MaxLength="300" />
+          <Property Type="Int32" Name="Cantidad" Nullable="true" />
+          <Property Type="Decimal" Name="Total" Nullable="true" Precision="38" Scale="6" />
+        </ComplexType>
+        <ComplexType Name="sp_ventasporproductotop_Result">
+          <Property Type="String" Name="Producto" Nullable="false" />
+          <Property Type="Decimal" Name="Cantidad" Nullable="true" Precision="38" Scale="2" />
+          <Property Type="Decimal" Name="MontoVenta" Nullable="true" Precision="38" Scale="6" />
+          <Property Type="Decimal" Name="GananciaBruta" Nullable="true" Precision="38" Scale="6" />
+        </ComplexType>
+      </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="DeliveryModelStoreContainer" CdmEntityContainer="DeliveryREntities" >
+          <FunctionImportMapping FunctionImportName="KpiDelivery" FunctionName="DeliveryModel.Store.KpiDelivery">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="DeliveryModel.KpiDelivery_Result">
+                <ScalarProperty Name="Recibo_Id" ColumnName="Recibo_Id" />
+                <ScalarProperty Name="Cliente" ColumnName="Cliente" />
+                <ScalarProperty Name="Fecha_Hora_Recibo" ColumnName="Fecha_Hora_Recibo" />
+                <ScalarProperty Name="Fecha_Hora_CocinaFin" ColumnName="Fecha_Hora_CocinaFin" />
+                <ScalarProperty Name="Fecha_Hora_Despacho" ColumnName="Fecha_Hora_Despacho" />
+                <ScalarProperty Name="KpiCocina" ColumnName="KpiCocina" />
+                <ScalarProperty Name="KpiDespacho" ColumnName="KpiDespacho" />
+                <ScalarProperty Name="KpiTotal" ColumnName="KpiTotal" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_topclientes" FunctionName="DeliveryModel.Store.sp_topclientes">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="DeliveryModel.sp_topclientes_Result">
+                <ScalarProperty Name="Nombre" ColumnName="Nombre" />
+                <ScalarProperty Name="No_Telefono" ColumnName="No_Telefono" />
+                <ScalarProperty Name="Direccion" ColumnName="Direccion" />
+                <ScalarProperty Name="CantidadPedidos" ColumnName="CantidadPedidos" />
+                <ScalarProperty Name="MontoPedido" ColumnName="MontoPedido" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_cuentaporcobrar_historico" FunctionName="DeliveryModel.Store.sp_cuentaporcobrar_historico">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="DeliveryModel.sp_cuentaporcobrar_historico_Result">
+                <ScalarProperty Name="Recibo_Id" ColumnName="Recibo_Id" />
+                <ScalarProperty Name="FechaRecibo" ColumnName="FechaRecibo" />
+                <ScalarProperty Name="Nombre" ColumnName="Nombre" />
+                <ScalarProperty Name="MontoRecibo" ColumnName="MontoRecibo" />
+                <ScalarProperty Name="MontoPago" ColumnName="MontoPago" />
+                <ScalarProperty Name="FormaPago" ColumnName="FormaPago" />
+                <ScalarProperty Name="FechaPago" ColumnName="FechaPago" />
+                <ScalarProperty Name="UsuarioCreo" ColumnName="UsuarioCreo" />
+                <ScalarProperty Name="UsuarioRecibioPago" ColumnName="UsuarioRecibioPago" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_recibos_anulados" FunctionName="DeliveryModel.Store.sp_recibos_anulados">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="DeliveryModel.sp_recibos_anulados_Result">
+                <ScalarProperty Name="Recibo_Id" ColumnName="Recibo_Id" />
+                <ScalarProperty Name="Fecha_Hora_Recibo" ColumnName="Fecha_Hora_Recibo" />
+                <ScalarProperty Name="Fecha_Anular" ColumnName="Fecha_Anular" />
+                <ScalarProperty Name="Nombre" ColumnName="Nombre" />
+                <ScalarProperty Name="MotivoAnulacion" ColumnName="MotivoAnulacion" />
+                <ScalarProperty Name="UsuarioCreo" ColumnName="UsuarioCreo" />
+                <ScalarProperty Name="UsuarioAnulo" ColumnName="UsuarioAnulo" />
+                <ScalarProperty Name="MontoRecibo" ColumnName="MontoRecibo" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_ventas_despachadas_por_dia" FunctionName="DeliveryModel.Store.sp_ventas_despachadas_por_dia">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="DeliveryModel.sp_ventas_despachadas_por_dia_Result">
+                <ScalarProperty Name="Fecha" ColumnName="Fecha" />
+                <ScalarProperty Name="Cantidad" ColumnName="Cantidad" />
+                <ScalarProperty Name="Total" ColumnName="Total" />
+                <ScalarProperty Name="Efectivo" ColumnName="Efectivo" />
+                <ScalarProperty Name="TarjetaCredito" ColumnName="TarjetaCredito" />
+                <ScalarProperty Name="PagaditoPagos" ColumnName="PagaditoPagos" />
+                <ScalarProperty Name="Cortesia" ColumnName="Cortesia" />
+                <ScalarProperty Name="Cheque" ColumnName="Cheque" />
+                <ScalarProperty Name="CuentasPorCobrarDia" ColumnName="CuentasPorCobrarDia" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_despachosportransporte_fecha" FunctionName="DeliveryModel.Store.sp_despachosportransporte_fecha">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="DeliveryModel.sp_despachosportransporte_fecha_Result">
+                <ScalarProperty Name="Fecha" ColumnName="Fecha" />
+                <ScalarProperty Name="Transporte" ColumnName="Transporte" />
+                <ScalarProperty Name="Atendidos" ColumnName="Atendidos" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_ventascomparativa" FunctionName="DeliveryModel.Store.sp_ventascomparativa">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="DeliveryModel.sp_ventascomparativa_Result">
+                <ScalarProperty Name="Agencia_Id" ColumnName="Agencia_Id" />
+                <ScalarProperty Name="Agencia" ColumnName="Agencia" />
+                <ScalarProperty Name="Cantidad" ColumnName="Cantidad" />
+                <ScalarProperty Name="Total" ColumnName="Total" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_ventasxvendedor_cons" FunctionName="DeliveryModel.Store.sp_ventasxvendedor_cons">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="DeliveryModel.sp_ventasxvendedor_cons_Result">
+                <ScalarProperty Name="Vendedor_Id" ColumnName="Vendedor_Id" />
+                <ScalarProperty Name="Vendedor" ColumnName="Vendedor" />
+                <ScalarProperty Name="Cantidad" ColumnName="Cantidad" />
+                <ScalarProperty Name="Total" ColumnName="Total" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_ventasxvendedor_cons_det" FunctionName="DeliveryModel.Store.sp_ventasxvendedor_cons_det">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="DeliveryModel.sp_ventasxvendedor_cons_det_Result">
+                <ScalarProperty Name="Fecha" ColumnName="Fecha" />
+                <ScalarProperty Name="Vendedor_Id" ColumnName="Vendedor_Id" />
+                <ScalarProperty Name="Vendedor" ColumnName="Vendedor" />
+                <ScalarProperty Name="Cantidad" ColumnName="Cantidad" />
+                <ScalarProperty Name="Total" ColumnName="Total" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_ventasporproductotop" FunctionName="DeliveryModel.Store.sp_ventasporproductotop">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="DeliveryModel.sp_ventasporproductotop_Result">
+                <ScalarProperty Name="Producto" ColumnName="Producto" />
+                <ScalarProperty Name="Cantidad" ColumnName="Cantidad" />
+                <ScalarProperty Name="MontoVenta" ColumnName="MontoVenta" />
+                <ScalarProperty Name="GananciaBruta" ColumnName="GananciaBruta" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+        </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="false" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>

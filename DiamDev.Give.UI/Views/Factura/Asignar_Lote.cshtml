@@ -1,0 +1,547 @@
+﻿@model DiamDev.Give.Entities.Factura
+
+@{
+    ViewBag.Title = "Asignar Lote";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Factura
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="FacturaId" name="FacturaId" value="@Html.Raw(Model.FacturaId)" />
+                        <input type="hidden" id="ProductoActualId" value="0" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Agencia
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Agencia == null ? "No Disponible" : Model.Agencia.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Cliente == null ? "No Disponible" : Model.Cliente.Nombre)
+                                </strong>
+                            </div>                            
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Fecha.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>                            
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Anulada
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Anulada == true ? "Sí" : "No")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>                   
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Serie
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Serie.Nombre
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. Factura
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.NoFactura
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>
+                                        <th>C. Solicitada</th>
+                                        <th>IDs</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Detalles != null && Model.Detalles.Count() > 0)
+                                    {
+                                        if (!Model.Anulada)
+                                        {
+                                            foreach (var Detalle in Model.Detalles.Where(x => x.Producto.TieneLote))
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, Detalle.Producto.Nombre))
+                                                        <input type="hidden" id="@string.Format("producto_id_{0}", Detalle.ProductoId)" value="@Detalle.ProductoId" />
+                                                        <input type="hidden" id="@string.Format("producto_nombre_{0}", Detalle.ProductoId)" value="@(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, Detalle.Producto.Nombre))" />
+                                                    </td>
+                                                    <td>
+                                                        @(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Cantidad
+                                                        <input type="hidden" id="@string.Format("cantidad_real_{0}", Detalle.ProductoId)" value="@Detalle.Cantidad" />
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.ID
+                                                    </td>
+                                                    <td class="center">
+                                                        <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                                            <a href="javascript:void(0);" onclick="asignar('@Detalle.ProductoId');" class="btn btn-teal tooltips" data-placement="top" data-original-title="Asignar Lote"><i class="clip-checkmark"></i></a>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="5">
+                                                    <strong>Le informamos que la factura fue anulada, por lo tanto no puede visualizar los productos</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Lotes
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Lote
+                                </label>
+                                <select id="LoteId" name="LoteId" class="form-control search-select">
+                                    <option value="0">--SELECCIONE UN LOTE--</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Lotes Asignados
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    #Lote
+                                </label>
+                                <input type="text" placeholder="#Lote" class="form-control" id="LoteActual" name="LoteActual" autocomplete="off" disabled="disabled" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Vencimiento
+                                </label>
+                                <input type="text" placeholder="Fecha Vencimiento" class="form-control" id="FechaVencimientoActual" name="FechaVencimientoActual" autocomplete="off" disabled="disabled" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cantidad
+                                </label>
+                                <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" value="1" autocomplete="off" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Existencia
+                                </label>
+                                <input type="number" placeholder="Existencia" class="form-control" id="Existencia" name="Existencia" autocomplete="off" disabled="disabled" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>#Lote</th>
+                                        <th>Cantidad</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lote_tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>  
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="lote_tr_template">
+        <tr>
+            <td>{{producto}}</td>
+            <td>{{lote}}</td>
+            <td>{{cantidad}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="productoIds" value="{{producto_id}}" />
+                <input type="hidden" name="nombreProductoIds" value="{{producto}}" />
+                <input type="hidden" name="loteIds" value="{{lote}}" />
+                <input type="hidden" name="existenciaIds" value="{{existencia}}" />
+                <input type="hidden" name="cantidadIds" value="{{cantidad}}" />
+            </td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">
+
+        var productoIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
+        var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombreProductoIds))');
+        var loteSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.loteIds))');
+        var existenciaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.existenciaIds))');
+        var cantidadSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.cantidadIds))');
+
+        $(function ()
+        {
+            //Inicializar producto seleccionado actual
+            $("#ProductoActualId").val("0");
+
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            $("#LoteId").change(function (evt)
+            {
+                if ($("#LoteId").val() === "")
+                {
+                    error("Seleccionar un lote");
+                    return;
+                }
+
+                if ($("#LoteId").val() === "0")
+                {
+                    error("Seleccionar un lote");
+                    return;
+                }
+
+                if ($("#ProductoActualId").val() === "")
+                {
+                    error("Seleccionar un producto");
+                    return;
+                }
+
+                if ($("#ProductoActualId").val() === "0")
+                {
+                    error("Seleccionar un producto");
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerLotexId", "Producto")',
+                    data: { 'id': $("#ProductoActualId").val(), 'lote': $("#LoteId").val() },
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        if (!data.Operacion)
+                        {
+                            toastr.error('Ocurrió un error, al obtener el lote');
+                            return;
+                        }
+
+                        $("#LoteActual").val(data.Data.Lote);
+                        $("#FechaVencimientoActual").val(data.Data.Fecha);
+                        $("#Existencia").val(data.Data.Cantidad);
+                    },
+                    fail: function (data)
+                    {
+                        toastr.error('Ocurrió un error, al obtener el lote');
+                    }
+                });
+            });
+
+            function cargaLote(producto_id, producto, lote, existencia, cantidad)
+            {
+                var plantilla = $('#lote_tr_template').html();
+
+                var modelo =
+                {
+                    producto_id: producto_id,
+                    producto: producto,
+                    lote: lote,
+                    existencia: existencia,
+                    cantidad: cantidad
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#lote_tbody').append(filaHtml);
+            }
+
+            renderizarLotesIniciales();
+
+            $('#btn-agregar').click(function (e)
+            {
+                e.preventDefault();
+
+                var producto_id = $('#ProductoActualId').val();
+
+                if (producto_id === "")
+                {
+                    error("Seleccione un producto");
+                    return;
+                }
+
+                var producto = $('#producto_nombre_' + producto_id).val();
+
+                if (producto === "")
+                {
+                    error("Seleccione un producto");
+                    return;
+                }
+
+                var existenciaReal = $('#cantidad_real_' + producto_id).val();
+                if (existenciaReal === "")
+                {
+                    error("Seleccione un producto");
+                    return;
+                }
+
+                existenciaReal = parseFloat(existenciaReal);
+
+                var lote = $('#LoteActual').val();
+
+                if (lote === "")
+                {
+                    error("Seleccione un lote");
+                    return;
+                }
+
+                var loteArray = new Array();
+                $('input[name=loteIds]').each(function ()
+                {
+                    loteArray.push($(this).val());
+                });
+
+                var existeLote = 0;
+
+                if (loteArray.length > 0)
+                {
+                    for (var i = 0; i < loteArray.length; i++)
+                    {
+                        if (lote === loteArray[i])
+                        {
+                            existeLote = 1;
+                        }
+                    }
+                }
+
+                if (existeLote === 1)
+                {
+                    error("El #lote ya se encuentra registrado");
+                    return;
+                }
+
+                var cantidad = $('#Cantidad').val();
+
+                if (cantidad === "")
+                {
+                    error("Ingrese la cantidad para asignar");
+                    return;
+                }
+
+                var existencia = parseFloat($('#Existencia').val());
+                cantidad = parseFloat(cantidad);
+
+                if (cantidad <= 0)
+                {
+                    error("La cantidad ingresada no puede ser 0");
+                    return;
+                }
+
+                if (cantidad > existenciaReal)
+                {
+                    error("La cantidad ingresada es mayor a la cantidad solicitada");
+                    return;
+                }
+
+                if (cantidad > existencia)
+                {
+                    error("La cantidad ingresada es mayor a la existencia");
+                    return;
+                }
+
+                cargaLote(producto_id, producto, lote, existencia, cantidad);
+
+                $("#LoteActual").val("");
+                $("#FechaVencimientoActual").val("");
+                $("#Cantidad").val(1);
+                $("#Existencia").val("");
+            });
+
+            $('#lote_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+            });
+
+            function renderizarLotesIniciales()
+            {
+                if (productoIdSeleccionados == null)
+                {
+                    return;
+                }
+
+                // recorremos los lotes que haya ingresado el usuario
+                for (var i = 0; i < productoIdSeleccionados.length; i++)
+                {
+                    var producto_id = productoIdSeleccionados[i];
+                    var producto = productoSeleccionados[i];
+
+                    var lote = loteSeleccionados[i];
+
+                    var existencia = existenciaSeleccionados[i];
+                    var cantidad = cantidadSeleccionados[i];
+
+                    cargaLote(producto_id, producto, lote, existencia, cantidad);
+                }
+            }
+        });
+
+        function asignar(id)
+        {
+            //Asignar producto actual a operar
+            $("#ProductoActualId").val(id);
+
+            //Carga Lotes
+            var LoteSelect = $("#LoteId");
+            LoteSelect.empty();
+            LoteSelect.append('<option value="0">--SELECCIONE UN LOTE--</option>');
+
+            $.ajax({
+                url: '@Url.Action("ObtenerLotexProductoId", "Producto")',
+                data: { 'id': id },
+                traditional: true,
+                async: false,
+                type: 'GET',
+                success: function (data)
+                {
+                    $.each(data, function (j)
+                    {
+                        LoteSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                    });
+                }
+            });
+        }
+    </script>
+}
+
+
+
+

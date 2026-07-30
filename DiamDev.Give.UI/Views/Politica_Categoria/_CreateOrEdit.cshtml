@@ -1,0 +1,85 @@
+﻿@model DiamDev.Give.Entities.PoliticaCategoria
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Política Categoría<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Política Categoría", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div> 
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Estado</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Activo
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.ActivoSi name="activo" id="ActivoSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.ActivoNo name="activo" id="ActivoNo">
+                    No
+                </label>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Tipo de Política</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Tipo
+            </label>
+            @Html.DropDownList("TipoId", (SelectList)ViewBag.Tipos, "--Seleccione un Tipo de Política--", new { @class = "form-control search-select" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Políticas</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Política
+            </label>
+            <select id="PoliticaId" name="PoliticaId" class="form-control search-select">
+                <option value="0">--Seleccione una Política--</option>
+            </select>
+        </div>     
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Política</th>                   
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="politica_tbody"></tbody>
+        </table>
+    </div>
+</div>

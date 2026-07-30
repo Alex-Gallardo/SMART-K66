@@ -8,6 +8,8 @@ namespace DiamDev.Give.Entities
 {
     public class FormaModel
     {
+        public long ReparacionId { get; set; }
+
         public long FacturaId { get; set; }
 
         public decimal Total { get; set; }

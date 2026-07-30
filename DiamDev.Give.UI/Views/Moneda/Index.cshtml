@@ -1,0 +1,102 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Moneda>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Moneda Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Moneda")">
+        Nueva
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">        
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Moneda
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Codigo</th>
+                            <th>Moneda</th>
+                            <th>Simbolo</th>
+                            <th>Tipo de Cambio Compra</th>
+                            <th>Tipo de Cambio Venta</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Moneda in Model)
+                        {
+                            <tr>                       
+                                <td>@Moneda.Codigo</td>
+                                <td>@Moneda.Nombre</td>    
+                                <td>@Moneda.Simbolo</td>
+                                <td>@Moneda.TipoDeCambioCompra.ToString("C")</td>
+                                <td>@Moneda.TipoDeCambioVenta.ToString("C")</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">                                        
+                                        <a href="@Url.Action("Editar", "Moneda", new { id = Moneda.MonedaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">                                               
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Moneda", new { id = Moneda.MonedaId })">
+                                                        <i class="icon-edit"></i> Editar
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>        
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function ()
+        {
+            if ('@TempData["Moneda-Success"]' == "OK")
+            {
+                toastr.success('La moneda se guardó exitosamente');
+            }
+        });
+    </script>
+}
+
+
+
+
+
+

@@ -28,7 +28,7 @@
                     Crea un nuevo cliente.
                 </p>
                 <hr>
-                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post" enctype="multipart/form-data">
                     @Html.AntiForgeryToken()
                     <div class="row">
                         <div class="col-md-12">
@@ -40,9 +40,44 @@
                                     @Html.ValidationSummary(false)
                                 </div>
                             }
-                        </div>                        
+                        </div>
                     </div>
-                    @Html.Partial("_CreateOrEdit")                    
+                    @Html.Partial("_CreateOrEditGeneral")
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Imagenes</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-imagen">Agregar</button></p>
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Archivo</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbl-archivos">
+                                    @if (Model != null)
+                                    {
+                                        if (Model.Imagenes != null && Model.Imagenes.Count() > 0)
+                                        {
+                                            foreach (var Detalle in Model.Imagenes)
+                                            {
+                                                <tr>
+                                                    <td colspan="2">
+                                                        @Detalle.Nombre
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                     <div class="row">
                         <p>
                             <div class="col-md-6">
@@ -67,6 +102,60 @@
         <!-- end: FORM VALIDATION 1 PANEL -->
     </div>
 </div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        $(function ()
+        {
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            var correlativo = 0;
+
+            $('#btn-agregar-imagen').click(function (e)
+            {
+                e.preventDefault();
+
+                var $fila = $('<tr/>');
+                var $celdaA = $('<td />');
+                var $celdaB = $('<td />');
+
+                var prefijo = 'archivos[' + correlativo + ']';
+
+                var $hidden = $('<input />', { type: 'hidden', value: correlativo, name: 'archivos.Crear' });
+                var $inputFile = $('<input />', { name: prefijo + '.archivo', type: 'file', class: 'file-input' });
+                var $delete = $('<button />', { type: 'button', class: 'btn btn-danger' }).text('Eliminar');
+
+                $celdaB.append($delete);
+                $celdaA.append($inputFile);
+
+                $fila.append([$celdaA, $celdaB]);
+
+                $('#tbl-archivos').append($fila);
+
+                $delete.click(function (_e)
+                {
+                    _e.preventDefault();
+                    $fila.remove();
+                })
+
+                correlativo++;
+                $inputFile.click();
+            });
+        });
+
+    </script>
+}
+
+
+
+
+
+
 
 
 

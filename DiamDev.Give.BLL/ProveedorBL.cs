@@ -2,13 +2,13 @@
 using DiamDev.Give.Entities;
 using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 
 namespace DiamDev.Give.BLL
 {
     public class ProveedorBL
     {
-
         #region Variables Globales
 
             private GiveContext db;
@@ -49,9 +49,9 @@ namespace DiamDev.Give.BLL
                 return Id;
             }
 
-            private bool Agregar(Proveedor entidad)
+            private string Agregar(Proveedor entidad)
             {
-                bool ProveedorAgregar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -67,23 +67,42 @@ namespace DiamDev.Give.BLL
                             entidad.Correlativo = Id;
                             entidad.Fecha = DateTime.Today;
 
+                            if (entidad.Cuentas != null && entidad.Cuentas.Count() > 0)
+                            {
+                                int DetalleId = 1;
+                                foreach (var Cuenta in entidad.Cuentas)
+                                {
+                                    Cuenta.ProveedorId = entidad.ProveedorId;
+                                    Cuenta.DetalleId = DetalleId;
+                                    DetalleId++;
+                                }
+                            }
+
+                            if (entidad.Productos != null && entidad.Productos.Count() > 0)
+                            {
+                                foreach (var Producto in entidad.Productos)
+                                {
+                                    Producto.ProveedorId = entidad.ProveedorId;
+                                }
+                            }
+
                             db.Set<Proveedor>().Add(entidad);
                             db.SaveChanges();
-                            ProveedorAgregar = true;
                         }
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return ProveedorAgregar;
+                return Mensaje;
             }
 
-            private bool Actualizar(Proveedor entidad)
+            private string Actualizar(Proveedor entidad)
             {
-                bool ProveedorActualizar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -92,6 +111,7 @@ namespace DiamDev.Give.BLL
 
                     if (ProveedorActual.ProveedorId > 0)
                     {
+                        ProveedorActual.TipoId = entidad.TipoId;
                         ProveedorActual.Nit = entidad.Nit;
                         ProveedorActual.Nombre = entidad.Nombre;
                         ProveedorActual.NombreCheque = entidad.NombreCheque;
@@ -104,6 +124,22 @@ namespace DiamDev.Give.BLL
                         ProveedorActual.EmailContacto = entidad.EmailContacto;
                         ProveedorActual.Activo = entidad.Activo;
 
+                        if (entidad.Cuentas != null && entidad.Cuentas.Count() > 0)
+                        {
+                            var Cuentas = db.Set<ProveedorCuentaBancaria>().Where(x => x.ProveedorId == entidad.ProveedorId);
+                            db.Set<ProveedorCuentaBancaria>().RemoveRange(Cuentas);
+
+                            int DetalleId = 1;
+                            foreach (var Cuenta in entidad.Cuentas)
+                            {
+                                Cuenta.ProveedorId = entidad.ProveedorId;
+                                Cuenta.DetalleId = DetalleId;
+                                DetalleId++;
+
+                                db.Set<ProveedorCuentaBancaria>().Add(Cuenta);
+                            }
+                        }
+
                         if (entidad.Productos != null && entidad.Productos.Count() > 0)
                         {
                             var Productos = db.Set<ProveedorProducto>().Where(x => x.ProveedorId == entidad.ProveedorId);
@@ -111,20 +147,21 @@ namespace DiamDev.Give.BLL
 
                             foreach (var Producto in entidad.Productos)
                             {
+                                Producto.ProveedorId = entidad.ProveedorId;
                                 db.Set<ProveedorProducto>().Add(Producto);
                             }
                         }
 
                         db.SaveChanges();
-                        ProveedorActualizar = true;
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return ProveedorActualizar;
+                return Mensaje;
             }
 
         #endregion
@@ -134,7 +171,6 @@ namespace DiamDev.Give.BLL
             public string Guardar(Proveedor entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
 
                 if (!string.IsNullOrWhiteSpace(entidad.EmailProveedor))
                 {
@@ -154,16 +190,11 @@ namespace DiamDev.Give.BLL
 
                 if (entidad.ProveedorId > 0)
                 {
-                    OperacionExitosa = Actualizar(entidad);
+                    Mensaje = Actualizar(entidad);
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
-                }
-
-                if (!OperacionExitosa)
-                {
-                    Mensaje = "La información ingresada no es valida";
+                    Mensaje = Agregar(entidad);
                 }
 
                 return Mensaje;
@@ -177,9 +208,12 @@ namespace DiamDev.Give.BLL
                 {
                     if (todo)
                     {
-                        ProveedorActual = db.Set<Proveedor>().Include("Productos").Include("Productos.Producto").Where(x => x.ProveedorId == id).FirstOrDefault();
+                        ProveedorActual = db.Set<Proveedor>().Include("Cuentas").Include("Cuentas.Banco").Include("Productos").Include("Productos.Producto").Where(x => x.ProveedorId == id).FirstOrDefault();
                         if (ProveedorActual != null && ProveedorActual.ProveedorId > 0)
                         {
+                            ProveedorActual.Movimientos = new List<ProveedorMovimiento>();
+                            ProveedorActual.Movimientos = db.Set<ProveedorMovimiento>().Include("Tipo").AsNoTracking().Where(x => x.ProveedorId == ProveedorActual.ProveedorId).OrderByDescending(x => x.FechaMovimiento).ThenByDescending(x => x.MovimientoId).Take(15).ToList();
+
                             ProveedorActual.IngresoHistorial = new List<MovimientoHistorial>();
                             ProveedorActual.IngresoHistorial = db.Set<Movimiento>().Where(x => x.MovimientoTipoId == 1 && x.ProveedorId == ProveedorActual.ProveedorId).Join(db.Set<MovimientoDetalle>(), M => M.MovimientoId, MD => MD.MovimientoId, (M, MD) => new MovimientoHistorial() { MovimientoId = M.MovimientoId, Descripcion = M.Descripcion, Fecha = M.Fecha, Precio = MD.Cantidad * MD.Precio }).GroupBy(m => new { m.MovimientoId, m.Descripcion, m.Fecha }).Select(g => new { g.Key, Total = g.Sum(x => x.Precio) }).AsEnumerable().Select(x => new MovimientoHistorial() { MovimientoId = x.Key.MovimientoId, Descripcion = x.Key.Descripcion, Fecha = x.Key.Fecha, Precio = x.Total }).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.MovimientoId).Take(10).ToList();
 
@@ -189,7 +223,7 @@ namespace DiamDev.Give.BLL
                     }
                     else
                     {
-                        ProveedorActual = db.Set<Proveedor>().Include("Productos").Where(x => x.ProveedorId == id).FirstOrDefault();
+                        ProveedorActual = db.Set<Proveedor>().Include("Cuentas").Include("Cuentas.Banco").Include("Productos").Where(x => x.ProveedorId == id).FirstOrDefault();
                     }
                 }
                 catch (Exception)
@@ -207,12 +241,35 @@ namespace DiamDev.Give.BLL
                 {
                     if (todos)
                     {
-                        Proveedores = db.Set<Proveedor>().Include("Productos").OrderByDescending(x => x.Fecha).ThenByDescending(x => x.ProveedorId).ToList();
+                        Proveedores = db.Set<Proveedor>().Include("Cuentas").Include("Cuentas.Banco").Include("Productos").OrderByDescending(x => x.Fecha).ThenByDescending(x => x.ProveedorId).ToList();
                     }
                     else
                     {
                         Proveedores = db.Set<Proveedor>().Where(x => x.Activo == true).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.ProveedorId).ToList();
                     }
+                }
+                catch (Exception)
+                {
+                }
+
+                return Proveedores;
+            }
+
+            public List<Proveedor> ObtenerListado(long usuarioId)
+            {
+                List<Proveedor> Proveedores = new List<Proveedor>();
+
+                try
+                {
+                    bool Autorizacion = db.Set<Usuario>().Where(x => x.UsuarioId == usuarioId).Join(db.Set<UsuarioRol>(), U => U.UsuarioId, UR => UR.UsuarioId, (U, UR) => new { Roles = UR }).Join(db.Set<RolPermiso>(), R => R.Roles.RolId, RP => RP.RolId, (R, RP) => new { Permisos = RP }).Select(x => x.Permisos).Any(x => x.PermisoId.Equals("Control.Proveedor.Importaciones"));
+                    if (Autorizacion)
+                    {
+                        Proveedores = db.Set<Proveedor>().Where(x => x.Activo == true).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.ProveedorId).ToList();
+                    }
+                    else
+                    {
+                        Proveedores = db.Set<Proveedor>().Where(x => x.Activo == true && x.TipoId == 1).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.ProveedorId).ToList();
+                    }                    
                 }
                 catch (Exception)
                 {
@@ -227,7 +284,7 @@ namespace DiamDev.Give.BLL
 
                 try
                 {
-                    Proveedores = db.Set<Proveedor>().Include("Productos").Where(x => x.Nit.Contains(search) || x.Nombre.Contains(search) || x.Direccion.Contains(search) || x.NoTelefonoOficina.Contains(search) || x.EmailProveedor.Contains(search) || x.Contacto.Contains(search) || x.NoTelefonoContacto.Contains(search) || x.EmailContacto.Contains(search)).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.ProveedorId).ToList();
+                    Proveedores = db.Set<Proveedor>().Include("Cuentas").Include("Cuentas.Banco").Include("Productos").Where(x => x.Nit.Contains(search) || x.Nombre.Contains(search) || x.Direccion.Contains(search) || x.NoTelefonoOficina.Contains(search) || x.EmailProveedor.Contains(search) || x.Contacto.Contains(search) || x.NoTelefonoContacto.Contains(search) || x.EmailContacto.Contains(search)).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.ProveedorId).ToList();
                 }
                 catch (Exception)
                 {
@@ -236,7 +293,28 @@ namespace DiamDev.Give.BLL
                 return Proveedores;
             }
 
-        #endregion
+            public List<ReporteProveedorProducto> ReporteProveedorProducto(long proveedorId, DateTime fechaInicial, DateTime fechaFinal)
+            {
+                List<ReporteProveedorProducto> Productos = new List<ReporteProveedorProducto>();
 
+                try
+                {
+                    if (proveedorId == 0)
+                    {
+                        Productos = db.Database.SqlQuery<ReporteProveedorProducto>("dbo.sp_reporte_proveedor_producto @ProveedorId, @FechaInicial, @FechaFinal", new SqlParameter("@ProveedorId", DBNull.Value), new SqlParameter("@FechaInicial", fechaInicial), new SqlParameter("@FechaFinal", fechaFinal)).ToList();
+                    }
+                    else if (proveedorId != 0)
+                    {
+                        Productos = db.Database.SqlQuery<ReporteProveedorProducto>("dbo.sp_reporte_proveedor_producto @ProveedorId, @FechaInicial, @FechaFinal", new SqlParameter("@ProveedorId", proveedorId), new SqlParameter("@FechaInicial", fechaInicial), new SqlParameter("@FechaFinal", fechaFinal)).ToList();
+                    }
+                }
+                catch (Exception)
+                {
+                }
+
+                return Productos;
+            }
+
+        #endregion
     }
 }

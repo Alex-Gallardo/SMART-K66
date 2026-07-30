@@ -1,6 +1,7 @@
 ﻿using DiamDev.Give.DAL;
 using DiamDev.Give.Entities;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace DiamDev.Give.BLL
@@ -24,26 +25,28 @@ namespace DiamDev.Give.BLL
 
         #region Metodos Privados
          
-            private bool Agregar(PersonalHorario entidad)
+            private string Agregar(PersonalHorario entidad)
             {
-                bool HorarioAgregar = false;
+                string Mensaje = "OK";
+                var fecha = entidad.Fecha.ToShortDateString();
+                entidad.Fecha = DateTime.Parse(fecha);
 
                 try
                 {
                     db.Set<PersonalHorario>().Add(entidad);
-                    db.SaveChanges();
-                    HorarioAgregar = true;
+                    db.SaveChanges();                   
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return HorarioAgregar;
+                return Mensaje;
             }
 
-            private bool Actualizar(PersonalHorario entidad)
+            private string Actualizar(PersonalHorario entidad)
             {
-                bool HorarioActualizar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -53,20 +56,23 @@ namespace DiamDev.Give.BLL
                     {
                         HorarioActual.Salida = entidad.Salida;
                      
-                        db.SaveChanges();
-                        HorarioActualizar = true;
+                        db.SaveChanges();                       
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return HorarioActualizar;
+                return Mensaje;
             }
 
             private bool Existe(long personalId, DateTime fechaActual) 
             {
-                return db.Set<PersonalHorario>().Where(x => x.PersonalId == personalId && x.Fecha == fechaActual).Count() > 0;
+                var fecha = db.Set<PersonalHorario>().Where(x => x.PersonalId == personalId).ToList();
+                var result = db.Set<PersonalHorario>().Where(x => x.PersonalId == personalId && x.Fecha == fechaActual).Count() > 0;
+
+                return result; 
             }
 
         #endregion
@@ -76,24 +82,70 @@ namespace DiamDev.Give.BLL
             public string Guardar(PersonalHorario entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
-
+               
                 if (Existe(entidad.PersonalId, DateTime.Today))
                 {
-                    OperacionExitosa = Actualizar(entidad);
+                    Mensaje = Actualizar(entidad);
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
+                    Mensaje = Agregar(entidad);
                 }
-
-                if (!OperacionExitosa)
-                {
-                    Mensaje = "La información ingresada no es valida";
-                }
-
+               
                 return Mensaje;
             }
+
+            public List<PersonalHorario> Buscar(string search)
+            {
+                List<PersonalHorario> Personals = new List<PersonalHorario>();
+
+                try
+                {
+                    Personals = db.Set<PersonalHorario>().Include("Personal").Where(x => x.Personal.Nombre.Contains(search)).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.PersonalId).ToList();
+                }
+                catch (Exception)
+                {
+                }
+
+                return Personals;
+            }
+
+        public List<PersonalHorario> ObtenerListado(bool activo)
+        {
+            List<PersonalHorario> Personals = new List<PersonalHorario>();
+
+            try
+            {
+                if (activo)
+                {
+                    Personals = db.Set<PersonalHorario>().Include("Personal").Where(x => x.Personal.Activo == true).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.PersonalId).ToList();
+                }
+                else
+                {
+                    Personals = db.Set<PersonalHorario>().Include("Personal").OrderByDescending(x => x.Fecha).ThenByDescending(x => x.PersonalId).ToList();
+                }
+            }
+            catch (Exception)
+            {
+            }
+
+            return Personals;
+        }
+
+        public List<HorarioModel> ObtenerHorarioxPersonalId(DateTime fechaInicial, DateTime fechaFinal, long personalId) 
+        {
+            List<HorarioModel> Horarios = new List<HorarioModel>();
+
+            try
+            {
+                Horarios = db.Set<PersonalHorario>().Include("Personal").AsNoTracking().Where(x => x.Fecha >= fechaInicial && x.Fecha <= fechaFinal && x.PersonalId == personalId).AsEnumerable().Select(x => new HorarioModel() { PersonaId = x.PersonalId, Nombre = x.Personal.Nombre, Fecha = x.Fecha, Entrada = x.Entrada, Salida = x.Salida, Laborado = x.Salida == null ? TimeSpan.Parse("0") : new TimeSpan(x.Salida.Value.Ticks - x.Entrada.Ticks) }).OrderByDescending(x => x.Fecha).ToList();
+            }
+            catch (Exception)
+            {
+            }
+
+            return Horarios;
+        }
 
         #endregion
     }

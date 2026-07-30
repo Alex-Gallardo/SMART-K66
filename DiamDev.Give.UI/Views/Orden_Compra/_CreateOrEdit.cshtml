@@ -1,0 +1,180 @@
+﻿@model DiamDev.Give.Entities.OrdenCompra
+
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Proveedores</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Proveedor<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("ProveedorId", (SelectList)ViewBag.Proveedores, "--Seleccione un Proveedor--", new { @class = "form-control search-select required", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Monedas</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Moneda<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("MonedaId", (SelectList)ViewBag.Monedas, "--Seleccione una Moneda--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Observaciones
+            </label>
+            @Html.TextAreaFor(model => model.Observaciones, new { @class = "form-control", @placeholder = "Observaciones de la Orden de Compra", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Fotografia</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="fileupload fileupload-new" data-provides="fileupload">
+            <div class="input-group">
+                <div class="form-control uneditable-input">
+                    <i class="icon-file fileupload-exists"></i>
+                    <span class="fileupload-preview"></span>
+                </div>
+                <div class="input-group-btn">
+                    <div class="btn btn-light-grey btn-file">
+                        <span class="fileupload-new"><i class="icon-folder-open-alt"></i>Seleccionar Fotografia</span>
+                        <span class="fileupload-exists"><i class="icon-folder-open-alt"></i>Cambiar</span>
+                        <input type="file" class="file-input" id="fotografiaApp" name="fotografiaApp">
+                    </div>
+                    <a href="#" class="btn btn-light-grey fileupload-exists" data-dismiss="fileupload">
+                        <i class="icon-remove"></i> Eliminar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<hr />
+<h2>
+    <i class="icon-edit-sign teal"></i> Productos
+</h2>
+<hr>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Barra
+            </label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="imagen">
+    <div class="row">
+        <div class="col-md-12">
+            <button type="button" class="btn btn-med-grey btn-block ladda-button" data-toggle="modal" data-target="#visualizar-imagen-producto-form" id="btn-visualizar">Visualizar Fotografía</button>
+        </div>
+    </div>
+    <br />
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Producto
+            </label>
+            <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" />
+            <input type="hidden" id="ProductoId" name="ProductoId" value="0" />
+        </div>
+        <div class="form-group" hidden>
+            <label class="control-label">
+                Unidad
+            </label>
+            <select id="PresentacionId" name="PresentacionId" class="form-control search-select">
+                <option value="0">--SELECCIONE UNA UNIDAD--</option>
+            </select>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Cantidad
+            </label>
+            <input type="number" placeholder="Cantidad" class="form-control" id="Cantidad" name="Cantidad" value="1" autocomplete="off" />
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Existencia
+            </label>
+            <input type="number" placeholder="Existencia" class="form-control" id="Existencia" name="Existencia" autocomplete="off" disabled="disabled" />
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Precio
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                <input type="text" placeholder="Precio de Venta" class="form-control" id="PrecioActual" name="PrecioActual" value="0" autocomplete="off" />
+            </div>
+        </div>
+    </div>    
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
+        <table class="table table-hover" id="sample-table-1">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th class="hidden-xs hidden-sm">Unidad</th>
+                    <th>Cantidad</th>
+                    <th>Precio</th>                    
+                    <th>Sub-Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="producto_tbody"></tbody>
+        </table>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="col-md-4">
+            <div style="text-align:left; font-size:large; font-weight:bold;">
+                Total:
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div id="Total" style="text-align: right;font-size:large; font-weight:bold;">
+                Q0.0000
+            </div>
+        </div>
+    </div>
+</div>

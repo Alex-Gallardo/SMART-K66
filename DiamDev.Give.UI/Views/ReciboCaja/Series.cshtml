@@ -1,0 +1,433 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .emp-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+        background: #95a5a6;
+    }
+
+    .emp-GRACO {
+        background: #27ae60;
+    }
+
+    .emp-FAES {
+        background: #c0392b;
+    }
+
+    .emp-BOLIK {
+        background: #2c3e50;
+    }
+
+    #tablaSeries th {
+        background: #2c3e50;
+        color: #ecf0f1;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+        white-space: nowrap;
+    }
+
+    #tablaSeries td {
+        vertical-align: middle !important;
+        font-size: 12.5px;
+    }
+
+    #tablaSeries .mono {
+        font-family: 'Courier New',monospace;
+        font-weight: 700;
+        letter-spacing: 1px;
+    }
+
+    #tablaSeries .proximo {
+        color: #1e8449;
+    }
+
+    #tablaSeries tr.fila-inconsistente {
+        background: #fdf2f0 !important;
+    }
+
+    #tablaSeries .nc-info {
+        font-size: 11px;
+        color: #95a5a6;
+        font-family: monospace;
+    }
+
+    .alerta-inconsistencia {
+        display: none;
+    }
+
+    /* Modal */
+    .flabel {
+        display: block;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        font-weight: 700;
+        color: #95a5a6;
+        margin-bottom: 4px;
+    }
+
+    .fgroup {
+        margin-bottom: 12px;
+    }
+
+    #previewProximo {
+        font-family: 'Courier New',monospace;
+        font-size: 18px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: #1e8449;
+        background: #eafaf1;
+        border: 1px dashed #27ae60;
+        border-radius: 5px;
+        padding: 8px 12px;
+        text-align: center;
+    }
+
+    #hintMaxUsado {
+        font-size: 11px;
+        color: #b9770e;
+    }
+
+    .zona-nc {
+        background: #f7f9fa;
+        border: 1px dashed #d0d3d4;
+        border-radius: 6px;
+        padding: 10px 12px;
+    }
+
+        .zona-nc .flabel {
+            color: #aab;
+        }
+</style>
+
+<div class="panel panel-default" style="border-top:4px solid #2c3e50;">
+    <div class="panel-heading" style="background:#f7f9fa; border-bottom:1px solid #eee;">
+        <h4 class="panel-title" style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:#5d6d7e; font-size:13px;">
+            <i class="icon-cogs"></i>
+            <span style="font-weight:700;">Series de Numeración</span>
+            <small style="color:#95a5a6;">Control de correlativos por empresa y responsable</small>
+            <span style="margin-left:auto; display:flex; gap:6px;">
+                <a href="@Url.Action("Dashboard","ReciboCaja")" class="btn btn-default btn-xs">
+                    <i class="clip-stats"></i> Supervisión
+                </a>
+                <button id="btnNuevaSerie" class="btn btn-primary btn-xs">
+                    <i class="icon-plus"></i> Nueva Serie
+                </button>
+            </span>
+        </h4>
+    </div>
+    <div class="panel-body">
+
+        <div class="alert alert-danger alerta-inconsistencia" id="alertaInconsistencia">
+            <strong><i class="icon-warning-sign"></i> Series inconsistentes detectadas.</strong>
+            Hay series cuya numeración quedó por debajo de recibos ya emitidos: el próximo
+            recibo <u>chocaría con un ID existente</u>. Corregilas de inmediato (fila roja).
+        </div>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+            <div class="btn-group" id="grpEmpresaSeries">
+                <button class="btn btn-default btn-sm activa" data-emp="">Todas</button>
+                <button class="btn btn-default btn-sm" data-emp="GRACO">Graco</button>
+                <button class="btn btn-default btn-sm" data-emp="FAES">Faes</button>
+                <button class="btn btn-default btn-sm" data-emp="BOLIK">Bolik</button>
+            </div>
+            <input type="text" id="txtFiltroSerie" class="form-control input-sm"
+                   style="max-width:220px;" placeholder="Filtrar por depto o serie..." />
+        </div>
+
+        <div style="overflow-x:auto; border:1px solid #e6e6e6; border-radius:6px;">
+            <table class="table table-condensed" id="tablaSeries" style="margin-bottom:0;">
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>Depto / Responsable</th>
+                        <th>Serie</th>
+                        <th class="text-right">Numeración</th>
+                        <th class="text-right" title="Máximo correlativo real ya emitido en REC_CAJA_ENC">Máx. Emitido</th>
+                        <th>Próximo Recibo</th>
+                        <th title="Serie de Nota de Crédito (reservado a futuro)">NC (futuro)</th>
+                        <th style="width:80px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="tbodySeries">
+                    <tr><td colspan="8" class="text-center" style="padding:24px; color:#aaa;">Cargando...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+</div>
+
+<!-- ══ MODAL ALTA / EDICIÓN ══ -->
+<div class="modal fade" id="modalSerie" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#2c3e50; color:#fff; padding:12px 16px;">
+                <button type="button" class="close" data-dismiss="modal" style="color:#fff; opacity:.9;">&times;</button>
+                <h4 class="modal-title" style="font-size:14px;" id="tituloModalSerie">Nueva Serie</h4>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="hdnRowId" value="0" />
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="fgroup">
+                            <span class="flabel">Empresa *</span>
+                            <select id="cboEmpresaSerie" class="form-control">
+                                <option value="">— Seleccionar —</option>
+                                <option value="GRACO">Graco Pack</option>
+                                <option value="FAES">Fabrica Escocesa</option>
+                                <option value="BOLIK">Industrias Bolik</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="fgroup">
+                            <span class="flabel">Depto / Responsable *</span>
+                            <input type="text" id="txtDeptoSerie" class="form-control"
+                                   maxlength="30" placeholder="Ej: RODOLFO"
+                                   style="text-transform:uppercase;" />
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6">
+                        <div class="fgroup">
+                            <span class="flabel">Serie (prefijo) *</span>
+                            <input type="text" id="txtSerieSerie" class="form-control"
+                                   maxlength="10" placeholder="Ej: RG12-"
+                                   style="text-transform:uppercase; font-family:monospace;" />
+                            <small style="color:#95a5a6;">Si no termina en guion, se agrega solo.</small>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="fgroup">
+                            <span class="flabel">Numeración actual *</span>
+                            <input type="number" id="txtNumeracionSerie" class="form-control"
+                                   min="0" step="1" value="0" />
+                            <small id="hintMaxUsado"></small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fgroup">
+                    <span class="flabel">Vista previa — próximo recibo a emitir</span>
+                    <div id="previewProximo">—</div>
+                </div>
+
+                <div class="zona-nc">
+                    <div style="font-size:11px; color:#7f8c8d; margin-bottom:8px;">
+                        <i class="icon-lock"></i> <strong>Reservado a futuro</strong> — Notas de Crédito.
+                        Aún sin uso en el sistema; llenar solo si el administrador lo indica.
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <span class="flabel">Serie NC</span>
+                            <input type="text" id="txtSerieNc" class="form-control input-sm"
+                                   maxlength="10" placeholder="Ej: BG12-"
+                                   style="text-transform:uppercase; font-family:monospace;" />
+                        </div>
+                        <div class="col-sm-6">
+                            <span class="flabel">Numeración NC</span>
+                            <input type="number" id="txtNumeracionNc" class="form-control input-sm"
+                                   min="0" step="1" value="0" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding:10px 14px;">
+                <button type="button" class="btn btn-primary btn-sm" id="btnGuardarSerie">
+                    <i class="icon-save"></i> Guardar
+                </button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts{
+    <script>
+var URL_GET      = "@Url.Action("GetSeries","ReciboCaja")";
+var URL_GUARDAR  = "@Url.Action("GuardarSerie","ReciboCaja")";
+var URL_ELIMINAR = "@Url.Action("EliminarSerie","ReciboCaja")";
+
+var _series = [];          // buffer de la última carga
+var _filtroEmp = "";
+
+function Esc(t) { return $("<span>").text(t || "").html(); }
+function Pad5(n) { return ("0000" + n).slice(-5); }
+
+// ── Carga y render ──────────────────────────────────────
+function CargarSeries() {
+    $.get(URL_GET, function (resp) {
+        if (!resp.ok) { toastr.error(resp.msg); return; }
+        _series = resp.data || [];
+        PintarSeries();
+    });
+}
+
+function PintarSeries() {
+    var tbody = $("#tbodySeries").empty();
+    var filtroTxt = ($("#txtFiltroSerie").val() || "").toUpperCase();
+    var hayInconsistentes = false;
+
+    var visibles = _series.filter(function (s) {
+        if (_filtroEmp && s.Empresa !== _filtroEmp) return false;
+        if (filtroTxt &&
+            s.Depto.toUpperCase().indexOf(filtroTxt) === -1 &&
+            s.Serie.toUpperCase().indexOf(filtroTxt) === -1) return false;
+        return true;
+    });
+
+    if (!visibles.length) {
+        tbody.html('<tr><td colspan="8" class="text-center" style="padding:24px; color:#aaa;">Sin series con este filtro.</td></tr>');
+    }
+
+    $.each(visibles, function (_, s) {
+        if (s.Inconsistente) hayInconsistentes = true;
+        tbody.append(
+            '<tr class="' + (s.Inconsistente ? 'fila-inconsistente' : '') + '">' +
+            '<td><span class="emp-badge emp-' + s.Empresa + '">' + s.Empresa + '</span></td>' +
+            '<td>' + Esc(s.Depto) + '</td>' +
+            '<td class="mono">' + Esc(s.Serie) + '</td>' +
+            '<td class="text-right">' + s.Numeracion +
+                (s.Inconsistente
+                    ? ' <span style="color:#a93226;" title="Numeración por debajo del máximo emitido: el próximo recibo chocaría con uno existente">⚠</span>'
+                    : '') + '</td>' +
+            '<td class="text-right" style="color:#7f8c8d;">' + s.MaxUsado + '</td>' +
+            '<td class="mono proximo">' + Esc(s.ProximoId) + '</td>' +
+            '<td class="nc-info">' + (s.SerieNc ? Esc(s.SerieNc) + Pad5(s.NumeracionNc + 1) : '—') + '</td>' +
+            '<td class="text-center">' +
+                '<button class="btn btn-xs btn-warning btn-editSerie" data-rowid="' + s.RowId + '" title="Editar">' +
+                    '<i class="icon-pencil"></i></button> ' +
+                '<button class="btn btn-xs btn-danger btn-delSerie" data-rowid="' + s.RowId + '" ' +
+                    (s.MaxUsado > 0 ? 'disabled title="No se puede eliminar: ya emitió recibos"' : 'title="Eliminar"') + '>' +
+                    '<i class="icon-trash"></i></button>' +
+            '</td></tr>');
+    });
+
+    $("#alertaInconsistencia").toggle(hayInconsistentes);
+}
+
+// ── Filtros ─────────────────────────────────────────────
+$("#grpEmpresaSeries button").on("click", function () {
+    $("#grpEmpresaSeries button").removeClass("activa");
+    $(this).addClass("activa");
+    _filtroEmp = $(this).data("emp");
+    PintarSeries();
+});
+$("#txtFiltroSerie").on("input", PintarSeries);
+
+// ── Vista previa en vivo del próximo ID ─────────────────
+function ActualizarPreview() {
+    var serie = ($("#txtSerieSerie").val() || "").toUpperCase().trim();
+    if (serie && serie.slice(-1) !== "-") serie += "-";
+    var num = parseInt($("#txtNumeracionSerie").val(), 10);
+    $("#previewProximo").text(serie && !isNaN(num) ? serie + Pad5(num + 1) : "—");
+}
+$("#txtSerieSerie, #txtNumeracionSerie").on("input", ActualizarPreview);
+
+// ── Alta ────────────────────────────────────────────────
+$("#btnNuevaSerie").on("click", function () {
+    $("#tituloModalSerie").text("Nueva Serie");
+    $("#hdnRowId").val(0);
+    $("#cboEmpresaSerie").val("").prop("disabled", false);
+    $("#txtDeptoSerie, #txtSerieSerie, #txtSerieNc").val("");
+    $("#txtNumeracionSerie, #txtNumeracionNc").val(0);
+    $("#hintMaxUsado").text("");
+    ActualizarPreview();
+    $("#modalSerie").modal("show");
+});
+
+// ── Edición ─────────────────────────────────────────────
+$(document).on("click", ".btn-editSerie", function () {
+    var s = _series.filter(function (x) { return x.RowId === $(this).data("rowid"); }.bind(this))[0];
+    if (!s) return;
+
+    $("#tituloModalSerie").text("Editar Serie — " + s.Empresa + " / " + s.Depto);
+    $("#hdnRowId").val(s.RowId);
+    // La empresa NO se cambia en edición: cambiarla movería el correlativo
+    // a otro contexto de validación. Si se necesita, se crea una serie nueva.
+    $("#cboEmpresaSerie").val(s.Empresa).prop("disabled", true);
+    $("#txtDeptoSerie").val(s.Depto);
+    $("#txtSerieSerie").val(s.Serie);
+    $("#txtNumeracionSerie").val(s.Numeracion);
+    $("#txtSerieNc").val(s.SerieNc);
+    $("#txtNumeracionNc").val(s.NumeracionNc);
+    $("#hintMaxUsado").text(s.MaxUsado > 0
+        ? "⚠ Ya se emitieron recibos hasta el correlativo " + s.MaxUsado + ". No puede bajar de ahí."
+        : "Serie sin recibos emitidos: numeración libre.");
+    ActualizarPreview();
+    $("#modalSerie").modal("show");
+});
+
+// ── Guardar (alta o edición) ────────────────────────────
+$("#btnGuardarSerie").on("click", function () {
+    var payload = {
+        RowId:        parseInt($("#hdnRowId").val(), 10) || 0,
+        Empresa:      $("#cboEmpresaSerie").val(),
+        Depto:        ($("#txtDeptoSerie").val() || "").toUpperCase().trim(),
+        Serie:        ($("#txtSerieSerie").val() || "").toUpperCase().trim(),
+        Numeracion:   parseInt($("#txtNumeracionSerie").val(), 10),
+        SerieNc:      ($("#txtSerieNc").val() || "").toUpperCase().trim(),
+        NumeracionNc: parseInt($("#txtNumeracionNc").val(), 10) || 0
+    };
+
+    if (!payload.Empresa || !payload.Depto || !payload.Serie || isNaN(payload.Numeracion)) {
+        toastr.warning("Empresa, depto, serie y numeración son obligatorios.");
+        return;
+    }
+
+    // Confirmación reforzada si edita la numeración de una serie con historia
+    var original = _series.filter(function (x) { return x.RowId === payload.RowId; })[0];
+    if (original && original.MaxUsado > 0 && payload.Numeracion !== original.Numeracion) {
+        if (!confirm("⚠ Está cambiando la numeración de una serie que YA emitió recibos.\n" +
+                     "Actual: " + original.Numeracion + "  →  Nueva: " + payload.Numeracion + "\n\n" +
+                     "El próximo recibo será " + $("#previewProximo").text() + ". ¿Continuar?")) return;
+    }
+
+    var $btn = $(this).prop("disabled", true).html('<i class="icon-spinner icon-spin"></i> Guardando...');
+    $.ajax({
+        url: URL_GUARDAR, type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ request: payload }),
+        success: function (resp) {
+            if (resp.ok) {
+                toastr.success(resp.msg);
+                $("#modalSerie").modal("hide");
+                CargarSeries();
+            } else {
+                toastr.error(resp.msg);   // aquí llegan los bloqueos del BLL (máx. emitido, duplicados...)
+            }
+        },
+        error: function () { toastr.error("Error de conexión al guardar."); },
+        complete: function () {
+            $btn.prop("disabled", false).html('<i class="icon-save"></i> Guardar');
+        }
+    });
+});
+
+// ── Eliminar (solo series vírgenes; el servidor re-valida) ──
+$(document).on("click", ".btn-delSerie", function () {
+    var rowId = $(this).data("rowid");
+    var s = _series.filter(function (x) { return x.RowId === rowId; })[0];
+    if (!s) return;
+    if (!confirm("¿Eliminar la serie " + s.Serie + " (" + s.Empresa + " / " + s.Depto + ")?\n" +
+                 "Solo es posible si nunca emitió recibos.")) return;
+
+    $.post(URL_ELIMINAR, { rowId: rowId }, function (resp) {
+        if (resp.ok) { toastr.success(resp.msg); CargarSeries(); }
+        else toastr.error(resp.msg);
+    });
+});
+
+CargarSeries();
+    </script>
+}

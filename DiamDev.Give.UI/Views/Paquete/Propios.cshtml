@@ -1,0 +1,56 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.PaqueteEmpresa>
+
+@{
+    ViewBag.Title = "Mis Paquetes";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Paquete</th>
+                    <th>Forma de Pago</th>
+                    <th>Saldo de Facturas</th>
+                    <th>Fecha de Vencimiento</th>
+                    <th>Precio</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Count() > 0)
+                {
+                    foreach (var Detalle in Model)
+                    {
+                        <tr>
+                            <td>
+                                @(Detalle.Paquete == null ? "No Disponible": String.Format("Paquete: {0} - Cantidad de Facturas: {1} - Precio: {2:C}", Detalle.Paquete.Nombre, Detalle.Paquete.CantidadDTE, Detalle.Paquete.Precio))
+                            </td>
+                            <td>
+                                @(Detalle.FormaPago == null ? "No Disponible": Detalle.FormaPago.Nombre)
+                            </td>
+                            <td>
+                                @Detalle.SaldoFactura
+                            </td>
+                            <td>
+                                @Detalle.FechaVencimiento.ToString("dd/MM/yyyy")
+                            </td>
+                            <td>
+                                @Detalle.Precio.ToString("C")
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="5">
+                            <strong>No contiene paquetes</strong>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+

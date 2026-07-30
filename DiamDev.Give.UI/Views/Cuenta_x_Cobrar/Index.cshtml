@@ -1,0 +1,370 @@
+﻿@model DiamDev.Give.Entities.CuentaxCobrarModel
+
+@{
+    ViewBag.Title = "Cuenta x Cobrar Listado";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get">
+            <div class="form-group">
+                <label class="control-label">
+                    Cliente<span class="symbol required"></span>
+                </label>
+                @Html.DropDownList("cliente", (SelectList)ViewBag.Clientes, "--Seleccione un Cliente--", new { @class = "form-control search-select required", onchange = "this.form.submit();" })
+            </div>
+        </form>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+    </div>
+    <div class="col-md-6">
+        <div style="text-align:right;font-size:x-large; font-weight:bold;">
+            Total: @Html.Raw(ViewBag.Total)
+        </div>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Factura
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive text-nowrap">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Numero FEL</th>
+                                <th>Factura</th>
+                                <th>Vendedor</th>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Productos</th>
+                                <th>Total</th>
+                                <th>Abono</th>
+                                <th>Saldo</th>
+                                <th>Pagar</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="factura_seleccionado_tbody">
+                            @if (Model != null)
+                            {
+                                if (Model.Facturas != null && Model.Facturas.Count() > 0)
+                                {
+                                    foreach (var Factura in Model.Facturas)
+                                    {
+                                        <tr>
+                                            <td>@Factura.NumeroFEL</td>
+                                            <td>@(string.Format("{0} - {1}", Factura.Serie.Nombre, Factura.NoFactura))</td>
+                                            <td>@(Factura.Vendedor == null ? "No Disponible" : Factura.Vendedor.Nombre)</td>
+                                            <td>@Factura.Fecha.ToString("dd/MM/yyyy")</td>
+                                            <td>@(Factura.Cliente == null ? "No Disponible" : Factura.Cliente.Nombre)</td>
+                                            <td>@(Factura.Detalles == null ? 0 : (Factura.Anulada ? 0 : Factura.Detalles.Count()))</td>
+                                            <td>@(Factura.Detalles == null ? "Q0.0000" : (Factura.Anulada ? "Q0.0000" : Factura.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4")))</td>
+                                            <td>@(Factura.Detalles == null ? "Q0.0000" : (Factura.Anulada ? "Q0.0000" : Factura.Abono.ToString("C4")))</td>
+                                            <td>@(Factura.Detalles == null ? "Q0.0000" : (Factura.Anulada ? "Q0.0000" : (Factura.Detalles.Sum(x => x.Cantidad * x.Precio) - Factura.Abono).ToString("C4")))</td>
+                                            <td>
+                                                @if (Factura.HabilitarCheck)
+                                                {
+                                                    <input type="checkbox" class="form-check-input" value="@(string.Format("{0};{1}", Factura.FacturaId, Factura.Detalles == null ? 0 : (Factura.Anulada ? 0 : (Factura.Detalles.Sum(x => x.Cantidad * x.Precio) - Factura.Abono))))">
+                                                }
+                                            </td>
+                                            <td class="center">
+                                                <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                                    <a href="@Url.Action("Pago_Factura", "Cuenta_x_Cobrar", new { id = Factura.FacturaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Pago de Factura"><i class="clip-checkmark-2"></i></a>
+                                                </div>
+                                                <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                                    <div class="btn-group">
+                                                        <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                            <i class="icon-cog"></i> <span class="caret"></span>
+                                                        </a>
+                                                        <ul role="menu" class="dropdown-menu pull-right">
+                                                            <li role="presentation">
+                                                                <a role="menuitem" tabindex="-1" href="@Url.Action("Pago_Factura", "Cuenta_x_Cobrar", new { id = Factura.FacturaId })">
+                                                                    <i class="clip-checkmark-2"></i> Pago de Factura
+                                                                </a>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<hr />
+@if (Model != null)
+{
+    if (Model.Facturas.Where(x => x.HabilitarCheck).Count() > 0)
+    {
+        <div class="row">
+            <div class="col-md-6">
+            </div>
+            <div class="col-md-6">
+                <div id="divFacturasTotalSeleccionado" style="text-align:right;font-size:x-large; font-weight:bold;">
+                    Total: Q0.0000
+                </div>
+            </div>
+        </div>
+        <hr />
+        <div class="row">
+            <div class="col-md-12">
+                <button id="btnGenerarPagoFactura" data-style="slide-down" class="btn btn-primary btn-block ladda-button" type="button">
+                    <span class="ladda-label"> Generar Facturas </span>
+                    <span class="ladda-spinner"></span>
+                    <span class="ladda-progress" style="width: 0px;"></span>
+                </button>
+            </div>
+        </div>
+
+        <br />
+        <br />
+        <div class="row">
+            <div class="col-md-12">
+                <button id="btnImprimirEstadoCuenta" data-style="slide-down" onclick="VerEstadoCuenta();" target="_blank" class="btn btn-primary btn-block ladda-button" type="button">
+                    <span class="ladda-label"> Generar Estado Cuenta</span>
+                    <span class="ladda-spinner"></span>
+                    <span class="ladda-progress" style="width: 0px;"></span>
+                </button>
+            </div>
+        </div>
+    }
+}
+<hr />
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+    function VerEstadoCuenta()
+    {
+        var url="http://104.225.140.235/ServiciosRAGA/SmartJirehReportes/EstadoDeCuenta?clienteid="+document.getElementById("cliente").value;
+        var win = window.open(url, '_blank');
+        win.focus();
+    }
+
+
+    $(function () 
+    {
+        var ReciboIDs = [];
+        var SaldoIDs = [];
+
+        var FacturaIDs = [];
+        var SaldoFacturaIDs = [];
+
+        $('#search').focus();
+
+        if ('@TempData["Pago-Success"]' == "OK") {
+            toastr.success('El pago se registro exitosamente');
+        }
+
+        $('#recibo_seleccionado_tbody .form-check-input').on('click', function () {
+            if ($(this).is(':checked')) {
+                if ($(this).val() !== "") {
+                    var Datos = $(this).val().split(";");
+
+                    //Se agregan los valores seleccionados
+                    ReciboIDs.push(Datos[0]);
+                    SaldoIDs.push(Datos[1]);
+                }
+            }
+            else {
+                if ($(this).val() !== "") {
+                    var Datos = $(this).val().split(";");
+
+                    var ReciboActualIDs = ReciboIDs;
+                    var SaldoActualIDs = SaldoIDs;
+
+                    ReciboIDs = [];
+                    SaldoIDs = [];
+
+                    var ReciboActual = Datos[0];
+
+                    for (var i = 0; i < ReciboActualIDs.length; i++) {
+                        if (ReciboActual !== ReciboActualIDs[i]) {
+                            ReciboIDs.push(ReciboActualIDs[i]);
+                            SaldoIDs.push(SaldoActualIDs[i]);
+                        }
+                    }
+                }
+            }
+
+            totalizarRecibo();
+        });
+
+        $('#factura_seleccionado_tbody .form-check-input').on('click', function () {
+            if ($(this).is(':checked')) {
+                if ($(this).val() !== "") {
+                    var Datos = $(this).val().split(";");
+
+                    //Se agregan los valores seleccionados
+                    FacturaIDs.push(Datos[0]);
+                    SaldoFacturaIDs.push(Datos[1]);
+                }
+            }
+            else {
+                if ($(this).val() !== "") {
+                    var Datos = $(this).val().split(";");
+
+                    var FacturaActualIDs = FacturaIDs;
+                    var SaldoFacturaActualIDs = SaldoFacturaIDs;
+
+                    FacturaIDs = [];
+                    SaldoFacturaIDs = [];
+
+                    var FacturaActual = Datos[0];
+
+                    for (var i = 0; i < FacturaActualIDs.length; i++) {
+                        if (FacturaActual !== FacturaActualIDs[i]) {
+                            FacturaIDs.push(FacturaActualIDs[i]);
+                            SaldoFacturaIDs.push(SaldoFacturaActualIDs[i]);
+                        }
+                    }
+                }
+            }
+
+            totalizarFactura();
+        });
+
+        function totalizarRecibo() {
+            var total = 0;
+            if (SaldoIDs !== "" && SaldoIDs.length > 0) {
+                for (var i = 0; i < SaldoIDs.length; i++) {
+                    total += parseFloat(SaldoIDs[i]);
+                }
+
+                $('#divRecibosTotalSeleccionado').html('Total: Q' + parseFloat(total).toFixed(4));
+            }
+            else {
+                $('#divRecibosTotalSeleccionado').html('Total: Q' + parseFloat(total).toFixed(4));
+            }
+        }
+
+        function totalizarFactura() {
+            var total = 0;
+            if (SaldoFacturaIDs !== "" && SaldoFacturaIDs.length > 0) {
+                for (var i = 0; i < SaldoFacturaIDs.length; i++) {
+                    total += parseFloat(SaldoFacturaIDs[i]);
+                }
+
+                $('#divFacturasTotalSeleccionado').html('Total: Q' + parseFloat(total).toFixed(4));
+            }
+            else {
+                $('#divFacturasTotalSeleccionado').html('Total: Q' + parseFloat(total).toFixed(4));
+            }
+        }
+
+        $("#btnGenerarPagoRecibo").on("click", function () {
+            if (ReciboIDs !== "" && ReciboIDs.length > 0) {
+                var total = 0;
+
+                for (var i = 0; i < ReciboIDs.length; i++) {
+                    total += parseFloat(SaldoIDs[i]);
+                }
+
+                if (confirm("El total a pagar es de: Q" + parseFloat(total).toFixed(4))) {
+                    $.ajax({
+                        url: '@Url.Action("GenerarPagoMaximoxRecibo", "Cuenta_x_Cobrar")',
+                        data: { 'reciboIDs': ReciboIDs, 'saldoIDs': SaldoIDs },
+                        async: false,
+                        type: 'POST',
+                        success: function (data) {
+                            if (!data.Operacion) {
+                                toastr.error('Ocurrió un error, al pagar los recibos seleccionados');
+                                return;
+                            }
+
+                            toastr.success('Los recibos seleccionados se pagaron exitosamente');
+                            window.location = '@Url.Action("Index", "Cuenta_x_Cobrar")';
+                        },
+                        fail: function (data) {
+                            toastr.error('Ocurrió un error, al pagar los recibos seleccionados');
+                        }
+                    });
+                }
+            }
+            else {
+                toastr.error("Se le informa que no ha seleccionado ningun recibo.");
+            }
+        });
+
+        $("#btnGenerarPagoFactura").on("click", function () {
+            if (FacturaIDs !== "" && FacturaIDs.length > 0) {
+                var total = 0;
+
+                for (var i = 0; i < FacturaIDs.length; i++) {
+                    total += parseFloat(SaldoFacturaIDs[i]);
+                }
+
+                if (confirm("El total a pagar es de: Q" + parseFloat(total).toFixed(4))) {
+                    $.ajax({
+                        url: '@Url.Action("GenerarPagoMaximoxFactura", "Cuenta_x_Cobrar")',
+                        data: { 'facturaIDs': FacturaIDs, 'saldoIDs': SaldoFacturaIDs },
+                        async: false,
+                        type: 'POST',
+                        success: function (data) {
+                            if (!data.Operacion) {
+                                toastr.error('Ocurrió un error, al pagar las facturas seleccionadas');
+                                return;
+                            }
+
+                            toastr.success('Las facturas seleccionadas se pagaron exitosamente');
+                            window.location = '@Url.Action("Index", "Cuenta_x_Cobrar")';
+                        },
+                        fail: function (data) {
+                            toastr.error('Ocurrió un error, al pagar las facturas seleccionadas');
+                        }
+                    });
+                }
+            }
+            else {
+                toastr.error("Se le informa que no ha seleccionado ninguna factura.");
+            }
+        });
+    });
+    </script>
+}
+
+
+
+

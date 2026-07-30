@@ -1,0 +1,102 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.Reparacion>
+
+@{
+    ViewBag.Title = "Entregas de 6 Meses en Adelante Listado";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Reparaci&oacute;n
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#Reparación</th>
+                                <th>Agencia</th>
+                                <th>Dias GAMES</th>
+                                <th>Fecha</th>
+                                <th>Marca y Modelo</th>
+                                <th>Cliente</th>
+                                <th>Fecha de Entrega</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var Reparacion in Model)
+                            {
+                                <tr>
+                                    <td>@Reparacion.ReparacionId</td>
+                                    <td>@(Reparacion.Agencia == null ? "No Disponible" : Reparacion.Agencia.Nombre)</td>
+                                    <td>@Reparacion.DiasGames</td>
+                                    <td>@Reparacion.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@(string.IsNullOrWhiteSpace(Reparacion.Marca) ? "No Disponible" : Reparacion.Marca)</td>
+                                    <td>@(Reparacion.Cliente == null ? "No Disponible" : Reparacion.Cliente.Nombre)</td>
+                                    <td>@Reparacion.FechaEntrega.ToString("dd/MM/yyyy")</td>
+                                    <td class="center">
+                                        <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                            <a href="@Url.Action("Editar_de_6", "Reparacion", new { id = Reparacion.ReparacionId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                            <a href="@Url.Action("Entrega_de_6", "Reparacion", new { id = Reparacion.ReparacionId })" clas class="btn btn-teal tooltips" data-placement="top" data-original-title="Entrega"><i class="clip-stack-empty"></i></a>
+                                        </div>
+                                        <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                            <div class="btn-group">
+                                                <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                    <i class="icon-cog"></i> <span class="caret"></span>
+                                                </a>
+                                                <ul role="menu" class="dropdown-menu pull-right">
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Editar_de_6", "Reparacion", new { id = Reparacion.ReparacionId })">
+                                                            <i class="icon-edit"></i> Editar
+                                                        </a>
+                                                    </li>
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Entrega_de_6", "Reparacion", new { id = Reparacion.ReparacionId })">
+                                                            <i class="clip-stack-empty"></i> Entrega
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>                
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function ()
+        {
+            if ('@TempData["Reparacion-Entrega-Success"]' == "OK")
+            {
+                toastr.success('La reparación fue finalizada exitosamente');
+            }
+        });
+    </script>
+}
+
+
+
+

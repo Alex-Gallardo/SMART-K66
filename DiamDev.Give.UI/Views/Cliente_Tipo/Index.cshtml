@@ -1,0 +1,97 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.ClienteTipo>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Tipo de Cliente Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Cliente_Tipo")">
+        Nuevo
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Tipo de Cliente
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>                          
+                            <th>Tipo de Cliente</th>                           
+                            <th>% Descuento</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Tipo in Model)
+                        {
+                            <tr>                               
+                                <td>@Tipo.Nombre</td>                                
+                                <td>@(string.Format("{0}%", Tipo.PorcentajeDescuento))</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">                                        
+                                        <a href="@Url.Action("Editar", "Cliente_Tipo", new { id = Tipo.TipoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">                                               
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Cliente_Tipo", new { id = Tipo.TipoId })">
+                                                        <i class="icon-edit"></i> Editar
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if ('@TempData["Tipo-Success"]' == "OK")
+            {
+                toastr.success('El tipo de cliente se guardó exitosamente');
+            }
+        });
+    </script>
+}
+
+
+
+
+
+

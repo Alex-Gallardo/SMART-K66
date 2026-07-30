@@ -37,9 +37,27 @@
                             }
                         </div>
                         <input type="hidden" id="MovimientoId" name="MovimientoId" value="@Html.Raw(Model.MovimientoId)" />
-                    </div>                    
+                    </div>
                     <div class="row">
-                        <div class="col-md-12">                            
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    ID
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.MovimientoId
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Categoria
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.MovimientoCategoria == null ? "No Disponible" : Model.MovimientoCategoria.Nombre)
+                                </strong>
+                            </div>
                             <div class="form-group">
                                 <label class="control-label">
                                     Cliente
@@ -67,6 +85,15 @@
                                     @Model.Fecha.ToString("dd/MM/yyyy")
                                 </strong>
                             </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Anulada
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Anulada == true ? "Sí" : "No")
+                                </strong>
+                            </div>
                         </div>
                     </div>
                     <h2>
@@ -91,62 +118,73 @@
                                 <tbody>
                                     @if (Model.Detalles != null && Model.Detalles.Count() > 0)
                                     {
-                                        foreach (var Detalle in Model.Detalles)
+                                        if (!Model.Anulada)
                                         {
+                                            foreach (var Detalle in Model.Detalles)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, Detalle.Producto.Nombre))
+                                                    </td>
+                                                    <td>
+                                                        @(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Cantidad
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Precio.ToString("C")
+                                                    </td>
+                                                    <td>
+                                                        @string.Format("{0:C}", Detalle.Cantidad * Detalle.Precio)
+                                                    </td>
+                                                </tr>
+                                            }
                                             <tr>
                                                 <td>
-                                                    @(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, Detalle.Producto.Nombre))
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Sub-Total:
+                                                    </div>
                                                 </td>
-                                                <td>
-                                                    @(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)
-                                                </td>  
-                                                <td>
-                                                    @Detalle.Cantidad
+                                                <td colspan="4">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C}", Model.Detalles.Sum(x => x.Cantidad * x.Precio))
+                                                    </div>
                                                 </td>
+                                            </tr>
+                                            <tr>
                                                 <td>
-                                                    @Detalle.Precio.ToString("C")
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Descuento:
+                                                    </div>
                                                 </td>
+                                                <td colspan="4">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C}", Model.Descuento == null ? 0 : (Model.Descuento == 0 ? 0 : ((Convert.ToDecimal(Model.Descuento) / Convert.ToDecimal(100)) * Model.Detalles.Sum(x => x.Cantidad * x.Precio))))
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <tr>
                                                 <td>
-                                                    @string.Format("{0:C}", Detalle.Cantidad * Detalle.Precio)
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Total:
+                                                    </div>
+                                                </td>
+                                                <td colspan="4">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C}", Model.Descuento == null ? 0 : (Model.Descuento == 0 ? Model.Detalles.Sum(x => x.Cantidad * x.Precio) : Model.Detalles.Sum(x => x.Cantidad * x.Precio) - ((Convert.ToDecimal(Model.Descuento) / Convert.ToDecimal(100)) * Model.Detalles.Sum(x => x.Cantidad * x.Precio))))
+                                                    </div>
                                                 </td>
                                             </tr>
                                         }
-                                        <tr>
-                                            <td>
-                                                <div style="text-align:left; font-size:large; font-weight:bold;">
-                                                    Sub-Total:
-                                                </div>
-                                            </td>
-                                            <td colspan="4">
-                                                <div style="text-align: right;font-size:large; font-weight:bold;">
-                                                    @string.Format("{0:C}", Model.Detalles.Sum(x => x.Cantidad * x.Precio))
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <div style="text-align:left; font-size:large; font-weight:bold;">
-                                                    Descuento:
-                                                </div>
-                                            </td>
-                                            <td colspan="4">
-                                                <div style="text-align: right;font-size:large; font-weight:bold;">
-                                                    @string.Format("{0:C}", Model.Descuento == null ? 0 : (Model.Descuento == 0 ? 0 : ((Convert.ToDecimal(Model.Descuento) / Convert.ToDecimal(100)) * Model.Detalles.Sum(x => x.Cantidad * x.Precio))))
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>
-                                                <div style="text-align:left; font-size:large; font-weight:bold;">
-                                                    Total:
-                                                </div>
-                                            </td>
-                                            <td colspan="4">
-                                                <div style="text-align: right;font-size:large; font-weight:bold;">
-                                                    @string.Format("{0:C}", Model.Descuento == null ? 0 : (Model.Descuento == 0 ? Model.Detalles.Sum(x => x.Cantidad * x.Precio) : Model.Detalles.Sum(x => x.Cantidad * x.Precio) - ((Convert.ToDecimal(Model.Descuento) / Convert.ToDecimal(100)) * Model.Detalles.Sum(x => x.Cantidad * x.Precio))))
-                                                </div>
-                                            </td>
-                                        </tr>
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="5">
+                                                    <strong>Le informamos que el egreso fue anulado, por lo tanto no puede visualizar los productos</strong>
+                                                </td>
+                                            </tr>
+                                        }
                                     }
                                     else
                                     {
@@ -157,6 +195,7 @@
                                         </tr>
                                     }
                                 </tbody>
+
                             </table>
                         </div>
                     </div>
@@ -180,32 +219,43 @@
                                 <tbody>
                                     @if (Model.Pagos != null && Model.Pagos.Count() > 0)
                                     {
-                                        foreach (var Pago in Model.Pagos)
+                                        if (!Model.Anulada)
                                         {
+                                            foreach (var Pago in Model.Pagos)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Pago.FormaPago == null ? "No Disponible" : Pago.FormaPago.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Pago.Valor.ToString("C")
+                                                    </td>
+                                                    <td>
+                                                        @(string.IsNullOrWhiteSpace(Pago.Nota) ? "No Disponible" : Pago.Nota)
+                                                    </td>
+                                                </tr>
+                                            }
                                             <tr>
                                                 <td>
-                                                    @(Pago.FormaPago == null ? "No Disponible" : Pago.FormaPago.Nombre)
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Total:
+                                                    </div>
                                                 </td>
-                                                <td>
-                                                    @Pago.Valor.ToString("C")
-                                                </td>
-                                                <td>
-                                                    @(string.IsNullOrWhiteSpace(Pago.Nota) ? "No Disponible" : Pago.Nota)
+                                                <td colspan="4">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C}", Model.Pagos.Sum(x => x.Valor))
+                                                    </div>
                                                 </td>
                                             </tr>
                                         }
-                                        <tr>
-                                            <td>
-                                                <div style="text-align:left; font-size:large; font-weight:bold;">
-                                                    Total:
-                                                </div>
-                                            </td>
-                                            <td colspan="4">
-                                                <div style="text-align: right;font-size:large; font-weight:bold;">
-                                                    @string.Format("{0:C}", Model.Pagos.Sum(x => x.Valor))
-                                                </div>
-                                            </td>
-                                        </tr>
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="4">
+                                                    <strong>Le informamos que el egreso fue anulado, por lo tanto no puede visualizar los pagos</strong>
+                                                </td>
+                                            </tr>
+                                        }
                                     }
                                     else
                                     {
@@ -216,6 +266,7 @@
                                         </tr>
                                     }
                                 </tbody>
+
                             </table>
                         </div>
                     </div>

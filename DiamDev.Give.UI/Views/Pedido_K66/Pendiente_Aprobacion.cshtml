@@ -1,0 +1,131 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.PedidoK66>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Pedido K66 - PENDIENTE DE APROBACION";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="control-label">
+                            Fecha Inicial<span class="symbol required"></span>
+                        </label>
+                        <div class="input-group">
+                            <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                            <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="control-label">
+                            Fecha Final<span class="symbol required"></span>
+                        </label>
+                        <div class="input-group">
+                            <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit();" required>
+                            <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">       
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Pedido
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#Pedido</th>
+                                <th>Empresa</th>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>Productos</th>
+                                <th>Total</th>
+                                <th>U. Creo</th>
+                                <th>Estado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var Detalle in Model)
+                            {
+                                <tr>
+                                    <td>@Detalle.PedidoId</td>
+                                    <td>@(Detalle.Empresa == null ? "No Disponible" : Detalle.Empresa.Nombre)</td>
+                                    <td>@Detalle.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@Detalle.Nombre</td>
+                                    <td>@(Detalle.Detalles == null ? 0 : Detalle.Detalles.Count())</td>
+                                    <td>@(Detalle.Detalles == null ? "Q0.0000" : Detalle.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4"))</td>
+                                    <td>@(Detalle.Responsable == null ? "No Disponible" : Detalle.Responsable.Nombre)</td>
+                                    <td>@Detalle.Estado.Nombre.ToUpper()</td>
+                                    <td class="center">
+                                        <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                            <a href="@Detalle.DocumentoOrdenCompraRespaldo" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="ORDEN DE COMPRA"><i class="clip-file-pdf"></i></a>
+
+                                            <a href="@Url.Action("Aprobar", "Pedido_K66", new { id = Detalle.PedidoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Aprobar"><i class="clip-checkmark-2"></i></a>
+                                            <a href="@Url.Action("Rechazar", "Pedido_K66", new { id = Detalle.PedidoId })" class="btn btn-bricky tooltips" data-placement="top" data-original-title="Rechazar"><i class="clip-close"></i></a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>                    
+            </div>
+         </div>       
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Pendiente_Aprobacion", new { search = ViewBag.Search, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            if ('@TempData["Pedido-Success"]' == "OK")
+            {
+                toastr.success('El pedido K66 se guardó exitosamente');
+            }           
+        });
+    </script>
+}

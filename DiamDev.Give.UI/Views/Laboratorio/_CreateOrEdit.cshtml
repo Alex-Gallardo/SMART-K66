@@ -1,0 +1,96 @@
+﻿@model DiamDev.Give.Entities.Laboratorio
+
+<h2>
+    <i class="icon-edit-sign teal"></i> Producto Base
+</h2>
+<hr>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Barra
+            </label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Producto
+            </label>
+            <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" disabled="disabled" />
+            <input type="hidden" id="ProductoBaseId" name="ProductoBaseId" value="0" />
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Unidad
+            </label>
+            <select id="PresentacionId" name="PresentacionId" class="form-control search-select">
+                <option value="0">--SELECCIONE UNA UNIDAD--</option>
+            </select>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Cantidad
+            </label>
+            <input type="number" placeholder="Cantidad" class="form-control" id="CantidadBase" name="CantidadBase" value="1" autocomplete="off" />
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Existencia
+            </label>
+            <input type="number" placeholder="Existencia" class="form-control" id="Existencia" name="Existencia" autocomplete="off" disabled="disabled" />
+        </div>
+    </div>
+</div>
+<h2>
+    <i class="icon-edit-sign teal"></i> Producto Destino
+</h2>
+<hr>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Barra
+            </label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="BarraDestino" name="BarraDestino" autocomplete="off" placeholder="Buscar Producto...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="btnBarraDestino">Buscar</button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Producto
+            </label>
+            <input type="text" placeholder="Producto" class="form-control" id="ProductoDestino" name="ProductoDestino" autocomplete="off" disabled="disabled" />
+            <input type="hidden" id="ProductoDestinoId" name="ProductoDestinoId" value="0" />
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Unidad Destino
+            </label>
+            <select id="PresentacionDestinoId" name="PresentacionDestinoId" class="form-control search-select">
+                <option value="0">--SELECCIONE UNA UNIDAD--</option>
+            </select>
+        </div>
+    </div>
+</div>

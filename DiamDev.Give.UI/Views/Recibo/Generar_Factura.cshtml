@@ -1,0 +1,407 @@
+﻿@model DiamDev.Give.Entities.Recibo
+
+@{
+    ViewBag.Title = "Generar Factura";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Recibo
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="ReciboId" name="ReciboId" value="@Html.Raw(Model.ReciboId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. Recibo
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.ReciboId
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Agencia
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Agencia == null ? "No Disponible" : Model.Agencia.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Cliente == null ? "No Disponible" : Model.Cliente.Nombre)
+                                </strong>
+                            </div>                            
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha y Hora
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.FechaHoraRecibo == null ? Model.Fecha.ToString("dd/MM/yyyy") : Model.FechaHoraRecibo.Value.ToString("dd/MM/yyyy hh:mm tt"))
+                                </strong>
+                            </div>           
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha y Hora Despacho
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.FechaHoraDespacho == null ? "No Disponible" : Model.FechaHoraDespacho.Value.ToString("dd/MM/yyyy hh:mm tt"))
+                                </strong>
+                            </div>                            
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Anulada
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Anulada == true ? "Sí" : "No")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>   
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    U. Creo
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.UsuarioCreo == null ? "NA" : Model.UsuarioCreo.Nombre)
+                                </strong>
+                            </div>    
+                            <div class="form-group">
+                                <label class="control-label">
+                                    U. Despacho
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.UsuarioDespacho == null ? "NA" : Model.UsuarioDespacho.Nombre)
+                                </strong>
+                            </div>    
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Transporte
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Transporte == null ? "NA" : Model.Transporte.Nombre)
+                                </strong>
+                            </div>    
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Comentario
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.ComentarioPedido) ? "Sin Comentario" : Model.ComentarioPedido)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>
+                                        <th>Cantidad</th>
+                                        <th>IDs</th>
+                                        <th>Precio</th>
+                                        <th>Sub-Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Detalles != null && Model.Detalles.Count() > 0)
+                                    {
+                                        if (!Model.Anulada)
+                                        {
+                                            foreach (var Detalle in Model.Detalles)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, string.IsNullOrWhiteSpace(Detalle.Nombre) ? Detalle.Producto.Nombre : Detalle.Nombre))
+                                                    </td>
+                                                    <td>
+                                                        @(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Cantidad
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.ID
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Precio.ToString("C4")
+                                                    </td>
+                                                    <td>
+                                                        @string.Format("{0:C4}", Detalle.Cantidad * Detalle.Precio)
+                                                    </td>
+                                                </tr>
+                                            }
+                                            <tr>
+                                                <td>
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Total:
+                                                    </div>
+                                                </td>
+                                                <td colspan="6">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C4}", Model.Detalles.Sum(x => x.Cantidad * x.Precio))
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="6">
+                                                    <strong>Le informamos que el recibo fue anulado, por lo tanto no puede visualizar los productos</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="6">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Pagos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Forma</th>
+                                        <th>Cantidad</th>
+                                        <th>Fecha</th>
+                                        <th>Nota</th>                                        
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Pagos != null && Model.Pagos.Count() > 0)
+                                    {
+                                        if (!Model.Anulada)
+                                        {
+                                            foreach (var Pago in Model.Pagos)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Pago.FormaPago == null ? "No Disponible" : Pago.FormaPago.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Pago.Valor.ToString("C4")
+                                                    </td>
+                                                    <td>
+                                                        @Pago.Fecha.ToString("dd/MM/yyyy")
+                                                    </td>
+                                                    <td>
+                                                        @(string.IsNullOrWhiteSpace(Pago.Nota) ? "No Disponible" : Pago.Nota)
+                                                    </td>
+                                                </tr>
+                                            }
+                                            <tr>
+                                                <td>
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Total:
+                                                    </div>
+                                                </td>
+                                                <td colspan="4">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C4}", Model.Pagos.Sum(x => x.Valor))
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="4">
+                                                    <strong>Le informamos que el recibo fue anulado, por lo tanto no puede visualizar los pagos</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="5">
+                                                <strong>No contiene pagos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>  
+                    @if (Model.PedidoId != null)
+                    {
+                        <h2>
+                            <i class="icon-edit-sign teal"></i>
+                            <label class="control-label">
+                                Pedido
+                            </label>
+                        </h2>
+                        <hr>
+                        <div class="row">                            
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        #Pedido
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @Model.PedidoId
+                                    </strong>
+                                </div>  
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        U. Creo Pedido
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "No Disponible" : (Model.Pedido.UsuarioCreo == null ? "No Disponible" : Model.Pedido.UsuarioCreo.Nombre))
+                                    </strong>
+                                </div>   
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        U. Opero Pedido
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "No Disponible" : (Model.Pedido.UsuarioOpero == null ? "No Disponible" : Model.Pedido.UsuarioOpero.Nombre))
+                                    </strong>
+                                </div>                                     
+                            </div>                            
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Fecha Pedido
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "No Disponible" : Model.Pedido.Fecha.ToString("dd/MM/yyyy"))
+                                    </strong>
+                                </div>  
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Fecha Pedido Opero
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "No Disponible" : Model.Pedido.FechaHoraOpero.Value.ToString("dd/MM/yyyy"))
+                                    </strong>
+                                </div>     
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Hora Pedido
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "00:00" : Model.Pedido.FechaHoraCreacion.Value.ToString("hh:mm tt"))
+                                    </strong>
+                                </div>
+                                <div class="form-group">
+                                    <label class="control-label">
+                                        Hora Pedido Opero
+                                    </label>
+                                    <br />
+                                    <strong>
+                                        @(Model.Pedido == null ? "00:00" : Model.Pedido.FechaHoraOpero.Value.ToString("hh:mm tt"))
+                                    </strong>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+

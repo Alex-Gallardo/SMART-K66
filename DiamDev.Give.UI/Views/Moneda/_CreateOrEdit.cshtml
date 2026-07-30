@@ -1,0 +1,57 @@
+﻿@model DiamDev.Give.Entities.Moneda
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Codigo<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Codigo, new { @class = "form-control", @placeholder = "Codigo de la Moneda", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Moneda<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre de la Moneda", required = "required", autocomplete = "off" })
+        </div>      
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Simbolo<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Simbolo, new { @class = "form-control", @placeholder = "Simbolo de la Moneda", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Tipo de Cambio Compra<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                @Html.TextBoxFor(model => model.TipoDeCambioCompra, new { @class = "form-control", @placeholder = "Tipo de Cambio Compra", required = "required", autocomplete = "off" })
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Tipo de Cambio Venta<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                @Html.TextBoxFor(model => model.TipoDeCambioVenta, new { @class = "form-control", @placeholder = "Tipo de Cambio Venta", required = "required", autocomplete = "off" })
+            </div>
+        </div>
+    </div>
+</div>
+
+
+

@@ -20,21 +20,6 @@
         </div>
         <div class="form-group">
             <label class="control-label">
-                Autenticar Site
-            </label>
-            <div>
-                <label class="radio-inline">
-                    <input type="radio" class="grey" value="true" @ViewBag.AutenticarSiteSi name="autenticarSite" id="AutenticarSiteSi">
-                    Sí
-                </label>
-                <label class="radio-inline">
-                    <input type="radio" class="grey" value="false" @ViewBag.AutenticarSiteNo name="autenticarSite" id="AutenticarSiteNo">
-                    No
-                </label>
-            </div>
-        </div>
-        <div class="form-group">
-            <label class="control-label">
                 Usuario Activo
             </label>
             <div>
@@ -56,35 +41,50 @@
             </label>
             @Html.PasswordFor(model => model.Password, new { @class = "form-control", @placeholder = "Password", required = "required" })
         </div>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-6">
         <div class="form-group">
             <label class="control-label">
-                Autenticar Android
+                Usar Token
             </label>
             <div>
                 <label class="radio-inline">
-                    <input type="radio" class="grey" value="true" @ViewBag.AutenticarAndroidSi name="autenticarAndroid" id="AutenticarAndroidSi">
+                    <input type="radio" class="grey" value="true" @ViewBag.TokenSi name="token" id="TokenSi">
                     Sí
                 </label>
                 <label class="radio-inline">
-                    <input type="radio" class="grey" value="false" @ViewBag.AutenticarAndroidNo name="autenticarAndroid" id="AutenticarAndroidNo">
+                    <input type="radio" class="grey" value="false" @ViewBag.TokenNo name="token" id="TokenNo">
                     No
                 </label>
             </div>
         </div>
+    </div>
+    <div class="col-md-6">
         <div class="form-group">
             <label class="control-label">
-                Reiniciar Password
+                #Celular<span class="symbol required"></span>
             </label>
-            <div>
-                <label class="radio-inline">
-                    <input type="radio" class="grey" value="true" @ViewBag.ReiniciarPasswordSi name="reiniciarPassword" id="ReiniciarPasswordSi">
-                    Sí
-                </label>
-                <label class="radio-inline">
-                    <input type="radio" class="grey" value="false" @ViewBag.ReiniciarPasswordNo name="reiniciarPassword" id="ReiniciarPasswordNo">
-                    No
-                </label>
-            </div>
+            @Html.TextBoxFor(model => model.Celular, new { @class = "form-control", @placeholder = "#Celular", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Departamentos</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Departamento/Consulta<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("DepartamentoId", (SelectList)ViewBag.Departamentos, "--Seleccione un Departamento--", new { @class = "form-control search-select required" })
         </div>
     </div>
 </div>
@@ -107,7 +107,7 @@
 <div class="row">
     <div class="col-md-12">
         <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar">Agregar</button></p>
-        <table class="table table-hover" id="sample-table-1">
+        <table class="table table-hover">
             <thead>
                 <tr>
                     <th>Rol</th>
@@ -137,7 +137,7 @@
 <div class="row">
     <div class="col-md-12">
         <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-agencia">Agregar</button></p>
-        <table class="table table-hover" id="sample-table-1">
+        <table class="table table-hover">
             <thead>
                 <tr>
                     <th>Agencia</th>
@@ -145,7 +145,61 @@
                 </tr>
             </thead>
             <tbody id="agencia_tbody"></tbody>
-        </table>        
+        </table>
     </div>
 </div>
-
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Empresas</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Empresa
+            </label>
+            @Html.DropDownList("EmpresaId", (SelectList)ViewBag.Empresas, "--Seleccione una Empresa--", new { @class = "form-control search-select" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Codigo de Integracion
+            </label>
+            <select class="form-control" id="ColaboradorId">
+                <option value="">--Seleccione Colaborador</option>
+            </select>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Serie Sap<span class="symbol required"></span>
+            </label>
+            <input type="text" class="form-control" id="serieSap" name="serieSap" autocomplete="off" placeholder="Serie Sap...">
+            @* @Html.TextBoxFor(model => model.serie_sap, new { @class = "form-control", @placeholder = "Serie Sap para Pedidos", autocomplete = "off", autofocus = "autofocus" })*@
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-empresa">Agregar</button></p>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Empresa</th>
+                    <th>Codigo Integracion</th>
+                    <th>Serie Sap</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="empresa_tbody"></tbody>
+        </table>
+    </div>
+</div>

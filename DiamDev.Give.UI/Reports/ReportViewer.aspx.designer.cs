@@ -7,11 +7,13 @@
 // </generado automáticamente>
 //------------------------------------------------------------------------------
 
-namespace RDLCInASPNetMVC3.Reports {
-    
-    
-    public partial class ReportViewer {
-        
+namespace RDLCInASPNetMVC3.Reports
+{
+
+
+    public partial class ReportViewer
+    {
+
         /// <summary>
         /// Control form1.
         /// </summary>
@@ -20,7 +22,7 @@ namespace RDLCInASPNetMVC3.Reports {
         /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
         /// </remarks>
         protected global::System.Web.UI.HtmlControls.HtmlForm form1;
-        
+
         /// <summary>
         /// Control ScriptManager1.
         /// </summary>
@@ -29,7 +31,7 @@ namespace RDLCInASPNetMVC3.Reports {
         /// Para modificarlo, mueva la declaración del campo del archivo del diseñador al archivo de código subyacente.
         /// </remarks>
         protected global::System.Web.UI.ScriptManager ScriptManager1;
-        
+
         /// <summary>
         /// Control rptReport.
         /// </summary>

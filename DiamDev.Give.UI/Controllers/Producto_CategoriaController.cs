@@ -64,8 +64,20 @@ namespace DiamDev.Give.UI.Controllers
 
         [Permiso("Control.Producto_Categoria.Crear")]
         [HttpPost]
-        public ActionResult Crear(ProductoCategoria modelo, bool activo)
+        public ActionResult Crear(ProductoCategoria modelo, bool activo, HttpPostedFileBase fotografiaApp)
         {
+            if (fotografiaApp != null)
+            {
+                modelo.Fotografia = new ProductoFotografia();
+                if (fotografiaApp != null)
+                {
+                    byte[] FileData = new byte[fotografiaApp.ContentLength + 1];
+                    fotografiaApp.InputStream.Read(FileData, 0, fotografiaApp.ContentLength);
+
+                    modelo.FotografiaApp = fotografiaApp.FileName.Replace(" ", "_");
+                    modelo.Fotografia = new ProductoFotografia() { Nombre = fotografiaApp.FileName, Content = FileData, ContentType = fotografiaApp.ContentType, Length = fotografiaApp.ContentLength };
+                }
+            }
 
             if (ModelState.IsValid)
             {
@@ -114,8 +126,21 @@ namespace DiamDev.Give.UI.Controllers
 
         [Permiso("Control.Producto_Categoria.Editar")]
         [HttpPost]
-        public ActionResult Editar(ProductoCategoria modelo, bool activo)
+        public ActionResult Editar(ProductoCategoria modelo, bool activo, HttpPostedFileBase fotografiaApp)
         {
+            if (fotografiaApp != null)
+            {
+                modelo.Fotografia = new ProductoFotografia();
+                if (fotografiaApp != null)
+                {
+                    byte[] FileData = new byte[fotografiaApp.ContentLength + 1];
+                    fotografiaApp.InputStream.Read(FileData, 0, fotografiaApp.ContentLength);
+
+                    modelo.FotografiaApp = fotografiaApp.FileName.Replace(" ", "_");
+                    modelo.Fotografia = new ProductoFotografia() { Nombre = fotografiaApp.FileName, Content = FileData, ContentType = fotografiaApp.ContentType, Length = fotografiaApp.ContentLength };
+                }
+            }
+
             if (ModelState.IsValid)
             {
                 string strMensaje = new ProductoCategoriaBL().Guardar(modelo);

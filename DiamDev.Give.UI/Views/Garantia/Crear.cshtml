@@ -1,0 +1,321 @@
+﻿@model DiamDev.Give.Entities.Garantia
+
+@{
+    ViewBag.Title = "Nueva Garantia";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nueva Garantia
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nueva Garantia</h2>
+                <p>
+                    Crea una nueva garantia.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>                        
+                    </div>
+                    @Html.Partial("_CreateOrEdit")                    
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Garantia")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="producto_tr_template">
+        <tr>
+            <td>{{producto}}</td>      
+            <td>{{id}}</td>         
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="productoIds" value="{{producto_id}}" />            
+                <input type="hidden" name="idIds" value="{{id}}" />
+            </td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">
+         
+        var productoIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.productoIds))');
+        var productoSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.nombreProductoIds))');       
+        var idsSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.idIds))');
+
+    $(function () 
+    {
+        $("#divFactura").hide();
+        $("#divRecibo").hide();
+
+        function error(texto)
+        {
+            toastr.error(texto);
+        }
+
+        function cargaProducto(producto_id, producto, id)
+        {
+            var plantilla = $('#producto_tr_template').html();
+
+            var modelo =
+            {
+                producto_id: producto_id,
+                producto: producto,             
+                id: id
+            };
+
+            var filaHtml = Mustache.render(plantilla, modelo);
+
+            // agregamos la nueva fila a la tabla.
+            $('#producto_tbody').append(filaHtml);
+        }
+
+        renderizarProductosIniciales();
+
+        $('#btn-agregar').click(function (e)
+        {
+            e.preventDefault();
+
+            var producto_id = $('#ProductoId').val();
+            var producto = $('#ProductoId option:selected').text();
+
+            if (producto_id === "" || producto === "")
+            {
+                error("Seleccione un producto");
+                return;
+            }
+           
+            var IDsActual = $("#IDs").val();
+           
+            cargaProducto(producto_id, producto, IDsActual);
+          
+            $("#ProductoId").val(0);     
+            $("#IDs").val("");           
+        });
+
+        $('#producto_tbody').delegate("a", "click", function (e)
+        {
+            e.preventDefault();
+            $(this).parent().parent().remove();
+        });
+
+        function renderizarProductosIniciales()
+        {
+            if (productoIdSeleccionados == null)
+            {
+                return;
+            }
+
+            // recorremos los productos que haya ingresado el usuario
+            for (var i = 0; i < productoIdSeleccionados.length; i++)
+            {
+                var producto_id = productoIdSeleccionados[i];
+                var producto = productoSeleccionados[i];
+
+                var ids = idsSeleccionados[i];
+
+                cargaProducto(producto_id, producto, ids);
+            }
+        }
+
+        $("#DocumentoId").change(function (evt)
+        {
+            if ($("#DocumentoId").val() === "1")
+            {
+                $("#divFactura").show();
+                $("#divRecibo").hide();
+            }
+            else if ($("#DocumentoId").val() === "2")
+            {
+                $("#divFactura").hide();
+                $("#divRecibo").show();
+            }
+        });
+
+        $('#btnBuscarFactura').click(function (e)
+        {
+            e.preventDefault();
+
+            var serie_id = $('#SerieId').val();
+               
+            if (serie_id === "")
+            {
+                error("Seleccione una serie de factura");
+                return;
+            }
+
+            if (serie_id === "0")
+            {
+                error("Seleccione una serie de factura");
+                return;
+            }
+
+            var factura_id = $('#factura').val();
+               
+            if (factura_id === "")
+            {
+                error("Ingrese el No. de Factura");
+                return;
+            }
+                
+            $.ajax({
+                url: '@Url.Action("ObtenerFacturaGarantiaActual", "Factura")',
+                traditional: true,
+                async: false,
+                data: { 'serieId': serie_id, 'factura': factura_id },
+                type: 'GET',
+                success: function (resultData)
+                {
+                    if (resultData !== null)
+                    {
+                        if (resultData.Operacion)
+                        {
+                            if (resultData.Data.MensajeId === 1)
+                            {
+                                console.log(resultData.Data);
+                                $('#NombreCliente').val(resultData.Data.Cliente);
+                                $('#FacturaId').val(resultData.Data.FacturaId);
+                                  
+                                var ProductoSelect = $("#ProductoId");
+                                ProductoSelect.empty();
+                                ProductoSelect.append('<option value="0">--Seleccione un Producto--</option>');
+
+                                $.each(resultData.Data.Productos, function (j)
+                                {                                        
+                                    ProductoSelect.append($("<option></option>").attr("value", resultData.Data.Productos[j].ProductoId).text(resultData.Data.Productos[j].Nombre));
+                                });
+
+                            }
+                            else if (resultData.Data.MensajeId === -1)
+                            {
+                                toastr.error('No se encuentra registrada la factura que ingreso');
+                            }
+                            else if (resultData.Data.MensajeId === -2)
+                            {
+                                toastr.error('Se le informa que la factura que ingreso se encuentra anulada');
+                            }
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al visualizar la factura');
+                        }
+                    }
+                    else
+                    {
+                        toastr.error('Ocurrió un error, al visualizar la factura');
+                    }
+                }
+            });               
+        });
+
+        $('#btnBuscarRecibo').click(function (e)
+        {
+            e.preventDefault();
+
+            var recibo_id = $('#recibo').val();
+
+            if (recibo_id === "")
+            {
+                error("Ingrese el No. de Recibo");
+                return;
+            }
+
+            $.ajax({
+                url: '@Url.Action("ObtenerReciboGarantiaActual", "Recibo")',
+                traditional: true,
+                async: false,
+                data: { 'recibo': recibo_id },
+                type: 'GET',
+                success: function (resultData)
+                {
+                    if (resultData !== null)
+                    {
+                        if (resultData.Operacion)
+                        {
+                            if (resultData.Data.MensajeId === 1)
+                            {
+                                console.log(resultData.Data);
+                                $('#NombreCliente').val(resultData.Data.Cliente);
+                                $('#ReciboId').val(resultData.Data.FacturaId);
+
+                                var ProductoSelect = $("#ProductoId");
+                                ProductoSelect.empty();
+                                ProductoSelect.append('<option value="0">--Seleccione un Producto--</option>');
+
+                                $.each(resultData.Data.Productos, function (j) {
+                                    ProductoSelect.append($("<option></option>").attr("value", resultData.Data.Productos[j].ProductoId).text(resultData.Data.Productos[j].Nombre));
+                                });
+
+                            }
+                            else if (resultData.Data.MensajeId === -1)
+                            {
+                                toastr.error('No se encuentra registrado el recibo que ingreso');
+                            }
+                            else if (resultData.Data.MensajeId === -2)
+                            {
+                                toastr.error('Se le informa que el recibo que ingreso se encuentra anulado');
+                            }
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar el recibo');
+                        }
+                    }
+                    else {
+                        toastr.error('Ocurrió un error, al visualizar el recibo');
+                    }
+                }
+            });
+        });
+
+    });
+
+    </script>
+}
+
+

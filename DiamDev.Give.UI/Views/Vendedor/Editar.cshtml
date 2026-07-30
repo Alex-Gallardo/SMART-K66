@@ -56,7 +56,7 @@
                         </p>
                         <p>
                             <div class="col-md-6">
-                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Agencia")">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Vendedor")">
                                     Regresar <i class="icon-prev"></i>
                                 </a>
                             </div>
@@ -74,17 +74,66 @@
     <script src="~/Scripts/mustache.js"></script>
     <script type="text/html" id="agencia_tr_template">
         <tr>
-            <td>{{agencia}}</td>          
+            <td>{{agencia}}</td>
             <td>
                 <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
-                <input type="hidden" name="agenciaIds" value="{{agencia_id}}" />              
+                <input type="hidden" name="agenciaIds" value="{{agencia_id}}" />
+            </td>
+        </tr>
+    </script>
+    <script type="text/html" id="escala_tr_template">
+        <tr>
+            <td>{{inicio}}</td>
+            <td>{{fin}}</td>
+            <td>{{porcentaje}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="inicioIds" value="{{inicio}}" />
+                <input type="hidden" name="finIds" value="{{fin}}" />
+                <input type="hidden" name="porcentajeIds" value="{{porcentaje}}" />
+            </td>
+        </tr>
+    </script>
+    <script type="text/html" id="meta_tr_template">
+        <tr>
+            <td>{{mes}}</td>
+            <td>{{anio}}</td>
+            <td>{{metaMensual}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="mesIds" value="{{mes_id}}" />
+                <input type="hidden" name="anioIds" value="{{anio}}" />
+                <input type="hidden" name="metaMensualIds" value="{{metaMensual}}" />
+                <input type="hidden" name="metaMensualRealIds" value="{{metaMensualReal}}" />
+            </td>
+        </tr>
+    </script>
+    <script type="text/html" id="metaxdia_tr_template">
+        <tr>
+            <td>{{fecha}}</td>
+            <td>{{metaxdia}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="fechaIds" value="{{fecha}}" />
+                <input type="hidden" name="metaxdiaIds" value="{{metaxdia}}" />
             </td>
         </tr>
     </script>
 
     <script type="text/javascript">
 
-        var agenciaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.agenciaIds))');  
+        var agenciaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.agenciaIds))');
+        var inicioSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.inicioIds))');
+        var finSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.finIds))');
+        var porcentajeSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.porcentajeIds))');
+
+        var mesSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.mesIds))');
+        var anioSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.anioIds))');
+        var montoMensualSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.metaMensualIds))');
+        var montoMensualRealSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.metaMensualRealIds))');
+
+        var fechaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.fechaIds))');
+        var metaxdiaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.metaxdiaIds))');
 
         $(function ()
         {
@@ -100,7 +149,7 @@
                 var modelo =
                 {
                     agencia_id: agencia_id,
-                    agencia: agencia                  
+                    agencia: agencia
                 };
 
                 var filaHtml = Mustache.render(plantilla, modelo);
@@ -109,7 +158,62 @@
                 $('#agencia_tbody').append(filaHtml);
             }
 
+            function cargaEscala(inicio, fin, porcentaje)
+            {
+                var plantilla = $('#escala_tr_template').html();
+
+                var modelo =
+                {
+                    inicio: inicio,
+                    fin: fin,
+                    porcentaje: porcentaje
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#escala_tbody').append(filaHtml);
+            }
+
+            function cargaMeta(mes_id, mes, anio, metaMensual, metaMensualReal)
+            {
+                var plantilla = $('#meta_tr_template').html();
+
+                var modelo =
+                {
+                    mes_id: mes_id,
+                    mes: mes,
+                    anio: anio,
+                    metaMensual: metaMensual,
+                    metaMensualReal: metaMensualReal
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#meta_tbody').append(filaHtml);
+            }
+
+            function cargaMetaxDia(fecha, metaxdia)
+            {
+                var plantilla = $('#metaxdia_tr_template').html();
+
+                var modelo =
+                {
+                    fecha: fecha,
+                    metaxdia: metaxdia
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#metaxdia_tbody').append(filaHtml);
+            }
+
             renderizarAgenciasIniciales();
+            renderizarEscalasIniciales();
+            renderizarMetasIniciales();
+            renderizarMetasxDiaIniciales();
 
             $('#btn-agregar').click(function (e)
             {
@@ -122,18 +226,199 @@
                 {
                     error("Seleccione una agencia");
                     return;
-                }                
+                }
 
-                cargaAgencia(agencia_id, agencia);               
+                cargaAgencia(agencia_id, agencia);
 
-                $("#AgenciaId").val(0);          
+                $("#AgenciaId").val(0);
                 $("#AgenciaId").focus();
+            });
+
+            $('#btn-agregar-escala').click(function (e)
+            {
+                e.preventDefault();
+
+                var inicio = $('#Inicio').val();
+
+                if (inicio === "")
+                {
+                    error("Ingresar inicio de la escala");
+                    return;
+                }
+
+                var fin = $('#Fin').val();
+
+                if (fin === "")
+                {
+                    error("Ingresar fin de la escala");
+                    return;
+                }
+
+                var porcentaje = $('#Porcentaje').val();
+
+                if (porcentaje === "")
+                {
+                    error("Ingresar porcentaje de la escala");
+                    return;
+                }
+
+                cargaEscala(inicio, fin, porcentaje);
+
+                $("#Inicio").val("");
+                $("#Fin").val("");
+                $("#Porcentaje").val("");
+                $("#Inicio").focus();
+            });
+
+            $('#btn-agregar-meta').click(function (e) {
+                e.preventDefault();
+
+                var mes_id = $('#MesId').val();
+                var mes = $('#MesId option:selected').text();
+
+                if (mes_id === "" || mes === "") {
+                    error("Seleccione un Mes");
+                    return;
+                }
+
+                mes_id = parseInt(mes_id);
+
+                var anio = $('#Anio').val();
+
+                if (anio === "") {
+                    error("Ingrese Año");
+                    return;
+                }
+
+                anio = parseInt(anio);
+
+                if (anio === 0) {
+                    error("Ingrese Año");
+                    return;
+                }
+
+                var metaMensual = $('#MetaMensual').val();
+
+                if (metaMensual === "") {
+                    error("Ingrese Monto de Meta Mensual");
+                    return;
+                }
+
+                metaMensual = parseFloat(metaMensual);
+
+                if (metaMensual === 0) {
+                    error("Ingrese Monto de Meta Mensual");
+                    return;
+                }
+
+                var metaMensualReal = 0;
+                var agregarMeta = 0;
+
+                var mesIdArray = new Array();
+                $('input[name=mesIds]').each(function () {
+                    mesIdArray.push(parseInt($(this).val()));
+                });
+
+                var anioArray = new Array();
+                $('input[name=anioIds]').each(function () {
+                    anioArray.push(parseInt($(this).val()));
+                });
+
+                if (mesIdArray.length > 0 && anioArray.length > 0) {
+                    for (var i = 0; i < mesIdArray.length; i++) {
+                        if (mes_id === mesIdArray[i] && anio === anioArray[i]) {
+                            agregarMeta = 1;
+                            break;
+                        }
+                    }
+                }
+
+                if (agregarMeta === 0) {
+                    cargaMeta(mes_id, mes, anio, metaMensual, metaMensualReal);
+                }
+                else {
+                    error("El mes y año que ingreso ya se encuentran registrados en el sistema");
+                }
+
+                $("#MesId").val(0);
+                $('#Anio').val("");
+                $('#MetaMensual').val("");
+                $("#MesId").focus();
+            });
+
+            $('#btn-agregar-metaxdia').click(function (e)
+            {
+                e.preventDefault();
+
+                var fecha = $('#FechaxDia').val();
+
+                if (fecha === "")
+                {
+                    error("Seleccione una Fecha");
+                    return;
+                }
+
+                var metaxdia = $('#MetaxDia').val();
+
+                if (metaxdia === "")
+                {
+                    error("Ingrese Monto de Meta x Dia");
+                    return;
+                }
+
+                var agregarMeta = 0;
+
+                var fechaArray = new Array();
+                $('input[name=fechaIds]').each(function ()
+                {
+                    fechaArray.push($(this).val());
+                });
+
+                if (fechaArray.length > 0)
+                {
+                    for (var i = 0; i < fechaArray.length; i++)
+                    {
+                        if (fecha === fechaArray[i])
+                        {
+                            agregarMeta = 1;
+                            break;
+                        }
+                    }
+                }
+
+                if (agregarMeta === 0)
+                {
+                    cargaMetaxDia(fecha, metaxdia);
+                }
+                else
+                {
+                    error("La fecha que ingreso ya se encuentran registrados en el sistema");
+                }
+
+                $('#MetaxDia').val("");
+                $("#FechaxDia").focus();
             });
 
             $('#agencia_tbody').delegate("a", "click", function (e)
             {
                 e.preventDefault();
-                $(this).parent().parent().remove();               
+                $(this).parent().parent().remove();
+            });
+
+            $('#escala_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+            });
+
+            $('#meta_tbody').delegate("a", "click", function (e) {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+            });
+
+            $('#metaxdia_tbody').delegate("a", "click", function (e) {
+                e.preventDefault();
+                $(this).parent().parent().remove();
             });
 
             function renderizarAgenciasIniciales()
@@ -150,9 +435,60 @@
                     var agencia = $('#AgenciaId option[value=' + agencia_id + ']').text();
 
                     cargaAgencia(agencia_id, agencia);
-                }               
-            }         
+                }
+            }
 
+            function renderizarEscalasIniciales()
+            {
+                if (inicioSeleccionados == null)
+                {
+                    return;
+                }
+
+                // recorremos las escalas que haya ingresado el usuario
+                for (var i = 0; i < inicioSeleccionados.length; i++)
+                {
+                    var inicio = inicioSeleccionados[i];
+                    var fin = finSeleccionados[i];
+                    var porcentaje = porcentajeSeleccionados[i];
+
+                    cargaEscala(inicio, fin, porcentaje);
+                }
+            }
+
+            function renderizarMetasIniciales() {
+                if (mesSeleccionados == null) {
+                    return;
+                }
+
+                // recorremos las metas que haya ingresado el usuario
+                for (var i = 0; i < mesSeleccionados.length; i++) {
+                    var mes_id = mesSeleccionados[i];
+                    var mes = $('#MesId option[value=' + mes_id + ']').text();
+                    var anio = anioSeleccionados[i];
+                    var metaMensual = montoMensualSeleccionados[i];
+                    var metaMensualReal = montoMensualRealSeleccionados[i];
+
+                    cargaMeta(mes_id, mes, anio, metaMensual, metaMensualReal);
+                }
+            }
+
+            function renderizarMetasxDiaIniciales()
+            {
+                if (fechaSeleccionados == null)
+                {
+                    return;
+                }
+
+                // recorremos las metas que haya ingresado el usuario
+                for (var i = 0; i < fechaSeleccionados.length; i++)
+                {
+                    var fecha = fechaSeleccionados[i];
+                    var metaxdia = metaxdiaSeleccionados[i];
+
+                    cargaMetaxDia(fecha, metaxdia);
+                }
+            }
         });
     </script>
 }

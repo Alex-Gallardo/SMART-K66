@@ -1,0 +1,408 @@
+﻿@model DiamDev.Give.Entities.Personal
+
+@{
+    ViewBag.Title = "Anotacion al Personal";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Personal
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="PersonalId" name="PersonalId" value="@Html.Raw(Model.PersonalId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Nombre
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Nombre
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Direcci&oacute;n
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Direccion
+                                </strong>
+                            </div>                          
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Nacimiento
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.FechaNacimiento == null ? "No Disponible" : Model.FechaNacimiento.Value.ToString("dd/MM/yyyy"))
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h2><i class="icon-edit-sign teal"></i>Datos Laborales</h2>
+                            <hr>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Puesto
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Puesto == null ? "No Disponible" : Model.Puesto.Nombre)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Banco
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Banco == null ? "No Disponible" : Model.Banco.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Contrato
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Contrato) ? "No contiene contrato" : Model.Contrato)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Descuento IGSS?
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.IGSS ? "Sí" : "No")
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Planilla
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.Planilla) ? "No contiene no. de cuenta bancaria" : Model.Planilla)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. Afiliación IGSS
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.NoAfiliacionIGSS) ? "No contiene no. de afiliación" : Model.NoAfiliacionIGSS)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Ingreso
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.FechaIngreso == null ? "No Disponible" : Model.FechaIngreso.Value.ToString("dd/MM/yyyy"))
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Egreso
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Activo ? "No Disponible" : Model.FechaEgreso.Value.ToString("dd/MM/yyyy"))
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Motivo de Egreso
+                                </label>
+                                <br />
+                                <strong>
+                                    @(string.IsNullOrWhiteSpace(Model.MotivoEgreso) ? "No contiene motivo de egreso" : Model.MotivoEgreso)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Historial de Anotaciones
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <p style="text-align:right">                               
+                                <a href="#new-anotacion-form" data-toggle="modal" class="demo btn btn-blue">
+                                    <i class="clip-plus-circle"></i> Agregar Anotacion
+                                </a>
+                            </p>
+                            @foreach (var item in ViewBag.Catalogos)
+                            {
+                                <p>
+                                    <h3>
+                                        @item.Nombre
+                                    </h3>
+                                </p>
+                                <hr />
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>                                           
+                                            <th>F. Inicial</th>
+                                            <th>F. Final</th>
+                                            <th>Motivo</th>
+                                            <th>Monto</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.Anotaciones != null && Model.Anotaciones.Count() > 0)
+                                        {
+                                            foreach (var Detalle in Model.Anotaciones.Where(x => x.TipoId == item.TipoId).OrderBy(x => x.Fecha).ThenByDescending(x => x.AnotacionId))
+                                            {
+                                                <tr>                                                   
+                                                    <td>
+                                                        @Detalle.FechaInicial.ToString("dd/MM/yyyy")
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.FechaFinal.ToString("dd/MM/yyyy")
+                                                    </td>
+                                                    <td>
+                                                        @(string.IsNullOrWhiteSpace(Detalle.Descripcion) ? "No Disponible" : Detalle.Descripcion)
+                                                    </td>
+                                                    <td>
+                                                        @string.Format("{0:C}", Detalle.Monto)
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="4">
+                                                    <strong>No contiene anotaciones de @item.Nombre</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+                    </div>
+                    <div class="row">                        
+                        <p>
+                            <div class="col-md-12">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="new-anotacion-form" class="modal fade" tabindex="-1" data-focus-on="select:first" data-width="760" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Nueva Anotacion</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="control-label">
+                        Tipo de Anotacion<span class="symbol required"></span>
+                    </label>
+                    @Html.DropDownList("TipoId", (SelectList)ViewBag.Tipos, "--Seleccione un Tipo de Anotacion--", new { @class = "form-control search-select required" })
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="control-label">
+                        Fecha Inicial<span class="symbol required"></span>
+                    </label>
+                    <div class="input-group">
+                        <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                        <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="control-label">
+                        Fecha Final<span class="symbol required"></span>
+                    </label>
+                    <div class="input-group">
+                        <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                        <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label class="control-label">
+                        Motivo<span class="symbol required"></span>
+                    </label>
+                    <input type="text" placeholder="Motivo de la Anotacion" class="form-control" id="MotivoAnotacion" name="MotivoAnotacion" autocomplete="off" />
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label class="control-label">
+                        Monto<span class="symbol required"></span>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-addon">Q</span>
+                        <input type="number" placeholder="Monto" class="form-control" id="Monto" name="Monto" value="0" autocomplete="off" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>    
+    <div class="modal-footer">
+        <button id="btn-save-up-anotacion" class="btn btn-primary">Guardar</button>
+        <button id="btn-close-up-anotacion" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        $(function ()
+        {  
+            function error(texto)
+            {
+                toastr.error(texto);
+            }         
+
+            $("#btn-save-up-anotacion").click(function ()
+            {
+                var TipoId = $("#new-anotacion-form").find("#TipoId").val();
+                var FechaInicial = $("#new-anotacion-form").find("#FechaInicial").val();
+                var FechaFinal = $("#new-anotacion-form").find("#FechaFinal").val();
+                var Motivo = $("#new-anotacion-form").find("#MotivoAnotacion").val();
+                var Monto = $("#new-anotacion-form").find("#Monto").val();
+               
+                if (TipoId === "")
+                {
+                    error("El tipo de la anotacion es requerido");
+                    return;
+                }
+
+                if (Motivo === "")
+                {
+                    error("El motivo de la anotacion es requerido");
+                    return;
+                }              
+
+                var modelo =
+               {
+                   'PersonalId': $('#PersonalId').val(),
+                   'TipoId': TipoId,
+                   'FechaInicial': FechaInicial,
+                   'FechaFinal': FechaFinal,
+                   'Descripcion': Motivo,
+                   'Monto': Monto
+               };
+
+                $.ajax({
+                    url: '@Url.Action("NuevaAnotacion", "Personal")',
+                    data: { 'modelo': modelo },
+                    async: false,
+                    type: 'POST',
+                    success: function (data)
+                    {
+                        if (data == true)
+                        {
+                            $('#btn-close-up-anotacion').click();
+                            toastr.success('La nueva anotacion se guardó exitosamente');
+
+                            location.reload();
+                        }
+                        else
+                        {
+                            toastr.error('Ocurrió un error, al guardar la nueva anotacion');
+                        }
+                    }
+                });
+
+            });
+
+        });
+
+    </script>
+}
+
+
+
+

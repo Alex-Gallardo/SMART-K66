@@ -1,0 +1,53 @@
+﻿@model DiamDev.Give.Entities.Politica
+
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Tipo de Política</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Tipo<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("TipoId", (SelectList)ViewBag.Tipos, "--Seleccione un Tipo de Política--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Politica<span class="symbol required"></span>
+            </label>
+            @Html.TextAreaFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Politica", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div> 
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Estado</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Activo
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.ActivoSi name="activo" id="ActivoSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.ActivoNo name="activo" id="ActivoNo">
+                    No
+                </label>
+            </div>
+        </div>
+    </div>
+</div>

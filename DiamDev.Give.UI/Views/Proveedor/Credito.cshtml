@@ -1,0 +1,232 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.MovimientoxProveedorModel>
+
+@{
+    ViewBag.Title = "Creditos Pendientes Listado";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get">
+            <div class="form-group">
+                <label class="control-label">
+                    Proveedor<span class="symbol required"></span>
+                </label>
+                @Html.DropDownList("proveedorId", (SelectList)ViewBag.Proveedores, "--Seleccione un Proveedor--", new { @class = "form-control search-select required", onchange = "this.form.submit();" })
+            </div>
+        </form>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-6">        
+    </div>
+    <div class="col-md-6">
+        <div style="text-align:right;font-size:x-large; font-weight:bold;">
+            Total: @Html.Raw(ViewBag.Total)
+        </div>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Creditos
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive text-nowrap">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Movimiento ID</th>
+                                <th>Fecha</th>
+                                <th>Documento</th>                                
+                                <th>Dias Credito</th>
+                                <th>Fecha Vencimiento</th>
+                                <th>Total</th>                            
+                                <th>Pagar</th>                                
+                            </tr>
+                        </thead>
+                        <tbody id="credito_seleccionado_tbody">
+                            @foreach (var Credito in Model)
+                            {
+                                <tr>
+                                    <td>@Credito.MovimientoId</td>
+                                    <td>@Credito.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@Credito.Documento</td>                                   
+                                    <td>@(Credito.DiasCredito == null ? "No Disponible" : Credito.DiasCredito.ToString())</td>
+                                    <td>@(Credito.FechaVencimiento == null ? "No Disponible" : Credito.FechaVencimiento.Value.ToString("dd/MM/yyyy"))</td>
+                                    <td>@Credito.Monto.ToString("C4")</td>                                   
+                                    <td>
+                                        <input type="checkbox" class="form-check-input" value="@(string.Format("{0};{1}", Credito.MovimientoId, Credito.Monto))">                                   
+                                    </td>                                    
+                                </tr>
+                            }
+                        </tbody>
+                    </table>                      
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Observaciones
+                                </label>
+                                <textarea id="Observaciones" name="Observaciones" class="form-control" placeholder="Observaciones" autocomplete="off"></textarea>
+                            </div>
+                        </div>
+                    </div>                
+                </div>                    
+           </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+    </div>
+    <div class="col-md-6">
+        <div id="divTotalSeleccionado" style="text-align:right;font-size:x-large; font-weight:bold;">
+            Total: Q0.0000
+        </div>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <button id="btnGenerarPago" data-style="slide-down" class="btn btn-primary btn-block ladda-button" type="button">
+            <span class="ladda-label"> Generar </span>
+            <span class="ladda-spinner"></span>
+            <span class="ladda-progress" style="width: 0px;"></span>
+        </button>
+    </div>
+</div>
+<hr />
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            var CreditoIDs = [];
+            var SaldoIDs = [];
+            
+            $('.form-check-input').on('click', function ()
+            {
+                if ($(this).is(':checked'))
+                {   
+                    if ($(this).val() !== "")
+                    {
+                        var Datos = $(this).val().split(";");
+
+                        //Se agregan los valores seleccionados
+                        CreditoIDs.push(Datos[0]);
+                        SaldoIDs.push(Datos[1]);
+                    }
+                }
+                else
+                {
+                    if ($(this).val() !== "")
+                    {
+                        var Datos = $(this).val().split(";");
+
+                        var CreditoActualIDs = CreditoIDs;
+                        var SaldoActualIDs = SaldoIDs;
+
+                        CreditoIDs = [];
+                        SaldoIDs = [];
+
+                        var CreditoActual = Datos[0];
+                      
+                        for (var i = 0; i < CreditoActualIDs.length; i++)
+                        {
+                            if (CreditoActual !== CreditoActualIDs[i])
+                            {
+                                CreditoIDs.push(CreditoActualIDs[i]);
+                                SaldoIDs.push(SaldoActualIDs[i]);
+                            }
+                        }
+                    }
+                }
+
+                totalizar();
+            });
+
+            function totalizar()
+            {
+                var total = 0;
+                if (SaldoIDs !== "" && SaldoIDs.length > 0)
+                {
+                    for (var i = 0; i < SaldoIDs.length; i++)
+                    {
+                        total += parseFloat(SaldoIDs[i]);
+                    }
+
+                    $('#divTotalSeleccionado').html('Total: Q' + parseFloat(total).toFixed(4));
+                }
+                else
+                {
+                    $('#divTotalSeleccionado').html('Total: Q' + parseFloat(total).toFixed(4));
+                }
+            }
+
+            $("#btnGenerarPago").on("click", function ()
+            {
+                if (CreditoIDs !== "" && CreditoIDs.length > 0)
+                {
+                    var total = 0;
+
+                    for (var i = 0; i < CreditoIDs.length; i++)
+                    {
+                        total += parseFloat(SaldoIDs[i]);
+                    }
+
+                    if (confirm("El total a pagar es de: Q" + parseFloat(total).toFixed(4)))
+                    {
+                        $.ajax({
+                            url: '@Url.Action("GenerarPagoMasivoxProveedor", "Proveedor")',
+                            data: { 'proveedorId': $("#proveedorId").val(), 'creditoIDs': CreditoIDs, 'saldoIDs': SaldoIDs, 'observaciones': $("#Observaciones").val() },
+                            async: false,
+                            type: 'POST',
+                            success: function (data)
+                            {
+                                if (!data.Operacion)
+                                {
+                                    toastr.error('Ocurrió un error, al pagar los creditos seleccionados');
+                                    return;
+                                }
+
+                                toastr.success('Los creditos seleccionados se pagaron exitosamente');
+                                window.location = '@Url.Action("Credito", "Proveedor")';
+                            },
+                            fail: function (data)
+                            {                                
+                                toastr.error('Ocurrió un error, al pagar los creditos seleccionados');
+                            }
+                        });
+                    }
+                }
+                else
+                {
+                    toastr.error("Se le informa que no ha seleccionado ningun credito.");
+                }
+            });
+        });
+    </script>
+}
+
+
+
+

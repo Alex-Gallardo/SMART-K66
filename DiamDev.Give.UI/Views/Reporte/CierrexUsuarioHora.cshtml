@@ -1,0 +1,163 @@
+﻿@{
+    ViewBag.Title = "Cierre del Día x Usuario Hora";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Cierre x Usuario Hora
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i>Cierre</h2>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                            <input type="hidden" id="CentroId" name="CentroId" value="@DiamDev.Give.UI.App_Start.CustomHelper.getAgenciaId()" />
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha Inicial<span class="symbol required"></span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required tabindex="1">
+                                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                                </div>
+                            </div>
+                        </div>                        
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Hora Inicial<span class="symbol required"></span>
+                                </label>
+                                <div class="input-group input-append bootstrap-timepicker">
+                                    <input type="text" class="form-control time-picker" id="HoraInicial" name="HoraInicial">
+                                    <span class="input-group-addon add-on"><i class="icon-time"></i></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Hora Final<span class="symbol required"></span>
+                                </label>
+                                <div class="input-group input-append bootstrap-timepicker">
+                                    <input type="text" class="form-control time-picker" id="HoraFinal" name="HoraFinal">
+                                    <span class="input-group-addon add-on"><i class="icon-time"></i></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Usuario<span class="symbol required"></span>
+                                </label>
+                                @Html.DropDownList("UsuarioId", (SelectList)ViewBag.Usuarios, "--Seleccione un Usuario--", new { @class = "form-control search-select required" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" id="Aceptar" type="button" tabindex="2">
+                                    <span class="ladda-label"> Generar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("CierrexUsuarioHora", "Reporte")" tabindex="3">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<table width="100%" height="100%">
+    <tr>
+        <td>
+            <iframe id="myReport" width="100%" height="800px"></iframe>
+        </td>
+    </tr>
+</table>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        $(function ()
+        {
+            $("#myReport").hide();
+
+            $("#Aceptar").on("click", function ()
+            {
+                var FechaInicial = $("#FechaInicial").val();
+                var HoraInicial = $("#HoraInicial").val();
+                var HoraFinal = $("#HoraFinal").val();
+                var CentroId = $("#CentroId").val();
+                var UsuarioId = $("#UsuarioId").val();
+
+                if (FechaInicial === "") {
+                    toastr.error('Debe ingresar la fecha inicial');
+                    return;
+                }
+
+                if (HoraInicial === "") {
+                    toastr.error('Debe ingresar la hora inicial');
+                    return;
+                }
+
+                if (HoraFinal === "") {
+                    toastr.error('Debe ingresar la hora final');
+                    return;
+                }
+
+                ObtenerFacturas(FechaInicial, HoraInicial, HoraFinal, CentroId, UsuarioId);
+
+                $("#myReport").show();
+            });
+
+        });
+
+        function ObtenerFacturas(FechaInicial, HoraInicial, HoraFinal, CentroId, UsuarioId)
+        {
+            document.getElementById("myReport").src = "@Url.Content("~/Reports/ReportViewer.aspx?ReportID=ReportCierrexUsuarioHora")&FechaInicial=" + FechaInicial + "&HoraInicial=" + HoraInicial + "&HoraFinal=" + HoraFinal + "&CentroId=" + CentroId + "&UsuarioId=" + UsuarioId;
+        }
+    </script>
+}
+

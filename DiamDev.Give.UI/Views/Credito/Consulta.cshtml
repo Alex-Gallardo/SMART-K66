@@ -1,0 +1,263 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.Credito>
+
+@{
+    ViewBag.Title = "Credito Consulta Listado";
+}
+
+
+<form action="" id="formaprincipal" method="get">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Cliente
+                </label>
+                <input type="text" class="form-control" id="BuscarCliente" name="BuscarCliente" autocomplete="off" placeholder="Buscar Cliente...">
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Cliente<span class="symbol required"></span>
+                </label>
+                <input type="text" placeholder="Cliente" class="form-control" id="NombreCliente" name="NombreCliente" value="@Html.Raw(ViewBag.NombreCliente)" autocomplete="off" disabled="disabled" required />
+                <input type="hidden" id="ClienteId" name="ClienteId" value="0" />
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Credito
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover" id="sample-table-1">
+                    <thead>
+                        <tr>
+                            <th>Tipo de Credito</th>
+                            <th>Agencia</th>
+                            <th>Cliente</th>
+                            <th>F. Inicial</th>
+                            <th>F. Final</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>                      
+                        @if (Model != null && Model.Count() > 0)
+                        {
+                            foreach (var Credito in Model.OrderByDescending(x => x.Fecha).ThenByDescending(x => x.CreditoId))
+                            {
+                                <tr>
+                                    <td>@(Credito.Tipo == null ? "No Disponible" : Credito.Tipo.Nombre)</td>
+                                    <td>@(Credito.Agencia == null ? "No Disponible" : Credito.Agencia.Nombre)</td>
+                                    <td>@(Credito.Cliente == null ? "No Disponible" : Credito.Cliente.Nombre)</td>
+                                    <td>@Credito.FechaInicial.ToString("dd/MM/yyyy")</td>
+                                    <td>@Credito.FechaFinal.ToString("dd/MM/yyyy")</td>
+                                    <td class="center">
+                                        <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                            <a href="@Url.Action("Detalle", "Credito", new { id = Credito.CreditoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Credito"><i class="clip-stack-empty"></i></a>
+                                            <a href="@Url.Action("Boleta", "Credito", new { id = Credito.CreditoId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
+                                        </div>
+                                        <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                            <div class="btn-group">
+                                                <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                    <i class="icon-cog"></i> <span class="caret"></span>
+                                                </a>
+                                                <ul role="menu" class="dropdown-menu pull-right">
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Credito", new { id = Credito.CreditoId })">
+                                                            <i class="clip-stack-empty"></i> Detalle del Credito
+                                                        </a>
+                                                    </li>
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Credito", new { id = Credito.CreditoId })" target="_blank">
+                                                            <i class="clip-file-pdf"></i> Ver Boleta
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6">
+                                    <strong>No contiene creditos</strong>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+<div id="seleccionar-cliente-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Cliente</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="cliente_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-cliente" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        var vCliente = "";   
+
+        $(function ()
+        {
+            function error(texto) {
+                toastr.error(texto);
+            }
+
+            $("#BuscarCliente").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("ConsultaCliente", "Cliente")',
+                        type: "POST",
+                        dataType: "json",
+                        data: { search: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.Nombre, value: item.Nombre };
+                            }))
+                        }
+                    })
+                },
+                messages:
+                {
+                    noResults: "", results: ""
+                }
+            });
+
+            $('#formaprincipal').keydown(function (evt) {
+                if ($('#BuscarCliente').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                    cargaBusquedaCliente(evt)
+                }
+            });
+
+            $('#btnBuscarCliente').click(function (evt) {
+                cargaBusquedaCliente(evt);
+            });
+
+            function cargaBusquedaCliente(evt) {
+                evt.preventDefault();
+
+                if ($('#BuscarCliente').val() === "") {
+                    error("Ingresar Nit o Nombre del Cliente");
+                    $('#BuscarCliente').focus();
+                    return;
+                }
+
+                var clienteActual = $('#BuscarCliente').val();
+                clienteActual = clienteActual.replace(" ", "_");
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerClientexTextoLibre", "Cliente")',
+                    traditional: true,
+                    data: { 'search': clienteActual },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData) {
+                        if (resultData !== null) {
+                            if (resultData.Operacion) {
+                                if (resultData.Data.length === 1) {
+                                    cargaClienteSeleccionado(resultData.Data[0]);
+                                }
+                                else if (resultData.Data.length > 1) {
+                                    var fila = "";
+                                    for (var i = 0; i < resultData.Data.length; i++) {
+                                        fila += "<tr><td>" + resultData.Data[i].ClienteId + "</td>";
+                                        fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                        fila += "<td><a href='" + resultData.Data[i].ClienteId + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                    }
+
+                                    $("#seleccionar-cliente-form").modal();
+                                    $("#seleccionar-cliente-form").find("#cliente_seleccionado_tbody").html(fila);
+                                }
+                            }
+                            else {
+                                toastr.error('El cliente ingresado no es correcto');
+                                $('#BuscarCliente').val("");
+                                $('#BuscarCliente').focus();
+                            }
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar al cliente');
+                            $('#BuscarCliente').val("");
+                            $('#BuscarCliente').focus();
+                        }
+                    }
+                });
+            }
+
+            $('#cliente_seleccionado_tbody').delegate("a", "click", function (e) {
+                e.preventDefault();
+
+                $('#btn-close-up-seleccionar-cliente').click();
+                var clienteReferencia = $(this).attr("href");
+                var clienteActual = clienteReferencia.split(",");
+
+                var modelo =
+                 {
+                     'ClienteId': clienteActual[0],
+                     'Nombre': clienteActual[1]
+                 };
+
+                cargaClienteSeleccionado(modelo);
+            });
+
+            function cargaClienteSeleccionado(cliente)
+            {
+                $('#NombreCliente').val(cliente.Nombre);
+                $('#ClienteId').val(cliente.ClienteId);
+
+                vCliente = $('#BuscarCliente').val();
+
+                $("#formaprincipal").submit();
+            }
+        });
+    </script>
+}

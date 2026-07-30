@@ -1,0 +1,14 @@
+﻿@model DiamDev.Give.Entities.Banco
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Banco<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre del Banco", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>        
+    </div>
+</div>
+
+

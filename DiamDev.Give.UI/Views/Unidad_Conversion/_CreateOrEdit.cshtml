@@ -1,0 +1,48 @@
+﻿@model DiamDev.Give.Entities.UnidadConversion
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Tipo de Operación<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("OperacionId", (SelectList)ViewBag.Operaciones, "--Seleccione un Tipo de Operación--", new { @class = "form-control search-select required" })
+        </div>  
+        <div class="form-group">
+            <label class="control-label">
+                Unidad Base<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("UnidadBaseId", (SelectList)ViewBag.Unidades, "--Seleccione la Unidad Base--", new { @class = "form-control search-select required" })
+        </div>  
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Cantidad Base<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.CantidadBase, new { @class = "form-control", @placeholder = "Cantidad Base", required = "required", autocomplete = "off" })
+        </div>
+    </div>    
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Unidad Destino<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("UnidadDestinoId", (SelectList)ViewBag.UnidadesDestino, "--Seleccione la Unidad Destino--", new { @class = "form-control search-select required" })
+        </div>  
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Cantidad Destino<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.CantidadDestino, new { @class = "form-control", @placeholder = "Cantidad Destino", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+</div>

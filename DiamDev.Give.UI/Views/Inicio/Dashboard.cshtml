@@ -1,9 +1,176 @@
-﻿
-@{
+﻿@{
     ViewBag.Title = "Dashboard";
 }
 
+<style>
+    .alert-info, .alert-info > a, .bg-info, .bg-info > a {
+        color: #fff !important;
+    }
+
+    .alert-success, .alert-success > a, .bg-success, .bg-success > a {
+        color: #fff !important;
+    }
+
+    .alert-danger, .alert-danger > a, .bg-danger, .bg-danger > a {
+        color: #fff !important;
+    }
+
+    .alert-info, .bg-info {
+        background-color: #17a2b8 !important;
+    }
+
+    .alert-success, .bg-success {
+        background-color: #28a745 !important;
+    }
+
+    .alert-danger, .alert-error, .bg-danger {
+        background-color: #dc3545 !important;
+    }
+
+    .small-box {
+        border-radius: .25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+    .callout, .card, .info-box, .mb-3, .my-3, .small-box {
+        margin-bottom: 1rem !important;
+    }
+
+    .alert-info, .bg-info {
+        background-color: #17a2b8 !important;
+    }
+
+    .small-box > .inner {
+        padding: 10px;
+    }
+
+    .small-box h3, .small-box p {
+        z-index: 5;
+    }
+
+    .small-box h3 {
+        font-size: 4.2rem;
+        font-weight: 800;
+        margin: 0 0 10px 0;
+        padding: 0;
+        white-space: nowrap;
+    }
+
+    .small-box h3, .small-box p {
+        z-index: 5;
+    }
+
+    .small-box p {
+        font-size: 2rem;
+    }
+
+    p {
+        margin-top: 0;
+        margin-bottom: 1rem;
+    }
+
+    .small-box > .small-box-footer {
+        background: rgba(0,0,0,.1);
+        color: rgba(255,255,255,.8);
+        display: block;
+        padding: 5px 0;
+        position: relative;
+        text-align: center;
+        text-decoration: none;
+        z-index: 10;
+    }
+
+    .alert-info, .alert-info > a, .bg-info, .bg-info > a {
+        color: #fff !important;
+    }
+
+    .small-box .icon > i {
+        font-size: 70px;
+        position: absolute;
+        right: 15px;
+        top: 0px;
+        transition: all .3s linear;
+    }
+</style>
+
 <div class="row">
+
+		 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Pedido_K66.Crear"))
+    {
+	    <div class="col-md-4">
+            <!-- small box -->
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <p>Crear Pedido</p>
+                </div>
+                <div class="icon">
+                    <i class="clip-cart"></i>
+                </div>
+                <a href="@Url.Action("Crear", "Pedido_K66")" class="small-box-footer">Crear <i class="clip-plus-circle"></i></a>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <!-- small box -->
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <p>Listado Pedidos</p>
+                </div>
+                <div class="icon">
+                    <i class="clip-cart"></i>
+                </div>
+                <a href="@Url.Action("Index", "Pedido_K66")" class="small-box-footer">Listado <i class="clip-plus-circle"></i></a>
+            </div>
+        </div>
+		<div class="col-md-4">
+            <!-- small box -->
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <p>Listado Rechazados</p>
+                </div>
+                <div class="icon">
+                    <i class="clip-cart"></i>
+                </div>
+                <a href="@Url.Action("Rechazado", "Pedido_K66")" class="small-box-footer">Libro <i class="clip-plus-circle"></i></a>
+            </div>
+        </div> 
+    }
+	
+	 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Visita.Crear"))
+    {
+	 <div class="col-md-4">
+	  <div class="small-box bg-success">
+                <div class="inner">
+                    
+                    <p>Crear Visita</p>
+                </div>
+                <div class="icon">
+                    <i class="clip-cart"></i>
+                </div>
+                <a href="@Url.Action("Crear", "Visita")" class="small-box-footer">Crear <i class="clip-plus-circle"></i></a>
+            </div>
+			   </div>
+			}
+    
+</div>
+<hr />
+<div class="row">
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Recibo.Ver_Listado"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-atom-3 circle-icon circle-bricky"></i>
+                    <h2>VENTA TIENDA</h2>
+                </div>
+                <a href="@Url.Action("Crear_Tienda", "Recibo")" class="view-more">
+                    VENDER<i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
     @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Factura.Ver_Listado"))
     {
         <div class="col-md-3">
@@ -13,6 +180,48 @@
                     <h2>Facturas</h2>
                 </div>
                 <a href="@Url.Action("Index", "Factura")" class="view-more">
+                    Ver Detalle <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Pedido.Ver_Listado"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-atom-3 circle-icon circle-bricky"></i>
+                    <h2>Crear Pedido</h2>
+                </div>
+                <a href="@Url.Action("Crear", "Pedido")" class="view-more">
+                    Ver Detalle <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Recibo.Ver_Listado"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-atom-3 circle-icon circle-bricky"></i>
+                    <h2>Crear Recibo</h2>
+                </div>
+                <a href="@Url.Action("Crear", "Recibo")" class="view-more">
+                    Ver Detalle <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Producto.Consulta"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-atom-3 circle-icon circle-bricky"></i>
+                    <h2>Ver Existencias </h2>
+                </div>
+                <a href="@Url.Action("Consulta", "Producto")" class="view-more">
                     Ver Detalle <i class="clip-arrow-right-2"></i>
                 </a>
             </div>
@@ -55,6 +264,20 @@
                     <h2>Proveedores</h2>
                 </div>
                 <a href="@Url.Action("Index", "Proveedor")" class="view-more">
+                    Ver Detalle <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Menu.Reporte"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-stack-2 circle-icon circle-green"></i>
+                    <h2>Reportes</h2>
+                </div>
+                <a href="@Url.Action("Index", "Reporte")" class="view-more">
                     Ver Detalle <i class="clip-arrow-right-2"></i>
                 </a>
             </div>
@@ -103,15 +326,16 @@
                 </a>
             </div>
         </div>
-    }@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Traslado.Ver_Listado"))
+    }  
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Laboratorio.Ver_Listado"))
     {
         <div class="col-md-3">
             <div class="core-box">
                 <div class="heading">
-                    <i class="clip-folder-upload circle-icon circle-green"></i>
-                    <h2>Carga Masiva</h2>
+                    <i class="clip-cogs circle-icon circle-green"></i>
+                    <h2>Laboratorios</h2>
                 </div>
-                <a href="@Url.Action("Index", "ProductosCargaMasiva")" class="view-more">
+                <a href="@Url.Action("Index", "Laboratorio")" class="view-more">
                     Ver Detalle <i class="clip-arrow-right-2"></i>
                 </a>
             </div>
@@ -146,15 +370,60 @@
                 </a>
             </div>
         </div>
-    }@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Personal.Ver_Listado"))
+    }
+</div>
+<div class="row">
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Carga_Masiva.Generar"))
     {
         <div class="col-md-3">
             <div class="core-box">
                 <div class="heading">
-                    <i class="clip-checkmark-circle circle-icon circle-teal"></i>
+                    <i class="clip-folder-upload circle-icon circle-bricky"></i>
+                    <h2>Carga Masiva</h2>
+                </div>
+                <a href="@Url.Action("Index", "ProductosCargaMasiva")" class="view-more">
+                    Ver Detalle <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Carga_Masiva.Verificar"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-checkmark-circle circle-icon circle-red"></i>
                     <h2>Verificacion de Carga</h2>
                 </div>
                 <a href="@Url.Action("Verificados", "ProductosCargaMasiva")" class="view-more">
+                    Ver Detalle <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Salida_Masiva.Generar"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-folder-download circle-icon circle-teal"></i>
+                    <h2>Salida Masiva</h2>
+                </div>
+                <a href="@Url.Action("Index", "ProductosSalidaMasiva")" class="view-more">
+                    Ver Detalle <i class="clip-arrow-right-2"></i>
+                </a>
+            </div>
+        </div>
+    }
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Salida_Masiva.Verificar"))
+    {
+        <div class="col-md-3">
+            <div class="core-box">
+                <div class="heading">
+                    <i class="clip-checkmark-circle circle-icon circle-green"></i>
+                    <h2>Verificacion de Salida</h2>
+                </div>
+                <a href="@Url.Action("Verificados", "ProductosSalidaMasiva")" class="view-more">
                     Ver Detalle <i class="clip-arrow-right-2"></i>
                 </a>
             </div>
@@ -177,4 +446,52 @@
         </div>
     }
 </div>
+
+<script src="~/Scripts/jquery-1.10.2.min.js"></script>
+<script type="text/javascript">
+    $(document).ready(function ()
+    {
+        $.ajax({
+            url: '@Url.Action("ObtenerCantidadReservadaPendienteCompra", "Consulta")',
+            type: 'GET',
+            success: function (resultData)
+            {
+                if (resultData !== null)
+                {
+                    if (resultData.Operacion == true)
+                    {
+                        $("#lblCantidadReservado").html(resultData.Data);
+                    }
+                }
+            }
+        });
+
+        $.ajax({
+            url: '@Url.Action("ObtenerProductoStockMaximo", "Consulta")',
+            type: 'GET',
+            success: function (resultData)
+            {
+                if (resultData !== null)
+                {
+                    if (resultData.Operacion == true)
+                    {
+                        $("#lblCantidadStock").html(resultData.Data);
+                    }
+                }
+            }
+        });
+
+        $.ajax({
+            url: '@Url.Action("ObtenerProductoStockMinimo", "Consulta")',
+            type: 'GET',
+            success: function (resultData) {
+                if (resultData !== null) {
+                    if (resultData.Operacion == true) {
+                        $("#lblCantidadStockMinimo").html(resultData.Data);
+                    }
+                }
+            }
+        });
+    });
+</script>
 

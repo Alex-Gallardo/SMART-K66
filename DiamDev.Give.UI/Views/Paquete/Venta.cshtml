@@ -1,0 +1,98 @@
+﻿@model DiamDev.Give.Entities.PaqueteEmpresa
+
+@{
+    ViewBag.Title = "Venta de Paquete";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Venta de Paquete
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Venta de Paquete</h2>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Empresa<span class="symbol required"></span>
+                                </label>
+                                @Html.DropDownList("EmpresaId", (SelectList)ViewBag.Empresas, "--Seleccione una Empresa--", new { @class = "form-control search-select required" })
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Paquete<span class="symbol required"></span>
+                                </label>
+                                @Html.DropDownList("PaqueteId", (SelectList)ViewBag.Paquetes, "--Seleccione un Paquete--", new { @class = "form-control search-select required" })
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Forma de Pago<span class="symbol required"></span>
+                                </label>
+                                @Html.DropDownList("FormaPagoId", (SelectList)ViewBag.Formas, "--Seleccione una Forma de Pago--", new { @class = "form-control search-select required" })
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Venta", "Paquete")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function ()
+        {
+            if ('@TempData["Paquete_Empresa-Success"]' == "OK")
+            {
+                toastr.success('La compra del paquete se realizo exitosamente');
+            }
+        });
+    </script>
+}

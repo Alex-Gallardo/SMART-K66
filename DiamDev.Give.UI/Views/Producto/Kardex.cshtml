@@ -1,0 +1,322 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.KardexMovimientoModel>
+
+@{
+    ViewBag.Title = "Movimiento de Kardex Listado";
+}
+
+<form id="formaprincipal" action="" method="get">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@(ViewBag.fechaInicial == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaInicial)" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@(ViewBag.fechaFinal == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaFinal)" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Agencia<span class="symbol required"></span>
+                </label>
+                @Html.DropDownList("AgenciaId", (SelectList)ViewBag.Agencias, "--Seleccione una Agencia--", new { @class = "form-control search-select required" })
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label class="control-label">
+                            Barra
+                        </label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                            <span class="input-group-btn">
+                                <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label class="control-label">
+                            Producto
+                        </label>
+                        <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" disabled="disabled" />
+                        <input type="hidden" id="ProductoId" name="ProductoId" value="0" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <button data-style="slide-down" class="btn btn-primary btn-block ladda-button" type="submit">
+                <span class="ladda-label"> Buscar </span>
+                <span class="ladda-spinner"></span>
+                <span class="ladda-progress" style="width: 0px;"></span>
+            </button>
+        </div>
+    </div>
+</form>
+<br />
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Kardex
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Agencia</th>
+                            <th>Fecha</th>
+                            <th>F. Hora</th>                           
+                            <th>Producto</th>
+                            <th>ID</th>
+                            <th>Cantidad</th>
+                            <th>Precio</th>
+                            <th>E. Actual</th>
+                            <th>E. Final</th>                           
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Movimiento in Model)
+                        {
+                            <tr>
+                                <td>@Movimiento.Tipo</td>
+                                <td>@Movimiento.Agencia</td>
+                                <td>@Movimiento.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@Movimiento.FechaHora.ToString("dd/MM/yyyy HH:mm tt")</td>
+                                <td>@Movimiento.Producto</td>
+                                <td>@Movimiento.DocumentoId</td>
+                                <td>@Movimiento.Cantidad</td>
+                                <td>@Movimiento.Precio.ToString("C")</td>
+                                <td>@Movimiento.ExistenciaActual</td>
+                                <td>@Movimiento.ExistenciaFinal</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                       @if (Movimiento.TipoId == 1 || Movimiento.TipoId == 2 || Movimiento.TipoId == 3 || Movimiento.TipoId == 4 || Movimiento.TipoId == 5 || Movimiento.TipoId == 6 || Movimiento.TipoId == 7)
+                                       {
+                                        <a href="@Url.Action(Movimiento.TipoId == 1 ? "Ingreso" : (Movimiento.TipoId == 2 ? "Egreso" : (Movimiento.TipoId == 3 ? "Recibo" : (Movimiento.TipoId == 4 ? "Factura" : (Movimiento.TipoId == 5 ? "Egreso_x_Ajuste" : (Movimiento.TipoId == 6 ? "Traslado" : (Movimiento.TipoId == 7 ? "Credito" : "")))))), "Producto", new { id = Movimiento.DocumentoId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="@string.Format("Detalle de {0}", Movimiento.TipoId == 1 ? "Ingreso" : (Movimiento.TipoId == 2 ? "Egreso" : (Movimiento.TipoId == 3 ? "Recibo" : (Movimiento.TipoId == 4 ? "Factura" : (Movimiento.TipoId == 5 ? "Egreso x Ajuste" : (Movimiento.TipoId == 6 ? "Traslados" : (Movimiento.TipoId == 7 ? "Credito" : "")))))))"><i class="clip-stack-empty"></i></a>
+                                       }
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                @if (Movimiento.TipoId == 1 || Movimiento.TipoId == 2 || Movimiento.TipoId == 3 || Movimiento.TipoId == 4 || Movimiento.TipoId == 5 || Movimiento.TipoId == 6 || Movimiento.TipoId == 7)
+                                                {
+
+                                                }
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+<div id="seleccionar-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Producto</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover" id="sample-table-1">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="producto_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        var vCodBarra = "";
+
+        $(document).ready(function ()
+        {
+            $("#Barra").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("ConsultaProductoAutocomplementar", "Producto")',
+                        type: "POST",
+                        dataType: "json",
+                        data: { search: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.Nombre, value: item.Nombre };
+                            }))
+                        }
+                    })
+                },
+                messages:
+                {
+                    noResults: "", results: ""
+                }
+            });
+
+            $('#formaprincipal').keydown(function (evt)
+            {
+                if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13)
+                {
+                    cargaBusquedaProducto(evt)
+                }               
+            });
+
+            /*
+            Evento click para el boton de busqueda de productos */
+            $('#btnBarra').click(function (evt) {
+                cargaBusquedaProducto(evt);
+            });
+     
+            $('#producto_seleccionado_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+
+                $('#btn-close-up-seleccionar-producto').click();
+                var productoReferencia = $(this).attr("href");
+                var productoActual = productoReferencia.split(",");
+
+                var modelo =
+                 {
+                     'ProductoId': productoActual[0],
+                     'Nombre': productoActual[1]
+                 };
+
+                cargaProductoSeleccionado(modelo);
+            });
+
+            /*
+            Función para la busqueda de productos */
+            function cargaBusquedaProducto(evt)
+            {
+                evt.preventDefault();
+
+                if ($('#Barra').val() === "")
+                {
+                    error("Ingresar codigo de barra");
+                    $('#Barra').focus();
+                    return;
+                }              
+
+                var barraActual = $('#Barra').val();
+                barraActual = barraActual.replace(" ", "_");
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerProductoxTextoLibre", "Producto")',
+                    traditional: true,
+                    data: { 'search': barraActual },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData) {
+                        if (resultData !== null) {
+                            if (resultData.Operacion) {
+                                if (resultData.Data.length === 1) {
+                                    cargaProductoSeleccionado(resultData.Data[0]);
+                                }
+                                else if (resultData.Data.length > 1) {
+                                    var fila = "";
+                                    for (var i = 0; i < resultData.Data.length; i++) {
+                                        fila += "<tr><td>" + resultData.Data[i].ProductoId + "</td>";
+                                        fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                        fila += "<td><a href='" + resultData.Data[i].ProductoId + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                    }
+
+                                    $("#seleccionar-producto-form").modal();
+                                    $("#seleccionar-producto-form").find("#producto_seleccionado_tbody").html(fila);
+                                }
+                            }
+                            else {
+                                toastr.error('La barra del producto ingresada no es correcta');
+                                $('#Barra').val("");
+                                $('#Barra').focus();
+                            }
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar el producto');
+                            $('#Barra').val("");
+                            $('#Barra').focus();
+                        }
+                    }
+                });
+            }
+
+            function cargaProductoSeleccionado(producto)
+            {
+                $('#Producto').val(producto.Nombre);
+                $('#ProductoId').val(producto.ProductoId);             
+
+                $('#Barra').focus();
+                vCodBarra = $('#Barra').val();
+            }
+        });
+    </script>
+}
+
+
+
+
+
+
+
+

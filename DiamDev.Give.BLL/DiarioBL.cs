@@ -72,9 +72,9 @@ namespace DiamDev.Give.BLL
                 return Id;
             }
 
-            private bool Agregar(Diario entidad)
+            private string Agregar(Diario entidad)
             {
-                bool DiarioAgregar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -101,7 +101,7 @@ namespace DiamDev.Give.BLL
                                     DetalleId++;
                                 }
                             }
-
+                           
                             if (entidad.Agencias != null && entidad.Agencias.Count() > 0)
                             {
                                 foreach (var Agencia in entidad.Agencias)
@@ -115,16 +115,16 @@ namespace DiamDev.Give.BLL
                             }
 
                             db.Set<Diario>().Add(entidad);
-                            db.SaveChanges();
-                            DiarioAgregar = true;
+                            db.SaveChanges();                           
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return DiarioAgregar;
+                return Mensaje;
             }
 
         #endregion
@@ -134,8 +134,7 @@ namespace DiamDev.Give.BLL
             public string Guardar(Diario entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
-
+               
                 if (entidad.Detalles != null && entidad.Detalles.Count() > 0)
                 {
                     decimal debe = entidad.Detalles.Sum(x => x.Debe);
@@ -153,14 +152,9 @@ namespace DiamDev.Give.BLL
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
+                    Mensaje = Agregar(entidad);
                 }
-
-                if (!OperacionExitosa)
-                {
-                    Mensaje = "La información ingresada no es valida";
-                }
-
+           
                 return Mensaje;
             }
 

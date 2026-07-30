@@ -1,0 +1,850 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using DiamDev.Give.DAL;
+using DiamDev.Give.Entities;
+
+namespace DiamDev.Give.BLL
+{
+    public class ReciboCajaBLL
+    {
+        private readonly APK66Context _apk;
+        private readonly HanaRepository _hana;
+
+        public ReciboCajaBLL()
+        {
+            _apk = new APK66Context();
+            _hana = new HanaRepository();
+        }
+
+        // ─── USUARIOS ────────────────────────────────
+        /// <summary>
+        /// [LEGACY] Mantener por compatibilidad. El flujo nuevo usa ObtenerPlantaPorLogin.
+        /// </summary>
+        public string ObtenerPlantaUsuario(string idUsr) =>
+            _apk.ObtenerPlantaUsuario(idUsr);
+
+        /// <summary>
+        /// [OBSOLETO — NO USAR] Apunta a REC_CAJA_USUARIOS, tabla inexistente en la BD actual
+        /// (confirmado 2026: "Invalid object name 'REC_CAJA_USUARIOS'"). El flujo de recibos
+        /// usa ObtenerDeptoSerie(usuarioId). Conservado solo hasta verificar que nada más lo llame.
+        /// </summary>
+        public string ObtenerPlantaPorLogin(string login)
+        {
+            string planta = _apk.ObtenerPlantaPorLogin(login);
+            if (string.IsNullOrWhiteSpace(planta))
+                throw new System.Exception(
+                    $"El usuario '{login}' no está vinculado a un usuario de caja activo en APK66 " +
+                    $"(REC_CAJA_USUARIOS), o no tiene PLANTA asignada. " +
+                    $"Contacte al administrador para habilitarlo.");
+            return planta;
+        }
+
+        /// <summary>Devuelve el ID_USR canónico de APK66 (mayúsculas) o el login si no hay vínculo.</summary>
+        public string ObtenerIdUsrPorLogin(string login)
+        {
+            string idUsr = _apk.ObtenerIdUsrPorLogin(login);
+            return string.IsNullOrWhiteSpace(idUsr) ? (login ?? "").ToUpper() : idUsr;
+        }
+
+        // ─── EMPRESAS DISPONIBLES POR USUARIO ─────────
+        /// <summary>
+        /// Empresas de RECIBOS del usuario + los OPERADORES (códigos) de cada una.
+        /// Cada operador incluye su Depto (Usuario_Empresa.DEPTO_RECIBO), que es el
+        /// DEPTO con el que se numerará el recibo en REC_CAJA_SERIES.
+        /// Solo se devuelven operadores con DEPTO_RECIBO asignado; una empresa sin
+        /// ningún operador válido NO se devuelve (no tendría nada que ofrecer).
+        /// </summary>
+        public List<dynamic> ObtenerEmpresasUsuario(long usuarioId)
+        {
+            var permitidas = new Dictionary<long, string>
+            {
+                { UsuarioEmpresaBL.ID_GRACO, "GRACO" },
+                { UsuarioEmpresaBL.ID_FAES,  "FAES"  },
+                { UsuarioEmpresaBL.ID_BOLIK, "BOLIK" }
+            };
+
+            var nombres = new Dictionary<string, string>
+            {
+                { "GRACO", "Graco Pack"       },
+                { "FAES",  "Fabrica Escocesa" },
+                { "BOLIK", "Industrias Bolik" }
+            };
+
+            var registros = new UsuarioEmpresaDA().ObtenerPorUsuarioId(usuarioId);
+            var ueBl = new UsuarioEmpresaBL();
+
+            var resultado = new List<dynamic>();
+
+            foreach (var grupo in registros
+                         .Where(r => permitidas.ContainsKey(r.EmpresaId))
+                         .GroupBy(r => r.EmpresaId))
+            {
+                string clave = permitidas[grupo.Key];
+
+                var codigos = grupo
+                    .Where(r => !string.IsNullOrWhiteSpace(r.Codigo))
+                    // GroupBy por Codigo = Distinct que conserva el registro completo
+                    // (necesitamos DEPTO_RECIBO, no solo el string del código)
+                    .GroupBy(r => r.Codigo.Trim(), StringComparer.OrdinalIgnoreCase)
+                   .Select(g =>
+                   {
+                       var reg = g.First();
+                       var p = ueBl.ParseCodigo(reg.Codigo);
+                       string depto = (reg.DEPTO_RECIBO ?? "").Trim();
+                       return new
+                       {
+                           Codigo = reg.Codigo.Trim(),
+                           SapId = p.SapId,
+                           Agente = p.AgenteNombre,
+                           Depto = depto,
+                           Serie = depto.Length > 0
+                                       ? _apk.ObtenerSerieDeDepto(clave, depto)
+                                       : "",
+                           // Flag de venta de mostrador: la regla vive AQUÍ (BLL),
+                           // el front solo la consume. Un solo lugar que mantener.
+                           EncabezadoEditable = string.Equals(
+                               p.AgenteNombre, OPERADOR_ENCABEZADO_EDITABLE,
+                               StringComparison.OrdinalIgnoreCase)
+                       };
+                   })
+                    // Solo operadores habilitados para recibos: DEPTO_RECIBO con valor.
+                    // NULL o vacío = no emite → no aparece en "Operar como".
+                    .Where(c => c.Depto.Length > 0)
+                    .ToList();
+
+                // Empresa sin operadores válidos: no se ofrece en el select.
+                // (Elegirla solo llevaría al aviso "no tiene operadores".)
+                if (codigos.Count == 0) continue;
+
+                resultado.Add(new
+                {
+                    Id = clave,
+                    Nombre = nombres[clave],
+                    Codigos = codigos
+                });
+            }
+
+            return resultado;
+        }
+
+        // ─── CLIENTES (HANA) ─────────────────────────
+        /// <summary>
+        /// Trae todos los clientes del agente para esa empresa desde HANA,
+        /// luego filtra localmente (igual que el desktop con el ListBox).
+        /// El parámetro 'filtro' puede ser código o nombre parcial.
+        /// </summary>
+        public List<ClienteHana> BuscarClientes(string empresa, string agente, string filtro)
+        {
+            var todos = _hana.BuscarClientes(empresa, agente);
+            if (string.IsNullOrWhiteSpace(filtro)) return todos.Take(50).ToList();
+
+            var f = filtro.ToUpper();
+            return todos
+                .Where(c => c.CardCode.ToUpper().Contains(f) || c.CardName.ToUpper().Contains(f))
+                .Take(30)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Enruta la fuente según el tipo:
+        ///   FACTURA / PEDIDO → SAP HANA (vista RC_FACTURAS_REC_CAJ)
+        ///   el resto         → SQL (MA_RECC_DOCTOS), como antes.
+        /// Además, enriquece cada documento con:
+        ///   - MontoPendiente:   comprometido en recibos en tránsito
+        ///                       (PENDIENTES completos + líneas ANULADO_SAP de DESCUADRES).
+        ///   - PendienteRecibos: en qué recibos está comprometido (tooltip del modal).
+        /// El controller y el front no cambian de firma.
+        /// </summary>
+        public List<DocumentoRecibo> ObtenerDocumentos(string empresa, string clienteId, string tipoDoc)
+        {
+            var tipo = (tipoDoc ?? "").Trim().ToUpper();
+
+            // ── Corto-circuito: tipos sin referencia documental ──
+            // ANTICIPO / DIFERENCIA / SALDO PENDIENTE no tienen catálogo que
+            // consultar. El front no debería llamar acá (la lupa está disabled),
+            // pero el endpoint es público: sin esta guarda, un GET manual con
+            // tipoDoc=DIFERENCIA se iría a MA_RECC_DOCTOS a buscar filas que no
+            // existen. Devolver vacío es la respuesta correcta, no un error.
+            if (TiposDocumentoRecibo.EsSinDocumento(tipo))
+                return new List<DocumentoRecibo>();
+
+            List<DocumentoRecibo> lista =
+                TiposDocumentoRecibo.EsConsultableHana(tipo)
+                    ? _hana.ObtenerFacturas(empresa, clienteId, tipo)
+                    : _apk.ObtenerDocumentos(empresa, clienteId, tipo);
+
+            // ── Merge de pendientes SQL sobre los documentos de la lista ──
+            // Un solo viaje a SQL; lookup O(1) por documento. Si el cálculo
+            // falla, NO tumbamos el modal: los docs salen con pendiente 0.
+            // MONEDA DUAL: el pendiente se toma en LA MISMA moneda del documento
+            // (MontoUsd para facturas USD, MontoGtq para GTQ) para que la resta
+            // Saldo − Pendiente del modal sea siempre peras con peras.
+            try
+            {
+                var pendientes = _apk.ObtenerPendientesPorDocumento(empresa, clienteId, tipo);
+                if (pendientes.Count > 0)
+                {
+                    foreach (var d in lista)
+                    {
+                        var key = (d.NoDocumento ?? "").Trim();
+                        if (key.Length > 0 && pendientes.TryGetValue(key, out PendienteDocumento p))
+                        {
+                            bool docEsUsd = "USD".Equals((d.Moneda ?? "").Trim(),
+                                                         StringComparison.OrdinalIgnoreCase);
+                            d.MontoPendiente = docEsUsd ? p.MontoUsd : p.MontoGtq;
+                            d.PendienteRecibos = string.Join(", ", p.Recibos);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Informativo, no bloqueante: preferimos mostrar el modal sin
+                // la columna calculada a romper la búsqueda de documentos.
+            }
+
+            return lista;
+        }
+
+        /// <summary>
+        /// Anticipos EN TRÁNSITO del cliente para la barra informativa del modal.
+        /// Informativo, no bloqueante: si falla devuelve null y el modal sale sin barra.
+        /// </summary>
+        public AnticipoTransito ObtenerAnticiposTransito(string empresa, string clienteId)
+        {
+            try { return _apk.ObtenerAnticiposTransito(empresa ?? "", clienteId ?? ""); }
+            catch { return null; }
+        }
+
+        /// <summary>
+        /// TC USD de una fecha (referencia para la UI). Si no se indica fecha, hoy.
+        /// El guardado NO confía en esto: vuelve a resolver el TC por cada cobro
+        /// en el servidor. Acá solo alimentamos la previsualización de totales.
+        /// </summary>
+        public decimal ObtenerTipoCambioDia(string empresa, DateTime? fecha = null)
+        {
+            return ObtenerTipoCambioFecha(empresa, fecha ?? DateTime.Today);
+        }
+
+        // ═════════════════════════════════════════════════════════
+        // TIPO DE CAMBIO POR FECHA
+        // ═════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// TC vigente para una fecha, según SAP.
+        ///
+        /// NO hace retroceso día a día: la consulta de HanaRepository ya usa
+        /// "RateDate &lt;= @fecha ORDER BY RateDate DESC", o sea que devuelve
+        /// la última tasa publicada hasta esa fecha. Fines de semana y feriados
+        /// quedan cubiertos por SAP, igual que en el banco. Si acá agregáramos
+        /// un bucle, cada iteración repetiría exactamente la misma consulta.
+        ///
+        /// Fechas futuras también funcionan: caen a la última tasa vigente.
+        /// Si no hay NINGUNA tasa, ObtenerTipoCambio lanza con mensaje propio.
+        /// </summary>
+        public decimal ObtenerTipoCambioFecha(string empresa, DateTime fecha)
+        {
+            decimal tc = _hana.ObtenerTipoCambio(empresa, fecha.Date);
+
+            if (tc <= 0m)
+                throw new Exception(
+                    $"Tipo de cambio inválido en SAP para {empresa} al {fecha:dd/MM/yyyy}.");
+
+            return tc;
+        }
+
+        /// <summary>
+        /// Igual que ObtenerTipoCambioFecha, pero con caché por fecha dentro de
+        /// UNA operación de guardado. Un recibo con 5 cobros del mismo día hace
+        /// UN viaje a HANA, no cinco.
+        ///
+        /// En TS sería un Map&lt;string, number&gt; que vive lo que dura la función.
+        /// A propósito NO es estático: un caché de proceso serviría TC viejos
+        /// después de que Finanzas corrija una tasa en SAP.
+        /// </summary>
+        private decimal ObtenerTipoCambioFechaCacheado(
+            string empresa, DateTime fecha, IDictionary<DateTime, decimal> cache)
+        {
+            DateTime clave = fecha.Date;
+            decimal tc;
+            if (cache.TryGetValue(clave, out tc)) return tc;
+
+            tc = ObtenerTipoCambioFecha(empresa, clave);
+            cache[clave] = tc;
+            return tc;
+        }
+
+        /// <summary>Escala del TC que se graba. 6 decimales = el estándar de ORTT.</summary>
+        private const int DECIMALES_TIPO_CAMBIO = 6;
+
+        /// <summary>
+        /// TC "efectivo" del recibo: promedio de los TC de los cobros PONDERADO
+        /// por el monto de cada uno. Es la tasa a la que realmente entró el dinero.
+        ///
+        ///     tc = Σ(MontoGtq) / Σ(MontoUsd)
+        ///
+        /// Requiere que los cobros YA tengan sus duales calculados.
+        /// Devuelve 0 si no se puede calcular (el llamador decide el fallback).
+        ///
+        /// Con un solo cobro —o varios del mismo día— el resultado es exactamente
+        /// el TC de ese día: el caso normal no cambia de comportamiento.
+        /// </summary>
+        public static decimal CalcularTipoCambioPonderado(IEnumerable<ReciboCajaCobro> cobros)
+        {
+            if (cobros == null) return 0m;
+
+            decimal gtq = 0m, usd = 0m;
+            foreach (var c in cobros) { gtq += c.MontoGtq; usd += c.MontoUsd; }
+
+            if (usd <= 0m || gtq <= 0m) return 0m;
+            return Math.Round(gtq / usd, DECIMALES_TIPO_CAMBIO);
+        }
+
+        // ─── GUARDAR RECIBO ───────────────────────────
+        /// <summary>
+        /// Valida las reglas de negocio y guarda el recibo completo.
+        /// Reglas extraídas del btnGuardar_Click del desktop:
+        ///   1. Debe tener al menos un cobro y un documento.
+        ///   2. Si monedas iguales → saldo debe ser 0.
+        ///   3. Si monedas distintas → se guarda con advertencia (saldo permitido).
+        /// </summary>
+        public ResultadoRecibo GuardarRecibo(
+             ReciboCajaEncabezado enc, string depto,
+             long usuarioId, string usuarioLogin, string ipUsuario)
+        {
+            try
+            {
+                if (enc.Cobros == null || !enc.Cobros.Any())
+                    return ResultadoRecibo.Error("Debe agregar al menos un cobro.");
+                if (enc.Documentos == null || !enc.Documentos.Any())
+                    return ResultadoRecibo.Error("Debe agregar al menos un documento.");
+                if (string.IsNullOrWhiteSpace(enc.NombreCliente))
+                    return ResultadoRecibo.Error("Debe seleccionar un cliente.");
+
+                // ── Fecha del cobro OBLIGATORIA (todas las formas de pago) ──
+                // Ahora esta validación es DOBLEMENTE crítica: la fecha ya no solo
+                // documenta cuándo entró el dinero, es la CLAVE con la que se busca
+                // el tipo de cambio. Sin fecha no hay TC, y sin TC no hay recibo.
+                var cobroSinFecha = enc.Cobros.FirstOrDefault(c => !c.FechaDoc.HasValue);
+                if (cobroSinFecha != null)
+                    return ResultadoRecibo.Error(
+                        $"El cobro de tipo '{cobroSinFecha.TipoCobro}' no tiene fecha. " +
+                        $"La fecha del cobro es obligatoria: con ella se busca el tipo de cambio.");
+
+                // ── 0. Normalizar el código del operador ──
+                enc.CodigoUsuario = (enc.CodigoUsuario ?? "").Trim();
+
+                // ── 1. TC de CADA COBRO, por SU PROPIA FECHA ──────────────────
+                // ★ CAMBIO CENTRAL: antes había un solo TC (fecha del recibo)
+                // aplicado a todo. Ahora cada cobro se convierte con la tasa del
+                // día en que entró el dinero. El caché evita repetir el viaje a
+                // HANA cuando varios cobros comparten fecha (el caso normal).
+                var cacheTc = new Dictionary<DateTime, decimal>();
+                try
+                {
+                    foreach (var c in enc.Cobros)
+                    {
+                        c.Moneda = NormalizarMonedaLinea(c.Moneda);
+
+                        decimal tcCobro = ObtenerTipoCambioFechaCacheado(
+                            enc.IdEmpresa, c.FechaDoc.Value, cacheTc);
+
+                        var m = CalcularMontosDuales(c.Monto, c.Moneda, tcCobro);
+                        c.TipoCambio = tcCobro;   // ← queda grabado en REC_CAJA_COBRO
+                        c.MontoGtq = m.Gtq;
+                        c.MontoUsd = m.Usd;
+                    }
+                }
+                catch (Exception exTc)
+                {
+                    return ResultadoRecibo.Error(
+                        "No se pudo obtener el tipo de cambio de SAP: " + exTc.Message);
+                }
+
+                // ── 1b. TC EFECTIVO del recibo (ponderado por los cobros) ─────
+                // Es la tasa a la que realmente entró el dinero. Los documentos
+                // se valúan con ella para que el cuadre en GTQ siga dando 0.
+                decimal tcRecibo = CalcularTipoCambioPonderado(enc.Cobros);
+                if (tcRecibo <= 0m)
+                {
+                    // Fallback defensivo: no debería pasar (los duales siempre se
+                    // llenan). Si pasa, la fecha del recibo es lo menos malo.
+                    try
+                    {
+                        tcRecibo = ObtenerTipoCambioFechaCacheado(
+                            enc.IdEmpresa, enc.FechaRecibo, cacheTc);
+                    }
+                    catch (Exception exTc)
+                    {
+                        return ResultadoRecibo.Error(
+                            "No se pudo obtener el tipo de cambio de SAP: " + exTc.Message);
+                    }
+                }
+
+                enc.TipoCambio = tcRecibo;
+                enc.MonedaBase = "GTQ";
+
+                // Moneda del encabezado: '##' (socio multimoneda de SAP) se corrige
+                // derivándola de las líneas. Sin cambios respecto de antes.
+                enc.Moneda = NormalizarMonedaEncabezado(enc);
+
+                // ── 2. Duales de cada DOCUMENTO, con el TC efectivo del recibo ─
+                // Un documento no tiene "fecha de cobro": se cancela con el dinero
+                // que entró, así que hereda la tasa de ese dinero.
+                foreach (var d in enc.Documentos)
+                {
+                    d.Moneda = NormalizarMonedaLinea(d.Moneda);
+                    var m = CalcularMontosDuales(d.Monto, d.Moneda, tcRecibo);
+                    d.TipoCambio = tcRecibo;
+                    d.MontoGtq = m.Gtq;
+                    d.MontoUsd = m.Usd;
+                }
+
+                // ── 3. Totales en moneda original (legado) ──
+                enc.MontoTotalRecibo = enc.Cobros.Sum(c => c.Monto);
+                enc.MontoTotalDoc = enc.Documentos.Sum(d => d.Monto);
+                enc.Saldo = enc.MontoTotalRecibo - enc.MontoTotalDoc;
+
+                // ── 4. Totales DUALES (sumando líneas ya convertidas) ──
+                enc.MontoTotalRecGtq = enc.Cobros.Sum(c => c.MontoGtq);
+                enc.MontoTotalRecUsd = enc.Cobros.Sum(c => c.MontoUsd);
+                enc.MontoTotalDocGtq = enc.Documentos.Sum(d => d.MontoGtq);
+                enc.MontoTotalDocUsd = enc.Documentos.Sum(d => d.MontoUsd);
+                enc.SaldoGtq = enc.MontoTotalRecGtq - enc.MontoTotalDocGtq;
+                enc.SaldoUsd = enc.MontoTotalRecUsd - enc.MontoTotalDocUsd;
+
+                // ── 5. Validar el cuadre y normalizar saldos ──
+                // ★ FIX: una sola puerta. Antes se colapsaba el saldo y DESPUÉS
+                // se comparaba contra cero — la comparación nunca podía fallar.
+                var errorCuadre = ValidarYNormalizarCuadre(enc);
+                if (errorCuadre != null) return errorCuadre;
+
+                if (enc.SaldoGtq != 0m)
+                    return ResultadoRecibo.Error(
+                        $"El saldo en GTQ no cuadra (Q{enc.SaldoGtq:N2}). " +
+                        $"Cobros: Q{enc.MontoTotalRecGtq:N2} / Documentos: Q{enc.MontoTotalDocGtq:N2}. " +
+                        $"Tipo de cambio aplicado: {enc.TipoCambio:N6}.");
+
+                // ── 6. Guardar (transacción ADO.NET con columnas duales) ──
+                _apk.GuardarReciboCompleto(enc, depto);
+
+                // ── 7. Analytics: evento CREADO ──
+                string payload = Newtonsoft.Json.JsonConvert.SerializeObject(enc);
+                _apk.RegistrarEventoAnalytics(
+                    "CREADO", enc.IdRecibo, enc.IdEmpresa, depto,
+                    usuarioId, usuarioLogin, enc.Moneda, tcRecibo,
+                    enc.MontoTotalRecGtq, enc.MontoTotalRecUsd, enc.SaldoGtq,
+                    payload, ipUsuario);
+
+                return ResultadoRecibo.Ok(enc.IdRecibo);
+            }
+            catch (Exception ex)
+            {
+                return ResultadoRecibo.Error("Error al guardar: " + ex.Message);
+            }
+        }
+
+        // Operador especial de venta de mostrador: con él, el encabezado del
+        // recibo (cliente, dirección, NIT, agente, correo) es capturable a mano.
+        // Se compara contra el NOMBRE parseado del código ("1-SALA DE VENTAS" →
+        // "SALA DE VENTAS"), así funciona en las 3 empresas aunque el número cambie.
+        private const string OPERADOR_ENCABEZADO_EDITABLE = "SALA DE VENTAS";
+        // Límites del motivo de anulación (espejo del front; el máximo = tamaño
+        // real de la columna MOTIVO en REC_CAJA_ENC: nvarchar(150))
+        private const int MIN_MOTIVO_ANULACION = 10;
+        private const int MAX_MOTIVO_ANULACION = 150;
+
+        // ─────────────────────────────────────────────
+        // ANULAR RECIBO — reglas de negocio:
+        //   1. Motivo obligatorio (>= MIN_MOTIVO_ANULACION caracteres reales).
+        //   2. El recibo debe existir y no estar ya anulado.
+        //   3. NO se puede anular si ya fue OPERADO en SAP o está en
+        //      DESCUADRE: primero Créditos debe anular el pago en SAP.
+        // Deja triple rastro: MOTIVO + ANULADO_POR + FECHA_ANULACION en el
+        // encabezado, y evento ANULADO en analyticsRecibos (motivo en payload).
+        // ─────────────────────────────────────────────
+        public ResultadoRecibo AnularRecibo(
+            string idRecibo, string empresa, string motivo,
+            long usuarioId, string usuarioLogin, string ipUsuario)
+        {
+            var res = new ResultadoRecibo { Exito = false, IdRecibo = idRecibo };
+
+            if (string.IsNullOrWhiteSpace(idRecibo) || string.IsNullOrWhiteSpace(empresa))
+            {
+                res.Mensaje = "Debe indicar el número de recibo y la empresa.";
+                return res;
+            }
+
+            // ── Validación del motivo (espejo de la del front) ──
+            motivo = (motivo ?? "").Trim();
+            if (motivo.Length < MIN_MOTIVO_ANULACION)
+            {
+                res.Mensaje = "Debe indicar el motivo de la anulación (mínimo " +
+                              MIN_MOTIVO_ANULACION + " caracteres).";
+                return res;
+            }
+            if (motivo.Length > MAX_MOTIVO_ANULACION)
+                motivo = motivo.Substring(0, MAX_MOTIVO_ANULACION);
+
+            var rec = BuscarRecibo(idRecibo, empresa);
+            if (rec == null)
+            {
+                res.Mensaje = "El recibo " + idRecibo + " no existe para la empresa " + empresa + ".";
+                return res;
+            }
+
+            if ("X".Equals((rec.Status ?? "").Trim(), StringComparison.OrdinalIgnoreCase))
+            {
+                res.Mensaje = "El recibo " + idRecibo + " ya está anulado" +
+                              (string.IsNullOrWhiteSpace(rec.AnuladoPor)
+                                  ? "."
+                                  : " (por " + rec.AnuladoPor +
+                                    (rec.FechaAnulacion.HasValue
+                                        ? " el " + rec.FechaAnulacion.Value.ToString("dd/MM/yyyy HH:mm")
+                                        : "") + ").");
+                return res;
+            }
+
+            string sync = (rec.SyncEstado ?? "").Trim().ToUpperInvariant();
+            if (sync == "OPERADO")
+            {
+                res.Mensaje = "No se puede anular: el recibo ya fue OPERADO en SAP" +
+                              (rec.SapDocNum.HasValue ? " (Pago No. " + rec.SapDocNum + ")" : "") +
+                              ". Solicite a Créditos anular primero el pago en SAP.";
+                return res;
+            }
+            if (sync == "DESCUADRE")
+            {
+                res.Mensaje = "No se puede anular: el recibo está en DESCUADRE con SAP. " +
+                              "Debe resolverse la conciliación antes de anularlo.";
+                return res;
+            }
+
+            int filas = _apk.AnularRecibo(idRecibo, empresa, usuarioLogin, motivo);
+            if (filas == 0)
+            {
+                res.Mensaje = "El recibo no pudo anularse (posiblemente ya fue anulado por otro usuario).";
+                return res;
+            }
+
+            // ── Analytics: evento ANULADO con el motivo en el payload ──
+            // ★ FIX: el DEPTO ya no viaja NULL. REC_CAJA_ENC no lo guarda, pero el
+            // ID del recibo lleva el prefijo de serie ("RG12-08542" → "RODOLFO"),
+            // así que se deriva. Sin esto, las anulaciones quedaban sin cobrador y
+            // el ranking por depto de Analytics las perdía.
+            string deptoAnul = _apk.ObtenerDeptoDeRecibo(idRecibo, empresa);
+
+            string payload = Newtonsoft.Json.JsonConvert.SerializeObject(new
+            {
+                Motivo = motivo,
+                SyncEstadoAlAnular = rec.SyncEstado,
+                MontoTRec = rec.MontoTotalRecibo,
+                Moneda = rec.Moneda
+            });
+            _apk.RegistrarEventoAnalytics(
+                "ANULADO", idRecibo, empresa,
+                string.IsNullOrWhiteSpace(deptoAnul) ? null : deptoAnul,   // ★ FIX
+                usuarioId, usuarioLogin, rec.Moneda, rec.TipoCambio,
+                rec.MontoTotalRecGtq, rec.MontoTotalRecUsd, rec.SaldoGtq,
+                payload, ipUsuario);
+
+            res.Exito = true;
+            res.Mensaje = "Recibo " + idRecibo + " anulado correctamente.";
+            return res;
+        }
+
+        // ─── BUSCAR RECIBO ────────────────────────────
+        public ReciboCajaEncabezado BuscarRecibo(string idRecibo, string empresa) =>
+            _apk.BuscarRecibo(idRecibo, empresa);
+
+        // ─── EMPRESAS DISPONIBLES ─────────────────────
+
+        /// <summary>
+        /// [LEGACY] Catálogo fijo de las 3 empresas. Mantener por si algo lo usa,
+        /// pero la vista ahora se llena con ObtenerEmpresasUsuario (filtrado por permiso).
+        /// </summary>
+        public List<dynamic> ObtenerEmpresas()
+        {
+            return new List<dynamic>
+            {
+                new { Id = "GRACO", Nombre = "Graco Pack",       Permiso = "Control.ReciboCaja.Graco", Clase = "empresa-graco" },
+                new { Id = "FAES",  Nombre = "Fabrica Escocesa", Permiso = "Control.ReciboCaja.Faes",  Clase = "empresa-faes"  },
+                new { Id = "BOLIK", Nombre = "Industrias Bolik", Permiso = "Control.ReciboCaja.Bolik", Clase = "empresa-bolik" }
+                // ★ FIX: se quitó la entrada "TEST_GRACO" (dato de prueba). Estamos en
+                // producción y este método es público: cualquier consumo futuro habría
+                // ofrecido una empresa inexistente.
+            };
+        }
+
+        /// <summary>
+        /// Resuelve el DEPTO de numeración del OPERADOR elegido (Usuario_Empresa).
+        ///
+        /// Valida (con errores claros, en orden):
+        ///   1. Que venga un código.
+        ///   2. Que el código pertenezca al usuario logueado para ESA empresa
+        ///      (seguridad: el POST se puede falsificar; la UI es cosmética).
+        ///   3. Que el operador tenga DEPTO_RECIBO asignado (= habilitado para emitir).
+        ///   4. Que exista la serie (EMPRESA, DEPTO) en REC_CAJA_SERIES.
+        ///
+        /// El DEPTO viene DECLARADO en Usuario_Empresa.DEPTO_RECIBO. Ya no se
+        /// parsea del Codigo: el parseo daba "RODOLFO DIAZ" y la serie se llama
+        /// "RODOLFO" — nunca empataban. Ahora el vínculo es explícito y por datos.
+        /// </summary>
+        public string ObtenerDeptoOperador(long usuarioId, string empresa, string codigo)
+        {
+            codigo = (codigo ?? "").Trim();
+            string emp = (empresa ?? "").Trim().ToUpper();
+
+            if (codigo.Length == 0)
+                throw new Exception("Debe seleccionar el operador con el que emitirá el recibo.");
+
+            if (!_empresaIds.TryGetValue(emp, out long empId))
+                throw new Exception("Empresa no válida para recibos: '" + empresa + "'.");
+
+            var reg = new UsuarioEmpresaDA()
+                .ObtenerPorUsuarioId(usuarioId)
+                .FirstOrDefault(r => r.EmpresaId == empId &&
+                                     string.Equals((r.Codigo ?? "").Trim(), codigo,
+                                                   StringComparison.OrdinalIgnoreCase));
+
+            if (reg == null)
+                throw new Exception("El operador '" + codigo + "' no está asignado a su usuario " +
+                                    "para la empresa " + emp + ".");
+
+            // DEPTO declarado, no derivado.
+            string depto = (reg.DEPTO_RECIBO ?? "").Trim();
+            if (depto.Length == 0)
+                throw new Exception("El operador '" + codigo + "' no tiene DEPTO_RECIBO asignado " +
+                                    "en Usuario_Empresa: no está habilitado para emitir recibos. " +
+                                    "Contacte al administrador.");
+
+            if (!_apk.ExisteSerie(emp, depto))
+                throw new Exception("No existe serie de numeración para la empresa " + emp +
+                                    " con el depto '" + depto + "' (REC_CAJA_SERIES). " +
+                                    "Contacte al administrador.");
+
+            return depto;
+        }
+
+        // ─── CÁLCULO DUAL DE MONEDA ───────────────────────────
+        /// <summary>
+        /// Dada una línea (monto + moneda original + tipo de cambio), devuelve
+        /// los equivalentes en GTQ y USD aplicando la "regla de oro":
+        ///   - El monto en la moneda ORIGINAL es exacto.
+        ///   - El equivalente en la otra moneda se DERIVA (redondeado a 2 decimales).
+        ///
+        /// En TS sería:
+        ///   (monto, moneda, tc) => moneda==='USD'
+        ///       ? { gtq: round2(monto*tc), usd: monto }
+        ///       : { gtq: monto, usd: round2(monto/tc) }
+        /// </summary>
+        public static MontosDuales CalcularMontosDuales(decimal monto, string moneda, decimal tipoCambio)
+        {
+            if (tipoCambio <= 0)
+                throw new Exception("Tipo de cambio inválido (<= 0) al calcular montos duales.");
+
+            bool esUsd = (moneda ?? "").Trim().ToUpper() == "USD";
+
+            if (esUsd)
+                return new MontosDuales
+                {
+                    Gtq = Math.Round(monto * tipoCambio, 2),
+                    Usd = monto
+                };
+            else
+                return new MontosDuales
+                {
+                    Gtq = monto,
+                    Usd = Math.Round(monto / tipoCambio, 2)
+                };
+        }
+
+        // ═════════════════════════════════════════════════════════
+        // CUADRE DEL RECIBO — dos reglas, no una
+        // ═════════════════════════════════════════════════════════
+        // ANTES: UNA tolerancia de ±0.01 sobre el saldo en GTQ, aplicada
+        // ANTES de validar (NormalizarSaldo colapsaba y recién después se
+        // comparaba contra 0). Resultado: Q1,000.01 contra Q1,000.02 se
+        // grababa con SALDO = 0.00. La validación miraba un número ya
+        // "corregido" — sanitizar antes de verificar es el orden invertido.
+        //
+        // La tolerancia SÍ tiene razón de ser, pero solo donde hay redondeo:
+        // al derivar el equivalente de una moneda a otra. Si todas las líneas
+        // están en la MISMA moneda no hay derivación posible, y un centavo
+        // es un monto mal capturado.
+        // ═════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Residuo aceptable al DERIVAR equivalentes entre monedas (por línea).
+        /// Nunca se aplica a una resta dentro de una misma moneda.
+        /// </summary>
+        private const decimal TOLERANCIA_CONVERSION = 0.01m;
+
+        /// <summary>
+        /// ¿Todas las líneas (cobros + documentos) usan la MISMA moneda?
+        /// En TS sería:
+        ///     new Set([...cobros, ...docs].map(x => x.moneda)).size === 1
+        /// HashSet es el Set de C#: ignora duplicados, y su Count al final
+        /// nos dice cuántas monedas distintas hay en juego.
+        /// </summary>
+        private static bool EsMonedaUniforme(ReciboCajaEncabezado enc, out string moneda)
+        {
+            moneda = null;
+            var monedas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (enc.Cobros != null)
+                foreach (var c in enc.Cobros) monedas.Add(NormalizarMonedaLinea(c.Moneda));
+            if (enc.Documentos != null)
+                foreach (var d in enc.Documentos) monedas.Add(NormalizarMonedaLinea(d.Moneda));
+
+            if (monedas.Count != 1) return false;
+            moneda = monedas.First();
+            return true;
+        }
+
+        private static int TotalLineas(ReciboCajaEncabezado enc)
+        {
+            return (enc.Cobros == null ? 0 : enc.Cobros.Count) +
+                   (enc.Documentos == null ? 0 : enc.Documentos.Count);
+        }
+
+        /// <summary>
+        /// Redondea los saldos y valida el cuadre.
+        /// Devuelve NULL si el recibo cuadra; si no, el error a devolver.
+        ///
+        /// Patrón: "devuelvo el error en vez de lanzarlo". En TS sería
+        ///     const err = validar(); if (err) return err;
+        /// Un throw acá terminaría en el catch genérico de GuardarRecibo y
+        /// el cajero vería "Error al guardar: ..." en vez del mensaje real.
+        /// </summary>
+        private static ResultadoRecibo ValidarYNormalizarCuadre(ReciboCajaEncabezado enc)
+        {
+            enc.Saldo = Math.Round(enc.Saldo, 2);
+            enc.SaldoGtq = Math.Round(enc.SaldoGtq, 2);
+            enc.SaldoUsd = Math.Round(enc.SaldoUsd, 2);
+
+            string monedaUnica;
+            if (EsMonedaUniforme(enc, out monedaUnica))
+            {
+                // ── CASO NORMAL: una sola moneda ⇒ resta exacta, tolerancia CERO ──
+                if (enc.Saldo != 0m)
+                    return ResultadoRecibo.Error(
+                        $"El recibo NO cuadra: diferencia de {monedaUnica} {enc.Saldo:N2}. " +
+                        $"Cobros: {monedaUnica} {enc.MontoTotalRecibo:N2} / " +
+                        $"Documentos: {monedaUnica} {enc.MontoTotalDoc:N2}. " +
+                        $"El saldo debe ser exactamente 0.00 para poder guardar.");
+
+                // El saldo en la moneda ORIGINAL cuadró exacto. Lo que quede en la
+                // moneda derivada es residuo de redondeo línea por línea (regla de
+                // oro: el original es exacto, el equivalente se deriva).
+                //
+                // Techo de seguridad: 1 centavo POR LÍNEA. Si el residuo lo supera
+                // no es redondeo, es un bug de cálculo — y un bug no se tapa
+                // poniendo el saldo en cero.
+                decimal techo = TOLERANCIA_CONVERSION * TotalLineas(enc);
+                if (Math.Abs(enc.SaldoGtq) > techo || Math.Abs(enc.SaldoUsd) > techo)
+                    return ResultadoRecibo.Error(
+                        $"Inconsistencia interna en la conversión de moneda: el saldo " +
+                        $"original es 0.00 pero el derivado da GTQ {enc.SaldoGtq:N2} / " +
+                        $"USD {enc.SaldoUsd:N2}. El recibo NO se guardó. Avise a Sistemas.");
+
+                enc.SaldoGtq = 0.00m;
+                enc.SaldoUsd = 0.00m;
+                return null;
+            }
+
+            // ── RECIBO MULTIMONEDA: se juzga en GTQ, la moneda base ──
+            // Acá comparar la moneda original no tiene sentido (sería restar
+            // dólares a quetzales), y el residuo de conversión es real.
+            if (Math.Abs(enc.SaldoGtq) > TOLERANCIA_CONVERSION)
+                return ResultadoRecibo.Error(
+                    $"El saldo en GTQ no cuadra (Q{enc.SaldoGtq:N2}). " +
+                    $"Cobros: Q{enc.MontoTotalRecGtq:N2} / " +
+                    $"Documentos: Q{enc.MontoTotalDocGtq:N2}.");
+
+            enc.SaldoGtq = 0.00m;
+            enc.SaldoUsd = 0.00m;
+            return null;
+        }
+
+        /// <summary>Normaliza el código de moneda de la app: QTZ/Q → GTQ. USD pasa igual.</summary>
+        private static string NormalizarMonedaApp(string moneda)
+        {
+            var m = (moneda ?? "").Trim().ToUpper();
+            return (m == "QTZ" || m == "Q") ? "GTQ" : m;
+        }
+
+        // ─── ★ FIX · NORMALIZACIÓN ESTRICTA DE MONEDA ──────────────
+        // NormalizarMonedaApp es una LISTA BLANCA de correcciones conocidas
+        // (QTZ/Q → GTQ): todo lo demás pasa intacto. Eso está bien para limpiar
+        // alias, pero no valida. Los dos métodos de abajo sí cierran el conjunto
+        // a {GTQ, USD}, que son los únicos valores que el sistema entiende.
+
+        /// <summary>
+        /// Moneda del ENCABEZADO. Si no es GTQ ni USD, se deriva de las líneas
+        /// (cobros primero, luego documentos), que son la fuente confiable: salen
+        /// de los selects del formulario, no de SAP.
+        ///
+        /// El caso real: SAP B1 usa '##' en OCRD.Currency para marcar socios de
+        /// negocio MULTIMONEDA. INF_CLIENTES_REC lo devuelve, el typeahead lo copia
+        /// al encabezado, y así se grabaron 11 recibos con MONEDA = '##'.
+        ///
+        /// Último recurso: GTQ, la moneda base del sistema.
+        /// </summary>
+        public static string NormalizarMonedaEncabezado(ReciboCajaEncabezado enc)
+        {
+            if (enc == null) return "GTQ";
+
+            string m = NormalizarMonedaApp(enc.Moneda);
+            if (m == "GTQ" || m == "USD") return m;
+
+            if (enc.Cobros != null)
+                foreach (var c in enc.Cobros)
+                {
+                    string mc = NormalizarMonedaApp(c.Moneda);
+                    if (mc == "GTQ" || mc == "USD") return mc;
+                }
+
+            if (enc.Documentos != null)
+                foreach (var d in enc.Documentos)
+                {
+                    string md = NormalizarMonedaApp(d.Moneda);
+                    if (md == "GTQ" || md == "USD") return md;
+                }
+
+            return "GTQ";
+        }
+
+        /// <summary>
+        /// Moneda de una LÍNEA (cobro o documento). Solo hay dos valores válidos.
+        /// Cualquier otra cosa cae a GTQ — que es exactamente lo que ya hacía
+        /// CalcularMontosDuales con su `esUsd ? ... : else GTQ`. Acá solo alineamos
+        /// la ETIQUETA con el cálculo: ningún monto cambia.
+        /// </summary>
+        private static string NormalizarMonedaLinea(string moneda)
+        {
+            return NormalizarMonedaApp(moneda) == "USD" ? "USD" : "GTQ";
+        }
+
+        // Mapa inverso: clave string de recibos → Id numérico de Usuario_Empresa
+        private static readonly Dictionary<string, long> _empresaIds =
+            new Dictionary<string, long>
+            {
+        { "GRACO", UsuarioEmpresaBL.ID_GRACO },
+        { "FAES",  UsuarioEmpresaBL.ID_FAES  },
+        { "BOLIK", UsuarioEmpresaBL.ID_BOLIK }
+            };
+    }
+
+    /// <summary>
+    /// Resultado de CalcularMontosDuales.
+    /// En TS: type MontosDuales = { gtq: number; usd: number }
+    /// </summary>
+    public class MontosDuales
+    {
+        public decimal Gtq { get; set; }
+        public decimal Usd { get; set; }
+    }
+
+}

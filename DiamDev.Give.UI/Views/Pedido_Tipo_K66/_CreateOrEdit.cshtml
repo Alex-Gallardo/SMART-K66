@@ -1,0 +1,52 @@
+﻿@model DiamDev.Give.Entities.PedidoTipoK66
+
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Empresas</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Empresa<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("EmpresaId", (SelectList)ViewBag.Empresas, "--Seleccione una Empresa--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Tipo de Pedido<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Tipo de Pedido", required = "required", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Descripcion
+            </label>
+            @Html.TextAreaFor(model => model.Descripcion, new { @class = "form-control", @placeholder = "Descripcion", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Codigo de Integracion #1<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.CodigoIntregracion1, new { @class = "form-control", @placeholder = "Codigo de Integracion #1", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Codigo de Integracion #2<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.CodigoIntregracion2, new { @class = "form-control", @placeholder = "Codigo de Integracion #2", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+</div>

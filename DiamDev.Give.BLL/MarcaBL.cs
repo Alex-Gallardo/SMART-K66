@@ -49,9 +49,9 @@ namespace DiamDev.Give.BLL
                 return Id;
             }
 
-            private bool Agregar(Marca entidad)
+            private string Agregar(Marca entidad)
             {
-                bool MarcaAgregar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -68,21 +68,21 @@ namespace DiamDev.Give.BLL
                             entidad.Fecha = DateTime.Today;
 
                             db.Set<Marca>().Add(entidad);
-                            db.SaveChanges();
-                            MarcaAgregar = true;
+                            db.SaveChanges();                            
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return MarcaAgregar;
+                return Mensaje;
             }
 
-            private bool Actualizar(Marca entidad)
+            private string Actualizar(Marca entidad)
             {
-                bool MarcaActualizar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -93,15 +93,15 @@ namespace DiamDev.Give.BLL
                         MarcaActual.Nombre = entidad.Nombre;
                         MarcaActual.Activo = entidad.Activo;
 
-                        db.SaveChanges();
-                        MarcaActualizar = true;
+                        db.SaveChanges();                      
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return MarcaActualizar;
+                return Mensaje;
             }
 
 
@@ -112,22 +112,16 @@ namespace DiamDev.Give.BLL
             public string Guardar(Marca entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
-
+                
                 if (entidad.MarcaId > 0)
                 {
-                    OperacionExitosa = Actualizar(entidad);
+                    Mensaje = Actualizar(entidad);
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
+                    Mensaje = Agregar(entidad);
                 }
-
-                if (!OperacionExitosa)
-                {
-                    Mensaje = "La información ingresada no es valida";
-                }
-
+                            
                 return Mensaje;
             }
 

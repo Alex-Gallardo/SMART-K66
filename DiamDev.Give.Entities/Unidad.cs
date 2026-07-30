@@ -23,6 +23,8 @@ namespace DiamDev.Give.Entities
         [StringLength(500)]
         public string Nombre { get; set; }
 
+        public decimal Cantidad { get; set; }
+        
         public bool Activo { get; set; }
 
         public DateTime Fecha { get; set; }

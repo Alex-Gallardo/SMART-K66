@@ -1,0 +1,12 @@
+﻿@model DiamDev.Give.Entities.Region
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Nombre<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre de la Region", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>        
+    </div>
+</div>

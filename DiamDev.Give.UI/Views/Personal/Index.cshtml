@@ -5,6 +5,13 @@
     ViewBag.Title = "Personal Listado";
 }
 
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Personal")">
+        Nuevo
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
 <div class="row">
     <div class="col-md-12">
         <form action="" method="get" class="form-inline">
@@ -42,10 +49,10 @@
                     <thead>
                         <tr>  
                             <th>Nombre</th>                           
-                            <th>No. T. Principal</th>
-                            <th>No. T. Alterno</th>
+                            <th>No. T. Principal</th>                          
                             <th>No. C. Principal</th>
-                            <th>No. C. Alterno</th>                           
+                            <th>F. Ingreso</th>
+                            <th>F. Egreso</th>                      
                             <th>Activo</th>
                             <th></th>
                         </tr>
@@ -56,14 +63,15 @@
 
                             <tr> 
                                 <td>@Personal.Nombre</td>                               
-                                <td>@(string.IsNullOrWhiteSpace(Personal.NoTelefono) ? "0000-0000" : Personal.NoTelefono)</td>
-                                <td>@(string.IsNullOrWhiteSpace(Personal.NoTelefonoAlterno) ? "0000-0000" : Personal.NoTelefonoAlterno)</td>
+                                <td>@(string.IsNullOrWhiteSpace(Personal.NoTelefono) ? "0000-0000" : Personal.NoTelefono)</td>                               
                                 <td>@(string.IsNullOrWhiteSpace(Personal.NoCelularPrincipal) ? "0000-0000" : Personal.NoCelularPrincipal)</td>
-                                <td>@(string.IsNullOrWhiteSpace(Personal.NoCelularAlterno) ? "0000-0000" : Personal.NoCelularAlterno)</td>                               
+                                <td>@(Personal.FechaIngreso == null ? "No Disponible" : Personal.FechaIngreso.Value.ToString("dd/MM/yyyy"))</td>
+                                <td>@(Personal.Activo ? "No Disponible" : Personal.FechaEgreso.Value.ToString("dd/MM/yyyy"))</td>                               
                                 <td>@(Personal.Activo == true ? "Sí" : "No")</td>
                                 <td class="center">
                                     <div class="visible-md visible-lg hidden-sm hidden-xs">
                                         <a href="@Url.Action("Editar", "Personal", new { id = Personal.PersonalId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                        <a href="@Url.Action("Anotacion", "Personal", new { id = Personal.PersonalId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Agregar Anotacion"><i class="clip-file-plus"></i></a>
                                         <a href="@Url.Action("Detalle", "Personal", new { id = Personal.PersonalId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Personal"><i class="clip-stack-empty"></i></a>
                                     </div>
                                     <div class="visible-xs visible-sm hidden-md hidden-lg">
@@ -75,6 +83,11 @@
                                                 <li role="presentation">
                                                     <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Cliente", new { id = Personal.PersonalId })">
                                                         <i class="icon-edit"></i> Editar
+                                                    </a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Anotacion", "Personal", new { id = Personal.PersonalId })">
+                                                        <i class="clip-file-plus"></i> Agregar Anotacion
                                                     </a>
                                                 </li>
                                                 <li role="presentation">

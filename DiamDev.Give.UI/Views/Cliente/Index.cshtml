@@ -13,19 +13,26 @@
 </div>
 <br />
 <div class="row">
-    <div class="col-md-12">
-        <form action="" method="get" class="form-inline">
+    <form action="" method="get">
+        <div class="col-md-12">
             <div class="input-group well">
                 <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
                 <span class="input-group-btn">
-                    <button class="btn btn-primary" type="button">
+                    <button class="btn btn-primary" type="submit">
                         <i class="clip-search-3"></i> Buscar
                     </button>
                 </span>
             </div>
-        </form>
-    </div>
+            <div class="form-group">
+                <label class="control-label">
+                    Region
+                </label>
+                @Html.DropDownList("regionId", (SelectList)ViewBag.Regiones, "--Seleccione una Region--", new { @class = "form-control search-select", onchange = "this.form.submit();" })
+            </div>
+        </div>
+    </form>
 </div>
+<br />
 <div class="row">
     <div class="col-md-12">
         <!-- start: BASIC TABLE PANEL -->
@@ -45,14 +52,17 @@
                 </div>
             </div>
             <div class="panel-body">
-                <table class="table table-hover" id="sample-table-1">
+                <table class="table table-hover">
                     <thead>
                         <tr>
                             <th>Nit</th>
                             <th>Nombre</th>
                             <th>DPI</th>
                             <th>No. Telefono</th>
-                            <th>VIP</th>
+                            <th>Region</th>
+                            <th>Vendedor</th>
+                            <th>Limite de Credito</th>
+                            <th>Credito</th>
                             <th>Activo</th>
                             <th></th>
                         </tr>
@@ -67,12 +77,16 @@
                                 <td>@Cliente.Nombre</td>
                                 <td>@(string.IsNullOrWhiteSpace(Cliente.DPI) ? "No Disponible" : Cliente.DPI)</td>
                                 <td>@(string.IsNullOrWhiteSpace(Cliente.NoTelefono) ? "No Disponible" : Cliente.NoTelefono)</td>
-                                <td>@(Cliente.Vip == true ? "Sí" : "No")</td>
+                                <td>@(Cliente.Region == null ? "No Disponible" : Cliente.Region.Nombre)</td>
+                                <td>@(Cliente.Vendedor == null ? "No Disponible" : Cliente.Vendedor.Nombre)</td>
+                                <td>@(Cliente.LimiteCredito == null ? "Q0.00" : Cliente.LimiteCredito.Value.ToString("C"))</td>
+                                <td>@(Cliente.Credito.ToString("C"))</td>
                                 <td>@(Cliente.Activo == true ? "Sí" : "No")</td>
                                 <td class="center">
                                     <div class="visible-md visible-lg hidden-sm hidden-xs">
                                         <a href="@Url.Action("Editar", "Cliente", new { id = Cliente.ClienteId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
                                         <a href="@Url.Action("Detalle", "Cliente", new { id = Cliente.ClienteId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Cliente"><i class="clip-stack-empty"></i></a>
+                                        <a href="@Url.Action("Historial", "Cliente", new { id = Cliente.ClienteId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Historial del Cliente"><i class="clip-data"></i></a>
                                     </div>
                                     <div class="visible-xs visible-sm hidden-md hidden-lg">
                                         <div class="btn-group">
@@ -88,6 +102,11 @@
                                                 <li role="presentation">
                                                     <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Cliente", new { id = Cliente.ClienteId })">
                                                         <i class="clip-stack-empty"></i> Detalle del Cliente
+                                                    </a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Historial", "Cliente", new { id = Cliente.ClienteId })">
+                                                        <i class="clip-stack-empty"></i> Historial del Cliente
                                                     </a>
                                                 </li>
                                             </ul>
@@ -108,7 +127,7 @@
 
 Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
 
-@Html.PagedListPager(Model, page => Url.Action("Index", new { search = ViewBag.Search, page }))
+@Html.PagedListPager(Model, page => Url.Action("Index", new { search = ViewBag.Search, regionId = ViewBag.RegionId, page }))
 
 @section Scripts
 {

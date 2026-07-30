@@ -71,6 +71,19 @@
 @section Scripts
 {
     <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="precio_nivel_tr_template">
+        <tr>
+            <td>{{inicial}}</td>
+            <td>{{final}}</td>
+            <td>Q{{precio}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="inicialIds" value="{{inicial}}" />
+                <input type="hidden" name="finalIds" value="{{final}}" />
+                <input type="hidden" name="precioNivelIds" value="{{precio}}" />
+            </td>
+        </tr>
+    </script>
     <script type="text/html" id="precio_tr_template">
         <tr>
             <td>{{precio}}</td>
@@ -85,11 +98,17 @@
 
     <script type="text/javascript">
 
+        var inicialSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.inicialIds))');
+        var finalSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.finalIds))');
+        var precioNivelSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioNivelIds))');
+
         var precioSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.precioIds))');
         var valorSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.valorIds))');
 
         $(function ()
         {
+            validarTieneEnvase($("#EnvaseId").val());
+
             $('#MarcaId').change(function (evt)
             {
                 var ProductoSelect = $("#ProductoPadreId");
@@ -117,6 +136,22 @@
                 toastr.error(texto);
             }
 
+            function cargaPrecioNivel(inicial, final, precio) {
+                var plantilla = $('#precio_nivel_tr_template').html();
+
+                var modelo =
+                {
+                    inicial: inicial,
+                    final: final,
+                    precio: precio
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#precio_nivel_tbody').append(filaHtml);
+            }
+
             function cargaPrecio(precio_id, precio, valor_id)
             {
                 var plantilla = $('#precio_tr_template').html();
@@ -134,7 +169,40 @@
                 $('#precio_tbody').append(filaHtml);
             }
 
+            renderizarPreciosNivelIniciales();
             renderizarPreciosIniciales();
+
+            $('#btn-agregar-nivel').click(function (e) {
+                e.preventDefault();
+
+                var inicial = $('#Inicial').val();
+
+                if (inicial === "") {
+                    error("Ingrese rango inicial");
+                    return;
+                }
+
+                var final = $('#Final').val();
+
+                if (final === "") {
+                    error("Ingrese rango final");
+                    return;
+                }
+
+                var precio = $('#PrecioNivel').val();
+
+                if (precio === "") {
+                    error("Ingrese el precio del producto seleccionado");
+                    return;
+                }
+
+                cargaPrecioNivel(inicial, final, precio);
+
+                $("#Inicial").val("");
+                $("#Final").val("");
+                $("#PrecioNivel").val("");
+                $("#Inicial").focus();
+            });
 
             $('#btn-agregar').click(function (e)
             {
@@ -164,11 +232,31 @@
                 $("#PrecioId").focus();
             });
 
+            $('#precio_nivel_tbody').delegate("a", "click", function (e) {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+            });
+
             $('#precio_tbody').delegate("a", "click", function (e)
             {
                 e.preventDefault();
                 $(this).parent().parent().remove();                
             });
+
+            function renderizarPreciosNivelIniciales() {
+                if (inicialSeleccionados == null) {
+                    return;
+                }
+
+                // recorremos los precios que haya ingresado el usuario
+                for (var i = 0; i < inicialSeleccionados.length; i++) {
+                    var inicial = inicialSeleccionados[i];
+                    var final = finalSeleccionados[i];
+                    var precio = precioNivelSeleccionados[i];
+
+                    cargaPrecioNivel(inicial, final, precio);
+                }
+            }
 
             function renderizarPreciosIniciales()
             {
@@ -221,6 +309,20 @@
                 correlativo++;
                 $inputFile.click();
             });
+
+            $("#EnvaseId").change(function (evt)
+            {
+                validarTieneEnvase($(this).val());
+            });
+
+            function validarTieneEnvase(id)
+            {
+                $("#divTieneEnvase").hide();
+
+                if (id === "1") {
+                    $("#divTieneEnvase").show();
+                }
+            }
         });
 
     </script>

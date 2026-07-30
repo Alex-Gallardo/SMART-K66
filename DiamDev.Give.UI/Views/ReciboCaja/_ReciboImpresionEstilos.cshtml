@@ -1,0 +1,347 @@
+﻿@* Estilos compartidos de la impresión de recibos.
+    NO incluye colores de empresa: esos van inline en _ReciboImpresion
+    (en un lote pueden convivir recibos de empresas distintas). *@
+<style>
+    .recibo-doc {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 12px;
+        color: #2c3e50;
+    }
+
+        .recibo-doc * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ── Membrete ── */
+        .recibo-doc .membrete {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #7f8c8d;
+            padding-bottom: 12px;
+            margin-bottom: 16px;
+            margin-top: 2em;
+        }
+
+        .recibo-doc .membrete-izq {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .recibo-doc .logo-emp {
+            height: 52px;
+            width: auto;
+            max-width: 140px;
+        }
+
+        .recibo-doc .membrete h1 {
+            font-size: 18px;
+            letter-spacing: .5px;
+        }
+
+        .recibo-doc .membrete .emp-datos {
+            font-size: 11px;
+            color: #7f8c8d;
+            margin-top: 3px;
+            line-height: 1.5;
+        }
+
+        .recibo-doc .recibo-num {
+            text-align: right;
+        }
+
+            .recibo-doc .recibo-num .lbl {
+                font-size: 10px;
+                text-transform: uppercase;
+                color: #95a5a6;
+                letter-spacing: .5px;
+            }
+
+            .recibo-doc .recibo-num .num {
+                font-family: 'Courier New', monospace;
+                font-size: 20px;
+                font-weight: 700;
+                letter-spacing: 2px;
+            }
+
+            .recibo-doc .recibo-num .num-sap {
+                font-family: 'Courier New', monospace;
+                font-size: 14px;
+                font-weight: 700;
+                letter-spacing: 1px;
+                min-height: 17px;
+            }
+
+            .recibo-doc .recibo-num .fecha {
+                font-size: 11px;
+                color: #7f8c8d;
+                margin-top: 3px;
+            }
+
+        /* ── Datos del cliente ── */
+        .recibo-doc .bloque {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 10px 14px;
+            margin-bottom: 14px;
+        }
+
+            .recibo-doc .bloque h3 {
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: .5px;
+                color: #95a5a6;
+                margin-bottom: 6px;
+            }
+
+        .recibo-doc .fila-datos {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 24px;
+        }
+
+        .recibo-doc .dato {
+            min-width: 160px;
+        }
+
+            .recibo-doc .dato .k {
+                font-size: 10px;
+                color: #95a5a6;
+                text-transform: uppercase;
+            }
+
+            .recibo-doc .dato .v {
+                font-weight: 600;
+            }
+
+        /* ── Tablas ── */
+        .recibo-doc table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 14px;
+        }
+
+        .recibo-doc th {
+            background: #f2f3f4;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            color: #7f8c8d;
+            padding: 6px 8px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+        }
+
+        .recibo-doc td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .recibo-doc .num-col {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .recibo-doc th.num-col {
+            text-align: right;
+        }
+
+        .recibo-doc .titulo-seccion {
+            font-size: 12px;
+            font-weight: 700;
+            color: #2c3e50;
+            border-left: 3px solid #7f8c8d;
+            padding-left: 8px;
+            margin: 14px 0 6px;
+        }
+
+        /* ── Totales ── */
+        .recibo-doc .totales {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+            .recibo-doc .totales table {
+                width: auto;
+                min-width: 300px;
+                margin-bottom: 0;
+            }
+
+            .recibo-doc .totales td {
+                border-bottom: none;
+                padding: 3px 10px;
+            }
+
+            .recibo-doc .totales .gran-total td {
+                border-top: 2px solid #2c3e50;
+                font-weight: 700;
+                font-size: 13px;
+            }
+
+        .recibo-doc .tc-nota {
+            text-align: right;
+            font-size: 10px;
+            color: #95a5a6;
+            margin-top: 4px;
+        }
+
+        /* ── Firmas ── */
+        .recibo-doc .firmas {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 60px;
+        }
+
+        .recibo-doc .firma {
+            text-align: center;
+            width: 220px;
+        }
+
+            .recibo-doc .firma .linea {
+                border-top: 1px solid #2c3e50;
+                padding-top: 5px;
+                font-size: 11px;
+            }
+
+        .recibo-doc .pie {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 10px;
+            color: #bdc3c7;
+        }
+
+        .recibo-doc .num-sap {
+            border: 1px solid #cacaca;
+            border-radius: 6px;
+            padding: 0.2em 1em;
+        }
+
+        /* Columna "T. Cambio" del detalle de cobros: es dato de respaldo,
+           no protagonista. Gris y un punto más chico que el monto para que
+           el ojo siga yendo primero a las cifras de dinero. */
+        .recibo-doc .tc-col {
+            font-size: 11px;
+            color: #7f8c8d;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ── BANDA "EN CONCILIACIÓN" (descuadre con SAP) ──
+           Ámbar, no rojo: el documento es VÁLIDO, solo está en revisión.
+           El rojo queda reservado para ANULADO, que sí invalida. */
+        .recibo-doc .banda-descuadre {
+            border: 1px solid #e67e22;
+            border-left: 5px solid #e67e22;
+            background: #fef5e7;
+            border-radius: 4px;
+            padding: 9px 14px;
+            margin-bottom: 14px;
+        }
+
+            .recibo-doc .banda-descuadre .bd-titulo {
+                font-size: 12px;
+                font-weight: 700;
+                color: #ba4a00;
+                margin-bottom: 3px;
+            }
+
+            .recibo-doc .banda-descuadre .bd-texto {
+                font-size: 11px;
+                color: #7d6608;
+                line-height: 1.45;
+            }
+
+            .recibo-doc .banda-descuadre .bd-obs {
+                font-family: 'Courier New', monospace;
+                font-size: 10px;
+                color: #95a5a6;
+                margin-top: 5px;
+                word-break: break-word;
+            }
+
+            /* Detalle interpretado del descuadre: lenguaje humano, jerarquía
+           tipográfica propia. Ámbar oscuro para que se lea sobre el #fef5e7. */
+            .recibo-doc .banda-descuadre .bd-detalle {
+                margin-top: 8px;
+                padding-top: 7px;
+                border-top: 1px dashed #f0b27a;
+            }
+
+            .recibo-doc .banda-descuadre .bd-det-titulo {
+                font-size: 11.5px;
+                font-weight: 700;
+                color: #ba4a00;
+                margin-bottom: 3px;
+            }
+
+            /* OJO: el reset `.recibo-doc * { margin:0; padding:0 }` de arriba
+               mata las viñetas y la sangría del <ul>. Hay que devolvérselas
+               a mano — si no, la lista sale pegada al borde y sin bullets. */
+            .recibo-doc .banda-descuadre .bd-det-lista {
+                margin: 0;
+                padding-left: 16px;
+                list-style: disc outside;
+            }
+
+                .recibo-doc .banda-descuadre .bd-det-lista li {
+                    font-size: 11px;
+                    color: #7d6608;
+                    line-height: 1.5;
+                    margin-bottom: 1px;
+                }
+
+            /* Ref. técnica: en pantalla sí, en papel no. */
+            .recibo-doc .banda-descuadre .bd-ref {
+                font-family: 'Courier New', monospace;
+                font-size: 9.5px;
+                color: #b3b6b7;
+                margin-top: 7px;
+                word-break: break-word;
+            }
+
+    @@media print {
+        .recibo-doc .banda-descuadre {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+            /* El log técnico no se imprime: el papel va al cliente. */
+            .recibo-doc .banda-descuadre .bd-ref {
+                display: none !important;
+            }
+    }
+
+    /* ── MARCA DE AGUA "ANULADO" ──
+   position:absolute (no fixed) a propósito: el parcial se reutiliza
+   en ImprimirLote y un fixed marcaría TODAS las páginas del lote. */
+    .recibo-doc {
+        position: relative;
+    }
+
+    .marca-anulado {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-35deg);
+        font-size: 130px;
+        font-weight: 900;
+        letter-spacing: 14px;
+        color: rgba(127, 140, 141, .18); /* gris translúcido: se lee el contenido debajo */
+        text-transform: uppercase;
+        white-space: nowrap;
+        z-index: 50;
+        pointer-events: none; /* no bloquea clicks ni selección de texto */
+        user-select: none;
+    }
+
+    @@media print {
+        .marca-anulado {
+            /* Chrome no imprime colores de fondo por defecto, pero esto es
+           color de TEXTO: sí se imprime. Forzamos fidelidad por si acaso. */
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+</style>

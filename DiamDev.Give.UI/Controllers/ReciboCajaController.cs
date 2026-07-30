@@ -1,0 +1,684 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web.Mvc;
+using DiamDev.Give.BLL;
+using DiamDev.Give.Entities;
+using DiamDev.Give.UI.Models;
+using DiamDev.Give.UI.App_Start;
+
+namespace DiamDev.Give.UI.Controllers
+{
+    [Authorize]
+    // [Seguridad]
+    [HandleError]
+    public class ReciboCajaController : Controller
+    {
+        private readonly ReciboCajaBLL _bll = new ReciboCajaBLL();
+
+
+        // ─────────────────────────────────────────────
+        // GET /ReciboCaja/
+        // ─────────────────────────────────────────────
+        // [Permiso("Control.ReciboCaja.Ver")]
+        public ActionResult Index()
+        {
+            CustomHelper.setTitle("Recibos de Caja", "Ingreso");
+
+            // El DEPTO ya no se resuelve por usuario logueado (RecibosCaja_UsuarioDepto,
+            // retirada del flujo): ahora depende del OPERADOR elegido en "Operar como"
+            // (Usuario_Empresa.DEPTO_RECIBO). La tarjeta del header la pinta el JS
+            // vía PintarCardOperador() al seleccionar operador.
+            var model = new ReciboCajaIndexViewModel
+            {
+                UsuarioActual = User.Identity.Name,
+                PlantaUsuario = ""   // legado: el ViewModel la conserva, pero ya nadie la usa
+            };
+
+            return View(model);
+        }
+
+        // ─────────────────────────────────────────────
+        // GET /ReciboCaja/GetEmpresasUsuario
+        // Devuelve solo las empresas (GRACO/FAES/BOLIK) que el usuario
+        // tiene asignadas en Usuario_Empresa. El select se llena con esto.
+        // ─────────────────────────────────────────────
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Ver")]
+        public JsonResult GetEmpresasUsuario()
+        {
+            try
+            {
+                long usuarioId = CustomHelper.getUserId();
+                var empresas = _bll.ObtenerEmpresasUsuario(usuarioId);
+                return Json(new { ok = true, data = empresas }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // GET /ReciboCaja/ObtenerTipoCambioDia?empresa=GRACO&fecha=2026-07-15
+        // Devuelve el TC USD de una FECHA (no solo del día de hoy).
+        // 'fecha' es opcional: sin ella responde el TC de hoy, así el JS viejo
+        // que no la manda sigue funcionando igual.
+        // ─────────────────────────────────────────────
+        [HttpGet]
+        public JsonResult ObtenerTipoCambioDia(string empresa, string fecha)
+        {
+            try
+            {
+                DateTime f;
+                DateTime? fechaConsulta = DateTime.TryParse(fecha, out f)
+                                              ? (DateTime?)f.Date
+                                              : null;
+
+                decimal tc = _bll.ObtenerTipoCambioDia(empresa ?? "", fechaConsulta);
+
+                return Json(new
+                {
+                    ok = true,
+                    tipoCambio = tc,
+                    fecha = (fechaConsulta ?? DateTime.Today).ToString("yyyy-MM-dd")
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // GET /ReciboCaja/BuscarClientes
+        // Llamado por AJAX (typeahead del campo cliente)
+        // ─────────────────────────────────────────────
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Ver")]
+        public JsonResult BuscarClientes(string empresa, string agente, string filtro)
+        {
+            try
+            {
+                var lista = _bll.BuscarClientes(empresa ?? "", agente ?? "", filtro ?? "");
+                return Json(new { ok = true, data = lista }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // GET /ReciboCaja/ObtenerDocumentos
+        // Llamado por AJAX al abrir el modal de búsqueda de documentos.
+        // Además de los documentos, devuelve los ANTICIPOS en tránsito del
+        // cliente (barra informativa del modal).
+        // ─────────────────────────────────────────────
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Ver")]
+        public JsonResult ObtenerDocumentos(string empresa, string clienteId, string tipoDoc)
+        {
+            try
+            {
+                var docs = _bll.ObtenerDocumentos(empresa ?? "", clienteId ?? "", tipoDoc ?? "");
+                var anticipos = _bll.ObtenerAnticiposTransito(empresa ?? "", clienteId ?? "");
+                return Json(new { ok = true, data = docs, anticipos },
+                            JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // POST /ReciboCaja/Guardar
+        // ─────────────────────────────────────────────
+        [HttpPost]
+        // [Permiso("Control.ReciboCaja.Guardar")]
+        public JsonResult Guardar(GuardarReciboRequest request)
+        {
+            try
+            {
+                string login = User.Identity.Name;
+                long usuarioId = CustomHelper.getUserId();
+                // El DEPTO/serie ahora es DEL OPERADOR elegido, no del usuario logueado.
+                // Valida: pertenencia del código, SERIE_SAP asignado y serie existente.
+                string depto = _bll.ObtenerDeptoOperador(usuarioId, request.IdEmpresa, request.CodigoUsuario);
+                string usuario = login;                              // grabamos el login POS
+                string ip = Request.UserHostAddress;                 // para analytics
+
+                // Mapear ViewModel → Entity
+                var enc = new ReciboCajaEncabezado
+                {
+                    IdEmpresa = request.IdEmpresa,
+                    IdCliente = request.IdCliente,
+                    NombreCliente = request.NombreCliente,
+                    Direccion = request.Direccion,
+                    Nit = request.Nit,
+                    Agente = request.Agente,
+                    Correo = request.Correo,
+                    Moneda = request.Moneda,
+                    RecFisico = request.RecFisico,
+                    CodigoUsuario = request.CodigoUsuario,   // ← NUEVO: código de Usuario_Empresa elegido
+                    Usuario = usuario,
+                    FechaRecibo = DateTime.TryParse(request.FechaRecibo, out var fd) ? fd : DateTime.Today,
+
+                    Cobros = request.Cobros?.Select(c => new ReciboCajaCobro
+                    {
+                        TipoCobro = c.TipoCobro,
+                        Banco = c.Banco,
+                        NoDocumento = c.NoDocumento,
+                        Monto = c.Monto,
+                        Moneda = c.Moneda,
+                        FechaDoc = DateTime.TryParse(c.FechaDoc, out var fc) ? fc : (DateTime?)null
+                    }).ToList() ?? new List<ReciboCajaCobro>(),
+
+                    Documentos = request.Documentos?.Select(d => new ReciboCajaDetalle
+                    {
+                        TipoDoc = d.TipoDoc,
+                        NoDocumento = d.NoDocumento,
+                        Status = d.Status,
+                        Monto = d.Monto,
+                        Moneda = d.Moneda,
+                        MontoFact = d.MontoFact,
+                        Pagado = d.Pagado,
+                        FelSerie = d.FelSerie,
+                        FelNumero = d.FelNumero,
+                        FechaDoc = DateTime.TryParse(d.FechaDoc, out var fdd) ? fdd : (DateTime?)null
+                    }).ToList() ?? new List<ReciboCajaDetalle>()
+                };
+
+                var resultado = _bll.GuardarRecibo(enc, depto, usuarioId, login, ip);
+
+                // Rechazo por regla de negocio: NO es una falla técnica, pero
+                // saber cuáles se repiten dice mucho sobre dónde falla la UI.
+                if (!resultado.Exito)
+                    _analytics.RegistrarEventoSimple("RECHAZO_GUARDADO", request.IdEmpresa,
+                        usuarioId, login, ip, resultado.Mensaje,
+                        new { request.IdCliente, request.Moneda, Depto = depto });
+
+                return Json(new { ok = resultado.Exito, msg = resultado.Mensaje, idRecibo = resultado.IdRecibo });
+            }
+            catch (Exception ex)
+            {
+                // Falla técnica. Envuelto en su propio try porque acá ya estamos
+                // en terreno inestable: CustomHelper.getUserId() podría ser justo
+                // lo que reventó, y un throw dentro del catch se lleva la respuesta.
+                try
+                {
+                    _analytics.RegistrarEventoSimple("ERROR_GUARDADO",
+                        request != null ? request.IdEmpresa : null,
+                        CustomHelper.getUserId(), User.Identity.Name,
+                        Request.UserHostAddress,
+                        ex.Message,
+                        new { Tipo = ex.GetType().Name });
+                }
+                catch { }
+
+                return Json(new { ok = false, msg = "Error inesperado: " + ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // GET /ReciboCaja/BuscarRecibo
+        // ─────────────────────────────────────────────
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Ver")]
+        public JsonResult BuscarRecibo(string idRecibo, string empresa)
+        {
+            try
+            {
+                var rec = _bll.BuscarRecibo(idRecibo ?? "", empresa ?? "");
+                if (rec == null)
+                    return Json(new { ok = false, msg = "Recibo no encontrado." }, JsonRequestBehavior.AllowGet);
+
+                return Json(new { ok = true, data = rec }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // GET /ReciboCaja/Imprimir?idRecibo=X&empresa=Y
+        // Abre vista de impresión en nueva pestaña.
+        //
+        // ★ CAMBIO: los recibos en DESCUADRE YA NO se bloquean.
+        //
+        // Causa raíz: el recibo se imprime AUTOMÁTICAMENTE al guardarse, y el
+        // sincronizador detecta el descuadre DESPUÉS. El cliente ya tiene su
+        // papel — bloquear solo impedía la REimpresión, que es justo la que
+        // Créditos necesita para investigar la diferencia.
+        //
+        // Además el descuadre NO invalida el recibo: el dinero entró a caja.
+        // Lo que está en disputa es contra qué facturas quedó aplicado en SAP.
+        // El control correcto no es esconder el documento, es SELLARLO (banda
+        // de conciliación en _ReciboImpresion.cshtml) y REGISTRAR quién lo sacó.
+        // ─────────────────────────────────────────────
+        /// [Permiso("Control.ReciboCaja.Ver")]
+        public ActionResult Imprimir(string idRecibo, string empresa)
+        {
+            var rec = _bll.BuscarRecibo(idRecibo, empresa);
+            if (rec == null) return HttpNotFound("Recibo no encontrado.");
+
+            bool enConciliacion = "DESCUADRE".Equals(rec.SyncEstado ?? "",
+                                                     StringComparison.OrdinalIgnoreCase);
+
+            // El detalle diferencia una impresión normal de una en conciliación.
+            // Bloquear no dejaba rastro de nada; esto sí es auditable.
+            _analytics.RegistrarEvento("IMPRESO", rec,
+                                       CustomHelper.getUserId(),
+                                       User.Identity.Name,
+                                       Request.UserHostAddress,
+                                       enConciliacion ? "descuadre" : null);
+
+            return View(rec);
+        }
+
+        // ─────────────────────────────────────────────
+        // POST /ReciboCaja/Anular
+        // Las reglas viven en el BLL; el disabled del botón es cosmético.
+        // ─────────────────────────────────────────────
+        [HttpPost]
+        // [Permiso("Control.ReciboCaja.Anular")]
+        public JsonResult Anular(string idRecibo, string empresa, string motivo)
+        {
+            try
+            {
+                string login = User.Identity.Name;
+                long usuarioId = CustomHelper.getUserId();
+                string ip = Request.UserHostAddress;
+
+                var r = _bll.AnularRecibo(idRecibo ?? "", empresa ?? "", motivo ?? "",
+                                          usuarioId, login, ip);
+                return Json(new { ok = r.Exito, msg = r.Mensaje });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = "Error inesperado: " + ex.Message });
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // GET /ReciboCaja/ImprimirLote?ids=RG12-07520|GRACO,RG12-07521|GRACO
+        // Junta varios recibos en UN documento imprimible (un recibo por página).
+        //
+        // ★ CAMBIO: los DESCUADRE ya no se omiten del lote. Salen impresos con
+        // su banda de conciliación, igual que en la impresión individual. Un
+        // lote de 30 recibos donde 2 desaparecían —y el aviso vivía en una
+        // barra que nadie lee— era peor que imprimirlos marcados.
+        // 'omitidos' queda SOLO para lo que de verdad no se puede imprimir:
+        // recibos que no existen.
+        // ─────────────────────────────────────────────
+        // [Permiso("Control.ReciboCaja.Ver")]
+        public ActionResult ImprimirLote(string ids)
+        {
+            var recibos = new List<ReciboCajaEncabezado>();
+            var omitidos = new List<string>();
+
+            var pares = (ids ?? "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                                   .Take(50);   // tope de seguridad, espejo del front
+
+            foreach (var par in pares)
+            {
+                var partes = par.Split('|');
+                if (partes.Length != 2) continue;
+                string id = partes[0].Trim(), emp = partes[1].Trim();
+
+                var rec = _bll.BuscarRecibo(id, emp);
+                if (rec == null)
+                    omitidos.Add(id + " (no encontrado)");
+                else
+                    recibos.Add(rec);
+            }
+
+            if (recibos.Count == 0)
+                return Content("<html><body style='font-family:Arial;padding:40px;'>" +
+                    "<h3>⚠ Nada para imprimir</h3><p>Ningún recibo del lote es imprimible:</p><ul><li>" +
+                    string.Join("</li><li>", omitidos.Select(Server.HtmlEncode)) +
+                    "</li></ul></body></html>", "text/html");
+
+            // Un evento por recibo: cada uno se imprimió de verdad. El lote está
+            // topado en 50, y SqlConnection usa pool, así que son ~50 inserts
+            // baratos sobre conexiones reutilizadas, no 50 handshakes de red.
+            long uid = CustomHelper.getUserId();
+            string login = User.Identity.Name;
+            string ipLote = Request.UserHostAddress;
+            foreach (var r in recibos)
+                _analytics.RegistrarEvento("IMPRESO", r, uid, login, ipLote,
+                    "DESCUADRE".Equals(r.SyncEstado ?? "", StringComparison.OrdinalIgnoreCase)
+                        ? "lote descuadre" : "lote");
+
+            // Contador para la barra del lote: cuántos salen sellados.
+            ViewBag.Omitidos = omitidos;
+            ViewBag.EnConciliacion = recibos.Count(r =>
+                "DESCUADRE".Equals(r.SyncEstado ?? "", StringComparison.OrdinalIgnoreCase));
+
+            return View(recibos);
+        }
+
+        private readonly ReciboCajaAdminBLL _admin = new ReciboCajaAdminBLL();
+
+        // ═════════════════════════════════════════════
+        //  DASHBOARD DE SUPERVISIÓN
+        // ═════════════════════════════════════════════
+
+        /// <summary>Permiso que otorga visión global del dashboard (sin filtro por operador).</summary>
+        private const string PERMISO_DASHBOARD_GLOBAL = "Control.ReciboCaja.DashboardGlobal";
+
+        /// <summary>
+        /// ¿El usuario ve TODO el dashboard, o solo sus operadores de Usuario_Empresa?
+        ///
+        /// Dos mecanismos, en OR:
+        ///   1. PERMISO (principal): pregunta por CAPACIDAD, no por identidad. Si
+        ///      mañana nace el rol "CREDITOS SR", se le asigna el permiso en la BD
+        ///      y funciona sin tocar código.
+        ///   2. NOMBRE DE ROL en Web.config (red de seguridad): mientras el permiso
+        ///      no exista en la BD, Permiso() devuelve false y NADIE sería global —
+        ///      Créditos abriría un dashboard vacío. Esta lista evita ese hueco.
+        ///      Cuando el permiso esté creado y probado, vacía la clave del config.
+        ///
+        /// Los try/catch son deliberados: si el subsistema de permisos falla, la
+        /// respuesta correcta es "no es global" (FALLA CERRADO), no una pantalla
+        /// de error ni —mucho peor— acceso total.
+        /// </summary>
+        private bool EsGlobalActual()
+        {
+            // 1) Permiso explícito
+            try
+            {
+                if (CustomHelper.Permiso(PERMISO_DASHBOARD_GLOBAL)) return true;
+            }
+            catch { /* permiso inexistente o subsistema caído → no es global */ }
+
+            // 2) Fallback por nombre de rol (Web.config → DashboardRolesGlobales)
+            try
+            {
+                return _admin.EsRolGlobal(RolUsuarioActual());
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// ⚠ PENDIENTE: nombre del rol del usuario logueado, para el fallback de
+        /// Web.config. Devuelve "" mientras no se conecte, y "" nunca es global
+        /// → todos quedan restringidos a su alcance. Es el default seguro.
+        ///
+        /// No lo cableé a ciegas: CustomHelper no expone el rol, y adivinar el
+        /// nombre de la propiedad en la entidad Usuario es exactamente el error
+        /// que ya nos costó una ronda con INVOICE_DATE / CURRENCY_ID.
+        /// Se completa en cuanto veamos Usuario.cs.
+        /// </summary>
+        private string RolUsuarioActual()
+        {
+            return "";
+        }
+
+        /// <summary>Alcance del usuario logueado. Un solo punto de construcción.</summary>
+        private AlcanceRecibos AlcanceActual()
+        {
+            return _admin.ObtenerAlcance(CustomHelper.getUserId(), EsGlobalActual());
+        }
+
+        // [Permiso("Control.ReciboCaja.Dashboard")]
+        public ActionResult Dashboard()
+        {
+            CustomHelper.setTitle("Recibos de Caja", "Supervisión");
+            ViewBag.DiasUmbral = _admin.DiasUmbral;
+
+            var alcance = AlcanceActual();
+            ViewBag.AlcanceGlobal = alcance.Global;
+            ViewBag.AlcanceTexto = alcance.Descripcion;
+
+            return View();
+        }
+
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Dashboard")]
+        public JsonResult GetDashboardResumen(string empresa)
+        {
+            try
+            {
+                var alcance = AlcanceActual();
+                var r = _admin.ObtenerResumen(empresa, alcance);
+                return Json(new
+                {
+                    ok = true,
+                    data = r,
+                    global = alcance.Global,
+                    operadores = alcance.Pares.Count,
+                    sinAcceso = alcance.SinAcceso,
+                    empresas = alcance.Empresas,
+                    alcanceTexto = alcance.Descripcion
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Dashboard")]
+        public JsonResult GetDashboardDetalle(string empresa, string situacion,
+             string fechaIni, string fechaFin,
+             bool incluirOperados = false, bool incluirAnulados = false)
+        {
+            try
+            {
+                // El alcance se resuelve SIEMPRE en el servidor. Nunca viaja por
+                // querystring: el front es cosmético y se puede falsificar desde F12.
+                var alcance = AlcanceActual();
+
+                var filas = _admin.ObtenerDetalle(empresa, situacion,
+                                                  fechaIni, fechaFin,
+                                                  incluirOperados, incluirAnulados,
+                                                  alcance);
+                return Json(new { ok = true, data = filas }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // ═════════════════════════════════════════════
+        //  ANALYTICS
+        // ═════════════════════════════════════════════
+        //  A diferencia del Dashboard, Analytics NO filtra por operador:
+        //  muestra las 3 empresas y todos los usuarios. El único control
+        //  es el permiso Control.ReciboCaja.Analytics.
+        //
+        //  ⚠️ Los [Permiso] van comentados igual que el resto del controller.
+        //  Descomentalos DESPUÉS de correr el INSERT del permiso en la BD y
+        //  de verificar que tu usuario lo tiene: si el permiso no existe,
+        //  Permiso() devuelve false y te quedás afuera de tu propia pantalla.
+        private readonly ReciboCajaAnalyticsBLL _analytics = new ReciboCajaAnalyticsBLL();
+
+        // [Permiso("Control.ReciboCaja.Analytics")]
+        public ActionResult Analytics()
+        {
+            CustomHelper.setTitle("Recibos de Caja", "Analytics");
+            return View();
+        }
+
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Analytics")]
+        public JsonResult GetAnalytics(string periodo, string empresa)
+        {
+            try
+            {
+                var filtro = _analytics.ResolverPeriodo(periodo, empresa);
+                var p = _analytics.Obtener(periodo, empresa);
+
+                return Json(new
+                {
+                    ok = true,
+                    data = p,
+                    rango = new
+                    {
+                        ini = filtro.FechaIni.HasValue
+                              ? filtro.FechaIni.Value.ToString("yyyy-MM-dd") : null,
+                        fin = filtro.FechaFin.HasValue
+                              ? filtro.FechaFin.Value.AddDays(-1).ToString("yyyy-MM-dd") : null
+                    }
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // POST y no GET a propósito: dispara una llamada a un servicio externo
+        // y escribe en la BD. Un GET podría ejecutarse solo desde un <img> o
+        // por el prefetch del navegador.
+        [HttpPost]
+        // [Permiso("Control.ReciboCaja.Analytics")]
+        public JsonResult ResolverGeoIp()
+        {
+            try
+            {
+                var r = _analytics.ResolverPendientes();
+                return Json(new
+                {
+                    ok = r.Exito,
+                    msg = r.Mensaje,
+                    pendientes = r.Pendientes,
+                    resueltas = r.Resueltas,
+                    privadas = r.Privadas,
+                    fallidas = r.Fallidas
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = "Error inesperado: " + ex.Message });
+            }
+        }
+
+        // ═════════════════════════════════════════════
+        //  MANTENIMIENTO DE SERIES
+        // ═════════════════════════════════════════════
+        // [Permiso("Control.ReciboCaja.Series")]
+        public ActionResult Series()
+        {
+            CustomHelper.setTitle("Recibos de Caja", "Series de Numeración");
+            return View();
+        }
+
+        [HttpGet]
+        // [Permiso("Control.ReciboCaja.Series")]
+        public JsonResult GetSeries()
+        {
+            try
+            {
+                var lista = _admin.ObtenerSeries();
+                // Proyección explícita: incluye los calculados (ProximoId, Inconsistente)
+                var data = lista.Select(s => new
+                {
+                    s.RowId,
+                    s.Empresa,
+                    s.Depto,
+                    s.Serie,
+                    s.Numeracion,
+                    s.SerieNc,
+                    s.NumeracionNc,
+                    s.MaxUsado,
+                    s.ProximoId,
+                    s.Inconsistente
+                }).ToList();
+                return Json(new { ok = true, data }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        // [Permiso("Control.ReciboCaja.Series")]
+        public JsonResult GuardarSerie(ReciboCajaSerie request)
+        {
+            try
+            {
+                var r = _admin.GuardarSerie(request ?? new ReciboCajaSerie());
+                return Json(new
+                {
+                    ok = r.Exito,
+                    msg = r.Exito
+                    ? "Serie guardada. Próximo recibo: " + r.IdRecibo
+                    : r.Mensaje
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = "Error inesperado: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        // [Permiso("Control.ReciboCaja.Series")]
+        public JsonResult EliminarSerie(int rowId)
+        {
+            try
+            {
+                var r = _admin.EliminarSerie(rowId);
+                return Json(new { ok = r.Exito, msg = r.Exito ? "Serie eliminada." : r.Mensaje });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = "Error inesperado: " + ex.Message });
+            }
+        }
+
+        // TEMPORAL — borrar después de validar. Prueba ObtenerTipoCambio por la ruta real (HanaHelper).
+        [HttpGet]
+        public JsonResult TestTC(string empresa)
+        {
+            try
+            {
+                var hana = new DiamDev.Give.DAL.HanaRepository();
+                decimal tc = hana.ObtenerTipoCambio(empresa ?? "GRACO", null);
+                return Json(new { ok = true, empresa, tipoCambio = tc }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // TEMPORAL — valida el cálculo dual. Borrar después.
+        [HttpGet]
+        public JsonResult TestDual(decimal monto, string moneda, decimal tc)
+        {
+            try
+            {
+                var d = DiamDev.Give.BLL.ReciboCajaBLL.CalcularMontosDuales(monto, moneda, tc);
+                return Json(new
+                {
+                    ok = true,
+                    original = new { monto, moneda },
+                    tc,
+                    gtq = d.Gtq,
+                    usd = d.Usd
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, msg = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // Helper local: desentierra toda la cadena de inner exceptions
+        private static System.Collections.Generic.List<string> Cadena(Exception ex)
+        {
+            var msgs = new System.Collections.Generic.List<string>();
+            var e = ex;
+            while (e != null) { msgs.Add(e.Message); e = e.InnerException; }
+            return msgs;
+        }
+    }
+}

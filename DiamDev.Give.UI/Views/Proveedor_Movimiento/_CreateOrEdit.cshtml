@@ -1,0 +1,130 @@
+﻿@model DiamDev.Give.Entities.ProveedorMovimiento
+
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Proveedores</h2>
+        <hr>
+    </div>
+</div>
+<div class="form-group">
+    <label class="control-label">
+        Proveedor<span class="symbol required"></span>
+    </label>
+    @Html.DropDownList("ProveedorId", (SelectList)ViewBag.Proveedores, "--Seleccione un Proveedor--", new { @class = "form-control search-select required", autofocus = "autofocus" })
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Tipos de Movimiento</h2>
+        <hr>
+    </div>
+</div>
+<div class="form-group">
+    <label class="control-label">
+        Tipo de Movimiento<span class="symbol required"></span>
+    </label>
+    @Html.DropDownList("TipoId", (SelectList)ViewBag.Tipos, "--Seleccione un Tipo de Movimiento--", new { @class = "form-control search-select required" })
+</div>
+<div id="divAbono">
+    <div class="form-group">
+        <label class="control-label">
+            Credito Pendientes
+        </label>
+        <select id="CreditoId" name="CreditoId" class="form-control search-select">
+            <option value="0">--Seleccione un Credito Pendiente--</option>
+        </select>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                #Documento
+            </label>
+            @Html.TextBoxFor(model => model.Documento, new { @class = "form-control", @placeholder = "#Documento", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha del Movimiento<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaMovimiento" name="FechaMovimiento" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : Model.FechaMovimiento.ToString("yyyy-MM-dd"))" required>
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Dias de Credito<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.DiasCredito, new { @class = "form-control", @placeholder = "Dias de Credito", required = "required", autocomplete = "off", Value = 0 })
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha de Vencimiento<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaVencimiento" name="FechaVencimiento" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : Model.FechaVencimiento.Value.ToString("yyyy-MM-dd"))" required>
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Monto del Movimiento<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                @Html.TextBoxFor(model => model.Monto, new { @class = "form-control", @placeholder = "Monto del Movimiento", required = "required", autocomplete = "off" })
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Observaciones
+            </label>
+            @Html.TextAreaFor(model => model.Observaciones, new { @class = "form-control", @placeholder = "Observaciones", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Fotografias</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-imagen">Agregar</button></p>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Fotografia</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="tbl-archivos">
+                @if (Model != null)
+                {
+                    if (Model.Fotografias != null && Model.Fotografias.Count() > 0)
+                    {
+                        foreach (var Detalle in Model.Fotografias)
+                        {
+                            <tr>
+                                <td colspan="2">
+                                    @Detalle.Nombre
+                                </td>
+                            </tr>
+                        }
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div> 

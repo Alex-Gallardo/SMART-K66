@@ -1,0 +1,108 @@
+﻿@model DiamDev.Give.Entities.DescuentoK66
+
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Empresas</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Empresa<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("EmpresaId", (SelectList)ViewBag.Empresas, "--Seleccione una Empresa--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Clientes</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Cliente
+            </label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="BuscarCliente" name="BuscarCliente" autocomplete="off" placeholder="Buscar Cliente...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="btnBuscarCliente">Buscar</button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Cliente<span class="symbol required"></span>
+            </label>
+            <input type="text" placeholder="Cliente" class="form-control" id="NombreCliente" name="NombreCliente" autocomplete="off" disabled="disabled" required />
+            <input type="hidden" id="IDK66" name="IDK66" value="" />
+            <input type="hidden" id="Nit" name="Nit" value="" />
+            <input type="hidden" id="Nombre" name="Nombre" value="" />
+            <input type="hidden" id="Direccion" name="Direccion" value="" />        
+        </div>        
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Direccion<span class="symbol required"></span>
+            </label>
+            <select id="DireccionId" name="DireccionId" class="form-control search-select">
+                <option value="">--Seleccione una Direccion--</option>
+            </select>
+        </div>       
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Productos</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Barra
+            </label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                <span class="input-group-btn">
+                    <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Producto
+            </label>
+            <input type="text" placeholder="Producto" class="form-control" id="NombreProducto" name="NombreProducto" autocomplete="off" disabled />
+            <input type="hidden" id="ProductoId" name="ProductoId" value="0" />
+            <input type="hidden" id="Producto" name="Producto" value="" />
+        </div>       
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Descuento<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Descuento, new { @class = "form-control", @placeholder = "Descuento", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+</div>

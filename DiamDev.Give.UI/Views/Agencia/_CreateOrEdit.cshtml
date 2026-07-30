@@ -1,16 +1,50 @@
-﻿@model DiamDev.Give.Entities.Agencia
+﻿
+@model DiamDev.Give.Entities.Agencia
 
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Codigo Establecimiento
+            </label>
+            @Html.TextBoxFor(model => model.CodigoEstablecimiento, new { @class = "form-control", @placeholder = "Codigo del Establecimiento", autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
 <div class="row">
     <div class="col-md-12">
         <div class="form-group">
             <label class="control-label">
                 Nombre<span class="symbol required"></span>
             </label>
-            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre de la Agencia", required = "required", autocomplete = "off", autofocus = "autofocus" })
-        </div>        
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre de la Agencia", required = "required", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Direccion<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Direccion, new { @class = "form-control", @placeholder = "Direccion de la Agencia", required = "required", autocomplete = "off" })
+        </div>
     </div>
 </div>
 <div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Domicilio
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.domicilioSi name="domicilio" id="domicilioSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.domicilioNo name="domicilio" id="domicilioNo">
+                    No
+                </label>
+            </div>
+        </div>
+    </div>
     <div class="col-md-6">
         <div class="form-group">
             <label class="control-label">
@@ -29,5 +63,19 @@
         </div>
     </div>
 </div>
-
-
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Empresas</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Empresa<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("EmpresaId", (SelectList)ViewBag.Empresas, "--Seleccione una Empresa--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>

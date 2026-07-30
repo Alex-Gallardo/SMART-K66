@@ -1,0 +1,162 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Reparacion>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Reparación Liquidar";
+}
+
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-12">
+            <label class="control-label">
+                Agencia<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("agenciaId", (SelectList)ViewBag.Agencias, "--Seleccione una Agencia--", new { @class = "form-control search-select required", onchange = "this.form.submit();" })
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Reparación Liquidar
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#Reparación</th>
+                                <th>Agencia</th>
+                                <th>Dias GAMES</th>
+                                <th>Fecha</th>
+                                <th>Serial</th>
+                                <th>Cliente</th>
+                                <th>U. Asignado</th>
+                                <th>U. Entrega</th>
+                                <th>Estado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var Reparacion in Model)
+                            {
+                                <tr>
+                                    <td>@Reparacion.ReparacionId</td>
+                                    <td>@(Reparacion.Agencia == null ? "No Disponible" : Reparacion.Agencia.Nombre)</td>
+                                    <td>@Reparacion.DiasGames</td>
+                                    <td>@Reparacion.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@(string.IsNullOrWhiteSpace(Reparacion.IMEI) ? "No Disponible" : Reparacion.IMEI)</td>
+                                    <td>@(Reparacion.Cliente == null ? "No Disponible" : Reparacion.Cliente.Nombre)</td>
+                                    <td>@(Reparacion.UsuarioAsignado == null ? "No Disponible" : Reparacion.UsuarioAsignado.Nombre)</td>
+                                    <td>@(Reparacion.UsuarioEntrega == null ? "No Disponible" : Reparacion.UsuarioEntrega.Nombre)</td>
+                                    <td>@(Reparacion.Estado == null ? "No Disponible" : Reparacion.Estado.Nombre)</td>
+                                    <td class="center">
+                                        <div class="visible-md visible-lg hidden-sm hidden-xs">  
+                                            <a href="@Url.Action("Liquidar", "Reparacion", new { id = Reparacion.ReparacionId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Liquidar Reparación"><i class="clip-checkmark-2"></i></a>                                        
+                                            <a href="@Url.Action("Detalle", "Reparacion", new { id = Reparacion.ReparacionId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle de la Reparación"><i class="clip-stack-empty"></i></a>
+                                            <a href="@Url.Action("Boleta", "Reparacion", new { id = Reparacion.ReparacionId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
+                                        </div>
+                                        <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                            <div class="btn-group">
+                                                <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                    <i class="icon-cog"></i> <span class="caret"></span>
+                                                </a>
+                                                <ul role="menu" class="dropdown-menu pull-right">  
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Liquidar", "Reparacion", new { id = Reparacion.ReparacionId })">
+                                                            <i class="clip-checkmark-2"></i> Entrega
+                                                        </a>
+                                                    </li>                                                 
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Reparacion", new { id = Reparacion.ReparacionId })">
+                                                            <i class="clip-stack-empty"></i> Detalle de la Reparación
+                                                        </a>
+                                                    </li>
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Reparacion", new { id = Reparacion.ReparacionId })" target="_blank">
+                                                            <i class="clip-file-pdf"></i> Ver Boleta
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>                
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+<div class="page_numbers page_numbers-sec">
+    <div class="pagination">
+        Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber)
+        de @Model.PageCount
+        @Html.PagedListPager(Model, page => Url.Action("Reparacion_Liquidar", new { agenciaId = ViewBag.AgenciaId, page }), PagedListRenderOptions.EnableUnobtrusiveAjaxReplacing(new PagedListRenderOptions
+                        {
+                            LinkToFirstPageFormat = "<<",
+                            LinkToPreviousPageFormat = "<",
+                            LinkToNextPageFormat = ">",
+                            LinkToLastPageFormat = ">>",
+                            DisplayLinkToFirstPage = PagedListDisplayMode.Always,
+                            DisplayLinkToPreviousPage = PagedListDisplayMode.Always,
+                            DisplayLinkToLastPage = PagedListDisplayMode.Always,
+                            DisplayLinkToNextPage = PagedListDisplayMode.Always,
+                            DisplayEllipsesWhenNotShowingAllPageNumbers = false,
+                        }, new AjaxOptions() { HttpMethod = "GET", UpdateTargetId = "" }))
+
+        <div>
+            <form action="" method="get" class="form-inline">
+                Ir a la página:
+                <select id="page" name="page" onchange="this.form.submit()">
+                    @for (int i = 1; i <= Model.PageCount; i++)
+                    {
+                        if (Model.PageNumber == i)
+                        {
+                            <option selected value="@i">@i</option>
+                        }
+                        else
+                        {
+                            <option value="@i">@i</option>
+                        }
+                    }
+                </select>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function ()
+        {
+            if ('@TempData["Reparacion-Entrega-Success"]' == "OK")
+            {
+                toastr.success('La reparación se liquido exitosamente');
+            }
+        });
+    </script>
+}
+
+
+
+

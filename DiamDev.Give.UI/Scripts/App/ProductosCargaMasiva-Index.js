@@ -143,7 +143,7 @@
         .on('blur', function () { $input.removeClass('has-focus'); });
 
         function redirect(fileName) {
-            window.location.href = '/Give/ProductosCargaMasiva/Verificar/' + fileName;
+            window.location.href = '/ProductosCargaMasiva/Verificar/' + fileName;
         }
     });
 

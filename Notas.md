@@ -38,5 +38,4 @@ Update-Database -Script -SourceMigration: MigrationInicial -TargetMigration: Mig
 > Donde **MigrationInicial** es el último Migration que se ejecutó en producción (ver la tabla __MigrationsHistory)
 > y **MigrationFinal** es el Migration hasta el cual se quiere aplicar en la base de datos.
 
-Despues ya se puede ejecutar el script en la base de datos de producción.
- 
+Update-Database -Script -SourceMigration: 202203212328283_SeAgregaLlavePrimariaUsuarioEmpresa -TargetMigration: 202204251603462_SeAgregaColumnaDescuentoTablaPedidoDetalleK66 -ProjectName DiamDev.Give.DAL -StartupProjectName DiamDev.Give.UI

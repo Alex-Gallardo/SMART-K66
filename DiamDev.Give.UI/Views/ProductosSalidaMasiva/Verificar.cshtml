@@ -1,0 +1,70 @@
+﻿@model DiamDev.Give.UI.Models.ProductoCargaMasivaDetalle[]
+@{
+    ViewBag.Title = "Verificar";
+}
+
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                Detalles de la salida
+            </div>
+            <div class="panel-body">
+
+                <div class="text-danger">
+                    @Html.ValidationSummary()
+                </div>
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>C&oacute;digo</th>
+                            <th>Bodega</th>
+                            <th>Nombre</th>
+                            <th>Marca</th>
+                            <th>Cantidad</th>
+                            <th>Costo</th>
+                            <th>P Venta</th>
+                            <th>MIN</th>
+                            <th>MAX</th>
+                            <th>RENT Q</th>
+                            <th>RENT %</th>
+                            <th>Modificaci&oacute;n</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Id</td>
+                                <td>@item.Codigo</td>
+                                <td>@item.Bodega</td>
+                                <td>@item.Nombre</td> 
+                                <td>@item.Marca</td>
+                                <td>@item.Cantidad.ToString("N2")</td>
+                                <td>@item.Costo.ToString("C2")</td>
+                                <td>@item.PrecioVenta.ToString("C2")</td>
+                                <td>@item.Min.ToString("N2")</td>
+                                <td>@item.Max.ToString("N2")</td>
+                                <td>@item.RentQ.ToString("C2")</td>
+                                <td>@item.RentP.ToString("0%")</td>
+                                <td>@item.Modificacion</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                @if (ViewBag.IsValid)
+                {
+                <form action="@Url.Action("AprobarVerificacion", "ProductosSalidaMasiva", new { id = ViewBag.Id })" method="post" class="form-inline">
+                    <button type="submit" class="btn btn-default">Aprobar</button>
+                </form>
+                }
+
+                <a href="@Url.Action("Index", "ProductosSalidaMasiva")" class="btn btn-default">Cancelar</a>
+
+            </div>
+        </div>
+    </div>
+</div>

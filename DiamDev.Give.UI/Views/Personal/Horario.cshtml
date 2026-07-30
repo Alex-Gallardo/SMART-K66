@@ -1,4 +1,4 @@
-﻿@model IEnumerable<DiamDev.Give.Entities.HorarioModel>
+﻿@model IEnumerable<DiamDev.Give.Entities.PersonalHorario>
 
 @{
     ViewBag.Title = "Horarios Listado";
@@ -63,10 +63,10 @@
                         @foreach (var Personal in Model)
                         {
                             <tr>
-                                <td>@Personal.Nombre</td>                               
+                                <td>@Personal.Personal.Nombre</td>                               
                                 <td>@Personal.Fecha.ToString("dd/MM/yyyy")</td>
-                                <td>@Personal.Entrada.ToShortTimeString()</td>
-                                <td>@(Personal.Salida == null ? "0:00" : Personal.Salida.Value.ToShortTimeString())</td> 
+                                <td>@Personal.Entrada.ToString()</td>
+                                <td>@(Personal.Salida == null ? "0:00" : Personal.Salida.Value.ToString())</td> 
                             </tr>
                         }
                     </tbody>

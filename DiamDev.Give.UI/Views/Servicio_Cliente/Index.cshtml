@@ -1,0 +1,83 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.ServicioCliente>
+
+@{
+    ViewBag.Title = "Correlativo de Servicio al Cliente Listado";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Servicio al Cliente
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                @if (Model != null && Model.Count() > 0)
+                {
+                    foreach (var tipoActual in Model.Select(x => x.Tipo).Distinct())
+                    {
+                        <p>                            
+                            <h3 style="text-align:center; font-weight:bold;">
+                                @Model.Where(x => x.Tipo == tipoActual).FirstOrDefault().TipoServicio.Nombre.ToUpper()
+                            </h3>
+                        </p>
+                        <hr />
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Where(x => x.Tipo == tipoActual))
+                                {
+                                    <tr>
+                                        <td>
+                                            @item.Correlativo
+                                        </td>
+                                        <td>
+                                            <a href="@Url.Action("Atender", "Servicio_Cliente", new { id = item.ID })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Atender"><i class="clip-checkmark"></i></a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                       
+                    }
+                }                
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+@section Scripts
+{
+    <script type="text/javascript">      
+        $(function ()
+        {
+            setTimeout(function ()
+            {
+                location.reload();
+            }, 15000);
+        });
+    </script>
+}
+
+
+
+
+
+
+

@@ -60,7 +60,9 @@
                 <table class="table table-hover" id="sample-table-1">
                     <thead>
                         <tr>
+                            <th>Categoria</th>
                             <th>Fecha</th>
+                            <th>ID</th>
                             <th>Cliente</th>
                             <th>Productos</th>
                             <th>Total</th>
@@ -71,14 +73,23 @@
                         @foreach (var Movimiento in Model)
                         {
                             <tr>
+                                <td>@(Movimiento.MovimientoCategoria == null ? "No Disponible" : Movimiento.MovimientoCategoria.Nombre)</td>
                                 <td>@Movimiento.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@Movimiento.MovimientoId</td>
                                 <td>@(Movimiento.Cliente == null ? "No Disponible" : Movimiento.Cliente.Nombre)</td>
                                 <td>@(Movimiento.Detalles == null ? 0 : Movimiento.Detalles.Count())</td>
                                 <td>@(Movimiento.Detalles == null ? "Q0.00" : Movimiento.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C"))</td>
                                 <td class="center">
                                     <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        @if (!Movimiento.Anulada)
+                                        {
+                                            <a href="@Url.Action("Anular", "Producto_Egreso", new { id = Movimiento.MovimientoId })" class="btn btn-bricky tooltips" data-placement="top" data-original-title="Anular Egreso"><i class="clip-close"></i></a>
+                                        }
                                         <a href="@Url.Action("Detalle", "Producto_Egreso", new { id = Movimiento.MovimientoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Egreso"><i class="clip-stack-empty"></i></a>
-                                        <a href="@Url.Action("Boleta", "Producto_Egreso", new { id = Movimiento.MovimientoId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
+                                        @if (!Movimiento.Anulada)
+                                        {
+                                            <a href="@Url.Action("Boleta", "Producto_Egreso", new { id = Movimiento.MovimientoId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
+                                        }
                                     </div>
                                     <div class="visible-xs visible-sm hidden-md hidden-lg">
                                         <div class="btn-group">
@@ -86,16 +97,27 @@
                                                 <i class="icon-cog"></i> <span class="caret"></span>
                                             </a>
                                             <ul role="menu" class="dropdown-menu pull-right">
+                                                @if (!Movimiento.Anulada)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Anular", "Producto_Egreso", new { id = Movimiento.MovimientoId })">
+                                                            <i class="clip-close"></i> Anular Egreso
+                                                        </a>
+                                                    </li>
+                                                }
                                                 <li role="presentation">
                                                     <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Producto_Egreso", new { id = Movimiento.MovimientoId })">
                                                         <i class="clip-stack-empty"></i> Detalle del Egreso
                                                     </a>
                                                 </li>
+                                              @if (!Movimiento.Anulada)
+                                              {
                                                 <li role="presentation">
                                                     <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Producto_Egreso", new { id = Movimiento.MovimientoId })" target="_blank">
                                                         <i class="clip-file-pdf"></i> Ver Boleta
                                                     </a>
                                                 </li>
+                                              }
                                             </ul>
                                         </div>
                                     </div>
@@ -118,6 +140,10 @@
             if ('@TempData["Producto-Egreso-Success"]' == "OK")
             {
                 toastr.success('El egreso se guardó exitosamente');
+            }
+            else if ('@TempData["Producto-Egreso_Anular-Success"]' == "OK")
+            {
+                toastr.success('El egreso se anulo exitosamente');
             }
         });
     </script>

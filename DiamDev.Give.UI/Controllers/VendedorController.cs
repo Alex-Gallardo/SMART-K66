@@ -19,12 +19,14 @@ namespace DiamDev.Give.UI.Controllers
     {
         #region Metodos Privados
 
-            private void CargaControles()
-            {
-                var Agencias = new AgenciaBL().ObtenerListado(false, 0);              
+        private void CargaControles()
+        {
+            var Agencias = new AgenciaBL().ObtenerListadoPorUsuario(CustomHelper.getUserId());
+            var Meses = new MesBL().ObtenerListado();
 
-                ViewBag.Agencias = new SelectList(Agencias, "AgenciaId", "Nombre");              
-            }
+            ViewBag.Agencias = new SelectList(Agencias, "AgenciaId", "Nombre");
+            ViewBag.Meses = new SelectList(Meses, "MesId", "Nombre");
+        }
 
         #endregion
 
@@ -40,11 +42,11 @@ namespace DiamDev.Give.UI.Controllers
             {
                 if (!string.IsNullOrWhiteSpace(search) && search != null)
                 {
-                    Vendedors = new VendedorBL().Buscar(search).ToList();
+                    Vendedors = new VendedorBL().Buscar(search, CustomHelper.getEmpresaId()).ToList();
                 }
                 else
                 {
-                    Vendedors = new VendedorBL().ObtenerListado(true).ToList();
+                    Vendedors = new VendedorBL().ObtenerListado(true, CustomHelper.getEmpresaId()).ToList();
                 }
             }
             catch (Exception ex)
@@ -58,6 +60,22 @@ namespace DiamDev.Give.UI.Controllers
             int pageSize = 10;
             int pageNumber = (page ?? 1);
             return View(Vendedors.ToPagedList(pageNumber, pageSize));
+        }
+
+        [Permiso("Control.Vendedor.Metas")]
+        public ActionResult Metas()
+        {
+            CustomHelper.setTitle("Ventas", "Metas");
+            MetaModel Metas = new MetaModel();
+
+            try
+            {
+                Metas = new VendedorBL().ObtenerVentaYMetaxVendedor(DateTime.Today, CustomHelper.getUserId());
+            }
+            catch (Exception)
+            { }
+
+            return View(Metas);
         }
 
         [Permiso("Control.Vendedor.Crear")]
@@ -76,7 +94,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [Permiso("Control.Vendedor.Crear")]
         [HttpPost]
-        public ActionResult Crear(Vendedor modelo, long[] agenciaIds, bool activo)
+        public ActionResult Crear(Vendedor modelo, long[] agenciaIds, decimal[] inicioIds, decimal[] finIds, decimal[] porcentajeIds, int[] mesIds, int[] anioIds, decimal[] metaMensualIds, decimal[] metaMensualRealIds, string[] fechaIds, decimal[] metaxdiaIds, bool activo)
         {
             if (agenciaIds == null || agenciaIds.Length == 0)
             {
@@ -94,7 +112,53 @@ namespace DiamDev.Give.UI.Controllers
                     modelo.Agencias.Add(Detalle);
                 }
 
+                if (inicioIds != null && inicioIds.Count() > 0)
+                {
+                    modelo.Escalas = new List<VendedorEscala>();
+                    for (int i = 0; i < inicioIds.Length; i++)
+                    {
+                        VendedorEscala Detalle = new VendedorEscala();
+                        Detalle.Inicio = inicioIds[i];
+                        Detalle.Fin = finIds[i];
+                        Detalle.Porcentaje = porcentajeIds[i];
+
+                        modelo.Escalas.Add(Detalle);
+                    }                    
+                }
+
+                if (mesIds != null && mesIds.Count() > 0)
+                {
+                    modelo.Metas = new List<VendedorMeta>();
+                    for (int i = 0; i < mesIds.Length; i++)
+                    {
+                        VendedorMeta Detalle = new VendedorMeta();
+                        Detalle.MesId = mesIds[i];
+                        Detalle.Anio = anioIds[i];
+                        Detalle.MontoMensualMeta = metaMensualIds[i];
+                        Detalle.MontoMensualReal = metaMensualRealIds[i];
+
+                        modelo.Metas.Add(Detalle);
+                    }
+                }
+
+                if (fechaIds != null && fechaIds.Count() > 0)
+                {
+                    modelo.MetasxDia = new List<VendedorMetaxDia>();
+                    for (int i = 0; i < fechaIds.Length; i++)
+                    {
+                        VendedorMetaxDia Detalle = new VendedorMetaxDia();
+                        Detalle.Fecha = DateTime.Parse(fechaIds[i]);                    
+                        Detalle.MontoxDia = metaxdiaIds[i];
+                     
+                        modelo.MetasxDia.Add(Detalle);
+                    }
+                }
+
                 modelo.Activo = activo;
+
+                modelo.ResponsableId = CustomHelper.getUserId();
+                modelo.EmpresaId = CustomHelper.getEmpresaId();
+
                 string strMensaje = new VendedorBL().Guardar(modelo);
 
                 if (strMensaje.Equals("OK"))
@@ -106,7 +170,6 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     ModelState.AddModelError("", strMensaje);
                 }
-
             }
 
             string strAtributo = "checked='checked'";
@@ -115,6 +178,17 @@ namespace DiamDev.Give.UI.Controllers
             ViewBag.activoNo = activo == false ? strAtributo : "";
 
             ViewBag.agenciaIds = agenciaIds;
+            ViewBag.inicioIds = inicioIds;
+            ViewBag.finIds = finIds;
+            ViewBag.porcentajeIds = porcentajeIds;
+
+            ViewBag.mesIds = mesIds;
+            ViewBag.anioIds = anioIds;
+            ViewBag.metaMensualIds = metaMensualIds;
+            ViewBag.metaMensualRealIds = metaMensualRealIds;
+
+            ViewBag.fechaIds = fechaIds;
+            ViewBag.metaxdiaIds = metaxdiaIds;
 
             this.CargaControles();
             return View(modelo);
@@ -143,7 +217,46 @@ namespace DiamDev.Give.UI.Controllers
             }
             else
             {
-                ViewBag.productoIds = 0;
+                ViewBag.agenciaIds = 0;
+            }
+
+            if (VendedorActual.Escalas != null && VendedorActual.Escalas.Count() > 0)
+            {
+                ViewBag.inicioIds = VendedorActual.Escalas.OrderBy(x => x.EscalaId).Select(x => x.Inicio).ToList();
+                ViewBag.finIds = VendedorActual.Escalas.OrderBy(x => x.EscalaId).Select(x => x.Fin).ToList();
+                ViewBag.porcentajeIds = VendedorActual.Escalas.OrderBy(x => x.EscalaId).Select(x => x.Porcentaje).ToList();
+            }
+            else
+            {
+                ViewBag.inicioIds = 0;
+                ViewBag.finIds = 0;
+                ViewBag.porcentajeIds = 0;
+            }
+
+            if (VendedorActual.Metas != null && VendedorActual.Metas.Count() > 0)
+            {
+                ViewBag.mesIds = VendedorActual.Metas.Select(x => x.MesId);
+                ViewBag.anioIds = VendedorActual.Metas.Select(x => x.Anio);
+                ViewBag.metaMensualIds = VendedorActual.Metas.Select(x => x.MontoMensualMeta);
+                ViewBag.metaMensualRealIds = VendedorActual.Metas.Select(x => x.MontoMensualReal);
+            }
+            else
+            {
+                ViewBag.mesIds = 0;
+                ViewBag.anioIds = 0;
+                ViewBag.metaMensualIds = 0;
+                ViewBag.metaMensualRealIds = 0;
+            }
+
+            if (VendedorActual.MetasxDia != null && VendedorActual.MetasxDia.Count() > 0)
+            {
+                ViewBag.fechaIds = VendedorActual.MetasxDia.Select(x => x.Fecha.ToString("yyyy-MM-dd"));
+                ViewBag.metaxdiaIds = VendedorActual.MetasxDia.Select(x => x.MontoxDia);
+            }
+            else
+            {
+                ViewBag.fechaIds = 0;
+                ViewBag.metaxdiaIds = 0;             
             }
 
             this.CargaControles();
@@ -152,7 +265,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [Permiso("Control.Vendedor.Editar")]
         [HttpPost]
-        public ActionResult Editar(Vendedor modelo, long[] agenciaIds, bool activo)
+        public ActionResult Editar(Vendedor modelo, long[] agenciaIds, decimal[] inicioIds, decimal[] finIds, decimal[] porcentajeIds, int[] mesIds, int[] anioIds, decimal[] metaMensualIds, decimal[] metaMensualRealIds, string[] fechaIds, decimal[] metaxdiaIds, bool activo)
         {
             if (agenciaIds == null || agenciaIds.Length == 0)
             {
@@ -171,7 +284,53 @@ namespace DiamDev.Give.UI.Controllers
                     modelo.Agencias.Add(Detalle);
                 }
 
+                if (inicioIds != null && inicioIds.Count() > 0)
+                {
+                    modelo.Escalas = new List<VendedorEscala>();
+                    for (int i = 0; i < inicioIds.Length; i++)
+                    {
+                        VendedorEscala Detalle = new VendedorEscala();
+                        Detalle.Inicio = inicioIds[i];
+                        Detalle.Fin = finIds[i];
+                        Detalle.Porcentaje = porcentajeIds[i];
+
+                        modelo.Escalas.Add(Detalle);
+                    }
+                }
+
+                if (mesIds != null && mesIds.Count() > 0)
+                {
+                    modelo.Metas = new List<VendedorMeta>();
+                    for (int i = 0; i < mesIds.Length; i++)
+                    {
+                        VendedorMeta Detalle = new VendedorMeta();
+                        Detalle.MesId = mesIds[i];
+                        Detalle.Anio = anioIds[i];
+                        Detalle.MontoMensualMeta = metaMensualIds[i];
+                        Detalle.MontoMensualReal = metaMensualRealIds[i];
+
+                        modelo.Metas.Add(Detalle);
+                    }
+                }
+
+                if (fechaIds != null && fechaIds.Count() > 0)
+                {
+                    modelo.MetasxDia = new List<VendedorMetaxDia>();
+                    for (int i = 0; i < fechaIds.Length; i++)
+                    {
+                        VendedorMetaxDia Detalle = new VendedorMetaxDia();
+                        Detalle.Fecha = DateTime.Parse(fechaIds[i]);
+                        Detalle.MontoxDia = metaxdiaIds[i];
+
+                        modelo.MetasxDia.Add(Detalle);
+                    }
+                }
+
                 modelo.Activo = activo;
+
+                modelo.ResponsableId = CustomHelper.getUserId();
+                modelo.EmpresaId = CustomHelper.getEmpresaId();
+
                 string strMensaje = new VendedorBL().Guardar(modelo);
 
                 if (strMensaje.Equals("OK"))
@@ -192,6 +351,17 @@ namespace DiamDev.Give.UI.Controllers
             ViewBag.activoNo = activo == false ? strAtributo : "";
 
             ViewBag.agenciaIds = agenciaIds;
+            ViewBag.inicioIds = inicioIds;
+            ViewBag.finIds = finIds;
+            ViewBag.porcentajeIds = porcentajeIds;
+
+            ViewBag.mesIds = mesIds;
+            ViewBag.anioIds = anioIds;
+            ViewBag.metaMensualIds = metaMensualIds;
+            ViewBag.metaMensualRealIds = metaMensualRealIds;
+
+            ViewBag.fechaIds = fechaIds;
+            ViewBag.metaxdiaIds = metaxdiaIds;
 
             this.CargaControles();
             return View(modelo);

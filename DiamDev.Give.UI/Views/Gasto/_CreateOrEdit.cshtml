@@ -1,0 +1,130 @@
+﻿@model DiamDev.Give.Entities.Gasto
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Proveedor<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("ProveedorId", (SelectList)ViewBag.Proveedores, "--Seleccione un Proveedor--", new { @class = "form-control search-select", required = "required" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Tipo de Compra<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("TipoCompraId", (SelectList)ViewBag.Tipos, "--Seleccione un Tipo de Compra--", new { @class = "form-control search-select", required = "required" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Categoria<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("CategoriaId", (SelectList)ViewBag.Categorias, "--Seleccione una Categoria--", new { @class = "form-control search-select", required = "required" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Serie Factura<span class="symbol required"></span>
+            </label> 
+            @Html.TextBoxFor(model => model.SerieFactura, new { @class = "form-control", @placeholder = "Serie Factura", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                #Documento<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Documento, new { @class = "form-control", @placeholder = "#Documento", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Concepto<span class="symbol required"></span>
+            </label>
+            @Html.TextAreaFor(model => model.Concepto, new { @class = "form-control", @placeholder = "Concepto del Gasto", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-3">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha del Gasto<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFactura" name="FechaFactura" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : Model.FechaFactura.ToString("yyyy-MM-dd"))" required>
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha de Libro<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaLibro" name="FechaLibro" autocomplete="off" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : Model.FechaLibro.Value.ToString("yyyy-MM-dd"))" required>
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label class="control-label">
+                IDP
+            </label>
+            @Html.TextBoxFor(model => model.IDP, new { @class = "form-control", @placeholder = "IDP", autocomplete = "off" })
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="form-group">
+            <label class="control-label">
+                Monto del Gasto<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                @Html.TextBoxFor(model => model.Monto, new { @class = "form-control", @placeholder = "Monto del Gasto", required = "required", autocomplete = "off" })
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Fotografias</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <p style="text-align:right"><button type="button" class="demo btn btn-blue" id="btn-agregar-imagen">Agregar</button></p>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Fotografia</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="tbl-archivos">
+                @if (Model != null)
+                {
+                    if (Model.Fotografias != null && Model.Fotografias.Count() > 0)
+                    {
+                        foreach (var Detalle in Model.Fotografias)
+                        {
+                            <tr>
+                                <td colspan="2">
+                                    @Detalle.Nombre
+                                </td>
+                            </tr>
+                        }
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div> 

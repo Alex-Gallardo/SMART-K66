@@ -1,0 +1,37 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.ProductoK66>
+
+<table class="table table-hover">
+    <tr>
+        <th style="background-color:#4f4c4e; color:#ffffff; text-align:center;" colspan="5">
+            EXISTENCIAS
+        </th>
+    </tr>
+    <tr>
+        <th>
+            WAREHOUSE
+        </th>
+        <th>
+            LOCATION
+        </th>
+        <th>
+            CANTIDAD
+        </th>
+        <th>
+            CANTIDAD COMPROMETIDA
+        </th>
+        <th>
+            DISPONIBLE
+        </th>
+    </tr>
+
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@item.WarehouseId</td>
+            <td>@item.LocationId</td>
+            <td>@item.Existencia.ToString("N4")</td>
+            <td>@item.InventarioComprometido.ToString("N4")</td>
+            <td>@item.InventarioDisponible.ToString("N4")</td>
+        </tr>
+    }
+</table>

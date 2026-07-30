@@ -109,6 +109,53 @@
                             </table>
                         </div>
                     </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Escalas
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Inicio</th>
+                                        <th>Fin</th>
+                                        <th>%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Escalas != null && Model.Escalas.Count() > 0)
+                                    {
+                                        foreach (var Escala in Model.Escalas)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @Escala.Inicio
+                                                </td>
+                                                <td>
+                                                    @Escala.Fin
+                                                </td>
+                                                <td>
+                                                    @Escala.Porcentaje
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="3">
+                                                <strong>No contiene escalas</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                     <div class="row">
                         <p>
                             <div class="col-md-6">

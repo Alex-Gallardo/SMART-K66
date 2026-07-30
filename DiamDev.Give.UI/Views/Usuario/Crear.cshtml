@@ -6,7 +6,6 @@
 
 <div class="row">
     <div class="col-md-12">
-        <!-- start: FORM VALIDATION 1 PANEL -->
         <div class="panel panel-default">
             <div class="panel-heading">
                 <i class="icon-external-link-sign"></i>
@@ -40,9 +39,9 @@
                                     @Html.ValidationSummary(false)
                                 </div>
                             }
-                        </div>                        
+                        </div>
                     </div>
-                    @Html.Partial("_CreateOrEdit")                    
+                    @Html.Partial("_CreateOrEdit")
                     <div class="row">
                         <p>
                             <div class="col-md-6">
@@ -64,19 +63,18 @@
                 </form>
             </div>
         </div>
-        <!-- end: FORM VALIDATION 1 PANEL -->
     </div>
 </div>
 
 @section Scripts
 {
-    <script src="~/Scripts/mustache.js"></script>    
+    <script src="~/Scripts/mustache.js"></script>
     <script type="text/html" id="rol_tr_template">
         <tr>
-            <td>{{nombre}}</td>          
+            <td>{{nombre}}</td>
             <td>
                 <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
-                <input type="hidden" name="rolesIds" value="{{id}}" />               
+                <input type="hidden" name="rolesIds" value="{{id}}" />
             </td>
         </tr>
     </script>
@@ -89,14 +87,35 @@
             </td>
         </tr>
     </script>
+    <script type="text/html" id="empresa_tr_template">
+        <tr>
+            <td>{{nombre}}</td>
+            <td>{{codigo}}</td>
+            <td>{{serie_sap}}</td>
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar">
+                    <i class="clip-remove"></i>
+                </a>
+
+                <input type="hidden" name="empresasIds" value="{{id}}" />
+                <input type="hidden" name="codigoIds" value="{{codigo}}" />
+                <input type="hidden" name="serieSapIds" value="{{serie_sap}}" />
+            </td>
+        </tr>
+    </script>
 
     <script type="text/javascript">
 
         var rolesSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.RolesIds))');
+
         var agenciasSeleccionadas = JSON.parse('@Html.Raw(Json.Encode(ViewBag.AgenciasIds))');
 
-        $(function () {
+        var empresaSeleccionadas = JSON.parse('@Html.Raw(Json.Encode(ViewBag.empresasIds))');
+        var codigoSeleccionadas = JSON.parse('@Html.Raw(Json.Encode(ViewBag.codigoIds))');
+        var serieSapSeleccionadas = JSON.parse('@Html.Raw(Json.Encode(ViewBag.serieSapIds))');
 
+
+        $(function () {
             function error(texto)
             {
                 toastr.error(texto);
@@ -120,7 +139,6 @@
 
             function cargaAgencia(id, nombre)
             {
-
                 var plantilla = $('#agencia_tr_template').html();
 
                 var modelo =
@@ -135,8 +153,26 @@
                 $('#agencia_tbody').append(filaHtml);
             }
 
+            function cargaEmpresa(id, nombre, codigo, serieSap)
+            {
+                var plantilla = $('#empresa_tr_template').html();
+                var modelo =
+                {
+                    id: id,
+                    nombre: nombre,
+                    codigo: codigo,
+                    serie_sap: serieSap
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#empresa_tbody').append(filaHtml);
+            }
+
             renderizarRolesIniciales();
             renderizarAgenciasIniciales();
+            renderizarEmpresasIniciales();
 
             $('#btn-agregar').click(function (e)
             {
@@ -187,6 +223,47 @@
 
                 $("#AgenciaId").val(0);
                 $("#AgenciaId").focus();
+            });
+
+            $('#btn-agregar-empresa').click(function (e)
+            {
+                e.preventDefault();
+
+                var id = $('#EmpresaId').val()
+                var nombre = $('#EmpresaId option:selected').text()
+
+                if (id === "")
+                {
+                    error("Seleccione una empresa");
+                    return;
+                }
+
+                if (nombre === "")
+                {
+                    error("Seleccione una empresa");
+                    return;
+                }
+
+                var ColaboradorId = $("#ColaboradorId").val();
+
+                if (ColaboradorId === "") {
+                    error("Ingrese el codigo de colaborador sap");
+                    return;
+                }
+
+                var serieId = $("#serieSap").val();
+
+                if (serieId === "") {
+                    error("Ingrese la serie sap");
+                    return;
+                }
+
+                cargaEmpresa(id, nombre, ColaboradorId, serieId);
+
+                $("#EmpresaId").val(0);
+                $("#ColaboradorId").val("");
+                $("#EmpresaId").focus();
+                $("#serieSap").val("");
 
             });
 
@@ -202,9 +279,14 @@
                 $(this).parent().parent().remove();
             });
 
+            $('#empresa_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+            });
+
             function renderizarRolesIniciales()
             {
-
                 if (rolesSeleccionados == null)
                 {
                     return;
@@ -223,7 +305,6 @@
 
             function renderizarAgenciasIniciales()
             {
-
                 if (agenciasSeleccionadas == null)
                 {
                     return;
@@ -240,11 +321,57 @@
                 }
             }
 
+            function renderizarEmpresasIniciales()
+            {
+                if (empresaSeleccionadas == null)
+                {
+                    return;
+                }
+
+                // recorremos las empresas que haya ingresado el administrador
+                for (var i = 0; i < empresaSeleccionadas.length; i++)
+                {
+                    var id = empresaSeleccionadas[i];
+                    var nombre = $('#EmpresaId option[value=' + id + ']').text();
+                    var codigo = codigoSeleccionadas[i];
+                    var serieSap = serieSapSeleccionadas[i];
+                    if (serieSap == null || serieSap == undefined) {
+                        serieSap = "";
+                    }
+                    cargaEmpresa(id, nombre, codigo, serieSap);
+                }
+            }
+
+            $("#EmpresaId").change(function (evt) {
+                if ($("#EmpresaId").val() > 0) {
+                    var ColaboradorId = $("#ColaboradorId");
+                    ColaboradorId.empty();
+
+                    //$("#EmpresaId").val($('#EmpresaId option:selected').text());
+                    var EmpresaSelect = $("#EmpresaId");
+                    var empresa = EmpresaSelect.val();
+
+                    $.ajax({
+                    url: '@Url.Action("ObtenerVendedoresSap", "Usuario")',
+                        data: { 'id': empresa },
+                    traditional: true,
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        $.each(data, function (j)
+                        {
+                            ColaboradorId.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                        });
+
+                        if (data.length > 0) {
+                            ColaboradorId.val(data[0]['Value']).trigger("change");
+                        }
+                    }
+                });
+                }
+            });
         });
 
     </script>
 }
-
-
-
-

@@ -1,0 +1,183 @@
+﻿@model DiamDev.Give.Entities.Pedido
+
+@{
+    ViewBag.Title = "Detalle del Pedido";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Pedido
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="PedidoId" name="PedidoId" value="@Html.Raw(Model.PedidoId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Agencia
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Agencia == null ? "No Disponible" : Model.Agencia.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Cliente == null ? "No Disponible" : Model.Cliente.Nombre)
+                                </strong>
+                            </div>                            
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Fecha.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>  
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Anulada
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Anulada == true ? "Sí" : "No")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>
+                                        <th>Cantidad</th>
+                                        <th>Precio</th>
+                                        <th>Descuento</th>
+                                        <th>Sub-Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Detalles != null && Model.Detalles.Count() > 0)
+                                    {
+                                        if (!Model.Anulada)
+                                        {
+                                            foreach (var Detalle in Model.Detalles)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Detalle.Producto == null ? "No Disponible" : (string.IsNullOrWhiteSpace(Detalle.Nombre) ? string.Format("{0} - {1}", Detalle.Producto.Codigo, Detalle.Producto.Nombre) : Detalle.Nombre))
+                                                    </td>
+                                                    <td>
+                                                        @(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Cantidad
+                                                    </td>
+                                                    <td>
+                                                        @(string.Format("{0:C4}", Detalle.Descuento == null ? Detalle.Precio : Detalle.Descuento.Value + Detalle.Precio))
+                                                    </td>
+                                                    <td>
+                                                        @(string.Format("{0:C4}", Detalle.Descuento == null ? 0 : Detalle.Descuento.Value))
+                                                    </td>
+                                                    <td>
+                                                        @string.Format("{0:C4}", Detalle.Cantidad * Detalle.Precio)
+                                                    </td>
+                                                </tr>
+                                            }
+                                            <tr>
+                                                <td>
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Total:
+                                                    </div>
+                                                </td>
+                                                <td colspan="6">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C4}", Model.Detalles.Sum(x => x.Cantidad * x.Precio))
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="6">
+                                                    <strong>Le informamos que el pedido fue anulado, por lo tanto no puede visualizar los productos</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="6">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+

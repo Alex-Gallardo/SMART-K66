@@ -1,0 +1,28 @@
+﻿@model DiamDev.Give.Entities.Cliente
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Nit (-)<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nit, new { @class = "form-control", @placeholder = "Nit del Cliente", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Nombre<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre del Cliente", required = "required", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Direcci&oacute;n<span class="symbol required"></span>
+            </label>
+            @Html.TextAreaFor(model => model.Direccion, new { @class = "form-control", @placeholder = "Dirección del Cliente", required = "required", autocomplete = "off" })
+        </div>
+    </div>
+</div>

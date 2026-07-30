@@ -21,6 +21,18 @@
 </div>
 <div class="row">
     <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Categorias</h2>
+        <hr>
+    </div>
+</div>
+<div class="form-group">
+    <label class="control-label">
+        Categoria<span class="symbol required"></span>
+    </label>
+    @Html.DropDownList("MovimientoCategoriaId", (SelectList)ViewBag.Categorias, "--Seleccione una Categoria--", new { @class = "form-control search-select required" })
+</div>
+<div class="row">
+    <div class="col-md-12">
         <h2><i class="icon-edit-sign teal"></i>Descripci&oacute;n</h2>
         <hr>
     </div>

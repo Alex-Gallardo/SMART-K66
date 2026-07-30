@@ -8,7 +8,7 @@
                 Nombre<span class="symbol required"></span>
             </label>
             @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre de la Categoría de Producto", required = "required", autocomplete = "off", autofocus = "autofocus" })
-        </div>                 
+        </div>
     </div>
 </div>
 <div class="row">
@@ -26,6 +26,34 @@
                     <input type="radio" class="grey" value="false" @ViewBag.activoNo name="activo" id="activoNo">
                     No
                 </label>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Fotografia App</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="fileupload fileupload-new" data-provides="fileupload">
+            <div class="input-group">
+                <div class="form-control uneditable-input">
+                    <i class="icon-file fileupload-exists"></i>
+                    <span class="fileupload-preview"></span>
+                </div>
+                <div class="input-group-btn">
+                    <div class="btn btn-light-grey btn-file">
+                        <span class="fileupload-new"><i class="icon-folder-open-alt"></i>Seleccionar Fotografia</span>
+                        <span class="fileupload-exists"><i class="icon-folder-open-alt"></i>Cambiar</span>
+                        <input type="file" class="file-input" id="fotografiaApp" name="fotografiaApp">
+                    </div>
+                    <a href="#" class="btn btn-light-grey fileupload-exists" data-dismiss="fileupload">
+                        <i class="icon-remove"></i> Eliminar
+                    </a>
+                </div>
             </div>
         </div>
     </div>

@@ -1,0 +1,100 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Recibo>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Cuenta en Restaurante";
+}
+
+<div class="row">
+    <div class="col-md-12">
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>         
+                            <th>Recibo</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Direccion</th>
+                            <th>Comentario</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="recibo_seleccionado_tbody">
+                        @foreach (var Recibo in Model)
+                        {
+                            <tr>
+                                <td>@Recibo.ReciboId</td>
+                                <td>@Recibo.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@(Recibo.FechaHoraRecibo == null ? "00:00" : Recibo.FechaHoraRecibo.Value.ToString("hh:mm tt"))</td>     
+                                <td>@(Recibo.Cliente == null ? "No Disponible" : Recibo.Cliente.Nombre)</td>
+                                <td>@(Recibo.Cliente == null ? "No Disponible" : Recibo.Cliente.Direccion)</td>
+                                <td>@(Recibo.ComentarioPedido == null ? "Sin Comentarios." : Recibo.ComentarioPedido)</td>
+                                <td>@(Recibo.Detalles == null ? "Q0.0000" : (Recibo.Anulada ? "Q0.0000" : Recibo.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4")))</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg visible-sm visible-xs">
+                                        <a href="javascript:void(0);" onclick="liquidar('@Recibo.ReciboId');" class="despachar btn btn-teal tooltips" data-placement="top" data-original-title="Liquidar Recibo"><i class="clip-checkmark"></i></a>
+                                    </div>
+                                </td>
+                            </tr>                        
+                        }
+                    </tbody>
+                </table>
+            </div>
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Cuenta", new { page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {           
+            setTimeout(function ()
+            {
+               window.location.reload();
+            }, 5000);
+        });
+
+        function cache_clear()
+        {
+            window.location.reload();        
+        }
+
+        function liquidar(id)
+        {
+            if (confirm("¿Desea liquidar el recibo?"))
+            {
+                $.ajax({
+                    url: '@Url.Action("LiquidarDelivery", "Recibo")?reciboId=' + encodeURI(id),
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        if (!data.Operacion)
+                        {
+                            toastr.error('Ocurrió un error, al liquidar el recibo');
+                            return;
+                        }
+
+                        toastr.success('El recibo se liquido exitosamente');
+                        window.location.reload();
+                    },
+                    fail: function (data)
+                    {
+                        console.error(data);
+                        toastr.error('Ocurrió un error, al liquidar el recibo');
+                    }
+                });
+            }
+        }
+    </script>
+}
+
+
+
+

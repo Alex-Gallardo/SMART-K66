@@ -12,7 +12,7 @@ namespace DiamDev.Give.UI.Models
         public string Codigo { get; set; }
         public string Nombre { get; set; }
         public double Costo { get; set; }
-        public double Id { get; set; }
+        public string Id { get; set; }
         public string Marca { get; set; }
         public double Max { get; set; }
         public double Min { get; set; }

@@ -1,0 +1,84 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.HistorialReparacion>
+
+@{
+    ViewBag.Title = "Historial de Reparación x Tecnico Listado";
+}
+
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Historial de Reparación x Tecnico
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#Reparación</th>
+                                <th>Agencia</th>
+                                <th>Fecha</th>
+                                <th>Fecha Asignación</th>                            
+                                <th>Cliente</th>
+                                <th>Total</th>                               
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var Reparacion in Model)
+                            {
+                                <tr>
+                                    <td>@Reparacion.ReparacionId</td>
+                                    <td>@Reparacion.Agencia</td>
+                                    <td>@Reparacion.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td>@Reparacion.FechaAsignacion.ToString("dd/MM/yyyy")</td>
+                                    <td>@Reparacion.Cliente</td>
+                                    <td>@Reparacion.Total.ToString("C")</td>                                    
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>

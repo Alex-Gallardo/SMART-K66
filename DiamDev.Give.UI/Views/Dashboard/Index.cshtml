@@ -1,0 +1,851 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Dashboard de Tiempos por Recurso — Grupo K66</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --panel2: #273449;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #22d3ee;
+            --good: #10b981;
+            --warn: #f59e0b;
+            --bad: #ef4444;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system,Segoe UI,Roboto,sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+            header h1 {
+                font-size: 18px;
+                margin: 0;
+                font-weight: 600;
+            }
+
+        .sub {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .filters {
+            margin-left: auto;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        input[type=date],
+        select {
+            background: var(--panel2);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        button {
+            background: var(--accent);
+            color: #0b1220;
+            border: none;
+            padding: 7px 14px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+            button:hover {
+                filter: brightness(1.1);
+            }
+
+        main {
+            padding: 20px 24px;
+            display: grid;
+            gap: 16px;
+        }
+
+        .status {
+            font-size: 13px;
+            color: var(--muted);
+            padding: 6px 0;
+        }
+
+        .loading {
+            opacity: .6;
+            pointer-events: none;
+        }
+
+        /* KPIS */
+        .kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit,minmax(180px,1fr));
+            gap: 12px;
+        }
+
+        .kpi {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+            .kpi .label {
+                color: var(--muted);
+                font-size: 12px;
+                text-transform: uppercase;
+                letter-spacing: .5px;
+            }
+
+            .kpi .value {
+                font-size: 24px;
+                font-weight: 700;
+                margin-top: 4px;
+            }
+
+            .kpi .delta {
+                font-size: 12px;
+                margin-top: 4px;
+                color: var(--muted);
+            }
+
+        /* CHARTS */
+        .charts {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+            .charts > .full {
+                grid-column: 1 / -1;
+            }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            overflow: hidden;
+        }
+
+            .card h3 {
+                margin: 0 0 12px;
+                font-size: 14px;
+                color: var(--muted);
+                text-transform: uppercase;
+                letter-spacing: .5px;
+            }
+
+        .chart-box {
+            position: relative;
+            width: 100%;
+        }
+
+        .trend-box {
+            height: 360px;
+        }
+
+        .small-chart {
+            height: 320px;
+        }
+
+        .chart-box canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block !important;
+        }
+
+        /* TABLE */
+        .table-wrap {
+            overflow: auto;
+            max-height: 520px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th,
+        td {
+            padding: 6px 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        th {
+            background: var(--panel2);
+            position: sticky;
+            top: 0;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+            td.num,
+            th.num {
+                text-align: right;
+                font-variant-numeric: tabular-nums;
+            }
+
+        .eff-good {
+            color: var(--good);
+            font-weight: 600;
+        }
+
+        .eff-warn {
+            color: var(--warn);
+            font-weight: 600;
+        }
+
+        .eff-bad {
+            color: var(--bad);
+            font-weight: 600;
+        }
+
+        .estado-cerrada {
+            color: var(--good);
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .estado-abierta {
+            color: var(--warn);
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        @@media(max-width:900px) {
+            .charts {
+                grid-template-columns: 1fr;
+            }
+
+            .filters {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div>
+            <h1>Tiempos Reales por Recurso</h1>
+            <div class="sub">Grupo K66 · SAP B1 + BEAS</div>
+        </div>
+
+        <div class="filters">
+            <label class="sub">Empresa</label>
+            <select id="empresa">
+                <option value="GRACO" selected>Graco</option>
+                <option value="BOLIK">Bolik</option>
+                <option value="ESCOCESA">Escocesa</option>
+            </select>
+
+            <label class="sub">Desde</label>
+            <input type="date" id="from">
+
+            <label class="sub">Hasta</label>
+            <input type="date" id="to">
+
+            <label class="sub">Agrupar</label>
+            <select id="bucket">
+                <option value="day" selected>Día</option>
+                <option value="week">Semana</option>
+            </select>
+
+            <button id="refresh" type="button">Actualizar</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="status" class="status">Cargando…</div>
+
+        <section class="kpis">
+            <div class="kpi">
+                <div class="label">Horas Reales</div>
+                <div class="value" id="kpiReal">—</div>
+                <div class="delta" id="kpiRealSub"></div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">Horas Planificadas</div>
+                <div class="value" id="kpiPlan">—</div>
+                <div class="delta" id="kpiPlanSub"></div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">% Cumplimiento</div>
+                <div class="value" id="kpiCump">—</div>
+                <div class="delta">Real / Plan</div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">% Eficiencia</div>
+                <div class="value" id="kpiEf">—</div>
+                <div class="delta">Plan / Real OT</div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">Horas Paro</div>
+                <div class="value" id="kpiParo">—</div>
+                <div class="delta" id="kpiParoSub"></div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">Cant. Producida</div>
+                <div class="value" id="kpiEM">—</div>
+                <div class="delta">cant. total OTs en rango</div>
+            </div>
+        </section>
+
+        <section class="charts">
+            <div class="card full">
+                <h3>Tendencia: Real vs. Plan vs. Paro</h3>
+                <div class="chart-box trend-box">
+                    <canvas id="chartTrend"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Horas reales por recurso</h3>
+                <div class="chart-box small-chart">
+                    <canvas id="chartRec"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>Utilización 24h por recurso</h3>
+                <div class="chart-box small-chart">
+                    <canvas id="chartUtil"></canvas>
+                </div>
+            </div>
+
+            <div class="card full">
+                <h3>Detalle por OT / Posición / Recurso</h3>
+
+                <div class="table-wrap">
+                    <table id="tabla">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>OT</th>
+                                <th>Pos</th>
+                                <th>Item</th>
+                                <th>Descripción Item</th>
+                                <th>UoM</th>
+                                <!-- <th>Recurso</th> -->
+                                <th>Máquina</th>
+                                <th>Estado OT</th>
+                                <th class="num">Cant.Plan</th>
+                                <th class="num">Cant.Hecha</th>
+                                <th class="num">H.Plan</th>
+                                <th class="num">H.Real Día</th>
+                                <th class="num">H.Real Rango</th>
+                                <th class="num">H.Real OT</th>
+                                <th class="num">P×T Plan</th>
+                                <th class="num">P×T Real</th>
+                                <th class="num">Efic.Día</th>
+                                <th class="num">Efic.Rango</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const fmt = n => {
+            if (n === null || n === undefined || isNaN(n)) return '—';
+            return Number(n).toLocaleString('es-GT', { maximumFractionDigits: 2 });
+        };
+
+        const fmtPct = n => {
+            if (n === null || n === undefined || isNaN(n)) return '—';
+            return (Number(n) * 100).toFixed(1) + '%';
+        };
+
+        const $ = id => document.getElementById(id);
+
+        let raw = [];
+        let charts = {};
+
+        function isoWeek(d) {
+            const date = new Date(d);
+            date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+            const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+            const wk = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+            return date.getUTCFullYear() + '-W' + String(wk).padStart(2, '00');
+        }
+
+        function effClass(pct) {
+            if (pct === null || pct === undefined || isNaN(pct)) return '';
+            if (pct >= 90) return 'eff-good';
+            if (pct >= 60) return 'eff-warn';
+            return 'eff-bad';
+        }
+
+        function destroyCharts() {
+            Object.values(charts).forEach(c => {
+                if (c) c.destroy();
+            });
+
+            charts = {};
+        }
+
+        function initDates() {
+            const today = new Date();
+            const past = new Date();
+
+            past.setDate(today.getDate() - 30);
+
+            $('to').value = today.toISOString().slice(0, 10);
+            $('from').value = past.toISOString().slice(0, 10);
+        }
+
+        async function load() {
+
+            const from = $('from').value;
+            const to = $('to').value;
+            const empresa = $('empresa').value;
+
+            if (!from || !to) {
+                $('status').textContent =
+                    'Selecciona fecha desde y hasta.';
+                return;
+            }
+
+            $('status').textContent = 'Cargando…';
+
+            document.body.classList.add('loading');
+
+            try {
+
+                var urlGetData = '@Url.Action("GetData", "Dashboard")';
+
+                const url =
+                    urlGetData + `?from=${encodeURIComponent(from)}`
+                    + `&to=${encodeURIComponent(to)}`
+                    + `&empresa=${encodeURIComponent(empresa)}`;
+
+                const r = await fetch(url, {
+                    cache: 'no-store'
+                });
+
+                if (!r.ok) {
+
+                    const errorText = await r.text();
+
+                    throw new Error(
+                        'Error ' + r.status + ': ' + errorText
+                    );
+                }
+
+                const j = await r.json();
+
+                raw = Array.isArray(j.rows)
+                    ? j.rows
+                    : [];
+
+                $('status').textContent =
+                    `${raw.length} filas · ${empresa} · rango ${from} → ${to}`;
+
+                render();
+
+            }
+            catch (err) {
+
+                console.error(err);
+
+                $('status').textContent =
+                    'Error: ' + err.message;
+            }
+            finally {
+
+                document.body.classList.remove('loading');
+            }
+        }
+
+        function render() {
+            if (raw.length === 0) {
+                ['kpiReal', 'kpiPlan', 'kpiCump', 'kpiEf', 'kpiParo', 'kpiEM']
+                    .forEach(id => $(id).textContent = '—');
+
+                $('kpiRealSub').textContent = '';
+                $('kpiPlanSub').textContent = '';
+                $('kpiParoSub').textContent = '';
+                $('tabla').querySelector('tbody').innerHTML = '';
+
+                destroyCharts();
+                return;
+            }
+
+            renderKpis();
+            drawTrend();
+            drawByResource();
+            drawUtil();
+            fillTable();
+        }
+
+        // ─── CAMBIO: todas las referencias de columna actualizadas a la nueva consulta ───
+        function renderKpis() {
+            // CAMBIO: HorasRealesDia → "Hora Real Día"
+            const sumReal = raw.reduce((a, r) => a + (+r["Hora Real Día"] || 0), 0);
+
+            // CAMBIO: HorasPlanificadas → "Hora Plan" | HorasRealesOT → "Hora Real OT"
+            // Se desduplicad por OT+Posicion+Recurso para evitar doble conteo
+            const planMap = {};
+            raw.forEach(r => {
+                const k = `${r.OT}|${r.PosicionOT}|${r.CodigoRecurso}`;
+                if (!(k in planMap)) {
+                    planMap[k] = {
+                        plan:   +r["Hora Plan"]     || 0,
+                        realOT: +r["Hora Real OT"]  || 0
+                    };
+                }
+            });
+
+            const sumPlan   = Object.values(planMap).reduce((a, o) => a + o.plan,   0);
+            const sumRealOT = Object.values(planMap).reduce((a, o) => a + o.realOT, 0);
+
+            // CAMBIO: IngresoEM eliminado → "Cantidad Hecha" (total acumulado por OT+Posicion)
+            // Se desduplicad por OT+Posicion porque CantidadRealTotal ya es el total de la OT
+            const cantMap = {};
+            raw.forEach(r => {
+                if (r["Cantidad Hecha"] !== null && r["Cantidad Hecha"] !== undefined) {
+                    const k = `${r.OT}|${r.PosicionOT}`;
+                    cantMap[k] = +r["Cantidad Hecha"] || 0;
+                }
+            });
+            const sumCant = Object.values(cantMap).reduce((a, v) => a + v, 0);
+
+            // Paro estimado: 24h - horas reales por recurso·día (igual que antes)
+            const recDiaMap = {};
+            raw.forEach(r => {
+                const k = `${String(r.Fecha).slice(0, 10)}|${r.CodigoRecurso}`;
+                recDiaMap[k] = (recDiaMap[k] || 0) + (+r["Hora Real Día"] || 0);
+            });
+
+            const sumParo = Object.values(recDiaMap)
+                .reduce((a, h) => a + Math.max(24 - h, 0), 0);
+
+            $('kpiReal').textContent    = fmt(sumReal) + ' h';
+            $('kpiRealSub').textContent = `${raw.length} registros`;
+
+            $('kpiPlan').textContent    = fmt(sumPlan) + ' h';
+            $('kpiPlanSub').textContent = sumPlan ? `Δ ${fmt(sumReal - sumPlan)} h vs real` : '';
+
+            $('kpiCump').textContent = sumPlan   ? fmtPct(sumReal   / sumPlan)   : '—';
+            $('kpiEf').textContent   = sumRealOT ? fmtPct(sumPlan   / sumRealOT) : '—';
+
+            $('kpiParo').textContent    = fmt(sumParo) + ' h';
+            $('kpiParoSub').textContent = `${Object.keys(recDiaMap).length} recurso·días`;
+
+            $('kpiEM').textContent = fmt(sumCant);
+        }
+
+        // ─── CAMBIO: referencias de columna en drawTrend ───
+        function drawTrend() {
+            const bucket = $('bucket').value;
+            const agg = {};
+            const planSeen = new Set();
+
+            raw.forEach(r => {
+                const key = bucket === 'week'
+                    ? isoWeek(r.Fecha)
+                    : String(r.Fecha).slice(0, 10);
+
+                if (!agg[key]) {
+                    agg[key] = { real: 0, plan: 0, recDia: {} };
+                }
+
+                // CAMBIO: HorasRealesDia → "Hora Real Día"
+                agg[key].real += (+r["Hora Real Día"] || 0);
+
+                // CAMBIO: HorasPlanificadas → "Hora Plan"
+                const planKey = `${key}|${r.OT}|${r.PosicionOT}|${r.CodigoRecurso}`;
+                if (!planSeen.has(planKey)) {
+                    planSeen.add(planKey);
+                    agg[key].plan += (+r["Hora Plan"] || 0);
+                }
+
+                // CAMBIO: HorasRealesDia → "Hora Real Día"
+                const rk = `${String(r.Fecha).slice(0, 10)}|${r.CodigoRecurso}`;
+                agg[key].recDia[rk] = (agg[key].recDia[rk] || 0) + (+r["Hora Real Día"] || 0);
+            });
+
+            const labels = Object.keys(agg).sort();
+            const real   = labels.map(k => agg[k].real);
+            const plan   = labels.map(k => agg[k].plan);
+            const paro   = labels.map(k =>
+                Object.values(agg[k].recDia).reduce((a, h) => a + Math.max(24 - h, 0), 0)
+            );
+
+            charts.trend?.destroy();
+
+            charts.trend = new Chart($('chartTrend'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Reales',
+                            data: real,
+                            borderColor: '#22d3ee',
+                            backgroundColor: '#22d3ee33',
+                            tension: .3,
+                            pointRadius: 3
+                        },
+                        {
+                            label: 'Planificadas',
+                            data: plan,
+                            borderColor: '#10b981',
+                            backgroundColor: '#10b98133',
+                            tension: .3,
+                            borderDash: [5, 5],
+                            pointRadius: 3
+                        },
+                        {
+                            label: 'Paro 24h',
+                            data: paro,
+                            borderColor: '#ef4444',
+                            backgroundColor: '#ef444433',
+                            tension: .3,
+                            pointRadius: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { labels: { color: '#e2e8f0' } }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#94a3b8', maxRotation: 35, minRotation: 35 },
+                            grid:  { color: '#27344966' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#94a3b8' },
+                            grid:  { color: '#27344966' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ─── CAMBIO: HorasRealesDia → "Hora Real Día" ───
+        function drawByResource() {
+            const agg = {};
+
+            raw.forEach(r => {
+                const k = r.DescripcionRecurso || r.CodigoRecurso || '—';
+                agg[k] = (agg[k] || 0) + (+r["Hora Real Día"] || 0);
+            });
+
+            const pairs = Object.entries(agg)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 15);
+
+            charts.rec?.destroy();
+
+            charts.rec = new Chart($('chartRec'), {
+                type: 'bar',
+                data: {
+                    labels: pairs.map(p => p[0]),
+                    datasets: [{
+                        label: 'Horas reales',
+                        data: pairs.map(p => p[1]),
+                        backgroundColor: '#22d3ee'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { color: '#94a3b8' },
+                            grid:  { color: '#27344966' }
+                        },
+                        y: {
+                            ticks: { color: '#94a3b8' },
+                            grid:  { color: '#27344966' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ─── CAMBIO: HorasRealesDia → "Hora Real Día" ───
+        function drawUtil() {
+            const map = {};
+
+            raw.forEach(r => {
+                const rec   = r.DescripcionRecurso || r.CodigoRecurso || '—';
+                const fecha = String(r.Fecha).slice(0, 10);
+                const dk    = fecha + '|' + r.CodigoRecurso;
+
+                if (!map[rec]) {
+                    map[rec] = { real: {}, dias: new Set() };
+                }
+
+                // CAMBIO: HorasRealesDia → "Hora Real Día"
+                map[rec].real[dk] = (map[rec].real[dk] || 0) + (+r["Hora Real Día"] || 0);
+                map[rec].dias.add(fecha);
+            });
+
+            const pairs = [];
+
+            Object.entries(map).forEach(([rec, v]) => {
+                const totReal = Object.values(v.real).reduce((a, h) => a + h, 0);
+                const dispo   = v.dias.size * 24;
+
+                if (dispo > 0) {
+                    pairs.push([rec, +(totReal / dispo * 100).toFixed(1)]);
+                }
+            });
+
+            pairs.sort((a, b) => b[1] - a[1]);
+            const top = pairs.slice(0, 15);
+
+            charts.util?.destroy();
+
+            charts.util = new Chart($('chartUtil'), {
+                type: 'bar',
+                data: {
+                    labels: top.map(p => p[0]),
+                    datasets: [{
+                        label: '% Utilización',
+                        data: top.map(p => p[1]),
+                        backgroundColor: top.map(p =>
+                            p[1] >= 70 ? '#10b981' : p[1] >= 40 ? '#f59e0b' : '#ef4444'
+                        )
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            min: 0, max: 100,
+                            ticks: { color: '#94a3b8', callback: v => v + '%' },
+                            grid:  { color: '#27344966' }
+                        },
+                        y: {
+                            ticks: { color: '#94a3b8' },
+                            grid:  { color: '#27344966' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ─── CAMBIO: todas las columnas de la tabla actualizadas ───
+        function fillTable() {
+            const tb = $('tabla').querySelector('tbody');
+            tb.innerHTML = '';
+
+            raw.slice(0, 500).forEach(r => {
+                const tr = document.createElement('tr');
+
+                // CAMBIO: PctEficiencia → "Eficiencia Dia"
+                const efDia   = +r["Eficiencia Dia"];
+                const efRango = r["Eficiencia Rango"];
+                const cls     = effClass(efDia);
+
+                // CAMBIO: estado para colorear
+                const estadoCls = (r.EstadoOT || '').toLowerCase() === 'cerrada'
+                    ? 'estado-cerrada'
+                    : 'estado-abierta';
+
+                tr.innerHTML = `
+                    <td>${String(r.Fecha || '').slice(0, 10)}</td>
+                    <td>${r.OT          ?? ''}</td>
+                    <td>${r.PosicionOT  ?? ''}</td>
+                    <td>${r.ItemID      ?? ''}</td>
+                    <td>${r.DescripcionItem ?? ''}</td>
+                    <td>${r.UnidadMedida   ?? ''}</td>
+                    <td>${r.DescripcionRecurso ?? ''}</td>
+                    <td class="${estadoCls}">${r.EstadoOT ?? ''}</td>
+                    <td class="num">${fmt(r["Cantidad Planeada"])}</td>
+                    <td class="num">${fmt(r["Cantidad Hecha"])}</td>
+                    <td class="num">${fmt(r["Hora Plan"])}</td>
+                    <td class="num">${fmt(r["Hora Real Día"])}</td>
+                    <td class="num">${fmt(r["Hora Real Rango"])}</td>
+                    <td class="num">${fmt(r["Hora Real OT"])}</td>
+                    <td class="num">${fmt(r["Pieza*turnoPlan"])}</td>
+                    <td class="num">${fmt(r["Pieza*turnoReal"])}</td>
+                    <td class="num ${cls}">${isNaN(efDia)  ? '' : fmt(efDia)   + '%'}</td>
+                    <td class="num">${efRango != null       ? fmt(efRango) + '%' : ''}</td>
+                `;
+
+                tb.appendChild(tr);
+            });
+
+            if (raw.length > 500) {
+                const tr = document.createElement('tr');
+                // CAMBIO: colspan actualizado de 14 → 19 (columnas nuevas)
+                tr.innerHTML = `
+                    <td colspan="19" style="text-align:center;color:#94a3b8">
+                        Mostrando 500 de ${raw.length} filas
+                    </td>
+                `;
+                tb.appendChild(tr);
+            }
+        }
+
+        $('refresh').addEventListener('click', load);
+        $('empresa').addEventListener('change', load);
+
+        $('bucket').addEventListener('change', () => {
+            if (raw.length > 0) {
+                drawTrend();
+            }
+        });
+
+        initDates();
+        load();
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,277 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Recibo>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Recibo Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Recibo")">
+        Nuevo Pedido Delivery
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear_Tienda", "Recibo")">
+        Nueva Venta en Tienda
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@(ViewBag.fechaInicial == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaInicial)" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@(ViewBag.fechaFinal == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaFinal)" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<form action="" method="get">
+    <div class="row">       
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Busqueda de Recibos
+                </label>
+                <input type="text" placeholder="No. del Recibo" class="form-control" id="recibo" name="recibo" value="@Html.Raw(ViewBag.recibo)" autocomplete="off" />
+            </div>
+        </div>
+        <button class="btn btn-primary" style="margin-bottom: -58px;" type="submit">
+            <i class="clip-search-3"></i> Buscar
+        </button>       
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Recibo
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>    
+                            <th>Agencia</th>     
+                            <th>Recibo</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Productos</th>                           
+                            <th>U. Creo</th>
+                            <th>U. Despacho</th>
+                            <th>Transporte</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Recibo in Model)
+                        {
+                        <tr>
+                            <td>@(Recibo.Agencia == null ? "No Disponible" : Recibo.Agencia.Nombre)</td>
+                            <td>@Recibo.ReciboId</td>
+                            <td>@Recibo.Fecha.ToString("dd/MM/yyyy")</td>
+                            <td>@(Recibo.FechaHoraRecibo == null ? "00:00" : Recibo.FechaHoraRecibo.Value.ToString("hh:mm tt"))</td>
+                            <td>@(Recibo.Cliente == null ? "No Disponible" : Recibo.Cliente.Nombre)</td>
+                            <td>@(Recibo.Detalles == null ? 0 : (Recibo.Anulada ? 0 : Recibo.Detalles.Count()))</td>
+                            <td>@(Recibo.UsuarioCreo == null ? "NA" : Recibo.UsuarioCreo.Nombre)</td>
+                            <td>@(Recibo.UsuarioDespacho == null ? "NA" : Recibo.UsuarioDespacho.Nombre)</td>
+                            <td>@(Recibo.Transporte == null ? "NA" : Recibo.Transporte.Nombre)</td>
+                            <td>@(Recibo.Detalles == null ? "Q0.0000" : (Recibo.Anulada ? "Q0.0000" : Recibo.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4")))</td>
+                            <td class="center">
+                                <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                    @if (!Recibo.Anulada)
+                                    {
+                                        <a href="@Url.Action("Editar_Cliente", "Recibo", new { id = Recibo.ReciboId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                        <a href="@Url.Action("Anular", "Recibo", new { id = Recibo.ReciboId })" c class="btn btn-bricky tooltips" data-placement="top" data-original-title="Anular Recibo"><i class="clip-close"></i></a>
+                                    }
+                                    <a href="@Url.Action("Detalle", "Recibo", new { id = Recibo.ReciboId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Recibo"><i class="clip-stack-empty"></i></a>
+                                    @if (!Recibo.Anulada)
+                                    {
+                                        <a href="@Url.Action("Boleta", "Recibo", new { id = Recibo.ReciboId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Recibo"><i class="clip-file-pdf"></i></a>
+                                    }
+                                    @if (!Recibo.Factura)
+                                    {
+                                        <a href="@Url.Action("Generar_Factura", "Recibo", new { id = Recibo.ReciboId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Generar Factura"><i class="clip-checkmark-2"></i></a>
+                                        <a href="@Url.Action("Generar_Factura_CAM", "Recibo", new { id = Recibo.ReciboId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Generar Factura Cambiaria"><i class="clip-checkmark-2"></i></a>
+                                    }
+                                    @if (Recibo.Factura)
+                                    {
+                                        <a href="http://104.225.140.235/ServiciosRAGA/SmartJirehReportes/Factura?factid=@Recibo.ReciboId" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="IMPRESION FEEL"><i class="clip-file-pdf"></i></a>
+                                    }
+                                    @if (Recibo.Factura && Recibo.FEL)
+                                    {
+                                        <a href="javascript:void(0);" onclick="enviarCorreo(@Recibo.ReciboId)" class="btn btn-teal tooltips" data-placement="top" data-original-title="ENVIAR FEEL"><i class="clip-paperplane"></i></a>
+                                    }
+                                </div>
+                                <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                    <div class="btn-group">
+                                        <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                            <i class="icon-cog"></i> <span class="caret"></span>
+                                        </a>
+                                        <ul role="menu" class="dropdown-menu pull-right">
+                                            @if (!Recibo.Anulada)
+                                            {
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Editar_Cliente", "Recibo", new { id = Recibo.ReciboId })">
+                                                        <i class="icon-edit"></i> Editar
+                                                    </a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Anular", "Recibo", new { id = Recibo.ReciboId })">
+                                                        <i class="clip-close"></i> Anular Recibo
+                                                    </a>
+                                                </li>
+                                            }
+                                            <li role="presentation">
+                                                <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Recibo", new { id = Recibo.ReciboId })">
+                                                    <i class="clip-stack-empty"></i> Detalle del Recibo
+                                                </a>
+                                            </li>
+                                            @if (!Recibo.Anulada)
+                                            {
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Recibo", new { id = Recibo.ReciboId })" target="_blank">
+                                                        <i class="clip-file-pdf"></i> Ver Recibo
+                                                    </a>
+                                                </li>
+
+                                            }
+                                            @if (!Recibo.Factura)
+                                            {
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Generar_Factura", "Recibo", new { id = Recibo.ReciboId })">
+                                                        <i class="clip-checkmark-2"></i> Generar Factura
+                                                    </a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Generar_Factura_CAM", "Recibo", new { id = Recibo.ReciboId })">
+                                                        <i class="clip-checkmark-2"></i> Generar Factura Cambiaria
+                                                    </a>
+                                                </li>
+                                            }
+                                            @if (Recibo.Factura)
+                                            {
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="http://104.225.140.235/ServiciosRAGA/SmartJirehReportes/Factura?factid=@Recibo.ReciboId" target="_blank">
+                                                        <i class="clip-file-pdf"></i> IMPRESION FEEL
+                                                    </a>
+                                                </li>
+
+                                            }
+                                            @if (Recibo.Factura && Recibo.FEL)
+                                            {
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="javascript:void(0);" onclick="enviarCorreo(@Recibo.ReciboId)">
+                                                        <i class="clip-paperplane"></i> ENVIAR FEEL
+                                                    </a>
+                                                </li>
+                                            }
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { FechaInicial = ViewBag.fechaInicial, FechaFinal = ViewBag.fechaFinal, recibo = ViewBag.recibo, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        var reciboSuccess = '@TempData["Recibo-Success"]';
+        var reciboAnularSuccess = '@TempData["Recibo_Anular-Success"]';
+
+        function boleta()
+        {
+            var self = this;
+
+            $.post("http://localhost:10000/api/license", function (guid)
+            {
+                console.log("license: " + guid);
+                console.log(self);
+            }, "json")
+
+            return false;
+        }
+
+        $(function ()
+        {
+
+            if (reciboSuccess == "OK") {
+                toastr.success('El recibo se guardó exitosamente');
+            }
+            else if (reciboAnularSuccess == "OK") {
+                toastr.success('El recibo fue anulado exitosamente');
+            }
+
+            $.post("http://localhost:10000/api/license", function (guid) {
+                $('[data-license-required]').show();
+            }, "json")
+        });
+
+        function enviarCorreo(id)
+        {
+            $.ajax({
+                url: '@Url.Action("EnviarCorreo", "Recibo")',
+                data: { 'id': id },
+                async: false,
+                type: 'POST',
+                success: function (data)
+                {
+                    if (data.Operacion)
+                    {                       
+                        toastr.success('La factura electronica fue enviada exitosamente');
+                    }
+                    else
+                    {
+                        toastr.error('La factura electronica no fue enviada');
+                    }
+                }
+            });
+        }
+    </script>
+}
+
+
+
+

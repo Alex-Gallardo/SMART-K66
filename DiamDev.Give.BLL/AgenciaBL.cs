@@ -8,7 +8,6 @@ namespace DiamDev.Give.BLL
 {
     public class AgenciaBL
     {
-
         #region Variables Globales
 
             private GiveContext db;
@@ -43,15 +42,14 @@ namespace DiamDev.Give.BLL
                     Id = Inicial_Id;
                 }
                 catch (Exception)
-                {
-                }
+                {}
 
                 return Id;
             }
 
-            private bool Agregar(Agencia entidad)
+            private string Agregar(Agencia entidad)
             {
-                bool AgenciaAgregar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -68,40 +66,47 @@ namespace DiamDev.Give.BLL
                             entidad.Fecha = DateTime.Today;
 
                             db.Set<Agencia>().Add(entidad);
-                            db.SaveChanges();
-                            AgenciaAgregar = true;
+                            db.SaveChanges();                           
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return AgenciaAgregar;
+                return Mensaje;
             }
 
-            private bool Actualizar(Agencia entidad)
+            private string Actualizar(Agencia entidad)
             {
-                bool AgenciaActualizar = false;
+                string Mensaje = "OK";
 
                 try
                 {
                     Agencia AgenciaActual = ObtenerPorId(entidad.AgenciaId);
 
                     if (AgenciaActual.AgenciaId > 0)
-                    {
+                    {                        
+                        AgenciaActual.CodigoEstablecimiento = entidad.CodigoEstablecimiento;
                         AgenciaActual.Nombre = entidad.Nombre;
+                        AgenciaActual.Direccion = entidad.Direccion;
+                        AgenciaActual.EsDeliveryDomicilio = entidad.EsDeliveryDomicilio;
                         AgenciaActual.Activo = entidad.Activo;
 
                         db.SaveChanges();
-                        AgenciaActualizar = true;
+                    }
+                    else
+                    {
+                        Mensaje = "La agencia seleccionada no se encuentra con ID valido";
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return AgenciaActualizar;
+                return Mensaje;
             }
 
 
@@ -112,21 +117,15 @@ namespace DiamDev.Give.BLL
             public string Guardar(Agencia entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
-
+               
                 if (entidad.AgenciaId > 0)
                 {
-                    OperacionExitosa = Actualizar(entidad);
+                    Mensaje = Actualizar(entidad);
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
-                }
-
-                if (!OperacionExitosa)
-                {
-                    Mensaje = "La información ingresada no es valida";
-                }
+                    Mensaje = Agregar(entidad);
+                }            
 
                 return Mensaje;
             }
@@ -140,8 +139,7 @@ namespace DiamDev.Give.BLL
                     AgenciaActual = db.Set<Agencia>().Where(x => x.AgenciaId == id).FirstOrDefault();
                 }
                 catch (Exception)
-                {
-                }
+                {}
 
                 return AgenciaActual;
             }
@@ -156,28 +154,27 @@ namespace DiamDev.Give.BLL
                     {
                         if (usuarioId == 0)
                         {
-                            Agencias = db.Set<Agencia>().OrderByDescending(x => x.Fecha).ThenByDescending(x => x.AgenciaId).Take(200).ToList();
+                            Agencias = db.Set<Agencia>().AsNoTracking().OrderByDescending(x => x.Fecha).ThenByDescending(x => x.AgenciaId).Take(200).ToList();
                         }
                         else
                         {
-                            List<long> AgenciasIds = db.Set<UsuarioAgencia>().Where(x => x.UsuarioId == usuarioId).Select(x => x.AgenciaId).ToList();
+                            List<long> AgenciasIds = db.Set<UsuarioAgencia>().AsNoTracking().Where(x => x.UsuarioId == usuarioId).Select(x => x.AgenciaId).ToList();
                             if (AgenciasIds != null && AgenciasIds.Count() > 0)
                             {
-                                Agencias = db.Set<Agencia>().Where(x => AgenciasIds.Contains(x.AgenciaId)).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.AgenciaId).Take(200).ToList();
+                                Agencias = db.Set<Agencia>().AsNoTracking().Where(x => AgenciasIds.Contains(x.AgenciaId)).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.AgenciaId).Take(200).ToList();
                             }
                         }
                     }
                     else
                     {
-                        Agencias = db.Set<Agencia>().Where(x => x.Activo == true).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.AgenciaId).ToList();
+                        Agencias = db.Set<Agencia>().AsNoTracking().Where(x => x.Activo == true).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.AgenciaId).ToList();
                     }
                 }
                 catch (Exception)
-                {
-                }
+                {}
 
                 return Agencias;
-            }
+            }          
 
             public List<Agencia> Buscar(string search, long usuarioId = 0)
             {
@@ -187,20 +184,19 @@ namespace DiamDev.Give.BLL
                 {
                     if (usuarioId == 0)
                     {
-                        Agencias = db.Set<Agencia>().Where(x => x.Nombre.Contains(search)).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.AgenciaId).Take(200).ToList();
+                        Agencias = db.Set<Agencia>().Include("Empresa").AsNoTracking().Where(x => x.Nombre.Contains(search)).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.AgenciaId).Take(200).ToList();
                     }
                     else
                     {
-                        List<long> AgenciasIds = db.Set<UsuarioAgencia>().Where(x => x.UsuarioId == usuarioId).Select(x => x.AgenciaId).ToList();
+                        List<long> AgenciasIds = db.Set<UsuarioAgencia>().AsNoTracking().Where(x => x.UsuarioId == usuarioId).Select(x => x.AgenciaId).ToList();
                         if (AgenciasIds != null && AgenciasIds.Count() > 0)
                         {
-                            Agencias = db.Set<Agencia>().Where(x => (AgenciasIds.Contains(x.AgenciaId)) && (x.Nombre.Contains(search))).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.AgenciaId).Take(200).ToList();
+                            Agencias = db.Set<Agencia>().Include("Empresa").AsNoTracking().Where(x => (AgenciasIds.Contains(x.AgenciaId)) && (x.Nombre.Contains(search))).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.AgenciaId).Take(200).ToList();
                         }
                     }
                 }
                 catch (Exception)
-                {
-                }
+                {}
 
                 return Agencias;
             }
@@ -214,6 +210,32 @@ namespace DiamDev.Give.BLL
                     Agencias = db.Set<Agencia>().Where(x => (x.Activo == true) && !(x.AgenciaId == agenciaId)).ToList();
                 }
                 catch (Exception)
+                {}
+
+                return Agencias;
+            }
+
+            public List<Agencia> ObtenerListadoPorUsuario(long? usuarioId = null)
+            {
+                List<Agencia> Agencias = new List<Agencia>();
+
+                try
+                {
+                    if (usuarioId.HasValue)
+                    {
+                        var AgenciaIds = db.Set<UsuarioAgencia>().AsNoTracking().Where(x => x.UsuarioId == usuarioId).Select(x => x.AgenciaId).ToList();
+                        if (AgenciaIds != null && AgenciaIds.Count() > 0)
+                        {
+                            Agencias = db.Set<Agencia>().AsNoTracking().Where(x => x.Activo == true && AgenciaIds.Contains(x.AgenciaId)).ToList();
+                        }
+                    }
+                    else
+                    {
+                        Agencias = db.Set<Agencia>().AsNoTracking().Where(x => x.Activo == true).ToList();
+                    }
+
+                }
+                catch (Exception)
                 {
                 }
 
@@ -221,6 +243,5 @@ namespace DiamDev.Give.BLL
             }
 
         #endregion
-
     }
 }

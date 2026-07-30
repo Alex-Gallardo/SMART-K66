@@ -13,8 +13,7 @@
 </div>
 <br />
 <div class="row">
-    <div class="col-md-12">
-        <!-- start: BASIC TABLE PANEL -->
+    <div class="col-md-12">        
         <div class="panel panel-default">
             <div class="panel-heading">
                 <i class="icon-external-link-sign"></i>
@@ -39,6 +38,7 @@
                             <th>F. Ultima Actividad</th>
                             <th>Roles</th>
                             <th>Agencias</th>
+                            <th>Empresas</th>
                             <th>Autenticar Site</th>
                             <th>Autenticar Android</th>
                             <th>Activo</th>
@@ -48,12 +48,13 @@
                     <tbody>
                         @foreach (var Usuario in Model)
                         {
-                            <tr>
+                            <tr>                                
                                 <td>@Usuario.Login</td>
                                 <td>@Usuario.Nombre</td>
                                 <td>@(Usuario.FechaUltimaActividad == null ? "Sin Registro" : Usuario.FechaUltimaActividad.Value.ToString("dd/MM/yyyy hh:mm tt"))</td>
                                 <td>@(Usuario.Roles == null ? 0 : Usuario.Roles.Count())</td>
                                 <td>@(Usuario.Agencias == null ? 0 : Usuario.Agencias.Count())</td>
+                                <td>@(Usuario.Empresas == null ? 0 : Usuario.Empresas.Count())</td>
                                 <td>@(Usuario.AutenticarSite ? "Sí" : "No")</td>
                                 <td>@(Usuario.AutenticarAndroid ? "Sí" : "No")</td>
                                 <td>@(Usuario.Activo ? "Sí" : "No")</td>
@@ -81,8 +82,7 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-        <!-- end: BASIC TABLE PANEL -->
+        </div>        
     </div>
 </div>
 

@@ -16,14 +16,33 @@
         </div>             
     </div>
 </div>
-<div class="row">  
+<div class="row">
     <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha Nacimiento<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaNacimiento" name="FechaNacimiento" autocomplete="off" value="@Html.Raw(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : (Model.FechaNacimiento == null ? DateTime.Today.ToString("yyyy-MM-dd") : Model.FechaNacimiento.Value.ToString("yyyy-MM-dd")))" required>
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Datos de Contacto</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
         <div class="form-group">
             <label class="control-label">
                 Correo Electrónico
             </label>
             @Html.TextBoxFor(model => model.Email, new { @class = "form-control", @placeholder = "Correo Electrónico", autocomplete = "off" })
-        </div>        
+        </div>
     </div>
 </div>
 <div class="row">
@@ -53,6 +72,167 @@
                 No. de Celular Alterno
             </label>
             @Html.TextBoxFor(model => model.NoCelularAlterno, new { @class = "form-control input-mask-phone", @placeholder = "No. de Celular Alterno", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Documentos</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                DPI
+            </label>
+            @Html.TextBoxFor(model => model.DPI, new { @class = "form-control", @placeholder = "DPI", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Licencia de Vehiculo
+            </label>
+            @Html.TextBoxFor(model => model.LicenciaVehiculo, new { @class = "form-control", @placeholder = "No. de Licencia de Vehiculo", autocomplete = "off" })
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Nit (-)
+            </label>
+            @Html.TextBoxFor(model => model.Nit, new { @class = "form-control", @placeholder = "Nit", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Licencia de Moto
+            </label>
+            @Html.TextBoxFor(model => model.LicenciaMoto, new { @class = "form-control", @placeholder = "No. de Licencia de Moto", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Datos Laborales</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Puesto<span class="symbol required"></span>
+            </label>
+            @Html.DropDownList("PuestoId", (SelectList)ViewBag.Puestos, "--Seleccione un Puesto--", new { @class = "form-control search-select required" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Banco
+            </label>
+            @Html.DropDownList("BancoId", (SelectList)ViewBag.Bancos, "--Seleccione un Banco--", new { @class = "form-control search-select" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                No. Contrato
+            </label>
+            @Html.TextBoxFor(model => model.Contrato, new { @class = "form-control", @placeholder = "No. de Contrato", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Descuento IGSS?
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.DescuentoSi name="descuento" id="DescuentoSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.DescuentoNo name="descuento" id="DescuentoNo">
+                    No
+                </label>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Planilla
+            </label>
+            @Html.TextBoxFor(model => model.Planilla, new { @class = "form-control", @placeholder = "No. de Cuenta", autocomplete = "off" })
+        </div> 
+        <div class="form-group">
+            <label class="control-label">
+                No. Afiliación IGSS
+            </label>
+            @Html.TextBoxFor(model => model.NoAfiliacionIGSS, new { @class = "form-control", @placeholder = "No. Afiliación IGSS", autocomplete = "off" })
+        </div>       
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha Ingreso<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaIngreso" name="FechaIngreso" autocomplete="off" value="@Html.Raw(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : (Model.FechaIngreso == null ? DateTime.Today.ToString("yyyy-MM-dd") : Model.FechaIngreso.Value.ToString("yyyy-MM-dd")))" required>
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Fecha Egreso
+            </label>
+            <div class="input-group">
+                <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaEgreso" name="FechaEgreso" autocomplete="off" value="@Html.Raw(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : (Model.FechaEgreso == null ? DateTime.Today.ToString("yyyy-MM-dd") : Model.FechaEgreso.Value.ToString("yyyy-MM-dd")))">
+                <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Motivo de Egreso
+            </label>
+            @Html.TextAreaFor(model => model.MotivoEgreso, new { @class = "form-control", @placeholder = "Motivo de Egreso", autocomplete = "off" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Salarios</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Sueldo Base<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                @Html.TextBoxFor(model => model.Sueldo, new { @class = "form-control", @placeholder = "Sueldo Base", required = "required", autocomplete = "off" })
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Bonificación<span class="symbol required"></span>
+            </label>
+            <div class="input-group">
+                <span class="input-group-addon">Q</span>
+                @Html.TextBoxFor(model => model.Bonificacion, new { @class = "form-control", @placeholder = "Bonificación", required = "required", autocomplete = "off" })
+            </div>
         </div>
     </div>
 </div>

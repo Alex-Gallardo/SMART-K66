@@ -16,6 +16,12 @@ namespace DiamDev.Give.Entities
         [Column("Vendedor_Id")]
         public long VendedorId { get; set; }
 
+        [Column("Empresa_Id")]
+        public long? EmpresaId { get; set; }
+
+        [ForeignKey("EmpresaId")]
+        public Empresa Empresa { get; set; }
+
         [StringLength(300)]
         [Required(ErrorMessage = "El nombre del vendedor es requerido")]
         public string Nombre { get; set; }
@@ -27,5 +33,14 @@ namespace DiamDev.Give.Entities
         public int Correlativo { get; set; }
 
         public List<VendedorAgencia> Agencias { get; set; }
+
+        public List<VendedorEscala> Escalas { get; set; }
+
+        public List<VendedorMeta> Metas { get; set; }
+
+        public List<VendedorMetaxDia> MetasxDia { get; set; }
+
+        [NotMapped]
+        public long ResponsableId { get; set; }
     }
 }

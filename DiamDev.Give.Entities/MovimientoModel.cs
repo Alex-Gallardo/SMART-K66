@@ -10,6 +10,8 @@ namespace DiamDev.Give.Entities
     {
         public long MovimientoId { get; set; }
 
+        public string Categoria { get; set; }
+
         public string Agencia { get; set; }
 
         public long Id { get; set; }
@@ -27,5 +29,11 @@ namespace DiamDev.Give.Entities
         public string Usuario { get; set; }
 
         public string Forma { get; set; }
+       
+        public DateTime Fecha { get; set; }
+
+        public decimal Cantidad { get; set; }
+
+        public decimal Precio { get; set; }
     }
 }

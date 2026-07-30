@@ -6,6 +6,7 @@ using Sistema.Seguridad;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.Security;
@@ -28,13 +29,11 @@ namespace DiamDev.Give.UI.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Login(LoginModel model, string returnUrl)
         {
-
             if (ModelState.IsValid)
             {
 
                 try
                 {
-
                     string Token = string.Concat(model.Usuario, model.Password, model.Usuario);
                     string Key = Criptografia.Base64StringAHexString(Criptografia.EncriptarSha512(Token));
                     string Mensaje = new UsuarioBL().ValidarUsuario(model.Usuario, Key, model.Password);
@@ -46,32 +45,46 @@ namespace DiamDev.Give.UI.Controllers
 
                         CustomHelper.getUserName(model.Usuario);
 
-                        if (!UsuarioActual.ReiniciarPassword)
+                        if (UsuarioActual.Agencias.Count() == 1)
                         {
-                            if (UsuarioActual.Agencias != null && UsuarioActual.Agencias.Count() > 0)
-                            {
-                                if (UsuarioActual.Agencias.Count() == 1)
-                                {
-                                    Agencia AgenciaActual = UsuarioActual.Agencias[0].Agencia;
-                                    CustomHelper.setAgencia(AgenciaActual);
+                            Agencia AgenciaActual = UsuarioActual.Agencias[0].Agencia;
+                            CustomHelper.setAgencia(AgenciaActual);
+                        }
 
-                                    return RedirectToAction("Dashboard", "Inicio");
+                        if (UsuarioActual.Token)
+                        {
+                            try
+                            {
+                                if (!string.IsNullOrWhiteSpace(UsuarioActual.Celular))
+                                {                                    
+                                    Configuracion ConfiguracionSMS = new ConfiguracionBL().ObtenerPorId(20210308001);
+                                    if (ConfiguracionSMS != null)
+                                    {
+                                        //GENERA CODIGO
+                                        int num = new Random().Next(1000, 9999);
+                                        string MensajeSMS = string.Format("TOKEN DE K66 ES: {0}", num);
+
+                                        String servidor = "https://api.sms.to/sms/send?api_key=" + ConfiguracionSMS.Valor + "&to=" + string.Format("+502{0}", UsuarioActual.Celular.Replace("-","")) + "&message=" + MensajeSMS + "&sender_id=smsto";
+
+                                        WebClient client = new WebClient();
+                                        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                                        string reply = client.DownloadString(servidor);
+
+                                        return RedirectToAction("Token", new { id = num });
+                                    }                                   
                                 }
                                 else
                                 {
-                                    return RedirectToAction("Agencias", "Inicio");
+                                    ModelState.AddModelError("", "El usuario no contiene configurado el #telefono.");
                                 }
                             }
-                            else
-                            {
-                                return RedirectToAction("Dashboard", "Inicio");
-                            }
+                            catch (Exception)
+                            { }
                         }
                         else
                         {
-                            return RedirectToAction("ReiniciarPassword", new { id = UsuarioActual.UsuarioId });
+                            return RedirectToAction("Dashboard", "Inicio");
                         }
-
                     }
 
                 }
@@ -84,6 +97,26 @@ namespace DiamDev.Give.UI.Controllers
             }
 
             ModelState.AddModelError("", "El usuario o la clave son incorrectos.");
+            return View(model);
+        }
+
+        public ActionResult Token(int id)
+        {
+            return View(new AutenticarToken() { Token = id });
+        }
+
+        [HttpPost]
+        public ActionResult Token(AutenticarToken model)
+        {
+            if (model.Token == model.ValidarToken)
+            {
+                return RedirectToAction("Dashboard", "Inicio");
+            }
+            else
+            {
+                ModelState.AddModelError("", "El token de K66 ingresado no es valido.");
+            }
+
             return View(model);
         }
 

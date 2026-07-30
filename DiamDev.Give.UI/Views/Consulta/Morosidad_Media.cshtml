@@ -1,0 +1,62 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.ReciboMorosidad>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Morosidad Media";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Morosidad Media
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#Documento</th>
+                            <th>Cliente</th>
+                            <th>Total Documento</th>
+                            <th>Total Pagado</th>
+                            <th>Fecha Documento</th>
+                            <th>Dias</th>
+                            <th>Documento</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Detalle in Model)
+                        {
+                            <tr>
+                                <td>@Detalle.ReciboId</td>
+                                <td>@Detalle.Cliente</td>
+                                <td>@Detalle.Total.ToString("C4")</td>
+                                <td>@Detalle.Pagado.ToString("C4")</td>
+                                <td>@Detalle.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@Detalle.Dias</td>
+                                <td>@(Detalle.Recibo == 0 ? "Factura" : "Recibo")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Morosidad_Media", new { page }))

@@ -19,5 +19,8 @@ namespace DiamDev.Give.Entities
         public string Nombre { get; set; }
 
         public List<RolPermiso> Permisos { get; set; }
+
+        [NotMapped]
+        public List<Permiso> PermisoIds { get; set; }
     }
 }

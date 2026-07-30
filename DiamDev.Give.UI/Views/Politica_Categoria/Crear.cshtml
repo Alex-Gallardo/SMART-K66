@@ -1,0 +1,187 @@
+﻿@model DiamDev.Give.Entities.PoliticaCategoria
+
+@{
+    ViewBag.Title = "Nueva Política Categoría";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nueva Política Categoría
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i> Nueva Política Categoría</h2>
+                <p>
+                    Crea un nueva política categoría.
+                </p>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>                        
+                    </div>
+                    @Html.Partial("_CreateOrEdit")                    
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="submit">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+@section Scripts
+{
+    <script src="~/Scripts/mustache.js"></script>
+    <script type="text/html" id="politica_tr_template">
+        <tr>
+            <td>{{politica}}</td>         
+            <td>
+                <a href="javascript:void(0)" title="Eliminar" class="btn btn-eliminar"><i class="clip-remove"></i></a>
+                <input type="hidden" name="politicaIdIds" value="{{politica_id}}" />
+                <input type="hidden" name="politicaIds" value="{{politica}}" />               
+            </td>
+        </tr>
+    </script>
+
+    <script type="text/javascript">
+
+        var politicaIdSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.politicaIdIds))');
+        var politicaSeleccionados = JSON.parse('@Html.Raw(Json.Encode(ViewBag.politicaIds))');
+
+        $(function ()
+        {
+            $('#TipoId').change(function (evt)
+            {
+                if ($('#TipoId').val() === "")
+                {
+                    error("Seleccionar un tipo de política");
+                    return;
+                }
+
+                var PoliticaSelect = $("#PoliticaId");
+                PoliticaSelect.empty();
+                PoliticaSelect.append('<option value="0">--Seleccione una Política--</option>');
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerPoliticas", "Politica")',
+                    traditional: true,
+                    async: false,
+                    data: { 'tipoId': $('#TipoId').val() },
+                    type: 'GET',
+                    success: function (data) {
+                        $.each(data, function (j) {
+                            PoliticaSelect.append($("<option></option>").attr("value", data[j]['Value']).text(data[j]['Text']));
+                        });
+                    }
+                });
+            });
+
+            function error(texto)
+            {
+                toastr.error(texto);
+            }
+
+            function cargaPolitica(politica_id, politica)
+            {
+                var plantilla = $('#politica_tr_template').html();
+
+                var modelo =
+                {
+                    politica_id: politica_id,
+                    politica: politica
+                };
+
+                var filaHtml = Mustache.render(plantilla, modelo);
+
+                // agregamos la nueva fila a la tabla.
+                $('#politica_tbody').append(filaHtml);
+            }
+
+            renderizarPoliticasIniciales();
+
+            $('#btn-agregar').click(function (e)
+            {
+                e.preventDefault();
+
+                var politica_id = $('#PoliticaId').val();
+                var politica = $('#PoliticaId option:selected').text();
+
+                if (politica_id === "" || politica === "")
+                {
+                    error("Seleccione una política");
+                    return;
+                }
+
+                cargaPolitica(politica_id, politica);
+               
+                $("#PoliticaId").val(0)              
+                $("#PoliticaId").focus();
+            });
+
+            $('#politica_tbody').delegate("a", "click", function (e)
+            {
+                e.preventDefault();
+                $(this).parent().parent().remove();
+            });
+
+            function renderizarPoliticasIniciales()
+            {
+                if (politicaIdSeleccionados == null)
+                {
+                    return;
+                }
+
+                // recorremos las politicas que haya ingresado el usuario
+                for (var i = 0; i < politicaIdSeleccionados.length; i++)
+                {
+                    var politica_id = politicaIdSeleccionados[i];
+                    var politica = politicaSeleccionados[i];
+                    
+                    cargaPolitica(politica_id, politica);
+                }
+            }
+        });           
+
+    </script>
+}
+
+
+

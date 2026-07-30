@@ -85,7 +85,7 @@
                     <h2>
                         <i class="icon-edit-sign teal"></i>
                         <label class="control-label">
-                            Productos
+                            Productos Origen
                         </label>
                     </h2>
                     <hr>
@@ -96,7 +96,8 @@
                                     <tr>
                                         <th>Producto</th>
                                         <th>Unidad</th>
-                                        <th>Cantidad</th>                                    
+                                        <th>Cantidad</th>
+                                        <th>IDs</th>                                    
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -113,6 +114,9 @@
                                                 </td>
                                                 <td>
                                                     @Detalle.Cantidad
+                                                </td> 
+                                                <td>
+                                                    @Detalle.ID
                                                 </td>                                             
                                             </tr>
                                         }    
@@ -120,7 +124,58 @@
                                     else
                                     {
                                         <tr>
-                                            <td colspan="3">
+                                            <td colspan="4">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos Destino
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>
+                                        <th>Cantidad</th>
+                                        <th>IDs</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.DetallesDestino != null && Model.DetallesDestino.Count() > 0)
+                                    {
+                                        foreach (var Detalle in Model.DetallesDestino)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    @(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, Detalle.Producto.Nombre))
+                                                </td>
+                                                <td>
+                                                    @(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)
+                                                </td>
+                                                <td>
+                                                    @Detalle.Cantidad
+                                                </td>
+                                                <td>
+                                                    @Detalle.ID
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="4">
                                                 <strong>No contiene productos</strong>
                                             </td>
                                         </tr>
@@ -136,7 +191,7 @@
                         </p>
                         <p>
                             <div class="col-md-6">
-                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Traslado")">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
                                     Regresar <i class="icon-prev"></i>
                                 </a>
                             </div>

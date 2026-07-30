@@ -1,0 +1,36 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.CorteCaja>
+
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th>#Corte</th>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Responsable</th>
+            <th>Operador</th>            
+            <th>Gastos</th>
+            <th>Monto</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var Corte in Model)
+        {
+            <tr>
+                <td>@(Corte.CorteId)</td>
+                <td>@Corte.Fecha.ToString("dd/MM/yyyy")</td>
+                <td>@(Corte.FechaHora == null ? "00:00" : Corte.FechaHora.ToString("hh:mm tt"))</td>
+                <td>@(Corte.Responsable == null ? "No Disponible" : Corte.Responsable.Nombre)</td>
+                <td>@(Corte.Opero == null ? "No Disponible" : Corte.Opero.Nombre)</td>
+                <td>@Corte.Gasto.ToString("C4")</td>
+                <td>@Corte.Monto.ToString("C4")</td>
+                <td class="center">
+                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                        <a href="@Url.Action("Corte", "Monitoreo", new { id = Corte.CorteId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Corte de Caja"><i class="clip-file-pdf"></i></a>
+                    </div>                    
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+

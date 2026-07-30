@@ -1,0 +1,152 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.OrdenCompra>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Orden de Compra Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Orden_Compra")">
+        Nueva
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+<br />
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">        
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Orden de Compra
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr> 
+                            <th>#Orden de Compra</th>    
+                            <th>Moneda</th>         
+                            <th class="hidden-sm hidden-xs">Fecha</th>
+                            <th>Proveedor</th>                                                        
+                            <th class="hidden-sm hidden-xs">Productos</th>
+                            <th class="hidden-sm hidden-xs" >Total</th>                                                        
+                            <th class="hidden-sm hidden-xs">U. Creo</th>    
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Orden in Model)
+                        {
+                            <tr>  
+                                <td>@Orden.OrdenId</td>   
+                                <td>@(Orden.Moneda == null ? "No Disponible" : Orden.Moneda.Nombre)</td>                          
+                                <td class="hidden-sm hidden-xs">@Orden.Fecha.ToString("dd/MM/yyyy")</td>                                   
+                                <td>@(Orden.Proveedor == null ? "No Disponible" : Orden.Proveedor.Nombre)</td>                            
+                                <td class="hidden-sm hidden-xs">@(Orden.Detalles == null ? 0 : Orden.Detalles.Count())</td>
+                                <td class="hidden-sm hidden-xs">@(Orden.Detalles == null ? "0.0000" : Orden.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("N4"))</td>
+                                <td class="hidden-sm  hidden-xs">@(Orden.UsuarioCreo == null ? "No Disponible" : Orden.UsuarioCreo.Nombre)</td>    
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        <a href="@Url.Action("Editar", "Orden_Compra", new { id = Orden.OrdenId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                        <a href="@Url.Action("Boleta", "Orden_Compra", new { id = Orden.OrdenId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Orden de Compra"><i class="clip-file-pdf"></i></a>                                       
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Orden_Compra", new { id = Orden.OrdenId })">
+                                                        <i class="icon-edit"></i> Editar
+                                                    </a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Orden_Compra", new { id = Orden.OrdenId })" target="_blank">
+                                                        <i class="clip-file-pdf"></i> Ver Orden de Compra
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>        
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { search = ViewBag.Search, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            if ('@TempData["Orden_Compra-Success"]' == "OK")
+            {
+                toastr.success('La orden de compra se guardó exitosamente');
+            }          
+        });
+    </script>
+}
+
+
+
+

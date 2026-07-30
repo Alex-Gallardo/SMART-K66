@@ -1,0 +1,162 @@
+﻿@model DiamDev.Give.Entities.ProveedorMovimiento
+
+@{
+    ViewBag.Title = "Detalle del Movimiento";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Movimiento
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="MovimientoId" name="MovimientoId" value="@Html.Raw(Model.MovimientoId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Tipo
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Tipo == null ? "No Disponible" : Model.Tipo.Nombre)
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    #Documento
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Documento
+                                </strong>
+                            </div>
+                        </div>                        
+                    </div>                  
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.FechaMovimiento.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Dias de Credito
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.DiasCredito == null ? 0 : Model.DiasCredito.Value)
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha de Vencimiento
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.FechaVencimiento == null ? "No Disponible" : Model.FechaVencimiento.Value.ToString("dd/MM/yyyy"))
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Monto
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Monto.ToString("C")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Fotografias
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (Model.Fotografias != null && Model.Fotografias.Count() > 0)
+                            {                              
+                                <p>
+                                    @foreach (var Imagen in Model.Fotografias.Where(x => x.ContentType.Contains("image")))
+                                    {
+                                        <a class="fancybox" href="@Url.Action("Imagen", new { id = Imagen.FotografiaId, movimientoId = Imagen.MovimientoId })" rel="thumbs" title="">
+                                            <img alt="" src="@Url.Action("Preview", new { id = Imagen.FotografiaId, movimientoId = Imagen.MovimientoId })" style=" height:100px; width:75px;" />
+                                        </a>
+                                    }
+                                </p>
+                            }
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Index", "Proveedor_Movimiento")">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            $("a[rel='thumbs']").fancybox(
+            {
+                type: "image"
+            });
+        });
+    </script>
+}

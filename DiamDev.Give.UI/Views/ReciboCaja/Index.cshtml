@@ -1,0 +1,3927 @@
+﻿@model DiamDev.Give.UI.Models.ReciboCajaIndexViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    /* ════════════════════════════════════════════
+       VARIABLES Y COLORES DE EMPRESA
+       Se aplican dinámicamente vía JS
+    ════════════════════════════════════════════ */
+    :root {
+        --c-graco: #27ae60;
+        --c-faes: #c0392b;
+        --c-bolik: #2c3e50;
+        --c-default: #95a5a6;
+    }
+
+    /* ── SELECTOR DE EMPRESA ── */
+    .empresa-addon {
+        width: 46px;
+        text-align: center;
+        background: var(--c-default);
+        color: #fff;
+        font-size: 18px;
+        transition: background 0.25s ease;
+        border-right: none;
+    }
+
+        .empresa-addon.graco {
+            background: var(--c-graco);
+        }
+
+        .empresa-addon.faes {
+            background: var(--c-faes);
+        }
+
+        .empresa-addon.bolik {
+            background: var(--c-bolik);
+        }
+
+    /* ── BORDE DINÁMICO DE PANELS (indica empresa activa) ── */
+    .panel-empresa {
+        border-top: 4px solid var(--c-default);
+        transition: border-top-color 0.3s ease;
+        border-radius: 1em;
+    }
+
+        .panel-empresa.graco {
+            border-top-color: var(--c-graco);
+        }
+
+        .panel-empresa.faes {
+            border-top-color: var(--c-faes);
+        }
+
+        .panel-empresa.bolik {
+            border-top-color: var(--c-bolik);
+        }
+
+    .panel-heading {
+        padding-left: 1.5em;
+    }
+
+    /* ── BADGE DE EMPRESA en heading ── */
+    .badge-emp {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        color: #fff;
+        background: var(--c-default);
+        vertical-align: middle;
+        transition: background 0.3s;
+    }
+
+        .badge-emp.graco {
+            background: var(--c-graco);
+        }
+
+        .badge-emp.faes {
+            background: var(--c-faes);
+        }
+
+        .badge-emp.bolik {
+            background: var(--c-bolik);
+        }
+
+    /* ── BADGES DE STATUS ── */
+    .badge-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+    }
+
+        .badge-status.nuevo {
+            background: #ecf0f1;
+            color: #7f8c8d;
+            border: 1px solid #bdc3c7;
+        }
+
+        .badge-status.guardado {
+            background: #d5f5e3;
+            color: #1e8449;
+            border: 1px solid #27ae60;
+        }
+
+        .badge-status.anulado {
+            background: #fadbd8;
+            color: #a93226;
+            border: 1px solid #e74c3c;
+        }
+
+    /* ── BADGE DE SINCRONIZACIÓN CON SAP (Fase 4) ── */
+    .badge-sync {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 3px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+    }
+
+        .badge-sync.operado {
+            background: #d5f5e3;
+            color: #1e8449;
+            border: 1px solid #27ae60;
+        }
+
+        .badge-sync.pendiente {
+            background: #fef9e7;
+            color: #b9770e;
+            border: 1px solid #f1c40f;
+        }
+
+        .badge-sync.anulado {
+            background: #fadbd8;
+            color: #a93226;
+            border: 1px solid #e74c3c;
+        }
+
+        /* Descuadre con SAP: anulación parcial detectada por el sincronizador */
+        .badge-sync.descuadre {
+            background: #fdebd0;
+            color: #ba4a00;
+            border: 1px solid #e67e22;
+            box-shadow: 0 0 0 2px #e74c3c inset;
+            cursor: help;
+        }
+
+        /* Operado pero con descuadre de conciliación: halo ámbar de advertencia */
+        .badge-sync.concil {
+            box-shadow: 0 0 0 2px #f39c12 inset;
+            cursor: help;
+        }
+
+        .badge-sync[title]:not([title=""]) {
+            cursor: help;
+        }
+
+    /* ── CAMPO # RECIBO ── */
+    #txtIdRecibo {
+        font-family: 'Courier New', monospace;
+        font-size: 15px;
+        font-weight: 700;
+        background: #f5f5f5 !important;
+        text-align: center;
+        letter-spacing: 2px;
+        color: #2c3e50;
+        border: 1px dashed #bdc3c7;
+    }
+
+    /* ── BÚSQUEDA DE CLIENTE ── */
+    .wrapper-cliente {
+        position: relative;
+    }
+
+    #txtBuscarCliente {
+        border-left: 3px solid #3498db;
+        transition: border-color 0.2s;
+    }
+
+        #txtBuscarCliente:focus {
+            border-left-color: #2980b9;
+        }
+
+    #dropdownClientes {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        z-index: 1050;
+        background: #fff;
+        border: 1px solid #d0d3d4;
+        border-top: none;
+        border-radius: 0 0 4px 4px;
+        max-height: 220px;
+        overflow-y: auto;
+        box-shadow: 0 6px 16px rgba(0,0,0,.12);
+    }
+
+        #dropdownClientes .item-cliente {
+            padding: 9px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid #f4f6f7;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+            #dropdownClientes .item-cliente:hover {
+                background: #eaf4fb;
+            }
+
+            #dropdownClientes .item-cliente .codigo {
+                font-family: monospace;
+                font-weight: 700;
+                color: #2980b9;
+                min-width: 90px;
+            }
+
+    /* ── CAMPO NOMBRE CLIENTE (verde cuando hay valor) ── */
+    #txtNombreCliente.tiene-valor {
+        background: #eafaf1 !important;
+        border-color: #27ae60;
+        font-weight: 600;
+        color: #1a5e35;
+    }
+
+    /* ── LABELS COMPACTOS ESTILO MATERIAL ── */
+    .flabel {
+        display: block;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        font-weight: 700;
+        color: #95a5a6;
+        margin-bottom: 4px;
+    }
+
+        .flabel i {
+            margin-right: 3px;
+            color: #aab;
+        }
+
+    /* ── INPUTS Y SELECTS UNIFORMES ── */
+    .f-control {
+        height: 34px;
+        font-size: 13px;
+        padding: 4px 9px;
+        border-radius: 4px;
+    }
+
+    select.f-control {
+        height: 34px;
+    }
+
+    .fgroup {
+        margin-bottom: 12px;
+    }
+
+    /* ── PANELES EN MODO EDICIÓN (resalta el panel activo) ── */
+    .panel-docs.editando,
+    .panel-cobros.editando {
+        box-shadow: 0 0 0 2px #f39c12 inset;
+    }
+
+    /* ── PANELES DE DETALLE ── */
+    .panel-cobros .panel-heading {
+        background: #2471a3 !important;
+        color: #fff;
+    }
+
+    .panel-docs .panel-heading {
+        background: #1e8449 !important;
+        color: #fff;
+    }
+
+        .panel-cobros .panel-heading i,
+        .panel-docs .panel-heading i {
+            margin-right: 6px;
+        }
+
+    /* ── TABLAS DE DETALLE ── */
+    .tabla-detalle {
+        font-size: 12px;
+        margin-bottom: 0;
+    }
+
+        .tabla-detalle thead th {
+            background: #f2f3f4;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .3px;
+            color: #7f8c8d;
+            padding: 6px 8px !important;
+            white-space: nowrap;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tabla-detalle tbody td {
+            padding: 6px 8px !important;
+            vertical-align: middle !important;
+        }
+
+        .tabla-detalle tr.seleccionada {
+            background: #d6eaf8 !important;
+        }
+
+    .tabla-vacia td {
+        color: #bdc3c7;
+        font-style: italic;
+    }
+
+    /* ── BARRA TOTALES ── */
+    .barra-totales {
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 12px 20px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 0;
+        height: 100%;
+    }
+
+    .total-item {
+        text-align: center;
+        padding: 0 14px;
+    }
+
+        .total-item + .total-item {
+            border-left: 1px solid #3d5166;
+        }
+
+    .total-lbl {
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        color: #7f8c8d;
+        display: block;
+    }
+
+    .total-val {
+        font-size: 19px;
+        font-weight: 700;
+        color: #f1c40f;
+        line-height: 1.1;
+    }
+
+        .total-val.saldo-ok {
+            color: #2ecc71 !important;
+        }
+
+        .total-val.saldo-error {
+            color: #e74c3c !important;
+        }
+
+    .total-sub {
+        display: block;
+        font-size: 11px;
+        color: #7f8c8d;
+        line-height: 1.2;
+        margin-top: 1px;
+    }
+
+    .moneda-info {
+        font-size: 11px;
+        color: #7f8c8d;
+        padding-left: 14px;
+        border-left: 1px solid #3d5166;
+        line-height: 1.8;
+    }
+
+    /* ── ÁREA DE BOTONES ── */
+    .zona-botones {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        height: 100%;
+        flex-wrap: wrap;
+        margin: 12px 0;
+    }
+
+        .zona-botones .sep-btn {
+            width: 1px;
+            height: 28px;
+            background: #ddd;
+            flex-shrink: 0;
+        }
+
+    /* ── CARD INFO USUARIO ── */
+    .usuario-card {
+        background: #ecf0f1;
+        border-radius: 6px;
+        padding: 8px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+    }
+
+    .usuario-avatar {
+        width: 36px;
+        height: 36px;
+        background: #2c3e50;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 15px;
+        flex-shrink: 0;
+    }
+
+    .usuario-nombre {
+        font-weight: 700;
+        color: #2c3e50;
+        line-height: 1.2;
+    }
+
+    .usuario-planta {
+        font-size: 11px;
+        color: #7f8c8d;
+    }
+
+    /* ── panelRecibo oculto hasta elegir empresa ── */
+    #panelRecibo {
+        display: none;
+    }
+
+    /* ── input readonly suave ── */
+    .f-readonly {
+        background-color: #f9f9f9 !important;
+        cursor: default;
+    }
+
+    /* ── MODO ENCABEZADO EDITABLE (operador SALA DE VENTAS) ──
+       Los campos normalmente derivados de SAP se vuelven capturables.
+       Borde azul a la izquierda = "aquí puedes escribir". */
+    .encabezado-libre #txtNombreCliente,
+    .encabezado-libre #txtDireccion,
+    .encabezado-libre #txtNit,
+    .encabezado-libre #txtAgente,
+    .encabezado-libre #txtCorreo {
+        background: #fff !important;
+        border-left: 3px solid #2980b9;
+        cursor: text;
+    }
+
+    .badge-status.edicion-libre {
+        background: #eaf0fb;
+        color: #2471a3;
+        border: 1px solid #2980b9;
+    }
+
+    /* ════════════════════════════════════════════
+       MODAL BUSCAR DOCUMENTOS — rediseño
+    ════════════════════════════════════════════ */
+    #modalBuscarDoc .modal-content {
+        border: none;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(0,0,0,.25);
+    }
+
+    #modalBuscarDoc .modal-header {
+        background: linear-gradient(135deg, #1e8449, #27ae60);
+        border: none;
+    }
+
+    /* ── ANCHO DEL MODAL EN PC — doble candado ──
+       Causa raíz: el plugin de modales del theme (Clip-One) le pone al
+       .modal EXTERIOR un ancho inline fijo (~600px, estilo Bootstrap 2).
+       Nuestro .modal-dialog al 95% era 95%... de esa jaula de 600px.
+       Candado 1: liberar el .modal exterior (viewport completo, como BS3).
+       Candado 2: el dialog al 95% con tope de 1200px, centrado. */
+    @@media (min-width: 992px) {
+        #modalBuscarDoc.modal {
+            width: auto !important; /* anula el width inline del plugin */
+            left: 0 !important; /* anula el left:50% del centrado viejo */
+            right: 0 !important;
+            margin-left: 0 !important; /* anula el margin-left negativo */
+        }
+
+            #modalBuscarDoc.modal .modal-dialog.modal-lg {
+                width: 95% !important;
+                max-width: 1200px !important;
+                margin: 30px auto !important; /* centrado estándar BS3 */
+            }
+    }
+
+    /* Barra de resumen (totales) */
+    .doc-resumen {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        background: #f4f9f6;
+        border: 1px solid #d4ede0;
+        border-radius: 6px;
+        padding: 10px 14px;
+        margin-bottom: 12px;
+    }
+
+        .doc-resumen .resumen-item {
+            flex: 1 1 auto;
+            min-width: 120px;
+        }
+
+            .doc-resumen .resumen-item .lbl {
+                font-size: 9px;
+                text-transform: uppercase;
+                letter-spacing: .5px;
+                color: #7f8c8d;
+                font-weight: 700;
+                display: block;
+            }
+
+            .doc-resumen .resumen-item .val {
+                font-size: 18px;
+                font-weight: 700;
+                color: #1e8449;
+                line-height: 1.1;
+            }
+
+                .doc-resumen .resumen-item .val.sel {
+                    color: #2471a3;
+                }
+
+        .doc-resumen .resumen-actions {
+            flex: 0 0 auto;
+            margin-left: auto;
+        }
+
+    /* Contenedor scrollable de la tabla */
+    .doc-scroll {
+        max-height: 48vh;
+        overflow: auto;
+        border: 1px solid #e6e6e6;
+        border-radius: 6px;
+    }
+
+    /* Header sticky de la tabla del modal */
+    #tablaModalDocs thead th {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        background: #2c3e50;
+        color: #ecf0f1;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+        border-bottom: none;
+        padding: 9px 10px !important;
+        white-space: nowrap;
+    }
+
+    /* Encabezado "Fecha" ordenable: clickeable con flecha de dirección */
+    #thFechaDocs {
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+    }
+
+        #thFechaDocs:hover {
+            background: #3d5166; /* un tono más claro que el header, feedback de hover */
+        }
+
+        #thFechaDocs .flecha-orden {
+            display: inline-block;
+            margin-left: 4px;
+            font-size: 9px;
+            color: #f1c40f; /* amarillo del theme: destaca sobre el header oscuro */
+        }
+
+    #tablaModalDocs tbody td {
+        padding: 8px 10px !important;
+        vertical-align: middle !important;
+        font-size: 12.5px;
+    }
+
+    #tablaModalDocs tbody tr {
+        cursor: pointer;
+        transition: background .12s;
+    }
+
+        #tablaModalDocs tbody tr:hover {
+            background: #eaf4fb;
+        }
+
+        #tablaModalDocs tbody tr.row-sel {
+            background: #d6eaf8 !important;
+        }
+
+    #tablaModalDocs .col-saldo {
+        font-weight: 700;
+        color: #1a5e35;
+    }
+
+    /* Comprometido en recibos PENDIENTES (SQL): ámbar cuando hay monto */
+    #tablaModalDocs .col-pendiente {
+        font-weight: 700;
+        color: #b9770e;
+    }
+
+        #tablaModalDocs .col-pendiente.sin-pend {
+            color: #bdc3c7; /* gris suave cuando es 0: no distrae */
+            font-weight: 400;
+        }
+
+    /* Disponible real (Saldo − Pendiente): rojo si quedó en 0 o negativo */
+    #tablaModalDocs .col-disponible {
+        font-weight: 700;
+        color: #2471a3;
+    }
+
+        #tablaModalDocs .col-disponible.agotado {
+            color: #a93226;
+        }
+
+    /* Fila sin saldo por confirmar (0 o negativo): atenuada y no seleccionable.
+       El monto negativo queda visible en rojo a propósito: es señal de
+       sobre-compromiso (recibos en tránsito > saldo de la factura). */
+    #tablaModalDocs tbody tr.row-agotada {
+        opacity: .55;
+        cursor: not-allowed;
+    }
+
+        #tablaModalDocs tbody tr.row-agotada:hover {
+            background: transparent;
+        }
+
+    #tablaModalDocs .chk-doc,
+    #chkTodosDocs {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+    }
+
+    .fel-badge {
+        font-family: monospace;
+        font-size: 11px;
+        color: #2471a3;
+    }
+
+    /* Responsive: en pantallas chicas el modal usa casi todo el ancho */
+    @@media (max-width: 768px) {
+        #modalBuscarDoc .modal-dialog {
+            width: auto;
+            margin: 10px;
+        }
+
+        .doc-resumen .resumen-item .val {
+            font-size: 16px;
+        }
+
+        .doc-scroll {
+            max-height: 55vh;
+        }
+    }
+
+    /* ════════════════════════════════════════════
+       PANEL SELECTOR (empresa + fecha + usuario)
+       Layout flex propio para que funcione bien en mobile
+    ════════════════════════════════════════════ */
+
+    /* Heading: título arriba, subtítulo abajo en mobile */
+    .sel-heading {
+        background: #f7f9fa;
+        border-bottom: 1px solid #eee;
+    }
+
+        .sel-heading .panel-title {
+            color: #5d6d7e;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px 8px;
+            margin: 0;
+        }
+
+    .sel-title-main {
+        font-weight: 700;
+    }
+
+    .sel-title-sub {
+        color: #95a5a6;
+        font-weight: 400;
+    }
+
+    /* Grid de campos: 3 zonas que se reacomodan solas */
+    .selector-grid {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        gap: 14px 16px;
+    }
+
+        /* flex: grow shrink basis  → como flexGrow/flexShrink/flexBasis en JS */
+        .selector-grid .sel-empresa {
+            flex: 1 1 280px;
+            min-width: 220px;
+        }
+
+        .selector-grid .sel-fecha {
+            flex: 0 1 210px;
+            min-width: 170px;
+        }
+
+        .selector-grid .sel-codigo {
+            flex: 1 1 240px;
+            min-width: 200px;
+        }
+
+        .selector-grid .sel-usuario {
+            flex: 1 1 240px;
+            min-width: 220px;
+            margin-left: auto; /* empuja la tarjeta a la derecha en desktop */
+        }
+
+        .selector-grid .usuario-card {
+            margin: 0; /* anulamos el margin-top:4px viejo */
+            width: 100%;
+        }
+
+    /* ── MOBILE: una sola columna, todo a lo ancho ── */
+    @@media (max-width: 767px) {
+        .sel-heading .panel-title {
+            font-size: 14px;
+        }
+
+        .sel-title-sub {
+            flex-basis: 100%; /* el subtítulo salta a su propia línea */
+            font-size: 11px;
+        }
+
+        .selector-grid > div {
+            flex: 1 1 100% !important;
+            min-width: 0 !important;
+            margin-left: 0 !important; /* mata el margin-left:auto en mobile */
+        }
+    }
+
+    /* ════════════════════════════════════════════
+       FIX MOBILE: header del encabezado
+       Apila: título+empresa arriba, badges abajo en su propia
+       fila con wrap. Los badges largos envuelven texto en vez
+       de desbordar sobre el cuerpo.
+    ════════════════════════════════════════════ */
+    @@media (max-width: 767px) {
+        /* Solucion al desface del Heading en mobile */
+        #panelEncabezado .panel-heading {
+            height: auto;
+        }
+            /* El contenedor del heading SIEMPRE en columna en mobile.
+           (Antes había un flex-direction:row !important que peleaba
+           con esta regla y ganaba — causa raíz del solapamiento.) */
+            #panelEncabezado .panel-heading > div.panelTitleContainer {
+                display: flex;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 8px;
+            }
+        /* Título: "Encabezado del Recibo" + badge de empresa en fila,
+           envolviendo si no caben. */
+        #panelEncabezado .title-recibo {
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center !important;
+        }
+        /* Fila de badges (sync + status): ancho completo, con wrap.
+           Cada badge baja de línea si no cabe, en vez de desbordar. */
+        #panelEncabezado .panel-heading .badges-recibo {
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            width: 100%;
+        }
+        /* El badge de sync trae textos largos ("PENDIENTE (ANULADO
+           EN SAP)"): permitir que el TEXTO envuelva dentro del badge. */
+        #panelEncabezado .badge-sync,
+        #panelEncabezado .badge-status {
+            white-space: normal;
+            line-height: 1.35;
+            text-align: left;
+            max-width: 100%;
+        }
+        /* Aire entre el heading y el "# Recibo" del cuerpo. */
+        #panelEncabezado .panel-body {
+            padding-top: 16px !important;
+        }
+    }
+
+    /* ════════════════════════════════════════════
+       FIX MOBILE: barra de totales
+       En pantallas chicas los 4 bloques se apilan en
+       lugar de desbordar el ancho de la pantalla.
+    ════════════════════════════════════════════ */
+    @@media (max-width: 767px) {
+        .barra-totales {
+            flex-wrap: wrap; /* permite que los bloques bajen de línea */
+            gap: 4px 0;
+            padding: 12px 14px;
+            height: auto; /* deja de forzar altura completa */
+        }
+
+        .total-item {
+            flex: 1 1 33%; /* 3 totales por fila, repartidos parejos */
+            padding: 6px 4px;
+        }
+            /* El separador vertical entre totales molesta al envolver:
+            lo quitamos en mobile y usamos el espaciado del gap. */
+            .total-item + .total-item {
+                border-left: none;
+            }
+
+        .moneda-info {
+            flex: 1 1 100%; /* T. Cambio / Mon. Base ocupan su propia fila */
+            border-left: none; /* sin línea lateral en mobile */
+            border-top: 1px solid #3d5166; /* separador horizontal arriba */
+            padding-left: 0;
+            padding-top: 8px;
+            margin-top: 4px;
+            text-align: center;
+        }
+    }
+</style>
+
+<!--
+    PERMISOS DE ROLES
+    Cambia los  _arroba por arrobas normales
+
+     _arroba if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.ReciboCaja.Graco"))
+    {
+        <option value="GRACO">🏭&nbsp; Graco Pack</option>
+    }
+     _arroba if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.ReciboCaja.Faes"))
+    {
+     _arroba   <option value="FAES">🏭&nbsp; Fabrica Escocesa</option>
+    }
+     _arroba if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.ReciboCaja.Bolik"))
+    {
+        <option value="BOLIK">🏭&nbsp; Industrias Bolik</option>
+    }
+-->
+<!-- ══════════════════════════════════════════════
+     SECCIÓN 1: EMPRESA + FECHA
+     Layout flex propio (responsive, mobile-friendly)
+══════════════════════════════════════════════ -->
+<div class="panel panel-default panel-empresa" id="panelSelector">
+    <div class="panel-heading sel-heading">
+        <h4 class="panel-title">
+            <i class="clip-archive"></i>
+            <span class="sel-title-main">Recibos de Caja</span>
+        </h4>
+    </div>
+    <div class="panel-body" style="padding:16px 18px;">
+        <div class="selector-grid">
+
+            <!-- Empresa -->
+            <div class="sel-empresa">
+                <span class="flabel"><i class="icon-building"></i> Empresa</span>
+                <div class="input-group">
+                    <span class="input-group-addon empresa-addon" id="empresaAddon">
+                        <i class="icon-building"></i>
+                    </span>
+                    <select id="selEmpresa" class="form-control f-control search-select">
+                        <option value="">— Seleccione empresa —</option>
+                        <!-- Las opciones se cargan vía CargarEmpresasUsuario() -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Código / Operador (Usuario_Empresa) -->
+            <div class="sel-codigo" id="wrapCodigo" style="display:none;">
+                <span class="flabel"><i class="icon-user"></i> Operar como</span>
+                <div class="input-group">
+                    <span class="input-group-addon" style="background:#eaf0fb; color:#2980b9;">
+                        <i class="icon-user"></i>
+                    </span>
+                    <select id="selCodigo" class="form-control f-control search-select">
+                        <option value="">— Seleccione código —</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Fecha del recibo -->
+            <div class="sel-fecha">
+                <span class="flabel"><i class="icon-calendar"></i> Fecha del Recibo</span>
+                <div class="input-group">
+                    <span class="input-group-addon" style="background:#eaf0fb; color:#2980b9;">
+                        <i class="icon-calendar"></i>
+                    </span>
+                    <input type="text" id="fechaRecibo"
+                           class="form-control f-control date-picker"
+                           data-date-format="yyyy-mm-dd"
+                           data-date-viewmode="years"
+                           value="@DateTime.Today.ToString("yyyy-MM-dd")"
+                           readonly="readonly"
+                           disabled />
+                </div>
+            </div>
+
+            <!-- Info usuario -->
+            <div class="sel-usuario">
+                <div class="usuario-card">
+                    <div class="usuario-avatar">
+                        <i class="icon-user"></i>
+                    </div>
+                    <div>
+                        <div class="usuario-nombre">
+                            @Model.UsuarioActual
+                            <span id="lblOperadorCodigo" style="color:#2980b9; font-weight:600;"></span>
+                        </div>
+                        <div class="usuario-planta">
+                            <i class="icon-tag" style="font-size:10px;"></i>
+                            Serie: <strong id="lblOperadorSerie">—</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SECCIÓN 2: FORMULARIO DE RECIBO
+     (aparece al seleccionar empresa)
+══════════════════════════════════════════════ -->
+<div id="panelRecibo">
+    <!-- ── ENCABEZADO DEL RECIBO ── -->
+    <div class="panel panel-default panel-empresa" id="panelEncabezado">
+        <div class="panel-heading" style="background:#f7f9fa; border-bottom:1px solid #eee; padding:10px 15px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;" class="panelTitleContainer">
+                <h4 class="panel-title title-recibo" style="margin:0; font-size:14px; color:#5d6d7e; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+                    <span class="sel-title-main">Encabezado del Recibo</span>
+                    <span id="badgeEmpresa" class="badge-emp">—</span>
+                </h4>
+                <span class="badges-recibo" style="display:flex; align-items:center; gap:6px;">
+                    <span id="badgeEdicionLibre" class="badge-status edicion-libre"
+                          style="display:none;"
+                          title="Operador SALA DE VENTAS: los datos del cliente se capturan manualmente y se guardan tal como se escriban.">
+                        ✏️ ENCABEZADO EDITABLE
+                    </span>
+                    <span id="badgeSync" class="badge-sync" style="display:none;">—</span>
+                    <span id="badgeStatus" class="badge-status nuevo">NUEVO</span>
+                </span>
+            </div>
+        </div>
+        <div class="panel-body" style="padding: 14px 18px;">
+
+            <!-- ── ALERTA DE DESCUADRE (Fase 5) ── -->
+            <div id="alertaDescuadre" class="alert alert-danger"
+                 style="display:none; margin:0 0 14px; border-left:4px solid #e74c3c;">
+                <strong><i class="icon-warning-sign"></i> Descuadre con SAP</strong>
+                <div id="alertaDescuadreDetalle" style="margin-top:6px; font-size:12.5px;"></div>
+                <div style="margin-top:6px; font-size:12px;">
+                    Parte del pago de este recibo fue <strong>anulado en SAP</strong> y el monto
+                    aún no ha sido re-aplicado por Créditos. El recibo <strong>
+                        sí puede
+                        imprimirse
+                    </strong>: saldrá con un sello de "en conciliación". El
+                    sincronizador liberará el recibo automáticamente cuando los montos
+                    vuelvan a cuadrar.
+                </div>
+                <div id="alertaDescuadreRef"
+                     style="margin-top:6px; font-size:10px; font-family:monospace;
+                            color:#c0a0a0; word-break:break-word;"></div>
+            </div>
+
+            <!-- Fila A: Identificadores + Totales rápidos -->
+            <!-- Fila A: Identificadores (los totales se ven en la barra inferior) -->
+            <div class="row">
+                <div class="col-md-3 col-sm-6">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-tag"></i> # Recibo</span>
+                        <input type="text" id="txtIdRecibo"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="Automático" />
+                        <!-- Campos ocultos de estado -->
+                        <input type="hidden" id="hdnEmpresa" />
+                        <input type="hidden" id="hdnAgente" />
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-file-text"></i> Rec. Físico</span>
+                        <input type="text" id="txtRecFisico"
+                               class="form-control f-control"
+                               maxlength="20" placeholder="Nro. físico..." />
+                    </div>
+                </div>
+
+                <!-- Moneda del recibo: NO se muestra (vive en la barra de totales),
+        pero SÍ se envía al backend en el payload del guardado. -->
+                <input type="hidden" id="txtMoneda" />
+            </div>
+
+            <div style="border-top:1px solid #f0f0f0; margin: 4px 0 12px;"></div>
+
+            <!-- Fila B: Búsqueda de cliente -->
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-user"></i> Cliente (código o nombre)</span>
+                        <div class="wrapper-cliente input-group">
+                            <span class="input-group-addon"
+                                  style="background:#eaf0fb; color:#2980b9;">
+                                <i class="icon-search"></i>
+                            </span>
+                            <input type="text" id="txtBuscarCliente"
+                                   class="form-control f-control"
+                                   placeholder="Escriba código o nombre para buscar..."
+                                   autocomplete="off" />
+                            <div id="dropdownClientes"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-user"></i> Nombre Cliente</span>
+                        <input type="text" id="txtNombreCliente"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="—" />
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-barcode"></i> NIT</span>
+                        <input type="text" id="txtNit"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="—" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fila C: Datos adicionales cliente -->
+            <div class="row">
+                <div class="col-md-5">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-map-marker"></i> Dirección</span>
+                        <input type="text" id="txtDireccion"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="—" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="fgroup">
+                        <span class="flabel"><i class="icon-user"></i> Agente</span>
+                        <input type="text" id="txtAgente"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="—" />
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="fgroup" style="margin-bottom:0;">
+                        <span class="flabel"><i class="icon-envelope"></i> Correo</span>
+                        <input type="text" id="txtCorreo"
+                               class="form-control f-control f-readonly"
+                               readonly placeholder="—" />
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── DETALLES: COBROS | DOCUMENTOS ── -->
+    <div class="row">
+
+        <!-- ═══ IZQUIERDA: COBROS ═══ -->
+        <div class="col-md-6">
+            <div class="panel panel-default panel-cobros" id="panelCobros">
+                <div class="panel-heading" style="padding:10px 14px;">
+                    <strong style="font-size:13px;">
+                        <i class="icon-money"></i> Detalle de Cobros
+                    </strong>
+                </div>
+                <div class="panel-body" style="padding:14px 16px;">
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel">Tipo de Pago</span>
+                                <select id="cboTipoPago" class="form-control f-control search-select">
+                                    <option value="">— Seleccionar —</option>
+                                    <option value="EFECTIVO">💵&nbsp; EFECTIVO</option>
+                                    <option value="CHEQUE">🏦&nbsp; CHEQUE</option>
+                                    <option value="TRANSFERENCIA">🔄&nbsp; TRANSFERENCIA</option>
+                                    <option value="DEPOSITO">💳&nbsp; DEPOSITO</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel">Banco</span>
+                                <select id="cboBanco" class="form-control f-control search-select">
+                                    <option value="">— Seleccionar —</option>
+                                    <option value="AGROMERCANTIL">🏛️&nbsp; AGROMERCANTIL</option>
+                                    <option value="BANRURAL">🏛️&nbsp; BANRURAL</option>
+                                    <option value="BANTRAB">🏛️&nbsp; BANTRAB</option>
+                                    <option value="BAM">🏛️&nbsp; BAM</option>
+                                    <option value="BAM DOLAR">🏛️&nbsp; BAM DOLAR</option>
+                                    <option value="BAC">🏛️&nbsp; BAC</option>
+                                    <option value="BAC DOLAR">🏛️&nbsp; BAC DOLAR</option>
+                                    <option value="CHN">🏛️&nbsp; CHN</option>
+                                    <option value="CITI BANK">🏛️&nbsp; CITI BANK</option>
+                                    <option value="FICOHSA">🏛️&nbsp; FICOHSA</option>
+                                    <option value="G&T CONTINENTAL">🏛️&nbsp; G&amp;T CONTINENTAL</option>
+                                    <option value="INDUSTRIAL">🏛️&nbsp; INDUSTRIAL</option>
+                                    <option value="INTERBANCO">🏛️&nbsp; INTERBANCO</option>
+                                    <option value="OCEAN BAK">🏛️&nbsp; OCEAN BAK</option>
+                                    <option value="OCCIDENTE">🏛️&nbsp; OCCIDENTE</option>
+                                    <option value="PROMERICA">🏛️&nbsp; PROMERICA</option>
+                                    <option value="REFORMADOR">🏛️&nbsp; REFORMADOR</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel"><i class="icon-file-text"></i> No. Documento</span>
+                                <input type="text" id="txtNoDocCobro"
+                                       class="form-control f-control"
+                                       placeholder="Nro. de cheque / transf..." />
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel">
+                                    <i class="icon-calendar"></i> Fecha del Cobro
+                                    <span style="color:#e74c3c;" title="Campo obligatorio">*</span>
+                                </span>
+                                <input type="text" id="dtpFechaCobro"
+                                       class="form-control f-control date-picker"
+                                       data-date-format="yyyy-mm-dd"
+                                       value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="fgroup" style="margin-bottom:0;">
+                                <span class="flabel"><i class="icon-money"></i> Monto</span>
+                                <input type="number" id="txtMontoCobro"
+                                       class="form-control f-control"
+                                       step="0.01" min="0" placeholder="0.00" />
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="fgroup" style="margin-bottom:0;">
+                                <span class="flabel">💱 Moneda</span>
+                                <select id="cboMonedaCobro" class="form-control f-control search-select">
+                                    <option value="">— Seleccionar —</option>
+                                    <option value="GTQ">🇬🇹&nbsp; GTQ — Quetzal</option>
+                                    <option value="USD">🇺🇸&nbsp; USD — Dólar</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:12px; display:flex; gap:8px;">
+                        <button class="btn btn-primary btn-sm" id="btnAgregarCobro" style="flex:1;">
+                            <i class="icon-plus"></i> Agregar Cobro
+                        </button>
+                        <button class="btn btn-default btn-sm" id="btnCancelarEdicionCobro" style="display:none;">
+                            <i class="icon-remove"></i> Cancelar edición
+                        </button>
+                        <button class="btn btn-danger btn-sm" id="btnQuitarCobro">
+                            <i class="icon-minus"></i> Quitar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de cobros -->
+            <div class="panel panel-default">
+                <div class="panel-body" style="padding:0; overflow-x:auto;">
+                    <table class="table tabla-detalle">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Banco</th>
+                                <th>Fecha</th>
+                                <th>Documento</th>
+                                <th class="text-right">Monto</th>
+                                <th>Mon.</th>
+                                <th class="text-right" title="Tipo de cambio de la fecha de este cobro">T.CAMBIO.</th>
+                                <th style="width:40px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyCobros">
+                            <tr class="tabla-vacia">
+                                <td colspan="8" class="text-center" style="padding:16px;">
+                                    <i class="icon-inbox" style="font-size:20px; color:#ccc;"></i><br />
+                                    Sin cobros agregados
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div><!-- /col cobros -->
+        <!-- ═══ DERECHA: DOCUMENTOS ═══ -->
+        <div class="col-md-6">
+            <div class="panel panel-default panel-docs" id="panelDocs">
+                <div class="panel-heading" style="padding:10px 14px;">
+                    <strong style="font-size:13px;">
+                        <i class="icon-file-text"></i> Detalle de Documentos
+                    </strong>
+                </div>
+                <div class="panel-body" style="padding:14px 16px;">
+
+                    <div class="row">
+                        <div class="col-sm-12">
+                            <div class="fgroup">
+                                <span class="flabel">Tipo de Documento</span>
+                                <select id="cboTipoDoc" class="form-control f-control search-select">
+                                    <option value="">— Seleccionar —</option>
+                                    <option value="FACTURA">🧾&nbsp; FACTURA</option>
+                                    <option value="PEDIDO">📦&nbsp; PEDIDO</option>
+                                    <option value="ANTICIPO">💰&nbsp; ANTICIPO</option>
+                                    <option value="DIFERENCIA">🧮&nbsp; DIFERENCIA</option>
+                                    <!-- <option value="SALDO PENDIENTE">⏳&nbsp; SALDO PENDIENTE</option> -->
+                                    <!-- <option value="NOTA DE CREDITO">📝&nbsp; NOTA DE CRÉDITO</option> -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel"><i class="icon-file-text"></i> No. Documento</span>
+                                <div class="input-group">
+                                    <input type="text" id="txtNoDocDoc"
+                                           class="form-control f-control"
+                                           placeholder="Escriba o busque 🔍" />
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-default btn-sm" id="btnBuscarDoc"
+                                                title="Buscar documento disponible"
+                                                style="height:34px;">
+                                            <i class="icon-search"></i>
+                                        </button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="fgroup">
+                                <span class="flabel"><i class="icon-calendar"></i> Fecha Documento</span>
+                                <input type="text" id="dtpFechaDoc"
+                                       class="form-control f-control date-picker"
+                                       data-date-format="yyyy-mm-dd"
+                                       value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="fgroup">
+                                <span class="flabel">Serie FEL</span>
+                                <input type="text" id="txtSerieFel"
+                                       class="form-control f-control"
+                                       placeholder="Serie..." />
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="fgroup">
+                                <span class="flabel">Núm. FEL</span>
+                                <input type="text" id="txtNumFel"
+                                       class="form-control f-control"
+                                       placeholder="Número..." />
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="fgroup">
+                                <span class="flabel">Total Factura</span>
+                                <input type="text" id="txtTotalFact"
+                                       class="form-control f-control f-readonly"
+                                       readonly placeholder="0.00"
+                                       style="color:#7d6608; font-weight:600;" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-sm-4">
+                            <div class="fgroup" style="margin-bottom:0;">
+                                <span class="flabel"><i class="icon-money"></i> Monto a Cobrar</span>
+                                <input type="number" id="txtMontoDoc"
+                                       class="form-control f-control"
+                                       step="0.01" min="0" placeholder="0.00" />
+                            </div>
+                        </div>
+                        <!-- Ya Pagado: OCULTO en la UI pero debe existir en el DOM.
+                        El JS lo lee al agregar el documento (docObj.Pagado) y lo
+                        convierte al cambiar moneda. Estaba comentado y por eso
+                        todo doc agregado desde el panel grababa PAGADO = 0. -->
+                        <input type="hidden" id="txtPagado" />
+                        <div class="col-sm-8">
+                            <div class="fgroup" style="margin-bottom:0;">
+                                <span class="flabel">💱 Moneda</span>
+                                <select id="cboMonedaDoc" class="form-control f-control search-select">
+                                    <option value="">— Seleccionar —</option>
+                                    <option value="GTQ">🇬🇹&nbsp; GTQ — Quetzal</option>
+                                    <option value="USD">🇺🇸&nbsp; USD — Dólar</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:12px; display:flex; gap:8px;">
+                        <button class="btn btn-success btn-sm" id="btnAgregarDoc" style="flex:1;">
+                            <i class="icon-plus"></i> Agregar Documento
+                        </button>
+                        <button class="btn btn-default btn-sm" id="btnCancelarEdicionDoc" style="display:none;">
+                            <i class="icon-remove"></i> Cancelar edición
+                        </button>
+                        <button class="btn btn-danger btn-sm" id="btnQuitarDoc">
+                            <i class="icon-minus"></i> Quitar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de documentos -->
+            <div class="panel panel-default">
+                <div class="panel-body" style="padding:0; overflow-x:auto;">
+                    <table class="table tabla-detalle">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Documento</th>
+                                <th>Fecha</th>
+                                <th class="text-right">Monto</th>
+                                <th>Mon.</th>
+                                <th class="text-right">Total F.</th>
+                                <th class="text-right">Pagado</th>
+                                <th>Serie FEL</th>
+                                <th style="width:40px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyDocs">
+                            <tr class="tabla-vacia">
+                                <td colspan="9" class="text-center" style="padding:16px;">
+                                    <i class="icon-inbox" style="font-size:20px; color:#ccc;"></i><br />
+                                    Sin documentos agregados
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div><!-- /col documentos -->
+
+    </div><!-- /row detalles -->
+    <!-- ── BARRA TOTALES + BOTONES ── -->
+    <div class="panel panel-default" style="border-top:3px solid #2c3e50;">
+        <div class="panel-body" style="padding:12px 16px;">
+            <div class="row" style="display:flex; align-items:stretch; flex-wrap:wrap;">
+
+                <!-- Totales -->
+                <div class="col-md-7" style="display:flex; align-items:center;">
+                    <div class="barra-totales" style="width:100%;">
+                        <div class="total-item">
+                            <span class="total-lbl">💰 Cobros</span>
+                            <span class="total-val" id="spanTotalCobros">0.00</span>
+                            <span class="total-sub" id="spanTotalCobrosUsd">$ 0.00</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-lbl">📄 Documentos</span>
+                            <span class="total-val" id="spanTotalDocs">0.00</span>
+                            <span class="total-sub" id="spanTotalDocsUsd">$ 0.00</span>
+                        </div>
+                        <div class="total-item">
+                            <span class="total-lbl">⚖️ Saldo</span>
+                            <span class="total-val" id="spanSaldo">0.00</span>
+                            <span class="total-sub" id="spanSaldoUsd">$ 0.00</span>
+                        </div>
+                        <div class="moneda-info">
+                            <div><i class="icon-money"></i> T. Cambio: <strong id="spanTipoCambio">—</strong></div>
+                            <div>Mon. Base: <strong>GTQ</strong></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones organizados por función -->
+                <div class="col-md-5" style="display:flex; align-items:center;">
+                    <div class="zona-botones" style="width:100%;">
+
+                        <!-- Grupo 1: Navegar / reset -->
+                        <button id="btnNuevo" class="btn btn-default btn-sm">
+                            <i class="icon-plus-sign"></i> Nuevo
+                        </button>
+                        <button id="btnBuscarRecibo" class="btn btn-info btn-sm">
+                            <i class="icon-search"></i> Buscar
+                        </button>
+
+                        <div class="sep-btn"></div>
+
+                        <!-- Grupo 2: Acciones principales -->
+                        <button id="btnGuardar" class="btn btn-primary" disabled
+                                style="font-weight:600;">
+                            <i class="icon-save"></i> Guardar
+                        </button>
+                        <button id="btnCancelar" class="btn btn-default btn-sm" disabled>
+                            <i class="icon-remove"></i> Cancelar
+                        </button>
+
+                        <div class="sep-btn"></div>
+
+                        <!-- Grupo 3: Salida -->
+                        <button id="btnImprimir" class="btn btn-success btn-sm" disabled>
+                            <i class="icon-print"></i> Imprimir
+                        </button>
+
+                        <!-- Grupo 4: Zona de peligro -->
+                        <button id="btnAnular" class="btn btn-danger btn-sm" disabled
+                                title="Anula el recibo de forma permanente">
+                            <i class="icon-ban-circle"></i> Anular
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /panelRecibo -->
+<!-- ══════════════════════════════════════════════
+     MODAL: BUSCAR DOCUMENTOS DISPONIBLES (multi-selección)
+══════════════════════════════════════════════ -->
+<div class="modal fade" id="modalBuscarDoc" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="color:#fff; padding:14px 18px;">
+                <button type="button" class="close" data-dismiss="modal"
+                        style="color:#fff; opacity:.9;">
+                    &times;
+                </button>
+                <h4 class="modal-title" style="font-size:15px; font-weight:600;">
+                    <i class="icon-search"></i>&nbsp; Documentos Disponibles para Cobro
+                </h4>
+            </div>
+            <div class="modal-body" style="padding:14px 16px;">
+                <!-- Barra informativa: anticipos del cliente en tránsito -->
+                <div id="barAnticipos" class="alert alert-info"
+                     style="display:none; padding:8px 14px; margin-bottom:12px;
+            font-size:12.5px; border-left:4px solid #2471a3;">
+                    <i class="icon-info-sign"></i>
+                    Este cliente tiene <strong id="antMonto"></strong> en
+                    <strong>anticipos en tránsito</strong> (aún no operados en SAP):
+                    <span id="antRecibos" style="font-family:monospace;"></span>
+                </div>
+                <!-- Barra de resumen / totales -->
+                <div class="doc-resumen">
+                    <div class="resumen-item">
+                        <span class="lbl">📄 Documentos</span>
+                        <span class="val" id="resTotalDocs">0</span>
+                    </div>
+                    <div class="resumen-item">
+                        <span class="lbl">💰 Saldo Total Disponible</span>
+                        <span class="val" id="resSaldoTotal">0.00</span>
+                    </div>
+                    <div class="resumen-item">
+                        <span class="lbl">✅ Seleccionados</span>
+                        <span class="val sel" id="resSaldoSel">0.00 <small style="font-size:11px;color:#7f8c8d;">(0)</small></span>
+                    </div>
+                    <div class="resumen-actions">
+                        <button type="button" class="btn btn-success btn-sm" id="btnAgregarSeleccionados" disabled>
+                            <i class="icon-plus"></i> Agregar Seleccionados
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabla scrollable con header sticky -->
+                <div class="doc-scroll">
+                    <table class="table table-condensed" id="tablaModalDocs" style="margin-bottom:0;">
+                        <thead>
+                            <tr>
+                                <th style="width:34px; text-align:center;">
+                                    <input type="checkbox" id="chkTodosDocs" title="Seleccionar todos" />
+                                </th>
+                                <th>No. Documento</th>
+                                <th id="thFechaDocs" title="Click para alternar: más recientes / más antiguos">
+                                    Fecha <span class="flecha-orden" id="flechaOrdenFecha">▼</span>
+                                </th>
+                                <th class="text-right">Total Fact.</th>
+                                <th class="text-right">Pagado</th>
+                                <th class="text-right">Saldo</th>
+                                <th class="text-right" title="Comprometido en recibos aún no operados en SAP (incluye anulados en SAP)">Recibos en Tránsito ⏳</th>
+                                <th class="text-right" title="Saldo − Pendiente: lo realmente cobrable hoy">Saldo por Confirmar</th>
+                                <th>Moneda</th>
+                                <th>Serie FEL</th>
+                                <th>Núm. FEL</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyModalDocs">
+                            <tr class="tabla-vacia">
+                                <td colspan="11" class="text-center" style="padding:24px;">
+                                    Seleccione empresa, cliente y tipo de documento primero.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            <div class="modal-footer" style="padding:10px 16px;">
+                <span class="pull-left" style="font-size:11px; color:#95a5a6; line-height:30px;">
+                    Marque <strong>uno</strong> para editarlo, o <strong>varios</strong> para cobro masivo.
+                </span>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL: BUSCAR RECIBO EXISTENTE
+══════════════════════════════════════════════ -->
+<div class="modal fade" id="modalBuscarRecibo" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background:#2471a3; color:#fff; padding:12px 16px;">
+                <button type="button" class="close" data-dismiss="modal"
+                        style="color:#fff; opacity:1;">
+                    &times;
+                </button>
+                <h4 class="modal-title" style="font-size:14px;">
+                    <i class="icon-search"></i>&nbsp; Buscar Recibo Existente
+                </h4>
+            </div>
+            <div class="modal-body">
+                <div class="fgroup">
+                    <span class="flabel"><i class="icon-tag"></i> Número de Recibo</span>
+                    <div class="input-group">
+                        <span class="input-group-addon" style="background:#eaf0fb; color:#2980b9;">
+                            <i class="icon-search"></i>
+                        </span>
+                        <input type="text" id="txtBuscarIdRecibo"
+                               class="form-control f-control"
+                               placeholder="Ej: GR00042" />
+                    </div>
+                </div>
+                <div id="msgBuscarRecibo" class="alert" style="display:none;"></div>
+            </div>
+            <div class="modal-footer" style="padding:10px 14px;">
+                <button type="button" class="btn btn-primary btn-sm" id="btnEjecutarBusqueda">
+                    <i class="icon-search"></i> Buscar
+                </button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODAL: ANULAR RECIBO (confirmación reforzada)
+══════════════════════════════════════════════ -->
+<div class="modal fade" id="modalAnular" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content" style="border-top:4px solid #e74c3c;">
+            <div class="modal-header" style="background:#e74c3c; color:#fff; padding:12px 16px;">
+                <button type="button" class="close" data-dismiss="modal"
+                        style="color:#fff; opacity:1;">
+                    &times;
+                </button>
+                <h4 class="modal-title" style="font-size:14px;">
+                    <i class="icon-ban-circle"></i>&nbsp; Anular Recibo <strong id="spanReciboAnular"></strong>
+                </h4>
+            </div>
+            <div class="modal-body">
+
+                <div class="alert alert-danger" style="border-left:4px solid #e74c3c; margin-bottom:14px;">
+                    <strong><i class="icon-warning-sign"></i> Esta acción NO se puede deshacer.</strong>
+                    <ul style="margin:8px 0 0 16px; padding:0; font-size:12.5px;">
+                        <li>El recibo quedará marcado como <strong>ANULADO</strong> de forma permanente.</li>
+                        <li>Dejará de contarse en la conciliación con SAP.</li>
+                        <li>Para generar un cobro real, deberá realizar un <strong>recibo nuevo</strong>.</li>
+                    </ul>
+                </div>
+
+                <div class="fgroup" style="margin-bottom:0;">
+                    <span class="flabel">
+                        <i class="icon-comment"></i>
+                        Motivo de la anulación <span style="color:#e74c3c;">*</span>
+                        <span style="text-transform:none; font-weight:400;">(mínimo 10 caracteres)</span>
+                    </span>
+                    <textarea id="txtMotivoAnulacion"
+                              class="form-control f-control"
+                              rows="3" maxlength="150"
+                              style="height:auto; resize:vertical;"
+                              placeholder="Ej: monto equivocado, cliente incorrecto, duplicado del recibo GR00123..."></textarea>
+                    <div style="font-size:11px; color:#95a5a6; margin-top:4px; text-align:right;">
+                        <span id="lblContadorMotivo">0</span> / 150
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer" style="padding:10px 14px;">
+                <button type="button" class="btn btn-danger btn-sm" id="btnConfirmarAnular" disabled>
+                    <i class="icon-ban-circle"></i> Anular definitivamente
+                </button>
+                <button type="button" class="btn btn-default btn-sm" data-dismiss="modal">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     JAVASCRIPT — al final del .cshtml
+     (NO en per project convention)
+══════════════════════════════════════════════ -->
+@section Scripts{
+    <script>
+// ─── Mapa de colores por empresa ─────────────────────────────────────
+var EMPRESA_COLORES = {
+    GRACO: { clase: "graco", color: "#27ae60", nombre: "Graco Pack"       },
+    FAES:  { clase: "faes",  color: "#c0392b", nombre: "Fabrica Escocesa" },
+    BOLIK: { clase: "bolik", color: "#2c3e50", nombre: "Industrias Bolik" }
+};
+
+// ─── Estado global ────────────────────────────────────────────────────
+var Estado = {
+    empresa: "",
+    agente: "",     // agente DEL CLIENTE (SlpName) — se graba en AGENTE
+    clienteId: "",
+    monedaCobro: "",
+    monedaDoc: "",
+    idReciboGuardado: "",
+    modoActivo: false,
+    modoActivo: false,
+    faseGuardado: false,   // ★ ¿la etapa actual permite guardar? (la refina el saldo)
+    cobros: [],
+    documentos: [],
+    docEditIndex: null,   // índice de la fila en edición (null = alta nueva)
+    encabezadoEditable: false,   // true = operador SALA DE VENTAS: encabezado capturable
+    cobroEditIndex: null,   // índice del cobro en edición (null = alta nueva)
+    tipoCambio: 0,      // TC del día, traído al elegir empresa
+
+    // ── Operador (Usuario_Empresa) ──
+    codigoUsuario: "",     // Codigo elegido tal cual ("12-RODOLFO", "JORGE")
+    agenteOperador: "",     // texto parseado ("RODOLFO") → filtra typeahead de clientes
+    deptoOperador: ""      // MISMO texto parseado → DEPTO de la serie (feedback UI;
+    // la resolución real la hace el servidor al guardar)
+};
+
+// ─── URLs base ────────────────────────────────────────────────────────
+var URL_CLIENTES = "@Url.Action("BuscarClientes",   "ReciboCaja")";
+var URL_DOCS     = "@Url.Action("ObtenerDocumentos","ReciboCaja")";
+var URL_GUARDAR  = "@Url.Action("Guardar",          "ReciboCaja")";
+var URL_BUSCAR   = "@Url.Action("BuscarRecibo",     "ReciboCaja")";
+var URL_IMPRIMIR = "@Url.Action("Imprimir",         "ReciboCaja")";
+var URL_TIPOCAMBIO = "@Url.Action("ObtenerTipoCambioDia", "ReciboCaja")";
+var URL_ANULAR = "@Url.Action("Anular", "ReciboCaja")";
+
+// ─── URL del endpoint de empresas del usuario ─────────────────────────
+var URL_EMPRESAS = "@Url.Action("GetEmpresasUsuario", "ReciboCaja")";
+
+// ─── Fecha de hoy (formato del date-picker) ───────────────────────────
+// Razor la resuelve en el servidor al renderizar la vista. La usamos para
+// repoblar la fecha del cobro después de cada alta: siendo un campo
+// obligatorio, dejarlo vacío obligaría al agente a re-escribirlo en cada
+// línea del mismo recibo.
+var FECHA_HOY = "@DateTime.Today.ToString("yyyy-MM-dd")";
+
+// ════════════════════════════════════════════════════════
+// TIPO DE CAMBIO POR FECHA DE COBRO
+// Cada cobro se convierte con la tasa del día en que entró el dinero.
+// El servidor RECALCULA todo al guardar: esto es solo previsualización.
+// Si el front y el servidor difirieran, manda el servidor.
+// ════════════════════════════════════════════════════════
+
+// Caché "fecha (yyyy-mm-dd) → tipo de cambio". Equivale a un Map<string,number>
+// que vive mientras el usuario esté en la pantalla.
+var _tcPorFecha = {};
+
+// Resuelve el TC de una fecha y lo entrega por callback.
+// Es asíncrono a la fuerza: el TC vive en SAP, no en el navegador.
+function ResolverTcFecha(fecha, callback) {
+    if (!fecha || !Estado.empresa) { callback(0); return; }
+
+    if (_tcPorFecha[fecha] !== undefined) { callback(_tcPorFecha[fecha]); return; }
+
+    $.get(URL_TIPOCAMBIO, { empresa: Estado.empresa, fecha: fecha }, function (resp) {
+        var tc = (resp && resp.ok) ? (parseFloat(resp.tipoCambio) || 0) : 0;
+        if (tc > 0) {
+            _tcPorFecha[fecha] = tc;
+        } else {
+            toastr.error("No hay tipo de cambio para la fecha " + fecha +
+                (resp && resp.msg ? ": " + resp.msg : "."));
+        }
+        callback(tc);
+    }).fail(function () {
+        toastr.error("Error al consultar el tipo de cambio de la fecha " + fecha + ".");
+        callback(0);
+    });
+}
+
+// TC efectivo del recibo: espejo de CalcularTipoCambioPonderado del BLL.
+//   tc = Σ(gtq de los cobros) / Σ(usd de los cobros)
+// Con un solo cobro (o varios del mismo día) devuelve exactamente el TC de ese día.
+function TipoCambioRecibo() {
+    var gtq = 0, usd = 0;
+    Estado.cobros.forEach(function (c) {
+        var m = MontosDuales(c.Monto, c.Moneda, c.TipoCambio || Estado.tipoCambio);
+        gtq += m.gtq; usd += m.usd;
+    });
+    if (usd <= 0 || gtq <= 0) return Estado.tipoCambio || 0;
+    return Math.round((gtq / usd) * 1e6) / 1e6;   // 6 decimales, igual que el BLL
+}
+
+// ¿Los cobros tienen tasas distintas? Solo para avisar al usuario en la barra.
+function HayTcMixto() {
+    var vistos = {};
+    for (var i = 0; i < Estado.cobros.length; i++) {
+        var tc = Estado.cobros[i].TipoCambio || 0;
+        if (tc > 0) vistos[tc.toFixed(6)] = true;
+}
+return Object.keys(vistos).length > 1;
+    }
+
+    // ════════════════════════════════════════════════════════
+    // CUADRE DEL RECIBO — espejo de ValidarYNormalizarCuadre del BLL
+    // ════════════════════════════════════════════════════════
+    // EPSILON = medio centavo. Por debajo de eso NO hay dinero, solo error de
+    // punto flotante.
+    //
+    // ¿Por qué 0.005 y no 0.01? Porque en JS los números son binarios:
+    //     1000.01 - 1000.02  →  -0.009999999999990905
+    // que es MENOR que 0.01. Con el umbral viejo, un centavo real de diferencia
+    // se pintaba verde. Además 0.005 es el MISMO umbral que ya usa FmtNum() para
+    // mostrar, así que "lo que se ve es lo que se valida": si la barra dice
+    // 0.00 cuadra; si dice -0.01 no cuadra. Se acabó la contradicción.
+    // ════════════════════════════════════════════════════════
+    var EPSILON = 0.005;
+
+    function EsCero(n) {
+        return Math.abs(parseFloat(n) || 0) < EPSILON;
+    }
+
+    // Calcula TODOS los totales de una vez. Única fuente de verdad del front:
+    // la consume la barra (pintar) y la guarda del botón Guardar (decidir).
+    // Antes cada quien recalculaba por su cuenta y podían discrepar.
+    function CalcularTotales() {
+        var tcRecibo = TipoCambioRecibo();
+
+        var cobrosGtq = 0, cobrosUsd = 0, cobrosOrig = 0;
+        Estado.cobros.forEach(function (c) {
+            var m = MontosDuales(c.Monto, c.Moneda, c.TipoCambio || tcRecibo);
+            cobrosGtq += m.gtq; cobrosUsd += m.usd;
+            cobrosOrig += parseFloat(c.Monto) || 0;
+        });
+
+        var docsGtq = 0, docsUsd = 0, docsOrig = 0;
+        Estado.documentos.forEach(function (d) {
+            var m = MontosDuales(d.Monto, d.Moneda, tcRecibo);
+            docsGtq += m.gtq; docsUsd += m.usd;
+            docsOrig += parseFloat(d.Monto) || 0;
+        });
+
+        // ¿Cuántas monedas distintas hay? (un objeto usado como Set)
+        var monedas = {};
+        Estado.cobros.forEach(function (c) { monedas[(c.Moneda || "GTQ").toUpperCase()] = 1; });
+        Estado.documentos.forEach(function (d) { monedas[(d.Moneda || "GTQ").toUpperCase()] = 1; });
+        var lista = Object.keys(monedas);
+
+        return {
+            tc: tcRecibo,
+            cobrosGtq: cobrosGtq, cobrosUsd: cobrosUsd,
+            docsGtq: docsGtq, docsUsd: docsUsd,
+            saldoGtq: cobrosGtq - docsGtq,
+            saldoUsd: cobrosUsd - docsUsd,
+            saldoOriginal: cobrosOrig - docsOrig,   // ← solo tiene sentido si hay 1 moneda
+            monedaUniforme: lista.length === 1,
+            moneda: lista.length === 1 ? lista[0] : "",
+            hayLineas: (Estado.cobros.length + Estado.documentos.length) > 0
+        };
+    }
+
+    // ¿El SALDO cuadra? (solo el número, sin exigir que haya líneas)
+    function SaldoCuadra(t) {
+        // Una sola moneda → resta exacta, tolerancia CERO.
+        if (t.monedaUniforme) return EsCero(t.saldoOriginal);
+        // Multimoneda → se juzga en GTQ, con el residuo de conversión.
+        return Math.abs(t.saldoGtq) <= 0.01 + EPSILON;
+    }
+
+    // ¿El recibo está en condiciones de guardarse? Devuelve "" si sí,
+    // o el motivo si no. El texto se reusa como tooltip del botón.
+    function MotivoNoGuardable(t) {
+        if (!Estado.cobros.length) return "Agregue al menos un cobro.";
+        if (!Estado.documentos.length) return "Agregue al menos un documento.";
+        if (!SaldoCuadra(t)) {
+            var dif = t.monedaUniforme ? t.saldoOriginal : t.saldoGtq;
+            var mon = t.monedaUniforme ? t.moneda : "GTQ";
+            return "El recibo no cuadra: diferencia de " + mon + " " + FmtNum(dif) +
+                ". El saldo debe ser exactamente 0.00.";
+        }
+        return "";
+    }
+
+    // ÚNICO dueño del estado del botón Guardar. Nadie más debe tocar
+    // su .prop("disabled") — misma regla de la casa que MostrarPanelRecibo().
+    function RefrescarBotonGuardar() {
+        var t = CalcularTotales();
+        var motivo = MotivoNoGuardable(t);
+        var habilitado = Estado.faseGuardado && motivo === "";
+
+        $("#btnGuardar")
+            .prop("disabled", !habilitado)
+            .attr("title", habilitado
+                ? "Guardar el recibo"
+                : (Estado.faseGuardado ? motivo : "Presione «Nuevo» para capturar un recibo."));
+    }
+
+// ════════════════════════════════════════════════════════
+// TIPOS DE DOCUMENTO SIN REFERENCIA DOCUMENTAL
+// Espejo de TiposDocumentoRecibo.EsSinDocumento() (Entities).
+// ANTICIPO / DIFERENCIA / SALDO PENDIENTE no apuntan a una factura de
+// SAP: no llevan No. Documento, fecha ni FEL. Solo MONTO y MONEDA.
+//
+// ⚠ Si algún día se agrega un tipo nuevo, hay que tocar DOS listas:
+//    esta y la de TiposDocumentoRecibo.cs. Es el precio de que el front
+//    no pueda leer C#. La del servidor es la que manda: si se
+//    desincronizan, la UI mentirá pero la BD quedará correcta.
+// ════════════════════════════════════════════════════════
+var TIPOS_DOC_SIN_REFERENCIA = ["ANTICIPO", "SALDO PENDIENTE", "DIFERENCIA"];
+
+function EsTipoSinDocumento(tipo) {
+    return TIPOS_DOC_SIN_REFERENCIA.indexOf(
+        (tipo || "").trim().toUpperCase()) !== -1;
+}
+
+// Único lugar que decide qué campos del panel de documentos son
+// capturables. Lo llaman el change del combo (alta) y el modo edición,
+// para que editar un ANTICIPO/DIFERENCIA muestre el mismo bloqueo que
+// crearlo (antes no: al editar, los campos quedaban habilitados aunque
+// el guardado los forzara a NULL igual — la UI mentía).
+// Devuelve el booleano para que el llamador no tenga que recalcularlo.
+function AplicarBloqueoTipoDoc(tipo) {
+    var esSinDoc = EsTipoSinDocumento(tipo);
+
+    $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel")
+        .prop("disabled", esSinDoc);
+
+    // La lupa tampoco tiene sentido: no hay catálogo que buscar.
+    $("#btnBuscarDoc").prop("disabled", esSinDoc)
+        .attr("title", esSinDoc
+            ? "Este tipo no referencia documentos de SAP"
+            : "Buscar documento disponible");
+
+    // MONEDA: SIEMPRE habilitada. Una DIFERENCIA puede ser GTQ o USD,
+    // igual que un ANTICIPO — la elige el cajero.
+    $("#cboMonedaDoc").prop("disabled", false);
+
+    return esSinDoc;
+}
+
+// Buffer: empresas + códigos del usuario (respuesta de GetEmpresasUsuario)
+var _empresasUsuario = [];
+
+// ════════════════════════════════════════════════════════
+// 0. CARGA INICIAL: empresas disponibles del usuario
+// ════════════════════════════════════════════════════════
+function CargarEmpresasUsuario() {
+    $.get(URL_EMPRESAS, function (resp) {
+        if (!resp.ok) { toastr.error(resp.msg || "No se pudieron cargar las empresas."); return; }
+
+        _empresasUsuario = resp.data || [];
+
+        var sel = $("#selEmpresa");
+        sel.find("option:not([value=''])").remove();
+
+        if (!_empresasUsuario.length) {
+            toastr.warning("No tiene empresas de recibos asignadas.");
+            return;
+        }
+
+        $.each(_empresasUsuario, function (_, e) {
+            sel.append($("<option>", {
+                value: e.Id,
+                text: "🏭\u00A0 " + e.Nombre
+            }));
+        });
+
+        if (_empresasUsuario.length === 1) {
+            sel.val(_empresasUsuario[0].Id).trigger("change");
+        }
+
+        if (sel.hasClass("search-select") && $.fn.select2) {
+            sel.trigger("change.select2");
+        }
+    });
+}
+
+// ════════════════════════════════════════════════════════
+// 1. SELECCIÓN DE EMPRESA
+// El formulario NO se muestra aquí: solo se puebla "Operar como".
+// Quien decide desplegar el formulario es la selección de OPERADOR
+// (con auto-selección si hay uno solo). Empresa sola ≠ listo para operar.
+// ════════════════════════════════════════════════════════
+$("#selEmpresa").on("change", function () {
+    var emp = $(this).val();
+
+    var $addon = $("#empresaAddon");
+    $addon.removeClass("graco faes bolik");
+    $(".panel-empresa").removeClass("graco faes bolik");
+
+    // Cambio de empresa (o deselección): el formulario baja SIEMPRE.
+    // Volverá a subir cuando haya un operador válido elegido.
+    OcultarPanelRecibo();
+
+    if (!emp) {
+        $("#wrapCodigo").hide();
+        Estado.empresa = "";
+        Estado.codigoUsuario = "";
+        Estado.agenteOperador = "";
+        Estado.deptoOperador = "";
+        PintarCardOperador(null);
+        return;
+    }
+
+    var cfg = EMPRESA_COLORES[emp];
+    CargarTipoCambio(emp);
+    if (!cfg) return;
+
+    $addon.addClass(cfg.clase);
+    $(".panel-empresa").addClass(cfg.clase);
+    $("#badgeEmpresa").text(cfg.nombre).removeClass("graco faes bolik").addClass(cfg.clase);
+
+    Estado.empresa = emp;
+    Estado.modoActivo = false;
+
+    PoblarCodigos(emp);   // ← si hay 1 solo operador, esto termina mostrando el form
+});
+
+// ════════════════════════════════════════════════════════
+// ORDEN DE OPERADORES ("Operar como")
+//
+// Los códigos vienen como "12-RODOLFO DIAZ", "1-SALA DE VENTAS",
+// "10-EDUARDO CALDERON". Ordenados como TEXTO darían 1, 10, 12, 2, 3...
+// Es el clásico orden lexicográfico: en JS puro te pasa igual con
+//     ["10","2","1"].sort()   →   ["1","10","2"]
+// porque el sort por defecto compara strings, no números.
+//
+// Solución: extraer el prefijo numérico y ordenar por el NÚMERO real.
+// Los códigos SIN prefijo numérico (existe "JORGE" en la BD) no pueden
+// competir por número, así que se mandan al final y se desempatan
+// alfabéticamente. Sin esto, parseInt("JORGE") daría NaN y NaN rompe
+// cualquier comparación (NaN - 5 → NaN → sort impredecible).
+// ════════════════════════════════════════════════════════
+var ORDEN_SIN_NUMERO = 999999;   // sentinela: empuja al final de la lista
+
+function ClaveOrdenCodigo(codigo) {
+    var m = /^\s*(\d+)/.exec(codigo || "");
+    return m ? parseInt(m[1], 10) : ORDEN_SIN_NUMERO;
+}
+
+function OrdenarCodigos(codigos) {
+    // .slice() = copia superficial. NO mutamos el arreglo original porque
+    // vive dentro de _empresasUsuario, que se reutiliza cada vez que el
+    // usuario cambia de empresa. (Array.sort() ordena IN PLACE en JS.)
+    return (codigos || []).slice().sort(function (a, b) {
+        var na = ClaveOrdenCodigo(a.Codigo);
+        var nb = ClaveOrdenCodigo(b.Codigo);
+        if (na !== nb) return na - nb;
+        // Empate (mismo número, o ambos sin número): desempate alfabético
+        return (a.Codigo || "").localeCompare(b.Codigo || "");
+    });
+}
+
+// ════════════════════════════════════════════════════════
+// 1.5 OPERADORES DEL USUARIO ("Operar como")
+// 1 operador  → se auto-selecciona.
+// 2+ operadores → obligado a elegir antes de crear.
+// Cambiar de operador REINICIA el recibo en captura (clientes,
+// cobros, documentos, totales) porque cada operador ve SU cartera.
+// ════════════════════════════════════════════════════════
+function PoblarCodigos(emp) {
+    var sel = $("#selCodigo");
+    sel.find("option:not([value=''])").remove();
+    Estado.codigoUsuario = "";
+    Estado.agenteOperador = "";
+    Estado.deptoOperador = "";
+    PintarCardOperador(null);
+
+    var e = null;
+    for (var i = 0; i < _empresasUsuario.length; i++) {
+        if (_empresasUsuario[i].Id === emp) { e = _empresasUsuario[i]; break; }
+    }
+
+    // ANTES:  var codigos = (e && e.Codigos) || [];
+    // ★ CAMBIO: ordenados por prefijo numérico ascendente
+    var codigos = OrdenarCodigos((e && e.Codigos) || []);
+    if (!codigos.length) {
+        $("#wrapCodigo").hide();
+        toastr.warning("No tiene operadores asignados en esta empresa. Contacte al administrador.");
+        return;
+    }
+
+    $.each(codigos, function (_, c) {
+        var sinDepto = !(c.Depto || "").length;
+        sel.append(
+            $("<option>", {
+                value: c.Codigo,
+                // Marcamos visualmente los operadores sin serie
+                text: "👤\u00A0 " + c.Codigo + (sinDepto ? "  ⚠ (sin serie)" : "")
+            }).data("info", c)
+        );
+    });
+
+    $("#wrapCodigo").show();
+
+    if (codigos.length === 1) {
+        sel.val(codigos[0].Codigo).trigger("change");   // auto-selección
+    } else {
+        toastr.info("Tiene " + codigos.length + " operadores en esta empresa: elija con cuál operará.");
+    }
+
+    if (sel.hasClass("search-select") && $.fn.select2) {
+        sel.trigger("change.select2");
+    }
+}
+
+$("#selCodigo").on("change", function () {
+    // ── CAMBIO DE OPERADOR = BORRÓN Y CUENTA NUEVA ──
+    // Cada operador tiene su propia cartera de clientes y su propia serie:
+    // nada de lo capturado con el operador anterior es válido para el nuevo.
+    LimpiarFormulario();
+    SetBotonesInicio();
+    $("#dropdownClientes").hide().empty();
+
+    var cod = $(this).val();
+    if (!cod) {
+        Estado.codigoUsuario = "";
+        Estado.agenteOperador = "";
+        Estado.deptoOperador = "";
+        PintarCardOperador(null);
+        OcultarPanelRecibo();   // sin operador no hay formulario
+        Estado.encabezadoEditable = false;
+        return;
+    }
+
+    var info = $(this).find("option:selected").data("info") || {};
+    Estado.codigoUsuario = cod;
+    Estado.agenteOperador = info.Agente || "";
+    Estado.deptoOperador = (info.Depto || "").trim();
+
+    PintarCardOperador(info);
+    // Flag de venta de mostrador: viene calculado del BLL
+    Estado.encabezadoEditable = (info.EncabezadoEditable === true);
+
+    if (!Estado.deptoOperador) {
+        // Operador sin serie: avisamos y el formulario NO se despliega.
+        // (El guardado en servidor lo rechazaría igual; esto es UX temprana.)
+        toastr.error("El operador '" + cod + "' no tiene serie/depto asignado. " +
+            "No podrá emitir recibos con él. Contacte al administrador.");
+        OcultarPanelRecibo();
+        return;
+    }
+
+    // ── Empresa + operador válido: AHORA sí se despliega el formulario ──
+    MostrarPanelRecibo();
+});
+
+// ════════════════════════════════════════════════════════
+// Mostrar / ocultar el formulario del recibo.
+// Única puerta de entrada/salida del panel: nadie más debe
+// llamar slideDown/slideUp sobre #panelRecibo directamente.
+// ════════════════════════════════════════════════════════
+function MostrarPanelRecibo() {
+    LimpiarFormulario();
+    SetBotonesInicio();
+    AplicarModoEncabezado(Estado.encabezadoEditable);
+    $("#panelRecibo").slideDown(300);
+    if (Estado.encabezadoEditable) {
+        toastr.info("Operador SALA DE VENTAS: puede escribir los datos del cliente directamente en el encabezado.");
+    }
+}
+
+function OcultarPanelRecibo() {
+    $("#panelRecibo").slideUp(200);
+    Estado.modoActivo = false;
+}
+
+// Pinta la tarjeta "Info usuario" con el operador activo y su SERIE.
+// Muestra el NOMBRE parseado ("PABLO GAITAN"), no el código crudo
+// ("15-PABLO GAITAN"): el número solo le importa a SAP, no al humano.
+function PintarCardOperador(info) {
+    if (!info) {
+        $("#lblOperadorCodigo").text("");
+        $("#lblOperadorSerie").text("—");
+        return;
+    }
+    $("#lblOperadorCodigo").text(" · " + (info.Agente || info.Codigo));
+    $("#lblOperadorSerie").text(info.Serie && info.Serie.length ? info.Serie : "— (sin serie)");
+}
+
+// ════════════════════════════════════════════════════════
+// MODO ENCABEZADO EDITABLE (operador SALA DE VENTAS)
+// editable=true  → cliente/dirección/NIT/agente/correo capturables.
+// editable=false → readonly, derivados del typeahead (modo normal).
+// El typeahead SIGUE funcionando en ambos modos: en editable sirve
+// para precargar y luego corregir a mano.
+// ════════════════════════════════════════════════════════
+var CAMPOS_ENCABEZADO = "#txtNombreCliente, #txtDireccion, #txtNit, #txtAgente, #txtCorreo";
+
+function AplicarModoEncabezado(editable) {
+    if (editable) {
+        $(CAMPOS_ENCABEZADO).prop("readonly", false).removeClass("f-readonly");
+        $("#panelEncabezado").addClass("encabezado-libre");
+        $("#badgeEdicionLibre").show();
+    } else {
+        $(CAMPOS_ENCABEZADO).prop("readonly", true).addClass("f-readonly");
+        $("#panelEncabezado").removeClass("encabezado-libre");
+        $("#badgeEdicionLibre").hide();
+    }
+}
+
+// ════════════════════════════════════════════════════════
+// TIPO DE CAMBIO — traer del día al elegir empresa
+// ════════════════════════════════════════════════════════
+function CargarTipoCambio(empresa, fecha) {
+    fecha = fecha || $("#fechaRecibo").val() || FECHA_HOY;
+    $("#spanTipoCambio").text("...");
+    $.get(URL_TIPOCAMBIO, { empresa: empresa, fecha: fecha }, function (resp) {
+        if (resp.ok) {
+            Estado.tipoCambio = parseFloat(resp.tipoCambio) || 0;
+            if (Estado.tipoCambio > 0) _tcPorFecha[fecha] = Estado.tipoCambio;
+        } else {
+            Estado.tipoCambio = 0;
+            toastr.error("No se pudo traer el tipo de cambio: " + resp.msg);
+        }
+        ActualizarTotales();
+    }).fail(function () {
+        Estado.tipoCambio = 0;
+        $("#spanTipoCambio").text("—");
+        toastr.error("Error al consultar el tipo de cambio.");
+    });
+}
+
+// ════════════════════════════════════════════════════════
+// 2. BÚSQUEDA DE CLIENTE (typeahead con debounce)
+// ════════════════════════════════════════════════════════
+var timerCliente = null;
+
+$("#txtBuscarCliente").on("input", function () {
+    clearTimeout(timerCliente);
+    var texto = $(this).val().trim();
+
+    // Guarda de secuencia: sin operador elegido NO se busca.
+    // (El formulario debería estar oculto, pero si algo se cuela,
+    // esta es la barrera real del lado del cliente.)
+    if (!Estado.codigoUsuario || !Estado.deptoOperador) {
+        $("#dropdownClientes").hide().empty();
+        toastr.warning("Seleccione primero el operador (campo \"Operar como\").");
+        return;
+    }
+
+    if (texto.length < 2) {
+        $("#dropdownClientes").hide().empty();
+        return;
+    }
+
+    timerCliente = setTimeout(function () {
+        $.get(URL_CLIENTES, {
+            empresa: Estado.empresa,
+            agente: Estado.agenteOperador,   // ← antes: Estado.agente
+            filtro:  texto
+        }, function (resp) {
+            if (!resp.ok) { toastr.error(resp.msg); return; }
+
+            var dd = $("#dropdownClientes").empty();
+            if (!resp.data || resp.data.length === 0) {
+                dd.append('<div class="item-cliente" style="color:#aaa; font-style:italic;">Sin resultados</div>');
+            } else {
+                $.each(resp.data, function (_, c) {
+                    dd.append(
+                        $('<div class="item-cliente"></div>')
+                            .html('<span class="codigo">' + c.CardCode + '</span><span>' + c.CardName + '</span>')
+                            .data("cliente", c)
+                    );
+                });
+            }
+            dd.show();
+        });
+    }, 350);
+});
+
+// Seleccionar cliente del dropdown
+$(document).on("click", "#dropdownClientes .item-cliente", function () {
+    var c = $(this).data("cliente");
+    if (!c) return;
+
+    $("#txtBuscarCliente").val(c.CardCode + "  —  " + c.CardName);
+    $("#txtNombreCliente").val(c.CardName).addClass("tiene-valor");
+    $("#txtDireccion").val(c.Address);
+    $("#txtNit").val(c.LicTradNum);
+    $("#txtAgente").val(c.SlpName);
+    $("#txtCorreo").val(c.Email);
+    $("#txtMoneda").val(c.Currency);
+    $("#hdnAgente").val(c.SlpName);
+
+    Estado.clienteId = c.CardCode;
+    Estado.agente    = c.SlpName;
+
+    $("#dropdownClientes").hide().empty();
+    SetBotonesActivos();
+});
+
+// Cerrar dropdown al click fuera
+$(document).on("click", function (e) {
+    if (!$(e.target).closest(".wrapper-cliente").length) {
+        $("#dropdownClientes").hide();
+    }
+});
+
+// ════════════════════════════════════════════════════════
+// 3. TIPO DE PAGO → habilitar/deshabilitar campos
+// ★ CAMBIO: la FECHA ya no se deshabilita ni se limpia.
+//   Es la fecha en que se recibió el dinero: aplica a EFECTIVO igual
+//   que a cheque/transferencia. Solo BANCO y NO. DOCUMENTO siguen la
+//   vieja regla (no existen en un pago en efectivo).
+// ════════════════════════════════════════════════════════
+$("#cboTipoPago").on("change", function () {
+    var esEfectivo = $(this).val() === "EFECTIVO";
+
+    $("#cboBanco").prop("disabled", esEfectivo).val("");
+    $("#txtNoDocCobro").prop("disabled", esEfectivo).val("");
+
+    // La fecha SIEMPRE habilitada y SIEMPRE con valor de arranque.
+    $("#dtpFechaCobro").prop("disabled", false);
+    if (!$("#dtpFechaCobro").val()) {
+        $("#dtpFechaCobro").val(FECHA_HOY);
+    }
+});
+
+// ════════════════════════════════════════════════════════
+// 3.5 CAMBIO DE MONEDA → convertir montos del panel
+// Guardamos la moneda previa en data("monedaPrev") para saber
+// la dirección de la conversión. Los seteos programáticos usan
+// change.select2, que NO dispara estos handlers (a propósito).
+// ════════════════════════════════════════════════════════
+    $("#cboMonedaCobro").on("change", function () {
+        var nueva = $(this).val();
+        var previa = $(this).data("monedaPrev") || "";
+        $(this).data("monedaPrev", nueva);
+
+        if (!previa || !nueva || previa === nueva) return;
+
+        // ★ El TC de conversión es el de la FECHA DEL COBRO que está en el panel,
+        // no el del día. Si el cajero fecha el cobro el 15 y hoy es 27, convertir
+        // con el TC de hoy le daría un monto que no corresponde.
+        var fecha = $("#dtpFechaCobro").val() || FECHA_HOY;
+
+        ResolverTcFecha(fecha, function (tc) {
+            if (!(tc > 0)) {
+                toastr.warning("No hay tipo de cambio para el " + fecha + ": el monto no se convirtió.");
+                return;
+            }
+            var v = ConvertirMonto($("#txtMontoCobro").val(), previa, nueva, tc);
+            if (v !== null) $("#txtMontoCobro").val(v.toFixed(2));
+        });
+    });
+
+$("#cboMonedaDoc").on("change", function () {
+    var nueva = $(this).val();
+    var previa = $(this).data("monedaPrev") || "";
+    $(this).data("monedaPrev", nueva);
+
+    if (!previa || !nueva || previa === nueva) return;
+    // ANTES: if (!(Estado.tipoCambio > 0)) { ... }
+    //        ConvertirMonto(..., Estado.tipoCambio)
+    var tcDoc = TipoCambioRecibo();
+    if (!(tcDoc > 0)) {
+        toastr.warning("No hay tipo de cambio disponible: los montos no se convirtieron.");
+        return;
+    }
+    ["#txtMontoDoc", "#txtTotalFact", "#txtPagado"].forEach(function (sel) {
+        var v = ConvertirMonto($(sel).val(), previa, nueva, tcDoc);
+        if (v !== null) $(sel).val(v.toFixed(2));
+    });
+});
+
+// ════════════════════════════════════════════════════════
+// 4. TIPO DOCUMENTO → habilitar/deshabilitar campos
+// ════════════════════════════════════════════════════════
+$("#cboTipoDoc").on("change", function () {
+    // Si estamos en modo edición, NO limpiamos ni reabrimos el modal.
+    // (Esto evita que cargar el tipo al editar borre los campos o abra el modal.)
+    if (Estado.docEditIndex !== null) return;
+
+    var tipo = $(this).val();
+
+    // Bloqueo de campos: una sola función, una sola regla.
+    AplicarBloqueoTipoDoc(tipo);
+
+    // Limpieza de campos (alta nueva)
+    $("#txtNoDocDoc").val("");
+    $("#dtpFechaDoc").val("");
+    $("#txtSerieFel").val("");
+    $("#txtNumFel").val("");
+
+    $("#cboMonedaDoc").val("");
+    $("#cboMonedaDoc").data("monedaPrev", "");
+    if ($("#cboMonedaDoc").hasClass("search-select") && $.fn.select2) {
+        // change.select2 = repintar lo visual SIN disparar el handler de
+        // conversión de la sección 3.5 (regla de la casa)
+        $("#cboMonedaDoc").trigger("change.select2");
+    }
+
+    $("#txtTotalFact").val("");
+    $("#txtPagado").val("");
+    $("#txtMontoDoc").val("");
+
+    // Al elegir FACTURA o PEDIDO con cliente ya seleccionado, abrimos el modal.
+    if ((tipo === "FACTURA" || tipo === "PEDIDO") && Estado.clienteId) {
+        $("#btnBuscarDoc").trigger("click");
+    }
+});
+
+// ════════════════════════════════════════════════════════
+// 5. AGREGAR / ACTUALIZAR COBRO
+// ════════════════════════════════════════════════════════
+$("#btnAgregarCobro").on("click", function () {
+    var tipo = $("#cboTipoPago").val();
+    var banco = $("#cboBanco").val();
+    var nodoc = $("#txtNoDocCobro").val().trim();
+    var fecha = $("#dtpFechaCobro").val();
+    var monto = parseFloat($("#txtMontoCobro").val()) || 0;
+    var moneda = $("#cboMonedaCobro").val();
+    var editando = (Estado.cobroEditIndex !== null);
+
+    if (!tipo || !moneda || monto <= 0 || !fecha) {
+        toastr.warning("Tipo de pago, monto, fecha y moneda son obligatorios.");
+        if (!fecha) $("#dtpFechaCobro").focus();
+        return;
+    }
+    if (Estado.monedaCobro && Estado.monedaCobro !== moneda) {
+        var hayOtros = false;
+        for (var j = 0; j < Estado.cobros.length; j++) {
+            if (j !== Estado.cobroEditIndex) { hayOtros = true; break; }
+        }
+        if (hayOtros) {
+            toastr.error("Todos los cobros deben tener la misma moneda (" + Estado.monedaCobro + ").");
+            return;
+        }
+    }
+    if (tipo !== "EFECTIVO" && (!banco || !nodoc)) {
+        toastr.warning("Para " + tipo + " se requiere banco y número de documento.");
+        return;
+    }
+
+    // ★ NUEVO: el TC se resuelve por la FECHA DEL COBRO, no la del recibo.
+    // Bloqueamos el botón mientras viaja la consulta para que un doble click
+    // no agregue el cobro dos veces.
+    var $btn = $(this).prop("disabled", true);
+
+    ResolverTcFecha(fecha, function (tcCobro) {
+        $btn.prop("disabled", false);
+
+        if (!(tcCobro > 0)) {
+            toastr.error("No se puede agregar el cobro: no hay tipo de cambio para el " +
+                fecha + ". Verifique la fecha o avise a Finanzas.");
+            return;
+        }
+
+        var cobroObj = {
+            TipoCobro: tipo,
+            Banco: tipo === "EFECTIVO" ? "" : banco,
+            FechaDoc: fecha,
+            NoDocumento: tipo === "EFECTIVO" ? "" : nodoc,
+            Monto: monto,
+            Moneda: moneda,
+            TipoCambio: tcCobro       // ★ solo para previsualizar; el servidor recalcula
+        };
+
+        if (editando) {
+            Estado.cobros[Estado.cobroEditIndex] = cobroObj;
+            toastr.success("Cobro actualizado (T.C. " + tcCobro.toFixed(4) + ").");
+            SalirModoEdicionCobro();
+        } else {
+            Estado.cobros.push(cobroObj);
+        }
+
+        Estado.monedaCobro = Estado.cobros.length ? Estado.cobros[0].Moneda : "";
+        $("#spanMonedaCobro").text(Estado.monedaCobro || "—");
+
+        RenderizarTablaCobros();
+        ActualizarTotales();
+        LimpiarDetalleCobro();
+    });
+});
+
+// Botón "Cancelar edición" (cobros) → descarta cambios, vuelve a modo alta
+$("#btnCancelarEdicionCobro").on("click", function () {
+    SalirModoEdicionCobro();
+    LimpiarDetalleCobro();
+    toastr.info("Edición cancelada.");
+});
+
+// Sale del modo edición de cobros: restaura el botón a "Agregar Cobro"
+function SalirModoEdicionCobro() {
+    Estado.cobroEditIndex = null;
+    $("#btnAgregarCobro").html('<i class="icon-plus"></i> Agregar Cobro')
+        .removeClass("btn-warning").addClass("btn-primary");
+    $("#btnCancelarEdicionCobro").hide();
+    $("#panelCobros").removeClass("editando");
+    $("#tbodyCobros tr").removeClass("seleccionada");
+}
+
+// Carga un cobro de la tabla al panel editable, respetando la regla
+// EFECTIVO (banco/doc deshabilitados — la FECHA ya NO, ver cambio ★).
+// Se setea el tipo con .val() SIN disparar el handler de la sección 3
+// (que limpiaría los campos); el estado disabled lo aplicamos a mano.
+function CargarCobroEnPanel(c) {
+    if (!c) return;
+    var esEfectivo = c.TipoCobro === "EFECTIVO";
+
+    $("#cboTipoPago").val(c.TipoCobro);
+    $("#cboBanco").val(c.Banco || "").prop("disabled", esEfectivo);
+    $("#txtNoDocCobro").val(c.NoDocumento || "").prop("disabled", esEfectivo);
+
+    // ★ CAMBIO: fecha siempre habilitada + FmtFecha().
+    // El FmtFecha corrige un bug latente: al editar un cobro de un recibo
+    // CARGADO con "Buscar", la fecha viene del servidor como "/Date(...)/"
+    // y se pintaba cruda en el input. Antes casi no se notaba porque en
+    // EFECTIVO el campo iba deshabilitado; ahora sería visible siempre.
+    $("#dtpFechaCobro").val(FmtFecha(c.FechaDoc) || FECHA_HOY).prop("disabled", false);
+
+    $("#txtMontoCobro").val(FmtNum(c.Monto));   // FmtNum: SIN comas, es un input
+    $("#cboMonedaCobro").val(c.Moneda || "");
+    $("#cboMonedaCobro").data("monedaPrev", c.Moneda || "");
+
+    if ($.fn.select2) {
+        $("#cboTipoPago, #cboBanco, #cboMonedaCobro")
+            .filter(".search-select").trigger("change.select2");
+    }
+}
+
+// Click en el lápiz de un cobro → MODO EDICIÓN
+$(document).on("click", ".btn-editCobro", function (e) {
+    e.stopPropagation();  // no dispara el click de selección de fila
+    var idx = parseInt($(this).data("idx"), 10);
+    var c = Estado.cobros[idx];
+    if (!c) return;
+
+    Estado.cobroEditIndex = idx;
+    CargarCobroEnPanel(c);
+
+    $("#btnAgregarCobro").html('<i class="icon-ok"></i> Actualizar Cobro')
+        .removeClass("btn-primary").addClass("btn-warning");
+    $("#btnCancelarEdicionCobro").show();
+    $("#panelCobros").addClass("editando");
+
+    $("#tbodyCobros tr").removeClass("seleccionada");
+    $(this).closest("tr").addClass("seleccionada");
+
+    toastr.info("Editando cobro de " + c.TipoCobro + ". Ajuste y presione Actualizar.");
+});
+
+// ════════════════════════════════════════════════════════
+// 6. QUITAR COBRO
+// ════════════════════════════════════════════════════════
+$("#btnQuitarCobro").on("click", function () {
+    var idx = $("#tbodyCobros tr.seleccionada").data("idx");
+    if (idx === undefined) { toastr.info("Seleccione una fila para quitar."); return; }
+
+    // Si quitamos la fila en edición, salimos del modo edición
+    if (Estado.cobroEditIndex === idx) {
+        SalirModoEdicionCobro();
+        LimpiarDetalleCobro();
+    }
+
+    Estado.cobros.splice(idx, 1);
+    Estado.monedaCobro = Estado.cobros.length ? Estado.cobros[0].Moneda : "";
+    $("#spanMonedaCobro").text(Estado.monedaCobro || "—");
+
+    // Reajustar el índice de edición si quedó desfasado por el splice
+    if (Estado.cobroEditIndex !== null && idx < Estado.cobroEditIndex) {
+        Estado.cobroEditIndex--;
+    }
+    RenderizarTablaCobros();
+    ActualizarTotales();
+});
+
+$(document).on("click", "#tbodyCobros tr", function () {
+    $("#tbodyCobros tr").removeClass("seleccionada");
+    $(this).addClass("seleccionada");
+});
+
+// ════════════════════════════════════════════════════════
+// 7. MODAL DOCUMENTOS DISPONIBLES (multi-selección + totales)
+// ════════════════════════════════════════════════════════
+
+// Buffer con los documentos que devolvió HANA en la última búsqueda.
+var _docsModal = [];
+// Orden de la columna Fecha: true = más recientes primero (default,
+// igual que el ORDER BY DocDate DESC del backend).
+var _ordenFechaDesc = true;
+
+// ════════════════════════════════════════════════════════
+// Render de la tabla del modal a partir de _docsModal.
+// Extraído a función para poder re-pintar al reordenar sin
+// duplicar el markup. Preserva las selecciones por NoDocumento
+// (los índices cambian al ordenar; el número de documento no).
+// ════════════════════════════════════════════════════════
+function PintarTablaModalDocs() {
+    var tbody = $("#tbodyModalDocs");
+
+    // 1. Guardar qué documentos estaban marcados (por su clave natural)
+    var marcados = {};
+    $("#tbodyModalDocs .chk-doc:checked").each(function () {
+        var d = _docsModal[parseInt($(this).data("idx"), 10)];
+        if (d) marcados[d.NoDocumento] = true;
+    });
+
+    // 2. Ordenar el buffer por fecha (FmtFecha da "yyyy-mm-dd":
+    //    comparación de strings = comparación cronológica)
+    _docsModal.sort(function (a, b) {
+        var fa = FmtFecha(a.FechaDoc), fb = FmtFecha(b.FechaDoc);
+        if (fa === fb) return 0;
+        return (_ordenFechaDesc ? (fa > fb ? -1 : 1) : (fa > fb ? 1 : -1));
+    });
+
+    // 3. Actualizar la flecha del encabezado
+    $("#flechaOrdenFecha").text(_ordenFechaDesc ? "▼" : "▲");
+
+    // 4. Pintar las filas
+    tbody.empty();
+    var saldoTotal = 0;
+
+    $.each(_docsModal, function (i, d) {
+        var saldoDoc = (parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0));
+        var pendiente = parseFloat(d.MontoPendiente || 0);
+        var disponible = saldoDoc - pendiente;      // "Saldo por confirmar"
+        var agotado = disponible <= 0.009;       // 0 o negativo: nada cobrable
+        var sel = !agotado && marcados[d.NoDocumento] === true;
+        saldoTotal += saldoDoc;
+
+        tbody.append(
+            '<tr data-idx="' + i + '"' +
+            ' class="' + (agotado ? 'row-agotada' : (sel ? 'row-sel' : '')) + '"' +
+            (agotado ? ' title="Sin saldo por confirmar: el monto ya está comprometido en recibos en tránsito. Revise los recibos pendientes de este documento."' : '') +
+            '>' +
+            '<td style="text-align:center;">' +
+            '<input type="checkbox" class="chk-doc" data-idx="' + i + '" ' +
+            'data-disp="' + disponible + '"' +
+            (agotado ? ' disabled' : '') + (sel ? ' checked' : '') + ' />' +
+            '</td>' +
+            '<td><strong>' + (d.NoDocumento || '') + '</strong></td>' +
+            '<td>' + FmtFecha(d.FechaDoc) + '</td>' +
+            '<td class="text-right">' + FmtNum(d.MontoFact) + '</td>' +
+            '<td class="text-right">' + FmtNum(d.Pagado) + '</td>' +
+            '<td class="text-right col-saldo" data-saldo="' + saldoDoc + '">' + FmtNum(saldoDoc) + '</td>' +
+            '<td class="text-right col-pendiente' + (pendiente > 0 ? '' : ' sin-pend') + '"' +
+            (d.PendienteRecibos
+                ? ' title="Comprometido en: ' + d.PendienteRecibos + '"'
+                : '') + '>' +
+            FmtNum(pendiente) +
+            (d.PendienteRecibos && d.PendienteRecibos.indexOf("DESCUADRE") !== -1
+                ? ' <span style="color:#e74c3c;" title="Incluye recibo(s) con DESCUADRE en SAP">⚠</span>'
+                : '') +
+            '</td>' +
+            '<td class="text-right col-disponible' + (agotado ? ' agotado' : '') + '">' +
+            FmtNum(disponible) + '</td>' +
+            '<td><span class="label label-info">' + (d.Moneda || '') + '</span></td>' +
+            '<td><span class="fel-badge">' + (d.FelSerie || '—') + '</span></td>' +
+            '<td><span class="fel-badge">' + (d.FelNumero || '—') + '</span></td>' +
+            '</tr>'
+        );
+    });
+
+    // 5. Resumen y estado de controles
+    $("#resTotalDocs").text(_docsModal.length);
+    $("#resSaldoTotal").text(FmtMoneda(saldoTotal));
+    ActualizarSeleccionDocs();
+    SincronizarChkTodos();
+}
+
+// Click en el encabezado "Fecha" → alternar orden y re-pintar
+$(document).on("click", "#thFechaDocs", function () {
+    if (!_docsModal.length) return;   // tabla vacía: nada que ordenar
+    _ordenFechaDesc = !_ordenFechaDesc;
+    PintarTablaModalDocs();
+});
+
+$("#btnBuscarDoc").on("click", function () {
+    var tipo = $("#cboTipoDoc").val();
+    if (!Estado.empresa || !Estado.clienteId || !tipo) {
+        toastr.warning("Seleccione empresa, cliente y tipo de documento primero.");
+        return;
+    }
+    // Guarda de servidor-de-pobre: aunque el botón esté disabled, un
+    // trigger("click") programático llegaría igual hasta acá.
+    if (EsTipoSinDocumento(tipo)) {
+        toastr.info("Para " + tipo + " no se busca un documento específico: " +
+            "solo indique monto y moneda.");
+        return;
+    }
+
+    // Reset UI del modal
+    _docsModal = [];
+    _ordenFechaDesc = true;   // ← NUEVO: cada búsqueda arranca en "más recientes"
+    $("#chkTodosDocs").prop("checked", false);
+    $("#btnAgregarSeleccionados").prop("disabled", true);
+    $("#resTotalDocs").text("0");
+    $("#resSaldoTotal").text(FmtMoneda(0));
+    $("#resSaldoSel").html(FmtMoneda(0) + ' <small style="font-size:11px;color:#7f8c8d;">(0)</small>');
+    $("#barAnticipos").hide();   // ← NUEVO: cada búsqueda arranca sin barra
+
+    $("#tbodyModalDocs").html(
+        '<tr><td colspan="11" class="text-center" style="padding:28px;">' +
+        '<i class="icon-spinner icon-spin icon-2x" style="color:#27ae60;"></i>' +
+        '<div style="margin-top:8px;color:#7f8c8d;">Consultando documentos...</div></td></tr>');
+    $("#modalBuscarDoc").modal("show");
+
+    $.get(URL_DOCS, {
+        empresa: Estado.empresa,
+        clienteId: Estado.clienteId,
+        tipoDoc: tipo
+    }, function (resp) {
+        var tbody = $("#tbodyModalDocs");
+
+        if (!resp.ok) {
+            tbody.html('<tr><td colspan="11" class="text-center text-danger" style="padding:20px;">' + resp.msg + '</td></tr>');
+            return;
+        }
+        if (!resp.data || resp.data.length === 0) {
+            tbody.html('<tr><td colspan="11" class="text-center" style="padding:24px; color:#aaa;">Sin documentos disponibles para este cliente</td></tr>');
+            return;
+        }
+
+        _docsModal = resp.data;
+        PintarTablaModalDocs();
+        PintarBarAnticipos(resp.anticipos);   // ← NUEVO
+
+        ActualizarSeleccionDocs();
+    });
+});
+
+// Click en la fila → togglear su checkbox (salvo filas agotadas)
+$(document).on("click", "#tbodyModalDocs tr[data-idx]", function (e) {
+    if ($(e.target).is(".chk-doc")) return;
+    var chk = $(this).find(".chk-doc");
+    if (chk.is(":disabled")) return;   // sin saldo por confirmar: no seleccionable
+    chk.prop("checked", !chk.prop("checked")).trigger("change");
+});
+
+// Cambio en un checkbox individual
+$(document).on("change", ".chk-doc", function () {
+    var $tr = $(this).closest("tr");
+    $tr.toggleClass("row-sel", $(this).prop("checked"));
+    ActualizarSeleccionDocs();
+    SincronizarChkTodos();
+});
+
+// "Seleccionar todos" — solo marca las filas CON saldo por confirmar
+$(document).on("change", "#chkTodosDocs", function () {
+    var marcar = $(this).prop("checked");
+    $("#tbodyModalDocs .chk-doc:not(:disabled)").each(function () {
+        $(this).prop("checked", marcar)
+            .closest("tr").toggleClass("row-sel", marcar);
+    });
+    ActualizarSeleccionDocs();
+});
+
+// Recalcula el resumen de seleccionados y habilita el botón.
+// Suma el SALDO POR CONFIRMAR (data-disp), que es lo que realmente
+// se cargará como monto al agregar los documentos.
+function ActualizarSeleccionDocs() {
+    var dispSel = 0, n = 0;
+    $("#tbodyModalDocs .chk-doc:checked").each(function () {
+        dispSel += parseFloat($(this).data("disp")) || 0;
+        n++;
+    });
+    $("#resSaldoSel").html(FmtMoneda(dispSel) +
+        ' <small style="font-size:11px;color:#7f8c8d;">(' + n + ')</small>');
+    $("#btnAgregarSeleccionados").prop("disabled", n === 0);
+}
+
+// Mantiene el "seleccionar todos" coherente (ignora las agotadas)
+function SincronizarChkTodos() {
+    var total = $("#tbodyModalDocs .chk-doc:not(:disabled)").length;
+    var marcados = $("#tbodyModalDocs .chk-doc:checked").length;
+    $("#chkTodosDocs").prop("checked", total > 0 && marcados === total);
+}
+
+// Agregar seleccionados:
+//   1 documento  → lo carga al panel editable (el usuario ajusta el monto)
+//   2+ documentos → cobro masivo directo a la tabla (monto = saldo)
+$("#btnAgregarSeleccionados").on("click", function () {
+    var tipo = $("#cboTipoDoc").val();
+    var indices = [];
+    $("#tbodyModalDocs .chk-doc:checked").each(function () {
+        indices.push(parseInt($(this).data("idx"), 10));
+    });
+    if (!indices.length) { toastr.info("No hay documentos seleccionados."); return; }
+
+    // ── 1 SOLO documento: cargar al panel editable ──
+    if (indices.length === 1) {
+        CargarDocEnPanel(_docsModal[indices[0]]);
+        $("#modalBuscarDoc").modal("hide");
+        toastr.info("Documento cargado. Ajuste el monto y presione Agregar Documento.");
+        return;
+    }
+
+    // ── 2+ documentos: cobro masivo ──
+    var agregados = 0, duplicados = 0, distintaMoneda = 0;
+
+    indices.forEach(function (idx) {
+        var d = _docsModal[idx];
+        if (!d) return;
+
+        var moneda = d.Moneda || "GTQ";
+        var saldo = parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0);
+        var disponible = saldo - parseFloat(d.MontoPendiente || 0);
+        if (disponible <= 0) return;   // defensivo: no debería llegar (checkbox disabled)
+
+        var yaExiste = Estado.documentos.some(function (x) {
+            return x.NoDocumento === d.NoDocumento;
+        });
+        if (yaExiste) { duplicados++; return; }
+
+        if (Estado.monedaDoc && Estado.monedaDoc !== moneda) { distintaMoneda++; return; }
+        if (!Estado.monedaDoc) Estado.monedaDoc = moneda;
+
+        Estado.documentos.push({
+            TipoDoc: tipo,
+            NoDocumento: d.NoDocumento,
+            FechaDoc: FmtFecha(d.FechaDoc),
+            Status: "",
+            Monto: Math.round(disponible * 100) / 100,   // ← Saldo por confirmar, no el saldo bruto
+            Moneda: moneda,
+            MontoFact: parseFloat(d.MontoFact || 0),
+            Pagado: parseFloat(d.Pagado || 0),
+            FelSerie: d.FelSerie || "",
+            FelNumero: d.FelNumero || ""
+        });
+        agregados++;
+    });
+
+    $("#spanMonedaDoc").text(Estado.monedaDoc || "—");
+    RenderizarTablaDocumentos();
+    ActualizarTotales();
+
+    if (agregados) toastr.success(agregados + " documento(s) agregado(s).");
+    if (duplicados) toastr.warning(duplicados + " ya estaban agregados (omitidos).");
+    if (distintaMoneda) toastr.error(distintaMoneda + " omitido(s) por moneda distinta a " + Estado.monedaDoc + ".");
+
+    $("#modalBuscarDoc").modal("hide");
+});
+
+// Carga un documento en el panel editable "Detalle de Documentos".
+// Reutilizado por: selección única en el modal, y edición de fila.
+// - Desde el modal (objeto HANA crudo, sin 'Monto'): precarga el
+//   SALDO POR CONFIRMAR (saldo − recibos en tránsito), clampado a 0.
+// - Desde editar fila (objeto de Estado.documentos): respeta el 'Monto' guardado.
+function CargarDocEnPanel(d) {
+    if (!d) return;
+    var saldo = parseFloat(d.MontoFact || 0) - parseFloat(d.Pagado || 0);
+    var disponible = saldo - parseFloat(d.MontoPendiente || 0);
+    if (disponible < 0) disponible = 0;   // negativo: nada que precargar
+    // (la validación monto<=0 impide agregarlo)
+
+    $("#txtNoDocDoc").val(d.NoDocumento);
+    $("#dtpFechaDoc").val(FmtFecha(d.FechaDoc));
+    $("#txtSerieFel").val(d.FelSerie || "");
+    $("#txtNumFel").val(d.FelNumero || "");
+    $("#txtTotalFact").val(FmtNum(d.MontoFact));
+    $("#txtPagado").val(FmtNum(d.Pagado));
+    $("#txtMontoDoc").val(FmtNum(d.Monto != null ? d.Monto : disponible));
+    $("#cboMonedaDoc").val(d.Moneda || "GTQ");
+    $("#cboMonedaDoc").data("monedaPrev", d.Moneda || "GTQ");
+
+    if ($("#cboMonedaDoc").hasClass("search-select") && $.fn.select2) {
+        $("#cboMonedaDoc").trigger("change.select2");
+    }
+}
+
+// ════════════════════════════════════════════════════════
+// 8. AGREGAR / ACTUALIZAR DOCUMENTO
+// ════════════════════════════════════════════════════════
+$("#btnAgregarDoc").on("click", function () {
+    var tipo = $("#cboTipoDoc").val();
+    var nodoc = $("#txtNoDocDoc").val().trim();
+    var fecha = $("#dtpFechaDoc").val();
+    var monto = parseFloat($("#txtMontoDoc").val()) || 0;
+    var moneda = $("#cboMonedaDoc").val();
+    var esSinDoc = EsTipoSinDocumento(tipo);   // ← ANTICIPO / DIFERENCIA / SALDO PEND.
+    var editando = (Estado.docEditIndex !== null);
+
+    if (!tipo || monto <= 0) {
+        toastr.warning("Tipo de documento y monto son obligatorios.");
+        return;
+    }
+    if (!esSinDoc && !nodoc) {
+        toastr.warning("Ingrese el número de documento.");
+        return;
+    }
+    // Duplicado: ignoramos la propia fila cuando estamos editando.
+    // Los tipos sin documento quedan fuera del chequeo a propósito:
+    // su NoDocumento es "" y se podrían capturar VARIAS diferencias
+    // en el mismo recibo (una por moneda, por ejemplo).
+    var dupIdx = -1;
+    for (var i = 0; i < Estado.documentos.length; i++) {
+        if (Estado.documentos[i].NoDocumento === nodoc) { dupIdx = i; break; }
+    }
+    if (!esSinDoc && dupIdx !== -1 && dupIdx !== Estado.docEditIndex) {
+        toastr.warning("El documento " + nodoc + " ya está agregado.");
+        return;
+    }
+    // Validación de moneda consistente (solo si hay otros docs distintos a esta fila)
+    if (Estado.monedaDoc && Estado.monedaDoc !== moneda) {
+        var hayOtros = false;
+        for (var j = 0; j < Estado.documentos.length; j++) {
+            if (j !== Estado.docEditIndex) { hayOtros = true; break; }
+        }
+        if (hayOtros) {
+            toastr.error("Todos los documentos deben tener la misma moneda (" + Estado.monedaDoc + ").");
+            return;
+        }
+    }
+
+    var docObj = {
+        TipoDoc: tipo,
+        NoDocumento: esSinDoc ? "" : nodoc,
+        FechaDoc: esSinDoc ? "" : fecha,
+        Status: "",
+        Monto: monto,
+        Moneda: moneda,
+        MontoFact: parseFloat($("#txtTotalFact").val()) || 0,
+        Pagado: parseFloat($("#txtPagado").val()) || 0,
+        FelSerie: $("#txtSerieFel").val().trim(),
+        FelNumero: $("#txtNumFel").val().trim()
+    };
+
+    if (editando) {
+        // ── ACTUALIZAR la fila existente ──
+        Estado.documentos[Estado.docEditIndex] = docObj;
+        if (!Estado.monedaDoc) Estado.monedaDoc = moneda;
+        toastr.success("Documento actualizado.");
+        SalirModoEdicionDoc();
+    } else {
+        // ── ALTA nueva ──
+        if (!Estado.monedaDoc) Estado.monedaDoc = moneda;
+        Estado.documentos.push(docObj);
+    }
+
+    $("#spanMonedaDoc").text(Estado.monedaDoc || moneda || "—");
+
+    if (!Estado.documentos.length) Estado.monedaDoc = "";
+
+    RenderizarTablaDocumentos();
+    ActualizarTotales();
+    LimpiarDetalleDoc();
+});
+
+// Botón "Cancelar edición" → descarta cambios y vuelve a modo alta
+$("#btnCancelarEdicionDoc").on("click", function () {
+    SalirModoEdicionDoc();
+    LimpiarDetalleDoc();
+    toastr.info("Edición cancelada.");
+});
+
+// Sale del modo edición: restaura el botón a "Agregar Documento"
+function SalirModoEdicionDoc() {
+    Estado.docEditIndex = null;
+    $("#btnAgregarDoc").html('<i class="icon-plus"></i> Agregar Documento')
+        .removeClass("btn-warning").addClass("btn-success");
+    $("#btnCancelarEdicionDoc").hide();
+    $("#panelDocs").removeClass("editando");
+    $("#tbodyDocs tr").removeClass("seleccionada");
+}
+
+// ════════════════════════════════════════════════════════
+// 9. QUITAR DOCUMENTO
+// ════════════════════════════════════════════════════════
+$("#btnQuitarDoc").on("click", function () {
+    var idx = $("#tbodyDocs tr.seleccionada").data("idx");
+    if (idx === undefined) { toastr.info("Seleccione una fila para quitar."); return; }
+
+    // Si quitamos la fila que estábamos editando, salimos del modo edición
+    if (Estado.docEditIndex === idx) {
+        SalirModoEdicionDoc();
+        LimpiarDetalleDoc();
+    }
+
+    Estado.documentos.splice(idx, 1);
+    if (Estado.documentos.length === 0) {
+        Estado.monedaDoc = "";
+        $("#spanMonedaDoc").text("—");
+    }
+    // Reajustar el índice de edición si quedó desfasado por el splice
+    if (Estado.docEditIndex !== null && idx < Estado.docEditIndex) {
+        Estado.docEditIndex--;
+    }
+    RenderizarTablaDocumentos();
+    ActualizarTotales();
+});
+
+$(document).on("click", "#tbodyDocs tr", function () {
+    $("#tbodyDocs tr").removeClass("seleccionada");
+    $(this).addClass("seleccionada");
+});
+
+// Click en el lápiz → cargar la fila en el panel en MODO EDICIÓN
+$(document).on("click", ".btn-editDoc", function (e) {
+    e.stopPropagation();  // no dispara el click de selección de fila
+    var idx = parseInt($(this).data("idx"), 10);
+    var d = Estado.documentos[idx];
+    if (!d) return;
+
+    // Activar modo edición ANTES de tocar el combo (para que el change no limpie)
+    Estado.docEditIndex = idx;
+
+    // Reflejar el tipo en el combo (el handler de la sección 4 hace return
+    // porque docEditIndex != null, así que no limpia ni reabre el modal)
+    $("#cboTipoDoc").val(d.TipoDoc);
+    if ($("#cboTipoDoc").hasClass("search-select") && $.fn.select2) {
+        $("#cboTipoDoc").trigger("change.select2");
+    }
+
+    // ← NUEVA: el change hizo return, así que el bloqueo lo aplicamos a mano.
+    // Sin esto, editar una DIFERENCIA mostraba No.Documento/Fecha/FEL editables.
+    AplicarBloqueoTipoDoc(d.TipoDoc);
+
+    // Cargar los valores al panel (respeta el Monto que el usuario ya tenía)
+    CargarDocEnPanel(d);
+
+    // Cambiar el botón a modo "Actualizar" + mostrar "Cancelar edición"
+    $("#btnAgregarDoc").html('<i class="icon-ok"></i> Actualizar Documento')
+        .removeClass("btn-success").addClass("btn-warning");
+    $("#btnCancelarEdicionDoc").show();
+    $("#panelDocs").addClass("editando");
+
+    // Resaltar la fila en edición
+    $("#tbodyDocs tr").removeClass("seleccionada");
+    $(this).closest("tr").addClass("seleccionada");
+
+    toastr.info("Editando documento " + (d.NoDocumento || "") + ". Ajuste y presione Actualizar.");
+});
+
+// ════════════════════════════════════════════════════════
+// 10. GUARDAR
+// ════════════════════════════════════════════════════════
+$("#btnGuardar").on("click", function () {
+    if (!Estado.codigoUsuario) { toastr.error("Seleccione el operador con el que emitirá."); return; }
+    if (!Estado.deptoOperador) { toastr.error("El operador seleccionado no tiene serie/depto asignado."); return; }
+
+    // ★ GUARDA DE CUADRE — red de seguridad del lado del cliente.
+    // El botón ya está deshabilitado cuando no cuadra, pero un
+    // trigger("click") programático o un estado viejo llegarían hasta acá.
+    // (La validación REAL vive en el BLL; esto es UX.)
+    var t = CalcularTotales();
+    var motivo = MotivoNoGuardable(t);
+    if (motivo) { toastr.error(motivo); RefrescarBotonGuardar(); return; }
+
+    if (Estado.encabezadoEditable && !$("#txtNombreCliente").val().trim()) {
+        toastr.error("Escriba el nombre del cliente en el encabezado.");
+        $("#txtNombreCliente").focus();
+        return;
+    }
+
+    // Multimoneda: ya sabemos que cuadra en GTQ (pasó MotivoNoGuardable),
+    // pero conviene que el cajero sepa bajo qué criterio se aprobó.
+    if (!t.monedaUniforme) {
+        if (!confirm("⚠ El recibo mezcla monedas (Cobros: " + Estado.monedaCobro +
+            " / Documentos: " + Estado.monedaDoc + ").\n" +
+            "El cuadre se evalúa en GTQ (Q " + FmtNum(t.saldoGtq) + ").\n\n" +
+            "¿Desea continuar?")) return;
+    }
+    if (!confirm("¿Confirmar guardado del recibo?")) return;
+
+    var payload = {
+        IdEmpresa: Estado.empresa,
+        FechaRecibo: $("#fechaRecibo").val(),
+        IdCliente: Estado.clienteId,
+        NombreCliente: $("#txtNombreCliente").val(),
+        Direccion: $("#txtDireccion").val(),
+        Nit: $("#txtNit").val(),
+        Agente: Estado.encabezadoEditable ? $("#txtAgente").val() : $("#hdnAgente").val(),
+        Correo: $("#txtCorreo").val(),
+        Moneda: $("#txtMoneda").val(),
+        RecFisico: $("#txtRecFisico").val(),
+        CodigoUsuario: Estado.codigoUsuario,
+        Cobros: Estado.cobros,
+        Documentos: Estado.documentos,
+        TipoCambio: Estado.tipoCambio
+    };
+
+    $("#btnGuardar").prop("disabled", true)
+        .html('<i class="icon-spinner icon-spin"></i> Guardando...');
+
+    $.ajax({
+        url: URL_GUARDAR, type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify(payload),
+        success: function (resp) {
+            if (resp.ok) {
+                toastr.success("✅ Recibo " + resp.idRecibo + " guardado correctamente.");
+                Estado.idReciboGuardado = resp.idRecibo;
+                $("#txtIdRecibo").val(resp.idRecibo);
+                $("#badgeStatus").text("GUARDADO")
+                    .removeClass("nuevo").addClass("guardado");
+                SetBotonesPostGuardado();
+                AbrirImpresion(resp.idRecibo, Estado.empresa);
+            } else {
+                // El servidor rechazó por regla de negocio (p.ej. no cuadra).
+                toastr.error(resp.msg);
+                $("#btnGuardar").html('<i class="icon-save"></i> Guardar');
+                RefrescarBotonGuardar();   // ← NO reactivamos a ciegas
+            }
+        },
+        error: function () {
+            toastr.error("Error de conexión al guardar. Intente nuevamente.");
+            $("#btnGuardar").html('<i class="icon-save"></i> Guardar');
+            RefrescarBotonGuardar();
+        }
+    });
+});
+
+// ════════════════════════════════════════════════════════
+// 11. IMPRIMIR
+// ════════════════════════════════════════════════════════
+$("#btnImprimir").on("click", function () {
+    AbrirImpresion(Estado.idReciboGuardado, Estado.empresa);
+});
+function AbrirImpresion(idRecibo, empresa) {
+    window.open(URL_IMPRIMIR +
+        "?idRecibo=" + encodeURIComponent(idRecibo) +
+        "&empresa="  + encodeURIComponent(empresa), "_blank");
+}
+
+// ════════════════════════════════════════════════════════
+// 12. BUSCAR RECIBO EXISTENTE
+// ════════════════════════════════════════════════════════
+$("#btnBuscarRecibo").on("click", function () {
+    if (!Estado.empresa) { toastr.warning("Seleccione una empresa primero."); return; }
+    $("#txtBuscarIdRecibo").val("");
+    $("#msgBuscarRecibo").hide();
+    $("#modalBuscarRecibo").modal("show");
+});
+
+$("#btnEjecutarBusqueda").on("click", function () {
+    var id = $("#txtBuscarIdRecibo").val().trim();
+    if (!id) return;
+
+    $.get(URL_BUSCAR, { idRecibo: id, empresa: Estado.empresa }, function (resp) {
+        if (!resp.ok) {
+            $("#msgBuscarRecibo")
+                .removeClass("alert-success").addClass("alert-danger")
+                .text(resp.msg).show();
+            return;
+        }
+        var r = resp.data;
+
+        // Ver un recibo existente NO requiere operador: se despliega
+        // el formulario en modo consulta (los botones de creación siguen
+        // gobernados por las guardas de operador).
+        $("#panelRecibo").slideDown(300);
+        AplicarModoEncabezado(false);   // consulta = solo lectura, siempre
+        $("#txtIdRecibo").val(r.IdRecibo);
+        Estado.clienteId = r.IdCliente;
+        $("#txtBuscarCliente").val(r.IdCliente + "  —  " + r.NombreCliente);
+        $("#txtNombreCliente").val(r.NombreCliente).addClass("tiene-valor");
+        $("#txtDireccion").val(r.Direccion);
+        $("#txtNit").val(r.Nit);
+        $("#txtAgente").val(r.Agente);
+        $("#hdnAgente").val(r.Agente);
+        $("#txtCorreo").val(r.Correo);
+        $("#txtMoneda").val(r.Moneda);
+        $("#txtRecFisico").val(r.RecFisico);
+
+        // Mostrar con qué código se emitió (históricos no tienen: se ignora)
+        if (r.CodigoUsuario) {
+            toastr.info("Emitido con el código: " + r.CodigoUsuario);
+        }
+
+        // var esGuardado = r.Status && r.Status !== "NUEVO";
+        // $("#badgeStatus").text(r.Status || "NUEVO")
+        //    .removeClass("nuevo guardado")
+        //    .addClass(esGuardado ? "guardado" : "nuevo");
+        // Badge de sincronización con SAP (viene del backend Fase 4)
+        PintarBadgeSync(r.SyncEstado, r.SyncObservacion, r.SapDocNum);
+        PintarBadgeStatus(r.Status);
+
+        Estado.cobros = r.Cobros || [];
+        // Recibos guardados: cada cobro trae su propio TIPO_CAMBIO desde la BD.
+        // Si es un recibo histórico (pre-cambio) el campo puede venir vacío;
+        // en ese caso cae al TC del encabezado, que era el único que había.
+        Estado.cobros.forEach(function (c) {
+            c.TipoCambio = parseFloat(c.TipoCambio) || parseFloat(r.TipoCambio) || 0;
+        });
+        Estado.documentos          = r.Documentos || [];
+        Estado.idReciboGuardado    = r.IdRecibo;
+        if (Estado.cobros.length)     Estado.monedaCobro = Estado.cobros[0].Moneda;
+        if (Estado.documentos.length) Estado.monedaDoc   = Estado.documentos[0].Moneda;
+
+        RenderizarTablaCobros();
+        RenderizarTablaDocumentos();
+        ActualizarTotales();
+        SetBotonesPostGuardado();
+
+        // ★ CAMBIO: el DESCUADRE ya NO bloquea la impresión (el servidor
+        // tampoco lo hace). Solo avisamos por tooltip qué va a salir en el
+        // papel, para que nadie se sorprenda con la banda ámbar.
+        if ((r.SyncEstado || "").toUpperCase() === "DESCUADRE") {
+            $("#btnImprimir").attr("title",
+                "El recibo está en conciliación con SAP: se imprimirá con un sello de advertencia.");
+        } else {
+            $("#btnImprimir").attr("title", "");
+        }
+
+        // Anular: solo recibos ACTIVOS que aún no fueron operados en SAP.
+        // (Cosmético: la regla real vive en el BLL.)
+        var puedeAnular =
+            (r.Status || "").toUpperCase() !== "X" &&
+            ["OPERADO", "DESCUADRE"].indexOf((r.SyncEstado || "").toUpperCase()) === -1;
+        $("#btnAnular").prop("disabled", !puedeAnular)
+            .attr("title", puedeAnular ? "Anula el recibo de forma permanente"
+                : "No se puede anular: recibo anulado, operado en SAP o en descuadre.");
+
+        $("#modalBuscarRecibo").modal("hide");
+        toastr.success("Recibo " + r.IdRecibo + " cargado.");
+    });
+});
+
+// ════════════════════════════════════════════════════════
+// 13. NUEVO y CANCELAR
+// ════════════════════════════════════════════════════════
+$("#btnNuevo").on("click", function () {
+    if (!Estado.codigoUsuario) {
+        toastr.warning("Seleccione primero el operador (campo \"Operar como\").");
+        $("#selCodigo").focus();
+        return;
+    }
+    if (!Estado.deptoOperador) {
+        toastr.error("El operador '" + Estado.codigoUsuario + "' no tiene serie/depto asignado. " +
+            "No puede emitir recibos. Contacte al administrador.");
+        return;
+    }
+    LimpiarFormulario();
+    SetBotonesActivos();
+    AplicarModoEncabezado(Estado.encabezadoEditable);
+    Estado.modoActivo = true;
+    $("#txtBuscarCliente").focus();
+});
+$("#btnCancelar").on("click", function () {
+    LimpiarFormulario();
+    SetBotonesInicio();
+});
+
+// ════════════════════════════════════════════════════════
+// 14. ANULAR RECIBO (confirmación reforzada en 3 pasos:
+//     advertencia → motivo obligatorio → confirm final)
+// ════════════════════════════════════════════════════════
+var MIN_MOTIVO_ANULACION = 10;   // espejo del BLL
+
+$("#btnAnular").on("click", function () {
+    if (!Estado.idReciboGuardado) {
+        toastr.warning("Cargue o guarde un recibo primero.");
+        return;
+    }
+    $("#spanReciboAnular").text(Estado.idReciboGuardado);
+    $("#txtMotivoAnulacion").val("");
+    $("#lblContadorMotivo").text("0");
+    $("#btnConfirmarAnular").prop("disabled", true)
+        .html('<i class="icon-ban-circle"></i> Anular definitivamente');
+    $("#modalAnular").modal("show");
+    setTimeout(function () { $("#txtMotivoAnulacion").focus(); }, 400);
+});
+
+// El botón solo se habilita cuando el motivo alcanza el mínimo
+$("#txtMotivoAnulacion").on("input", function () {
+    var texto = $(this).val();
+    $("#lblContadorMotivo").text(texto.length);
+    $("#btnConfirmarAnular").prop("disabled",
+        texto.trim().length < MIN_MOTIVO_ANULACION);
+});
+
+$("#btnConfirmarAnular").on("click", function () {
+    var motivo = $("#txtMotivoAnulacion").val().trim();
+    if (motivo.length < MIN_MOTIVO_ANULACION) {
+        toastr.warning("El motivo debe tener al menos " + MIN_MOTIVO_ANULACION + " caracteres.");
+        return;
+    }
+
+    if (!confirm("⚠ ÚLTIMA CONFIRMACIÓN\n\nSe anulará el recibo " +
+    Estado.idReciboGuardado + " de forma PERMANENTE.\n\nMotivo: " +
+    motivo + "\n\n¿Continuar?")) return;
+
+    var $btn = $(this).prop("disabled", true)
+        .html('<i class="icon-spinner icon-spin"></i> Anulando...');
+
+    $.post(URL_ANULAR, {
+        idRecibo: Estado.idReciboGuardado,
+        empresa: Estado.empresa,
+        motivo: motivo
+    }, function (resp) {
+        if (resp.ok) {
+            toastr.success(resp.msg);
+            $("#modalAnular").modal("hide");
+            PintarBadgeStatus("X");
+            $("#btnAnular").prop("disabled", true);
+        } else {
+            toastr.error(resp.msg);
+            $btn.prop("disabled", false)
+                .html('<i class="icon-ban-circle"></i> Anular definitivamente');
+        }
+    }).fail(function () {
+        toastr.error("Error de conexión al anular. Intente nuevamente.");
+        $btn.prop("disabled", false)
+            .html('<i class="icon-ban-circle"></i> Anular definitivamente');
+    });
+});
+
+// El botón solo se habilita si el usuario escribe el ID exacto
+$("#txtConfirmarAnulacion").on("input", function () {
+    var coincide = $(this).val().trim().toUpperCase() ===
+        (Estado.idReciboGuardado || "").toUpperCase();
+    $("#btnConfirmarAnular").prop("disabled", !coincide);
+});
+
+// ════════════════════════════════════════════════════════
+// RENDERIZADO DE TABLAS
+// ════════════════════════════════════════════════════════
+function RenderizarTablaCobros() {
+    var tbody = $("#tbodyCobros").empty();
+    if (!Estado.cobros.length) {
+        tbody.html('<tr class="tabla-vacia"><td colspan="8" class="text-center" style="padding:14px;">' +
+            '<i class="icon-inbox" style="font-size:18px;color:#ccc;"></i><br/>Sin cobros agregados</td></tr>');
+        return;
+    }
+    $.each(Estado.cobros, function (i, c) {
+        var filaEdit = (Estado.cobroEditIndex === i) ? " seleccionada" : "";
+        var tc = c.TipoCambio || 0;
+        tbody.append(
+            $('<tr style="cursor:pointer;" class="' + filaEdit.trim() + '"></tr>').data("idx", i).html(
+                "<td><span class='label label-default'>" + c.TipoCobro + "</span></td>" +
+                "<td>" + (c.Banco || "—") + "</td>" +
+                "<td>" + (FmtFecha(c.FechaDoc) || "—") + "</td>" +
+                "<td>" + (c.NoDocumento || "—") + "</td>" +
+                '<td class="text-right"><strong>' + FmtMoneda(c.Monto) + "</strong></td>" +
+                "<td><span class='label label-info'>" + c.Moneda + "</span></td>" +
+                '<td class="text-right" style="font-family:monospace;color:#7f8c8d;" ' +
+                'title="Tipo de cambio del ' + (FmtFecha(c.FechaDoc) || "?") + '">' +
+                (tc > 0 ? tc.toFixed(4) : "—") + "</td>" +
+                '<td class="text-center">' +
+                '<button class="btn btn-xs btn-warning btn-editCobro" title="Editar" data-idx="' + i + '">' +
+                '<i class="icon-pencil"></i></button>' +
+                '</td>'
+            )
+        );
+    });
+}
+
+function RenderizarTablaDocumentos() {
+    var tbody = $("#tbodyDocs").empty();
+    if (!Estado.documentos.length) {
+        tbody.html('<tr class="tabla-vacia"><td colspan="9" class="text-center" style="padding:14px;">' +
+                   '<i class="icon-inbox" style="font-size:18px;color:#ccc;"></i><br/>Sin documentos agregados</td></tr>');
+        return;
+    }
+    $.each(Estado.documentos, function (i, d) {
+        var filaEdit = (Estado.docEditIndex === i) ? " seleccionada" : "";
+        tbody.append(
+            $('<tr style="cursor:pointer;" class="' + filaEdit.trim() + '"></tr>').data("idx", i).html(
+                "<td><span class='label label-default'>" + d.TipoDoc + "</span></td>" +
+                "<td><strong>" + (d.NoDocumento || "—") + "</strong></td>" +
+                "<td>" + (FmtFecha(d.FechaDoc) || "—")  + "</td>" +
+                '<td class="text-right"><strong>' + FmtMoneda(d.Monto) + "</strong></td>" +
+                "<td><span class='label label-info'>" + d.Moneda + "</span></td>" +
+                '<td class="text-right">' + FmtMoneda(d.MontoFact) + "</td>" +
+                '<td class="text-right">' + FmtMoneda(d.Pagado) + "</td>" +
+                "<td>" + (d.FelSerie || "—") + "</td>" +
+                '<td class="text-center">' +
+                    '<button class="btn btn-xs btn-warning btn-editDoc" title="Editar" data-idx="' + i + '">' +
+                    '<i class="icon-pencil"></i></button>' +
+                '</td>'
+            )
+        );
+    });
+}
+
+// ════════════════════════════════════════════════════════
+// CÁLCULO DE TOTALES
+// ════════════════════════════════════════════════════════
+function ActualizarTotales() {
+    var t = CalcularTotales();
+
+    $("#spanTotalCobros").text("Q " + FmtNum(t.cobrosGtq));
+    $("#spanTotalCobrosUsd").text("$ " + FmtNum(t.cobrosUsd));
+    $("#spanTotalDocs").text("Q " + FmtNum(t.docsGtq));
+    $("#spanTotalDocsUsd").text("$ " + FmtNum(t.docsUsd));
+
+    // ★ FIX DEL VERDE MENTIROSO.
+    // Antes: Math.abs(saldoGtq) < 0.01  →  -0.00999...  pasaba como OK.
+    // Ahora la misma función que decide si se puede guardar decide el color:
+    // imposible que el botón y el color se contradigan.
+    // Sin líneas todavía → neutro (ni verde ni rojo): no hay nada que juzgar.
+    $("#spanSaldo").text("Q " + FmtNum(t.saldoGtq))
+        .removeClass("saldo-ok saldo-error")
+        .addClass(!t.hayLineas ? "" : (SaldoCuadra(t) ? "saldo-ok" : "saldo-error"));
+    $("#spanSaldoUsd").text("$ " + FmtNum(t.saldoUsd));
+
+    // TC efectivo del recibo (ponderado por los cobros)
+    if (t.tc > 0) {
+        var mixto = HayTcMixto();
+        $("#spanTipoCambio")
+            .text(t.tc.toFixed(4) + (mixto ? " (ponderado)" : ""))
+            .attr("title", mixto
+                ? "Los cobros tienen fechas con distinto tipo de cambio. " +
+                "Este es el promedio ponderado por monto, y es el que se aplica a los documentos."
+                : "Tipo de cambio de la fecha del cobro.");
+    } else {
+        $("#spanTipoCambio").text("—").attr("title", "");
+    }
+
+    // ★ Cada cambio de montos re-evalúa si el recibo puede guardarse.
+    RefrescarBotonGuardar();
+}
+
+// function AplicarColorSaldo() {
+//    var s = parseFloat($("#txtSaldo").val()) || 0;
+//    $("#txtSaldo").css("color", s === 0 ? "#1a5e35" : "#922b21");
+// }
+
+// ════════════════════════════════════════════════════════
+// LIMPIAR
+// ════════════════════════════════════════════════════════
+function LimpiarFormulario() {
+    Estado.clienteId          = "";
+    Estado.agente             = "";
+    Estado.monedaCobro        = "";
+    Estado.monedaDoc          = "";
+    Estado.cobros             = [];
+    Estado.documentos         = [];
+    Estado.idReciboGuardado   = "";
+    Estado.docEditIndex = null;
+    Estado.cobroEditIndex = null;
+
+    $("#txtIdRecibo, #txtRecFisico, #txtBuscarCliente").val("");
+    $("#txtNombreCliente").val("").removeClass("tiene-valor");
+    $("#txtDireccion, #txtNit, #txtAgente, #txtCorreo, #txtMoneda").val("");
+    // $("#txtMontoRec, #txtTotalDoc, #txtSaldo").val("");
+    $("#txtStatus").val("NUEVO");
+    $("#hdnAgente").val("");
+    //$("#badgeStatus").text("NUEVO").removeClass("guardado").addClass("nuevo");
+    PintarBadgeStatus("NUEVO");
+    PintarBadgeSync("");   // oculta el badge de sync en captura
+
+    $("#spanTotalCobros, #spanTotalDocs").text("0.00");
+    $("#spanSaldo").text("0.00").removeClass("saldo-ok saldo-error");
+    $("#spanMonedaCobro, #spanMonedaDoc").text("—");
+    $("#spanTotalCobrosUsd, #spanTotalDocsUsd, #spanSaldoUsd").text("$ 0.00");
+
+    RenderizarTablaCobros();
+    RenderizarTablaDocumentos();
+    LimpiarDetalleCobro();
+    LimpiarDetalleDoc();
+}
+
+function LimpiarDetalleCobro() {
+    $("#cboTipoPago, #cboBanco, #cboMonedaCobro").val("");
+    $("#txtNoDocCobro, #txtMontoCobro").val("");
+
+    // ★ CAMBIO: la fecha NO se vacía, se repuebla con hoy.
+    // Es campo obligatorio: si quedara vacío, el cajero tendría que
+    // re-escribirla en cada cobro del mismo recibo (fricción pura).
+    $("#dtpFechaCobro").val(FECHA_HOY);
+
+    $("#cboBanco, #txtNoDocCobro, #dtpFechaCobro").prop("disabled", false);
+    $("#cboMonedaCobro").data("monedaPrev", "");
+
+    // Refrescar Select2 visual tras limpiar
+    if ($.fn.select2) {
+        $("#cboTipoPago, #cboBanco, #cboMonedaCobro").filter(".search-select").trigger("change.select2");
+    }
+
+    // Por seguridad: si quedó algún rastro de edición, lo limpiamos
+    SalirModoEdicionCobro();
+}
+
+function LimpiarDetalleDoc() {
+    $("#cboTipoDoc, #cboMonedaDoc").val("");
+    $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel").val("");
+    $("#txtTotalFact, #txtPagado, #txtMontoDoc").val("");
+    $("#txtNoDocDoc, #dtpFechaDoc, #txtSerieFel, #txtNumFel, #cboMonedaDoc").prop("disabled", false);
+    $("#cboMonedaDoc").data("monedaPrev", "");
+
+    // La lupa vuelve a su estado neutro (sin tipo elegido no hay bloqueo)
+    $("#btnBuscarDoc").prop("disabled", false)
+        .attr("title", "Buscar documento disponible");
+
+    // Refrescar Select2 para que lo visual coincida con el valor real (vacío).
+    // Usamos change.select2 (NO change) para repintar sin disparar los handlers
+    // de negocio de la sección 4.
+    if ($.fn.select2) {
+        $("#cboTipoDoc, #cboMonedaDoc").filter(".search-select").trigger("change.select2");
+    }
+
+    // Por seguridad: si quedó algún rastro de edición, lo limpiamos
+    SalirModoEdicionDoc();
+}
+
+// ════════════════════════════════════════════════════════
+// CONTROL DE BOTONES
+// ★ #btnGuardar ya NO se habilita/deshabilita acá. Estas funciones solo
+// declaran la FASE (¿estamos capturando?); si el recibo cuadra o no lo
+// decide RefrescarBotonGuardar(). Un solo dueño = ningún estado imposible.
+// ════════════════════════════════════════════════════════
+function SetBotonesInicio() {
+    Estado.faseGuardado = false;
+    $("#btnCancelar, #btnImprimir").prop("disabled", true);
+    $("#btnNuevo, #btnBuscarRecibo").prop("disabled", false);
+    $("#btnGuardar").html('<i class="icon-save"></i> Guardar');
+    $("#btnAnular").prop("disabled", true);
+    RefrescarBotonGuardar();
+}
+function SetBotonesActivos() {
+    Estado.faseGuardado = true;
+    $("#btnCancelar").prop("disabled", false);
+    $("#btnNuevo, #btnBuscarRecibo").prop("disabled", true);
+    $("#btnImprimir").prop("disabled", true);
+    $("#btnAnular").prop("disabled", true);
+    RefrescarBotonGuardar();   // ← arranca deshabilitado: aún no hay cobros
+}
+function SetBotonesPostGuardado() {
+    Estado.faseGuardado = false;
+    $("#btnGuardar").html('<i class="icon-save"></i> Guardar');
+    $("#btnCancelar").prop("disabled", true);
+    $("#btnNuevo, #btnBuscarRecibo, #btnImprimir").prop("disabled", false);
+    $("#btnAnular").prop("disabled", false);
+    RefrescarBotonGuardar();
+}
+
+// ════════════════════════════════════════════════════════
+// BADGE DE SINCRONIZACIÓN (Fase 4)
+// Pinta el estado del recibo frente a SAP, con contexto:
+//   OPERADO            → verde + "SAP #DocNum"
+//   OPERADO + [CONCIL] → verde con halo ámbar ⚠ + tooltip del descuadre
+//   PENDIENTE          → ámbar
+//   PENDIENTE anulado  → ámbar + tooltip con la huella de anulación
+// Sin estado (recibo en captura) → se oculta.
+// ════════════════════════════════════════════════════════
+function PintarBadgeSync(syncEstado, syncObs, sapDocNum) {
+var $b = $("#badgeSync");
+var estado = (syncEstado || "").toUpperCase();
+var obs = syncObs || "";
+
+// Alerta de descuadre: visible SOLO en estado DESCUADRE
+if (estado === "DESCUADRE") {
+    var infoDesc = InterpretarSyncObs(obs, estado);
+    if (infoDesc.interpretado) {
+        var lis = infoDesc.lineas.map(function (l) {
+            return "<li>" + EscHtml(l) + "</li>";
+        }).join("");
+        $("#alertaDescuadreDetalle").html(
+            '<div style="font-weight:700;">' + EscHtml(infoDesc.titulo) + '</div>' +
+            '<ul style="margin:4px 0 0 18px; padding:0; list-style:disc;">' + lis + '</ul>');
+        $("#alertaDescuadreRef").text("Ref. técnica: " + infoDesc.original);
+    } else {
+        $("#alertaDescuadreDetalle").text(obs ||
+            "Los montos del recibo no coinciden con los pagos activos en SAP.");
+        $("#alertaDescuadreRef").text("");
+    }
+    $("#alertaDescuadre").slideDown(200);
+} else {
+    $("#alertaDescuadre").hide();
+}
+
+if (!estado) {
+    $b.hide().text("—")
+        .removeClass("operado pendiente anulado concil descuadre")
+        .attr("title", "");
+    return;
+}
+
+var clase, texto, tip;
+
+switch (estado) {
+    case "OPERADO":
+        clase = "operado";
+        texto = "✓ OPERADO" + (sapDocNum ? " — SAP #" + sapDocNum : "");
+        tip = "Operado en SAP por Créditos." +
+            (sapDocNum ? " Pago recibido No. " + sapDocNum + "." : "");
+        // ── Al inicio del switch/case OPERADO, dentro del if de [CONCIL] ──
+        // case "OPERADO", dentro del if de [CONCIL]:
+        if (obs.indexOf("[CONCIL]") === 0) {
+            clase = "operado concil";
+            texto += " ⚠";
+            tip = TooltipSyncObs(obs, tip, estado);
+        }
+        break;
+
+    case "DESCUADRE":
+        clase = "descuadre";
+        texto = "⚠ DESCUADRE CON SAP";
+        tip = TooltipSyncObs(obs,
+            "Parte del pago fue anulado en SAP; el monto no cuadra.", estado);
+        break;
+
+    case "PENDIENTE":
+        clase = "pendiente";
+        texto = "⏳ PENDIENTE EN SAP";
+        tip = "Aún no ha sido operado por Créditos en SAP.";
+        if (obs.indexOf("Anulado en SAP") !== -1) {
+            texto = "⏳ PENDIENTE (ANULADO EN SAP)";
+            tip = TooltipSyncObs(obs, tip, estado);
+        }
+        break;
+
+    case "ANULADO":
+        clase = "anulado";
+        texto = "ANULADO EN SAP";
+        tip = TooltipSyncObs(obs, "El pago fue anulado en SAP.", estado);
+        break;
+
+    default:
+        clase = "pendiente";
+        texto = estado;
+        tip = TooltipSyncObs(obs, "", estado);
+        break;
+}
+
+$b.removeClass("operado pendiente anulado concil descuadre")
+    .addClass(clase)
+    .text(texto)
+    .attr("title", tip)
+    .show();
+}
+
+// ════════════════════════════════════════════════════════
+// BADGE DE STATUS DEL RECIBO (estado del documento en sí)
+// A = Activo, X = Anulado. Muestra texto claro + tooltip explicativo.
+// Es distinto del badge de SINCRONIZACIÓN (ese refleja el estado en SAP).
+// ════════════════════════════════════════════════════════
+function PintarBadgeStatus(status) {
+    var $b = $("#badgeStatus");
+    var s = (status || "").toUpperCase();
+
+    var cfg;
+    switch (s) {
+        case "A":
+            cfg = {
+                clase: "guardado", texto: "ACTIVO",
+                tip: "Recibo activo y válido."
+            };
+            break;
+        case "X":
+            cfg = {
+                clase: "anulado", texto: "ANULADO",
+                tip: "Recibo anulado. Ya no es válido."
+            };
+            break;
+        case "":
+        case "NUEVO":
+            cfg = {
+                clase: "nuevo", texto: "NUEVO",
+                tip: "Recibo en captura, aún no guardado."
+            };
+            break;
+        default:
+            cfg = {
+                clase: "nuevo", texto: s,
+                tip: "Estado: " + s
+            };
+            break;
+    }
+
+    $b.removeClass("nuevo guardado anulado")
+        .addClass(cfg.clase)
+        .text(cfg.texto)
+        .attr("title", cfg.tip);
+}
+
+// ════════════════════════════════════════════════════════
+// INTÉRPRETE DE SYNC_OBSERVACION (espejo de
+// SyncObservacionInterprete.Interpretar() en Entities)
+//
+// ⚠ DOS LISTAS, UNA REGLA — igual que TIPOS_DOC_SIN_REFERENCIA:
+// si algún día cambia el formato del mensaje del Sincronizador hay que
+// tocar ESTA función y la de C#. La de C# es la de referencia.
+//
+// El mensaje de la BD NO se modifica nunca: esto solo lo LEE.
+// Si no reconoce el formato → interpretado:false y el llamador muestra
+// el texto crudo. Degradar, no mentir.
+// ════════════════════════════════════════════════════════
+var _RX_OBS = {
+    etiqueta: /^\s*\[([A-Z_]+)\]/i,
+    moneda: /descuadre\s*\(\s*([A-Za-z]{3})\s*\)/i,
+    sql: /\bSQL\s*=\s*(-?[\d.,]+)/i,
+    sap: /\bSAP\s*(?:activo)?\s*=\s*(-?[\d.,]+)/i,
+    dif: /\bdif(?:erencia)?\s*=\s*(-?[\d.,]+)/i,
+    anulados: /anulado\(s\)\s*en\s*SAP\s*:\s*([^.]*)/i,
+    sinAplicar: /sin\s*aplicar\s*:\s*(-?[\d.,]+)/i,
+    fecha: /(\d{1,2}\/\d{1,2}\/\d{4}\s+\d{1,2}:\d{2})/,
+    anuladoSap: /anulado\s+en\s+SAP/i,
+    reapuntado: /re-?apuntado\s+en\s+SAP/i,
+    docNumCambio: /DocNum\s*(\d+)\s*-\s*>\s*(\d+)/i,
+    docEntCambio: /DocEntry\s*(\d+)\s*-\s*>\s*(\d+)/i,
+    eraDocNum: /Era\s+DocNum\s*(\d+)/i,
+    regresadoPend: /Regresado\s+a\s+PENDIENTE/i
+};
+
+// Extrae un número del mensaje. Devuelve null si no está.
+// (El regex se come el punto final de la oración: "10.00." → hay que limpiar.)
+function _ObsNumero(rx, txt) {
+    var m = rx.exec(txt);
+    if (!m) return null;
+    var s = (m[1] || "").replace(/[.,\s]+$/, "");
+    var ultPunto = s.lastIndexOf("."), ultComa = s.lastIndexOf(",");
+    s = (ultComa > ultPunto)
+        ? s.replace(/\./g, "").replace(",", ".")   // formato europeo
+        : s.replace(/,/g, "");                      // quitar separador de miles
+    var v = parseFloat(s);
+    return isNaN(v) ? null : v;
+}
+
+function _ObsSimbolo(txt) {
+    var m = _RX_OBS.moneda.exec(txt);
+    var mon = m ? m[1].toUpperCase() : "GTQ";
+    if (mon === "USD") return "$";
+    if (mon === "GTQ") return "Q";
+    return mon;
+}
+
+function _ObsEsNinguno(t) {
+    t = (t || "").toLowerCase();
+    return !t.length || t.indexOf("ninguno") !== -1 ||
+        t.indexOf("ninguna") !== -1 || t.indexOf("no se detect") !== -1;
+        }
+
+        // "DocNum 1019443" → "No. 1019443" (ver HumanizarDocNums en Entities)
+        function _ObsHumanizarDocs(t) {
+            return (t || "").replace(/Doc(?:Num|Entry)\s*/gi, "No. ");
+        }
+
+        function InterpretarSyncObs(obs, syncEstado) {
+            var r = {
+                interpretado: false, etiqueta: "", titulo: "",
+                lineas: [], accion: "", original: (obs || "").toString().trim(), texto: ""
+            };
+            if (!r.original) return r;
+
+            var EPS = 0.005;    // medio centavo: mismo criterio que EPSILON del cuadre
+            var TOL = 0.01;     // 1 centavo: espejo de TOLERANCIA_REDONDEO en Entities
+            var txt = r.original;
+            var estado = (syncEstado || "").toString().trim().toUpperCase();
+
+            var mTag = _RX_OBS.etiqueta.exec(txt);
+            r.etiqueta = mTag ? mTag[1].toUpperCase() : "";
+
+            var sim = _ObsSimbolo(txt);
+            var mFec = _RX_OBS.fecha.exec(txt);
+            var fecha = mFec ? mFec[1] : "";
+
+            function M(v) { return sim + " " + FmtMoneda(v); }   // FmtMoneda ya existe acá
+            function Fecha(etq) {
+                if (fecha) r.lineas.push(etq + ": " + fecha.replace(" ", " a las ") + ".");
+            }
+
+            // ── CASO A: re-apuntado (cambió el pago en SAP). Estado OPERADO. ──
+            if (_RX_OBS.reapuntado.test(txt)) {
+                var dn = _RX_OBS.docNumCambio.exec(txt);
+                var de = _RX_OBS.docEntCambio.exec(txt);
+
+                r.titulo = "Recibo operado en SAP. El número de pago cambió.";
+                r.lineas.push("El pago original fue anulado en SAP y Créditos lo volvió a crear. " +
+                    "El sistema ya apunta al pago vigente.");
+                if (dn) r.lineas.push("Pago anterior: No. " + dn[1] + "  ·  Pago vigente: No. " + dn[2] + ".");
+                else if (de) r.lineas.push("Referencia interna de SAP: " + de[1] + " → " + de[2] + ".");
+
+                r.accion = "No requiere acción: el recibo está correctamente aplicado. Si tiene una " +
+                    "impresión anterior, el «No. Recibo SAP» que aparece ahí quedó obsoleto — " +
+                    "vuelva a imprimir el recibo.";
+                Fecha("Actualizado el");
+                r.interpretado = true;
+            }
+            // ── CASO B: pago anulado en SAP, recibo devuelto a PENDIENTE ──
+            else if (_RX_OBS.anuladoSap.test(txt)) {
+                var era = _RX_OBS.eraDocNum.exec(txt);
+
+                r.titulo = "El pago de este recibo fue anulado en SAP.";
+                r.lineas.push("El dinero sí fue recibido en caja, pero el pago ya no existe en el " +
+                    "sistema contable.");
+                if (era) r.lineas.push("Pago anulado: No. " + era[1] + ".");
+                if (_RX_OBS.regresadoPend.test(txt) || estado === "PENDIENTE")
+                    r.lineas.push("El recibo regresó a PENDIENTE: espera que Créditos vuelva a aplicarlo.");
+
+                r.accion = "Créditos debe volver a aplicar el pago en SAP. El recibo conserva su " +
+                    "validez como comprobante de pago.";
+                Fecha("Detectado el");
+                r.interpretado = true;
+            }
+            // ── CASO C: nota de conciliación (0 filas en prod: redacción genérica) ──
+            else if (r.etiqueta === "CONCIL") {
+                r.titulo = "Recibo operado en SAP, con observación de conciliación.";
+                r.lineas.push("El pago ya fue aplicado por Créditos en SAP.");
+                r.accion = "No requiere acción del agente. La nota queda como historial del recibo " +
+                    "para control de Créditos.";
+                Fecha("Última revisión automática");
+                r.interpretado = true;
+            }
+            else {
+                // ── CASO D: descuadre con montos ──
+                var recibo = _ObsNumero(_RX_OBS.sql, txt);
+                var sap = _ObsNumero(_RX_OBS.sap, txt);
+                var dif = _ObsNumero(_RX_OBS.dif, txt);
+                var sinAplicar = _ObsNumero(_RX_OBS.sinAplicar, txt);
+                var mAnu = _RX_OBS.anulados.exec(txt);
+                var anulados = mAnu ? (mAnu[1] || "").trim() : "";
+
+                if (dif === null && recibo !== null && sap !== null) dif = recibo - sap;
+
+                if (recibo !== null || sap !== null || dif !== null) {
+                    var d = (dif === null) ? 0 : dif;
+                    var abs = Math.abs(d);
+
+                    if (abs > EPS && abs <= TOL) {
+                        r.titulo = "Diferencia mínima de " + M(abs) + " frente a SAP (redondeo).";
+                        r.accion = "No hay dinero faltante: es residuo de conversión de moneda. " +
+                            "El sincronizador reintenta automáticamente; si el recibo no se " +
+                            "libera, avise a Sistemas.";
+                    } else if (d > EPS) {
+                        r.titulo = "Faltan " + M(d) + " por aplicar en SAP.";
+                        r.accion = "Créditos debe aplicar la diferencia en SAP. El recibo se libera " +
+                            "automáticamente cuando los montos vuelvan a cuadrar. Mientras " +
+                            "esté en descuadre, el recibo NO puede anularse.";
+                    } else if (d < -EPS) {
+                        r.titulo = "En SAP hay " + M(abs) + " aplicados de más frente a este recibo.";
+                        r.accion = "Créditos debe revisar los pagos aplicados en SAP para este recibo. " +
+                            "Mientras esté en descuadre, el recibo NO puede anularse.";
+                    } else {
+                        r.titulo = "El recibo está en revisión con SAP.";
+                        r.accion = "El sincronizador volverá a verificarlo automáticamente.";
+                    }
+
+                    if (recibo !== null) r.lineas.push("Este recibo registra " + M(recibo) + " recibidos en caja.");
+                    if (sap !== null) r.lineas.push("En SAP hay " + M(sap) + " aplicados a documentos del cliente.");
+                    if (dif !== null) r.lineas.push("Diferencia: " + M(abs) +
+                        (d < -EPS ? " aplicados en exceso en SAP." : " sin aplicar en SAP."));
+
+                    if (anulados.length) {
+                        r.lineas.push(_ObsEsNinguno(anulados)
+                            ? "No se detectaron pagos anulados en SAP."
+                            : "Pago(s) anulado(s) en SAP: " + _ObsHumanizarDocs(anulados) + ".");
+                    }
+                    if (sinAplicar !== null && Math.abs(sinAplicar - abs) > EPS) {
+                        r.lineas.push("Monto recibido en caja que todavía no se aplica: " + M(sinAplicar) + ".");
+                    }
+                    Fecha("Última revisión automática");
+                    r.interpretado = true;
+                }
+            }
+
+            if (r.interpretado) {
+                r.texto = r.titulo + "\n" +
+                    r.lineas.map(function (l) { return "• " + l; }).join("\n") +
+                    (r.accion ? "\n\n" + r.accion : "");
+            }
+            return r;
+        }
+
+// Tooltip listo para el atributo title (acepta "\n", NO acepta HTML).
+// A diferencia del papel, acá SÍ dejamos la ref. técnica: quien ve esta
+// pantalla es personal interno y le sirve para reportar a soporte.
+function TooltipSyncObs(obs, fallback, syncEstado) {
+    var info = InterpretarSyncObs(obs, syncEstado);
+    if (!info.interpretado) return (obs || fallback || "");
+    return info.texto + "\n\nRef.: " + info.original;
+}
+
+// Escape mínimo para inyectar texto de la BD como HTML.
+// (En JS puro no existe algo como el escape automático de Razor: si el
+// mensaje trajera "<" y lo pegamos con .html(), rompe el DOM.)
+function EscHtml(s) {
+    return (s || "").toString()
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// ════════════════════════════════════════════════════════
+// UTILIDADES
+// ════════════════════════════════════════════════════════
+function FmtNum(n) {
+    var v = parseFloat(n || 0);
+    // Residuo de redondeo (|v| < medio centavo): es CERO. Mata el "-0.00",
+    // que a dos decimales se mostraría igual que 0.00 pero con signo.
+    if (Math.abs(v) < 0.005) v = 0;
+    return v.toFixed(2);
+}
+
+// Convierte un monto entre GTQ y USD usando el TC del día.
+// Devuelve null si no hay nada que convertir (sin valor, sin TC, misma moneda).
+function ConvertirMonto(valor, de, a, tc) {
+    valor = parseFloat(valor);
+    tc = parseFloat(tc) || 0;
+    if (isNaN(valor) || !de || !a || de === a || tc <= 0) return null;
+    if (de === "GTQ" && a === "USD") return Math.round((valor / tc) * 100) / 100;
+    if (de === "USD" && a === "GTQ") return Math.round((valor * tc) * 100) / 100;
+    return null;
+}
+
+// ════════════════════════════════════════════════════════
+// CÁLCULO DUAL (espejo de CalcularMontosDuales del BLL)
+// original = exacto, equivalente = derivado
+// ════════════════════════════════════════════════════════
+function MontosDuales(monto, moneda, tc) {
+    monto = parseFloat(monto) || 0;
+    tc = parseFloat(tc) || 0;
+    if (tc <= 0) return { gtq: 0, usd: 0 };  // sin TC no derivamos
+    if ((moneda || "").toUpperCase() === "USD") {
+        return { gtq: Math.round(monto * tc * 100) / 100, usd: monto };
+    } else {
+        return { gtq: monto, usd: Math.round((monto / tc) * 100) / 100 };
+    }
+}
+
+// ════════════════════════════════════════════════════════
+// BARRA DE ANTICIPOS EN TRÁNSITO (modal de documentos)
+// Muestra los totales duales (Q y $) de los anticipos del
+// cliente que aún no fueron operados en SAP. Solo informativa:
+// NO altera saldos ni disponibles de las facturas.
+// ════════════════════════════════════════════════════════
+function PintarBarAnticipos(a) {
+    var $bar = $("#barAnticipos");
+    if (!a || !(a.Cantidad > 0)) { $bar.hide(); return; }
+
+    $("#antMonto").text("Q " + FmtMoneda(a.Gtq) + "  ($ " + FmtMoneda(a.Usd) + ")");
+    $("#antRecibos").text(a.Recibos || "");
+    $bar.show();
+}
+
+// Igual que FmtNum pero con separador de miles (para MOSTRAR dinero).
+// Ej: 832216.62 → "832,216.62". NO usar su salida para volver a parsear
+// (parseFloat("1,000.00") === 1: la coma corta el número).
+function FmtMoneda(n) {
+    var num = parseFloat(n || 0);
+    if (Math.abs(num) < 0.005) num = 0;   // mismo clamp que FmtNum: mata el "-0.00"
+    return num.toLocaleString("en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+}
+
+function FmtFecha(iso) {
+    if (!iso) return "";
+    if (typeof iso === "string" && iso.indexOf("/Date(") === 0) {
+        var ms = parseInt(iso.replace(/\/Date\((\d+).*/, "$1"));
+        var d  = new Date(ms);
+        return d.getFullYear() + "-" +
+               ("0" + (d.getMonth() + 1)).slice(-2) + "-" +
+               ("0" + d.getDate()).slice(-2);
+    }
+    return iso.substring(0, 10);
+}
+
+// ════════════════════════════════════════════════════════
+// FIX ANCHO MODAL DOCUMENTOS (PC)
+// El plugin de modales del theme pone un width inline fijo sobre el
+// .modal exterior (estilo BS2). Lo neutralizamos en cada apertura para
+// que el .modal-dialog pueda expandirse al 95%/1200px del CSS.
+// Solo actúa en pantallas anchas; en mobile no toca nada.
+// ════════════════════════════════════════════════════════
+$(document).on("show.bs.modal shown.bs.modal", "#modalBuscarDoc", function () {
+    if (window.innerWidth < 992) return;   // mobile/tablet: comportamiento actual
+    this.style.setProperty("width", "auto", "important");
+    this.style.setProperty("left", "0", "important");
+    this.style.setProperty("right", "0", "important");
+    this.style.setProperty("margin-left", "0", "important");
+});
+
+// ── Inicialización ──
+SetBotonesInicio();
+CargarEmpresasUsuario();
+
+// ── Deep-link desde el Dashboard: ?idRecibo=X&empresa=Y ──
+// Espera a que el select de empresas se llene (CargarEmpresasUsuario es
+// async), selecciona la empresa y dispara la búsqueda del recibo.
+(function () {
+    var qs = new URLSearchParams(window.location.search);
+    var idQ = qs.get("idRecibo"), empQ = (qs.get("empresa") || "").toUpperCase();
+    if (!idQ || !empQ) return;
+
+    var intentos = 0;
+    var espera = setInterval(function () {
+        intentos++;
+        var $opt = $("#selEmpresa option[value='" + empQ + "']");
+        if ($opt.length) {
+            clearInterval(espera);
+            $("#selEmpresa").val(empQ).trigger("change");
+            $("#txtBuscarIdRecibo").val(idQ);
+            $("#btnEjecutarBusqueda").trigger("click");
+        } else if (intentos > 20) {   // ~10s: el usuario no tiene esa empresa asignada
+            clearInterval(espera);
+            toastr.warning("No tiene acceso a la empresa " + empQ + " para abrir el recibo " + idQ + ".");
+        }
+    }, 500);
+})();
+    </script>
+}

@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.props" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -9,8 +10,13 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DiamDev.Give.BLL</RootNamespace>
     <AssemblyName>DiamDev.Give.BLL</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,12 +37,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.SqlServer.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="Sistema.Seguridad">
       <HintPath>..\libs\Sistema.Seguridad.dll</HintPath>
@@ -45,8 +52,10 @@
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Net.Http" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -54,9 +63,78 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="PedidoTipok66BL.cs" />
+    <Compile Include="Descuentok66BL.cs" />
+    <Compile Include="Pedidok66BL.cs" />
+    <Compile Include="PedidoTipoSap.cs" />
+    <Compile Include="ReciboCajaAdminBLL.cs" />
+    <Compile Include="ReciboCajaAnalyticsBLL.cs" />
+    <Compile Include="ReciboCajaBLL.cs" />
+    <Compile Include="ReciboCajaSyncBL.cs" />
+    <Compile Include="ReporteHanaBLL.cs" />
+    <Compile Include="UsuarioEmpresaBL.cs" />
+    <Compile Include="VisitaBL.cs" />
+    <Compile Include="ProductoAlertaK66BL.cs" />
+    <Compile Include="VisitaTipoBL.cs" />
+    <Compile Include="PaqueteEmpresaBL.cs" />
+    <Compile Include="PaqueteBL.cs" />
+    <Compile Include="EmpresaBL.cs" />
+    <Compile Include="MonedaBL.cs" />
+    <Compile Include="MesaBL.cs" />
+    <Compile Include="OrdenCompraBL.cs" />
+    <Compile Include="ProductoK66BL.cs" />
+    <Compile Include="TipoCompraBL.cs" />
+    <Compile Include="TokenBL.cs" />
+    <Compile Include="TipoUbicacionBL.cs" />
+    <Compile Include="LocalidadBL.cs" />
+    <Compile Include="MunicipioBL.cs" />
+    <Compile Include="OfertaDeliveryBL.cs" />
+    <Compile Include="ProveedorTipoBL.cs" />
+    <Compile Include="MesBL.cs" />
+    <Compile Include="RegionBL.cs" />
+    <Compile Include="CategoriaGastoBL.cs" />
+    <Compile Include="AnotacionBL.cs" />
+    <Compile Include="AnotacionTipoBL.cs" />
+    <Compile Include="ClienteTipoBL.cs" />
     <Compile Include="AgenciaBL.cs" />
+    <Compile Include="BancoBL.cs" />
+    <Compile Include="CierreBL.cs" />
+    <Compile Include="CorteCajaBL.cs" />
+    <Compile Include="GarantiaBL.cs" />
+    <Compile Include="GarantiaDocumentoBL.cs" />
+    <Compile Include="NominaBL.cs" />
+    <Compile Include="CuentaxCobrarBL.cs" />
+    <Compile Include="NominaTipoBL.cs" />
+    <Compile Include="ContrasenaPagoBL.cs" />
+    <Compile Include="PuestoBL.cs" />
+    <Compile Include="ReciboBL.cs" />
+    <Compile Include="ReciboTipoBL.cs" />
+    <Compile Include="ReservaBL.cs" />
+    <Compile Include="DepartamentoBL.cs" />
+    <Compile Include="PoliticaBL.cs" />
+    <Compile Include="PoliticaCategoriaBL.cs" />
+    <Compile Include="PoliticaTipoBL.cs" />
+    <Compile Include="ReparacionAnotacionBL.cs" />
+    <Compile Include="ReparacionBL.cs" />
+    <Compile Include="ReparacionTipoBL.cs" />
+    <Compile Include="ServicioBL.cs" />
+    <Compile Include="TransporteBL.cs" />
     <Compile Include="ClienteBL.cs" />
+    <Compile Include="Numalet.cs" />
+    <Compile Include="ProveedorMovimientoBL.cs" />
+    <Compile Include="MovimientoEstadoBL.cs" />
+    <Compile Include="ProveedorMovimientoTipoBL.cs" />
+    <Compile Include="ServicioClienteBL.cs" />
+    <Compile Include="GastoBL.cs" />
+    <Compile Include="EgresoBL.cs" />
+    <Compile Include="UnidadConversionBL.cs" />
     <Compile Include="ConfiguracionBL.cs" />
+    <Compile Include="CreditoAnotacionBL.cs" />
+    <Compile Include="UnidadOperacionBL.cs" />
+    <Compile Include="FacturaTipoBL.cs" />
+    <Compile Include="PedidoBL.cs" />
+    <Compile Include="CreditoBL.cs" />
+    <Compile Include="CreditoTipoBL.cs" />
     <Compile Include="CuentaContableBL.cs" />
     <Compile Include="CuentaContableTipoBL.cs" />
     <Compile Include="DiarioBL.cs" />
@@ -65,6 +143,9 @@
     <Compile Include="Excel\SharedStrings.cs" />
     <Compile Include="Excel\Workbook.cs" />
     <Compile Include="Excel\Worksheet.cs" />
+    <Compile Include="LaboratorioBL.cs" />
+    <Compile Include="MovimientoCategoriaBL.cs" />
+    <Compile Include="NotaCreditoBL.cs" />
     <Compile Include="FacturaBL.cs" />
     <Compile Include="FormaPagoBL.cs" />
     <Compile Include="Herramienta.cs" />
@@ -72,12 +153,14 @@
     <Compile Include="MenuBL.cs" />
     <Compile Include="MovimientoBL.cs" />
     <Compile Include="MovimientoTipoBL.cs" />
+    <Compile Include="PermisoBL.cs" />
     <Compile Include="PersonalBL.cs" />
     <Compile Include="PersonalHorarioBL.cs" />
     <Compile Include="PrecioBL.cs" />
     <Compile Include="ProductoBL.cs" />
     <Compile Include="ProductoCategoriaBL.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SerieAgenciaFacturaBL.cs" />
     <Compile Include="SerieBL.cs" />
     <Compile Include="VendedorBL.cs" />
     <Compile Include="ProveedorBL.cs" />
@@ -87,7 +170,7 @@
     <Compile Include="UsuarioBL.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
+    <Content Include="KpiDelivery.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DiamDev.Give.DAL\DiamDev.Give.DAL.csproj">
@@ -99,7 +182,21 @@
       <Name>DiamDev.Give.Entities</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>Este proyecto hace referencia a los paquetes NuGet que faltan en este equipo. Habilite la restauración del paquete NuGet para descargarlos. Para obtener más información, consulte http://go.microsoft.com/fwlink/?LinkID=322105. El archivo que falta es {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.props'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.targets'))" />
+  </Target>
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.targets" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

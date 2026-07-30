@@ -1,0 +1,283 @@
+﻿
+@{
+    ViewBag.Title = "Productos x Lote";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Productos x Lote
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <h2><i class="icon-edit-sign teal"></i>Productos x Lote</h2>
+                <hr>
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Tienda<span class="symbol required"></span>
+                                </label>
+                                @Html.DropDownList("CentroId", (SelectList)ViewBag.Centros, "--Seleccione una Tienda--", new { @class = "form-control search-select required" })
+                            </div>                           
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Barra
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="Barra" name="Barra" autocomplete="off" placeholder="Buscar Producto...">
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-secondary" type="button" id="btnBarra">Buscar</button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Producto
+                                </label>
+                                <input type="text" placeholder="Producto" class="form-control" id="Producto" name="Producto" autocomplete="off" disabled="disabled" />
+                                <input type="hidden" id="ProductoId" name="ProductoId" value="" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" id="Aceptar" type="button">
+                                    <span class="ladda-label"> Generar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="@Url.Action("Producto_x_Lote", "Reporte")" tabindex="3">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+<div id="seleccionar-producto-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Seleccionar Producto</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="producto_seleccionado_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-producto" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
+<table width="100%" height="100%">
+    <tr>
+        <td>
+            <iframe id="myReport" width="100%" height="800px"></iframe>
+        </td>
+    </tr>
+</table>
+
+@section Scripts
+{
+    <script type="text/javascript">
+
+        var vCodBarra = "";
+
+        $(function ()
+        {
+            $("#myReport").hide();
+
+            $("#Aceptar").on("click", function ()
+            {
+                var CentroId = $("#CentroId").val();
+                var ProductoId = $("#ProductoId").val();
+
+                if (CentroId === "")
+                {
+                    toastr.error('Debe seleccionar una tienda');
+                    return;
+                }
+
+                ObtenerProductos(CentroId, ProductoId);
+
+                $("#myReport").show();
+            });
+
+            $("#Barra").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        url: '@Url.Action("ConsultaProductoAutocomplementar", "Producto")',
+                        type: "POST",
+                        dataType: "json",
+                        data: { search: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.Nombre, value: item.Nombre };
+                            }))
+                        }
+                    })
+                },
+                messages:
+                {
+                    noResults: "", results: ""
+                }
+            });
+
+            $('#formaprincipal').keydown(function (evt) {
+                if ($('#Barra').is(":focus") && (evt.which || evt.keyCode) == 13) {
+                    cargaBusquedaProducto(evt)
+                }
+            });
+
+            /*
+            Evento click para el boton de busqueda de productos */
+            $('#btnBarra').click(function (evt) {
+                cargaBusquedaProducto(evt);
+            });
+
+            $('#producto_seleccionado_tbody').delegate("a", "click", function (e) {
+                e.preventDefault();
+
+                $('#btn-close-up-seleccionar-producto').click();
+                var productoReferencia = $(this).attr("href");
+                var productoActual = productoReferencia.split(",");
+
+                var modelo =
+                 {
+                     'ProductoId': productoActual[0],
+                     'Nombre': productoActual[1]
+                 };
+
+                cargaProductoSeleccionado(modelo);
+            });
+
+            /*
+            Función para la busqueda de productos */
+            function cargaBusquedaProducto(evt) {
+                evt.preventDefault();
+
+                if ($('#Barra').val() === "") {
+                    error("Ingresar codigo de barra");
+                    $('#Barra').focus();
+                    return;
+                }
+
+                var barraActual = $('#Barra').val();
+                barraActual = barraActual.replace(" ", "_");
+
+                $.ajax({
+                    url: '@Url.Action("ObtenerProductoxTextoLibre", "Producto")',
+                    traditional: true,
+                    data: { 'search': barraActual },
+                    async: false,
+                    type: 'GET',
+                    success: function (resultData) {
+                        if (resultData !== null) {
+                            if (resultData.Operacion) {
+                                if (resultData.Data.length === 1) {
+                                    cargaProductoSeleccionado(resultData.Data[0]);
+                                }
+                                else if (resultData.Data.length > 1) {
+                                    var fila = "";
+                                    for (var i = 0; i < resultData.Data.length; i++) {
+                                        fila += "<tr><td>" + resultData.Data[i].ProductoId + "</td>";
+                                        fila += "<td>" + resultData.Data[i].Nombre + "</td>";
+                                        fila += "<td><a href='" + resultData.Data[i].ProductoId + "," + resultData.Data[i].Nombre + "' title='Seleccionar' class='btn btn-seleccionar'><i class='clip-checkmark'></i></a></td></tr>";
+                                    }
+
+                                    $("#seleccionar-producto-form").modal();
+                                    $("#seleccionar-producto-form").find("#producto_seleccionado_tbody").html(fila);
+                                }
+                            }
+                            else {
+                                toastr.error('La barra del producto ingresada no es correcta');
+                                $('#Barra').val("");
+                                $('#Barra').focus();
+                            }
+                        }
+                        else {
+                            toastr.error('Ocurrió un error, al visualizar el producto');
+                            $('#Barra').val("");
+                            $('#Barra').focus();
+                        }
+                    }
+                });
+            }
+
+            function cargaProductoSeleccionado(producto)
+            {
+                $('#Producto').val(producto.Nombre);
+                $('#ProductoId').val(producto.ProductoId);
+
+                $('#Barra').focus();
+                vCodBarra = $('#Barra').val();
+            }
+        });
+
+        function ObtenerProductos(CentroId, ProductoId)
+        {
+            document.getElementById("myReport").src = "@Url.Content("~/Reports/ReportViewer.aspx?ReportID=ReportProductoLote")&CentroId=" + CentroId + "&ProductoId=" + ProductoId;
+        }
+
+    </script>
+}
+
+
+
+

@@ -1,0 +1,87 @@
+﻿@model   DiamDev.Give.Entities.Rol
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="form-group">
+            <label class="control-label">
+                Rol<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Nombre, new { @class = "form-control", @placeholder = "Nombre del Rol", required = "required", autocomplete = "off", autofocus = "autofocus" })
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Permisos</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+      @if (Model != null)
+      {
+          if (Model.PermisoIds != null && Model.PermisoIds.Count() > 0)
+          {
+              foreach (var item in Model.PermisoIds.OrderBy(x => x.Modulo).Select(x => x.Modulo).Distinct())
+              {
+                <div class="row">
+                    <div class="col-md-12">
+                        <!-- start: BASIC TABLE PANEL -->
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <i class="icon-external-link-sign"></i>
+                                @item
+                                <div class="panel-tools">
+                                    <a class="btn btn-xs btn-link panel-collapse expand" href="javascript:void(0)">
+                                    </a>
+                                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                                        <i class="icon-resize-full"></i>
+                                    </a>
+                                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                                        <i class="icon-remove"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="panel-body" style="display:none;">     
+                                <ul class="list-group checked-list-box">
+                                    @foreach (var p in Model.PermisoIds.Where(x => x.Modulo.Equals(item)))
+                                    {
+                                        var activar = false;                                       
+                                        if (Model != null)
+                                        {
+                                            if (Model.Permisos != null && Model.Permisos.Count() > 0)
+                                            {
+                                                foreach (var bd in Model.Permisos)
+                                                {
+                                                    if (p.Nombre.Equals(bd.PermisoId))
+                                                    {
+                                                        activar = true;                                                      
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        <li class="list-group-item">
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <label class="checkbox-inline">
+                                                        <input type="checkbox" class="square-black" name="permisosIds" value="@p.Nombre" @(activar ? "checked" : "") />
+                                                        @p.Descripcion
+                                                    </label>                                                    
+                                                </div>                                                
+                                            </div>
+                                        </li>
+                                    }
+                                </ul>                          
+                            </div>
+                        </div>
+                        <!-- end: BASIC TABLE PANEL -->
+                    </div>
+                </div>
+              }
+          }
+      }
+    </div>
+</div>
+
+

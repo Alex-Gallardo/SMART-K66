@@ -27,6 +27,18 @@ namespace DiamDev.Give.Entities
         [ForeignKey("MovimientoTipoId")]
         public MovimientoTipo MovimientoTipo { get; set; }
 
+        [Column("Movimiento_Categoria_Id")]
+        public int? MovimientoCategoriaId { get; set; }
+
+        [ForeignKey("MovimientoCategoriaId")]
+        public MovimientoCategoria MovimientoCategoria { get; set; }
+
+        [Column("Movimiento_Estado_Id")]
+        public int? MovimientoEstadoId { get; set; }
+
+        [ForeignKey("MovimientoEstadoId")]
+        public MovimientoEstado MovimientoEstado { get; set; }
+        
         [Column("Proveedor_Id")]
         public long? ProveedorId { get; set; }
 
@@ -50,9 +62,12 @@ namespace DiamDev.Give.Entities
         [NotMapped]
         public decimal Total { get; set; }
 
+        [Column("Fotografia_Movimiento")]
+        public string FotografiaMovimiento { get; set; }
+
         public bool Operado { get; set; }
 
-        public DateTime Fecha { get; set; }
+        public bool Anulada { get; set; }
 
         [Column("Usr_Creo")]
         public long UsrCreo { get; set; }
@@ -60,10 +75,41 @@ namespace DiamDev.Give.Entities
         [ForeignKey("UsrCreo")]
         public Usuario UsuarioCreo { get; set; }
 
+
+        [Column("Usr_Anular")]
+        public long? UsrAnular { get; set; }
+
+        [ForeignKey("UsrAnular")]
+        public Usuario UsuarioAnular { get; set; }
+
+        [Column("Fecha_Anular")]
+        public DateTime? FechaAnular { get; set; }
+        
+        public string Comentario { get; set; }       
+
+        [StringLength(150)]
+        public string Documento { get; set; }
+
+        [Column("Dias_Credito")]
+        public int? DiasCredito { get; set; }
+
+        [Column("Fecha_Vencimiento")]
+        public DateTime? FechaVencimiento { get; set; }
+
+        [Column("Fecha_Documento")]
+        public DateTime? FechaDocumento { get; set; }
+
+        public bool Cancelado { get; set; }
+        
+        public DateTime Fecha { get; set; }
+
         public int Correlativo { get; set; }
 
         public List<MovimientoDetalle> Detalles { get; set; }
 
         public List<MovimientoFormaPago> Pagos { get; set; }
+
+        [NotMapped]
+        public ProductoFotografia Fotografia { get; set; }
     }
 }

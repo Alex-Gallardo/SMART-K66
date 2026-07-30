@@ -8,7 +8,6 @@ namespace DiamDev.Give.BLL
 {
     public class FormaPagoBL
     {
-
         #region Variables Globales
 
             private GiveContext db;
@@ -49,9 +48,9 @@ namespace DiamDev.Give.BLL
                 return Id;
             }
 
-            private bool Agregar(FormaPago entidad)
+            private string Agregar(FormaPago entidad)
             {
-                bool FormaPagoAgregar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -68,21 +67,21 @@ namespace DiamDev.Give.BLL
                             entidad.Fecha = DateTime.Today;
 
                             db.Set<FormaPago>().Add(entidad);
-                            db.SaveChanges();
-                            FormaPagoAgregar = true;
+                            db.SaveChanges();                           
                         }
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return FormaPagoAgregar;
+                return Mensaje;
             }
 
-            private bool Actualizar(FormaPago entidad)
+            private string Actualizar(FormaPago entidad)
             {
-                bool FormaPagoActualizar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -90,18 +89,19 @@ namespace DiamDev.Give.BLL
 
                     if (FormaPagoActual.FormaPagoId > 0)
                     {
+                        FormaPagoActual.EmpresaId = entidad.EmpresaId;
                         FormaPagoActual.Nombre = entidad.Nombre;
                         FormaPagoActual.Activo = entidad.Activo;
 
-                        db.SaveChanges();
-                        FormaPagoActualizar = true;
+                        db.SaveChanges();                       
                     }
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return FormaPagoActualizar;
+                return Mensaje;
             }
 
 
@@ -112,22 +112,16 @@ namespace DiamDev.Give.BLL
             public string Guardar(FormaPago entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
-
+              
                 if (entidad.FormaPagoId > 0)
                 {
-                    OperacionExitosa = Actualizar(entidad);
+                    Mensaje = Actualizar(entidad);
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
+                    Mensaje = Agregar(entidad);
                 }
-
-                if (!OperacionExitosa)
-                {
-                    Mensaje = "La información ingresada no es valida";
-                }
-
+                              
                 return Mensaje;
             }
 
@@ -146,7 +140,7 @@ namespace DiamDev.Give.BLL
                 return FormaPagoActual;
             }
 
-            public List<FormaPago> ObtenerListado(bool todos)
+            public List<FormaPago> ObtenerListado(bool todos, long empresaId = 0)
             {
                 List<FormaPago> FormaPagos = new List<FormaPago>();
 
@@ -154,11 +148,11 @@ namespace DiamDev.Give.BLL
                 {
                     if (todos)
                     {
-                        FormaPagos = db.Set<FormaPago>().OrderByDescending(x => x.Fecha).ThenByDescending(x => x.FormaPagoId).ToList();
+                        FormaPagos = db.Set<FormaPago>().AsNoTracking().Where(x => x.EmpresaId == empresaId).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.FormaPagoId).ToList();
                     }
                     else
                     {
-                        FormaPagos = db.Set<FormaPago>().Where(x => x.Activo == true).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.FormaPagoId).ToList();
+                        FormaPagos = db.Set<FormaPago>().AsNoTracking().Where(x => x.Activo && x.EmpresaId == empresaId).OrderByDescending(x => x.Fecha).ThenByDescending(x => x.FormaPagoId).ToList();
                     }
                 }
                 catch (Exception)
@@ -169,6 +163,5 @@ namespace DiamDev.Give.BLL
             }
 
         #endregion
-
     }
 }

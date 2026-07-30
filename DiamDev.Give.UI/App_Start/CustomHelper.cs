@@ -23,6 +23,30 @@ namespace DiamDev.Give.UI.App_Start
             }
         }
 
+        public static string getUsuarioNombre()
+        {
+            if (HttpContext.Current.Session["Nombre"] == null)
+            {
+                var Usuario = new UsuarioBL().ObtenerPorLogin(HttpContext.Current.User.Identity.Name);
+
+                if (Usuario != null)
+                {
+                    return Usuario.Nombre;
+                }              
+            }
+            else
+            {
+                var Usuario = (Usuario)HttpContext.Current.Session["Usuario"];
+
+                if (Usuario != null)
+                {
+                   return Usuario.Nombre;
+                }            
+            }
+
+            return "Usuario No Valido";
+        }
+
         public static void getUserName(string User)
         {
             if (HttpContext.Current.Session["Nombre"] == null)
@@ -64,6 +88,34 @@ namespace DiamDev.Give.UI.App_Start
             }
 
             return UserId;
+        }
+
+        public static long getDepartamentoId()
+        {
+            long DepartamentoId = 0;
+
+            if (HttpContext.Current.Session["Usuario"] == null)
+            {
+                var Usuario = new UsuarioBL().ObtenerPorLogin(HttpContext.Current.User.Identity.Name);
+
+                if (Usuario != null)
+                {
+                    HttpContext.Current.Session["Usuario"] = Usuario;
+                    HttpContext.Current.Session["Nombre"] = Usuario.Nombre;
+                    DepartamentoId = Usuario.DepartamentoId == null ? 0 : Usuario.DepartamentoId.Value;
+                }
+            }
+            else
+            {
+                var Usuario = (Usuario)HttpContext.Current.Session["Usuario"];
+
+                if (Usuario != null)
+                {
+                    DepartamentoId = Usuario.DepartamentoId == null ? 0 : Usuario.DepartamentoId.Value;
+                }
+            }
+
+            return DepartamentoId;
         }
 
         public static void setTitle(string Header, string SubHeader)
@@ -135,6 +187,50 @@ namespace DiamDev.Give.UI.App_Start
             }
 
             return AgenciaId;
-        }  
+        }
+
+        public static long getEmpresaId()
+        {
+            long EmpresaId = 0;
+
+            if (HttpContext.Current.Session["Agencia"] != null)
+            {
+                //var Agencia = (Agencia)HttpContext.Current.Session["Agencia"];
+
+                //if (Agencia != null)
+                //{
+                //    EmpresaId = Agencia.EmpresaId == null ? 0 : Agencia.EmpresaId.Value;
+                //}
+            }
+
+            return EmpresaId;
+        }
+
+        public static List<Empresa> getEmpresas()
+        {
+            List<Empresa> Empresas = new List<Empresa>();
+
+            if (HttpContext.Current.Session["Empresas"] != null)
+            {
+                var TEmpresas = (List<Empresa>)HttpContext.Current.Session["Empresas"];
+
+                if (TEmpresas != null)
+                {
+                    Empresas = TEmpresas;
+                }
+            }
+            else
+            {
+                var Usuario = new UsuarioBL().ObtenerPorLogin(HttpContext.Current.User.Identity.Name);
+
+                if (Usuario != null)
+                {
+                    HttpContext.Current.Session["Empresas"] = Usuario.Empresas.Select(x => x.Empresa).ToList();
+                    Empresas = Usuario.Empresas.Select(x => x.Empresa).ToList();
+                }
+            }
+
+            return Empresas;
+        }
     }
 }

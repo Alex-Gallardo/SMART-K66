@@ -16,6 +16,12 @@ namespace DiamDev.Give.Entities
         [Column("Forma_Pago_Id")]
         public long FormaPagoId { get; set; }
 
+        [Column("Empresa_Id")]
+        public long? EmpresaId { get; set; }
+
+        [ForeignKey("EmpresaId")]
+        public Empresa Empresa { get; set; }
+
         [Required(ErrorMessage = "El nombre de la forma de pago es requerida")]
         [StringLength(300)]
         public string Nombre { get; set; }
@@ -23,6 +29,12 @@ namespace DiamDev.Give.Entities
         [NotMapped]
         public decimal Valor { get; set; }
 
+        [NotMapped]
+        public decimal MontoCajero { get; set; }
+        
+        [NotMapped]
+        public decimal Diferencia { get; set; }
+        
         public bool Activo { get; set; }
 
         public DateTime Fecha { get; set; }

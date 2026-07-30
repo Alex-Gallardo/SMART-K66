@@ -1,0 +1,241 @@
+﻿@model DiamDev.Give.Entities.Factura
+
+@{
+    ViewBag.Title = "Asignar Transporte a la Factura";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: FORM VALIDATION 1 PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Factura
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">              
+                <form action="" role="form" id="formaprincipal" name="formaprincipal" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-12">
+                            @if (ViewData.ModelState.Values.Any(x => x.Errors.Count > 0))
+                            {
+                                <div class="alert alert-danger">
+                                    <button class="close" data-dismiss="alert">×</button>
+                                    <h4 class="alert-heading">Error</h4>
+                                    @Html.ValidationSummary(false)
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" id="facturaId" name="facturaId" value="@Html.Raw(Model.FacturaId)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label class="control-label">
+                                            Transporte<span class="symbol required"></span>
+                                        </label>
+                                        @Html.DropDownList("transporteId", (SelectList)ViewBag.Transportes, "--Seleccione Transporte--", new { @class = "form-control search-select required" })
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Agencia
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Agencia == null ? "No Disponible" : Model.Agencia.Nombre)
+                                </strong>
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Cliente
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Cliente == null ? "No Disponible" : Model.Cliente.Nombre)
+                                </strong>
+                            </div>                            
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Fecha
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Fecha.ToString("dd/MM/yyyy")
+                                </strong>
+                            </div>                            
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Anulada
+                                </label>
+                                <br />
+                                <strong>
+                                    @(Model.Anulada == true ? "Sí" : "No")
+                                </strong>
+                            </div>
+                        </div>
+                    </div>                   
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    Serie
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.Serie.Nombre
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    No. Factura
+                                </label>
+                                <br />
+                                <strong>
+                                    @Model.NoFactura
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                    <h2>
+                        <i class="icon-edit-sign teal"></i>
+                        <label class="control-label">
+                            Productos
+                        </label>
+                    </h2>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th>Unidad</th>
+                                        <th>Cantidad</th>
+                                        <th>IDs</th>
+                                        <th>Precio</th>
+                                        <th>Sub-Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Detalles != null && Model.Detalles.Count() > 0)
+                                    {
+                                        if (!Model.Anulada)
+                                        {
+                                            foreach (var Detalle in Model.Detalles)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        @(Detalle.Producto == null ? "No Disponible" : string.Format("{0} - {1}", Detalle.Producto.Codigo, Detalle.Producto.Nombre))
+                                                    </td>
+                                                    <td>
+                                                        @(Detalle.Unidad == null ? "No Disponible" : Detalle.Unidad.Nombre)
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Cantidad
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.ID
+                                                    </td>
+                                                    <td>
+                                                        @Detalle.Precio.ToString("C4")
+                                                    </td>
+                                                    <td>
+                                                        @string.Format("{0:C4}", Detalle.Cantidad * Detalle.Precio)
+                                                    </td>
+                                                </tr>
+                                            }
+                                            <tr>
+                                                <td>
+                                                    <div style="text-align:left; font-size:large; font-weight:bold;">
+                                                        Total:
+                                                    </div>
+                                                </td>
+                                                <td colspan="6">
+                                                    <div style="text-align: right;font-size:large; font-weight:bold;">
+                                                        @string.Format("{0:C4}", Model.Detalles.Sum(x => x.Cantidad * x.Precio))
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            <tr>
+                                                <td colspan="6">
+                                                    <strong>Le informamos que el recibo fue anulado, por lo tanto no puede visualizar los productos</strong>
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="6">
+                                                <strong>No contiene productos</strong>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <p>
+                            <div class="col-md-6">
+                                <button id="btnOperarRecibo" data-style="slide-down" class="btn btn-med-grey btn-block ladda-button" type="button">
+                                    <span class="ladda-label"> Aceptar </span>
+                                    <span class="ladda-spinner"></span>
+                                    <span class="ladda-progress" style="width: 0px;"></span>
+                                </button>
+                            </div>
+                        </p>
+                        <p>
+                            <div class="col-md-6">
+                                <a class="btn btn-med-grey btn-block" href="javascript:window.history.back();">
+                                    Regresar <i class="icon-prev"></i>
+                                </a>
+                            </div>
+                        </p>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+        <!-- end: FORM VALIDATION 1 PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            $("#btnOperarRecibo").click(function (e)
+            {
+                e.preventDefault();
+                var respuesta = confirm("Desea asignar un transporte a la factura actual?");
+                if (respuesta)
+                {
+                    $("#formaprincipal").submit();
+                }
+            });
+        });
+    </script>
+}
+
+

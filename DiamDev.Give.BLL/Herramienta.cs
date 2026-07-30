@@ -86,6 +86,53 @@ namespace DiamDev.Give.BLL
             return Password_Android;
         }
 
+        public string MesTexto(int mes)
+        {
+            string Mensaje = string.Empty;
+
+            switch (mes)
+            {
+                case 1:
+                    Mensaje = "Enero";
+                    break;
+                case 2:
+                    Mensaje = "Febrero";
+                    break;
+                case 3:
+                    Mensaje = "Marzo";
+                    break;
+                case 4:
+                    Mensaje = "Abril";
+                    break;
+                case 5:
+                    Mensaje = "Mayo";
+                    break;
+                case 6:
+                    Mensaje = "Junio";
+                    break;
+                case 7:
+                    Mensaje = "Julio";
+                    break;
+                case 8:
+                    Mensaje = "Agosto";
+                    break;
+                case 9:
+                    Mensaje = "Septiembre";
+                    break;
+                case 10:
+                    Mensaje = "Octubre";
+                    break;
+                case 11:
+                    Mensaje = "Noviembre";
+                    break;
+                case 12:
+                    Mensaje = "Diciembre";
+                    break;
+            }
+
+            return Mensaje;
+        }
+
         public bool ValidarEmail(string Email)
         {
             try
@@ -98,8 +145,52 @@ namespace DiamDev.Give.BLL
                 }
             }
             catch (Exception)
+            {}
+
+            return false;
+        }
+
+        public bool ValidarNIT(string Nit)
+        {
+            try
             {
+                if (Nit.Equals("C/F") || Nit.Equals("c/f") || Nit.Equals("CF") || Nit.Equals("cf"))
+                {
+                    return true;
+                }
+
+                if (!Nit.Contains("-"))
+                {
+                    int Longitud = Nit.Length;
+                    string NitTemporal = Nit.Substring(0, Longitud - 1);
+                    string Identificador = Nit.Substring(Longitud - 1);
+                    Nit = string.Format("{0}-{1}", NitTemporal, Identificador);
+                }
+
+                int pos = Nit.IndexOf("-");
+                string Correlativo = Nit.Substring(0, pos);
+                string DigitoVerificador = Nit.Substring(pos + 1);
+                int Factor = Correlativo.Length + 1;
+                int Suma = 0;
+                int Valor = 0;
+
+                for (int x = 0; x <= Nit.IndexOf("-") - 1; x++)
+                {
+                    Valor = Convert.ToInt32(Nit.Substring(x, 1));
+                    Suma = Suma + (Valor * Factor);
+                    Factor = Factor - 1;
+                }
+
+                double xMOd11 = 0;
+                xMOd11 = (11 - (Suma % 11)) % 11;
+                string s = Convert.ToString(xMOd11);
+                if ((xMOd11 == 10 & DigitoVerificador == "K") | (s.Trim() == DigitoVerificador))
+                {
+                    return true;
+                }
             }
+            catch (Exception)
+            { }
 
             return false;
         }
@@ -133,8 +224,7 @@ namespace DiamDev.Give.BLL
 
             }
             catch (Exception)
-            {
-            }
+            {}
 
         }
 

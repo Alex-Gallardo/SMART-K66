@@ -35,5 +35,8 @@ namespace DiamDev.Give.Entities
         public Unidad Unidad { get; set; }
 
         public decimal Cantidad { get; set; }
+
+        [StringLength(100)]
+        public string ID { get; set; }
     }
 }

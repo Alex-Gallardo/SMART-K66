@@ -8,7 +8,6 @@ namespace DiamDev.Give.BLL
 {
     public class ConfiguracionBL
     {
-
         #region Variables Globales
 
             private GiveContext db;
@@ -50,9 +49,9 @@ namespace DiamDev.Give.BLL
                 return Id;
             }
 
-            private bool Agregar(Configuracion entidad)
+            private string Agregar(Configuracion entidad)
             {
-                bool ConfiguracionAgregar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -75,22 +74,22 @@ namespace DiamDev.Give.BLL
 
                             db.Set<Configuracion>().Add(entidad);
 
-                            db.SaveChanges();
-                            ConfiguracionAgregar = true;
+                            db.SaveChanges();                            
                         }
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return ConfiguracionAgregar;
+                return Mensaje;
             }
 
-            private bool Actualizar(Configuracion entidad)
+            private string Actualizar(Configuracion entidad)
             {
-                bool ConfiguracionActualizar = false;
+                string Mensaje = "OK";
 
                 try
                 {
@@ -102,16 +101,16 @@ namespace DiamDev.Give.BLL
                         ConfiguracionActual.Nombre = entidad.Nombre;
                         ConfiguracionActual.Valor = entidad.Valor;
 
-                        db.SaveChanges();
-                        ConfiguracionActualizar = true;
+                        db.SaveChanges();                        
                     }
 
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    Mensaje = string.Format("Descripción del Error {0}", ex.Message);
                 }
 
-                return ConfiguracionActualizar;
+                return Mensaje;
             }
 
         #endregion
@@ -121,20 +120,14 @@ namespace DiamDev.Give.BLL
             public string Guardar(Configuracion entidad)
             {
                 string Mensaje = "OK";
-                bool OperacionExitosa = false;
-
+             
                 if (entidad.ConfiguracionId > 0)
                 {
-                    OperacionExitosa = Actualizar(entidad);
+                    Mensaje = Actualizar(entidad);
                 }
                 else
                 {
-                    OperacionExitosa = Agregar(entidad);
-                }
-
-                if (!OperacionExitosa)
-                {
-                    Mensaje = "La información ingresada no es valida";
+                    Mensaje = Agregar(entidad);
                 }
 
                 return Mensaje;
@@ -162,6 +155,21 @@ namespace DiamDev.Give.BLL
                 try
                 {
                     ConfiguracionActual = db.Set<Configuracion>().Where(x => x.Identificador.Equals(identificadorId)).FirstOrDefault();
+                }
+                catch (Exception)
+                {
+                }
+
+                return ConfiguracionActual;
+            }
+
+            public Configuracion ObtenerPorIdentificador(string identificadorId)
+            {
+                Configuracion ConfiguracionActual = new Configuracion();
+
+                try
+                {
+                    ConfiguracionActual = ObtenerPorIdentificador(identificadorId, db);
                 }
                 catch (Exception)
                 {
@@ -236,7 +244,24 @@ namespace DiamDev.Give.BLL
                 return Configuraciones;
             }
 
-        #endregion
+            public decimal ObtenerConfiguracionPorcentajeTarjeta() 
+            {
+                decimal Porcentaje = 0;
 
+                try
+                {
+                    Configuracion ConfiguracionActual = db.Set<Configuracion>().AsNoTracking().Where(x => x.ConfiguracionId == 20210526001).FirstOrDefault();
+                    if (ConfiguracionActual != null)
+                    {
+                        Porcentaje = decimal.Parse(ConfiguracionActual.Valor);
+                    }
+                }
+                catch (Exception)
+                {}
+
+                return Porcentaje;
+            }
+
+        #endregion
     }
 }

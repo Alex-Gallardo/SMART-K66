@@ -132,5 +132,11 @@ namespace DiamDev.Give.UI.Controllers
             this.CargaControles();
             return View(modelo);
         }
+
+        [ActionName("ConfiguracionPorcentajeTarjeta")]
+        public JsonResult ConfiguracionPorcentajeTarjeta()
+        {
+            return Json(new { Operacion = true, Data = new ConfiguracionBL().ObtenerConfiguracionPorcentajeTarjeta() }, JsonRequestBehavior.AllowGet);
+        }
     }
 }

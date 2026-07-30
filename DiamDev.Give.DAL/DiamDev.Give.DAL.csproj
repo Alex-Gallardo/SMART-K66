@@ -1,5 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.props" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" />
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -9,8 +10,13 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DiamDev.Give.DAL</RootNamespace>
     <AssemblyName>DiamDev.Give.DAL</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -31,16 +37,17 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\EntityFramework.6.4.4\lib\net45\EntityFramework.SqlServer.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -48,6 +55,143 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AnalyticsRecibosDA.cs" />
+    <Compile Include="APK66Context.cs" />
+    <Compile Include="HanaHelper.cs" />
+    <Compile Include="HanaRepository.cs" />
+    <Compile Include="Migrations\202111112211234_SeQuitaCampoEmpresaTablaAgencia.cs" />
+    <Compile Include="Migrations\202111112211234_SeQuitaCampoEmpresaTablaAgencia.Designer.cs">
+      <DependentUpon>202111112211234_SeQuitaCampoEmpresaTablaAgencia.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202111112228252_SeAgreganCamposTablaUsuario.cs" />
+    <Compile Include="Migrations\202111112228252_SeAgreganCamposTablaUsuario.Designer.cs">
+      <DependentUpon>202111112228252_SeAgreganCamposTablaUsuario.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202111112300281_SeQuitanCamposEmpresaTablaUsuario.cs" />
+    <Compile Include="Migrations\202111112300281_SeQuitanCamposEmpresaTablaUsuario.Designer.cs">
+      <DependentUpon>202111112300281_SeQuitanCamposEmpresaTablaUsuario.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202111112304150_SeAgregaTablaUsuarioEmpresa.cs" />
+    <Compile Include="Migrations\202111112304150_SeAgregaTablaUsuarioEmpresa.Designer.cs">
+      <DependentUpon>202111112304150_SeAgregaTablaUsuarioEmpresa.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202111112309417_SeAgregaCampoCodigoTablaUsuarioEmpresa.cs" />
+    <Compile Include="Migrations\202111112309417_SeAgregaCampoCodigoTablaUsuarioEmpresa.Designer.cs">
+      <DependentUpon>202111112309417_SeAgregaCampoCodigoTablaUsuarioEmpresa.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202111152103507_SeAgregaTablaVisitaTipo.cs" />
+    <Compile Include="Migrations\202111152103507_SeAgregaTablaVisitaTipo.Designer.cs">
+      <DependentUpon>202111152103507_SeAgregaTablaVisitaTipo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202111172221390_SeAgregaTablaVisita.cs" />
+    <Compile Include="Migrations\202111172221390_SeAgregaTablaVisita.Designer.cs">
+      <DependentUpon>202111172221390_SeAgregaTablaVisita.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202111222312084_SeAgregaTablaPedidoK66.cs" />
+    <Compile Include="Migrations\202111222312084_SeAgregaTablaPedidoK66.Designer.cs">
+      <DependentUpon>202111222312084_SeAgregaTablaPedidoK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202111232344037_SeAgreganCamposTablaVisita.cs" />
+    <Compile Include="Migrations\202111232344037_SeAgreganCamposTablaVisita.Designer.cs">
+      <DependentUpon>202111232344037_SeAgreganCamposTablaVisita.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202111251536283_SeAgregaCampoDireccionIdTablaPedidoK66.cs" />
+    <Compile Include="Migrations\202111251536283_SeAgregaCampoDireccionIdTablaPedidoK66.Designer.cs">
+      <DependentUpon>202111251536283_SeAgregaCampoDireccionIdTablaPedidoK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202111251603529_SeAgregaTablaProductoAlertaK66.cs" />
+    <Compile Include="Migrations\202111251603529_SeAgregaTablaProductoAlertaK66.Designer.cs">
+      <DependentUpon>202111251603529_SeAgregaTablaProductoAlertaK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202111270002013_SeAgregaCampoBodegaActivaTablaEmpresa.cs" />
+    <Compile Include="Migrations\202111270002013_SeAgregaCampoBodegaActivaTablaEmpresa.Designer.cs">
+      <DependentUpon>202111270002013_SeAgregaCampoBodegaActivaTablaEmpresa.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202112092221154_SeAgregaCamposTablaPedidoK66.cs" />
+    <Compile Include="Migrations\202112092221154_SeAgregaCamposTablaPedidoK66.Designer.cs">
+      <DependentUpon>202112092221154_SeAgregaCamposTablaPedidoK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202201211649376_SeAgregaTablaProductosEspeciales.cs" />
+    <Compile Include="Migrations\202201211649376_SeAgregaTablaProductosEspeciales.Designer.cs">
+      <DependentUpon>202201211649376_SeAgregaTablaProductosEspeciales.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202201212059512_SeAgregaTablaDescuentoK66.cs" />
+    <Compile Include="Migrations\202201212059512_SeAgregaTablaDescuentoK66.Designer.cs">
+      <DependentUpon>202201212059512_SeAgregaTablaDescuentoK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202201212114054_SeAgreganDecimalesTablaDescuentoK66.cs" />
+    <Compile Include="Migrations\202201212114054_SeAgreganDecimalesTablaDescuentoK66.Designer.cs">
+      <DependentUpon>202201212114054_SeAgreganDecimalesTablaDescuentoK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202201212311487_SeAgregaTablaPedidoTipoK66.cs" />
+    <Compile Include="Migrations\202201212311487_SeAgregaTablaPedidoTipoK66.Designer.cs">
+      <DependentUpon>202201212311487_SeAgregaTablaPedidoTipoK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202201212351530_SeAgregaTablaEstadoSmartK66.cs" />
+    <Compile Include="Migrations\202201212351530_SeAgregaTablaEstadoSmartK66.Designer.cs">
+      <DependentUpon>202201212351530_SeAgregaTablaEstadoSmartK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202201251114334_SeAgregaronCamposTablaPedidoK66.cs" />
+    <Compile Include="Migrations\202201251114334_SeAgregaronCamposTablaPedidoK66.Designer.cs">
+      <DependentUpon>202201251114334_SeAgregaronCamposTablaPedidoK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202201251136577_SeAgregaronCamposTablaPedidoK662.cs" />
+    <Compile Include="Migrations\202201251136577_SeAgregaronCamposTablaPedidoK662.Designer.cs">
+      <DependentUpon>202201251136577_SeAgregaronCamposTablaPedidoK662.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202201272343184_SeAgregaTablaEmpresaBodegaActiva.cs" />
+    <Compile Include="Migrations\202201272343184_SeAgregaTablaEmpresaBodegaActiva.Designer.cs">
+      <DependentUpon>202201272343184_SeAgregaTablaEmpresaBodegaActiva.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202201312248405_SeAgreganCamposPedidoDetalleK66.cs" />
+    <Compile Include="Migrations\202201312248405_SeAgreganCamposPedidoDetalleK66.Designer.cs">
+      <DependentUpon>202201312248405_SeAgreganCamposPedidoDetalleK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202202150055391_SeAgregaCampoResponsableAprobacionTablaPedidoK66.cs" />
+    <Compile Include="Migrations\202202150055391_SeAgregaCampoResponsableAprobacionTablaPedidoK66.Designer.cs">
+      <DependentUpon>202202150055391_SeAgregaCampoResponsableAprobacionTablaPedidoK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202202172127490_SeAgregaCampoComentarioAprobacionTablaPedidoK66.cs" />
+    <Compile Include="Migrations\202202172127490_SeAgregaCampoComentarioAprobacionTablaPedidoK66.Designer.cs">
+      <DependentUpon>202202172127490_SeAgregaCampoComentarioAprobacionTablaPedidoK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202202282116075_SeAgregaCampoDocumentoOrdenCompraRespaldoTablaPedidoK66.cs" />
+    <Compile Include="Migrations\202202282116075_SeAgregaCampoDocumentoOrdenCompraRespaldoTablaPedidoK66.Designer.cs">
+      <DependentUpon>202202282116075_SeAgregaCampoDocumentoOrdenCompraRespaldoTablaPedidoK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202202282154538_SeAgregaTablaPedidoDocumentoImportante.cs" />
+    <Compile Include="Migrations\202202282154538_SeAgregaTablaPedidoDocumentoImportante.Designer.cs">
+      <DependentUpon>202202282154538_SeAgregaTablaPedidoDocumentoImportante.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202203212328283_SeAgregaLlavePrimariaUsuarioEmpresa.cs" />
+    <Compile Include="Migrations\202203212328283_SeAgregaLlavePrimariaUsuarioEmpresa.Designer.cs">
+      <DependentUpon>202203212328283_SeAgregaLlavePrimariaUsuarioEmpresa.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202204251603462_SeAgregaColumnaDescuentoTablaPedidoDetalleK66.cs" />
+    <Compile Include="Migrations\202204251603462_SeAgregaColumnaDescuentoTablaPedidoDetalleK66.Designer.cs">
+      <DependentUpon>202204251603462_SeAgregaColumnaDescuentoTablaPedidoDetalleK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202206222024376_SeAgregaCamposPedidoK66Control.cs" />
+    <Compile Include="Migrations\202206222024376_SeAgregaCamposPedidoK66Control.designer.cs">
+      <DependentUpon>202206222024376_SeAgregaCamposPedidoK66Control.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202206222043344_SeAgregaCampoMonedaTablaPedidoK66.cs" />
+    <Compile Include="Migrations\202206222043344_SeAgregaCampoMonedaTablaPedidoK66.designer.cs">
+      <DependentUpon>202206222043344_SeAgregaCampoMonedaTablaPedidoK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202411042201388_202511042043344_SeAgregaCampoBodegaTablaPedidoDetalleK66.cs" />
+    <Compile Include="Migrations\202411042201388_202511042043344_SeAgregaCampoBodegaTablaPedidoDetalleK66.designer.cs">
+      <DependentUpon>202411042201388_202511042043344_SeAgregaCampoBodegaTablaPedidoDetalleK66.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ReciboCajaAdminDA.cs" />
+    <Compile Include="ReciboCajaSyncDA.cs" />
+    <Compile Include="RecibosCajaUsuarioDeptoDA.cs" />
+    <Compile Include="UsuarioEmpresaDA.cs" />
+    <Compile Include="VMGRACOContext.cs" />
+    <Compile Include="VMFAESContext.cs" />
+    <Compile Include="VMEMPAQUESContext.cs" />
+    <Compile Include="VMBOLIKContext.cs" />
+    <Compile Include="VFINContext.cs" />
     <Compile Include="GiveContext.cs" />
     <Compile Include="Migrations\201701311301040_InitialCreate.cs" />
     <Compile Include="Migrations\201701311301040_InitialCreate.Designer.cs">
@@ -65,17 +209,716 @@
     <Compile Include="Migrations\201703280444148_Kardex.Designer.cs">
       <DependentUpon>201703280444148_Kardex.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201706112231561_ActualizarUsuarioColumnaVendedor.cs" />
+    <Compile Include="Migrations\201706112231561_ActualizarUsuarioColumnaVendedor.Designer.cs">
+      <DependentUpon>201706112231561_ActualizarUsuarioColumnaVendedor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201706132154262_ActualizarFacturaDetalleColumnaDescuento.cs" />
+    <Compile Include="Migrations\201706132154262_ActualizarFacturaDetalleColumnaDescuento.Designer.cs">
+      <DependentUpon>201706132154262_ActualizarFacturaDetalleColumnaDescuento.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201706161833067_ActualizarMovimientoDetalleCampoMinimoMaximo.cs" />
+    <Compile Include="Migrations\201706161833067_ActualizarMovimientoDetalleCampoMinimoMaximo.Designer.cs">
+      <DependentUpon>201706161833067_ActualizarMovimientoDetalleCampoMinimoMaximo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201706162332452_ActualizarFacturaCreditoYDiasDeCredito.cs" />
+    <Compile Include="Migrations\201706162332452_ActualizarFacturaCreditoYDiasDeCredito.Designer.cs">
+      <DependentUpon>201706162332452_ActualizarFacturaCreditoYDiasDeCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201706171718114_ActualizarMovimientoUsuarioAnular.cs" />
+    <Compile Include="Migrations\201706171718114_ActualizarMovimientoUsuarioAnular.Designer.cs">
+      <DependentUpon>201706171718114_ActualizarMovimientoUsuarioAnular.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201706171856504_ActualizarMovimientoSeAgregaComentario.cs" />
+    <Compile Include="Migrations\201706171856504_ActualizarMovimientoSeAgregaComentario.Designer.cs">
+      <DependentUpon>201706171856504_ActualizarMovimientoSeAgregaComentario.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201706181852100_NotadeCredito.cs" />
+    <Compile Include="Migrations\201706181852100_NotadeCredito.Designer.cs">
+      <DependentUpon>201706181852100_NotadeCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201706181906157_SeAgregoAgenciaANotaCredito.cs" />
+    <Compile Include="Migrations\201706181906157_SeAgregoAgenciaANotaCredito.Designer.cs">
+      <DependentUpon>201706181906157_SeAgregoAgenciaANotaCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201706191339161_ActualizoNotaCreditoCampoFacturaDevolucion.cs" />
+    <Compile Include="Migrations\201706191339161_ActualizoNotaCreditoCampoFacturaDevolucion.Designer.cs">
+      <DependentUpon>201706191339161_ActualizoNotaCreditoCampoFacturaDevolucion.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201706241632069_ActualizarNotaCredito.cs" />
+    <Compile Include="Migrations\201706241632069_ActualizarNotaCredito.Designer.cs">
+      <DependentUpon>201706241632069_ActualizarNotaCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201706260141334_ActualizarFacturaColumnaNotaCredito.cs" />
+    <Compile Include="Migrations\201706260141334_ActualizarFacturaColumnaNotaCredito.Designer.cs">
+      <DependentUpon>201706260141334_ActualizarFacturaColumnaNotaCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201710201852174_ActualizarTablaPermisoModulo.cs" />
+    <Compile Include="Migrations\201710201852174_ActualizarTablaPermisoModulo.Designer.cs">
+      <DependentUpon>201710201852174_ActualizarTablaPermisoModulo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201710292224575_SeAgregoMovimientoCategoriaYRelacionEnMovimiento.cs" />
+    <Compile Include="Migrations\201710292224575_SeAgregoMovimientoCategoriaYRelacionEnMovimiento.Designer.cs">
+      <DependentUpon>201710292224575_SeAgregoMovimientoCategoriaYRelacionEnMovimiento.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201710292245082_SeAgregoColumnaIngresoaMovimientoCategoria.cs" />
+    <Compile Include="Migrations\201710292245082_SeAgregoColumnaIngresoaMovimientoCategoria.Designer.cs">
+      <DependentUpon>201710292245082_SeAgregoColumnaIngresoaMovimientoCategoria.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201806011707382_Creditos.cs" />
+    <Compile Include="Migrations\201806011707382_Creditos.Designer.cs">
+      <DependentUpon>201806011707382_Creditos.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201806011902309_ActualizacionCreditoDetalle.cs" />
+    <Compile Include="Migrations\201806011902309_ActualizacionCreditoDetalle.Designer.cs">
+      <DependentUpon>201806011902309_ActualizacionCreditoDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201810270546543_SeAgregoColumnaCantidadEnUnidaddeMedida.cs" />
+    <Compile Include="Migrations\201810270546543_SeAgregoColumnaCantidadEnUnidaddeMedida.Designer.cs">
+      <DependentUpon>201810270546543_SeAgregoColumnaCantidadEnUnidaddeMedida.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201810270631153_SeAgregaTablaLaboratorio.cs" />
+    <Compile Include="Migrations\201810270631153_SeAgregaTablaLaboratorio.Designer.cs">
+      <DependentUpon>201810270631153_SeAgregaTablaLaboratorio.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201810290547338_Pedidos.cs" />
+    <Compile Include="Migrations\201810290547338_Pedidos.Designer.cs">
+      <DependentUpon>201810290547338_Pedidos.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201810300634397_TipodeFactura.cs" />
+    <Compile Include="Migrations\201810300634397_TipodeFactura.Designer.cs">
+      <DependentUpon>201810300634397_TipodeFactura.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201811012219573_TablaConversion.cs" />
+    <Compile Include="Migrations\201811012219573_TablaConversion.Designer.cs">
+      <DependentUpon>201811012219573_TablaConversion.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201811101709154_Gastos.cs" />
+    <Compile Include="Migrations\201811101709154_Gastos.Designer.cs">
+      <DependentUpon>201811101709154_Gastos.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201811271545394_SeAgregoServicioCliente.cs" />
+    <Compile Include="Migrations\201811271545394_SeAgregoServicioCliente.Designer.cs">
+      <DependentUpon>201811271545394_SeAgregoServicioCliente.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201811272043533_NombreDelMigration.cs" />
+    <Compile Include="Migrations\201811272043533_NombreDelMigration.Designer.cs">
+      <DependentUpon>201811272043533_NombreDelMigration.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201811281629510_SeAgregoCampoPagadaFactura.cs" />
+    <Compile Include="Migrations\201811281629510_SeAgregoCampoPagadaFactura.Designer.cs">
+      <DependentUpon>201811281629510_SeAgregoCampoPagadaFactura.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201812042307125_SeAgregoTablaClienteFotografia.cs" />
+    <Compile Include="Migrations\201812042307125_SeAgregoTablaClienteFotografia.Designer.cs">
+      <DependentUpon>201812042307125_SeAgregoTablaClienteFotografia.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201812061720023_SeAgregoCampoVendedorEnTablaCliente.cs" />
+    <Compile Include="Migrations\201812061720023_SeAgregoCampoVendedorEnTablaCliente.Designer.cs">
+      <DependentUpon>201812061720023_SeAgregoCampoVendedorEnTablaCliente.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201812130715472_SeAgregoCamposNombreAlternativosEnProducto.cs" />
+    <Compile Include="Migrations\201812130715472_SeAgregoCamposNombreAlternativosEnProducto.Designer.cs">
+      <DependentUpon>201812130715472_SeAgregoCamposNombreAlternativosEnProducto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201812221542513_ActualizacionModuloProveedores.cs" />
+    <Compile Include="Migrations\201812221542513_ActualizacionModuloProveedores.Designer.cs">
+      <DependentUpon>201812221542513_ActualizacionModuloProveedores.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201812221709190_SeAgregoColumnaFechaHoraFacturaATablaFactura.cs" />
+    <Compile Include="Migrations\201812221709190_SeAgregoColumnaFechaHoraFacturaATablaFactura.Designer.cs">
+      <DependentUpon>201812221709190_SeAgregoColumnaFechaHoraFacturaATablaFactura.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201812231908065_SeAgregaColumnaDiasYFechaVencimientoTablaProveedorMovimienot.cs" />
+    <Compile Include="Migrations\201812231908065_SeAgregaColumnaDiasYFechaVencimientoTablaProveedorMovimienot.Designer.cs">
+      <DependentUpon>201812231908065_SeAgregaColumnaDiasYFechaVencimientoTablaProveedorMovimienot.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201812231950534_SeAgregaEstadoIngresoyColumnaCanceladoTablaMovimiento.cs" />
+    <Compile Include="Migrations\201812231950534_SeAgregaEstadoIngresoyColumnaCanceladoTablaMovimiento.Designer.cs">
+      <DependentUpon>201812231950534_SeAgregaEstadoIngresoyColumnaCanceladoTablaMovimiento.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201812232032242_SeAgregoColumnasDocumentoDiasCreditoyFechaVencimientoTablaMovimiento.cs" />
+    <Compile Include="Migrations\201812232032242_SeAgregoColumnasDocumentoDiasCreditoyFechaVencimientoTablaMovimiento.Designer.cs">
+      <DependentUpon>201812232032242_SeAgregoColumnasDocumentoDiasCreditoyFechaVencimientoTablaMovimiento.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901081206545_SeAgregoColumnaDiasCreditoATablaCliente.cs" />
+    <Compile Include="Migrations\201901081206545_SeAgregoColumnaDiasCreditoATablaCliente.Designer.cs">
+      <DependentUpon>201901081206545_SeAgregoColumnaDiasCreditoATablaCliente.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901110353313_SeCreoTablaTransporte.cs" />
+    <Compile Include="Migrations\201901110353313_SeCreoTablaTransporte.Designer.cs">
+      <DependentUpon>201901110353313_SeCreoTablaTransporte.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901110651189_SeAgregoColumnaTransporteIDEntregaTransporte.cs" />
+    <Compile Include="Migrations\201901110651189_SeAgregoColumnaTransporteIDEntregaTransporte.Designer.cs">
+      <DependentUpon>201901110651189_SeAgregoColumnaTransporteIDEntregaTransporte.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901151029388_Servicio.cs" />
+    <Compile Include="Migrations\201901151029388_Servicio.Designer.cs">
+      <DependentUpon>201901151029388_Servicio.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901151057487_Departamento.cs" />
+    <Compile Include="Migrations\201901151057487_Departamento.Designer.cs">
+      <DependentUpon>201901151057487_Departamento.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901151156305_Reparacion.cs" />
+    <Compile Include="Migrations\201901151156305_Reparacion.Designer.cs">
+      <DependentUpon>201901151156305_Reparacion.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901160521458_Politicas.cs" />
+    <Compile Include="Migrations\201901160521458_Politicas.Designer.cs">
+      <DependentUpon>201901160521458_Politicas.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901160637442_SeAgregoDepartamentoTablaUsuario.cs" />
+    <Compile Include="Migrations\201901160637442_SeAgregoDepartamentoTablaUsuario.Designer.cs">
+      <DependentUpon>201901160637442_SeAgregoDepartamentoTablaUsuario.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901191358307_SeCreoTablaReserva.cs" />
+    <Compile Include="Migrations\201901191358307_SeCreoTablaReserva.Designer.cs">
+      <DependentUpon>201901191358307_SeCreoTablaReserva.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901201345185_SeAgregaColumnaTieneIdentificadorTablaProducto.cs" />
+    <Compile Include="Migrations\201901201345185_SeAgregaColumnaTieneIdentificadorTablaProducto.Designer.cs">
+      <DependentUpon>201901201345185_SeAgregaColumnaTieneIdentificadorTablaProducto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901202314125_SeAgregoCampoIDEnTablaMovimientoDetalle.cs" />
+    <Compile Include="Migrations\201901202314125_SeAgregoCampoIDEnTablaMovimientoDetalle.Designer.cs">
+      <DependentUpon>201901202314125_SeAgregoCampoIDEnTablaMovimientoDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901220525431_SeAgregoTablaProductoExistenciaID.cs" />
+    <Compile Include="Migrations\201901220525431_SeAgregoTablaProductoExistenciaID.Designer.cs">
+      <DependentUpon>201901220525431_SeAgregoTablaProductoExistenciaID.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901220703094_SeAgregaColumnaIDEnTablaFacturaDetalle.cs" />
+    <Compile Include="Migrations\201901220703094_SeAgregaColumnaIDEnTablaFacturaDetalle.Designer.cs">
+      <DependentUpon>201901220703094_SeAgregaColumnaIDEnTablaFacturaDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901250438467_SeCreoTablaRecibos.cs" />
+    <Compile Include="Migrations\201901250438467_SeCreoTablaRecibos.Designer.cs">
+      <DependentUpon>201901250438467_SeCreoTablaRecibos.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201901290935415_SeAgregoGarantia.cs" />
+    <Compile Include="Migrations\201901290935415_SeAgregoGarantia.Designer.cs">
+      <DependentUpon>201901290935415_SeAgregoGarantia.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201902040507010_SeAgregoCampoAgenciaTablaInventarioID.cs" />
+    <Compile Include="Migrations\201902040507010_SeAgregoCampoAgenciaTablaInventarioID.Designer.cs">
+      <DependentUpon>201902040507010_SeAgregoCampoAgenciaTablaInventarioID.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201902091433034_SeAgregaCampoAgenciaTablaGasto.cs" />
+    <Compile Include="Migrations\201902091433034_SeAgregaCampoAgenciaTablaGasto.Designer.cs">
+      <DependentUpon>201902091433034_SeAgregaCampoAgenciaTablaGasto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201902091559424_SeAgregaCampoFechaHoraTablasGastosReserva.cs" />
+    <Compile Include="Migrations\201902091559424_SeAgregaCampoFechaHoraTablasGastosReserva.Designer.cs">
+      <DependentUpon>201902091559424_SeAgregaCampoFechaHoraTablasGastosReserva.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201902091709538_SeAgregoCampoIDTablaTrasladoDetalle.cs" />
+    <Compile Include="Migrations\201902091709538_SeAgregoCampoIDTablaTrasladoDetalle.Designer.cs">
+      <DependentUpon>201902091709538_SeAgregoCampoIDTablaTrasladoDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201903091308253_SeAgregoTablaAgenciaConsulta.cs" />
+    <Compile Include="Migrations\201903091308253_SeAgregoTablaAgenciaConsulta.Designer.cs">
+      <DependentUpon>201903091308253_SeAgregoTablaAgenciaConsulta.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201903101332590_SeAgregoTablaVendedorEscala.cs" />
+    <Compile Include="Migrations\201903101332590_SeAgregoTablaVendedorEscala.Designer.cs">
+      <DependentUpon>201903101332590_SeAgregoTablaVendedorEscala.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201903101440308_SeAgregoTablaClienteTipo.cs" />
+    <Compile Include="Migrations\201903101440308_SeAgregoTablaClienteTipo.Designer.cs">
+      <DependentUpon>201903101440308_SeAgregoTablaClienteTipo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201903101540465_SeAgregoCampoTipoClienteTablaCliente.cs" />
+    <Compile Include="Migrations\201903101540465_SeAgregoCampoTipoClienteTablaCliente.Designer.cs">
+      <DependentUpon>201903101540465_SeAgregoCampoTipoClienteTablaCliente.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201903111547137_SeCambioTipoColumnaPorcentajeTablaVendedorEscala.cs" />
+    <Compile Include="Migrations\201903111547137_SeCambioTipoColumnaPorcentajeTablaVendedorEscala.Designer.cs">
+      <DependentUpon>201903111547137_SeCambioTipoColumnaPorcentajeTablaVendedorEscala.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201903111909159_PrecisionDecimalesCampoPorcentajeTablaVendedorEscala.cs" />
+    <Compile Include="Migrations\201903111909159_PrecisionDecimalesCampoPorcentajeTablaVendedorEscala.Designer.cs">
+      <DependentUpon>201903111909159_PrecisionDecimalesCampoPorcentajeTablaVendedorEscala.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201903121247395_SeCambiaEstructuraGarantias.cs" />
+    <Compile Include="Migrations\201903121247395_SeCambiaEstructuraGarantias.Designer.cs">
+      <DependentUpon>201903121247395_SeCambiaEstructuraGarantias.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904021638079_SeAgregoColumnaAnularTablaReparacion.cs" />
+    <Compile Include="Migrations\201904021638079_SeAgregoColumnaAnularTablaReparacion.Designer.cs">
+      <DependentUpon>201904021638079_SeAgregoColumnaAnularTablaReparacion.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904041202154_SeAgregoColumnaVistaAReparacionAnotacion.cs" />
+    <Compile Include="Migrations\201904041202154_SeAgregoColumnaVistaAReparacionAnotacion.Designer.cs">
+      <DependentUpon>201904041202154_SeAgregoColumnaVistaAReparacionAnotacion.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904240535597_SeAgregoAnotaciones.cs" />
+    <Compile Include="Migrations\201904240535597_SeAgregoAnotaciones.Designer.cs">
+      <DependentUpon>201904240535597_SeAgregoAnotaciones.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904240630294_SeActualizoModeloPersonal.cs" />
+    <Compile Include="Migrations\201904240630294_SeActualizoModeloPersonal.Designer.cs">
+      <DependentUpon>201904240630294_SeActualizoModeloPersonal.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904240733553_SeAgregaTablaPuestoPersonal.cs" />
+    <Compile Include="Migrations\201904240733553_SeAgregaTablaPuestoPersonal.Designer.cs">
+      <DependentUpon>201904240733553_SeAgregaTablaPuestoPersonal.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904240828120_SeAgregaTablasNomina.cs" />
+    <Compile Include="Migrations\201904240828120_SeAgregaTablasNomina.Designer.cs">
+      <DependentUpon>201904240828120_SeAgregaTablasNomina.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904271641157_SeAgregoTablaHistorialPrecioCosto.cs" />
+    <Compile Include="Migrations\201904271641157_SeAgregoTablaHistorialPrecioCosto.Designer.cs">
+      <DependentUpon>201904271641157_SeAgregoTablaHistorialPrecioCosto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904271650381_SeAgregoColumnaNumeroIngresoTablaHistorialPrecioCosto.cs" />
+    <Compile Include="Migrations\201904271650381_SeAgregoColumnaNumeroIngresoTablaHistorialPrecioCosto.Designer.cs">
+      <DependentUpon>201904271650381_SeAgregoColumnaNumeroIngresoTablaHistorialPrecioCosto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904281441190_SeAgregaCamposFechaHoraAPedidos.cs" />
+    <Compile Include="Migrations\201904281441190_SeAgregaCamposFechaHoraAPedidos.Designer.cs">
+      <DependentUpon>201904281441190_SeAgregaCamposFechaHoraAPedidos.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904282026349_SeAgregoCampoDespachadoTablaRecibo.cs" />
+    <Compile Include="Migrations\201904282026349_SeAgregoCampoDespachadoTablaRecibo.Designer.cs">
+      <DependentUpon>201904282026349_SeAgregoCampoDespachadoTablaRecibo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904282209371_SeCreaCampoLimiteCreditoTablaCliente.cs" />
+    <Compile Include="Migrations\201904282209371_SeCreaCampoLimiteCreditoTablaCliente.Designer.cs">
+      <DependentUpon>201904282209371_SeCreaCampoLimiteCreditoTablaCliente.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904291225042_SeAgregaTablaCategoriaGasto.cs" />
+    <Compile Include="Migrations\201904291225042_SeAgregaTablaCategoriaGasto.Designer.cs">
+      <DependentUpon>201904291225042_SeAgregaTablaCategoriaGasto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904291252326_SeAgregaCampoCategoriaIdTablaGasto.cs" />
+    <Compile Include="Migrations\201904291252326_SeAgregaCampoCategoriaIdTablaGasto.Designer.cs">
+      <DependentUpon>201904291252326_SeAgregaCampoCategoriaIdTablaGasto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201904291337561_SeAgregaTablaProductoNiveles.cs" />
+    <Compile Include="Migrations\201904291337561_SeAgregaTablaProductoNiveles.Designer.cs">
+      <DependentUpon>201904291337561_SeAgregaTablaProductoNiveles.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905010526411_SeAgregoCamposDespachoTablaRecibo.cs" />
+    <Compile Include="Migrations\201905010526411_SeAgregoCamposDespachoTablaRecibo.Designer.cs">
+      <DependentUpon>201905010526411_SeAgregoCamposDespachoTablaRecibo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905011056189_SeAgregaronCamposTablaReciboFormaPago.cs" />
+    <Compile Include="Migrations\201905011056189_SeAgregaronCamposTablaReciboFormaPago.Designer.cs">
+      <DependentUpon>201905011056189_SeAgregaronCamposTablaReciboFormaPago.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905090750355_SeAgregoTablaCorteCaja.cs" />
+    <Compile Include="Migrations\201905090750355_SeAgregoTablaCorteCaja.Designer.cs">
+      <DependentUpon>201905090750355_SeAgregoTablaCorteCaja.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905101519009_SeAgregoColumnaComentarioPedidoTablaRecibo.cs" />
+    <Compile Include="Migrations\201905101519009_SeAgregoColumnaComentarioPedidoTablaRecibo.Designer.cs">
+      <DependentUpon>201905101519009_SeAgregoColumnaComentarioPedidoTablaRecibo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905101755428_SeAgregoCampoGastoTablaCorteCaja.cs" />
+    <Compile Include="Migrations\201905101755428_SeAgregoCampoGastoTablaCorteCaja.Designer.cs">
+      <DependentUpon>201905101755428_SeAgregoCampoGastoTablaCorteCaja.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905121550494_SeAgregaTablasCierreYCierreDetalle.cs" />
+    <Compile Include="Migrations\201905121550494_SeAgregaTablasCierreYCierreDetalle.Designer.cs">
+      <DependentUpon>201905121550494_SeAgregaTablasCierreYCierreDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905230927333_SeAgreganCampoTieneEnvaseCantidadEnvaseTablaProducto.cs" />
+    <Compile Include="Migrations\201905230927333_SeAgreganCampoTieneEnvaseCantidadEnvaseTablaProducto.Designer.cs">
+      <DependentUpon>201905230927333_SeAgreganCampoTieneEnvaseCantidadEnvaseTablaProducto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905231058588_SeAgregaTablasReciboEnvaseReciboEnvaseDetalle.cs" />
+    <Compile Include="Migrations\201905231058588_SeAgregaTablasReciboEnvaseReciboEnvaseDetalle.Designer.cs">
+      <DependentUpon>201905231058588_SeAgregaTablasReciboEnvaseReciboEnvaseDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905252149599_SeAgregoExpacionDecimales.cs" />
+    <Compile Include="Migrations\201905252149599_SeAgregoExpacionDecimales.Designer.cs">
+      <DependentUpon>201905252149599_SeAgregoExpacionDecimales.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905261407183_SeAgregoDecimalesTablaCierreDetalle.cs" />
+    <Compile Include="Migrations\201905261407183_SeAgregoDecimalesTablaCierreDetalle.Designer.cs">
+      <DependentUpon>201905261407183_SeAgregoDecimalesTablaCierreDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905261435299_SeAgregaDecimalesTablaCorteCaja.cs" />
+    <Compile Include="Migrations\201905261435299_SeAgregaDecimalesTablaCorteCaja.Designer.cs">
+      <DependentUpon>201905261435299_SeAgregaDecimalesTablaCorteCaja.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905261811056_SeAgregoCampoPedidoTablaRecibo.cs" />
+    <Compile Include="Migrations\201905261811056_SeAgregoCampoPedidoTablaRecibo.Designer.cs">
+      <DependentUpon>201905261811056_SeAgregoCampoPedidoTablaRecibo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905261944284_SeAgregaDecimalesTablaPedidoDetalle.cs" />
+    <Compile Include="Migrations\201905261944284_SeAgregaDecimalesTablaPedidoDetalle.Designer.cs">
+      <DependentUpon>201905261944284_SeAgregaDecimalesTablaPedidoDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905262215351_SeAgregoTablasEgresoEgresoDetalle.cs" />
+    <Compile Include="Migrations\201905262215351_SeAgregoTablasEgresoEgresoDetalle.Designer.cs">
+      <DependentUpon>201905262215351_SeAgregoTablasEgresoEgresoDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905311201393_SeAgregoDecimalesTablaReciboDetalle.cs" />
+    <Compile Include="Migrations\201905311201393_SeAgregoDecimalesTablaReciboDetalle.Designer.cs">
+      <DependentUpon>201905311201393_SeAgregoDecimalesTablaReciboDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201905311210262_SeAgregoDecimalesTablaProductoNivelPrecio.cs" />
+    <Compile Include="Migrations\201905311210262_SeAgregoDecimalesTablaProductoNivelPrecio.Designer.cs">
+      <DependentUpon>201905311210262_SeAgregoDecimalesTablaProductoNivelPrecio.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201906011638358_SeAgregoCampoPrecioCostoTablaEgresoDetalle.cs" />
+    <Compile Include="Migrations\201906011638358_SeAgregoCampoPrecioCostoTablaEgresoDetalle.Designer.cs">
+      <DependentUpon>201906011638358_SeAgregoCampoPrecioCostoTablaEgresoDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201906091403171_SeExpandeDecimalesMovimientoDetalle.cs" />
+    <Compile Include="Migrations\201906091403171_SeExpandeDecimalesMovimientoDetalle.Designer.cs">
+      <DependentUpon>201906091403171_SeExpandeDecimalesMovimientoDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201906091525147_SeAgregaOpcionAnulacionTablaPedido.cs" />
+    <Compile Include="Migrations\201906091525147_SeAgregaOpcionAnulacionTablaPedido.Designer.cs">
+      <DependentUpon>201906091525147_SeAgregaOpcionAnulacionTablaPedido.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201906091636382_SeAgregoCamposAnulacionTablaCredito.cs" />
+    <Compile Include="Migrations\201906091636382_SeAgregoCamposAnulacionTablaCredito.Designer.cs">
+      <DependentUpon>201906091636382_SeAgregoCamposAnulacionTablaCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201906092144078_SeExpandioDecimalesTablaProductoPrecioCosto.cs" />
+    <Compile Include="Migrations\201906092144078_SeExpandioDecimalesTablaProductoPrecioCosto.Designer.cs">
+      <DependentUpon>201906092144078_SeExpandioDecimalesTablaProductoPrecioCosto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201906240559435_SeAgregaTablasDeKardexMovimiento.cs" />
+    <Compile Include="Migrations\201906240559435_SeAgregaTablasDeKardexMovimiento.Designer.cs">
+      <DependentUpon>201906240559435_SeAgregaTablasDeKardexMovimiento.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201907151020521_SeAgregaCamposDespachadoSupervisorTablaTraslado.cs" />
+    <Compile Include="Migrations\201907151020521_SeAgregaCamposDespachadoSupervisorTablaTraslado.Designer.cs">
+      <DependentUpon>201907151020521_SeAgregaCamposDespachadoSupervisorTablaTraslado.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201907151143142_SeAgregaCampoUsuarioDespachoFechaHoraTablaTraslado.cs" />
+    <Compile Include="Migrations\201907151143142_SeAgregaCampoUsuarioDespachoFechaHoraTablaTraslado.Designer.cs">
+      <DependentUpon>201907151143142_SeAgregaCampoUsuarioDespachoFechaHoraTablaTraslado.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201907180533220_SeAgregoCampoObservacionesTablaProveedorMovimiento.cs" />
+    <Compile Include="Migrations\201907180533220_SeAgregoCampoObservacionesTablaProveedorMovimiento.Designer.cs">
+      <DependentUpon>201907180533220_SeAgregoCampoObservacionesTablaProveedorMovimiento.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201907180617185_SeAgregoCamposAnulacionTablaGastos.cs" />
+    <Compile Include="Migrations\201907180617185_SeAgregoCamposAnulacionTablaGastos.Designer.cs">
+      <DependentUpon>201907180617185_SeAgregoCamposAnulacionTablaGastos.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201907180622545_SeAgregoCamposFechaAnulacionTablaGastos.cs" />
+    <Compile Include="Migrations\201907180622545_SeAgregoCamposFechaAnulacionTablaGastos.Designer.cs">
+      <DependentUpon>201907180622545_SeAgregoCamposFechaAnulacionTablaGastos.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201908070355312_SeAgregoCampoRecibidoFechaHoraRecibidaTablaCierre.cs" />
+    <Compile Include="Migrations\201908070355312_SeAgregoCampoRecibidoFechaHoraRecibidaTablaCierre.Designer.cs">
+      <DependentUpon>201908070355312_SeAgregoCampoRecibidoFechaHoraRecibidaTablaCierre.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201908231122143_SeAgregoDecimalesKardexMovimiento.cs" />
+    <Compile Include="Migrations\201908231122143_SeAgregoDecimalesKardexMovimiento.Designer.cs">
+      <DependentUpon>201908231122143_SeAgregoDecimalesKardexMovimiento.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201908231137129_SeAgregaDecimalesTablaPrecioCostoHistorial.cs" />
+    <Compile Include="Migrations\201908231137129_SeAgregaDecimalesTablaPrecioCostoHistorial.Designer.cs">
+      <DependentUpon>201908231137129_SeAgregaDecimalesTablaPrecioCostoHistorial.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201908261712166_SeAgregoColumnasCorteCaja.cs" />
+    <Compile Include="Migrations\201908261712166_SeAgregoColumnasCorteCaja.Designer.cs">
+      <DependentUpon>201908261712166_SeAgregoColumnasCorteCaja.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201909211647090_SeAgregaTablaTrasladoDetalleDestino.cs" />
+    <Compile Include="Migrations\201909211647090_SeAgregaTablaTrasladoDetalleDestino.Designer.cs">
+      <DependentUpon>201909211647090_SeAgregaTablaTrasladoDetalleDestino.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201909261112578_SeCambioEstructuraFacturaFormaPago.cs" />
+    <Compile Include="Migrations\201909261112578_SeCambioEstructuraFacturaFormaPago.Designer.cs">
+      <DependentUpon>201909261112578_SeCambioEstructuraFacturaFormaPago.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201909261122357_SeActualizoEstructuraFacturaFormaPago.cs" />
+    <Compile Include="Migrations\201909261122357_SeActualizoEstructuraFacturaFormaPago.Designer.cs">
+      <DependentUpon>201909261122357_SeActualizoEstructuraFacturaFormaPago.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201909261231246_SeAgreganCamposFactura.cs" />
+    <Compile Include="Migrations\201909261231246_SeAgreganCamposFactura.Designer.cs">
+      <DependentUpon>201909261231246_SeAgreganCamposFactura.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910052053353_SeCreaTablaContrasenaPago.cs" />
+    <Compile Include="Migrations\201910052053353_SeCreaTablaContrasenaPago.Designer.cs">
+      <DependentUpon>201910052053353_SeCreaTablaContrasenaPago.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910052115309_SeAgregoCampoOperado.cs" />
+    <Compile Include="Migrations\201910052115309_SeAgregoCampoOperado.Designer.cs">
+      <DependentUpon>201910052115309_SeAgregoCampoOperado.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910140927162_SeAgregaCampoTieneLoteTablaProducto.cs" />
+    <Compile Include="Migrations\201910140927162_SeAgregaCampoTieneLoteTablaProducto.Designer.cs">
+      <DependentUpon>201910140927162_SeAgregaCampoTieneLoteTablaProducto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910141024139_SeAgregaCamposLoteFechaVencimientoLoteTablaMovimientoDetalle.cs" />
+    <Compile Include="Migrations\201910141024139_SeAgregaCamposLoteFechaVencimientoLoteTablaMovimientoDetalle.Designer.cs">
+      <DependentUpon>201910141024139_SeAgregaCamposLoteFechaVencimientoLoteTablaMovimientoDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910141027373_SePoneNullCampoFechaVencimientoLoteTablaMovimientoDetalle.cs" />
+    <Compile Include="Migrations\201910141027373_SePoneNullCampoFechaVencimientoLoteTablaMovimientoDetalle.Designer.cs">
+      <DependentUpon>201910141027373_SePoneNullCampoFechaVencimientoLoteTablaMovimientoDetalle.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910141053237_SeAgregaTablaProductoLote.cs" />
+    <Compile Include="Migrations\201910141053237_SeAgregaTablaProductoLote.Designer.cs">
+      <DependentUpon>201910141053237_SeAgregaTablaProductoLote.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910150322280_SeAgregaCampoProductoLoteTablaFacturaRecibo.cs" />
+    <Compile Include="Migrations\201910150322280_SeAgregaCampoProductoLoteTablaFacturaRecibo.Designer.cs">
+      <DependentUpon>201910150322280_SeAgregaCampoProductoLoteTablaFacturaRecibo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910160334441_SeAgregaCampoCotizacionTablaPedido.cs" />
+    <Compile Include="Migrations\201910160334441_SeAgregaCampoCotizacionTablaPedido.Designer.cs">
+      <DependentUpon>201910160334441_SeAgregaCampoCotizacionTablaPedido.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910160423588_SeAgregaTablaRegion.cs" />
+    <Compile Include="Migrations\201910160423588_SeAgregaTablaRegion.Designer.cs">
+      <DependentUpon>201910160423588_SeAgregaTablaRegion.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910160452565_SeAgregaCampoRegionIdTablaCliente.cs" />
+    <Compile Include="Migrations\201910160452565_SeAgregaCampoRegionIdTablaCliente.Designer.cs">
+      <DependentUpon>201910160452565_SeAgregaCampoRegionIdTablaCliente.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910171234519_SeAgregoControlLotesReciboFactura.cs" />
+    <Compile Include="Migrations\201910171234519_SeAgregoControlLotesReciboFactura.Designer.cs">
+      <DependentUpon>201910171234519_SeAgregoControlLotesReciboFactura.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910221018223_SeAgregaCampoNombreTablasPedidoFacturaRecibo.cs" />
+    <Compile Include="Migrations\201910221018223_SeAgregaCampoNombreTablasPedidoFacturaRecibo.Designer.cs">
+      <DependentUpon>201910221018223_SeAgregaCampoNombreTablasPedidoFacturaRecibo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910240217243_SeAgregaronCamposTablaPedido.cs" />
+    <Compile Include="Migrations\201910240217243_SeAgregaronCamposTablaPedido.Designer.cs">
+      <DependentUpon>201910240217243_SeAgregaronCamposTablaPedido.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201910271331480_SeAgregaTablaMesVendedorMeta.cs" />
+    <Compile Include="Migrations\201910271331480_SeAgregaTablaMesVendedorMeta.Designer.cs">
+      <DependentUpon>201910271331480_SeAgregaTablaMesVendedorMeta.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201911051325276_SeAgregoTablaTipoProveedor.cs" />
+    <Compile Include="Migrations\201911051325276_SeAgregoTablaTipoProveedor.Designer.cs">
+      <DependentUpon>201911051325276_SeAgregoTablaTipoProveedor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\201911051527294_SeAgregoColumnaVendedorId.cs" />
+    <Compile Include="Migrations\201911051527294_SeAgregoColumnaVendedorId.Designer.cs">
+      <DependentUpon>201911051527294_SeAgregoColumnaVendedorId.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202004182237268_CamosGeoposicionClent.cs" />
+    <Compile Include="Migrations\202004182237268_CamosGeoposicionClent.Designer.cs">
+      <DependentUpon>202004182237268_CamosGeoposicionClent.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202004190407033_AgregrCampoPaswordClient.cs" />
+    <Compile Include="Migrations\202004190407033_AgregrCampoPaswordClient.Designer.cs">
+      <DependentUpon>202004190407033_AgregrCampoPaswordClient.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202004202134005_AgregarColumnasCocina.cs" />
+    <Compile Include="Migrations\202004202134005_AgregarColumnasCocina.Designer.cs">
+      <DependentUpon>202004202134005_AgregarColumnasCocina.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202004250335174_CamposProgramacionPedidosRecibo.cs" />
+    <Compile Include="Migrations\202004250335174_CamposProgramacionPedidosRecibo.Designer.cs">
+      <DependentUpon>202004250335174_CamposProgramacionPedidosRecibo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202004251529481_SeCreoTablaOfertasDelivery.cs" />
+    <Compile Include="Migrations\202004251529481_SeCreoTablaOfertasDelivery.Designer.cs">
+      <DependentUpon>202004251529481_SeCreoTablaOfertasDelivery.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202004251532276_SeAgregoTablaOfertasDelvery.cs" />
+    <Compile Include="Migrations\202004251532276_SeAgregoTablaOfertasDelvery.Designer.cs">
+      <DependentUpon>202004251532276_SeAgregoTablaOfertasDelvery.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202004251851476_MultiplesDireccinCliene.cs" />
+    <Compile Include="Migrations\202004251851476_MultiplesDireccinCliene.Designer.cs">
+      <DependentUpon>202004251851476_MultiplesDireccinCliene.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202004252131339_CamposFotografiaProductoyCat.cs" />
+    <Compile Include="Migrations\202004252131339_CamposFotografiaProductoyCat.Designer.cs">
+      <DependentUpon>202004252131339_CamposFotografiaProductoyCat.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202004270333033_TablaMunicipioLocalid.cs" />
+    <Compile Include="Migrations\202004270333033_TablaMunicipioLocalid.Designer.cs">
+      <DependentUpon>202004270333033_TablaMunicipioLocalid.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202004270338080_SeAgregaRelacionDieccionyloclidad.cs" />
+    <Compile Include="Migrations\202004270338080_SeAgregaRelacionDieccionyloclidad.Designer.cs">
+      <DependentUpon>202004270338080_SeAgregaRelacionDieccionyloclidad.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202004292153431_SeAgregoCamoDireccioaCliente.cs" />
+    <Compile Include="Migrations\202004292153431_SeAgregoCamoDireccioaCliente.Designer.cs">
+      <DependentUpon>202004292153431_SeAgregoCamoDireccioaCliente.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202005210036480_SeAgregaColumnasTablaFactura.cs" />
+    <Compile Include="Migrations\202005210036480_SeAgregaColumnasTablaFactura.Designer.cs">
+      <DependentUpon>202005210036480_SeAgregaColumnasTablaFactura.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202005210213379_SeAgregaColumnaReciboIdTablaFactura.cs" />
+    <Compile Include="Migrations\202005210213379_SeAgregaColumnaReciboIdTablaFactura.Designer.cs">
+      <DependentUpon>202005210213379_SeAgregaColumnaReciboIdTablaFactura.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202005210306464_SeAgregaColumnaFacturaTablaRecibo.cs" />
+    <Compile Include="Migrations\202005210306464_SeAgregaColumnaFacturaTablaRecibo.Designer.cs">
+      <DependentUpon>202005210306464_SeAgregaColumnaFacturaTablaRecibo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202006291925102_AgenciaEnlazadaLocalidadSI.cs" />
+    <Compile Include="Migrations\202006291925102_AgenciaEnlazadaLocalidadSI.Designer.cs">
+      <DependentUpon>202006291925102_AgenciaEnlazadaLocalidadSI.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008092310158_SeAgregaTablaTipoUbicacion.cs" />
+    <Compile Include="Migrations\202008092310158_SeAgregaTablaTipoUbicacion.Designer.cs">
+      <DependentUpon>202008092310158_SeAgregaTablaTipoUbicacion.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008092359516_SeAgregaTablaMesa.cs" />
+    <Compile Include="Migrations\202008092359516_SeAgregaTablaMesa.Designer.cs">
+      <DependentUpon>202008092359516_SeAgregaTablaMesa.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008100259236_SeAgregaTablaMesaRecibo.cs" />
+    <Compile Include="Migrations\202008100259236_SeAgregaTablaMesaRecibo.Designer.cs">
+      <DependentUpon>202008100259236_SeAgregaTablaMesaRecibo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008100355388_SeAgregaTablaToken.cs" />
+    <Compile Include="Migrations\202008100355388_SeAgregaTablaToken.Designer.cs">
+      <DependentUpon>202008100355388_SeAgregaTablaToken.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008100449270_SeAgregaCampoAgenciaTablaMesa.cs" />
+    <Compile Include="Migrations\202008100449270_SeAgregaCampoAgenciaTablaMesa.Designer.cs">
+      <DependentUpon>202008100449270_SeAgregaCampoAgenciaTablaMesa.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008110224098_SeAgregaTablaRecioDelivery.cs" />
+    <Compile Include="Migrations\202008110224098_SeAgregaTablaRecioDelivery.designer.cs">
+      <DependentUpon>202008110224098_SeAgregaTablaRecioDelivery.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008131729342_SeAgregoTablaFacturaNotaCredito.cs" />
+    <Compile Include="Migrations\202008131729342_SeAgregoTablaFacturaNotaCredito.Designer.cs">
+      <DependentUpon>202008131729342_SeAgregoTablaFacturaNotaCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008131801319_SeAgregoCampoMotivoTablaFacturaNotaCredito.cs" />
+    <Compile Include="Migrations\202008131801319_SeAgregoCampoMotivoTablaFacturaNotaCredito.Designer.cs">
+      <DependentUpon>202008131801319_SeAgregoCampoMotivoTablaFacturaNotaCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008131855283_SeAgregoCampoFechaHoraNotaCreditoTablaFacturaNotaCredito.cs" />
+    <Compile Include="Migrations\202008131855283_SeAgregoCampoFechaHoraNotaCreditoTablaFacturaNotaCredito.Designer.cs">
+      <DependentUpon>202008131855283_SeAgregoCampoFechaHoraNotaCreditoTablaFacturaNotaCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008131913249_SeAgregoCampoFELTablaFacturaNotaCredito.cs" />
+    <Compile Include="Migrations\202008131913249_SeAgregoCampoFELTablaFacturaNotaCredito.Designer.cs">
+      <DependentUpon>202008131913249_SeAgregoCampoFELTablaFacturaNotaCredito.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008182150333_SeAgregaCamposTablaAgencia.cs" />
+    <Compile Include="Migrations\202008182150333_SeAgregaCamposTablaAgencia.Designer.cs">
+      <DependentUpon>202008182150333_SeAgregaCamposTablaAgencia.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008231400336_SeAgregaCampoAdministrativoTablaToken.cs" />
+    <Compile Include="Migrations\202008231400336_SeAgregaCampoAdministrativoTablaToken.Designer.cs">
+      <DependentUpon>202008231400336_SeAgregaCampoAdministrativoTablaToken.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202008231750278_SeAgregaCampoObservacionesTablaReserva.cs" />
+    <Compile Include="Migrations\202008231750278_SeAgregaCampoObservacionesTablaReserva.Designer.cs">
+      <DependentUpon>202008231750278_SeAgregaCampoObservacionesTablaReserva.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202012021126145_SeAgreganCamposTablaGasto.cs" />
+    <Compile Include="Migrations\202012021126145_SeAgreganCamposTablaGasto.Designer.cs">
+      <DependentUpon>202012021126145_SeAgreganCamposTablaGasto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202012110442430_SeAgreganCamposContactoTablaCliente.cs" />
+    <Compile Include="Migrations\202012110442430_SeAgreganCamposContactoTablaCliente.Designer.cs">
+      <DependentUpon>202012110442430_SeAgreganCamposContactoTablaCliente.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202012110506034_SeAgreganCampoFechaDocumentoTablaMovimiento.cs" />
+    <Compile Include="Migrations\202012110506034_SeAgreganCampoFechaDocumentoTablaMovimiento.Designer.cs">
+      <DependentUpon>202012110506034_SeAgreganCampoFechaDocumentoTablaMovimiento.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202012110537482_SeAgreganCampoFotografiaTablaPedido.cs" />
+    <Compile Include="Migrations\202012110537482_SeAgreganCampoFotografiaTablaPedido.Designer.cs">
+      <DependentUpon>202012110537482_SeAgreganCampoFotografiaTablaPedido.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202012110632169_SeAgreganCampoFotografiaTablaMovimiento.cs" />
+    <Compile Include="Migrations\202012110632169_SeAgreganCampoFotografiaTablaMovimiento.Designer.cs">
+      <DependentUpon>202012110632169_SeAgreganCampoFotografiaTablaMovimiento.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202101031954597_SeAgregaTablaMoneda.cs" />
+    <Compile Include="Migrations\202101031954597_SeAgregaTablaMoneda.Designer.cs">
+      <DependentUpon>202101031954597_SeAgregaTablaMoneda.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202101050105020_SeAgregaTablaClienteContacto.cs" />
+    <Compile Include="Migrations\202101050105020_SeAgregaTablaClienteContacto.Designer.cs">
+      <DependentUpon>202101050105020_SeAgregaTablaClienteContacto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202101181030277_SeAgregaCampoFechaPagoEstimadaTablaRecibo.cs" />
+    <Compile Include="Migrations\202101181030277_SeAgregaCampoFechaPagoEstimadaTablaRecibo.Designer.cs">
+      <DependentUpon>202101181030277_SeAgregaCampoFechaPagoEstimadaTablaRecibo.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202101201448514_SeAgregaCamposTAblaMoneda.cs" />
+    <Compile Include="Migrations\202101201448514_SeAgregaCamposTAblaMoneda.Designer.cs">
+      <DependentUpon>202101201448514_SeAgregaCamposTAblaMoneda.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202101201559089_SeAgregaTablasDeOrdenCompra.cs" />
+    <Compile Include="Migrations\202101201559089_SeAgregaTablasDeOrdenCompra.Designer.cs">
+      <DependentUpon>202101201559089_SeAgregaTablasDeOrdenCompra.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202104121857530_SeAgregaTablaMetaxDia.cs" />
+    <Compile Include="Migrations\202104121857530_SeAgregaTablaMetaxDia.Designer.cs">
+      <DependentUpon>202104121857530_SeAgregaTablaMetaxDia.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107051902520_SeAgregaTablaEmpresa.cs" />
+    <Compile Include="Migrations\202107051902520_SeAgregaTablaEmpresa.Designer.cs">
+      <DependentUpon>202107051902520_SeAgregaTablaEmpresa.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107051909068_SeAgregaCampoEmpresaIdTablaAgencia.cs" />
+    <Compile Include="Migrations\202107051909068_SeAgregaCampoEmpresaIdTablaAgencia.Designer.cs">
+      <DependentUpon>202107051909068_SeAgregaCampoEmpresaIdTablaAgencia.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107052132129_SeAgregaCampoEmpresaIdTablaUsuario.cs" />
+    <Compile Include="Migrations\202107052132129_SeAgregaCampoEmpresaIdTablaUsuario.Designer.cs">
+      <DependentUpon>202107052132129_SeAgregaCampoEmpresaIdTablaUsuario.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107052143030_SeAgregaCampoEmpresaIdTablaCliente.cs" />
+    <Compile Include="Migrations\202107052143030_SeAgregaCampoEmpresaIdTablaCliente.Designer.cs">
+      <DependentUpon>202107052143030_SeAgregaCampoEmpresaIdTablaCliente.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107052202260_SeAgregaCampoEmpresaIdTablaVendedor.cs" />
+    <Compile Include="Migrations\202107052202260_SeAgregaCampoEmpresaIdTablaVendedor.Designer.cs">
+      <DependentUpon>202107052202260_SeAgregaCampoEmpresaIdTablaVendedor.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107052226540_SeAgregaCampoEmpresaIdTablaProducto.cs" />
+    <Compile Include="Migrations\202107052226540_SeAgregaCampoEmpresaIdTablaProducto.Designer.cs">
+      <DependentUpon>202107052226540_SeAgregaCampoEmpresaIdTablaProducto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107052259315_SeAgregaCampoEmpresaIdTablaFormaPago.cs" />
+    <Compile Include="Migrations\202107052259315_SeAgregaCampoEmpresaIdTablaFormaPago.Designer.cs">
+      <DependentUpon>202107052259315_SeAgregaCampoEmpresaIdTablaFormaPago.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107071603572_SeAgregaCampoEmpresaIdTablaFactura.cs" />
+    <Compile Include="Migrations\202107071603572_SeAgregaCampoEmpresaIdTablaFactura.Designer.cs">
+      <DependentUpon>202107071603572_SeAgregaCampoEmpresaIdTablaFactura.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107071628165_SeAgregaCamposReportesTablaEmpresa.cs" />
+    <Compile Include="Migrations\202107071628165_SeAgregaCamposReportesTablaEmpresa.Designer.cs">
+      <DependentUpon>202107071628165_SeAgregaCamposReportesTablaEmpresa.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107072101075_SeAgregaTablaPaquete.cs" />
+    <Compile Include="Migrations\202107072101075_SeAgregaTablaPaquete.Designer.cs">
+      <DependentUpon>202107072101075_SeAgregaTablaPaquete.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107072247590_SeAgregaTablaPaqueteEmpresa.cs" />
+    <Compile Include="Migrations\202107072247590_SeAgregaTablaPaqueteEmpresa.Designer.cs">
+      <DependentUpon>202107072247590_SeAgregaTablaPaqueteEmpresa.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107072250249_SeAgregaCampoReponsableTablaPaqueteEmpresa.cs" />
+    <Compile Include="Migrations\202107072250249_SeAgregaCampoReponsableTablaPaqueteEmpresa.Designer.cs">
+      <DependentUpon>202107072250249_SeAgregaCampoReponsableTablaPaqueteEmpresa.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\202107121710167_SeAgregaCampoNombreDBTablaEmpresa.cs" />
+    <Compile Include="Migrations\202107121710167_SeAgregaCampoNombreDBTablaEmpresa.Designer.cs">
+      <DependentUpon>202107121710167_SeAgregaCampoNombreDBTablaEmpresa.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\DiamDev.Give.Entities\DiamDev.Give.Entities.csproj">
-      <Project>{58830095-0940-4008-9495-2b71ec41758e}</Project>
-      <Name>DiamDev.Give.Entities</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Migrations\201701311301040_InitialCreate.resx">
@@ -90,8 +933,648 @@
     <EmbeddedResource Include="Migrations\201703280444148_Kardex.resx">
       <DependentUpon>201703280444148_Kardex.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201706112231561_ActualizarUsuarioColumnaVendedor.resx">
+      <DependentUpon>201706112231561_ActualizarUsuarioColumnaVendedor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201706132154262_ActualizarFacturaDetalleColumnaDescuento.resx">
+      <DependentUpon>201706132154262_ActualizarFacturaDetalleColumnaDescuento.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201706161833067_ActualizarMovimientoDetalleCampoMinimoMaximo.resx">
+      <DependentUpon>201706161833067_ActualizarMovimientoDetalleCampoMinimoMaximo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201706162332452_ActualizarFacturaCreditoYDiasDeCredito.resx">
+      <DependentUpon>201706162332452_ActualizarFacturaCreditoYDiasDeCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201706171718114_ActualizarMovimientoUsuarioAnular.resx">
+      <DependentUpon>201706171718114_ActualizarMovimientoUsuarioAnular.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201706171856504_ActualizarMovimientoSeAgregaComentario.resx">
+      <DependentUpon>201706171856504_ActualizarMovimientoSeAgregaComentario.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201706181852100_NotadeCredito.resx">
+      <DependentUpon>201706181852100_NotadeCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201706181906157_SeAgregoAgenciaANotaCredito.resx">
+      <DependentUpon>201706181906157_SeAgregoAgenciaANotaCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201706191339161_ActualizoNotaCreditoCampoFacturaDevolucion.resx">
+      <DependentUpon>201706191339161_ActualizoNotaCreditoCampoFacturaDevolucion.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201706241632069_ActualizarNotaCredito.resx">
+      <DependentUpon>201706241632069_ActualizarNotaCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201706260141334_ActualizarFacturaColumnaNotaCredito.resx">
+      <DependentUpon>201706260141334_ActualizarFacturaColumnaNotaCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201710201852174_ActualizarTablaPermisoModulo.resx">
+      <DependentUpon>201710201852174_ActualizarTablaPermisoModulo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201710292224575_SeAgregoMovimientoCategoriaYRelacionEnMovimiento.resx">
+      <DependentUpon>201710292224575_SeAgregoMovimientoCategoriaYRelacionEnMovimiento.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201710292245082_SeAgregoColumnaIngresoaMovimientoCategoria.resx">
+      <DependentUpon>201710292245082_SeAgregoColumnaIngresoaMovimientoCategoria.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201806011707382_Creditos.resx">
+      <DependentUpon>201806011707382_Creditos.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201806011902309_ActualizacionCreditoDetalle.resx">
+      <DependentUpon>201806011902309_ActualizacionCreditoDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201810270546543_SeAgregoColumnaCantidadEnUnidaddeMedida.resx">
+      <DependentUpon>201810270546543_SeAgregoColumnaCantidadEnUnidaddeMedida.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201810270631153_SeAgregaTablaLaboratorio.resx">
+      <DependentUpon>201810270631153_SeAgregaTablaLaboratorio.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201810290547338_Pedidos.resx">
+      <DependentUpon>201810290547338_Pedidos.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201810300634397_TipodeFactura.resx">
+      <DependentUpon>201810300634397_TipodeFactura.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201811012219573_TablaConversion.resx">
+      <DependentUpon>201811012219573_TablaConversion.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201811101709154_Gastos.resx">
+      <DependentUpon>201811101709154_Gastos.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201811271545394_SeAgregoServicioCliente.resx">
+      <DependentUpon>201811271545394_SeAgregoServicioCliente.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201811272043533_NombreDelMigration.resx">
+      <DependentUpon>201811272043533_NombreDelMigration.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201811281629510_SeAgregoCampoPagadaFactura.resx">
+      <DependentUpon>201811281629510_SeAgregoCampoPagadaFactura.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201812042307125_SeAgregoTablaClienteFotografia.resx">
+      <DependentUpon>201812042307125_SeAgregoTablaClienteFotografia.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201812061720023_SeAgregoCampoVendedorEnTablaCliente.resx">
+      <DependentUpon>201812061720023_SeAgregoCampoVendedorEnTablaCliente.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201812130715472_SeAgregoCamposNombreAlternativosEnProducto.resx">
+      <DependentUpon>201812130715472_SeAgregoCamposNombreAlternativosEnProducto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201812221542513_ActualizacionModuloProveedores.resx">
+      <DependentUpon>201812221542513_ActualizacionModuloProveedores.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201812221709190_SeAgregoColumnaFechaHoraFacturaATablaFactura.resx">
+      <DependentUpon>201812221709190_SeAgregoColumnaFechaHoraFacturaATablaFactura.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201812231908065_SeAgregaColumnaDiasYFechaVencimientoTablaProveedorMovimienot.resx">
+      <DependentUpon>201812231908065_SeAgregaColumnaDiasYFechaVencimientoTablaProveedorMovimienot.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201812231950534_SeAgregaEstadoIngresoyColumnaCanceladoTablaMovimiento.resx">
+      <DependentUpon>201812231950534_SeAgregaEstadoIngresoyColumnaCanceladoTablaMovimiento.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201812232032242_SeAgregoColumnasDocumentoDiasCreditoyFechaVencimientoTablaMovimiento.resx">
+      <DependentUpon>201812232032242_SeAgregoColumnasDocumentoDiasCreditoyFechaVencimientoTablaMovimiento.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901081206545_SeAgregoColumnaDiasCreditoATablaCliente.resx">
+      <DependentUpon>201901081206545_SeAgregoColumnaDiasCreditoATablaCliente.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901110353313_SeCreoTablaTransporte.resx">
+      <DependentUpon>201901110353313_SeCreoTablaTransporte.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901110651189_SeAgregoColumnaTransporteIDEntregaTransporte.resx">
+      <DependentUpon>201901110651189_SeAgregoColumnaTransporteIDEntregaTransporte.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901151029388_Servicio.resx">
+      <DependentUpon>201901151029388_Servicio.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901151057487_Departamento.resx">
+      <DependentUpon>201901151057487_Departamento.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901151156305_Reparacion.resx">
+      <DependentUpon>201901151156305_Reparacion.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901160521458_Politicas.resx">
+      <DependentUpon>201901160521458_Politicas.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901160637442_SeAgregoDepartamentoTablaUsuario.resx">
+      <DependentUpon>201901160637442_SeAgregoDepartamentoTablaUsuario.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901191358307_SeCreoTablaReserva.resx">
+      <DependentUpon>201901191358307_SeCreoTablaReserva.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901201345185_SeAgregaColumnaTieneIdentificadorTablaProducto.resx">
+      <DependentUpon>201901201345185_SeAgregaColumnaTieneIdentificadorTablaProducto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901202314125_SeAgregoCampoIDEnTablaMovimientoDetalle.resx">
+      <DependentUpon>201901202314125_SeAgregoCampoIDEnTablaMovimientoDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901220525431_SeAgregoTablaProductoExistenciaID.resx">
+      <DependentUpon>201901220525431_SeAgregoTablaProductoExistenciaID.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901220703094_SeAgregaColumnaIDEnTablaFacturaDetalle.resx">
+      <DependentUpon>201901220703094_SeAgregaColumnaIDEnTablaFacturaDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901250438467_SeCreoTablaRecibos.resx">
+      <DependentUpon>201901250438467_SeCreoTablaRecibos.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201901290935415_SeAgregoGarantia.resx">
+      <DependentUpon>201901290935415_SeAgregoGarantia.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201902040507010_SeAgregoCampoAgenciaTablaInventarioID.resx">
+      <DependentUpon>201902040507010_SeAgregoCampoAgenciaTablaInventarioID.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201902091433034_SeAgregaCampoAgenciaTablaGasto.resx">
+      <DependentUpon>201902091433034_SeAgregaCampoAgenciaTablaGasto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201902091559424_SeAgregaCampoFechaHoraTablasGastosReserva.resx">
+      <DependentUpon>201902091559424_SeAgregaCampoFechaHoraTablasGastosReserva.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201902091709538_SeAgregoCampoIDTablaTrasladoDetalle.resx">
+      <DependentUpon>201902091709538_SeAgregoCampoIDTablaTrasladoDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201903091308253_SeAgregoTablaAgenciaConsulta.resx">
+      <DependentUpon>201903091308253_SeAgregoTablaAgenciaConsulta.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201903101332590_SeAgregoTablaVendedorEscala.resx">
+      <DependentUpon>201903101332590_SeAgregoTablaVendedorEscala.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201903101440308_SeAgregoTablaClienteTipo.resx">
+      <DependentUpon>201903101440308_SeAgregoTablaClienteTipo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201903101540465_SeAgregoCampoTipoClienteTablaCliente.resx">
+      <DependentUpon>201903101540465_SeAgregoCampoTipoClienteTablaCliente.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201903111547137_SeCambioTipoColumnaPorcentajeTablaVendedorEscala.resx">
+      <DependentUpon>201903111547137_SeCambioTipoColumnaPorcentajeTablaVendedorEscala.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201903111909159_PrecisionDecimalesCampoPorcentajeTablaVendedorEscala.resx">
+      <DependentUpon>201903111909159_PrecisionDecimalesCampoPorcentajeTablaVendedorEscala.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201903121247395_SeCambiaEstructuraGarantias.resx">
+      <DependentUpon>201903121247395_SeCambiaEstructuraGarantias.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904021638079_SeAgregoColumnaAnularTablaReparacion.resx">
+      <DependentUpon>201904021638079_SeAgregoColumnaAnularTablaReparacion.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904041202154_SeAgregoColumnaVistaAReparacionAnotacion.resx">
+      <DependentUpon>201904041202154_SeAgregoColumnaVistaAReparacionAnotacion.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904240535597_SeAgregoAnotaciones.resx">
+      <DependentUpon>201904240535597_SeAgregoAnotaciones.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904240630294_SeActualizoModeloPersonal.resx">
+      <DependentUpon>201904240630294_SeActualizoModeloPersonal.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904240733553_SeAgregaTablaPuestoPersonal.resx">
+      <DependentUpon>201904240733553_SeAgregaTablaPuestoPersonal.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904240828120_SeAgregaTablasNomina.resx">
+      <DependentUpon>201904240828120_SeAgregaTablasNomina.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904271641157_SeAgregoTablaHistorialPrecioCosto.resx">
+      <DependentUpon>201904271641157_SeAgregoTablaHistorialPrecioCosto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904271650381_SeAgregoColumnaNumeroIngresoTablaHistorialPrecioCosto.resx">
+      <DependentUpon>201904271650381_SeAgregoColumnaNumeroIngresoTablaHistorialPrecioCosto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904281441190_SeAgregaCamposFechaHoraAPedidos.resx">
+      <DependentUpon>201904281441190_SeAgregaCamposFechaHoraAPedidos.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904282026349_SeAgregoCampoDespachadoTablaRecibo.resx">
+      <DependentUpon>201904282026349_SeAgregoCampoDespachadoTablaRecibo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904282209371_SeCreaCampoLimiteCreditoTablaCliente.resx">
+      <DependentUpon>201904282209371_SeCreaCampoLimiteCreditoTablaCliente.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904291225042_SeAgregaTablaCategoriaGasto.resx">
+      <DependentUpon>201904291225042_SeAgregaTablaCategoriaGasto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904291252326_SeAgregaCampoCategoriaIdTablaGasto.resx">
+      <DependentUpon>201904291252326_SeAgregaCampoCategoriaIdTablaGasto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201904291337561_SeAgregaTablaProductoNiveles.resx">
+      <DependentUpon>201904291337561_SeAgregaTablaProductoNiveles.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905010526411_SeAgregoCamposDespachoTablaRecibo.resx">
+      <DependentUpon>201905010526411_SeAgregoCamposDespachoTablaRecibo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905011056189_SeAgregaronCamposTablaReciboFormaPago.resx">
+      <DependentUpon>201905011056189_SeAgregaronCamposTablaReciboFormaPago.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905090750355_SeAgregoTablaCorteCaja.resx">
+      <DependentUpon>201905090750355_SeAgregoTablaCorteCaja.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905101519009_SeAgregoColumnaComentarioPedidoTablaRecibo.resx">
+      <DependentUpon>201905101519009_SeAgregoColumnaComentarioPedidoTablaRecibo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905101755428_SeAgregoCampoGastoTablaCorteCaja.resx">
+      <DependentUpon>201905101755428_SeAgregoCampoGastoTablaCorteCaja.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905121550494_SeAgregaTablasCierreYCierreDetalle.resx">
+      <DependentUpon>201905121550494_SeAgregaTablasCierreYCierreDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905230927333_SeAgreganCampoTieneEnvaseCantidadEnvaseTablaProducto.resx">
+      <DependentUpon>201905230927333_SeAgreganCampoTieneEnvaseCantidadEnvaseTablaProducto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905231058588_SeAgregaTablasReciboEnvaseReciboEnvaseDetalle.resx">
+      <DependentUpon>201905231058588_SeAgregaTablasReciboEnvaseReciboEnvaseDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905252149599_SeAgregoExpacionDecimales.resx">
+      <DependentUpon>201905252149599_SeAgregoExpacionDecimales.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905261407183_SeAgregoDecimalesTablaCierreDetalle.resx">
+      <DependentUpon>201905261407183_SeAgregoDecimalesTablaCierreDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905261435299_SeAgregaDecimalesTablaCorteCaja.resx">
+      <DependentUpon>201905261435299_SeAgregaDecimalesTablaCorteCaja.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905261811056_SeAgregoCampoPedidoTablaRecibo.resx">
+      <DependentUpon>201905261811056_SeAgregoCampoPedidoTablaRecibo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905261944284_SeAgregaDecimalesTablaPedidoDetalle.resx">
+      <DependentUpon>201905261944284_SeAgregaDecimalesTablaPedidoDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905262215351_SeAgregoTablasEgresoEgresoDetalle.resx">
+      <DependentUpon>201905262215351_SeAgregoTablasEgresoEgresoDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905311201393_SeAgregoDecimalesTablaReciboDetalle.resx">
+      <DependentUpon>201905311201393_SeAgregoDecimalesTablaReciboDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201905311210262_SeAgregoDecimalesTablaProductoNivelPrecio.resx">
+      <DependentUpon>201905311210262_SeAgregoDecimalesTablaProductoNivelPrecio.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201906011638358_SeAgregoCampoPrecioCostoTablaEgresoDetalle.resx">
+      <DependentUpon>201906011638358_SeAgregoCampoPrecioCostoTablaEgresoDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201906091403171_SeExpandeDecimalesMovimientoDetalle.resx">
+      <DependentUpon>201906091403171_SeExpandeDecimalesMovimientoDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201906091525147_SeAgregaOpcionAnulacionTablaPedido.resx">
+      <DependentUpon>201906091525147_SeAgregaOpcionAnulacionTablaPedido.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201906091636382_SeAgregoCamposAnulacionTablaCredito.resx">
+      <DependentUpon>201906091636382_SeAgregoCamposAnulacionTablaCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201906092144078_SeExpandioDecimalesTablaProductoPrecioCosto.resx">
+      <DependentUpon>201906092144078_SeExpandioDecimalesTablaProductoPrecioCosto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201906240559435_SeAgregaTablasDeKardexMovimiento.resx">
+      <DependentUpon>201906240559435_SeAgregaTablasDeKardexMovimiento.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201907151020521_SeAgregaCamposDespachadoSupervisorTablaTraslado.resx">
+      <DependentUpon>201907151020521_SeAgregaCamposDespachadoSupervisorTablaTraslado.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201907151143142_SeAgregaCampoUsuarioDespachoFechaHoraTablaTraslado.resx">
+      <DependentUpon>201907151143142_SeAgregaCampoUsuarioDespachoFechaHoraTablaTraslado.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201907180533220_SeAgregoCampoObservacionesTablaProveedorMovimiento.resx">
+      <DependentUpon>201907180533220_SeAgregoCampoObservacionesTablaProveedorMovimiento.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201907180617185_SeAgregoCamposAnulacionTablaGastos.resx">
+      <DependentUpon>201907180617185_SeAgregoCamposAnulacionTablaGastos.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201907180622545_SeAgregoCamposFechaAnulacionTablaGastos.resx">
+      <DependentUpon>201907180622545_SeAgregoCamposFechaAnulacionTablaGastos.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201908070355312_SeAgregoCampoRecibidoFechaHoraRecibidaTablaCierre.resx">
+      <DependentUpon>201908070355312_SeAgregoCampoRecibidoFechaHoraRecibidaTablaCierre.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201908231122143_SeAgregoDecimalesKardexMovimiento.resx">
+      <DependentUpon>201908231122143_SeAgregoDecimalesKardexMovimiento.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201908231137129_SeAgregaDecimalesTablaPrecioCostoHistorial.resx">
+      <DependentUpon>201908231137129_SeAgregaDecimalesTablaPrecioCostoHistorial.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201908261712166_SeAgregoColumnasCorteCaja.resx">
+      <DependentUpon>201908261712166_SeAgregoColumnasCorteCaja.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201909211647090_SeAgregaTablaTrasladoDetalleDestino.resx">
+      <DependentUpon>201909211647090_SeAgregaTablaTrasladoDetalleDestino.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201909261112578_SeCambioEstructuraFacturaFormaPago.resx">
+      <DependentUpon>201909261112578_SeCambioEstructuraFacturaFormaPago.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201909261122357_SeActualizoEstructuraFacturaFormaPago.resx">
+      <DependentUpon>201909261122357_SeActualizoEstructuraFacturaFormaPago.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201909261231246_SeAgreganCamposFactura.resx">
+      <DependentUpon>201909261231246_SeAgreganCamposFactura.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910052053353_SeCreaTablaContrasenaPago.resx">
+      <DependentUpon>201910052053353_SeCreaTablaContrasenaPago.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910052115309_SeAgregoCampoOperado.resx">
+      <DependentUpon>201910052115309_SeAgregoCampoOperado.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910140927162_SeAgregaCampoTieneLoteTablaProducto.resx">
+      <DependentUpon>201910140927162_SeAgregaCampoTieneLoteTablaProducto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910141024139_SeAgregaCamposLoteFechaVencimientoLoteTablaMovimientoDetalle.resx">
+      <DependentUpon>201910141024139_SeAgregaCamposLoteFechaVencimientoLoteTablaMovimientoDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910141027373_SePoneNullCampoFechaVencimientoLoteTablaMovimientoDetalle.resx">
+      <DependentUpon>201910141027373_SePoneNullCampoFechaVencimientoLoteTablaMovimientoDetalle.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910141053237_SeAgregaTablaProductoLote.resx">
+      <DependentUpon>201910141053237_SeAgregaTablaProductoLote.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910150322280_SeAgregaCampoProductoLoteTablaFacturaRecibo.resx">
+      <DependentUpon>201910150322280_SeAgregaCampoProductoLoteTablaFacturaRecibo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910160334441_SeAgregaCampoCotizacionTablaPedido.resx">
+      <DependentUpon>201910160334441_SeAgregaCampoCotizacionTablaPedido.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910160423588_SeAgregaTablaRegion.resx">
+      <DependentUpon>201910160423588_SeAgregaTablaRegion.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910160452565_SeAgregaCampoRegionIdTablaCliente.resx">
+      <DependentUpon>201910160452565_SeAgregaCampoRegionIdTablaCliente.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910171234519_SeAgregoControlLotesReciboFactura.resx">
+      <DependentUpon>201910171234519_SeAgregoControlLotesReciboFactura.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910221018223_SeAgregaCampoNombreTablasPedidoFacturaRecibo.resx">
+      <DependentUpon>201910221018223_SeAgregaCampoNombreTablasPedidoFacturaRecibo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910240217243_SeAgregaronCamposTablaPedido.resx">
+      <DependentUpon>201910240217243_SeAgregaronCamposTablaPedido.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201910271331480_SeAgregaTablaMesVendedorMeta.resx">
+      <DependentUpon>201910271331480_SeAgregaTablaMesVendedorMeta.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201911051325276_SeAgregoTablaTipoProveedor.resx">
+      <DependentUpon>201911051325276_SeAgregoTablaTipoProveedor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\201911051527294_SeAgregoColumnaVendedorId.resx">
+      <DependentUpon>201911051527294_SeAgregoColumnaVendedorId.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202004182237268_CamosGeoposicionClent.resx">
+      <DependentUpon>202004182237268_CamosGeoposicionClent.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202004190407033_AgregrCampoPaswordClient.resx">
+      <DependentUpon>202004190407033_AgregrCampoPaswordClient.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202004202134005_AgregarColumnasCocina.resx">
+      <DependentUpon>202004202134005_AgregarColumnasCocina.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202004250335174_CamposProgramacionPedidosRecibo.resx">
+      <DependentUpon>202004250335174_CamposProgramacionPedidosRecibo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202004251529481_SeCreoTablaOfertasDelivery.resx">
+      <DependentUpon>202004251529481_SeCreoTablaOfertasDelivery.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202004251532276_SeAgregoTablaOfertasDelvery.resx">
+      <DependentUpon>202004251532276_SeAgregoTablaOfertasDelvery.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202004251851476_MultiplesDireccinCliene.resx">
+      <DependentUpon>202004251851476_MultiplesDireccinCliene.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202004252131339_CamposFotografiaProductoyCat.resx">
+      <DependentUpon>202004252131339_CamposFotografiaProductoyCat.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202004270333033_TablaMunicipioLocalid.resx">
+      <DependentUpon>202004270333033_TablaMunicipioLocalid.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202004270338080_SeAgregaRelacionDieccionyloclidad.resx">
+      <DependentUpon>202004270338080_SeAgregaRelacionDieccionyloclidad.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202004292153431_SeAgregoCamoDireccioaCliente.resx">
+      <DependentUpon>202004292153431_SeAgregoCamoDireccioaCliente.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202005210036480_SeAgregaColumnasTablaFactura.resx">
+      <DependentUpon>202005210036480_SeAgregaColumnasTablaFactura.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202005210213379_SeAgregaColumnaReciboIdTablaFactura.resx">
+      <DependentUpon>202005210213379_SeAgregaColumnaReciboIdTablaFactura.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202005210306464_SeAgregaColumnaFacturaTablaRecibo.resx">
+      <DependentUpon>202005210306464_SeAgregaColumnaFacturaTablaRecibo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202006291925102_AgenciaEnlazadaLocalidadSI.resx">
+      <DependentUpon>202006291925102_AgenciaEnlazadaLocalidadSI.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008092310158_SeAgregaTablaTipoUbicacion.resx">
+      <DependentUpon>202008092310158_SeAgregaTablaTipoUbicacion.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008092359516_SeAgregaTablaMesa.resx">
+      <DependentUpon>202008092359516_SeAgregaTablaMesa.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008100259236_SeAgregaTablaMesaRecibo.resx">
+      <DependentUpon>202008100259236_SeAgregaTablaMesaRecibo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008100355388_SeAgregaTablaToken.resx">
+      <DependentUpon>202008100355388_SeAgregaTablaToken.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008100449270_SeAgregaCampoAgenciaTablaMesa.resx">
+      <DependentUpon>202008100449270_SeAgregaCampoAgenciaTablaMesa.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008110224098_SeAgregaTablaRecioDelivery.resx">
+      <DependentUpon>202008110224098_SeAgregaTablaRecioDelivery.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008131729342_SeAgregoTablaFacturaNotaCredito.resx">
+      <DependentUpon>202008131729342_SeAgregoTablaFacturaNotaCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008131801319_SeAgregoCampoMotivoTablaFacturaNotaCredito.resx">
+      <DependentUpon>202008131801319_SeAgregoCampoMotivoTablaFacturaNotaCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008131855283_SeAgregoCampoFechaHoraNotaCreditoTablaFacturaNotaCredito.resx">
+      <DependentUpon>202008131855283_SeAgregoCampoFechaHoraNotaCreditoTablaFacturaNotaCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008131913249_SeAgregoCampoFELTablaFacturaNotaCredito.resx">
+      <DependentUpon>202008131913249_SeAgregoCampoFELTablaFacturaNotaCredito.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008182150333_SeAgregaCamposTablaAgencia.resx">
+      <DependentUpon>202008182150333_SeAgregaCamposTablaAgencia.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008231400336_SeAgregaCampoAdministrativoTablaToken.resx">
+      <DependentUpon>202008231400336_SeAgregaCampoAdministrativoTablaToken.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202008231750278_SeAgregaCampoObservacionesTablaReserva.resx">
+      <DependentUpon>202008231750278_SeAgregaCampoObservacionesTablaReserva.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202012021126145_SeAgreganCamposTablaGasto.resx">
+      <DependentUpon>202012021126145_SeAgreganCamposTablaGasto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202012110442430_SeAgreganCamposContactoTablaCliente.resx">
+      <DependentUpon>202012110442430_SeAgreganCamposContactoTablaCliente.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202012110506034_SeAgreganCampoFechaDocumentoTablaMovimiento.resx">
+      <DependentUpon>202012110506034_SeAgreganCampoFechaDocumentoTablaMovimiento.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202012110537482_SeAgreganCampoFotografiaTablaPedido.resx">
+      <DependentUpon>202012110537482_SeAgreganCampoFotografiaTablaPedido.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202012110632169_SeAgreganCampoFotografiaTablaMovimiento.resx">
+      <DependentUpon>202012110632169_SeAgreganCampoFotografiaTablaMovimiento.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202101031954597_SeAgregaTablaMoneda.resx">
+      <DependentUpon>202101031954597_SeAgregaTablaMoneda.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202101050105020_SeAgregaTablaClienteContacto.resx">
+      <DependentUpon>202101050105020_SeAgregaTablaClienteContacto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202101181030277_SeAgregaCampoFechaPagoEstimadaTablaRecibo.resx">
+      <DependentUpon>202101181030277_SeAgregaCampoFechaPagoEstimadaTablaRecibo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202101201448514_SeAgregaCamposTAblaMoneda.resx">
+      <DependentUpon>202101201448514_SeAgregaCamposTAblaMoneda.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202101201559089_SeAgregaTablasDeOrdenCompra.resx">
+      <DependentUpon>202101201559089_SeAgregaTablasDeOrdenCompra.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202104121857530_SeAgregaTablaMetaxDia.resx">
+      <DependentUpon>202104121857530_SeAgregaTablaMetaxDia.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107051902520_SeAgregaTablaEmpresa.resx">
+      <DependentUpon>202107051902520_SeAgregaTablaEmpresa.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107051909068_SeAgregaCampoEmpresaIdTablaAgencia.resx">
+      <DependentUpon>202107051909068_SeAgregaCampoEmpresaIdTablaAgencia.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107052132129_SeAgregaCampoEmpresaIdTablaUsuario.resx">
+      <DependentUpon>202107052132129_SeAgregaCampoEmpresaIdTablaUsuario.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107052143030_SeAgregaCampoEmpresaIdTablaCliente.resx">
+      <DependentUpon>202107052143030_SeAgregaCampoEmpresaIdTablaCliente.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107052202260_SeAgregaCampoEmpresaIdTablaVendedor.resx">
+      <DependentUpon>202107052202260_SeAgregaCampoEmpresaIdTablaVendedor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107052226540_SeAgregaCampoEmpresaIdTablaProducto.resx">
+      <DependentUpon>202107052226540_SeAgregaCampoEmpresaIdTablaProducto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107052259315_SeAgregaCampoEmpresaIdTablaFormaPago.resx">
+      <DependentUpon>202107052259315_SeAgregaCampoEmpresaIdTablaFormaPago.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107071603572_SeAgregaCampoEmpresaIdTablaFactura.resx">
+      <DependentUpon>202107071603572_SeAgregaCampoEmpresaIdTablaFactura.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107071628165_SeAgregaCamposReportesTablaEmpresa.resx">
+      <DependentUpon>202107071628165_SeAgregaCamposReportesTablaEmpresa.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107072101075_SeAgregaTablaPaquete.resx">
+      <DependentUpon>202107072101075_SeAgregaTablaPaquete.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107072247590_SeAgregaTablaPaqueteEmpresa.resx">
+      <DependentUpon>202107072247590_SeAgregaTablaPaqueteEmpresa.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107072250249_SeAgregaCampoReponsableTablaPaqueteEmpresa.resx">
+      <DependentUpon>202107072250249_SeAgregaCampoReponsableTablaPaqueteEmpresa.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202107121710167_SeAgregaCampoNombreDBTablaEmpresa.resx">
+      <DependentUpon>202107121710167_SeAgregaCampoNombreDBTablaEmpresa.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111112211234_SeQuitaCampoEmpresaTablaAgencia.resx">
+      <DependentUpon>202111112211234_SeQuitaCampoEmpresaTablaAgencia.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111112228252_SeAgreganCamposTablaUsuario.resx">
+      <DependentUpon>202111112228252_SeAgreganCamposTablaUsuario.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111112300281_SeQuitanCamposEmpresaTablaUsuario.resx">
+      <DependentUpon>202111112300281_SeQuitanCamposEmpresaTablaUsuario.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111112304150_SeAgregaTablaUsuarioEmpresa.resx">
+      <DependentUpon>202111112304150_SeAgregaTablaUsuarioEmpresa.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111112309417_SeAgregaCampoCodigoTablaUsuarioEmpresa.resx">
+      <DependentUpon>202111112309417_SeAgregaCampoCodigoTablaUsuarioEmpresa.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111152103507_SeAgregaTablaVisitaTipo.resx">
+      <DependentUpon>202111152103507_SeAgregaTablaVisitaTipo.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111172221390_SeAgregaTablaVisita.resx">
+      <DependentUpon>202111172221390_SeAgregaTablaVisita.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111222312084_SeAgregaTablaPedidoK66.resx">
+      <DependentUpon>202111222312084_SeAgregaTablaPedidoK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111232344037_SeAgreganCamposTablaVisita.resx">
+      <DependentUpon>202111232344037_SeAgreganCamposTablaVisita.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111251536283_SeAgregaCampoDireccionIdTablaPedidoK66.resx">
+      <DependentUpon>202111251536283_SeAgregaCampoDireccionIdTablaPedidoK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111251603529_SeAgregaTablaProductoAlertaK66.resx">
+      <DependentUpon>202111251603529_SeAgregaTablaProductoAlertaK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202111270002013_SeAgregaCampoBodegaActivaTablaEmpresa.resx">
+      <DependentUpon>202111270002013_SeAgregaCampoBodegaActivaTablaEmpresa.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202112092221154_SeAgregaCamposTablaPedidoK66.resx">
+      <DependentUpon>202112092221154_SeAgregaCamposTablaPedidoK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202201211649376_SeAgregaTablaProductosEspeciales.resx">
+      <DependentUpon>202201211649376_SeAgregaTablaProductosEspeciales.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202201212059512_SeAgregaTablaDescuentoK66.resx">
+      <DependentUpon>202201212059512_SeAgregaTablaDescuentoK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202201212114054_SeAgreganDecimalesTablaDescuentoK66.resx">
+      <DependentUpon>202201212114054_SeAgreganDecimalesTablaDescuentoK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202201212311487_SeAgregaTablaPedidoTipoK66.resx">
+      <DependentUpon>202201212311487_SeAgregaTablaPedidoTipoK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202201212351530_SeAgregaTablaEstadoSmartK66.resx">
+      <DependentUpon>202201212351530_SeAgregaTablaEstadoSmartK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202201251114334_SeAgregaronCamposTablaPedidoK66.resx">
+      <DependentUpon>202201251114334_SeAgregaronCamposTablaPedidoK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202201251136577_SeAgregaronCamposTablaPedidoK662.resx">
+      <DependentUpon>202201251136577_SeAgregaronCamposTablaPedidoK662.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202201272343184_SeAgregaTablaEmpresaBodegaActiva.resx">
+      <DependentUpon>202201272343184_SeAgregaTablaEmpresaBodegaActiva.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202201312248405_SeAgreganCamposPedidoDetalleK66.resx">
+      <DependentUpon>202201312248405_SeAgreganCamposPedidoDetalleK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202202150055391_SeAgregaCampoResponsableAprobacionTablaPedidoK66.resx">
+      <DependentUpon>202202150055391_SeAgregaCampoResponsableAprobacionTablaPedidoK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202202172127490_SeAgregaCampoComentarioAprobacionTablaPedidoK66.resx">
+      <DependentUpon>202202172127490_SeAgregaCampoComentarioAprobacionTablaPedidoK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202202282116075_SeAgregaCampoDocumentoOrdenCompraRespaldoTablaPedidoK66.resx">
+      <DependentUpon>202202282116075_SeAgregaCampoDocumentoOrdenCompraRespaldoTablaPedidoK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202202282154538_SeAgregaTablaPedidoDocumentoImportante.resx">
+      <DependentUpon>202202282154538_SeAgregaTablaPedidoDocumentoImportante.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202203212328283_SeAgregaLlavePrimariaUsuarioEmpresa.resx">
+      <DependentUpon>202203212328283_SeAgregaLlavePrimariaUsuarioEmpresa.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202204251603462_SeAgregaColumnaDescuentoTablaPedidoDetalleK66.resx">
+      <DependentUpon>202204251603462_SeAgregaColumnaDescuentoTablaPedidoDetalleK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202206222024376_SeAgregaCamposPedidoK66Control.resx">
+      <DependentUpon>202206222024376_SeAgregaCamposPedidoK66Control.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202206222043344_SeAgregaCampoMonedaTablaPedidoK66.resx">
+      <DependentUpon>202206222043344_SeAgregaCampoMonedaTablaPedidoK66.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202411042201388_202511042043344_SeAgregaCampoBodegaTablaPedidoDetalleK66.resx">
+      <DependentUpon>202411042201388_202511042043344_SeAgregaCampoBodegaTablaPedidoDetalleK66.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DiamDev.Give.Entities\DiamDev.Give.Entities.csproj">
+      <Project>{58830095-0940-4008-9495-2b71ec41758e}</Project>
+      <Name>DiamDev.Give.Entities</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>Este proyecto hace referencia a los paquetes NuGet que faltan en este equipo. Habilite la restauración del paquete NuGet para descargarlos. Para obtener más información, consulte http://go.microsoft.com/fwlink/?LinkID=322105. El archivo que falta es {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(SolutionDir)\.nuget\NuGet.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)\.nuget\NuGet.targets'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.props'))" />
+    <Error Condition="!Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\EntityFramework.6.4.4\build\EntityFramework.targets'))" />
+  </Target>
+  <Import Project="..\packages\EntityFramework.6.4.4\build\EntityFramework.targets" Condition="Exists('..\packages\EntityFramework.6.4.4\build\EntityFramework.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">

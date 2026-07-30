@@ -1,0 +1,39 @@
+﻿@model DiamDev.Give.Entities.ReciboCajaEncabezado
+@{
+    Layout = null;
+    // Color del botón según empresa (el resto del membrete lo resuelve el parcial)
+    var coloresBtn = new Dictionary<string, string>
+{
+        { "GRACO", "#27ae60" }, { "FAES", "#c0392b" }, { "BOLIK", "#2c3e50" }
+    };
+    string colorBtn = coloresBtn.ContainsKey(Model.IdEmpresa ?? "")
+                        ? coloresBtn[Model.IdEmpresa] : "#7f8c8d";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <title>Recibo @Model.IdRecibo</title>
+    @Html.Partial("_ReciboImpresionEstilos")
+    <style>
+        body { max-width: 800px; margin: 0 auto; padding: 24px; background: #fff;
+               font-family: Arial, Helvetica, sans-serif; }
+        .no-print { text-align: center; margin-bottom: 16px; }
+        .btn-print { background: @colorBtn; color: #fff; border: none; border-radius: 4px;
+                     padding: 10px 26px; font-size: 14px; cursor: pointer; }
+        @@media print {
+            .no-print { display: none; }
+            body { padding: 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print">
+        <button class="btn-print" onclick="window.print();">🖨 Imprimir Recibo</button>
+    </div>
+
+    @Html.Partial("_ReciboImpresion", Model)
+
+</body>
+</html>

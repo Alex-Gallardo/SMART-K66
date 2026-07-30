@@ -16,7 +16,7 @@
             </label>
             @Html.DropDownList("MarcaId", (SelectList)ViewBag.Marcas, "--Seleccione una Marca--", new { @class = "form-control search-select required" })
         </div>
-    </div>    
+    </div>
 </div>
 <div class="row">
     <div class="col-md-12">
@@ -33,7 +33,7 @@
             <select id="ProductoPadreId" name="ProductoPadreId" class="form-control search-select required">
                 <option value="0">--Seleccione un Producto Principal--</option>
             </select>
-        </div>      
+        </div>
     </div>
 </div>
 <div class="row">
@@ -56,6 +56,18 @@
         </div>
         <div class="form-group">
             <label class="control-label">
+                Nombre Alternativo #1
+            </label>
+            @Html.TextBoxFor(model => model.NombreAlternativo1, new { @class = "form-control", @placeholder = "Nombre Alternativo #1", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
+                Nombre Alternativo #2
+            </label>
+            @Html.TextBoxFor(model => model.NombreAlternativo2, new { @class = "form-control", @placeholder = "Nombre Alternativo #2", autocomplete = "off" })
+        </div>
+        <div class="form-group">
+            <label class="control-label">
                 Descripci&oacute;n
             </label>
             @Html.TextAreaFor(model => model.Descripcion, new { @class = "form-control", @placeholder = "Descripción del Producto", autocomplete = "off" })
@@ -63,31 +75,48 @@
     </div>
 </div>
 <div class="row">
-        <div class="col-md-6">
-            <div class="form-group">
-                <label class="control-label">
-                    Minimo de Producto<span class="symbol required"></span>
-                </label>
-                @Html.TextBoxFor(model => model.Minimo, new { @Value = "1", @class = "form-control", @placeholder = "Minimo de Producto", required = "required", autocomplete = "off" })
-            </div>
-            <div class="form-group">
-                <label class="control-label">
-                    Cantidad<span class="symbol required"></span>
-                </label>
-                @Html.TextBoxFor(model => model.Cantidad, new { @Value = "1", @class = "form-control", @placeholder = "Cantidad Equivalente", required = "required", autocomplete = "off" })
-            </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Minimo de Producto<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Minimo, new { @Value = "1", @class = "form-control", @placeholder = "Minimo de Producto", required = "required", autocomplete = "off" })
         </div>
-        <div class="col-md-6">
-            <div class="form-group">
-                <label class="control-label">
-                    Maximo de Producto<span class="symbol required"></span>
-                </label>
-                @Html.TextBoxFor(model => model.Maximo, new { @Value = "1", @class = "form-control", @placeholder = "Maximo de Producto", required = "required", autocomplete = "off" })
-            </div>         
+        <div class="form-group">
+            <label class="control-label">
+                Cantidad<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Cantidad, new { @Value = "1", @class = "form-control", @placeholder = "Cantidad Equivalente", required = "required", autocomplete = "off" })
         </div>
+    </div>
+    <div class="col-md-6">
+        <div class="form-group">
+            <label class="control-label">
+                Maximo de Producto<span class="symbol required"></span>
+            </label>
+            @Html.TextBoxFor(model => model.Maximo, new { @Value = "1", @class = "form-control", @placeholder = "Maximo de Producto", required = "required", autocomplete = "off" })
+        </div>
+    </div>
 </div>
 <div class="row">
-    <div class="col-md-6">
+    <div class="col-md-4">
+        <div class="form-group">
+            <label class="control-label">
+                Identificador
+            </label>
+            <div>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="true" @ViewBag.identificadorSi name="identificador" id="identificadorSi">
+                    Sí
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" class="grey" value="false" @ViewBag.identificadorNo name="identificador" id="identificadorNo">
+                    No
+                </label>
+            </div>
+        </div>
+    </div>    
+    <div class="col-md-4">
         <div class="form-group">
             <label class="control-label">
                 Activo
@@ -146,7 +175,35 @@
                 </tr>
             </thead>
             <tbody id="precio_tbody"></tbody>
-        </table>       
+        </table>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="icon-edit-sign teal"></i>Fotografia App</h2>
+        <hr>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="fileupload fileupload-new" data-provides="fileupload">
+            <div class="input-group">
+                <div class="form-control uneditable-input">
+                    <i class="icon-file fileupload-exists"></i>
+                    <span class="fileupload-preview"></span>
+                </div>
+                <div class="input-group-btn">
+                    <div class="btn btn-light-grey btn-file">
+                        <span class="fileupload-new"><i class="icon-folder-open-alt"></i>Seleccionar Fotografia</span>
+                        <span class="fileupload-exists"><i class="icon-folder-open-alt"></i>Cambiar</span>
+                        <input type="file" class="file-input" id="fotografiaApp" name="fotografiaApp">
+                    </div>
+                    <a href="#" class="btn btn-light-grey fileupload-exists" data-dismiss="fileupload">
+                        <i class="icon-remove"></i> Eliminar
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 <div class="row">

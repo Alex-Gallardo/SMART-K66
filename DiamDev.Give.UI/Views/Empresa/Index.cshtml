@@ -1,0 +1,125 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Empresa>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Empresa Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Empresa")">
+        Nueva
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<div class="row">
+    <form action="" method="get">
+        <div class="col-md-12">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="submit">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>           
+        </div>
+    </form>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">        
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Empresa
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Empresa</th>
+                            <th>Contacto</th>
+                            <th>#Telefono Contacto</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Empresa in Model)
+                        {
+                            <tr>
+                                <td>@Empresa.Nombre</td>
+                                <td>@Empresa.NombreContacto</td>
+                                <td>@Empresa.TelefonoContacto</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        <a href="@Url.Action("Detalle", "Empresa", new { id = Empresa.EmpresaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle de la Empresa"><i class="clip-stack-empty"></i></a>
+                                        <a href="@Url.Action("Editar", "Empresa", new { id = Empresa.EmpresaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                        <a href="@Url.Action("Bodegas_Activas", "Empresa", new { id = Empresa.EmpresaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Bodegas Activas"><i class="clip-file-plus"></i></a>
+                                        <a href="@Url.Action("Productos_Especiales", "Empresa", new { id = Empresa.EmpresaId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Productos Especiales"><i class="clip-file-plus"></i></a>
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Empresa", new { id = Empresa.EmpresaId })">
+                                                        <i class="clip-stack-empty"></i> Detalle de la Empresa
+                                                    </a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Empresa", new { id = Empresa.EmpresaId })">
+                                                        <i class="icon-edit"></i> Editar
+                                                    </a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Bodegas_Activas", "Empresa", new { id = Empresa.EmpresaId })">
+                                                        <i class="clip-file-plus"></i> Bodegas Activas
+                                                    </a>
+                                                </li>
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Productos_Especiales", "Empresa", new { id = Empresa.EmpresaId })">
+                                                        <i class="clip-file-plus"></i> Productos Especiales
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { search = ViewBag.Search, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function () {
+            if ('@TempData["Empresa-Success"]' == "OK")
+            {
+                toastr.success('La empresa se guardó exitosamente');
+            }
+        });
+    </script>
+}

@@ -1,0 +1,394 @@
+﻿@model DiamDev.Give.Entities.ReciboCajaEncabezado
+@using System.Linq
+@using DiamDev.Give.Entities
+@{
+    // ── Datos de membrete por empresa (razón social + NIT reales + logo) ──
+    var empresas = new Dictionary<string, dynamic>
+{
+        { "GRACO", new { Nombre = "GRACOPACK DE CENTROAMERICA, S.A.", Nit = "4340248-8", Color = "#27ae60", Logo = "LogoGraco.svg" } },
+        { "FAES",  new { Nombre = "FABRICA ESCOCESA, S.A.",           Nit = "4153479-4", Color = "#c0392b", Logo = "LogoFaes.svg" } },
+        { "BOLIK", new { Nombre = "INDUSTRIAS BOLIK, S.A.",           Nit = "4050444-1", Color = "#2c3e50", Logo = "LogoBolik.svg" } }
+    };
+    var emp = empresas.ContainsKey(Model.IdEmpresa ?? "")
+                ? empresas[Model.IdEmpresa]
+                : new { Nombre = Model.IdEmpresa ?? "—", Nit = "", Color = "#7f8c8d", Logo = "" };
+
+    bool esOperado = string.Equals(Model.SyncEstado, "OPERADO", StringComparison.OrdinalIgnoreCase);
+    bool tieneDual = Model.TipoCambio.HasValue && Model.TipoCambio.Value > 0;
+
+    // TC del ENCABEZADO = el PONDERADO del recibo. Es el que se aplicó a los
+    // DOCUMENTOS (que no tienen fecha de cobro propia). Los COBROS usan el suyo.
+    decimal tc = Model.TipoCambio ?? 0;
+
+    Func<string, bool> esMonedaUsd = m =>
+        "USD".Equals((m ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
+    Func<string, string> simboloDe = m => esMonedaUsd(m) ? "$" : "Q";
+
+    var cobros = Model.Cobros ?? new List<ReciboCajaCobro>();
+    var documentos = Model.Documentos ?? new List<ReciboCajaDetalle>();
+
+    // Lector numérico tolerante al tipo declarado: ReciboCajaCobro.TipoCambio
+    // puede ser decimal o decimal?. Convert.ToDecimal(object) cubre ambos
+    // (null → 0). En TS sería: v => Number(v ?? 0)
+    Func<object, decimal> num = v => v == null ? 0m : Convert.ToDecimal(v);
+
+    // TC de UNA línea de cobro: el de SU fecha. Fallback al del encabezado
+    // para recibos históricos (anteriores al TC por fecha), donde la línea
+    // no tiene tasa propia guardada.
+    Func<ReciboCajaCobro, decimal> tcDeCobro = c =>
+    {
+        decimal t = num(c.TipoCambio);
+        return t > 0 ? t : tc;
+    };
+
+    // ════════════════════════════════════════════════════════
+    // MONEDA EFECTIVA DEL RECIBO — se decide por las LÍNEAS
+    // ════════════════════════════════════════════════════════
+    // OJO: Model.Moneda guarda la moneda del CLIENTE en SAP (viene del
+    // typeahead), NO la moneda en que se cobró. Un cliente en USD puede
+    // pagar en quetzales. Lo que manda para imprimir es la moneda real
+    // de los cobros y documentos.
+    bool hayUsd = cobros.Any(c => esMonedaUsd(c.Moneda))
+               || documentos.Any(d => esMonedaUsd(d.Moneda));
+    bool hayGtq = cobros.Any(c => !esMonedaUsd(c.Moneda))
+               || documentos.Any(d => !esMonedaUsd(d.Moneda));
+
+    // Sin líneas (caso legado/raro): último recurso, el encabezado.
+    if (!hayUsd && !hayGtq)
+    {
+        if (esMonedaUsd(Model.Moneda)) { hayUsd = true; } else { hayGtq = true; }
+    }
+
+    bool esMixto = hayUsd && hayGtq;     // conviven las dos monedas
+    bool unicaEsUsd = hayUsd && !hayGtq; // 100% dólares
+
+    // DUAL solo si de verdad hay mezcla Y tenemos TC para derivar.
+    bool mostrarDual = esMixto && tieneDual;
+
+    string simbolo = unicaEsUsd ? "$" : "Q";
+
+    // ¿Los cobros usaron tasas distintas? Redondeamos a 6 decimales (escala
+    // de ORTT) antes de comparar: sin eso, dos tasas idénticas con basura
+    // decimal contarían como dos.
+    var tcsCobros = cobros.Select(c => Math.Round(tcDeCobro(c), 6))
+                          .Where(t => t > 0)
+                          .Distinct()
+                          .ToList();
+    bool tcMixto = tcsCobros.Count > 1;
+    decimal tcUnico = tcsCobros.Count == 1 ? tcsCobros[0] : tc;
+
+    // Columna "T. Cambio" en el detalle de cobros: SOLO si hay dólares de por
+    // medio. En un recibo 100% GTQ no hubo ninguna conversión, y una tasa
+    // impresa ahí solo genera preguntas del cliente.
+    bool mostrarTcCobro = tieneDual && hayUsd;
+
+    // Conversores CON TC explícito (regla de oro del BLL: el monto en la
+    // moneda ORIGINAL es exacto, el equivalente se DERIVA).
+    Func<decimal, string, decimal, decimal> aGtqCon = (m, mon, t) =>
+        esMonedaUsd(mon) ? Math.Round(m * t, 2) : m;
+    Func<decimal, string, decimal, decimal> aUsdCon = (m, mon, t) =>
+        esMonedaUsd(mon) ? m : (t > 0 ? Math.Round(m / t, 2) : 0);
+
+    // DOCUMENTOS: siempre con el TC del encabezado (ponderado), porque así
+    // exactamente los calculó y guardó el BLL. Peras con peras.
+    Func<decimal, string, decimal> aGtq = (m, mon) => aGtqCon(m, mon, tc);
+    Func<decimal, string, decimal> aUsd = (m, mon) => aUsdCon(m, mon, tc);
+
+    // Totales de UNA moneda (cuando no hay mezcla): duales guardados; fallback legado.
+    decimal totCobros = tieneDual ? (unicaEsUsd ? Model.MontoTotalRecUsd : Model.MontoTotalRecGtq) : Model.MontoTotalRecibo;
+    decimal totDocs = tieneDual ? (unicaEsUsd ? Model.MontoTotalDocUsd : Model.MontoTotalDocGtq) : Model.MontoTotalDoc;
+    decimal totSaldo = tieneDual ? (unicaEsUsd ? Model.SaldoUsd : Model.SaldoGtq) : Model.Saldo;
+
+    // La nota del TC aplica siempre que haya dólares de por medio.
+    bool mostrarNotaTc = tieneDual && (mostrarDual || unicaEsUsd);
+
+    // ── No. Recibo SAP: siempre se muestra el label; el valor solo si está operado ──
+    string noReciboSap = (esOperado && Model.SapDocNum.HasValue) ? Model.SapDocNum.Value.ToString() : "";
+
+    bool esAnulado = "X".Equals((Model.Status ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
+
+    // ★ NUEVO — Recibo con descuadre frente a SAP.
+    // NO invalida el documento (el dinero se recibió): solo avisa que la
+    // aplicación contable en SAP está en revisión. Por eso es una banda
+    // informativa ámbar y no una marca de agua roja — el peso visual debe
+    // ser proporcional al significado.
+    bool enConciliacion = "DESCUADRE".Equals((Model.SyncEstado ?? "").Trim(),
+                                             StringComparison.OrdinalIgnoreCase);
+
+    // ── Traducción legible del log de sincronización ──
+    // La BD guarda el mensaje técnico; acá solo lo interpretamos para el papel.
+    // ★ El SyncEstado va como 2º parámetro: el mismo texto significa distinto
+    // en OPERADO (nota histórica) que en DESCUADRE (problema abierto).
+    var obsLegible = SyncObservacionInterprete.Interpretar(
+                         Model.SyncObservacion, Model.SyncEstado);
+}
+<div class="recibo-doc">
+    @if (esAnulado)
+    {
+        <div class="marca-anulado">ANULADO</div>
+    }
+
+    <!-- ── MEMBRETE (logo + razón social + NIT; sin dirección) ── -->
+    <div class="membrete" style="border-bottom-color:@emp.Color;">
+        <div class="membrete-izq">
+            @if (!string.IsNullOrWhiteSpace((string)emp.Logo))
+            {
+                <img class="logo-emp"
+                     src="@Url.Content("~/Content/img/logos/" + emp.Logo)"
+                     alt="@emp.Nombre"
+                     onerror="this.style.display='none';" />
+            }
+            <div>
+                <h1 style="color:@emp.Color;">@emp.Nombre</h1>
+                <div class="emp-datos">
+                    NIT: @emp.Nit
+                </div>
+            </div>
+        </div>
+        <div class="recibo-num">
+            <div class="lbl">Recibo de Caja</div>
+            <div class="num">@Model.IdRecibo</div>
+            <div class="lbl" style="margin-top:5px;">No. Recibo SAP</div>
+            <div class="num-sap">@noReciboSap</div>
+            <div class="fecha">Fecha: @Model.FechaRecibo.ToString("dd/MM/yyyy")</div>
+            @if (!string.IsNullOrWhiteSpace(Model.RecFisico))
+            {
+                <div class="fecha">Rec. Físico: @Model.RecFisico</div>
+            }
+        </div>
+    </div>
+
+    @if (enConciliacion)
+    {
+        <div class="banda-descuadre">
+            <div class="bd-titulo">⚠ Recibo en conciliación con SAP</div>
+            <div class="bd-texto">
+                El dinero de este recibo <strong>fue recibido en caja</strong>. La aplicación
+                del pago en el sistema contable está siendo revisada por el departamento de
+                Créditos. Este documento conserva su validez como comprobante de pago.
+            </div>
+        </div>
+    }
+
+    <!-- ── CLIENTE ── -->
+    <div class="bloque">
+        <h3>Datos del Cliente</h3>
+        <div class="fila-datos">
+            <div class="dato"><div class="k">Código</div><div class="v">@Model.IdCliente</div></div>
+            <div class="dato" style="flex:1;"><div class="k">Nombre</div><div class="v">@Model.NombreCliente</div></div>
+            <div class="dato"><div class="k">NIT</div><div class="v">@Model.Nit</div></div>
+        </div>
+        <div class="fila-datos" style="margin-top:6px;">
+            <div class="dato" style="flex:1;"><div class="k">Dirección</div><div class="v">@Model.Direccion</div></div>
+            <div class="dato"><div class="k">Agente</div><div class="v">@Model.Agente</div></div>
+        </div>
+    </div>
+
+    <!-- ── COBROS ── -->
+    <div class="titulo-seccion" style="border-left-color:@emp.Color;">Detalle de Cobro</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>Banco</th>
+                <th>No. Documento</th>
+                <th>Fecha del Cobro</th>
+                @if (mostrarDual)
+                {
+                    <th class="num-col">Monto Q</th>
+                    <th class="num-col">Monto $</th>
+                }
+                else
+                {
+                    <th class="num-col">Monto @simbolo</th>
+                }
+                <th>Moneda</th>
+                @if (mostrarTcCobro)
+                {
+                    <th class="num-col">T. Cambio</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var c in Model.Cobros)
+            {
+                // ★ El TC de ESTA línea, no el del encabezado. Antes se convertía
+                // todo con el ponderado y las columnas no sumaban el total (que sí
+                // viene de los duales guardados por el BLL).
+                decimal tcC = tcDeCobro(c);
+
+                <tr>
+                    <td>@c.TipoCobro</td>
+                    <td>@(string.IsNullOrWhiteSpace(c.Banco) ? "—" : c.Banco)</td>
+                    <td>@(string.IsNullOrWhiteSpace(c.NoDocumento) ? "—" : c.NoDocumento)</td>
+                    <td>@(c.FechaDoc.HasValue ? c.FechaDoc.Value.ToString("dd/MM/yyyy") : "—")</td>
+                    @if (mostrarDual)
+                    {
+                        <td class="num-col">@aGtqCon(c.Monto, c.Moneda, tcC).ToString("N2")</td>
+                        <td class="num-col">@aUsdCon(c.Monto, c.Moneda, tcC).ToString("N2")</td>
+                    }
+                    else
+                    {
+                        <td class="num-col">@c.Monto.ToString("N2")</td>
+                    }
+                    <td>@c.Moneda</td>
+                    @if (mostrarTcCobro)
+                    {
+                        <td class="num-col tc-col">@tcC.ToString("N4")</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- ── DOCUMENTOS ── -->
+    <div class="titulo-seccion" style="border-left-color:@emp.Color;">Documentos Cobrados</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Tipo</th>
+                <th>No. Documento</th>
+                <th>Serie FEL</th>
+                <th>Núm. FEL</th>
+                <th>Fecha</th>
+                @if (mostrarDual)
+                {
+                    <th class="num-col">Saldo Factura</th>
+                    <th class="num-col">Cobrado Q</th>
+                    <th class="num-col">Cobrado $</th>
+                    <th class="num-col">Saldo Pendiente</th>
+                }
+                else
+                {
+                    <th class="num-col">Saldo Factura @simbolo</th>
+                    <th class="num-col">Monto Cobrado @simbolo</th>
+                    <th class="num-col">Saldo Pendiente @simbolo</th>
+                }
+                <th>Moneda</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in Model.Documentos)
+            {
+                // Anticipos / saldos: sin factura de referencia → sin saldo ni restante.
+                bool tieneFactura = d.MontoFact > 0;
+                // ★ Saldo Factura = lo que la factura debía en SAP AL MOMENTO DE LA CAPTURA
+                //   (MontoFact − Pagado guardados en la línea). Foto de captura: NO se
+                //   recalcula al imprimir, para que el papel sea auditable.
+                decimal saldoFactura = d.MontoFact - d.Pagado;
+                // ★ Saldo Pendiente = después de este cobro:
+                //   debía (Saldo Factura) − cobré (Monto) = queda (Saldo Pendiente).
+                decimal restante = saldoFactura - d.Monto;
+                // Estas dos columnas van en la moneda ORIGINAL de la factura.
+                // En modo dual la tabla mezcla monedas → el símbolo va inline.
+                string pref = mostrarDual ? simboloDe(d.Moneda) + " " : "";
+
+                <tr>
+                    <td>@d.TipoDoc</td>
+                    <td>@(string.IsNullOrWhiteSpace(d.NoDocumento) ? "—" : d.NoDocumento)</td>
+                    <td>@(string.IsNullOrWhiteSpace(d.FelSerie) ? "—" : d.FelSerie)</td>
+                    <td>@(string.IsNullOrWhiteSpace(d.FelNumero) ? "—" : d.FelNumero)</td>
+                    <td>@(d.FechaDoc.HasValue ? d.FechaDoc.Value.ToString("dd/MM/yyyy") : "—")</td>
+                    <td class="num-col">@(tieneFactura ? pref + saldoFactura.ToString("N2") : "—")</td>
+                    @if (mostrarDual)
+                    {
+                        <td class="num-col">@aGtq(d.Monto, d.Moneda).ToString("N2")</td>
+                        <td class="num-col">@aUsd(d.Monto, d.Moneda).ToString("N2")</td>
+                    }
+                    else
+                    {
+                        <td class="num-col">@d.Monto.ToString("N2")</td>
+                    }
+                    <td class="num-col">@(tieneFactura ? pref + restante.ToString("N2") : "—")</td>
+                    <td>@d.Moneda</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- ── TOTALES ── -->
+    <div class="totales">
+        <table>
+            @if (mostrarDual)
+            {
+                // Mezcla de monedas: se muestran ambas columnas, tomadas de los
+                // totales duales que el BLL calculó y guardó al momento del recibo.
+                <tr>
+                    <td>Total Cobros:</td>
+                    <td class="num-col">Q @Model.MontoTotalRecGtq.ToString("N2")</td>
+                    <td class="num-col">$ @Model.MontoTotalRecUsd.ToString("N2")</td>
+                </tr>
+                <tr>
+                    <td>Total Documentos:</td>
+                    <td class="num-col">Q @Model.MontoTotalDocGtq.ToString("N2")</td>
+                    <td class="num-col">$ @Model.MontoTotalDocUsd.ToString("N2")</td>
+                </tr>
+                <tr class="gran-total">
+                    <td>Saldo:</td>
+                    <td class="num-col">Q @Model.SaldoGtq.ToString("N2")</td>
+                    <td class="num-col">$ @Model.SaldoUsd.ToString("N2")</td>
+                </tr>
+            }
+            else
+            {
+                // Una sola moneda (GTQ o USD): totales en ESA moneda únicamente.
+                <tr><td>Total Cobros:</td><td class="num-col">@simbolo @totCobros.ToString("N2")</td></tr>
+                <tr><td>Total Documentos:</td><td class="num-col">@simbolo @totDocs.ToString("N2")</td></tr>
+                <tr class="gran-total"><td>Saldo:</td><td class="num-col">@simbolo @totSaldo.ToString("N2")</td></tr>
+            }
+        </table>
+    </div>
+    @if (mostrarNotaTc)
+    {
+        // La nota deja de mentir cuando hay varias tasas. Antes decía "Tipo de
+        // cambio aplicado: Q X" en singular, aunque ninguna línea se hubiera
+        // convertido con esa X.
+        if (tcMixto)
+        {
+            <div class="tc-nota">
+                Cada cobro fue valuado al tipo de cambio vigente en <strong>su propia fecha</strong>
+                (ver columna T. Cambio). Los documentos se valuaron al tipo de cambio
+                <strong>ponderado</strong> del recibo: Q @tc.ToString("N4") por US$ 1.00.
+            </div>
+        }
+        else
+        {
+            <div class="tc-nota">Tipo de cambio aplicado: Q @tcUnico.ToString("N4") por US$ 1.00</div>
+        }
+    }
+
+    <!-- ── FIRMAS ── -->
+    <div class="firmas">
+        <div class="firma"><div class="linea">Recibí Conforme<br />@Model.Usuario</div></div>
+        <div class="firma"><div class="linea">Entregué Conforme<br />Cliente</div></div>
+    </div>
+
+    <div class="pie">
+        Recibo generado por @Model.Usuario · @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+        @if (esAnulado)
+        {
+            <text> · <span style="color:#a93226; font-weight:700;">ANULADO</span></text>
+            if (!string.IsNullOrWhiteSpace(Model.AnuladoPor))
+            {
+                <text> por @Model.AnuladoPor</text>
+            }
+            if (Model.FechaAnulacion.HasValue)
+            {
+                <text> el @Model.FechaAnulacion.Value.ToString("dd/MM/yyyy HH:mm")</text>
+            }
+            if (!string.IsNullOrWhiteSpace(Model.MotivoAnulacion))
+            {
+                <text> — Motivo: @Model.MotivoAnulacion</text>
+            }
+        }
+        @if (esOperado && Model.SapDocNum.HasValue)
+        {
+            <text> · Operado en SAP — Pago No. @Model.SapDocNum</text>
+        }
+        @if (enConciliacion)
+        {
+            <text> · <span style="color:#ba4a00; font-weight:700;">En conciliación con SAP</span></text>
+        }
+    </div>
+
+</div>

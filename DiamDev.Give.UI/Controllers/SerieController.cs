@@ -9,6 +9,7 @@ using DiamDev.Give.Entities;
 using DiamDev.Give.UI.App_Start;
 using DiamDev.Give.UI.Models;
 using PagedList;
+using System.Collections;
 
 namespace DiamDev.Give.UI.Controllers
 {
@@ -24,6 +25,13 @@ namespace DiamDev.Give.UI.Controllers
                 var Agencias = new AgenciaBL().ObtenerListado(false, 0);              
 
                 ViewBag.Agencias = new SelectList(Agencias, "AgenciaId", "Nombre");              
+            }
+
+            private void CargaSeries()
+            {
+                var Series = new SerieBL().ObtenerSeriesPorAgencia(CustomHelper.getAgenciaId(), true);
+
+                ViewBag.Series = new SelectList(Series, "SerieId", "Nombre");
             }
 
         #endregion
@@ -210,6 +218,48 @@ namespace DiamDev.Give.UI.Controllers
             CustomHelper.setTitle("Serie", "Detalle");
 
             return View(SerieActual);
+        }
+
+        [Permiso("Control.Correlativo_Serie.Crear")]
+        public ActionResult Correlativo()
+        {
+            CustomHelper.setTitle("Correlativo de Serie", "Nuevo");
+                     
+            this.CargaSeries();
+            return View();
+        }
+
+        [Permiso("Control.Correlativo_Serie.Crear")]
+        [HttpPost]
+        public ActionResult Correlativo(CorrelativoModel modelo)
+        {           
+            if (ModelState.IsValid)
+            {
+
+                string strMensaje = new SerieBL().GenerarCorrelativo(modelo);
+
+                if (strMensaje.Equals("OK"))
+                {
+                    TempData["Serie_Correlativo-Success"] = strMensaje;
+                    return RedirectToAction("Correlativo");
+                }
+                else
+                {
+                    ModelState.AddModelError("", strMensaje);
+                }
+
+            }
+                
+            this.CargaSeries();
+            return View(modelo);
+        }
+
+        [ActionName("ObtenerAgenciasxSerie")]
+        public JsonResult AgenciaListado(long id)
+        {
+            IList _result = new List<SelectListItem>();
+            _result = new SerieBL().ObtenerAgenciasxSerieId(id).Select(m => new SelectListItem() { Text = m.Nombre, Value = m.AgenciaId.ToString() }).ToList();
+            return Json(_result, JsonRequestBehavior.AllowGet);
         }
     }
 }

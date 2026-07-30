@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -21,11 +22,20 @@ namespace DiamDev.Give.UI.Controllers
 
             private void CargaControles()
             {
+                var Vendedores = new VendedorBL().ObtenerVendedoresPorAgencia(CustomHelper.getAgenciaId(), false);
+                var Departamentos = new DepartamentoBL().ObtenerListado(true);
+                var Empresas = new EmpresaBL().ObtenerListado();
                 var Roles = new RolBL().ObtenerListado();
                 var Agencias = new AgenciaBL().ObtenerListado(false);
+                var AgenciaConsultas = new AgenciaBL().ObtenerListado(false);
 
+                ViewBag.Vendedores = new SelectList(Vendedores, "VendedorId", "Nombre");
+                ViewBag.Departamentos = new SelectList(Departamentos, "DepartamentoId", "Nombre");
+                ViewBag.Empresas = new SelectList(Empresas, "EmpresaId", "Nombre");
                 ViewBag.Roles = new SelectList(Roles, "RolId", "Nombre");
                 ViewBag.Agencias = new SelectList(Agencias, "AgenciaId", "Nombre");
+                ViewBag.AgenciaConsultas = new SelectList(AgenciaConsultas, "AgenciaId", "Nombre");
+
             }
 
         #endregion
@@ -72,14 +82,8 @@ namespace DiamDev.Give.UI.Controllers
             ViewBag.ActivoSi = strAtributo;
             ViewBag.ActivoNo = "";
 
-            ViewBag.ReiniciarPasswordSi = "";
-            ViewBag.ReiniciarPasswordNo = strAtributo;
-
-            ViewBag.AutenticarSiteSi = strAtributo;
-            ViewBag.AutenticarSiteNo = "";
-
-            ViewBag.AutenticarAndroidSi = "";
-            ViewBag.AutenticarAndroidNo = strAtributo;
+            ViewBag.TokenSi = "";
+            ViewBag.TokenNo = strAtributo;
 
             this.CargaControles();
             return View();
@@ -87,7 +91,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpPost]
         [Permiso("Control.Usuario.Crear")]
-        public ActionResult Crear(Usuario modelo, int[] rolesIds, long[] agenciasIds, bool autenticarSite, bool autenticarAndroid, bool activo, bool reiniciarPassword)
+        public ActionResult Crear(Usuario modelo, int[] rolesIds, long[] agenciasIds, long[] empresasIds, string[] codigoIds, string[] serieSapIds , bool activo, bool token)
         {
             if (rolesIds == null || rolesIds.Length == 0)
             {
@@ -97,6 +101,11 @@ namespace DiamDev.Give.UI.Controllers
             if (agenciasIds == null || agenciasIds.Length == 0)
             {
                 ModelState.AddModelError("", "Debe seleccionar al menos una agencia");
+            }
+
+            if (empresasIds == null || empresasIds.Length == 0)
+            {
+                ModelState.AddModelError("", "Debe seleccionar al menos una empresa");
             }
 
             if (ModelState.IsValid)
@@ -113,10 +122,37 @@ namespace DiamDev.Give.UI.Controllers
                     modelo.Agencias.Add(new UsuarioAgencia() { AgenciaId = agenciasIds[i] });
                 }
 
-                modelo.AutenticarSite = autenticarSite;
-                modelo.AutenticarAndroid = autenticarAndroid;
+                if (empresasIds == null)
+                {
+                    throw new Exception("empresasIds NULL");
+                }
+
+                if (codigoIds == null)
+                {
+                    throw new Exception("codigoIds NULL");
+                }
+
+                if (serieSapIds == null)
+                {
+                    throw new Exception("serieSapIds NULL");
+                }
+
+                if (modelo == null)
+                {
+                    throw new Exception("modelo NULL");
+                }
+
+                modelo.Empresas = new List<UsuarioEmpresa>();
+                for (int i = 0; i < empresasIds.Length; i++)
+                {
+                    modelo.Empresas.Add(new UsuarioEmpresa() { EmpresaId = empresasIds[i], Codigo = codigoIds[i],SERIE_SAP = serieSapIds[i] });
+                }
+
+                modelo.AutenticarSite = true;
+                modelo.AutenticarAndroid = true;
                 modelo.Activo = activo;
-                modelo.ReiniciarPassword = reiniciarPassword;  
+                modelo.Token = token;
+                modelo.ReiniciarPassword = false;  
            
                 string strMensaje = new UsuarioBL().Guardar(modelo);
 
@@ -129,7 +165,6 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     ModelState.AddModelError("", strMensaje);
                 }
-
             }
 
             string strAtributo = "checked='checked'";
@@ -137,17 +172,15 @@ namespace DiamDev.Give.UI.Controllers
             ViewBag.ActivoSi = activo == true ? strAtributo : "";
             ViewBag.ActivoNo = activo == false ? strAtributo : "";
 
-            ViewBag.ReiniciarPasswordSi = reiniciarPassword == true ? strAtributo : "";
-            ViewBag.ReiniciarPasswordNo = reiniciarPassword == false ? strAtributo : "";
-
-            ViewBag.AutenticarSiteSi = autenticarSite == true ? strAtributo : "";
-            ViewBag.AutenticarSiteNo = autenticarSite == false ? strAtributo : "";
-
-            ViewBag.AutenticarAndroidSi = autenticarAndroid == true ? strAtributo : "";
-            ViewBag.AutenticarAndroidNo = autenticarAndroid == false ? strAtributo : "";
+            ViewBag.TokenSi = token == true ? strAtributo : "";
+            ViewBag.TokenNo = token == false ? strAtributo : "";
 
             ViewBag.RolesIds = rolesIds;
             ViewBag.AgenciasIds = agenciasIds;
+
+            ViewBag.EmpresasIds = empresasIds;
+            ViewBag.CodigoIds = codigoIds;
+            ViewBag.serieSapIds = serieSapIds;
 
             this.CargaControles();
             return View(modelo);
@@ -183,19 +216,26 @@ namespace DiamDev.Give.UI.Controllers
                 ViewBag.AgenciasIds = 0;
             }
 
+            if (UsuarioActual.Empresas != null && UsuarioActual.Empresas.Count() > 0)
+            {
+                ViewBag.EmpresasIds = UsuarioActual.Empresas.Select(x => x.EmpresaId);
+                ViewBag.CodigoIds = UsuarioActual.Empresas.Select(x => x.Codigo);
+                ViewBag.serieSapIds = UsuarioActual.Empresas.Select(x => x.SERIE_SAP);
+            }
+            else
+            {
+                ViewBag.EmpresasIds = 0;
+                ViewBag.CodigoIds = "";
+                ViewBag.serieSapIds = "";
+            }
+
             string strAtributo = "checked='checked'";
 
             ViewBag.ActivoSi = UsuarioActual.Activo == true ? strAtributo : "";
             ViewBag.ActivoNo = UsuarioActual.Activo == false ? strAtributo : "";
 
-            ViewBag.ReiniciarPasswordSi = UsuarioActual.ReiniciarPassword == true ? strAtributo : "";
-            ViewBag.ReiniciarPasswordNo = UsuarioActual.ReiniciarPassword == false ? strAtributo : "";
-
-            ViewBag.AutenticarSiteSi = UsuarioActual.AutenticarSite == true ? strAtributo : "";
-            ViewBag.AutenticarSiteNo = UsuarioActual.AutenticarSite == false ? strAtributo : "";
-
-            ViewBag.AutenticarAndroidSi = UsuarioActual.AutenticarAndroid == true ? strAtributo : "";
-            ViewBag.AutenticarAndroidNo = UsuarioActual.AutenticarAndroid == false ? strAtributo : "";
+            ViewBag.TokenSi = UsuarioActual.Token == true ? strAtributo : "";
+            ViewBag.TokenNo = UsuarioActual.Token == false ? strAtributo : "";
 
             this.CargaControles();
             return View(UsuarioActual);
@@ -203,7 +243,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpPost]
         [Permiso("Control.Usuario.Editar")]
-        public ActionResult Editar(Usuario modelo, int[] rolesIds, long[] agenciasIds, bool autenticarSite, bool autenticarAndroid, bool activo, bool reiniciarPassword)
+        public ActionResult Editar(Usuario modelo, int[] rolesIds, long[] agenciasIds, long[] empresasIds, string[] codigoIds,string [] serieSapIds, bool activo, bool token)
         {
             if (rolesIds == null || rolesIds.Length == 0)
             {
@@ -213,6 +253,11 @@ namespace DiamDev.Give.UI.Controllers
             if (agenciasIds == null || agenciasIds.Length == 0)
             {
                 ModelState.AddModelError("", "Debe seleccionar al menos una agencia");
+            }
+
+            if (empresasIds == null || empresasIds.Length == 0)
+            {
+                ModelState.AddModelError("", "Debe seleccionar al menos una empresa");
             }
 
             if (ModelState.IsValid)
@@ -229,10 +274,25 @@ namespace DiamDev.Give.UI.Controllers
                     modelo.Agencias.Add(new UsuarioAgencia() { AgenciaId = agenciasIds[i] });
                 }
 
-                modelo.AutenticarSite = autenticarSite;
-                modelo.AutenticarAndroid = autenticarAndroid;
+                modelo.Empresas = new List<UsuarioEmpresa>();
+                if (serieSapIds == null)
+                {
+                    throw new Exception("serieSapIds viene NULL");
+                }
+                if (codigoIds == null)
+                {
+                    throw new Exception("codigoIds viene NULL");
+                }
+                for (int i = 0; i < empresasIds.Length; i++)
+                {
+                    modelo.Empresas.Add(new UsuarioEmpresa() { EmpresaId = empresasIds[i], Codigo = codigoIds[i], SERIE_SAP = serieSapIds[i] });
+                }
+
+                modelo.AutenticarSite = true;
+                modelo.AutenticarAndroid = true;
                 modelo.Activo = activo;
-                modelo.ReiniciarPassword = reiniciarPassword;
+                modelo.Token = token;
+                modelo.ReiniciarPassword = false;
 
                 string strMensaje = new UsuarioBL().Guardar(modelo);
 
@@ -245,7 +305,6 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     ModelState.AddModelError("", strMensaje);
                 }
-
             }
 
             string strAtributo = "checked='checked'";
@@ -253,20 +312,44 @@ namespace DiamDev.Give.UI.Controllers
             ViewBag.ActivoSi = activo == true ? strAtributo : "";
             ViewBag.ActivoNo = activo == false ? strAtributo : "";
 
-            ViewBag.ReiniciarPasswordSi = reiniciarPassword == true ? strAtributo : "";
-            ViewBag.ReiniciarPasswordNo = reiniciarPassword == false ? strAtributo : "";
+            ViewBag.TokenSi = token == true ? strAtributo : "";
+            ViewBag.TokenNo = token == false ? strAtributo : "";
 
             ViewBag.RolesIds = rolesIds;
-            ViewBag.AgenciasIds = agenciasIds;
-
-            ViewBag.AutenticarSiteSi = autenticarSite == true ? strAtributo : "";
-            ViewBag.AutenticarSiteNo = autenticarSite == false ? strAtributo : "";
-
-            ViewBag.AutenticarAndroidSi = autenticarAndroid == true ? strAtributo : "";
-            ViewBag.AutenticarAndroidNo = autenticarAndroid == false ? strAtributo : "";
+            ViewBag.AgenciasIds = agenciasIds;            
 
             this.CargaControles();
             return View(modelo);
         }
+
+        [ActionName("AutorizarPrecioSupervisor")]
+        [HttpPost]
+        public JsonResult AutorizarPrecioSupervisor(string usuario, string password)
+        {
+            if (!string.IsNullOrWhiteSpace(usuario) && !string.IsNullOrWhiteSpace(password))
+            {
+                return Json(new { Operacion = new UsuarioBL().Autorizar(usuario, password) }, JsonRequestBehavior.AllowGet);
+            }
+
+            return Json(new { Operacion = false }, JsonRequestBehavior.AllowGet);
+        }
+
+        [ActionName("ObtenerVendedoresSap")]
+        public JsonResult ObtenerVendedoresSap( long id)
+        {
+             
+                List<ModelSale> Productos = new UsuarioBL().BuscarVendedoresxEmpresa(id);
+            if (Productos != null && Productos.Count() > 0)
+            {
+
+                IList _result = new List<SelectListItem>();
+                    _result = Productos.Select(m => new SelectListItem() { Text = m.Codigo, Value = m.Codigo }).ToList();
+                    return Json(_result, JsonRequestBehavior.AllowGet);
+            }
+
+            return Json(new { Operacion = false }, JsonRequestBehavior.AllowGet);
+        }
     }
+
+    
 }

@@ -1,0 +1,167 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.NotaCredito>
+
+@{
+    ViewBag.Title = "Nota Credito Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Nota_Credito")">
+        Nueva
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@DateTime.Today.ToString("yyyy-MM-dd")" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Nota Credito
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover" id="sample-table-1">
+                    <thead>
+                        <tr>
+                            <th>T. Nota Credito</th>
+                            <th>Fecha</th>
+                            <th>ID</th>
+                            <th>Agencia</th>
+                            <th>Responsable</th>  
+                            <th>Monto</th>
+                            <th>Operada</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Nota in Model)
+                        {
+                            <tr>
+                                <td>@(Nota.Devolucion ? "Devolución" : "Vale de Regalo")</td>
+                                <td>@Nota.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@Nota.CreditoId</td>
+                                <td>@(Nota.Agencia == null ? "No Disponible" : Nota.Agencia.Nombre)</td>
+                                <td>@(Nota.UsuarioCreo == null ? "No Disponible" : Nota.UsuarioCreo.Nombre)</td>
+                                <td>@Nota.Monto.ToString("C")</td>
+                                <td>@(Nota.Operado == true ? "Sí" : "No")</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        @if (!Nota.Anulada)
+                                        {
+                                            if (!Nota.Operado)
+                                            {
+                                                <a href="@Url.Action("Anular", "Nota_Credito", new { id = Nota.CreditoId })" class="btn btn-bricky tooltips" data-placement="top" data-original-title="Anular Nota Credito"><i class="clip-close"></i></a>
+                                            }
+                                        }
+                                        <a href="@Url.Action("Detalle", "Nota_Credito", new { id = Nota.CreditoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle Nota Credito"><i class="clip-stack-empty"></i></a>
+                                        @if (!Nota.Anulada)
+                                        {
+                                            <a href="@Url.Action("Boleta", "Nota_Credito", new { id = Nota.CreditoId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
+                                        }
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                @if (!Nota.Anulada)
+                                                {
+                                                    if (!Nota.Operado)
+                                                    {
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Anular", "Nota_Credito", new { id = Nota.CreditoId })">
+                                                                <i class="clip-close"></i> Anular Nota Credito
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                }
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Nota_Credito", new { id = Nota.CreditoId })">
+                                                        <i class="clip-stack-empty"></i> Detalle Nota Credito
+                                                    </a>
+                                                </li>
+                                                @if (!Nota.Anulada)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Nota_Credito", new { id = Nota.CreditoId })" target="_blank">
+                                                            <i class="clip-file-pdf"></i> Ver Boleta
+                                                        </a>
+                                                    </li>
+                                                }
+                                            </ul>
+
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(document).ready(function ()
+        {
+            if ('@TempData["Nota-Credito-Success"]' == "OK")
+            {
+                toastr.success('La nota de credito se guardó exitosamente');
+            }
+            else if ('@TempData["Nota-Credito_Anular-Success"]' == "OK")
+            {
+                toastr.success('La nota de credito se anulo exitosamente');
+            }
+        });
+    </script>
+}
+
+
+
+
+
+
+
+

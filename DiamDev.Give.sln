@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30011.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiamDev.Give.Entities", "DiamDev.Give.Entities\DiamDev.Give.Entities.csproj", "{58830095-0940-4008-9495-2B71EC41758E}"
 EndProject
@@ -11,11 +11,15 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiamDev.Give.BLL", "DiamDev
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiamDev.Give.UI", "DiamDev.Give.UI\DiamDev.Give.UI.csproj", "{AC1811C4-A1AE-4068-8E83-1B28EDF90303}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiamDev.Give.Servicio", "DiamDev.Give.Servicio\DiamDev.Give.Servicio.csproj", "{E1E004BB-8BF8-4A20-BEC8-6AE92FE9A5EE}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{DAD9A08E-08E3-4737-9B72-947D48948B80}"
+	ProjectSection(SolutionItems) = preProject
+		.nuget\NuGet.Config = .nuget\NuGet.Config
+		.nuget\NuGet.exe = .nuget\NuGet.exe
+		.nuget\NuGet.targets = .nuget\NuGet.targets
+		.nuget\packages.config = .nuget\packages.config
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiamDev.Give.WF.UI", "DiamDev.Give.WF.UI\DiamDev.Give.WF.UI.csproj", "{EFADE6D6-2493-4BC5-9A34-06CF6135B4E8}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiamDev.Give.LicenseManager", "DiamDev.Give.LicenseManager\DiamDev.Give.LicenseManager.csproj", "{891815EE-9AC1-4478-8F92-B4541F0020B6}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DiamDev.Give.Sincronizador", "DiamDev.Give.Sincronizador\DiamDev.Give.Sincronizador.csproj", "{E49B1494-01B5-47A3-B64A-23327A20A823}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,20 +43,15 @@ Global
 		{AC1811C4-A1AE-4068-8E83-1B28EDF90303}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AC1811C4-A1AE-4068-8E83-1B28EDF90303}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AC1811C4-A1AE-4068-8E83-1B28EDF90303}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E1E004BB-8BF8-4A20-BEC8-6AE92FE9A5EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E1E004BB-8BF8-4A20-BEC8-6AE92FE9A5EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E1E004BB-8BF8-4A20-BEC8-6AE92FE9A5EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E1E004BB-8BF8-4A20-BEC8-6AE92FE9A5EE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EFADE6D6-2493-4BC5-9A34-06CF6135B4E8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EFADE6D6-2493-4BC5-9A34-06CF6135B4E8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EFADE6D6-2493-4BC5-9A34-06CF6135B4E8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EFADE6D6-2493-4BC5-9A34-06CF6135B4E8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{891815EE-9AC1-4478-8F92-B4541F0020B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{891815EE-9AC1-4478-8F92-B4541F0020B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{891815EE-9AC1-4478-8F92-B4541F0020B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{891815EE-9AC1-4478-8F92-B4541F0020B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E49B1494-01B5-47A3-B64A-23327A20A823}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E49B1494-01B5-47A3-B64A-23327A20A823}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E49B1494-01B5-47A3-B64A-23327A20A823}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E49B1494-01B5-47A3-B64A-23327A20A823}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {80445F78-43B6-45DF-B8F8-5BC1EF4A06BB}
 	EndGlobalSection
 EndGlobal

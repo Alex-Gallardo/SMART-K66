@@ -41,27 +41,38 @@
             <div class="panel-body">
                 <table class="table table-hover" id="sample-table-1">
                     <thead>
-                        <tr>                          
-                            <th>Nombre</th>
-                            <th>P. Venta</th>
-                            <th>P. Costo</th>
-                            <th>C. M&iacute;nima</th>
+                        <tr>           
+                            <th>Agencia</th>               
+                            <th class="hidden-xs hidden-sm">ID</th>
+                            <th class="hidden-xs ">Codigo</th>
+                            <th>Nombre</th>                            
+                            <th class="hidden-xs hidden-sm">Marca</th>
                             <th>Existencia</th>
-                            <th></th>
+                            <th>P. Venta</th>
+                            <th class="hidden-xs hidden-sm">Valorar En</th>
+                            <th class="hidden-xs hidden-sm">Activo</th>     
+                            <th></th>                       
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var Producto in Model)
                         {
-                            <tr>                              
-                                <td>@Producto.Nombre</td>
-                                <td>@Producto.Precio.ToString("C")</td>
-                                <td>@Producto.PrecioCosto.ToString("C")</td>
-                                <td>@Producto.Cantidad</td>
+                            <tr>                             
+                                <td>@Producto.Agencia</td> 
+                                <td class="hidden-xs hidden-sm">@Producto.ProductoId</td>
+                                <td class="hidden-xs ">@Producto.Codigo</td>
+                                <td>@Producto.Nombre</td>                               
+                                <td class="hidden-xs hidden-sm">@Producto.Marca</td>
                                 <td>@Producto.Existencia</td>
+                                <td>@Producto.PrecioVenta.ToString("C")</td>
+                                <td class="hidden-xs hidden-sm">@Producto.PrecioValidar.ToString("C")</td>
+                                <td class="hidden-xs hidden-sm">@(Producto.Activo ? "Sí" : "No")</td>  
                                 <td class="center">
                                     <div class="visible-md visible-lg hidden-sm hidden-xs">
-                                        <a href="@Url.Action("Detalle", "Producto", new { id = Producto.ProductoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Producto"><i class="clip-stack-empty"></i></a>
+                                        @if (Producto.TieneLote)
+                                        {
+                                            <a href="javascript:void(0);" onclick="verLote('@Producto.ProductoId');" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Lotes"><i class="clip-checkmark"></i></a>
+                                        }                                      
                                     </div>
                                     <div class="visible-xs visible-sm hidden-md hidden-lg">
                                         <div class="btn-group">
@@ -69,15 +80,18 @@
                                                 <i class="icon-cog"></i> <span class="caret"></span>
                                             </a>
                                             <ul role="menu" class="dropdown-menu pull-right">
-                                                <li role="presentation">
-                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Producto", new { id = Producto.ProductoId })">
-                                                        <i class="clip-stack-empty"></i> Detalle del Producto
-                                                    </a>
-                                                </li>
+                                                @if (Producto.TieneLote)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="javascript:void(0);" onclick="verLote('@Producto.ProductoId');">
+                                                            <i class="clip-checkmark"></i> Ver Lotes
+                                                        </a>
+                                                    </li>
+                                                }                                                                                         
                                             </ul>
                                         </div>
                                     </div>
-                                </td>
+                                </td>                              
                             </tr>
                         }
                     </tbody>
@@ -88,7 +102,92 @@
     </div>
 </div>
 
+<div id="seleccionar-lote-form" class="modal fade" tabindex="-1" data-width="500" style="display: none;">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">
+            &times;
+        </button>
+        <h4 class="modal-title">Lotes</h4>
+    </div>
+    <div class="modal-body">
+        <div class="row">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>#Lote</th>
+                        <th>F. Vencimiento</th>
+                        <th>Cantidad</th>                       
+                    </tr>
+                </thead>
+                <tbody id="producto_lote_tbody"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button id="btn-close-up-seleccionar-lote" class="btn" data-dismiss="modal" aria-hidden="true">Cerrar</button>
+    </div>
+</div>
+
 Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
 
 @Html.PagedListPager(Model, page => Url.Action("Consulta", new { search = ViewBag.Search, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            $("#search").autocomplete({
+                source: function (request, response)
+                {
+                    $.ajax({
+                        url: '@Url.Action("ConsultaProductoAutocomplementar", "Producto")',
+                        type: "POST",
+                        dataType: "json",
+                        data: { search: request.term },
+                        success: function (data) {
+                            response($.map(data, function (item) {
+                                return { label: item.Nombre, value: item.Nombre };
+                            }))
+                        }
+                    })
+                },
+                messages:
+                {
+                    noResults: "", results: ""
+                }
+            });
+        });
+
+        function verLote(id)
+        {
+            $.ajax({
+                url: '@Url.Action("ObtenerLotes", "Producto")',
+                traditional: true,
+                data: { 'id': id },
+                async: false,
+                type: 'GET',
+                success: function (resultData) {
+                    if (resultData !== null)
+                    {
+                        if (resultData.Operacion)
+                        {
+                            $("#seleccionar-lote-form").modal();
+                            $("#seleccionar-lote-form").find("#producto_lote_tbody").html("");
+                            $("#seleccionar-lote-form").find("#producto_lote_tbody").html(resultData.Data);
+                        }
+                        else
+                        {
+                            toastr.error('Los lotes no se pueden visualizar');
+                        }
+                    }
+                    else
+                    {
+                        toastr.error('Ocurrió un error, al visualizar los lotes');                       
+                    }
+                }
+            });
+        }
+    </script>
+}
 

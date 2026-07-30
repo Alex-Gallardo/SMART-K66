@@ -26,11 +26,13 @@ namespace DiamDev.Give.UI.Controllers
         #region Metodos Privados
 
         private void CargaControles()
-        {            
+        {
+            var Categorias = new MovimientoCategoriaBL().ObtenerListado(false);
             var Clientes = new ClienteBL().ObtenerListado(false, true);
             var Productos = new ProductoBL().ObtenerListado(true, false, true);
             var Formas = new FormaPagoBL().ObtenerListado(false);
-           
+
+            ViewBag.Categorias = new SelectList(Categorias, "MovimientoCategoriaId", "Nombre");
             ViewBag.Clientes = new SelectList(Clientes, "ClienteId", "Nombre");
             ViewBag.Productos = new SelectList(Productos, "ProductoId", "Nombre");
             ViewBag.Formas = new SelectList(Formas, "FormaPagoId", "Nombre");
@@ -113,7 +115,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [Permiso("Control.Producto_Egreso.Crear")]
         [HttpPost]
-        public ActionResult Crear(Movimiento modelo, string[] productoIds, long[] presentacionIds, decimal[] cantidadIds, decimal[] precioIds, long[] formaIds, decimal[] pagarIds, string[] notaIds, int descuento)
+        public ActionResult Crear(Movimiento modelo, string[] productoIds, long[] presentacionIds, string[] nombrepresentacionIds, decimal[] existenciaIds, decimal[] cantidadIds, decimal[] precioIds, long[] formaIds, decimal[] pagarIds, string[] notaIds, int descuento)
         {
             if (productoIds == null || productoIds.Length == 0)
             {
@@ -125,23 +127,49 @@ namespace DiamDev.Give.UI.Controllers
                 ModelState.AddModelError("", "Para realizar un egreso debe de cancelar los productos");
             }
 
+            modelo.MovimientoEstadoId = 1;
+            modelo.Cancelado = true;
             modelo.AgenciaId = CustomHelper.getAgenciaId();
             modelo.UsrCreo = CustomHelper.getUserId();
 
-            if (ModelState.IsValid)
+            modelo.Detalles = new List<MovimientoDetalle>();
+            for (int i = 0; i < productoIds.Length; i++)
             {
-                modelo.Detalles = new List<MovimientoDetalle>();
-                for (int i = 0; i < productoIds.Length; i++)
+                if (modelo.Detalles.Where(x => x.ProductoId == productoIds[i]).Count() > 0)
+                {
+                    foreach (var item in modelo.Detalles)
+                    {
+                        if (item.ProductoId == productoIds[i])
+                        {
+                            item.Cantidad += cantidadIds[i];
+                            break;
+                        }
+                    }
+                }
+                else
                 {
                     MovimientoDetalle Detalle = new MovimientoDetalle();
                     Detalle.ProductoId = productoIds[i];
                     Detalle.UnidadId = presentacionIds[i];
+                    Detalle.Existencia = existenciaIds[i];
                     Detalle.Cantidad = cantidadIds[i];
                     Detalle.Precio = precioIds[i];
 
                     modelo.Detalles.Add(Detalle);
                 }
+            }
 
+            if (modelo.Detalles != null && modelo.Detalles.Count() > 0)
+            {
+                bool ExistenciaNoValida = modelo.Detalles.Where(x => x.Cantidad > x.Existencia).Count() > 0;
+                if (ExistenciaNoValida)
+                {
+                    ModelState.AddModelError("", "Hay producto(s) que sobre pasan las existencias");
+                }
+            }
+
+            if (ModelState.IsValid)
+            {
                 modelo.Pagos = new List<MovimientoFormaPago>();
                 for (int i = 0; i < formaIds.Length; i++)
                 {
@@ -155,7 +183,7 @@ namespace DiamDev.Give.UI.Controllers
 
                 modelo.Descuento = descuento;
                 modelo.MovimientoTipoId = 2;
-                modelo.Operado = true;
+                modelo.Operado = true;               
 
                 string strMensaje = new MovimientoBL().Guardar(modelo);
                 if (strMensaje.Equals("OK"))
@@ -170,10 +198,15 @@ namespace DiamDev.Give.UI.Controllers
                             {
                                 var productoId = p.ProductoId;
                                 var producto = db.Productos.Include(pr => pr.Marca).FirstOrDefault(pr => pr.ProductoId == productoId);
-
+                                var existencia = db.ProductoInventarios.FirstOrDefault(pr => pr.ProductoId == productoId && pr.AgenciaId == agencia.AgenciaId);
+                                decimal existenciaActual = 0;
 
                                 if (producto == null) continue;
 
+                                if (existencia != null)
+                                {
+                                    existenciaActual = existencia.Cantidad;                                    
+                                }
 
                                 db.RegistrosKardex.Add(new RegistroKardex
                                 {
@@ -188,15 +221,17 @@ namespace DiamDev.Give.UI.Controllers
                                     DocumentoNumero = modelo.MovimientoId.ToString(),
                                     AgenciaId = modelo.AgenciaId,
                                     AgenciaNombre = agencia.Nombre,
-                                    TipoRegistro = "Egreso",
+                                    TipoRegistro = "Egreso Manual",
                                     SalidaCantidadTienda = p.Cantidad,
-                                    SalidaCostoTienda = p.Precio
+                                    SalidaCostoTienda = p.PrecioCosto,
+                                    ExistenciaFinalTienda = existenciaActual
                                 });
                             }
 
                             db.SaveChanges();
                         }
                     }
+
                     TempData["Producto-Egreso-Success"] = strMensaje;
                     return RedirectToAction("Index");
                 }
@@ -208,6 +243,8 @@ namespace DiamDev.Give.UI.Controllers
 
             ViewBag.productoIds = productoIds;
             ViewBag.presentacionIds = presentacionIds;
+            ViewBag.nombrepresentacionIds = nombrepresentacionIds;
+            ViewBag.existenciaIds = existenciaIds;
             ViewBag.cantidadIds = cantidadIds;
             ViewBag.precioIds = precioIds;
 
@@ -217,6 +254,48 @@ namespace DiamDev.Give.UI.Controllers
 
             this.CargaControles();
             return View(modelo);
+        }
+
+        [Permiso("Control.Producto_Egreso.Anular")]
+        public ActionResult Anular(long id)
+        {
+            Movimiento MovimientoActual = new MovimientoBL().ObtenerPorId(id, false);
+
+            if (MovimientoActual == null)
+            {
+                return HttpNotFound();
+            }
+
+            CustomHelper.setTitle("Producto Egreso", "Anular");
+
+            return View(MovimientoActual);
+        }
+
+        [Permiso("Control.Producto_Egreso.Anular")]
+        [HttpPost]
+        public ActionResult Anular(long MovimientoId, string Comentario)
+        {
+            string strMensaje = new MovimientoBL().Anular(MovimientoId, Comentario, CustomHelper.getUserId(),2);
+            if (strMensaje.Equals("OK"))
+            {
+                TempData["Producto-Egreso_Anular-Success"] = strMensaje;
+                return RedirectToAction("Index");
+            }
+            else
+            {
+                ModelState.AddModelError("", strMensaje);
+            }
+
+            Movimiento MovimientoActual = new MovimientoBL().ObtenerPorId(MovimientoId, false);
+
+            if (MovimientoActual == null)
+            {
+                return HttpNotFound();
+            }
+
+            CustomHelper.setTitle("Producto Egreso", "Anular");
+
+            return View(MovimientoActual);
         }
 
         [Permiso("Control.Producto_Egreso.Detalle")]
@@ -254,8 +333,17 @@ namespace DiamDev.Give.UI.Controllers
                 Encabezado.Columns.Add(new DataColumn("Fecha", typeof(DateTime)));
                 Encabezado.Columns.Add(new DataColumn("Descuento", typeof(decimal)));
                 Encabezado.Columns.Add(new DataColumn("Total", typeof(decimal)));
+                Encabezado.Columns.Add(new DataColumn("Categoria", typeof(string)));
 
-                Encabezado.Rows.Add(MovimientoActual.MovimientoId, MovimientoActual.Agencia.Nombre, MovimientoActual.Cliente.Nombre, MovimientoActual.Cliente.Direccion, MovimientoActual.Descripcion, MovimientoActual.Fecha.ToString("dd/MM/yyyy"), MovimientoActual.DescuentoTotal, MovimientoActual.Total);
+                if (MovimientoActual.Cliente != null)
+                {
+                    Encabezado.Rows.Add(MovimientoActual.MovimientoId, MovimientoActual.Agencia.Nombre, MovimientoActual.Cliente.Nombre , MovimientoActual.Cliente.Direccion, MovimientoActual.Descripcion, MovimientoActual.Fecha.ToString("dd/MM/yyyy"), MovimientoActual.DescuentoTotal, MovimientoActual.Total, MovimientoActual.MovimientoCategoria.Nombre);
+                }
+                else
+                {
+                    Encabezado.Rows.Add(MovimientoActual.MovimientoId, MovimientoActual.Agencia.Nombre, "", "", MovimientoActual.Descripcion, MovimientoActual.Fecha.ToString("dd/MM/yyyy"), MovimientoActual.DescuentoTotal, MovimientoActual.Total, MovimientoActual.MovimientoCategoria.Nombre);
+                }
+                
 
                 Detalle.Columns.Add(new DataColumn("MovimientoId", typeof(long)));
                 Detalle.Columns.Add(new DataColumn("ProductoId", typeof(string)));

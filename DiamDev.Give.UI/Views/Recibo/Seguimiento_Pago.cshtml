@@ -1,0 +1,91 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.ReciboFechaPagoEstimadaModel>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Seguimientos de Pagos Listado";
+}
+
+<form action="" method="get" class="form-inline">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@(ViewBag.fechaInicial == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaInicial)" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@(ViewBag.fechaFinal == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaFinal)" onchange="this.form.submit();" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+<br />
+<div class="row">
+    <div class="col-md-12">        
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Recibo
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#Recibo</th>
+                            <th>F. Enlazada</th>
+                            <th>Factura</th>
+                            <th>Vendedor</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Total</th>
+                            <th>Saldo</th>
+                            <th>Fecha de Pago</th>                            
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Recibo in Model)
+                        {
+                            <tr>                                
+                                <td>@Recibo.ReciboId</td>
+                                <td>@(Recibo.FacturaEnlazada ? "Si" : "No")</td>
+                                <td>@Recibo.Factura</td>
+                                <td>@Recibo.Vendedor</td>
+                                <td>@Recibo.Fecha.ToString("dd/MM/yyyy")</td>                               
+                                <td>@Recibo.Cliente</td>
+                                <td>@Recibo.Total.ToString("C4")</td>
+                                <td>@(string.Format("{0:C4}", Recibo.Total - Recibo.Abono))</td>
+                               <td>@Recibo.FechaPagoEstimada.ToString("dd/MM/yyyy")</td>  
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>        
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Seguimiento_Pago", new { FechaInicial = ViewBag.fechaInicial, FechaFinal = ViewBag.fechaFinal, page }))

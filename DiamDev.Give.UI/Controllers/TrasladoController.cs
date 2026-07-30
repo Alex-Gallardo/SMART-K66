@@ -27,10 +27,8 @@ namespace DiamDev.Give.UI.Controllers
         private void CargaControles()
         {
             var Agencias = new AgenciaBL().ObtenerListado(false, 0);
-            var Productos = new ProductoBL().ObtenerListado(true, false, true);
-
-            ViewBag.Agencias = new SelectList(Agencias, "AgenciaId", "Nombre");
-            ViewBag.Productos = new SelectList(Productos, "ProductoId", "Nombre");
+           
+            ViewBag.Agencias = new SelectList(Agencias, "AgenciaId", "Nombre");          
         }
 
         private byte[] GetReportBytes(string reportPath, DataSet reportDataSource, decimal pageWidth = 13.38m, decimal pageHeight = 8.5m, decimal MarginLeft = 1m, decimal MarginRight = 1m)
@@ -42,6 +40,7 @@ namespace DiamDev.Give.UI.Controllers
             LocalReport reporte = new LocalReport() { ReportPath = reportPath };
             reporte.DataSources.Add(new ReportDataSource("TrasladoEncabezado", reportDataSource.Tables[0]));
             reporte.DataSources.Add(new ReportDataSource("TrasladoDetalle", reportDataSource.Tables[1]));
+            reporte.DataSources.Add(new ReportDataSource("TrasladoDestino", reportDataSource.Tables[2]));
 
             string deviceInfo =
                 "<DeviceInfo>" +
@@ -113,7 +112,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [Permiso("Control.Traslado.Crear")]
         [HttpPost]
-        public ActionResult Crear(Traslado modelo, string[] productoIds, long[] presentacionIds, decimal[] cantidadIds)
+        public ActionResult Crear(Traslado modelo, string[] productoIds, long[] presentacionIds, decimal[] cantidadIds, string[] idIds)
         {
             if (productoIds == null || productoIds.Length == 0)
             {
@@ -128,6 +127,7 @@ namespace DiamDev.Give.UI.Controllers
                     Detalle.ProductoId = productoIds[i];
                     Detalle.UnidadId = presentacionIds[i];
                     Detalle.Cantidad = cantidadIds[i];
+                    Detalle.ID = idIds[i];
 
                     modelo.Detalles.Add(Detalle);
                 }
@@ -136,66 +136,12 @@ namespace DiamDev.Give.UI.Controllers
             if (ModelState.IsValid)
             {
                 modelo.UsrInicial = CustomHelper.getUserId();
-                string strMensaje = new TrasladoBL().Guardar(modelo);
+                modelo.Despachado = true;
+                modelo.Supervisor = false;
+                string strMensaje = new TrasladoBL().GuardarConDestino(modelo);
 
                 if (strMensaje.Equals("OK"))
                 {
-                    using (var db = new GiveContext())
-                    {
-                        var agenciaOrigen = db.Agencias.FirstOrDefault(a => a.AgenciaId == modelo.AgenciaOrigenId);
-                        var agenciaDestino = db.Agencias.FirstOrDefault(a => a.AgenciaId == modelo.AgenciaDestinoId);
-
-                        if (agenciaOrigen != null && agenciaDestino != null)
-                        {
-                            foreach (var p in modelo.Detalles)
-                            {
-                                var productoId = p.ProductoId;
-                                var producto = db.Productos.Include(pr => pr.Marca).FirstOrDefault(pr => pr.ProductoId == productoId);
-
-                                if (producto == null) continue;
-
-                                var fechaHora = DateTime.Now;
-                                db.RegistrosKardex.Add(new RegistroKardex
-                                {
-                                    FechaHora = fechaHora,
-                                    Fecha = DateTime.Today,
-                                    ProductoId = p.ProductoId,
-                                    ProductoCodigo = producto.Codigo,
-                                    ProductoNombre = producto.Nombre,
-                                    ProductoDescripcion = producto.Descripcion,
-                                    MarcaId = producto.MarcaId,
-                                    MarcaNombre = producto.Marca.Nombre,
-                                    DocumentoNumero = modelo.TrasladoId.ToString(),
-                                    AgenciaId = agenciaOrigen.AgenciaId,
-                                    AgenciaNombre = agenciaOrigen.Nombre,
-                                    TipoRegistro = "Taslado",
-                                    SalidaCantidadTienda = p.Cantidad,
-                                    SalidaCostoTienda = producto.PrecioActual
-                                });
-
-                                db.RegistrosKardex.Add(new RegistroKardex
-                                {
-                                    FechaHora = fechaHora,
-                                    Fecha = DateTime.Today,
-                                    ProductoId = p.ProductoId,
-                                    ProductoCodigo = producto.Codigo,
-                                    ProductoNombre = producto.Nombre,
-                                    ProductoDescripcion = producto.Descripcion,
-                                    MarcaId = producto.MarcaId,
-                                    MarcaNombre = producto.Marca.Nombre,
-                                    DocumentoNumero = modelo.TrasladoId.ToString(),
-                                    AgenciaId = agenciaDestino.AgenciaId,
-                                    AgenciaNombre = agenciaDestino.Nombre,
-                                    TipoRegistro = "Taslado",
-                                    IngresoCantidadTienda = p.Cantidad,
-                                    IngresoCostoTienda = producto.PrecioActual
-                                });
-                            }
-
-                            db.SaveChanges();
-                        }
-                    }
-
                     TempData["Traslado-Success"] = strMensaje;
                     return RedirectToAction("Index");
                 }
@@ -209,6 +155,7 @@ namespace DiamDev.Give.UI.Controllers
             ViewBag.productoIds = productoIds;
             ViewBag.presentacionIds = presentacionIds;
             ViewBag.cantidadIds = cantidadIds;
+            ViewBag.idIds = idIds;
 
             this.CargaControles();
             return View(modelo);
@@ -240,6 +187,7 @@ namespace DiamDev.Give.UI.Controllers
 
                 DataTable Encabezado = new DataTable("TrasladoEncabezado");
                 DataTable Detalle = new DataTable("TrasladoDetalle");
+                DataTable Destino = new DataTable("TrasladoDestino");
 
                 Encabezado.Columns.Add(new DataColumn("TrasladoId", typeof(long)));
                 Encabezado.Columns.Add(new DataColumn("AgenciaOrigen", typeof(string)));
@@ -259,12 +207,41 @@ namespace DiamDev.Give.UI.Controllers
                 {
                     foreach (var DetalleActual in TrasladoActual.Detalles)
                     {
-                        Detalle.Rows.Add(TrasladoActual.TrasladoId, DetalleActual.ProductoId, DetalleActual.Producto.Nombre, DetalleActual.Unidad.Nombre, DetalleActual.Cantidad);
+                        if (!string.IsNullOrWhiteSpace(DetalleActual.ID))
+                        {
+                            Detalle.Rows.Add(TrasladoActual.TrasladoId, DetalleActual.ProductoId, string.Format("{0} IDs({1})", DetalleActual.Producto.Nombre, DetalleActual.ID), DetalleActual.Unidad.Nombre, DetalleActual.Cantidad);
+                        }
+                        else
+                        {
+                            Detalle.Rows.Add(TrasladoActual.TrasladoId, DetalleActual.ProductoId, DetalleActual.Producto.Nombre, DetalleActual.Unidad.Nombre, DetalleActual.Cantidad);
+                        }
+                    }
+                }
+
+                Destino.Columns.Add(new DataColumn("TrasladoId", typeof(long)));
+                Destino.Columns.Add(new DataColumn("ProductoId", typeof(string)));
+                Destino.Columns.Add(new DataColumn("Nombre", typeof(string)));
+                Destino.Columns.Add(new DataColumn("Unidad", typeof(string)));
+                Destino.Columns.Add(new DataColumn("Cantidad", typeof(decimal)));
+
+                if (TrasladoActual.DetallesDestino != null && TrasladoActual.DetallesDestino.Count() > 0)
+                {
+                    foreach (var DetalleActual in TrasladoActual.DetallesDestino)
+                    {
+                        if (!string.IsNullOrWhiteSpace(DetalleActual.ID))
+                        {
+                            Destino.Rows.Add(TrasladoActual.TrasladoId, DetalleActual.ProductoId, string.Format("{0} IDs({1})", DetalleActual.Producto.Nombre, DetalleActual.ID), DetalleActual.Unidad.Nombre, DetalleActual.Cantidad);
+                        }
+                        else
+                        {
+                            Destino.Rows.Add(TrasladoActual.TrasladoId, DetalleActual.ProductoId, DetalleActual.Producto.Nombre, DetalleActual.Unidad.Nombre, DetalleActual.Cantidad);
+                        }
                     }
                 }
 
                 Traslado.Tables.Add(Encabezado);
                 Traslado.Tables.Add(Detalle);
+                Traslado.Tables.Add(Destino);
 
                 // Se define la ruta del reporte
                 var reportPath = Server.MapPath("~/Reports/ReportMovTraslado.rdlc");

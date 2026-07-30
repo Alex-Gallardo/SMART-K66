@@ -1,0 +1,110 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Pedido>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Pedido Sin Operar Listado";
+}
+
+<div class="row">
+    <div class="col-md-6">
+    </div>
+    <div class="col-md-6">
+        <div style="text-align:right;font-size:x-large; font-weight:bold;">
+            Total: @Html.Raw(ViewBag.Total)
+        </div>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Pedido Sin Operar
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>              
+                            <th>#Pedido</th>  
+                            <th>Vendedor</th>           
+                            <th>Fecha</th>
+                            <th>Hora</th>                            
+                            <th>Cliente</th>
+                            <th>Productos</th>
+                            <th>Total</th>                          
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Pedido in Model)
+                        {
+                            <tr>  
+                                <td>@Pedido.PedidoId</td>  
+                                <td>@(Pedido.UsuarioCreo == null ? "No Disponible" : Pedido.UsuarioCreo.Nombre)</td>                           
+                                <td>@Pedido.Fecha.ToString("dd/MM/yyyy")</td>   
+                                <td>@(Pedido.FechaHoraCreacion == null ? "00:00" : Pedido.FechaHoraCreacion.Value.ToString("hh:mm tt"))</td>                            
+                                <td>@(Pedido.Cliente == null ? "No Disponible" : Pedido.Cliente.Nombre)</td>                            
+                                <td>@(Pedido.Detalles == null ? 0 : Pedido.Detalles.Count())</td>
+                                <td>@(Pedido.Detalles == null ? "Q0.0000" : Pedido.Detalles.Sum(x => x.Cantidad * x.Precio).ToString("C4"))</td>                             
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">                                      
+                                        <a href="@Url.Action("Operar", "Pedido", new { id = Pedido.PedidoId })"   class="btn btn-teal tooltips" data-placement="top" data-original-title="Operar Pedido"><i class="clip-checkmark-2"></i></a>                                        
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">                                               
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Operar", "Pedido", new { id = Pedido.PedidoId })">
+                                                        <i class="clip-checkmark-2"></i> Operar Pedido
+                                                    </a>
+                                                </li>                                               
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Sin_Operar", new { page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            if ('@TempData["Pedido-Success"]' == "OK")
+            {
+                toastr.success('El pedido se guardó exitosamente');
+            }           
+        });
+
+    </script>
+}
+
+
+
+

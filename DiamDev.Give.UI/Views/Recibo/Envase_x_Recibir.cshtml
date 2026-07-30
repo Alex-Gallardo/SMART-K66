@@ -1,0 +1,133 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.ReciboEnvase>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Envases x Recibir Listado";
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Envases x Recibir
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>         
+                            <th>#Recibo</th>
+                            <th>Fecha</th>
+                            <th>Hora</th>
+                            <th>Cliente</th>
+                            <th>Transporte</th>
+                            <th>Productos</th>
+                            <th>Total de Envases</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Recibo in Model)
+                        {
+                            <tr>                               
+                                <td>@Recibo.ReciboId</td>
+                                <td>@Recibo.Fecha.ToString("dd/MM/yyyy")</td>                               
+                                <td>@(Recibo.Recibo.FechaHoraRecibo == null ? "00:00" : Recibo.Recibo.FechaHoraRecibo.Value.ToString("hh:mm tt"))</td>                            
+                                <td>@(Recibo.Recibo.Cliente == null ? "No Disponible" : Recibo.Recibo.Cliente.Nombre)</td> 
+                                <td>@(Recibo.Recibo.Transporte == null ? "No Disponible" : Recibo.Recibo.Transporte.Nombre)</td>                            
+                                <td>@(Recibo.Detalles == null ? 0 : Recibo.Detalles.Count())</td>
+                                <td>@(Recibo.Detalles == null ? 0 : Recibo.Detalles.Sum(x => x.Cantidad * x.CantidadEnvase))</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">                                     
+                                        <a href="@Url.Action("Detalle_Envase", "Recibo", new { id = Recibo.ReciboEnvaseId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Recibo"><i class="clip-stack-empty"></i></a>  
+                                        @if (Recibo.UsrRecibe == null)
+                                        {
+                                            <a href="javascript:void(0);" onclick="recibir('@Recibo.ReciboEnvaseId');" class="recibir btn btn-teal tooltips" data-placement="top" data-original-title="Recibir"><i class="clip-checkmark"></i></a>
+                                        }                                
+                                    </div>                                    
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Envase_x_Recibir", new { search = ViewBag.Search, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+        $(function ()
+        {
+            if ('@TempData["Recibo_Envase_Recibir-Success"]' == "OK")
+            {
+                toastr.success('Los envases se recibieron exitosamente');
+            }
+        });
+
+        function recibir(id)
+        {
+            if (confirm("¿Desea cancelar el recibo, ya verifico la cantidad de envases?"))
+            {
+                $.ajax({
+                    url: '@Url.Action("ActualizarReciboEnvase", "Recibo")?reciboId=' + encodeURI(id),
+                    async: false,
+                    type: 'GET',
+                    success: function (data)
+                    {
+                        if (!data.Operacion)
+                        {
+                            toastr.error('Ocurrió un error, al cancelar el recibo');
+                            return;
+                        }
+
+                        toastr.success('El recibo se cancelo exitosamente');
+                        window.location = '@Url.Action("Envase_x_Recibir", "Recibo")';
+                    },
+                    fail: function (data)
+                    {
+                        console.error(data);
+                        toastr.error('Ocurrió un error, al cancelar el recibo');
+                    }
+                });
+            }
+        }
+    </script>
+
+}
+
+
+
+

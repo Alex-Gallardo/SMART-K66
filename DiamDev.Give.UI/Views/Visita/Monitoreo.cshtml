@@ -1,0 +1,174 @@
+﻿@model IEnumerable<DiamDev.Give.Entities.Visita>
+
+@{
+    ViewBag.Title = "Monitoreo x Visita";
+}
+
+<form action="" method="get">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Inicial<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaInicial" name="FechaInicial" autocomplete="off" value="@(ViewBag.fechaInicial == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaInicial)" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                <label class="control-label">
+                    Fecha Final<span class="symbol required"></span>
+                </label>
+                <div class="input-group">
+                    <input type="text" data-date-format="yyyy-mm-dd" data-date-viewmode="years" class="form-control date-picker" id="FechaFinal" name="FechaFinal" autocomplete="off" value="@(ViewBag.fechaFinal == null ? DateTime.Today.ToString("yyyy-MM-dd") : ViewBag.fechaFinal)" required>
+                    <span class="input-group-addon"> <i class="icon-calendar"></i> </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="form-group">
+                <label class="control-label">
+                    Vendedor<span class="symbol required"></span>
+                </label>
+                @Html.DropDownList("Vendedor", (SelectList)ViewBag.Responsables, "--Seleccione un Vendedor--", new { @class = "form-control search-select required", onchange = "this.form.submit();" })
+            </div>
+        </div>
+    </div>
+</form>
+@if (Model != null && Model.Count() > 0)
+{
+    <div class="row">
+        <div class="col-md-12">
+            <button data-style="slide-down" onclick="GenerarListadoGeneral();" target="_blank" class="btn btn-primary btn-block ladda-button" type="button">
+                <span class="ladda-label"> Generar Excel de Visitas</span>
+                <span class="ladda-spinner"></span>
+                <span class="ladda-progress" style="width: 0px;"></span>
+            </button>
+        </div>
+    </div>
+    <br />   
+}
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Visitas
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="row">
+                    <div class="col-md-12">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Empresa</th>
+                                    <th>Tipo de Visita</th>
+                                    <th>Cliente ID - K66</th>
+                                    <th>Cliente</th>
+                                    <th>Direccion</th>
+                                    <th>Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var Detalle in Model)
+                                {
+                                    <tr>
+                                        <td>@(Detalle.Empresa == null ? "No Disponible" : Detalle.Empresa.Nombre)</td>
+                                        <td>@(Detalle.TipoVisita == null ? "No Disponible" : Detalle.TipoVisita.Nombre)</td>
+                                        <td>@Detalle.IDK66</td>
+                                        <td>@Detalle.Nombre</td>
+                                        <td>@(string.IsNullOrWhiteSpace(Detalle.Direccion) ? "No Disponible" : Detalle.Direccion)</td>
+                                        <td>@Detalle.Fecha.ToString("dd/MM/yyyy")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Mapa
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div id="dvMap" style="width: 100%; height: 1500px;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts
+{
+    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCoLJgCo3nfHaiuYvGYrQ1Na1dhg_wdhaM"></script>
+    <script type="text/javascript">
+        var markers = @Html.Raw(ViewBag.Markers);
+        window.onload = function ()
+        {
+            var mapOptions =
+            {
+                center: new google.maps.LatLng(markers[0].lat, markers[0].lng),
+                zoom: 7,
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            };
+            var infoWindow = new google.maps.InfoWindow();
+            var map = new google.maps.Map(document.getElementById("dvMap"), mapOptions);
+            for (i = 0; i < markers.length; i++)
+            {
+                var data = markers[i];
+                var myLatlng = new google.maps.LatLng(data.lat, data.lng);
+                var marker = new google.maps.Marker({
+                    position: myLatlng,
+                    map: map,
+                    title: data.title
+                });
+                (function (marker, data)
+                {
+                    google.maps.event.addListener(marker, "click", function (e)
+                    {
+                        infoWindow.setContent(data.description);
+                        infoWindow.open(map, marker);
+                    });
+                })(marker, data);
+            }
+        }
+
+        function GenerarListadoGeneral()
+        {
+            window.location.href = '@Url.Action("Excel_General", "Visita")?FechaInicial=' + $("#FechaInicial").val() + '&FechaFinal=' + $("#FechaFinal").val() + '&Vendedor=' + $("#Vendedor").val();
+        }
+    </script>
+}
+

@@ -1,0 +1,165 @@
+﻿@model PagedList.IPagedList<DiamDev.Give.Entities.Credito>
+@using PagedList.Mvc;
+
+@{
+    ViewBag.Title = "Credito Listado";
+}
+
+<div>
+    <a class="btn btn-light-grey" href="@Url.Action("Crear", "Credito")">
+        Nuevo
+        <i class="icon-circle-arrow-right"></i>
+    </a>
+</div>
+<br />
+<div class="row">
+    <div class="col-md-12">
+        <form action="" method="get" class="form-inline">
+            <div class="input-group well">
+                <input type="text" class="form-control" id="search" name="search" placeholder="Buscar.." value="@Html.Raw(ViewBag.Search)" autocomplete="off" style="margin-bottom: 1px;">
+                <span class="input-group-btn">
+                    <button class="btn btn-primary" type="button">
+                        <i class="clip-search-3"></i> Buscar
+                    </button>
+                </span>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <!-- start: BASIC TABLE PANEL -->
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <i class="icon-external-link-sign"></i>
+                Credito
+                <div class="panel-tools">
+                    <a class="btn btn-xs btn-link panel-collapse collapses" href="javascript:void(0)">
+                    </a>
+                    <a class="btn btn-xs btn-link panel-expand" href="javascript:void(0)">
+                        <i class="icon-resize-full"></i>
+                    </a>
+                    <a class="btn btn-xs btn-link panel-close" href="javascript:void(0)">
+                        <i class="icon-remove"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="panel-body">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Tipo de Credito</th>
+                            <th>Agencia</th>
+                            <th>Cliente</th>
+                            <th>F. Inicial</th>
+                            <th>F. Final</th>
+                            <th>Anulado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var Credito in Model)
+                        {
+                            <tr>
+                                <td>@(Credito.Tipo == null ? "No Disponible" : Credito.Tipo.Nombre)</td>
+                                <td>@(Credito.Agencia == null ? "No Disponible" : Credito.Agencia.Nombre)</td>
+                                <td>@(Credito.Cliente == null ? "No Disponible" : Credito.Cliente.Nombre)</td>
+                                <td>@Credito.FechaInicial.ToString("dd/MM/yyyy")</td>
+                                <td>@Credito.FechaFinal.ToString("dd/MM/yyyy")</td>
+                                <td>@(Credito.Anulada ? "Sí" : "No")</td>
+                                <td class="center">
+                                    <div class="visible-md visible-lg hidden-sm hidden-xs">
+                                        @if (Credito.Pagos == null || Credito.Pagos.Count() == 0)
+                                        {
+                                            if (!Credito.Anulada)
+                                            {
+                                                <a href="@Url.Action("Editar", "Credito", new { id = Credito.CreditoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Editar"><i class="icon-edit"></i></a>
+                                                <a href="@Url.Action("Anular", "Credito", new { id = Credito.CreditoId })" class="btn btn-bricky tooltips" data-placement="top" data-original-title="Anular Credito"><i class="clip-close"></i></a>
+                                            }                                            
+                                        }                                        
+                                        <a href="@Url.Action("Detalle", "Credito", new { id = Credito.CreditoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Detalle del Credito"><i class="clip-stack-empty"></i></a>
+                                        @if (!Credito.Anulada)
+                                        {
+                                            <a href="@Url.Action("Pago", "Credito", new { id = Credito.CreditoId })" class="btn btn-teal tooltips" data-placement="top" data-original-title="Pago del Credito"><i class="clip-checkmark-2"></i></a>
+                                            <a href="@Url.Action("Boleta", "Credito", new { id = Credito.CreditoId })" target="_blank" class="btn btn-teal tooltips" data-placement="top" data-original-title="Ver Boleta"><i class="clip-file-pdf"></i></a>
+                                        }
+                                    </div>
+                                    <div class="visible-xs visible-sm hidden-md hidden-lg">
+                                        <div class="btn-group">
+                                            <a class="btn btn-primary dropdown-toggle btn-sm" data-toggle="dropdown" href="#">
+                                                <i class="icon-cog"></i> <span class="caret"></span>
+                                            </a>
+                                            <ul role="menu" class="dropdown-menu pull-right">
+                                                @if (Credito.Pagos == null || Credito.Pagos.Count() == 0)
+                                                {
+                                                    if (!Credito.Anulada)
+                                                    {
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Editar", "Credito", new { id = Credito.CreditoId })">
+                                                                <i class="icon-edit"></i> Editar
+                                                            </a>
+                                                        </li>
+                                                        <li role="presentation">
+                                                            <a role="menuitem" tabindex="-1" href="@Url.Action("Anular", "Credito", new { id = Credito.CreditoId })">
+                                                                <i class="clip-close"></i> Anular Credito
+                                                            </a>
+                                                        </li>
+                                                    }
+                                                }                                                 
+                                                <li role="presentation">
+                                                    <a role="menuitem" tabindex="-1" href="@Url.Action("Detalle", "Credito", new { id = Credito.CreditoId })">
+                                                        <i class="clip-stack-empty"></i> Detalle del Credito
+                                                    </a>
+                                                </li>
+                                                @if (!Credito.Anulada)
+                                                {
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Pago", "Credito", new { id = Credito.CreditoId })">
+                                                            <i class="clip-checkmark-2"></i> Pago del Credito
+                                                        </a>
+                                                    </li>
+                                                    <li role="presentation">
+                                                        <a role="menuitem" tabindex="-1" href="@Url.Action("Boleta", "Credito", new { id = Credito.CreditoId })" target="_blank">
+                                                            <i class="clip-file-pdf"></i> Ver Boleta
+                                                        </a>
+                                                    </li>
+                                                }                                                
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!-- end: BASIC TABLE PANEL -->
+    </div>
+</div>
+
+Pagina @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) de @Model.PageCount
+
+@Html.PagedListPager(Model, page => Url.Action("Index", new { search = ViewBag.Search, page }))
+
+@section Scripts
+{
+    <script type="text/javascript">
+    $(document).ready(function () {
+        if ('@TempData["Credito-Success"]' == "OK")
+            {
+                toastr.success('El credito se guardó exitosamente');
+            }
+        else if ('@TempData["Credito_Anular-Success"]' == "OK")
+            {
+                toastr.success('El credito se anulo exitosamente');
+        }
+        else if ('@TempData["Pago-Success"]' == "OK")
+        {
+            toastr.success('El credito se pago exitosamente');
+        }
+        });
+    </script>
+}
+
+

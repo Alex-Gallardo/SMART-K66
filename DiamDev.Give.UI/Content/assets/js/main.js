@@ -131,8 +131,9 @@ var Main = function () {
             activeLink.parents('li').children('a').attr('aria-expanded', 'true');
         }
     };
-    var isMobileNavigation = function () {
-        return $(window).width() < 768;
+    var drawerNavigationMedia = window.matchMedia ? window.matchMedia('(max-width: 1024px)') : null;
+    var isDrawerNavigation = function () {
+        return drawerNavigationMedia ? drawerNavigationMedia.matches : $(window).width() <= 1024;
     };
     var getNavigationSmallPreference = function () {
         try {
@@ -146,7 +147,7 @@ var Main = function () {
         var toggler = $('.navigation-toggler');
         var topLevelLinks = $('.main-navigation-menu > li > a');
 
-        if (isSmall && !isMobileNavigation()) {
+        if (isSmall && !isDrawerNavigation()) {
             body.addClass('navigation-small');
         } else {
             body.removeClass('navigation-small');
@@ -180,9 +181,9 @@ var Main = function () {
         var sidebar = $('#app-sidebar');
         var mobileToggler = $('.navbar-toggle[aria-controls="app-sidebar"]');
         var backdrop = $('.app-sidebar-backdrop');
-        var mobileMode = null;
+        var drawerMode = null;
 
-        var setMobileNavigationOpen = function (isOpen) {
+        var setDrawerNavigationOpen = function (isOpen) {
             if (isOpen) {
                 body.addClass('app-navigation-open');
             } else {
@@ -197,18 +198,18 @@ var Main = function () {
         };
 
         var syncNavigationMode = function () {
-            var isMobile = isMobileNavigation();
+            var isDrawer = isDrawerNavigation();
 
-            if (isMobile === mobileMode) {
+            if (isDrawer === drawerMode) {
                 return;
             }
 
-            mobileMode = isMobile;
-            if (isMobile) {
+            drawerMode = isDrawer;
+            if (isDrawer) {
                 setNavigationSmall(false, false);
-                setMobileNavigationOpen(sidebar.hasClass('in'));
+                setDrawerNavigationOpen(sidebar.hasClass('in'));
             } else {
-                setMobileNavigationOpen(false);
+                setDrawerNavigationOpen(false);
                 sidebar.removeClass('in').removeAttr('style').attr('aria-hidden', 'false');
                 setNavigationSmall(getNavigationSmallPreference(), false);
             }
@@ -217,7 +218,7 @@ var Main = function () {
         syncNavigationMode();
 
         toggler.bind('click', function () {
-            if (isMobileNavigation()) {
+            if (isDrawerNavigation()) {
                 return;
             }
 
@@ -226,24 +227,24 @@ var Main = function () {
 
         sidebar
             .on('show.bs.collapse shown.bs.collapse', function () {
-                if (isMobileNavigation()) {
-                    setMobileNavigationOpen(true);
+                if (isDrawerNavigation()) {
+                    setDrawerNavigationOpen(true);
                 }
             })
             .on('hide.bs.collapse hidden.bs.collapse', function () {
-                if (isMobileNavigation()) {
-                    setMobileNavigationOpen(false);
+                if (isDrawerNavigation()) {
+                    setDrawerNavigationOpen(false);
                 }
             });
 
         backdrop.bind('click', function () {
-            if (isMobileNavigation()) {
+            if (isDrawerNavigation()) {
                 sidebar.collapse('hide');
             }
         });
 
         $(document).bind('keydown.appNavigation', function (event) {
-            if (event.keyCode === 27 && isMobileNavigation() && body.hasClass('app-navigation-open')) {
+            if (event.keyCode === 27 && isDrawerNavigation() && body.hasClass('app-navigation-open')) {
                 sidebar.collapse('hide');
                 mobileToggler.focus();
             }
@@ -330,7 +331,7 @@ var Main = function () {
             var expandedFromSmall = false;
 
             if (!subMenu.length) {
-                if (isMobileNavigation() && href && href !== '#' && href.indexOf('javascript:') !== 0) {
+                if (isDrawerNavigation() && href && href !== '#' && href.indexOf('javascript:') !== 0) {
                     $('#app-sidebar').collapse('hide');
                 }
                 return;
@@ -338,7 +339,7 @@ var Main = function () {
 
             event.preventDefault();
 
-            if (!isMobileNavigation() && $('body').hasClass('navigation-small') && isTopLevel) {
+            if (!isDrawerNavigation() && $('body').hasClass('navigation-small') && isTopLevel) {
                 expandedFromSmall = true;
                 setNavigationSmall(false, true);
             }

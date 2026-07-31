@@ -622,7 +622,7 @@ body.app-shell #loadingspinner {
 
 /* Collapsed desktop navigation */
 
-@media (min-width: 768px) {
+@media (min-width: 1025px) {
     body.app-shell .app-sidebar {
         overflow-x: hidden !important;
         overflow-y: auto !important;
@@ -749,9 +749,9 @@ body.app-shell #loadingspinner {
     }
 }
 
-/* Mobile navigation */
+/* Phone and tablet drawer navigation */
 
-@media (max-width: 767px) {
+@media (max-width: 1024px) {
     body.app-shell {
         overflow-x: hidden;
     }
@@ -797,6 +797,7 @@ body.app-shell #loadingspinner {
         right: 0;
         top: 11px;
         width: 42px;
+        touch-action: manipulation;
     }
 
     body.app-shell .app-navbar .navbar-toggle:hover,
@@ -844,9 +845,12 @@ body.app-shell #loadingspinner {
         padding: 8px 0;
     }
 
-    body.app-shell .app-navbar .app-user-copy,
-    body.app-shell .app-navbar .app-user-menu > i {
+    body.app-shell .app-navbar .app-user-copy {
         display: none;
+    }
+
+    body.app-shell .app-navbar .app-user-menu > i {
+        display: none !important;
     }
 
     body.app-shell .app-navbar li.dropdown.current-user .app-user-menu {
@@ -891,6 +895,7 @@ body.app-shell #loadingspinner {
         visibility: hidden;
         width: calc(100% - 48px) !important;
         z-index: 1045;
+        -webkit-overflow-scrolling: touch;
     }
 
     body.app-shell.app-navigation-open .app-sidebar {
@@ -987,6 +992,75 @@ body.app-shell #loadingspinner {
         min-height: var(--k66-footer-height);
         padding-left: 14px;
         padding-right: 14px;
+    }
+}
+
+/* Tablet navigation */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+    body.app-shell .app-navbar-container {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+
+    body.app-shell .app-navbar .app-brand {
+        gap: 10px;
+        max-width: calc(100% - 300px);
+    }
+
+    body.app-shell .app-navbar .app-brand-logo {
+        flex-basis: 68px;
+        height: 46px;
+        width: 68px;
+    }
+
+    body.app-shell .app-brand-context {
+        display: block;
+    }
+
+    body.app-shell .app-brand-name {
+        font-size: 16px;
+    }
+
+    body.app-shell .app-navbar .navbar-tools {
+        right: 68px;
+    }
+
+    body.app-shell .app-navbar .app-user-copy {
+        display: flex;
+    }
+
+    body.app-shell .app-navbar .app-user-menu > i {
+        display: inline-block !important;
+    }
+
+    body.app-shell .app-sidebar {
+        max-width: calc(100% - 72px);
+        width: 340px !important;
+    }
+
+    body.app-shell .main-content > .app-content-container {
+        padding: 20px 22px 34px;
+    }
+
+    body.app-shell .app-page-heading {
+        margin-bottom: 20px;
+        padding: 16px 20px 18px;
+    }
+
+    body.app-shell .app-page-header h1 {
+        font-size: 26px;
+    }
+
+    body.app-shell .app-page-header h1 small {
+        display: inline;
+        margin-left: 8px;
+        margin-top: 0;
+    }
+
+    body.app-shell .app-footer {
+        padding-left: 22px;
+        padding-right: 22px;
     }
 }
 

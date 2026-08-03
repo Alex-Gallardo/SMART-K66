@@ -101,11 +101,9 @@ namespace DiamDev.Give.BLL
                            Serie = depto.Length > 0
                                        ? _apk.ObtenerSerieDeDepto(clave, depto)
                                        : "",
-                           // Flag de venta de mostrador: la regla vive AQUÍ (BLL),
+                           // Flag de encabezado capturable: la regla vive AQUÍ (BLL),
                            // el front solo la consume. Un solo lugar que mantener.
-                           EncabezadoEditable = string.Equals(
-                               p.AgenteNombre, OPERADOR_ENCABEZADO_EDITABLE,
-                               StringComparison.OrdinalIgnoreCase)
+                           EncabezadoEditable = EsEncabezadoEditable(p.AgenteNombre)
                        };
                    })
                     // Solo operadores habilitados para recibos: DEPTO_RECIBO con valor.
@@ -445,11 +443,87 @@ namespace DiamDev.Give.BLL
             }
         }
 
-        // Operador especial de venta de mostrador: con él, el encabezado del
-        // recibo (cliente, dirección, NIT, agente, correo) es capturable a mano.
-        // Se compara contra el NOMBRE parseado del código ("1-SALA DE VENTAS" →
-        // "SALA DE VENTAS"), así funciona en las 3 empresas aunque el número cambie.
-        private const string OPERADOR_ENCABEZADO_EDITABLE = "SALA DE VENTAS";
+        // ═════════════════════════════════════════════════════════
+        // OPERADORES CON ENCABEZADO CAPTURABLE A MANO
+        // ═════════════════════════════════════════════════════════
+        // Con estos operadores, el encabezado del recibo (cliente, dirección,
+        // NIT, agente, correo) se escribe a mano en vez de derivarse del
+        // typeahead de SAP. Casos de uso: venta de mostrador (SALA DE VENTAS)
+        // y cobros excepcionales que no pasan por cartera (GERENCIA).
+        //
+        // Se compara contra el NOMBRE parseado del código ("2-GERENCIA" →
+        // "GERENCIA"), no contra el código crudo: así funciona en las 3
+        // empresas aunque el número de prefijo cambie entre ellas.
+        //
+        // ⚠ La comparación es EXACTA (no Contains/StartsWith) a propósito:
+        // un "GERENCIA".Contains() también daría true para un futuro
+        // "GERENCIA DE VENTAS", que no necesariamente debe capturar a mano.
+        // Para agregar un operador, se agrega su nombre EXACTO a esta lista.
+        //
+        // HashSet<string> es el Set de JS. El StringComparer va en el
+        // constructor para no repetir ToUpper() en cada comparación.
+        private static readonly HashSet<string> OPERADORES_ENCABEZADO_EDITABLE =
+            CargarOperadoresEditables();
+
+        /// <summary>
+        /// Lee la lista de Web.config; si la clave falta o está vacía, cae al
+        /// default del código. Fail-safe hacia el comportamiento conocido:
+        /// un config mal escrito NO deja a SALA DE VENTAS sin su modo editable.
+        /// Se evalúa una vez por AppDomain — tocar Web.config recicla el pool,
+        /// así que el cambio toma efecto sin publicar.
+        /// </summary>
+        private static HashSet<string> CargarOperadoresEditables()
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "SALA DE VENTAS",
+                "GERENCIA"
+            };
+
+            try
+            {
+                string cfg = System.Configuration.ConfigurationManager
+                                .AppSettings["RecibosOperadoresEncabezadoEditable"];
+
+                if (!string.IsNullOrWhiteSpace(cfg))
+                {
+                    var desdeConfig = cfg
+                        .Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries)
+                        .Select(n => n.Trim())
+                        .Where(n => n.Length > 0)
+                        .ToList();
+
+                    // Solo pisamos el default si el config trajo algo usable.
+                    if (desdeConfig.Count > 0)
+                    {
+                        set.Clear();
+                        foreach (var n in desdeConfig) set.Add(n);
+                    }
+                }
+            }
+            catch
+            {
+                // Config ilegible → nos quedamos con el default del código.
+            }
+
+            return set;
+        }
+
+        /// <summary>
+        /// ¿El operador captura el encabezado a mano?
+        /// Recibe el NOMBRE parseado del código (ParseCodigo().AgenteNombre),
+        /// no el código crudo.
+        ///
+        /// Es public static para que cualquier capa pueda preguntar por la
+        /// regla sin duplicarla: hoy solo la usa ObtenerEmpresasUsuario, pero
+        /// si mañana se agrega una validación server-side en GuardarRecibo
+        /// (ver nota al final), debe preguntar acá y no re-implementarla.
+        /// </summary>
+        public static bool EsEncabezadoEditable(string agenteNombre)
+        {
+            return OPERADORES_ENCABEZADO_EDITABLE.Contains((agenteNombre ?? "").Trim());
+        }
+
         // Límites del motivo de anulación (espejo del front; el máximo = tamaño
         // real de la columna MOTIVO en REC_CAJA_ENC: nvarchar(150))
         private const int MIN_MOTIVO_ANULACION = 10;

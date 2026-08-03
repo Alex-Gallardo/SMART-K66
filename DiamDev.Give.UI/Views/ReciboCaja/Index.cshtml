@@ -950,7 +950,7 @@
                 <span class="badges-recibo" style="display:flex; align-items:center; gap:6px;">
                     <span id="badgeEdicionLibre" class="badge-status edicion-libre"
                           style="display:none;"
-                          title="Operador SALA DE VENTAS: los datos del cliente se capturan manualmente y se guardan tal como se escriban.">
+                          title="Los datos del cliente se capturan manualmente y se guardan tal como se escriban.">
                         ✏️ ENCABEZADO EDITABLE
                     </span>
                     <span id="badgeSync" class="badge-sync" style="display:none;">—</span>
@@ -2098,7 +2098,8 @@ function MostrarPanelRecibo() {
     AplicarModoEncabezado(Estado.encabezadoEditable);
     $("#panelRecibo").slideDown(300);
     if (Estado.encabezadoEditable) {
-        toastr.info("Operador SALA DE VENTAS: puede escribir los datos del cliente directamente en el encabezado.");
+        toastr.info("Operador " + NombreOperadorActivo() +
+            ": puede escribir los datos del cliente directamente en el encabezado.");
     }
 }
 
@@ -2129,11 +2130,24 @@ function PintarCardOperador(info) {
 // ════════════════════════════════════════════════════════
 var CAMPOS_ENCABEZADO = "#txtNombreCliente, #txtDireccion, #txtNit, #txtAgente, #txtCorreo";
 
+// Nombre legible del operador activo, para los mensajes de UI.
+// Preferimos el nombre parseado ("GERENCIA") sobre el código crudo
+// ("2-GERENCIA"): el número solo le sirve a SAP, no al cajero.
+function NombreOperadorActivo() {
+    return Estado.agenteOperador || Estado.codigoUsuario || "Este operador";
+}
+
 function AplicarModoEncabezado(editable) {
     if (editable) {
         $(CAMPOS_ENCABEZADO).prop("readonly", false).removeClass("f-readonly");
         $("#panelEncabezado").addClass("encabezado-libre");
-        $("#badgeEdicionLibre").show();
+        // El título se arma en runtime: la lista de operadores editables vive
+        // en el BLL, así que el front no puede (ni debe) hardcodear cuál es.
+        $("#badgeEdicionLibre")
+            .attr("title", "Operador " + NombreOperadorActivo() +
+                ": los datos del cliente se capturan manualmente y se " +
+                "guardan tal como se escriban.")
+            .show();
     } else {
         $(CAMPOS_ENCABEZADO).prop("readonly", true).addClass("f-readonly");
         $("#panelEncabezado").removeClass("encabezado-libre");

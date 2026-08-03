@@ -370,6 +370,7 @@
         <div id="avisoMoneda"></div>
 
         <!-- ── KPIs ── -->
+        <!-- Lista de cards indicativos -->
         <div class="an-cards">
             <div class="an-card k-recibos">
                 <div class="num" id="kRecibos">—</div>
@@ -413,27 +414,6 @@
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-8">
-                <div class="an-box">
-                    <h5>Ranking de usuarios <small>— por monto registrado</small></h5>
-                    <div id="chartUsuarios" style="height:340px;"></div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="an-box">
-                    <h5>Distribución por empresa</h5>
-                    <div id="chartEmpresas" style="height:340px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ── Serie diaria ── -->
-        <div class="an-box">
-            <h5>Actividad diaria <small>— recibos creados por empresa</small></h5>
-            <div id="chartSerie" style="height:280px;"></div>
-        </div>
-
         <!-- ── Mapa de calor ── -->
         <div class="an-box">
             <h5>Cuándo se cobra <small>— hora del día × día de la semana</small></h5>
@@ -442,29 +422,6 @@
                 <span>Menos</span><i style="opacity:.15"></i><i style="opacity:.4"></i>
                 <i style="opacity:.7"></i><i style="opacity:1"></i><span>Más</span>
                 <span style="margin-left:12px;" id="heatMax"></span>
-            </div>
-        </div>
-
-        <!-- ── Anulaciones ── -->
-        <div class="an-box">
-            <h5>Anulaciones <small>— motivo tomado del payload del evento</small></h5>
-            <div style="overflow-x:auto; border:1px solid #e6e6e6; border-radius:6px;">
-                <table class="table table-condensed an-tabla" id="tablaAnul">
-                    <thead>
-                        <tr>
-                            <th>Recibo</th>
-                            <th>Empresa</th>
-                            <th>Usuario</th>
-                            <th class="text-right">Monto (Q)</th>
-                            <th>Estado al anular</th>
-                            <th>Motivo</th>
-                            <th>Fecha</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbAnul">
-                        <tr><td colspan="7" class="text-center" style="padding:20px; color:#aaa;">Cargando...</td></tr>
-                    </tbody>
-                </table>
             </div>
         </div>
 
@@ -498,6 +455,51 @@
                         <tr><td colspan="7" class="text-center" style="padding:20px; color:#aaa;">Cargando...</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- ── Serie diaria ── -->
+        <div class="an-box">
+            <h5>Actividad diaria <small>— recibos creados por empresa</small></h5>
+            <div id="chartSerie" style="height:280px;"></div>
+        </div>
+
+        <!-- ── Anulaciones ── -->
+        <div class="an-box">
+            <h5>Anulaciones <small>— motivo tomado del payload del evento</small></h5>
+            <div style="overflow-x:auto; border:1px solid #e6e6e6; border-radius:6px;">
+                <table class="table table-condensed an-tabla" id="tablaAnul">
+                    <thead>
+                        <tr>
+                            <th>Recibo</th>
+                            <th>Empresa</th>
+                            <th>Usuario</th>
+                            <th class="text-right">Monto (Q)</th>
+                            <th>Estado al anular</th>
+                            <th>Motivo</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbAnul">
+                        <tr><td colspan="7" class="text-center" style="padding:20px; color:#aaa;">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Ambas graficas juntas -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="an-box">
+                    <h5>Ranking de usuarios <small>— por monto registrado</small></h5>
+                    <div id="chartUsuarios" style="height:340px;"></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="an-box">
+                    <h5>Distribución por empresa</h5>
+                    <div id="chartEmpresas" style="height:340px;"></div>
+                </div>
             </div>
         </div>
 

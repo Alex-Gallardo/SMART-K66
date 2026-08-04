@@ -322,7 +322,7 @@
     }
 </style>
 
-<div class="panel panel-default" style="border-top:4px solid #8e44ad;">
+<div class="panel panel-default" style="border-top: 4px solid var(--k66-border);">
     <div class="panel-heading" style="background:#f7f9fa; border-bottom:1px solid #eee;">
         <h4 class="panel-title" style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:#5d6d7e; font-size:13px;">
             <i class="clip-stats"></i>
@@ -377,7 +377,7 @@
                 <div class="lbl">Recibos creados</div>
                 <div class="sub" id="kRecibosSub">&nbsp;</div>
             </div>
-            <div class="an-card k-monto">
+            <!-- <div class="an-card k-monto">
                 <div class="num" id="kMonto">—</div>
                 <div class="lbl">Monto registrado</div>
                 <div class="sub" id="kMontoSub">&nbsp;</div>
@@ -386,14 +386,14 @@
                 <div class="num" id="kTicket">—</div>
                 <div class="lbl">Ticket promedio</div>
                 <div class="sub">Por recibo creado</div>
-            </div>
+            </div> -->
             <div class="an-card k-anul" title="Anulaciones ocurridas en el periodo dividido entre recibos creados en el mismo periodo. Es una tasa de actividad, no de cohorte.">
                 <div class="num" id="kAnul">—</div>
                 <div class="lbl">Anulaciones</div>
                 <div class="sub" id="kAnulSub">&nbsp;</div>
             </div>
-            <div class="an-card k-users">
-                <div class="num" id="kUsers">—</div>
+            <div class="an-card k-users" style="border-top-color: #27ae60">
+                <div class="num" id="kUsers" style="color: #1e8449">—</div>
                 <div class="lbl">Usuarios activos</div>
                 <div class="sub" id="kUsersSub">&nbsp;</div>
             </div>
@@ -613,7 +613,7 @@ function PintarKpis(r){
     $("#kAnulSub").text(r.Anulados > 0
         ? r.TasaAnulacion + "% · Q " + Fm0(r.MontoAnulado) : "Sin anulaciones");
     $("#kUsers").text(Fm0(r.UsuariosActivos));
-    $("#kUsersSub").text(r.DeptosActivos + " depto(s)");
+    $("#kUsersSub").text(r.DeptosActivos + " serie(s)");
     $("#kIps").text(Fm0(r.IpsDistintas));
 
     $("#kImpresos").text(Fm0(r.Impresos));

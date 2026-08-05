@@ -460,7 +460,7 @@ namespace DiamDev.Give.DAL
                 FROM dbo.REC_CAJA_SERIES WHERE ROWID = @rowid;";
             using (var cn = new SqlConnection(Cs()))
             using (var cmd = new SqlCommand(sql, cn))
-            {
+            {   
                 cmd.Parameters.AddWithValue("@rowid", rowId);
                 cn.Open();
                 using (var rd = cmd.ExecuteReader())

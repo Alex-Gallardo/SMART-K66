@@ -180,11 +180,14 @@ namespace DiamDev.Give.DAL
         /// está anulado, y sobre FECHA_REGISTRO si no. Sin esto la card
         /// "Anulados (mes)" nunca cuadraría con el grid.
         /// </summary>
+        /// 
         public List<DashboardFilaRecibo> ObtenerDetalle(string empresa, int diasUmbral,
             DateTime? fechaIni, DateTime? fechaFin, bool incluirOperados,
-            bool incluirAnulados, bool soloAnulados, AlcanceRecibos alcance)
+            bool incluirAnulados, bool soloAnulados, AlcanceRecibos alcance,
+            int topeFilas, out bool truncado)
         {
             var lista = new List<DashboardFilaRecibo>();
+            int tope = topeFilas;
 
             using (var cn = new SqlConnection(Cs()))
             using (var cmd = new SqlCommand())
@@ -193,7 +196,7 @@ namespace DiamDev.Give.DAL
                 string alc = PredicadoAlcance(cmd, alcance);
 
                 cmd.CommandText = @"
-                    SELECT TOP 500
+                    SELECT TOP (@tope)
                            T.ID_RECIBO, T.ID_EMPRESA, T.NOMBRE_CLIENTE, T.USUARIO,
                            T.MONTO_GTQ, T.SYNC_ESTADO, T.OBS, T.FECHA_REGISTRO, T.DIAS,
                            T.ES_ANULADO, T.ANULADO_POR, T.FECHA_ANULACION, T.MOTIVO
@@ -241,6 +244,16 @@ namespace DiamDev.Give.DAL
                         T.FECHA_FILTRO DESC;";
 
                 cmd.Parameters.AddWithValue("@emp", empresa ?? "");
+                // TOP parametrizado. En SQL Server, TOP (@var) entre paréntesis
+                // es sintaxis válida y NO obliga a SQL dinámico: el motor recibe
+                // el valor como parámetro y puede cachear el plan igual.
+                //
+                // Guardas: mínimo 100 (menos no sirve para nada) y máximo 20,000
+                // (más satura el JSON hacia el navegador antes que a la BD).
+                
+                if (tope < 100) tope = 100;
+                if (tope > 20000) tope = 20000;
+                cmd.Parameters.AddWithValue("@tope", tope);
                 cmd.Parameters.AddWithValue("@incOper", incluirOperados ? 1 : 0);
                 cmd.Parameters.AddWithValue("@incAnul", incluirAnulados ? 1 : 0);
                 cmd.Parameters.AddWithValue("@soloAnul", soloAnulados ? 1 : 0);
@@ -307,6 +320,13 @@ namespace DiamDev.Give.DAL
                     }
                 }
             }
+
+            // ¿Se alcanzó el tope? Si el TOP devolvió exactamente el máximo,
+            // asumimos que hay más filas afuera. Puede haber un falso positivo
+            // cuando el total coincide EXACTO con el tope, y está bien: preferimos
+            // avisar de más antes que ocultar datos. Un aviso de sobra molesta;
+            // un dato faltante silencioso se convierte en una decisión equivocada.
+            truncado = (lista.Count >= tope);
             return lista;
         }
 

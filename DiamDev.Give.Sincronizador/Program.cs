@@ -19,10 +19,23 @@ namespace DiamDev.Give.Sincronizador
         // ── Control de cadencia para la sincronización de RECIBOS ──
         private static DateTime _ultimoSyncRecibos = DateTime.MinValue;
 
+        // ── Control de cadencia para la sincronización de PEDIDOS ──
+        // Antes NO existía: el bloque de pedidos corría en CADA vuelta del
+        // while, o sea cada 2 segundos (Thread.Sleep(2000)) = 43,200 consultas
+        // diarias contra Pedido_K66 (71,946 filas / 70 MB).
+        //
+        // Los recibos siempre tuvieron esta compuerta; los pedidos se quedaron
+        // sin ella. Mismo patrón, aplicado al bloque que faltaba.
+        //
+        // 30 segundos es conservador: si un pedido tarda medio minuto más en
+        // llegar al ERP, nadie lo nota. Subilo a 1-2 minutos si el negocio
+        // lo tolera y bajás otro 75% la carga.
+        private static DateTime _ultimoSyncPedidos = DateTime.MinValue;
+        private static readonly TimeSpan INTERVALO_PEDIDOS = TimeSpan.FromSeconds(30);
+
         // =========== CAMBIAR A 5 MIN (PRODUCCION) ============================================
         // private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromMinutes(5);
         private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromMinutes(5);
-        // private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromSeconds(30); // DEMO: volver a FromMinutes(5) después
 
         static void Main(string[] args)
         {
@@ -46,6 +59,44 @@ namespace DiamDev.Give.Sincronizador
 
             while (true)
             {
+                // ── PEDIDOS (cada INTERVALO_PEDIDOS) ──────────────────────
+                // Todo el bloque —incluido el Console.Clear() y el encabezado—
+                // entra a la compuerta. Repintar la consola 43,200 veces al día
+                // no solo parpadea: Console.Clear() es justo la llamada que lanza
+                // IOException al correr sin consola (servicio / tarea programada),
+                // que es el bloqueo actual para desplegarlo en el servidor.
+                if (DateTime.Now - _ultimoSyncPedidos >= INTERVALO_PEDIDOS)
+                {
+                    SincronizarPedidos();
+                    _ultimoSyncPedidos = DateTime.Now;
+                }
+
+                // ── RECIBOS DE CAJA (cada INTERVALO_RECIBOS) ──────────────
+                if (DateTime.Now - _ultimoSyncRecibos >= INTERVALO_RECIBOS)
+                {
+                    SincronizarRecibos();
+                    _ultimoSyncRecibos = DateTime.Now;
+                }
+
+                // El tick sigue en 2s: es solo la resolución con la que el loop
+                // revisa los relojes. Barato — no hace I/O, solo compara fechas.
+                Thread.Sleep(2000);
+            }
+        }
+
+        /// <summary>
+        /// Sincronización de PEDIDOS hacia el ERP. Extraído del while de Main
+        /// sin cambios de lógica: mismo flujo, mismos mensajes, mismo orden.
+        ///
+        /// El try/catch general es nuevo. Antes, una excepción fuera del
+        /// ForEach (por ejemplo en ObtenerPendientesSincronizar, si la BD no
+        /// responde) tumbaba el proceso entero y con él la sincronización de
+        /// RECIBOS, que no tenía nada que ver. Cada pata falla sola.
+        /// </summary>
+        private static void SincronizarPedidos()
+        {
+            try
+            {
                 Console.Clear();
                 Console.WriteLine("SINCRONIZADOR DE PEDIDOS K66");
                 Console.WriteLine("----------------------------------------------");
@@ -54,7 +105,8 @@ namespace DiamDev.Give.Sincronizador
 
                 Console.WriteLine("CARGANDO PEDIDOS PENDIENTES DE SINCRONIZAR");
                 Console.WriteLine("----------------------------------------------");
-                List<PedidoPendienteK66> PedidosPendientes = new Pedidok66BL().ObtenerPendientesSincronizar();
+                List<PedidoPendienteK66> PedidosPendientes =
+                    new Pedidok66BL().ObtenerPendientesSincronizar();
 
                 if (PedidosPendientes != null && PedidosPendientes.Count() > 0)
                 {
@@ -93,7 +145,7 @@ namespace DiamDev.Give.Sincronizador
                                 Console.WriteLine("----------------------------------------------");
                             }
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
                             Console.WriteLine("ERROR EN LA SINCRONIZACION DEL PEDIDO: {0}", p.PedidoId);
                             Console.WriteLine("----------------------------------------------");
@@ -105,17 +157,11 @@ namespace DiamDev.Give.Sincronizador
                     Console.WriteLine("NO HAY PEDIDOS PENDIENTES DE SINCRONIZAR");
                     Console.WriteLine("----------------------------------------------");
                 }
-
-                // ════════════════════════════════════════════════════════════
-                //  SINCRONIZACIÓN DE RECIBOS DE CAJA (cada 5 min)
-                // ════════════════════════════════════════════════════════════
-                if (DateTime.Now - _ultimoSyncRecibos >= INTERVALO_RECIBOS)
-                {
-                    SincronizarRecibos();
-                    _ultimoSyncRecibos = DateTime.Now;
-                }
-
-                Thread.Sleep(2000);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("ERROR GENERAL EN SYNC DE PEDIDOS: {0}", ex.Message);
+                LogFile.Error("ERROR GENERAL en SincronizarPedidos", ex);
             }
         }
 

@@ -103,6 +103,10 @@ namespace DiamDev.Give.BLL
         {
             // OPERADO **y** DESCUADRE: los descuadrados también se re-revisan
             // para poder sanarse solos cuando Créditos re-aplica el pago.
+            //
+            // ★ Desde el fix de la cola rotativa, esto ya NO trae todo el
+            // histórico: trae un lote acotado (App.config -> SyncLoteRevision),
+            // con los DESCUADRE siempre al frente.
             List<ReciboRevisionSql> revisar = _sql.ObtenerRecibosParaRevision(empresa);
             if (revisar.Count == 0) return;
 
@@ -120,7 +124,11 @@ namespace DiamDev.Give.BLL
             Dictionary<string, ReciboMontoSql> datosSql =
                 _sql.ObtenerDatosConciliacion(empresa, ids);
 
-            var sinCambio = new List<string>();
+            // ★ Bitácora de TODO lo visto en SAP, en UNA conexión para todo el
+            // lote. Antes se llamaba UpsertSapDocs dentro del foreach: una
+            // SqlConnection nueva por recibo (~845 aperturas por ciclo).
+            // Los errores se acumulan igual que antes, solo que devueltos.
+            res.Errores.AddRange(_sql.UpsertSapDocsLote(empresa, pagosPorRecibo));
 
             foreach (var op in revisar)
             {
@@ -128,9 +136,6 @@ namespace DiamDev.Give.BLL
                 {
                     pagosPorRecibo.TryGetValue(op.IdRecibo, out var pagosRecibo);
                     pagosRecibo = pagosRecibo ?? new List<SapPagoDetalle>();
-
-                    // Bitácora: registrar TODO lo visto en SAP (activos y anulados)
-                    _sql.UpsertSapDocs(op.IdRecibo, empresa, pagosRecibo);
 
                     var activos = pagosRecibo.Where(p => !p.Canceled).ToList();
 
@@ -168,10 +173,7 @@ namespace DiamDev.Give.BLL
                     }
 
                     // ── CASO 2/3: conciliar sumando TODOS los pagos activos ──
-                    bool quedoOperadoCuadrado = ConciliarRecibo(
-                        op, empresa, activos, pagosRecibo, datosSql, res);
-
-                    if (quedoOperadoCuadrado) sinCambio.Add(op.IdRecibo);
+                    ConciliarRecibo(op, empresa, activos, pagosRecibo, datosSql, res);
                 }
                 catch (Exception ex)
                 {
@@ -180,7 +182,22 @@ namespace DiamDev.Give.BLL
                 }
             }
 
-            _sql.MarcarUltimoCheckLote(sinCambio, empresa, "OPERADO");
+            // ★ FIX (inanición): se sella el LOTE COMPLETO, no solo los que
+            // cuadraron sin cambio.
+            //
+            // Antes se acumulaba una lista 'sinCambio' y solo esos se sellaban.
+            // Sin TOP eso era inofensivo. CON la cola rotativa es un bug: un
+            // recibo que sale por 'continue' (anulación total), por un return
+            // temprano de ConciliarRecibo (sin datos en datosSql), o por
+            // excepción, nunca sellaría SYNC_ULTIMO_CHECK — y al ordenar la
+            // cola por esa columna quedaría clavado AL FRENTE para siempre,
+            // bloqueando a los que vienen atrás. Head-of-line blocking clásico.
+            //
+            // Pasar 'ids' completo es seguro: MarcarUltimoCheckLote filtra por
+            // SYNC_ESTADO = 'OPERADO', así que los que transicionaron en esta
+            // vuelta (a PENDIENTE por anulación, o a DESCUADRE) quedan fuera —
+            // y esos ya sellaron su propio SYNC_ULTIMO_CHECK en su UPDATE.
+            _sql.MarcarUltimoCheckLote(ids, empresa, "OPERADO");
         }
 
         // ── Conciliación de un recibo (multi-ORCT) ─────────────────────────
@@ -220,8 +237,24 @@ namespace DiamDev.Give.BLL
                     return false;
                 }
 
-                // Ya estaba OPERADO y cuadra: limpiar bandera previa si había
-                _sql.MarcarConciliacion(op.IdRecibo, empresa, null);
+                // Ya estaba OPERADO y cuadra: limpiar bandera previa SI LA HAY.
+                //
+                // ★ FIX: la pregunta "¿había marca?" se responde ACÁ, en memoria,
+                // en vez de mandar un UPDATE para que SQL lo averigüe con su
+                // WHERE ... LIKE '[[]CONCIL]%'. Antes se ejecutaba SIEMPRE, para
+                // todos los operados cuadrados de todos los ciclos: ~834 UPDATE
+                // por ciclo × 288 ciclos = ~240,000 escrituras diarias que
+                // afectaban CERO filas.
+                //
+                // El StartsWith es exactamente el mismo predicado del LIKE del
+                // DA, evaluado sobre un dato que YA viajó en la consulta de
+                // ObtenerRecibosParaRevision. No cambia el comportamiento: en
+                // los casos en que SÍ hay marca, el UPDATE se sigue ejecutando
+                // igual que antes.
+                if ((op.SyncObservacion ?? "").StartsWith("[CONCIL]",
+                                                          StringComparison.OrdinalIgnoreCase))
+                    _sql.MarcarConciliacion(op.IdRecibo, empresa, null);
+
                 return true;
             }
 

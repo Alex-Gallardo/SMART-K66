@@ -50,5 +50,19 @@ namespace DiamDev.Give.Entities
         public int SapDocEntry { get; set; }
         public int SapDocNum { get; set; }
         public string SyncEstado { get; set; }   // 'OPERADO' | 'DESCUADRE'
+
+        /// <summary>
+        /// SYNC_OBSERVACION tal como está en la BD al momento de la lectura.
+        ///
+        /// Se trae en ObtenerRecibosParaRevision para poder decidir EN MEMORIA
+        /// si hay una marca [CONCIL] que limpiar, en vez de mandar un UPDATE a
+        /// la BD para que ella lo averigüe con su WHERE ... LIKE '[[]CONCIL]%'.
+        ///
+        /// Cuesta ~200 bytes por fila en un SELECT que ya se estaba haciendo,
+        /// y ahorra ~240,000 UPDATE diarios que afectaban CERO filas.
+        /// (Medido 2026-08-05: 1.4M operaciones en 11 días sobre una tabla
+        ///  de 871 filas.)
+        /// </summary>
+        public string SyncObservacion { get; set; }
     }
 }

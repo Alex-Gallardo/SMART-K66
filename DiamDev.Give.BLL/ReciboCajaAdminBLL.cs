@@ -29,6 +29,29 @@ namespace DiamDev.Give.BLL
             }
         }
 
+        private const int TOPE_FILAS_FALLBACK = 2000;
+
+        /// <summary>
+        /// Tope de filas del grid (Web.config → DashboardTopeFilas).
+        ///
+        /// Era 500 hardcodeado en el SQL. El problema no era el número: era que
+        /// vivía en un string SQL, así que subirlo exigía recompilar y publicar.
+        /// Ahora es config, igual que DashboardDiasEnvejecido.
+        ///
+        /// 2000 no es arbitrario: hoy el peor universo real (vivos + operados)
+        /// son 857 filas y crece ~950/mes. 2000 cubre con holgura hasta que
+        /// llegue la paginación real. NO es la solución definitiva — es el
+        /// piso que evita perder datos mientras tanto.
+        /// </summary>
+        public int TopeFilas
+        {
+            get
+            {
+                string raw = ConfigurationManager.AppSettings["DashboardTopeFilas"];
+                return (int.TryParse(raw, out int v) && v >= 100) ? v : TOPE_FILAS_FALLBACK;
+            }
+        }
+
         // ═════════════════════════════════════════════
         //  ALCANCE POR USUARIO_EMPRESA
         // ═════════════════════════════════════════════
@@ -120,17 +143,30 @@ namespace DiamDev.Give.BLL
         ///   - El DA decide QUÉ UNIVERSO traer (vivos / +operados / +anulados),
         ///     porque eso vive en el WHERE y no se puede filtrar después.
         ///   - El BLL filtra por SITUACIÓN en memoria, porque la situación es
-        ///     una clasificación DERIVADA (depende del umbral de días, del texto
-        ///     de la observación, etc.) que ya calculó el DA fila por fila.
+        ///     una clasificación DERIVADA que ya calculó el DA fila por fila.
         ///
-        /// "ANULADO" es el caso especial: implica cambiar el universo, no solo
-        /// filtrar el resultado. Por eso enciende traerAnulados.
+        /// ⚠ DEUDA TÉCNICA CONOCIDA — leer antes de tocar:
+        /// El filtro por situación corre DESPUÉS del TOP del servidor. Si el
+        /// universo supera el tope, la situación se filtra sobre una MUESTRA,
+        /// no sobre el total, y el grid muestra menos de lo que dice la card.
+        ///
+        /// Medido el 2026-08-05 en producción:
+        ///   - Vivos (PENDIENTE+DESCUADRE): 23 filas → sin riesgo. Es una cola
+        ///     de trabajo autolimpiante, no crece de forma acumulativa.
+        ///   - Con OPERADO: 857 filas → CON el TOP 500 anterior se perdían 357.
+        ///   - Con ANULADO: iban al grupo 3 del ORDER BY, detrás de 834
+        ///     operados → no llegaba ninguno al grid.
+        ///
+        /// Mitigación actual: tope configurable (2000) + bandera 'truncado' que
+        /// el front muestra al usuario. Solución definitiva: clasificar la
+        /// situación EN SQL y paginar (P3 del plan de escalabilidad).
         /// </summary>
         public List<DashboardFilaRecibo> ObtenerDetalle(
             string empresa, string situacion,
             string fechaIni, string fechaFin,
             bool incluirOperados, bool incluirAnulados,
-            AlcanceRecibos alcance)
+            AlcanceRecibos alcance,
+            out bool truncado)
         {
             DateTime? fIni = ParseFechaDash(fechaIni);
             DateTime? fFin = ParseFechaDash(fechaFin);
@@ -139,20 +175,22 @@ namespace DiamDev.Give.BLL
             if (situacion.Length == 0) situacion = "TODOS";
 
             // La card dice "ANTIGUO", el DA clasifica como "ENVEJECIDO".
-            // Traducimos aquí para no tocar ninguno de los dos extremos.
             if (situacion == "ANTIGUO") situacion = "ENVEJECIDO";
 
-            // Ver ObtenerDetalle del DA: cuando la situación ES "ANULADO" no basta
-            // con AMPLIAR el universo, hay que RECORTARLO. Si dejáramos entrar los
-            // vivos, el TOP 500 se los comería y el filtro en memoria de abajo
-            // devolvería lista vacía con la card marcando 4.
             bool soloAnulados = (situacion == "ANULADO");
             bool traerAnulados = soloAnulados || incluirAnulados;
 
+            // ★ NUEVO: si se pide una situación concreta que SOLO existe entre
+            // los operados, no tiene sentido arrastrar todo el universo vivo.
+            // Mismo razonamiento que ya se aplicó a soloAnulados: recortar el
+            // universo antes del TOP, no filtrar después de él.
+            bool soloOperados = (situacion == "OPERADO");
+            bool traerOperados = soloOperados || incluirOperados;
+
             var filas = _da.ObtenerDetalle(empresa ?? "", DiasUmbral,
                                            fIni, fFin,
-                                           incluirOperados, traerAnulados, soloAnulados,
-                                           alcance);
+                                           traerOperados, traerAnulados, soloAnulados,
+                                           alcance, TopeFilas, out truncado);
 
             if (situacion == "TODOS") return filas;
 

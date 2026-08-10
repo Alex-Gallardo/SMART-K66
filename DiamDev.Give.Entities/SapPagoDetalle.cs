@@ -16,7 +16,7 @@ namespace DiamDev.Give.Entities
         public bool Canceled { get; set; }
         public DateTime? FechaPago { get; set; }
 
-        // Totales del pago según ORCT (fallback cuando NO hay líneas RCT2 = anticipo)
+        // Totales del pago según ORCT — DINERO EFECTIVAMENTE RECIBIDO
         public decimal DocTotalGTQ { get; set; }   // ORCT.DocTotal   (moneda local)
         public decimal DocTotalUSD { get; set; }   // ORCT.DocTotalFC (moneda extranjera)
         public string MonedaDoc { get; set; }      // ORCT.DocCurr ya normalizada (QTZ→GTQ)
@@ -29,9 +29,62 @@ namespace DiamDev.Give.Entities
         // DocNum de las facturas (OINV) que este pago dejó aplicadas
         public List<string> FacturasAplicadas { get; set; } = new List<string>();
 
+        // ══════════════════════════════════════════════════════════════
+        // NIVEL 1 — DINERO (autoridad para OPERADO / DESCUADRE)
+        // ══════════════════════════════════════════════════════════════
+
         /// <summary>
-        /// Monto efectivo del pago en la moneda pedida:
-        /// RCT2 si hay líneas aplicadas; si no (anticipo), el total del ORCT.
+        /// Dinero efectivamente RECIBIDO en este pago (ORCT.DocTotal).
+        /// Incluye TODO: lo aplicado a facturas + lo que quedó a cuenta.
+        ///
+        /// Se compara contra MONTO_T_REC del recibo. Es la única medida
+        /// válida para decidir si el recibo está operado, porque es la
+        /// única que representa "cuánto dinero registró Créditos en SAP".
+        /// </summary>
+        public decimal MontoRecibido(bool esUSD)
+        {
+            return esUSD ? DocTotalUSD : DocTotalGTQ;
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // NIVEL 2 — APLICACIÓN (informativo, NO decide estado)
+        // ══════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Dinero APLICADO a facturas según RCT2. Cero si no hay líneas
+        /// (pago 100% a cuenta / anticipo puro).
+        /// </summary>
+        public decimal MontoAplicado(bool esUSD)
+        {
+            if (!TieneLineasRct2) return 0m;
+            return esUSD ? AplicadoUSD : AplicadoGTQ;
+        }
+
+        /// <summary>
+        /// Dinero que quedó A CUENTA del cliente (anticipo / saldo a favor).
+        ///
+        /// No requiere leer ORCT.NoDocSum: es la diferencia entre lo recibido
+        /// y lo aplicado. Cuando Créditos concilie ese saldo contra una factura
+        /// futura (conciliación interna: OITR/ITR1 + JDT1), este valor NO cambia
+        /// — y eso es correcto: el recibo de caja ya estaba operado desde el
+        /// momento en que el ORCT se creó.
+        /// </summary>
+        public decimal MontoACuenta(bool esUSD)
+        {
+            decimal dif = MontoRecibido(esUSD) - MontoAplicado(esUSD);
+            return dif > 0m ? dif : 0m;
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // LEGACY — no usar para conciliar
+        // ══════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// ⚠️ NO USAR PARA CONCILIAR. Causa DESCUADRE en recibos mixtos
+        /// (facturas + anticipo): al haber líneas RCT2 devuelve solo lo
+        /// aplicado e ignora el monto a cuenta.
+        ///
+        /// Se conserva por compatibilidad. Para conciliar usar MontoRecibido().
         /// </summary>
         public decimal MontoEfectivo(bool esUSD)
         {

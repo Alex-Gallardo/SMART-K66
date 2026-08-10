@@ -611,7 +611,8 @@ var URL_IMPRIMIR_LOTE = "@Url.Action("ImprimirLote","ReciboCaja")";
 //   ANULADO WEB → el recibo está muerto, solo se audita.
 var ETIQUETA_SIT = {
     "ANULADO": "ANULADO WEB",
-    "ANULADO_SAP": "ANULADO SAP"
+    "ANULADO_SAP": "ANULADO SAP",
+    "ENVEJECIDO": "PENDIENTE"
 };
 function LabelSit(s) {
     return ETIQUETA_SIT[s] || (s || "").replace("_", " ");
@@ -688,6 +689,44 @@ function InterpretarObservacion(f) {
             detalle: "El monto del recibo volvió a coincidir con lo aplicado en SAP. " +
                 "El recibo quedó operado y ya no lleva sello de conciliación.",
             accion: "", tecnico: ""
+        };
+    }
+
+    // ── 2.5. OPERADO CON SALDO A CUENTA ([CONCIL]) ──
+    // NO es un problema: el pago entró completo a SAP. Parte quedó como saldo
+    // a favor del cliente, que Créditos aplica después por conciliación interna
+    // (OITR/ITR1). Se informa, no se alerta.
+    if (/^\[CONCIL\]/i.test(raw)) {
+        var UMBRAL_ANTICIPO = 1.00;   // espejo de UMBRAL_ANTICIPO_VISIBLE (C#)
+
+        var monC = ObsCap(obs, /conciliaci[oó]n\s*\((usd|gtq)\)/i) || "GTQ";
+        var aCta = ObsNum(ObsCap(obs, /a\s*cuenta\s*[Q$]?\s*([\d.,]+)/i));
+        var recC = ObsNum(ObsCap(obs, /de\s*[Q$]?\s*([\d.,]+)\s*recibidos/i));
+        var aplC = ObsNum(ObsCap(obs, /aplicado\s*[Q$]?\s*([\d.,]+)/i));
+
+        if (!aCta) {
+            return {
+                clase: "obs-ok", corto: "Pago aplicado en SAP",
+                detalle: "Créditos ya aplicó el pago de este recibo en SAP. Nada pendiente.",
+                accion: "", tecnico: ""
+            };
+        }
+
+        var esRedondeo = aCta < UMBRAL_ANTICIPO;
+        return {
+            clase: esRedondeo ? "obs-ok" : "obs-info",
+            corto: esRedondeo
+                ? "Operado — diferencia de redondeo de " + ObsMonto(aCta, monC)
+                : "Operado — " + ObsMonto(aCta, monC) + " a cuenta del cliente",
+            detalle: esRedondeo
+                ? "El pago se aplicó completo en SAP. Quedó un residuo de centavos por " +
+                "redondeo al repartir el monto entre varias facturas. No es dinero faltante."
+                : "El pago entró COMPLETO a SAP por " + ObsMonto(recC, monC) + ". Se aplicaron " +
+                ObsMonto(aplC, monC) + " a facturas y " + ObsMonto(aCta, monC) + " quedaron " +
+                "como saldo a favor del cliente. El recibo está correctamente operado; el " +
+                "saldo se aplica después por conciliación interna en SAP.",
+            accion: "",   // vacío a propósito: no hay nada que hacer, no ensuciamos el grid
+            tecnico: ""
         };
     }
 

@@ -322,8 +322,13 @@ namespace DiamDev.Give.DAL
         }
 
         /// <summary>
-        /// Trae, para un lote de recibos, la MONEDA y el MONTO_T_DOC necesarios
-        /// para conciliar contra RCT2. Un solo viaje a SQL.
+        /// Trae, para un lote de recibos, la MONEDA y los montos de conciliación.
+        /// Un solo viaje a SQL.
+        ///
+        /// ★ Ahora también trae MONTO_T_REC. Es el que se compara contra
+        ///   ORCT.DocTotal: ambos significan "cuánto dinero entró".
+        ///   MONTO_T_DOC se conserva porque es el que corresponde a las líneas
+        ///   del detalle (nivel informativo), no al dinero.
         /// </summary>
         public Dictionary<string, ReciboMontoSql> ObtenerDatosConciliacion(string empresa, List<string> idsRecibo)
         {
@@ -342,7 +347,7 @@ namespace DiamDev.Give.DAL
                 }
                 cmd.Parameters.AddWithValue("@empresa", empresa);
                 cmd.CommandText =
-                    "SELECT ID_RECIBO, MONEDA, MONTO_T_DOC " +
+                    "SELECT ID_RECIBO, MONEDA, MONTO_T_DOC, MONTO_T_REC " +
                     "FROM dbo.REC_CAJA_ENC " +
                     "WHERE ID_EMPRESA = @empresa AND ID_RECIBO IN (" + string.Join(",", nombres) + ");";
                 cn.Open();
@@ -355,7 +360,9 @@ namespace DiamDev.Give.DAL
                             IdRecibo = id,
                             Moneda = rd["MONEDA"] == DBNull.Value ? "GTQ" : rd["MONEDA"].ToString(),
                             MontoTDoc = rd["MONTO_T_DOC"] == DBNull.Value ? 0m
-                                                                          : Convert.ToDecimal(rd["MONTO_T_DOC"])
+                                                                          : Convert.ToDecimal(rd["MONTO_T_DOC"]),
+                            MontoTRec = rd["MONTO_T_REC"] == DBNull.Value ? 0m
+                                                                          : Convert.ToDecimal(rd["MONTO_T_REC"])
                         };
                     }
             }
@@ -611,6 +618,7 @@ namespace DiamDev.Give.DAL
                 cmd.Parameters.Add("@canc", System.Data.SqlDbType.NVarChar, 1);
                 cmd.Parameters.Add("@fact", System.Data.SqlDbType.NVarChar, -1);
 
+
                 cn.Open();
 
                 foreach (var par in pagosPorRecibo)
@@ -630,7 +638,11 @@ namespace DiamDev.Give.DAL
                             cmd.Parameters["@emp"].Value = empresa;
                             cmd.Parameters["@docentry"].Value = p.DocEntry;
                             cmd.Parameters["@docnum"].Value = p.DocNum;
-                            cmd.Parameters["@monto"].Value = p.MontoEfectivo(esUSD);
+                            // La bitácora registra el DINERO DEL PAGO (ORCT.DocTotal),
+                            // no lo aplicado en RCT2. Así SUM(MONTO) de los activos
+                            // cuadra contra MONTO_T_REC y la tabla es auditable.
+                            cmd.Parameters["@monto"].Value = p.MontoRecibido(esUSD);
+                            // cmd.Parameters["@monto"].Value = p.MontoEfectivo(esUSD);
                             cmd.Parameters["@mon"].Value = esUSD ? "USD" : "GTQ";
                             cmd.Parameters["@canc"].Value = p.Canceled ? "Y" : "N";
                             cmd.Parameters["@fact"].Value =

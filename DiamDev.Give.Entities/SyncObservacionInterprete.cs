@@ -87,7 +87,7 @@ namespace DiamDev.Give.Entities
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled;
 
         private static readonly Regex RxEtiqueta = new Regex(@"^\s*\[(?<v>[A-Z_]+)\]", OPC);
-        private static readonly Regex RxMoneda = new Regex(@"descuadre\s*\(\s*(?<v>[A-Z]{3})\s*\)", OPC);
+        private static readonly Regex RxMoneda = new Regex(@"(?:descuadre|conciliaci[oó]n)\s*\(\s*(?<v>[A-Z]{3})\s*\)", OPC);
         private static readonly Regex RxSql = new Regex(@"\bSQL\s*=\s*(?<v>-?[\d.,]+)", OPC);
         private static readonly Regex RxSap = new Regex(@"\bSAP\s*(?:activo)?\s*=\s*(?<v>-?[\d.,]+)", OPC);
         private static readonly Regex RxDif = new Regex(@"\bdif(?:erencia)?\s*=\s*(?<v>-?[\d.,]+)", OPC);
@@ -103,6 +103,11 @@ namespace DiamDev.Give.Entities
         private static readonly Regex RxDocEntryCambio = new Regex(@"DocEntry\s*(?<a>\d+)\s*-\s*>\s*(?<b>\d+)", OPC);
         private static readonly Regex RxEraDocNum = new Regex(@"Era\s+DocNum\s*(?<v>\d+)", OPC);
         private static readonly Regex RxRegresadoPend = new Regex(@"Regresado\s+a\s+PENDIENTE", OPC);
+        // ── Nota de conciliación [CONCIL] (formato 2026-08-07) ──
+        // "Conciliación (GTQ): a cuenta Q 14,727.20 de Q 64,987.60 recibidos (aplicado Q 50,260.40)."
+        private static readonly Regex RxACuenta = new Regex(@"a\s*cuenta\s*[Q$]?\s*(?<v>[\d.,]+)", OPC);
+        private static readonly Regex RxRecibidos = new Regex(@"de\s*[Q$]?\s*(?<v>[\d.,]+)\s*recibidos", OPC);
+        private static readonly Regex RxAplicado = new Regex(@"aplicado\s*[Q$]?\s*(?<v>[\d.,]+)", OPC);
 
         // Medio centavo: por debajo de eso no hay dinero, hay redondeo.
         // Mismo criterio que EPSILON en el front y que el BLL.
@@ -115,6 +120,17 @@ namespace DiamDev.Give.Entities
         /// ⚠ PENDIENTE DE CONFIRMAR contra la tolerancia del propio Sincronizador.
         /// </summary>
         private const decimal TOLERANCIA_REDONDEO = 0.01m;
+
+        /// <summary>
+        /// Umbral SOLO DE REDACCIÓN para el saldo a cuenta. Por debajo de 1.00 el
+        /// remanente es residuo de centavos de repartir un pago entre varias
+        /// facturas (visto: Q0.10 a Q0.60 con 3-4 líneas RCT2); por encima es un
+        /// anticipo real del cliente (visto: Q500 a Q14,727.20).
+        ///
+        /// NO decide nada: el estado ya lo resolvió el Nivel 1 del sincronizador.
+        /// Solo evita que Créditos salga a investigar quince centavos.
+        /// </summary>
+        private const decimal UMBRAL_ANTICIPO_VISIBLE = 1.00m;
 
         /// <summary>
         /// Traduce el log técnico a lenguaje humano.
@@ -207,16 +223,54 @@ namespace DiamDev.Give.Entities
             // ══════════════════════════════════════════════════════════
             // CASO C — NOTA DE CONCILIACIÓN [CONCIL]
             // ══════════════════════════════════════════════════════════
-            // ⚠ Sin datos reales: 0 filas en producción al 2026-07-29.
-            // PintarBadgeSync la contempla y el Sincronizador lleva un contador
-            // "Conciliados", así que puede aparecer. Redacción DELIBERADAMENTE
-            // genérica: no invento un desglose de un formato que nunca vi.
+            // El recibo está OPERADO y cuadrado. La nota informa cuánto del pago
+            // quedó A CUENTA del cliente (anticipo o residuo de redondeo).
+            // NO es un problema: en SAP el saldo a favor se aplica después por
+            // conciliación interna, un evento ajeno al recibo de caja.
             if (r.Etiqueta == "CONCIL")
             {
-                r.Titulo = "Recibo operado en SAP, con observación de conciliación.";
-                r.Lineas.Add("El pago ya fue aplicado por Créditos en SAP.");
-                r.Accion = "No requiere acción del agente. La nota queda como historial "
-                         + "del recibo para control de Créditos.";
+                decimal? aCuenta = Numero(RxACuenta, r.Original);
+                decimal? recibido = Numero(RxRecibidos, r.Original);
+                decimal? aplicado = Numero(RxAplicado, r.Original);
+
+                if (aCuenta.HasValue)
+                {
+                    decimal ac = aCuenta.Value;
+
+                    if (ac < UMBRAL_ANTICIPO_VISIBLE)
+                    {
+                        r.Titulo = "Operado en SAP. Diferencia de redondeo de "
+                                 + Mon(simbolo, ac) + ".";
+                        r.Lineas.Add("Al repartir el pago entre varias facturas quedó un "
+                                   + "residuo de centavos a favor del cliente. No es dinero "
+                                   + "faltante.");
+                        r.Accion = "No requiere acción.";
+                    }
+                    else
+                    {
+                        r.Titulo = "Operado en SAP. " + Mon(simbolo, ac)
+                                 + " quedaron a cuenta del cliente.";
+                        r.Lineas.Add("El pago se registró COMPLETO en SAP: parte se aplicó a "
+                                   + "facturas y el resto quedó como saldo a favor del cliente.");
+                        r.Accion = "No requiere acción sobre el recibo. Créditos aplicará el "
+                                 + "saldo a favor a una factura futura mediante conciliación "
+                                 + "interna en SAP.";
+                    }
+
+                    if (recibido.HasValue)
+                        r.Lineas.Add("Recibido en caja: " + Mon(simbolo, recibido.Value) + ".");
+                    if (aplicado.HasValue)
+                        r.Lineas.Add("Aplicado a facturas: " + Mon(simbolo, aplicado.Value) + ".");
+                }
+                else
+                {
+                    // Etiqueta [CONCIL] con formato desconocido: redacción genérica.
+                    // Degradar, no inventar.
+                    r.Titulo = "Recibo operado en SAP, con observación de conciliación.";
+                    r.Lineas.Add("El pago ya fue aplicado por Créditos en SAP.");
+                    r.Accion = "No requiere acción del agente.";
+                }
+
                 AgregarFecha(r);
                 r.Interpretado = true;
                 return r;

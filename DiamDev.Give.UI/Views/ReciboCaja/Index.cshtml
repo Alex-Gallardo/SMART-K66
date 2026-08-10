@@ -3627,7 +3627,7 @@ function PintarBadgeStatus(status) {
 // ════════════════════════════════════════════════════════
 var _RX_OBS = {
     etiqueta: /^\s*\[([A-Z_]+)\]/i,
-    moneda: /descuadre\s*\(\s*([A-Za-z]{3})\s*\)/i,
+    moneda: /(?:descuadre|conciliaci[oó]n)\s*\(\s*([A-Za-z]{3})\s*\)/i,
     sql: /\bSQL\s*=\s*(-?[\d.,]+)/i,
     sap: /\bSAP\s*(?:activo)?\s*=\s*(-?[\d.,]+)/i,
     dif: /\bdif(?:erencia)?\s*=\s*(-?[\d.,]+)/i,
@@ -3639,7 +3639,11 @@ var _RX_OBS = {
     docNumCambio: /DocNum\s*(\d+)\s*-\s*>\s*(\d+)/i,
     docEntCambio: /DocEntry\s*(\d+)\s*-\s*>\s*(\d+)/i,
     eraDocNum: /Era\s+DocNum\s*(\d+)/i,
-    regresadoPend: /Regresado\s+a\s+PENDIENTE/i
+    regresadoPend: /Regresado\s+a\s+PENDIENTE/i,
+    // ── Nota de conciliación [CONCIL] (formato 2026-08-07) ──
+    aCuenta: /a\s*cuenta\s*[Q$]?\s*([\d.,]+)/i,
+    recibidos: /de\s*[Q$]?\s*([\d.,]+)\s*recibidos/i,
+    aplicado: /aplicado\s*[Q$]?\s*([\d.,]+)/i
 };
 
 // Extrae un número del mensaje. Devuelve null si no está.
@@ -3732,65 +3736,38 @@ function _ObsEsNinguno(t) {
                 Fecha("Detectado el");
                 r.interpretado = true;
             }
-            // ── CASO C: nota de conciliación (0 filas en prod: redacción genérica) ──
+            // ── CASO C: nota de conciliación — saldo a cuenta del cliente ──
+            // Espejo de SyncObservacionInterprete CASO C (Entities).
             else if (r.etiqueta === "CONCIL") {
-                r.titulo = "Recibo operado en SAP, con observación de conciliación.";
-                r.lineas.push("El pago ya fue aplicado por Créditos en SAP.");
-                r.accion = "No requiere acción del agente. La nota queda como historial del recibo " +
-                    "para control de Créditos.";
+                var UMBRAL_ANTICIPO = 1.00;   // espejo de UMBRAL_ANTICIPO_VISIBLE (C#)
+
+                var ac = _ObsNumero(_RX_OBS.aCuenta, txt);
+                var rec = _ObsNumero(_RX_OBS.recibidos, txt);
+                var apl = _ObsNumero(_RX_OBS.aplicado, txt);
+
+                if (ac !== null) {
+                    if (ac < UMBRAL_ANTICIPO) {
+                        r.titulo = "Operado en SAP. Diferencia de redondeo de " + M(ac) + ".";
+                        r.lineas.push("Al repartir el pago entre varias facturas quedó un " +
+                            "residuo de centavos a favor del cliente. No es dinero faltante.");
+                        r.accion = "No requiere acción.";
+                    } else {
+                        r.titulo = "Operado en SAP. " + M(ac) + " quedaron a cuenta del cliente.";
+                        r.lineas.push("El pago se registró COMPLETO en SAP: parte se aplicó a " +
+                            "facturas y el resto quedó como saldo a favor del cliente.");
+                        r.accion = "No requiere acción sobre el recibo. Créditos aplicará el " +
+                            "saldo a favor a una factura futura mediante conciliación interna en SAP.";
+                    }
+                    if (rec !== null) r.lineas.push("Recibido en caja: " + M(rec) + ".");
+                    if (apl !== null) r.lineas.push("Aplicado a facturas: " + M(apl) + ".");
+                } else {
+                    r.titulo = "Recibo operado en SAP, con observación de conciliación.";
+                    r.lineas.push("El pago ya fue aplicado por Créditos en SAP.");
+                    r.accion = "No requiere acción del agente.";
+                }
+
                 Fecha("Última revisión automática");
                 r.interpretado = true;
-            }
-            else {
-                // ── CASO D: descuadre con montos ──
-                var recibo = _ObsNumero(_RX_OBS.sql, txt);
-                var sap = _ObsNumero(_RX_OBS.sap, txt);
-                var dif = _ObsNumero(_RX_OBS.dif, txt);
-                var sinAplicar = _ObsNumero(_RX_OBS.sinAplicar, txt);
-                var mAnu = _RX_OBS.anulados.exec(txt);
-                var anulados = mAnu ? (mAnu[1] || "").trim() : "";
-
-                if (dif === null && recibo !== null && sap !== null) dif = recibo - sap;
-
-                if (recibo !== null || sap !== null || dif !== null) {
-                    var d = (dif === null) ? 0 : dif;
-                    var abs = Math.abs(d);
-
-                    if (abs > EPS && abs <= TOL) {
-                        r.titulo = "Diferencia mínima de " + M(abs) + " frente a SAP (redondeo).";
-                        r.accion = "No hay dinero faltante: es residuo de conversión de moneda. " +
-                            "El sincronizador reintenta automáticamente; si el recibo no se " +
-                            "libera, avise a Sistemas.";
-                    } else if (d > EPS) {
-                        r.titulo = "Faltan " + M(d) + " por aplicar en SAP.";
-                        r.accion = "Créditos debe aplicar la diferencia en SAP. El recibo se libera " +
-                            "automáticamente cuando los montos vuelvan a cuadrar. Mientras " +
-                            "esté en descuadre, el recibo NO puede anularse.";
-                    } else if (d < -EPS) {
-                        r.titulo = "En SAP hay " + M(abs) + " aplicados de más frente a este recibo.";
-                        r.accion = "Créditos debe revisar los pagos aplicados en SAP para este recibo. " +
-                            "Mientras esté en descuadre, el recibo NO puede anularse.";
-                    } else {
-                        r.titulo = "El recibo está en revisión con SAP.";
-                        r.accion = "El sincronizador volverá a verificarlo automáticamente.";
-                    }
-
-                    if (recibo !== null) r.lineas.push("Este recibo registra " + M(recibo) + " recibidos en caja.");
-                    if (sap !== null) r.lineas.push("En SAP hay " + M(sap) + " aplicados a documentos del cliente.");
-                    if (dif !== null) r.lineas.push("Diferencia: " + M(abs) +
-                        (d < -EPS ? " aplicados en exceso en SAP." : " sin aplicar en SAP."));
-
-                    if (anulados.length) {
-                        r.lineas.push(_ObsEsNinguno(anulados)
-                            ? "No se detectaron pagos anulados en SAP."
-                            : "Pago(s) anulado(s) en SAP: " + _ObsHumanizarDocs(anulados) + ".");
-                    }
-                    if (sinAplicar !== null && Math.abs(sinAplicar - abs) > EPS) {
-                        r.lineas.push("Monto recibido en caja que todavía no se aplica: " + M(sinAplicar) + ".");
-                    }
-                    Fecha("Última revisión automática");
-                    r.interpretado = true;
-                }
             }
 
             if (r.interpretado) {

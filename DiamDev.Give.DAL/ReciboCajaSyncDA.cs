@@ -71,16 +71,26 @@ namespace DiamDev.Give.DAL
         /// llevan más tiempo sin revisarse (los nuevos, con NULL, van primero).
         /// Esta es la "cola rotativa" que evita que el job se atasque.
         ///
+        /// ★ Devuelve ID_RECIBO -> ID_CLIENTE (antes solo List&lt;string&gt;).
+        /// El cliente se usa para validar contra ORCT.CardCode antes de marcar
+        /// OPERADO: un typo en el UDF U_Recibocaja_Webapp puede apuntar al
+        /// recibo equivocado, y sin esta comparación el sync lo daría por bueno.
+        /// Sale de la misma consulta: cero costo adicional.
+        ///
+        /// El orden del ORDER BY se aplica en SQL (define QUÉ entra en el TOP N).
+        /// El Dictionary no preserva ese orden, pero da igual: aguas abajo solo
+        /// se usa para armar lotes de IN(...), donde el orden es irrelevante.
+        ///
         /// top = null  -> usa el lote configurado en App.config (recomendado).
         /// top = N     -> fuerza un tamaño puntual (útil en pruebas/tests).
         /// </summary>
-        public List<string> ObtenerRecibosPendientes(string empresa, int? top = null)
+        public Dictionary<string, string> ObtenerRecibosPendientes(string empresa, int? top = null)
         {
             int lote = top ?? LoteDefault;
 
-            var ids = new List<string>();
+            var mapa = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             const string sql = @"
-                SELECT TOP (@top) ID_RECIBO
+                SELECT TOP (@top) ID_RECIBO, ISNULL(ID_CLIENTE, '') AS ID_CLIENTE
                 FROM dbo.REC_CAJA_ENC
                 WHERE SYNC_ESTADO = 'PENDIENTE'
                 AND ID_EMPRESA  = @empresa
@@ -97,9 +107,14 @@ namespace DiamDev.Give.DAL
                 cn.Open();
                 using (var rd = cmd.ExecuteReader())
                     while (rd.Read())
-                        ids.Add(rd["ID_RECIBO"].ToString());
+                    {
+                        // Indexador y no Add(): si alguna vez hubiera un ID_RECIBO
+                        // repetido dentro de la misma empresa, Add lanzaría y
+                        // tumbaría el ciclo completo. El indexador solo sobrescribe.
+                        mapa[rd["ID_RECIBO"].ToString()] = rd["ID_CLIENTE"].ToString();
+                    }
             }
-            return ids;
+            return mapa;
         }
 
         /// <summary>Marca un recibo como OPERADO con las referencias de SAP.
@@ -126,6 +141,41 @@ namespace DiamDev.Give.DAL
                 cmd.Parameters.AddWithValue("@docNum", cobro.SapDocNum);
                 cmd.Parameters.AddWithValue("@idRecibo", cobro.IdRecibo);
                 cmd.Parameters.AddWithValue("@empresa", empresa);
+                cn.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>
+        /// Deja constancia de que un pago de SAP dice apuntar a este recibo pero
+        /// pertenece a OTRO cliente (típicamente, un dígito mal tecleado en el UDF
+        /// U_Recibocaja_Webapp). NO cambia SYNC_ESTADO: el recibo sigue PENDIENTE
+        /// hasta que Créditos corrija el enlace en SAP.
+        ///
+        /// Idempotente por diseño: el WHERE incluye
+        ///     ISNULL(SYNC_OBSERVACION,'') &lt;&gt; @obs
+        /// así que a partir del segundo ciclo el UPDATE afecta 0 filas y no
+        /// genera escritura. Por eso el mensaje NO debe llevar fecha/hora: si
+        /// cambiara en cada vuelta, escribiríamos una vez por ciclo, para siempre.
+        /// </summary>
+        public void MarcarPosibleErrorEnlace(string idRecibo, string empresa, string observacion)
+        {
+            const string sql = @"
+                UPDATE dbo.REC_CAJA_ENC
+                SET SYNC_OBSERVACION  = @obs,
+                    SYNC_ULTIMO_CHECK = SYSDATETIME()
+                WHERE ID_RECIBO  = @idRecibo
+                  AND ID_EMPRESA = @empresa
+                  AND SYNC_ESTADO = 'PENDIENTE'
+                  AND ISNULL(STATUS, 'A') <> 'X'
+                  AND ISNULL(SYNC_OBSERVACION, '') <> @obs;";
+
+            using (var cn = new SqlConnection(ConnString))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                cmd.Parameters.AddWithValue("@idRecibo", idRecibo);
+                cmd.Parameters.AddWithValue("@empresa", empresa);
+                cmd.Parameters.AddWithValue("@obs", (object)observacion ?? DBNull.Value);
                 cn.Open();
                 cmd.ExecuteNonQuery();
             }

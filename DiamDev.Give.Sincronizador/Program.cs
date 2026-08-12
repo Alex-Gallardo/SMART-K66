@@ -33,9 +33,26 @@ namespace DiamDev.Give.Sincronizador
         private static DateTime _ultimoSyncPedidos = DateTime.MinValue;
         private static readonly TimeSpan INTERVALO_PEDIDOS = TimeSpan.FromSeconds(30);
 
-        // =========== CAMBIAR A 5 MIN (PRODUCCION) ============================================
-        // private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromMinutes(5);
+        // Cadencia de la sincronización de RECIBOS. 5 minutos es suficiente:
+        // Créditos tarda horas en aplicar un pago en SAP, así que detectarlo
+        // 5 minutos después es indistinguible de detectarlo al instante.
         private static readonly TimeSpan INTERVALO_RECIBOS = TimeSpan.FromMinutes(5);
+
+        // ── ¿Hay consola real? ────────────────────────────────────────────
+        // Console.Clear() lanza IOException cuando el proceso corre SIN consola
+        // (Windows Service / Tarea Programada). Console.WriteLine NO: escribe
+        // al vacío sin quejarse. Por eso solo hay que proteger el Clear.
+        //
+        // La detección se hace UNA vez al arrancar: leer Console.WindowHeight
+        // truena si no hay buffer de consola. En TS sería el equivalente a
+        // preguntar por process.stdout.isTTY antes de mandar códigos ANSI.
+        private static readonly bool _hayConsola = DetectarConsola();
+
+        private static bool DetectarConsola()
+        {
+            try { int _ = Console.WindowHeight; return true; }
+            catch { return false; }
+        }
 
         static void Main(string[] args)
         {
@@ -97,7 +114,7 @@ namespace DiamDev.Give.Sincronizador
         {
             try
             {
-                Console.Clear();
+                if (_hayConsola) Console.Clear();
                 Console.WriteLine("SINCRONIZADOR DE PEDIDOS K66");
                 Console.WriteLine("----------------------------------------------");
                 Console.WriteLine("ULTIMA SINCRONIZACION: {0}", DateTime.Now.ToString());
@@ -343,7 +360,7 @@ namespace DiamDev.Give.Sincronizador
                 string resumen = string.Format(
                 "Pendientes revisados: {0} | Operados nuevos: {1} | Operados revisados: {2} | " +
                 "Anulados: {3} | Reapuntados: {4} | Conciliados: {5} | Descuadrados: {6} | " +
-                "Sanados: {7} | Errores: {8}",
+                "Sanados: {7} | Enlaces sospechosos: {8} | Errores: {9}",
                 resultado.Revisados,
                 resultado.Operados,
                 resultado.OperadosRevisados,
@@ -352,6 +369,7 @@ namespace DiamDev.Give.Sincronizador
                 resultado.Conciliados,
                 resultado.Descuadrados,
                 resultado.Sanados,
+                resultado.EnlacesSospechosos,
                 resultado.Errores.Count);
 
                 Console.WriteLine(resumen);

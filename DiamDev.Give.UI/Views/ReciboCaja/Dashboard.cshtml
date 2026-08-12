@@ -664,7 +664,7 @@ function InterpretarObservacion(f) {
     var raw = (f.SyncObservacion || "").trim();
     var sit = (f.Situacion || "").toUpperCase();
     var dias = parseInt(f.DiasAntiguedad, 10) || 0;
-    var obs = raw.replace(/^\[(DESC|CONCIL)\]\s*/i, "");   // marcadores internos fuera
+    var obs = raw.replace(/^\[(DESC|CONCIL|ENLACE)\]\s*/i, "");   // marcadores internos fuera
 
     // ── 1. ANULADO EN LA WEB: manda la auditoría, no el sync ──
     if (sit === "ANULADO") {
@@ -726,6 +726,38 @@ function InterpretarObservacion(f) {
                 "como saldo a favor del cliente. El recibo está correctamente operado; el " +
                 "saldo se aplica después por conciliación interna en SAP.",
             accion: "",   // vacío a propósito: no hay nada que hacer, no ensuciamos el grid
+            tecnico: ""
+        };
+    }
+
+    // ── 2.6. ENLACE CRUZADO EN SAP ([ENLACE]) ──
+    // Un pago de SAP tiene el número de ESTE recibo en el UDF
+    // U_Recibocaja_Webapp, pero está a nombre de OTRO cliente: casi siempre un
+    // dígito mal tecleado (caso real: RF11-04658 quedó como RF11-04659 en el
+    // pago DocNum 1005886). El sync NO lo marca operado —prefiere dejarlo
+    // pendiente antes que enlazar el pago equivocado— y deja este aviso.
+    //
+    // ⚠ DEBE IR ANTES del bloque 6. El recibo sigue en PENDIENTE, así que allá
+    // caería en "Lleva N día(s) esperando aplicación en SAP" y este mensaje
+    // quedaría tapado: se escribiría en la BD pero nadie lo vería.
+    if (/^\[ENLACE\]/i.test(raw)) {
+        var pagoE = ObsCap(obs, /pago\s+DocNum\s*(\d+)/i);
+        var cliSapE = ObsCap(obs, /pertenece\s+al\s+cliente\s+([^\s.]+)/i);
+        var cliSqlE = ObsCap(obs, /recibo\s+es\s+del\s+cliente\s+([^\s.]+)/i);
+
+        return {
+            clase: "obs-alerta",
+            corto: "Error de digitación en SAP" +
+                (pagoE ? " — pago No. " + pagoE + " es de otro cliente" : ""),
+            detalle: "En SAP hay un pago" + (pagoE ? " (No. " + pagoE + ")" : "") +
+                " con el número de este recibo en el campo «Recibo Caja Webapp», " +
+                "pero está a nombre de otro cliente" +
+                (cliSapE && cliSqlE
+                    ? ": el pago es de " + cliSapE + " y el recibo es de " + cliSqlE
+                    : "") + ". " +
+                "El sistema NO lo marcó como operado para no enlazar el pago equivocado.",
+            accion: "Corregir el campo «Recibo Caja Webapp» del pago en SAP con el número " +
+                "correcto de recibo.",
             tecnico: ""
         };
     }

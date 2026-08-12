@@ -29,6 +29,11 @@ namespace DiamDev.Give.BLL
         // un UPDATE por ciclo por recibo.
         private const string PREFIJO_CONCIL = "[CONCIL] ";
 
+        // Prefijo de los avisos de enlace cruzado (typo en el UDF de SAP).
+        // Lo reconocen los 3 intérpretes: SyncObservacionInterprete (Entities),
+        // Index.cshtml y Dashboard.cshtml.
+        private const string PREFIJO_ENLACE = "[ENLACE] ";
+
         // REC_CAJA_ENC.SYNC_OBSERVACION es nvarchar(200). Un mensaje más largo hace
         // que SQL Server lance "String or binary data would be truncated", el catch
         // por recibo se lo traga, y ESE recibo no se marca. En silencio.
@@ -70,6 +75,7 @@ namespace DiamDev.Give.BLL
             public int Conciliados { get; set; }     // revisados por conciliación
             public int Descuadrados { get; set; }    // transiciones NUEVAS a DESCUADRE
             public int Sanados { get; set; }         // DESCUADRE -> OPERADO (self-healing)
+            public int EnlacesSospechosos { get; set; }  // UDF apunta a recibo de otro cliente
             public List<string> Errores { get; } = new List<string>();
         }
 
@@ -93,21 +99,57 @@ namespace DiamDev.Give.BLL
             RevisarAnulaciones(empresa, res);   // pasada inversa + conciliación
         }
 
-        // ── Pasada normal: PENDIENTE -> OPERADO (sin cambios) ──────────────
+        // ── Pasada normal: PENDIENTE -> OPERADO ────────────────────────────
         private void ProcesarPendientes(string empresa, ResultadoSync res)
         {
-            List<string> pendientes = _sql.ObtenerRecibosPendientes(empresa);
+            // ID_RECIBO -> ID_CLIENTE (para validar el enlace contra SAP)
+            Dictionary<string, string> pendientes = _sql.ObtenerRecibosPendientes(empresa);
             if (pendientes.Count == 0) return;
 
             res.Revisados += pendientes.Count;
 
-            List<SapCobroAplicado> operados = _hana.ObtenerCobrosOperados(empresa, pendientes);
+            List<SapCobroAplicado> operados =
+                _hana.ObtenerCobrosOperados(empresa, pendientes.Keys.ToList());
 
             var idsOperados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var cobro in operados)
             {
                 try
                 {
+                    // ══ VALIDACIÓN DE ENLACE (anti-typo) ══
+                    // El match con SAP es por igualdad exacta del UDF
+                    // U_Recibocaja_Webapp, que Créditos escribe A MANO. Un dígito
+                    // mal tecleado puede apuntar a un recibo REAL de otro cliente,
+                    // y sin esta comparación el sync lo marcaría OPERADO con el
+                    // pago equivocado (caso visto: RF11-04658 quedó como
+                    // RF11-04659 en el pago DocNum 1005886).
+                    //
+                    // Solo se valida si AMBOS lados tienen dato. Si ID_CLIENTE
+                    // viene vacío (recibos con encabezado editable, tipo SALA DE
+                    // VENTAS) se procede normal: fallar cerrado ahí dejaría
+                    // recibos legítimos atascados para siempre.
+                    string clienteSql;
+                    pendientes.TryGetValue(cobro.IdRecibo, out clienteSql);
+                    clienteSql = (clienteSql ?? "").Trim();
+                    string clienteSap = (cobro.CardCode ?? "").Trim();
+
+                    if (clienteSql.Length > 0 && clienteSap.Length > 0 &&
+                        !string.Equals(clienteSql, clienteSap, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Sin fecha/hora A PROPÓSITO: el mensaje debe ser estable
+                        // para que el UPDATE del DA sea idempotente.
+                        string obsEnlace = RecortarA(string.Format(
+                            "{0}El pago DocNum {1} en SAP apunta a este recibo, pero pertenece al " +
+                            "cliente {2} y el recibo es del cliente {3}. Verifique el campo " +
+                            "Recibo Caja Webapp del pago en SAP.",
+                            PREFIJO_ENLACE, cobro.SapDocNum, clienteSap, clienteSql),
+                            MAX_OBSERVACION);
+
+                        _sql.MarcarPosibleErrorEnlace(cobro.IdRecibo, empresa, obsEnlace);
+                        res.EnlacesSospechosos++;
+                        continue;   // NO se marca OPERADO: el enlace es dudoso
+                    }
+
                     _sql.MarcarReciboOperado(cobro, empresa);
                     idsOperados.Add(cobro.IdRecibo);
                     res.Operados++;
@@ -119,7 +161,7 @@ namespace DiamDev.Give.BLL
                 }
             }
 
-            var noOperados = pendientes.Where(id => !idsOperados.Contains(id)).ToList();
+            var noOperados = pendientes.Keys.Where(id => !idsOperados.Contains(id)).ToList();
             _sql.MarcarUltimoCheckLote(noOperados, empresa);
         }
 
@@ -128,10 +170,6 @@ namespace DiamDev.Give.BLL
         {
             // OPERADO **y** DESCUADRE: los descuadrados también se re-revisan
             // para poder sanarse solos cuando Créditos re-aplica el pago.
-            //
-            // ★ Desde el fix de la cola rotativa, esto ya NO trae todo el
-            // histórico: trae un lote acotado (App.config -> SyncLoteRevision),
-            // con los DESCUADRE siempre al frente.
             List<ReciboRevisionSql> revisar = _sql.ObtenerRecibosParaRevision(empresa);
             if (revisar.Count == 0) return;
 
@@ -146,14 +184,24 @@ namespace DiamDev.Give.BLL
                 .GroupBy(p => p.IdRecibo, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
+            // ── Bitácora REC_CAJA_SAP_DOCS: UNA conexión para todo el lote ──
+            // Antes se llamaba UpsertSapDocs DENTRO del foreach: una conexión
+            // por recibo (~300 por empresa por ciclo). UpsertSapDocsLote ya
+            // existía en el DA y hace exactamente esto, pero nadie lo llamaba.
+            //
+            // Los errores se DEVUELVEN (no se lanzan) para que un ORCT con
+            // datos raros no tumbe la bitácora de los otros 299. Se suman a
+            // res.Errores y terminan en el log, igual que antes.
+            //
+            // Diferencia de comportamiento (a mejor): antes, si la bitácora
+            // fallaba para un recibo, ese recibo se saltaba TODA la revisión.
+            // Ahora la bitácora es auxiliar: falla sola y la conciliación sigue.
+            res.Errores.AddRange(_sql.UpsertSapDocsLote(empresa, pagosPorRecibo));
+
             Dictionary<string, ReciboMontoSql> datosSql =
                 _sql.ObtenerDatosConciliacion(empresa, ids);
 
-            // ★ Bitácora de TODO lo visto en SAP, en UNA conexión para todo el
-            // lote. Antes se llamaba UpsertSapDocs dentro del foreach: una
-            // SqlConnection nueva por recibo (~845 aperturas por ciclo).
-            // Los errores se acumulan igual que antes, solo que devueltos.
-            res.Errores.AddRange(_sql.UpsertSapDocsLote(empresa, pagosPorRecibo));
+            var sinCambio = new List<string>();
 
             foreach (var op in revisar)
             {
@@ -198,7 +246,10 @@ namespace DiamDev.Give.BLL
                     }
 
                     // ── CASO 2/3: conciliar sumando TODOS los pagos activos ──
-                    ConciliarRecibo(op, empresa, activos, pagosRecibo, datosSql, res);
+                    bool quedoOperadoCuadrado = ConciliarRecibo(
+                        op, empresa, activos, pagosRecibo, datosSql, res);
+
+                    if (quedoOperadoCuadrado) sinCambio.Add(op.IdRecibo);
                 }
                 catch (Exception ex)
                 {
@@ -207,22 +258,7 @@ namespace DiamDev.Give.BLL
                 }
             }
 
-            // ★ FIX (inanición): se sella el LOTE COMPLETO, no solo los que
-            // cuadraron sin cambio.
-            //
-            // Antes se acumulaba una lista 'sinCambio' y solo esos se sellaban.
-            // Sin TOP eso era inofensivo. CON la cola rotativa es un bug: un
-            // recibo que sale por 'continue' (anulación total), por un return
-            // temprano de ConciliarRecibo (sin datos en datosSql), o por
-            // excepción, nunca sellaría SYNC_ULTIMO_CHECK — y al ordenar la
-            // cola por esa columna quedaría clavado AL FRENTE para siempre,
-            // bloqueando a los que vienen atrás. Head-of-line blocking clásico.
-            //
-            // Pasar 'ids' completo es seguro: MarcarUltimoCheckLote filtra por
-            // SYNC_ESTADO = 'OPERADO', así que los que transicionaron en esta
-            // vuelta (a PENDIENTE por anulación, o a DESCUADRE) quedan fuera —
-            // y esos ya sellaron su propio SYNC_ULTIMO_CHECK en su UPDATE.
-            _sql.MarcarUltimoCheckLote(ids, empresa, "OPERADO");
+            _sql.MarcarUltimoCheckLote(sinCambio, empresa, "OPERADO");
         }
 
         // ── Conciliación de un recibo (multi-ORCT) ─────────────────────────

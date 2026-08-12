@@ -103,6 +103,10 @@ namespace DiamDev.Give.Entities
         private static readonly Regex RxDocEntryCambio = new Regex(@"DocEntry\s*(?<a>\d+)\s*-\s*>\s*(?<b>\d+)", OPC);
         private static readonly Regex RxEraDocNum = new Regex(@"Era\s+DocNum\s*(?<v>\d+)", OPC);
         private static readonly Regex RxRegresadoPend = new Regex(@"Regresado\s+a\s+PENDIENTE", OPC);
+        // ── Aviso de enlace cruzado [ENLACE] (typo en el UDF de SAP) ──
+        private static readonly Regex RxEnlacePago = new Regex(@"pago\s+DocNum\s*(?<v>\d+)", OPC);
+        private static readonly Regex RxEnlaceCliSap = new Regex(@"pertenece\s+al\s+cliente\s+(?<v>[^\s.]+)", OPC);
+        private static readonly Regex RxEnlaceCliSql = new Regex(@"recibo\s+es\s+del\s+cliente\s+(?<v>[^\s.]+)", OPC);
         // ── Nota de conciliación [CONCIL] (formato 2026-08-07) ──
         // "Conciliación (GTQ): a cuenta Q 14,727.20 de Q 64,987.60 recibidos (aplicado Q 50,260.40)."
         private static readonly Regex RxACuenta = new Regex(@"a\s*cuenta\s*[Q$]?\s*(?<v>[\d.,]+)", OPC);
@@ -216,6 +220,38 @@ namespace DiamDev.Give.Entities
                          + "El recibo conserva su validez como comprobante de pago.";
 
                 AgregarFecha(r, "Detectado el");
+                r.Interpretado = true;
+                return r;
+            }
+
+            // ══════════════════════════════════════════════════════════
+            // CASO B2 — ENLACE CRUZADO [ENLACE]
+            // ══════════════════════════════════════════════════════════
+            // Un pago de SAP tiene el número de ESTE recibo en el UDF, pero
+            // está a nombre de otro cliente. El sync se niega a marcarlo
+            // OPERADO: prefiere dejarlo PENDIENTE antes que enlazar el pago
+            // equivocado. Casi siempre es un dígito mal tecleado en SAP.
+            if (r.Etiqueta == "ENLACE")
+            {
+                string pago = Grupo(RxEnlacePago, r.Original, "");
+                string cliSap = Grupo(RxEnlaceCliSap, r.Original, "");
+                string cliSql = Grupo(RxEnlaceCliSql, r.Original, "");
+
+                r.Titulo = "Posible error de digitación en SAP.";
+                r.Lineas.Add("Un pago en SAP tiene marcado el número de ESTE recibo, "
+                           + "pero está registrado a nombre de otro cliente.");
+
+                if (pago.Length > 0)
+                    r.Lineas.Add("Pago en SAP: No. " + pago + ".");
+
+                if (cliSap.Length > 0 && cliSql.Length > 0)
+                    r.Lineas.Add("Cliente del pago: " + cliSap
+                               + "  ·  Cliente de este recibo: " + cliSql + ".");
+
+                r.Accion = "Créditos debe corregir el campo «Recibo Caja Webapp» del pago "
+                         + "en SAP. Mientras el cliente no coincida, el recibo NO se marca "
+                         + "como operado: es una protección contra enlaces cruzados.";
+
                 r.Interpretado = true;
                 return r;
             }

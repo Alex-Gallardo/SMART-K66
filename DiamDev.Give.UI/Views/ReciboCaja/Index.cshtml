@@ -3543,7 +3543,12 @@ switch (estado) {
         clase = "pendiente";
         texto = "⏳ PENDIENTE EN SAP";
         tip = "Aún no ha sido operado por Créditos en SAP.";
-        if (obs.indexOf("Anulado en SAP") !== -1) {
+        if (obs.indexOf("[ENLACE]") === 0) {
+            // Hay un pago en SAP que dice ser de este recibo pero es de otro
+            // cliente. Se avisa fuerte: requiere corrección manual en SAP.
+            texto = "⚠ PENDIENTE (REVISAR ENLACE EN SAP)";
+            tip = TooltipSyncObs(obs, tip, estado);
+        } else if (obs.indexOf("Anulado en SAP") !== -1) {
             texto = "⏳ PENDIENTE (ANULADO EN SAP)";
             tip = TooltipSyncObs(obs, tip, estado);
         }
@@ -3640,6 +3645,10 @@ var _RX_OBS = {
     docEntCambio: /DocEntry\s*(\d+)\s*-\s*>\s*(\d+)/i,
     eraDocNum: /Era\s+DocNum\s*(\d+)/i,
     regresadoPend: /Regresado\s+a\s+PENDIENTE/i,
+    // ── Aviso de enlace cruzado [ENLACE] ──
+    enlacePago: /pago\s+DocNum\s*(\d+)/i,
+    enlaceCliSap: /pertenece\s+al\s+cliente\s+([^\s.]+)/i,
+    enlaceCliSql: /recibo\s+es\s+del\s+cliente\s+([^\s.]+)/i,
     // ── Nota de conciliación [CONCIL] (formato 2026-08-07) ──
     aCuenta: /a\s*cuenta\s*[Q$]?\s*([\d.,]+)/i,
     recibidos: /de\s*[Q$]?\s*([\d.,]+)\s*recibidos/i,
@@ -3736,6 +3745,27 @@ function _ObsEsNinguno(t) {
                 Fecha("Detectado el");
                 r.interpretado = true;
             }
+
+            // ── CASO B2: enlace cruzado — typo en el UDF de SAP ──
+            // Espejo de SyncObservacionInterprete CASO B2 (Entities).
+            else if (r.etiqueta === "ENLACE") {
+                var mPago = _RX_OBS.enlacePago.exec(txt);
+                var mCliSap = _RX_OBS.enlaceCliSap.exec(txt);
+                var mCliSql = _RX_OBS.enlaceCliSql.exec(txt);
+
+                r.titulo = "Posible error de digitación en SAP.";
+                r.lineas.push("Un pago en SAP tiene marcado el número de ESTE recibo, " +
+                    "pero está registrado a nombre de otro cliente.");
+                if (mPago) r.lineas.push("Pago en SAP: No. " + mPago[1] + ".");
+                if (mCliSap && mCliSql)
+                    r.lineas.push("Cliente del pago: " + mCliSap[1] +
+                        "  ·  Cliente de este recibo: " + mCliSql[1] + ".");
+                r.accion = "Créditos debe corregir el campo «Recibo Caja Webapp» del pago " +
+                    "en SAP. Mientras el cliente no coincida, el recibo NO se marca como " +
+                    "operado: es una protección contra enlaces cruzados.";
+                r.interpretado = true;
+            }
+
             // ── CASO C: nota de conciliación — saldo a cuenta del cliente ──
             // Espejo de SyncObservacionInterprete CASO C (Entities).
             else if (r.etiqueta === "CONCIL") {

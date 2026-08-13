@@ -322,7 +322,7 @@
     }
 </style>
 
-<div class="panel panel-default" style="border-top:4px solid #8e44ad;">
+<div class="panel panel-default" style="border-top: 4px solid var(--k66-border);">
     <div class="panel-heading" style="background:#f7f9fa; border-bottom:1px solid #eee;">
         <h4 class="panel-title" style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:#5d6d7e; font-size:13px;">
             <i class="clip-stats"></i>
@@ -370,13 +370,14 @@
         <div id="avisoMoneda"></div>
 
         <!-- ── KPIs ── -->
+        <!-- Lista de cards indicativos -->
         <div class="an-cards">
             <div class="an-card k-recibos">
                 <div class="num" id="kRecibos">—</div>
                 <div class="lbl">Recibos creados</div>
                 <div class="sub" id="kRecibosSub">&nbsp;</div>
             </div>
-            <div class="an-card k-monto">
+            <!-- <div class="an-card k-monto">
                 <div class="num" id="kMonto">—</div>
                 <div class="lbl">Monto registrado</div>
                 <div class="sub" id="kMontoSub">&nbsp;</div>
@@ -385,14 +386,14 @@
                 <div class="num" id="kTicket">—</div>
                 <div class="lbl">Ticket promedio</div>
                 <div class="sub">Por recibo creado</div>
-            </div>
+            </div> -->
             <div class="an-card k-anul" title="Anulaciones ocurridas en el periodo dividido entre recibos creados en el mismo periodo. Es una tasa de actividad, no de cohorte.">
                 <div class="num" id="kAnul">—</div>
                 <div class="lbl">Anulaciones</div>
                 <div class="sub" id="kAnulSub">&nbsp;</div>
             </div>
-            <div class="an-card k-users">
-                <div class="num" id="kUsers">—</div>
+            <div class="an-card k-users" style="border-top-color: #27ae60">
+                <div class="num" id="kUsers" style="color: #1e8449">—</div>
                 <div class="lbl">Usuarios activos</div>
                 <div class="sub" id="kUsersSub">&nbsp;</div>
             </div>
@@ -413,58 +414,14 @@
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-8">
-                <div class="an-box">
-                    <h5>Ranking de usuarios <small>— por monto registrado</small></h5>
-                    <div id="chartUsuarios" style="height:340px;"></div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="an-box">
-                    <h5>Distribución por empresa</h5>
-                    <div id="chartEmpresas" style="height:340px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ── Serie diaria ── -->
-        <div class="an-box">
-            <h5>Actividad diaria <small>— recibos creados por empresa</small></h5>
-            <div id="chartSerie" style="height:280px;"></div>
-        </div>
-
         <!-- ── Mapa de calor ── -->
         <div class="an-box">
-            <h5>Cuándo se cobra <small>— hora del día × día de la semana</small></h5>
+            <h5>Cuándo se utiliza <small>— hora del día × día de la semana</small></h5>
             <div class="heat-wrap"><div class="heat-grid" id="heatGrid"></div></div>
             <div class="heat-leg">
                 <span>Menos</span><i style="opacity:.15"></i><i style="opacity:.4"></i>
                 <i style="opacity:.7"></i><i style="opacity:1"></i><span>Más</span>
                 <span style="margin-left:12px;" id="heatMax"></span>
-            </div>
-        </div>
-
-        <!-- ── Anulaciones ── -->
-        <div class="an-box">
-            <h5>Anulaciones <small>— motivo tomado del payload del evento</small></h5>
-            <div style="overflow-x:auto; border:1px solid #e6e6e6; border-radius:6px;">
-                <table class="table table-condensed an-tabla" id="tablaAnul">
-                    <thead>
-                        <tr>
-                            <th>Recibo</th>
-                            <th>Empresa</th>
-                            <th>Usuario</th>
-                            <th class="text-right">Monto (Q)</th>
-                            <th>Estado al anular</th>
-                            <th>Motivo</th>
-                            <th>Fecha</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tbAnul">
-                        <tr><td colspan="7" class="text-center" style="padding:20px; color:#aaa;">Cargando...</td></tr>
-                    </tbody>
-                </table>
             </div>
         </div>
 
@@ -498,6 +455,51 @@
                         <tr><td colspan="7" class="text-center" style="padding:20px; color:#aaa;">Cargando...</td></tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <!-- ── Serie diaria ── -->
+        <div class="an-box">
+            <h5>Actividad diaria <small>— recibos creados por empresa</small></h5>
+            <div id="chartSerie" style="height:280px;"></div>
+        </div>
+
+        <!-- ── Anulaciones ── -->
+        <div class="an-box">
+            <h5>Anulaciones <small>— motivo tomado del payload del evento</small></h5>
+            <div style="overflow-x:auto; border:1px solid #e6e6e6; border-radius:6px;">
+                <table class="table table-condensed an-tabla" id="tablaAnul">
+                    <thead>
+                        <tr>
+                            <th>Recibo</th>
+                            <th>Empresa</th>
+                            <th>Usuario</th>
+                            <th class="text-right">Monto (Q)</th>
+                            <th>Estado al anular</th>
+                            <th>Motivo</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbAnul">
+                        <tr><td colspan="7" class="text-center" style="padding:20px; color:#aaa;">Cargando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Ambas graficas juntas -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="an-box">
+                    <h5>Ranking de usuarios <small>— por monto registrado</small></h5>
+                    <div id="chartUsuarios" style="height:340px;"></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="an-box">
+                    <h5>Distribución por empresa</h5>
+                    <div id="chartEmpresas" style="height:340px;"></div>
+                </div>
             </div>
         </div>
 
@@ -611,7 +613,7 @@ function PintarKpis(r){
     $("#kAnulSub").text(r.Anulados > 0
         ? r.TasaAnulacion + "% · Q " + Fm0(r.MontoAnulado) : "Sin anulaciones");
     $("#kUsers").text(Fm0(r.UsuariosActivos));
-    $("#kUsersSub").text(r.DeptosActivos + " depto(s)");
+    $("#kUsersSub").text(r.DeptosActivos + " serie(s)");
     $("#kIps").text(Fm0(r.IpsDistintas));
 
     $("#kImpresos").text(Fm0(r.Impresos));

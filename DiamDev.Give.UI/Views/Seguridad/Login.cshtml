@@ -83,14 +83,14 @@
         TARJETA LOGIN
         ======================================================= */
 
-         .box-login {
-             background: rgba(255,255,255,.95);
-             border-radius: 12px;
-             padding: 25px;
-             border: none;
-             box-shadow: 0 10px 35px rgba(0,0,0,.25);
-             animation: fadeInLogin .6s ease;
-         }
+        .box-login {
+            background: rgba(255,255,255,.95);
+            border-radius: 12px !important;
+            padding: 25px 30px !important;
+            border: none;
+            box-shadow: 0 10px 35px rgba(0,0,0,.25);
+            animation: fadeInLogin .8s ease;
+        }
 
          @@keyframes fadeInLogin {
              from {
@@ -119,24 +119,35 @@
         INPUTS
         ======================================================= */
 
-         .box-login .form-control {
-             height: 46px;
-             border-radius: 8px;
-             border: 1px solid #d5dce3;
-             box-shadow: none;
-             font-size: 16px;
-         }
+        .box-login .form-control {
+            height: 46px;
+            border-radius: 10px;
+            border: 1px solid #d5dce3;
+            box-shadow: none;
+            font-size: 16px;
+        }
 
              .box-login .form-control:focus {
                  border-color: #0b6ea8;
                  box-shadow: 0 0 0 3px rgba(11,110,168,.15);
              }
 
-         /* =======================================================
+        }
+
+        .input-icon > .icon-c{
+            line-height: 0 !important;
+            top: 16px !important;
+            background-color: red;
+        }
+
+        .input-icon > [class*="icon-"] {
+            top: 6px !important;
+        }
+            /* =======================================================
         BOTON LOGIN
         ======================================================= */
 
-         .submitbtn {
+            .submitbtn {
              border-radius: 8px;
              padding: 10px 24px;
              font-size: 16px;
@@ -205,7 +216,7 @@
                     </li>-->
                     <!-- end: USER DROPDOWN -->
                 </ul>
-                <!-- end: TOP NAVIGATION MENU -->
+                <!-- end: TOP NAVIGATION MENU --> 
             </div>
         </div>
         <!-- end: TOP NAVIGATION CONTAINER -->
@@ -217,7 +228,7 @@
         <!-- start: LOGIN BOX -->
         <div class="box-login">
             <center><h3>Login</h3></center>
-            <p>
+            <p style="text-align: center;">
                 Ingrese su usuario y contraseña para ingresar.
             </p>
             @using (Html.BeginForm("Login", "Seguridad", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { @class = "form-login", id = "formaprincipal" }))
@@ -228,17 +239,17 @@
                 <div class="errorHandler alert alert-danger no-display">
                     <i class="icon-remove-sign"></i> Posee algunos errores, por favor verifique.
                 </div>
-                <fieldset>
+                <fieldset style="padding-top: 1em;">
                     <div class="form-group">
                         <span class="input-icon">
                             <input type="text" class="form-control" autofocus placeholder="Usuario" id="Usuario" name="Usuario" required autocomplete="off" />
-                            <i class="icon-user"></i>
+                            <i class="icon-user icon-c" ></i>
                         </span>
                     </div>
                     <div class="form-group form-actions">
                         <span class="input-icon">
                             <input type="password" class="form-control password" placeholder="Contraseña" id="Password" name="Password" required />
-                            <i class="icon-lock"></i>
+                            <i class="icon-lock icon-c"></i>
                         </span>
                     </div>
                     <div class="form-actions">

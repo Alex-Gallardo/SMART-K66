@@ -281,11 +281,11 @@
         font-size: 11px;
     }
 
-        .presets-fecha .btn.activa {
-            background: #2c3e50;
-            color: #fff;
-            border-color: #2c3e50;
-        }
+    .btn.activa {
+        background: #2c3e50;
+        color: #fff;
+        border-color: #2c3e50;
+    }
 
     .chk-operados {
         display: flex;
@@ -407,6 +407,16 @@
         font-weight: 700;
         margin-left: 3px;
     }
+
+    #lblConteo .tope {
+        background: #FADBD8;
+        color: #A93226;
+        border: 1px solid #E74C3C;
+        border-radius: 3px;
+        padding: 2px 8px;
+        font-weight: 700;
+        cursor: help;
+    }
 </style>
 
 <div class="panel panel-default" style="border-top:4px solid #2c3e50;">
@@ -416,9 +426,10 @@
             <span style="font-weight:700;">Supervisión de Recibos</span>
             <small style="color:#95a5a6;"></small>
             <span style="margin-left:auto; display:flex; gap:6px;">
-                <a href="@Url.Action("Series","ReciboCaja")" class="btn btn-default btn-xs" title="Mantenimiento de series de numeración">
+                <!-- SERIES ACCESO -->
+                <!-- <a href=" Url.Action("Series","ReciboCaja")" class="btn btn-default btn-xs" title="Mantenimiento de series de numeración">
                     <i class="icon-cogs"></i> Series
-                </a>
+                </a> -->
                 <a href="@Url.Action("Index","ReciboCaja")" class="btn btn-default btn-xs">
                     <i class="icon-file-text"></i> Nuevo Recibo
                 </a>
@@ -454,8 +465,8 @@
                 <div class="btn-group presets-fecha" id="grpPresets">
                     <button class="btn btn-default" data-preset="hoy">Hoy</button>
                     <button class="btn btn-default" data-preset="7d">7 días</button>
-                    <button class="btn btn-default" data-preset="mes">Este mes</button>
-                    <button class="btn btn-default activa" data-preset="todo">Todo</button>
+                    <button class="btn btn-default activa" data-preset="mes">Este mes</button>
+                    <button class="btn btn-default" data-preset="todo">Todo</button>
                 </div>
             </div>
 
@@ -584,7 +595,12 @@ var URL_RESUMEN = "@Url.Action("GetDashboardResumen","ReciboCaja")";
 var URL_DETALLE = "@Url.Action("GetDashboardDetalle","ReciboCaja")";
 var URL_INDEX   = "@Url.Action("Index","ReciboCaja")";
 var DIAS_UMBRAL = parseInt("@ViewBag.DiasUmbral") || 3;
-var TOPE_FILAS = 500;   // espejo del TOP 500 del backend
+// var TOPE_FILAS = 500;   // espejo del TOP 500 del backend
+// El tope ya NO se espeja acá: lo manda el servidor en cada respuesta,
+// leído de Web.config. Espejar constantes entre capas es cómo terminás
+// con un front que dice 500 y un backend que trae 2000.
+var _tope = 0;
+var _truncado = false;
 var URL_IMPRIMIR_LOTE = "@Url.Action("ImprimirLote","ReciboCaja")";
 
 // ── Etiqueta legible por situación ────────────────────────────
@@ -595,7 +611,8 @@ var URL_IMPRIMIR_LOTE = "@Url.Action("ImprimirLote","ReciboCaja")";
 //   ANULADO WEB → el recibo está muerto, solo se audita.
 var ETIQUETA_SIT = {
     "ANULADO": "ANULADO WEB",
-    "ANULADO_SAP": "ANULADO SAP"
+    "ANULADO_SAP": "ANULADO SAP",
+    "ENVEJECIDO": "PENDIENTE"
 };
 function LabelSit(s) {
     return ETIQUETA_SIT[s] || (s || "").replace("_", " ");
@@ -647,7 +664,7 @@ function InterpretarObservacion(f) {
     var raw = (f.SyncObservacion || "").trim();
     var sit = (f.Situacion || "").toUpperCase();
     var dias = parseInt(f.DiasAntiguedad, 10) || 0;
-    var obs = raw.replace(/^\[(DESC|CONCIL)\]\s*/i, "");   // marcadores internos fuera
+    var obs = raw.replace(/^\[(DESC|CONCIL|ENLACE)\]\s*/i, "");   // marcadores internos fuera
 
     // ── 1. ANULADO EN LA WEB: manda la auditoría, no el sync ──
     if (sit === "ANULADO") {
@@ -672,6 +689,76 @@ function InterpretarObservacion(f) {
             detalle: "El monto del recibo volvió a coincidir con lo aplicado en SAP. " +
                 "El recibo quedó operado y ya no lleva sello de conciliación.",
             accion: "", tecnico: ""
+        };
+    }
+
+    // ── 2.5. OPERADO CON SALDO A CUENTA ([CONCIL]) ──
+    // NO es un problema: el pago entró completo a SAP. Parte quedó como saldo
+    // a favor del cliente, que Créditos aplica después por conciliación interna
+    // (OITR/ITR1). Se informa, no se alerta.
+    if (/^\[CONCIL\]/i.test(raw)) {
+        var UMBRAL_ANTICIPO = 1.00;   // espejo de UMBRAL_ANTICIPO_VISIBLE (C#)
+
+        var monC = ObsCap(obs, /conciliaci[oó]n\s*\((usd|gtq)\)/i) || "GTQ";
+        var aCta = ObsNum(ObsCap(obs, /a\s*cuenta\s*[Q$]?\s*([\d.,]+)/i));
+        var recC = ObsNum(ObsCap(obs, /de\s*[Q$]?\s*([\d.,]+)\s*recibidos/i));
+        var aplC = ObsNum(ObsCap(obs, /aplicado\s*[Q$]?\s*([\d.,]+)/i));
+
+        if (!aCta) {
+            return {
+                clase: "obs-ok", corto: "Pago aplicado en SAP",
+                detalle: "Créditos ya aplicó el pago de este recibo en SAP. Nada pendiente.",
+                accion: "", tecnico: ""
+            };
+        }
+
+        var esRedondeo = aCta < UMBRAL_ANTICIPO;
+        return {
+            clase: esRedondeo ? "obs-ok" : "obs-info",
+            corto: esRedondeo
+                ? "Operado — diferencia de redondeo de " + ObsMonto(aCta, monC)
+                : "Operado — " + ObsMonto(aCta, monC) + " a cuenta del cliente",
+            detalle: esRedondeo
+                ? "El pago se aplicó completo en SAP. Quedó un residuo de centavos por " +
+                "redondeo al repartir el monto entre varias facturas. No es dinero faltante."
+                : "El pago entró COMPLETO a SAP por " + ObsMonto(recC, monC) + ". Se aplicaron " +
+                ObsMonto(aplC, monC) + " a facturas y " + ObsMonto(aCta, monC) + " quedaron " +
+                "como saldo a favor del cliente. El recibo está correctamente operado; el " +
+                "saldo se aplica después por conciliación interna en SAP.",
+            accion: "",   // vacío a propósito: no hay nada que hacer, no ensuciamos el grid
+            tecnico: ""
+        };
+    }
+
+    // ── 2.6. ENLACE CRUZADO EN SAP ([ENLACE]) ──
+    // Un pago de SAP tiene el número de ESTE recibo en el UDF
+    // U_Recibocaja_Webapp, pero está a nombre de OTRO cliente: casi siempre un
+    // dígito mal tecleado (caso real: RF11-04658 quedó como RF11-04659 en el
+    // pago DocNum 1005886). El sync NO lo marca operado —prefiere dejarlo
+    // pendiente antes que enlazar el pago equivocado— y deja este aviso.
+    //
+    // ⚠ DEBE IR ANTES del bloque 6. El recibo sigue en PENDIENTE, así que allá
+    // caería en "Lleva N día(s) esperando aplicación en SAP" y este mensaje
+    // quedaría tapado: se escribiría en la BD pero nadie lo vería.
+    if (/^\[ENLACE\]/i.test(raw)) {
+        var pagoE = ObsCap(obs, /pago\s+DocNum\s*(\d+)/i);
+        var cliSapE = ObsCap(obs, /pertenece\s+al\s+cliente\s+([^\s.]+)/i);
+        var cliSqlE = ObsCap(obs, /recibo\s+es\s+del\s+cliente\s+([^\s.]+)/i);
+
+        return {
+            clase: "obs-alerta",
+            corto: "Error de digitación en SAP" +
+                (pagoE ? " — pago No. " + pagoE + " es de otro cliente" : ""),
+            detalle: "En SAP hay un pago" + (pagoE ? " (No. " + pagoE + ")" : "") +
+                " con el número de este recibo en el campo «Recibo Caja Webapp», " +
+                "pero está a nombre de otro cliente" +
+                (cliSapE && cliSqlE
+                    ? ": el pago es de " + cliSapE + " y el recibo es de " + cliSqlE
+                    : "") + ". " +
+                "El sistema NO lo marcó como operado para no enlazar el pago equivocado.",
+            accion: "Corregir el campo «Recibo Caja Webapp» del pago en SAP con el número " +
+                "correcto de recibo.",
+            tecnico: ""
         };
     }
 
@@ -766,14 +853,20 @@ function InterpretarObservacion(f) {
     };
 }
 
+    // ── Preset inicial del dashboard ─────────────────────────────
+    // "todo" era el default y es el PEOR caso de consulta que existe:
+    // se dispara solo al abrir la página y de nuevo cada 60s. "mes"
+    // acota el universo sin quitarle nada al usuario: "Todo" sigue a
+    // un clic de distancia, pero ahora es una decisión, no un accidente.
+    var PRESET_INICIAL = "mes";
 
-var Filtro = {
-    empresa: "", situacion: "TODOS",
-    fechaIni: "", fechaFin: "",
-    incluirOperados: false,
-    incluirAnulados: false,
-    texto: ""
-};
+    var Filtro = {
+        empresa: "", situacion: "TODOS",
+        fechaIni: "", fechaFin: "",      // se llenan abajo con AplicarPreset()
+        incluirOperados: false,
+        incluirAnulados: false,
+        texto: ""
+    };
 
     var _filas = [];   // buffer de la última respuesta del servidor
 
@@ -894,6 +987,8 @@ function CargarDetalle() {
             return;
         }
         _filas = resp.data || [];
+        _truncado = !!resp.truncado;
+        _tope = resp.tope || 0;
         // Poda: des-seleccionar lo que ya no está en el resultado del servidor
         var validas = {};
         $.each(_filas, function (_, f) { validas[KeySel(f)] = true; });
@@ -914,11 +1009,16 @@ function PintarDetalle() {
             (f.Usuario || "").toUpperCase().indexOf(txt) !== -1;
     });
 
-    // Contador "mostrando X de Y" + aviso de tope del servidor
+    // El aviso lo dispara el SERVIDOR (resp.truncado), no una comparación
+    // adivinada en el cliente. Y es explícito sobre la consecuencia: no dice
+    // "tope alcanzado" (jerga), dice que faltan datos.
     var conteo = "Mostrando " + visibles.length + " de " + _filas.length;
-    if (_filas.length >= TOPE_FILAS)
-        conteo += ' <span class="tope" title="El servidor limita a ' + TOPE_FILAS +
-            ' filas: acote el rango de fechas para ver todo">(tope alcanzado ⚠)</span>';
+    if (_truncado) {
+        conteo += ' <span class="tope" title="El servidor devolvió el máximo de ' +
+            _tope + ' filas. HAY MÁS RECIBOS que no se están mostrando. ' +
+            'Acote el rango de fechas o filtre por situación para verlos todos.">' +
+            '⚠ LISTADO INCOMPLETO</span>';
+    }
     $("#lblConteo").html(conteo);
 
     if (!visibles.length) {
@@ -1023,36 +1123,77 @@ $(".dash-card[data-sit]").on("click", function () {
     CargarDetalle();
 });
 
-// Presets rápidos de fecha
-$("#grpPresets button").on("click", function () {
-    $("#grpPresets button").removeClass("activa");
-    $(this).addClass("activa");
-
+// ── Cálculo del rango de un preset ───────────────────────────
+// Función declarada (no expresión) a propósito: por hoisting queda
+// disponible aunque se invoque más arriba en el archivo.
+function RangoPreset(preset) {
     var hoy = new Date(), ini = "", fin = "";
-    switch ($(this).data("preset")) {
+    switch (preset) {
         case "hoy":
-            ini = fin = FechaISO(hoy); break;
+            ini = fin = FechaISO(hoy);
+            break;
         case "7d":
             var h7 = new Date(); h7.setDate(h7.getDate() - 6);
-            ini = FechaISO(h7); fin = FechaISO(hoy); break;
+            ini = FechaISO(h7); fin = FechaISO(hoy);
+            break;
         case "mes":
             ini = FechaISO(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
-            fin = FechaISO(hoy); break;
+            fin = FechaISO(hoy);
+            break;
         case "todo":
-            ini = ""; fin = ""; break;
+        default:
+            ini = ""; fin = "";
+            break;
     }
-    $("#fltFechaIni").val(ini);
-    $("#fltFechaFin").val(fin);
-    Filtro.fechaIni = ini; Filtro.fechaFin = fin;
-    CargarDetalle();
+    return { ini: ini, fin: fin };
+}
+
+// ── Aplica un preset a los TRES lugares que deben coincidir:
+//    el objeto Filtro (verdad), los inputs (edición) y el botón (visual).
+//    Que estos tres se desincronicen es exactamente el bug que estamos
+//    corrigiendo, así que se tocan siempre juntos, desde una sola función.
+function AplicarPreset(preset, recargar) {
+    var r = RangoPreset(preset);
+
+    Filtro.fechaIni = r.ini;
+    Filtro.fechaFin = r.fin;
+
+    $("#fltFechaIni").val(r.ini);
+    $("#fltFechaFin").val(r.fin);
+
+    $("#grpPresets button").removeClass("activa")
+        .filter("[data-preset='" + preset + "']").addClass("activa");
+
+    if (recargar) CargarDetalle();
+}
+
+// Presets rápidos de fecha
+$("#grpPresets button").on("click", function () {
+    AplicarPreset($(this).data("preset"), true);
 });
 
 // Fechas manuales (datepicker del theme dispara 'change' o 'changeDate' según versión)
 $("#fltFechaIni, #fltFechaFin").on("change changeDate", function () {
+    var ini = $("#fltFechaIni").val();
+    var fin = $("#fltFechaFin").val();
+
+    // ── GUARDA ANTI-ECO ──────────────────────────────────────────
+    // Si los inputs YA coinciden con el estado, el evento no lo generó
+    // el usuario: lo generó AplicarPreset al escribir con .val(), y el
+    // datepicker del theme lo reemitió como 'changeDate'.
+    //
+    // Sin esta guarda, ese eco borraba la clase 'activa' del preset recién
+    // marcado y disparaba una segunda consulta idéntica al servidor.
+    //
+    // Se compara contra el ESTADO (Filtro), no contra una bandera con
+    // setTimeout: no depende del orden en que corra la inicialización del
+    // theme. Si el valor es el mismo, no hay nada que hacer — punto.
+    if (ini === Filtro.fechaIni && fin === Filtro.fechaFin) return;
+
     // Fecha manual = ya no aplica ningún preset
     $("#grpPresets button").removeClass("activa");
-    Filtro.fechaIni = $("#fltFechaIni").val();
-    Filtro.fechaFin = $("#fltFechaFin").val();
+    Filtro.fechaIni = ini;
+    Filtro.fechaFin = fin;
     CargarDetalle();
 });
 
@@ -1080,7 +1221,7 @@ $("#fltTexto").on("input", function () {
 });
 
 // Limpiar todo
-$("#btnLimpiarFiltros").on("click", function () {
+/** $("#btnLimpiarFiltros").on("click", function () {
     Filtro.situacion = "TODOS"; Filtro.fechaIni = ""; Filtro.fechaFin = "";
     Filtro.incluirOperados = false; Filtro.incluirAnulados = false; Filtro.texto = "";
     $(".dash-card").removeClass("activa");
@@ -1089,6 +1230,18 @@ $("#btnLimpiarFiltros").on("click", function () {
     $("#fltFechaIni, #fltFechaFin, #fltTexto").val("");
     $("#chkOperados, #chkAnulados").prop("checked", false);
     CargarDetalle();
+}); */
+
+// Limpiar todo
+$("#btnLimpiarFiltros").on("click", function () {
+    Filtro.situacion = "TODOS";
+    Filtro.incluirOperados = false;
+    Filtro.incluirAnulados = false;
+    Filtro.texto = "";
+    $(".dash-card").removeClass("activa");
+    $("#fltTexto").val("");
+    $("#chkOperados, #chkAnulados").prop("checked", false);
+    AplicarPreset(PRESET_INICIAL, true);   // ← vuelve al default seguro, no a "todo"
 });
 
 // ════════════════════════════════════════════════════════
@@ -1145,6 +1298,20 @@ $("#btnExportExcel").on("click", function () {
     });
     if (!visibles.length) { toastr.info("No hay filas para exportar."); return; }
 
+    // ── AVISO DE TRUNCADO ────────────────────────────────────
+    // Parche temporal hasta que exista el export server-side.
+    // El aviso va DENTRO del archivo, no solo en un toastr: el .xls
+    // se manda por correo y se archiva; el toastr se desvanece en 5s.
+    //
+    // La verdad la manda el SERVIDOR (_truncado / _tope): no se recalcula
+    // acá comparando contra una constante espejada.
+    var truncado = _truncado;
+    if (truncado) {
+        toastr.warning("⚠ Exportación PARCIAL: solo se incluyen " + _tope +
+            " recibos de un total mayor. Acote el rango de fechas.",
+            "", { timeOut: 8000 });
+    }
+
     // ── Colores por situación (espejo de los badges del dashboard) ──
     var COLORES_SIT = {
         "DESCUADRE": { bg: "#FADBD8", fg: "#A93226" },
@@ -1190,10 +1357,18 @@ $("#btnExportExcel").on("click", function () {
     '</style></head><body>' +
     '<table>' +
     '<tr><td colspan="10" class="titulo">Supervisi&oacute;n de Recibos de Caja</td></tr>' +
-    '<tr><td colspan="10" class="subt">' + Esc(filtrosTexto) + '</td></tr>' +
-    '<tr><td colspan="10" class="subt">Generado: ' + new Date().toLocaleString() +
+        '<tr><td colspan="10" class="subt">' + Esc(filtrosTexto) + '</td></tr>' +
+        '<tr><td colspan="10" class="subt">Generado: ' + new Date().toLocaleString() +
         ' &nbsp;&mdash;&nbsp; ' + visibles.length + ' recibo(s)</td></tr>' +
-    '<tr><td colspan="10"></td></tr>' +
+        (truncado
+            ? '<tr><td colspan="10" style="background:#FADBD8; color:#A93226; ' +
+            'font-weight:bold; font-size:12pt; border:1pt solid #E74C3C;">' +
+            '\u26A0 EXPORTACI&Oacute;N PARCIAL &mdash; este archivo contiene ' +
+            'solo los primeros ' + _tope + ' recibos del filtro aplicado. ' +
+            'NO es el listado completo. Acote el rango de fechas y vuelva a exportar.' +
+            '</td></tr>'
+            : '') +
+        '<tr><td colspan="10"></td></tr>' +
     '<tr>' +
         '<td class="hdr" width="110">Situaci&oacute;n</td>' +
         '<td class="hdr" width="110">Recibo</td>' +
@@ -1278,9 +1453,14 @@ $("#btnImprimirSel").on("click", function () {
     window.open(URL_IMPRIMIR_LOTE + "?ids=" + encodeURIComponent(keys.join(",")), "_blank");
 });
 
-// Auto-refresh cada 60s (solo si la pestaña está visible)
-setInterval(function () { if (!document.hidden) CargarTodo(); }, 60000);
+    // Auto-refresh cada 60s (solo si la pestaña está visible)
+    setInterval(function () { if (!document.hidden) CargarTodo(); }, 60000);
 
-CargarTodo();
+    // Preset inicial ANTES de la primera carga: sin esto el primer $.get
+    // se iría con fechaIni="" (= "Todo"), justo lo que estamos evitando.
+    // El 'false' es porque CargarTodo() ya dispara CargarDetalle().
+    AplicarPreset(PRESET_INICIAL, false);
+
+    CargarTodo();
     </script>
 }

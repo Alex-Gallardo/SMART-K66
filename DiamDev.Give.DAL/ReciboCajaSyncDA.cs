@@ -17,6 +17,20 @@ namespace DiamDev.Give.DAL
         // Fallback si no existe el AppSetting "SyncLoteRecibos" o viene mal escrito.
         private const int LOTE_FALLBACK = 2000;
 
+        // ── Lote de la pasada INVERSA (OPERADO/DESCUADRE) ──────────────────
+        // Separado del lote de PENDIENTES a propósito: son colas de naturaleza
+        // distinta. PENDIENTE es un estado de flujo que se autolimpia (~12 hoy);
+        // OPERADO es acumulativo y crece para siempre (834 hoy, ~950/mes).
+        private const int LOTE_REVISION_FALLBACK = 300;
+
+        // Techo duro. SQL Server admite MÁXIMO 2,100 parámetros por comando, y
+        // ObtenerDatosConciliacion / MarcarUltimoCheckLote generan UNO POR ID.
+        // Sin este techo, al superar ~2,098 operados el comando lanzaría
+        // SqlException, ProcesarEmpresa se lo tragaría en su catch, y la
+        // detección de descuadres moriría EN SILENCIO para esa empresa.
+        // Proyección con el ritmo de GRACO (~25 operados/día): ~octubre 2026.
+        private const int LOTE_REVISION_MAXIMO = 1500;
+
         private string ConnString
             => ConfigurationManager.ConnectionStrings[CONN_NAME].ConnectionString;
 
@@ -34,6 +48,20 @@ namespace DiamDev.Give.DAL
             }
         }
 
+        /// <summary>
+        /// Tamaño de lote de la pasada inversa (App.config -> SyncLoteRevision).
+        /// Si el setting falta o es inválido, usa LOTE_REVISION_FALLBACK (300).
+        /// El valor se acota a [1, LOTE_REVISION_MAXIMO] en el punto de uso.
+        /// </summary>
+        private int LoteRevisionDefault
+        {
+            get
+            {
+                string raw = ConfigurationManager.AppSettings["SyncLoteRevision"];
+                return (int.TryParse(raw, out int v) && v > 0) ? v : LOTE_REVISION_FALLBACK;
+            }
+        }
+
         // ──────────────────────────────────────────────────────────────────
         // PASADA NORMAL: PENDIENTE -> OPERADO
         // ──────────────────────────────────────────────────────────────────
@@ -43,16 +71,26 @@ namespace DiamDev.Give.DAL
         /// llevan más tiempo sin revisarse (los nuevos, con NULL, van primero).
         /// Esta es la "cola rotativa" que evita que el job se atasque.
         ///
+        /// ★ Devuelve ID_RECIBO -> ID_CLIENTE (antes solo List&lt;string&gt;).
+        /// El cliente se usa para validar contra ORCT.CardCode antes de marcar
+        /// OPERADO: un typo en el UDF U_Recibocaja_Webapp puede apuntar al
+        /// recibo equivocado, y sin esta comparación el sync lo daría por bueno.
+        /// Sale de la misma consulta: cero costo adicional.
+        ///
+        /// El orden del ORDER BY se aplica en SQL (define QUÉ entra en el TOP N).
+        /// El Dictionary no preserva ese orden, pero da igual: aguas abajo solo
+        /// se usa para armar lotes de IN(...), donde el orden es irrelevante.
+        ///
         /// top = null  -> usa el lote configurado en App.config (recomendado).
         /// top = N     -> fuerza un tamaño puntual (útil en pruebas/tests).
         /// </summary>
-        public List<string> ObtenerRecibosPendientes(string empresa, int? top = null)
+        public Dictionary<string, string> ObtenerRecibosPendientes(string empresa, int? top = null)
         {
             int lote = top ?? LoteDefault;
 
-            var ids = new List<string>();
+            var mapa = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             const string sql = @"
-                SELECT TOP (@top) ID_RECIBO
+                SELECT TOP (@top) ID_RECIBO, ISNULL(ID_CLIENTE, '') AS ID_CLIENTE
                 FROM dbo.REC_CAJA_ENC
                 WHERE SYNC_ESTADO = 'PENDIENTE'
                 AND ID_EMPRESA  = @empresa
@@ -69,9 +107,14 @@ namespace DiamDev.Give.DAL
                 cn.Open();
                 using (var rd = cmd.ExecuteReader())
                     while (rd.Read())
-                        ids.Add(rd["ID_RECIBO"].ToString());
+                    {
+                        // Indexador y no Add(): si alguna vez hubiera un ID_RECIBO
+                        // repetido dentro de la misma empresa, Add lanzaría y
+                        // tumbaría el ciclo completo. El indexador solo sobrescribe.
+                        mapa[rd["ID_RECIBO"].ToString()] = rd["ID_CLIENTE"].ToString();
+                    }
             }
-            return ids;
+            return mapa;
         }
 
         /// <summary>Marca un recibo como OPERADO con las referencias de SAP.
@@ -98,6 +141,41 @@ namespace DiamDev.Give.DAL
                 cmd.Parameters.AddWithValue("@docNum", cobro.SapDocNum);
                 cmd.Parameters.AddWithValue("@idRecibo", cobro.IdRecibo);
                 cmd.Parameters.AddWithValue("@empresa", empresa);
+                cn.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>
+        /// Deja constancia de que un pago de SAP dice apuntar a este recibo pero
+        /// pertenece a OTRO cliente (típicamente, un dígito mal tecleado en el UDF
+        /// U_Recibocaja_Webapp). NO cambia SYNC_ESTADO: el recibo sigue PENDIENTE
+        /// hasta que Créditos corrija el enlace en SAP.
+        ///
+        /// Idempotente por diseño: el WHERE incluye
+        ///     ISNULL(SYNC_OBSERVACION,'') &lt;&gt; @obs
+        /// así que a partir del segundo ciclo el UPDATE afecta 0 filas y no
+        /// genera escritura. Por eso el mensaje NO debe llevar fecha/hora: si
+        /// cambiara en cada vuelta, escribiríamos una vez por ciclo, para siempre.
+        /// </summary>
+        public void MarcarPosibleErrorEnlace(string idRecibo, string empresa, string observacion)
+        {
+            const string sql = @"
+                UPDATE dbo.REC_CAJA_ENC
+                SET SYNC_OBSERVACION  = @obs,
+                    SYNC_ULTIMO_CHECK = SYSDATETIME()
+                WHERE ID_RECIBO  = @idRecibo
+                  AND ID_EMPRESA = @empresa
+                  AND SYNC_ESTADO = 'PENDIENTE'
+                  AND ISNULL(STATUS, 'A') <> 'X'
+                  AND ISNULL(SYNC_OBSERVACION, '') <> @obs;";
+
+            using (var cn = new SqlConnection(ConnString))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                cmd.Parameters.AddWithValue("@idRecibo", idRecibo);
+                cmd.Parameters.AddWithValue("@empresa", empresa);
+                cmd.Parameters.AddWithValue("@obs", (object)observacion ?? DBNull.Value);
                 cn.Open();
                 cmd.ExecuteNonQuery();
             }
@@ -294,8 +372,13 @@ namespace DiamDev.Give.DAL
         }
 
         /// <summary>
-        /// Trae, para un lote de recibos, la MONEDA y el MONTO_T_DOC necesarios
-        /// para conciliar contra RCT2. Un solo viaje a SQL.
+        /// Trae, para un lote de recibos, la MONEDA y los montos de conciliación.
+        /// Un solo viaje a SQL.
+        ///
+        /// ★ Ahora también trae MONTO_T_REC. Es el que se compara contra
+        ///   ORCT.DocTotal: ambos significan "cuánto dinero entró".
+        ///   MONTO_T_DOC se conserva porque es el que corresponde a las líneas
+        ///   del detalle (nivel informativo), no al dinero.
         /// </summary>
         public Dictionary<string, ReciboMontoSql> ObtenerDatosConciliacion(string empresa, List<string> idsRecibo)
         {
@@ -314,7 +397,7 @@ namespace DiamDev.Give.DAL
                 }
                 cmd.Parameters.AddWithValue("@empresa", empresa);
                 cmd.CommandText =
-                    "SELECT ID_RECIBO, MONEDA, MONTO_T_DOC " +
+                    "SELECT ID_RECIBO, MONEDA, MONTO_T_DOC, MONTO_T_REC " +
                     "FROM dbo.REC_CAJA_ENC " +
                     "WHERE ID_EMPRESA = @empresa AND ID_RECIBO IN (" + string.Join(",", nombres) + ");";
                 cn.Open();
@@ -327,7 +410,9 @@ namespace DiamDev.Give.DAL
                             IdRecibo = id,
                             Moneda = rd["MONEDA"] == DBNull.Value ? "GTQ" : rd["MONEDA"].ToString(),
                             MontoTDoc = rd["MONTO_T_DOC"] == DBNull.Value ? 0m
-                                                                          : Convert.ToDecimal(rd["MONTO_T_DOC"])
+                                                                          : Convert.ToDecimal(rd["MONTO_T_DOC"]),
+                            MontoTRec = rd["MONTO_T_REC"] == DBNull.Value ? 0m
+                                                                          : Convert.ToDecimal(rd["MONTO_T_REC"])
                         };
                     }
             }
@@ -347,34 +432,74 @@ namespace DiamDev.Give.DAL
         /// <summary>
         /// Recibos que la pasada inversa debe revisar: OPERADO **y** DESCUADRE
         /// (este último para el self-healing). Solo recibos locales activos.
+        ///
+        /// ★ FIX 1 — COLA ROTATIVA. Antes NO tenía TOP: traía TODOS los operados
+        /// históricos de la empresa en cada ciclo. El trabajo escalaba con el
+        /// archivo histórico, no con la cola de trabajo real. Ahora usa el mismo
+        /// patrón que ObtenerRecibosPendientes: lote acotado + rotación por
+        /// SYNC_ULTIMO_CHECK. TODOS se siguen revisando; lo que cambia es que
+        /// se reparten entre varios ciclos en vez de todos de golpe.
+        ///
+        /// ★ FIX 2 — LOS DESCUADRE VAN SIEMPRE PRIMERO (grupo 0 del ORDER BY).
+        /// Son pocos (11 hoy) y son lo accionable: no pueden quedar esperando
+        /// su turno de rotación detrás de cientos de operados que no cambian.
+        ///
+        /// ★ FIX 3 — TECHO DURO (ver LOTE_REVISION_MAXIMO): evita el
+        /// SqlException por límite de parámetros aguas abajo.
+        ///
+        /// ★ FIX 4 — se trae SYNC_OBSERVACION para que ConciliarRecibo decida
+        /// en memoria si hay marca [CONCIL] que limpiar.
+        ///
+        /// top = null -> usa el lote de App.config (recomendado).
+        /// top = N    -> fuerza un tamaño puntual (pruebas/diagnóstico).
         /// </summary>
-        public List<ReciboRevisionSql> ObtenerRecibosParaRevision(string empresa)
+        public List<ReciboRevisionSql> ObtenerRecibosParaRevision(string empresa, int? top = null)
         {
+            int lote = top ?? LoteRevisionDefault;
+            if (lote < 1) lote = 1;
+            if (lote > LOTE_REVISION_MAXIMO) lote = LOTE_REVISION_MAXIMO;
+
             var lista = new List<ReciboRevisionSql>();
+
+            const string sql = @"
+                SELECT TOP (@top)
+                       ID_RECIBO,
+                       ISNULL(SAP_DOCENTRY, 0)      AS SAP_DOCENTRY,
+                       ISNULL(SAP_DOCNUM, 0)        AS SAP_DOCNUM,
+                       SYNC_ESTADO,
+                       ISNULL(SYNC_OBSERVACION, '') AS SYNC_OBSERVACION
+                FROM dbo.REC_CAJA_ENC
+                WHERE ID_EMPRESA  = @emp
+                  AND STATUS      = 'A'
+                  AND SYNC_ESTADO IN ('OPERADO','DESCUADRE')
+                ORDER BY
+                    -- 1) Los DESCUADRE nunca esperan turno: son lo accionable.
+                    CASE WHEN SYNC_ESTADO = 'DESCUADRE' THEN 0 ELSE 1 END,
+                    -- 2) Los nunca revisados (NULL) antes que los ya sellados.
+                    CASE WHEN SYNC_ULTIMO_CHECK IS NULL THEN 0 ELSE 1 END,
+                    -- 3) Luego el más viejo sin revisar.
+                    SYNC_ULTIMO_CHECK ASC,
+                    -- 4) Desempate estable por PK. Sin esto, dos filas con el
+                    --    mismo timestamp podrían alternarse entre ciclos y una
+                    --    quedaría sin revisarse nunca.
+                    ROWID ASC;";
+
             using (var cn = new SqlConnection(CsRecibosF5()))
+            using (var cmd = new SqlCommand(sql, cn))
             {
+                cmd.Parameters.AddWithValue("@top", lote);
+                cmd.Parameters.AddWithValue("@emp", empresa);
                 cn.Open();
-                using (var cmd = new SqlCommand(@"
-                    SELECT ID_RECIBO,
-                           ISNULL(SAP_DOCENTRY, 0) AS SAP_DOCENTRY,
-                           ISNULL(SAP_DOCNUM, 0)  AS SAP_DOCNUM,
-                           SYNC_ESTADO
-                    FROM dbo.REC_CAJA_ENC
-                    WHERE ID_EMPRESA = @emp
-                      AND SYNC_ESTADO IN ('OPERADO','DESCUADRE')
-                      AND STATUS = 'A'", cn))
-                {
-                    cmd.Parameters.AddWithValue("@emp", empresa);
-                    using (var rd = cmd.ExecuteReader())
-                        while (rd.Read())
-                            lista.Add(new ReciboRevisionSql
-                            {
-                                IdRecibo = Convert.ToString(rd["ID_RECIBO"]),
-                                SapDocEntry = Convert.ToInt32(rd["SAP_DOCENTRY"]),
-                                SapDocNum = Convert.ToInt32(rd["SAP_DOCNUM"]),
-                                SyncEstado = Convert.ToString(rd["SYNC_ESTADO"])
-                            });
-                }
+                using (var rd = cmd.ExecuteReader())
+                    while (rd.Read())
+                        lista.Add(new ReciboRevisionSql
+                        {
+                            IdRecibo = Convert.ToString(rd["ID_RECIBO"]),
+                            SapDocEntry = Convert.ToInt32(rd["SAP_DOCENTRY"]),
+                            SapDocNum = Convert.ToInt32(rd["SAP_DOCNUM"]),
+                            SyncEstado = Convert.ToString(rd["SYNC_ESTADO"]),
+                            SyncObservacion = Convert.ToString(rd["SYNC_OBSERVACION"])
+                        });
             }
             return lista;
         }
@@ -490,6 +615,100 @@ namespace DiamDev.Give.DAL
                     tx.Commit();
                 }
             }
+        }
+
+        /// <summary>
+        /// Versión por LOTE de UpsertSapDocs: UNA sola conexión para todo el
+        /// ciclo en vez de una por recibo (~845 aperturas por ciclo antes).
+        ///
+        /// El SqlCommand se crea una vez y solo se re-asignan los VALORES de los
+        /// parámetros: el plan queda cacheado y no se re-parsea en cada vuelta.
+        /// En TS sería preparar el statement fuera del for en vez de adentro.
+        ///
+        /// El try/catch por pago es deliberado: un ORCT con datos raros no debe
+        /// tumbar la bitácora de los otros 844. Los errores se DEVUELVEN para
+        /// que el BLL los sume a su lista y terminen en el log — mismo criterio
+        /// que el catch por recibo que ya existía en RevisarAnulaciones.
+        /// </summary>
+        public List<string> UpsertSapDocsLote(string empresa,
+            Dictionary<string, List<SapPagoDetalle>> pagosPorRecibo)
+        {
+            var errores = new List<string>();
+            if (pagosPorRecibo == null || pagosPorRecibo.Count == 0) return errores;
+
+            const string sql = @"
+                UPDATE dbo.REC_CAJA_SAP_DOCS
+                SET SAP_DOCNUM = @docnum, MONTO = @monto, MONEDA = @mon,
+                    CANCELED = @canc, FACTURAS = @fact,
+                    FECHA_ULT_CHECK = SYSDATETIME()
+                WHERE ID_EMPRESA = @emp AND SAP_DOCENTRY = @docentry;
+
+                IF @@ROWCOUNT = 0
+                INSERT INTO dbo.REC_CAJA_SAP_DOCS
+                    (ID_RECIBO, ID_EMPRESA, SAP_DOCENTRY, SAP_DOCNUM, MONTO,
+                     MONEDA, CANCELED, FACTURAS, FECHA_ULT_CHECK)
+                VALUES
+                    (@id, @emp, @docentry, @docnum, @monto,
+                     @mon, @canc, @fact, SYSDATETIME());";
+
+            using (var cn = new SqlConnection(CsRecibosF5()))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                // AddWithValue infiere el tipo del valor de C#. Acá lo declaramos
+                // explícito para no depender de esa inferencia en un bucle.
+                // @monto va SIN Precision/Scale a propósito: ADO.NET los toma del
+                // decimal que se le asigna. Si REC_CAJA_SAP_DOCS.MONTO resultara
+                // tener una escala mayor a la de los valores, ajustar acá.
+                cmd.Parameters.Add("@id", System.Data.SqlDbType.NVarChar, 15);
+                cmd.Parameters.Add("@emp", System.Data.SqlDbType.NVarChar, 15);
+                cmd.Parameters.Add("@docentry", System.Data.SqlDbType.Int);
+                cmd.Parameters.Add("@docnum", System.Data.SqlDbType.Int);
+                cmd.Parameters.Add("@monto", System.Data.SqlDbType.Decimal);
+                cmd.Parameters.Add("@mon", System.Data.SqlDbType.NVarChar, 3);
+                cmd.Parameters.Add("@canc", System.Data.SqlDbType.NVarChar, 1);
+                cmd.Parameters.Add("@fact", System.Data.SqlDbType.NVarChar, -1);
+
+
+                cn.Open();
+
+                foreach (var par in pagosPorRecibo)
+                {
+                    if (par.Value == null || par.Value.Count == 0) continue;
+
+                    foreach (var p in par.Value)
+                    {
+                        try
+                        {
+                            bool esUSD = "USD".Equals(p.MonedaDoc,
+                                             StringComparison.OrdinalIgnoreCase);
+                            string facturas = string.Join(",",
+                                p.FacturasAplicadas ?? new List<string>());
+
+                            cmd.Parameters["@id"].Value = par.Key;
+                            cmd.Parameters["@emp"].Value = empresa;
+                            cmd.Parameters["@docentry"].Value = p.DocEntry;
+                            cmd.Parameters["@docnum"].Value = p.DocNum;
+                            // La bitácora registra el DINERO DEL PAGO (ORCT.DocTotal),
+                            // no lo aplicado en RCT2. Así SUM(MONTO) de los activos
+                            // cuadra contra MONTO_T_REC y la tabla es auditable.
+                            cmd.Parameters["@monto"].Value = p.MontoRecibido(esUSD);
+                            // cmd.Parameters["@monto"].Value = p.MontoEfectivo(esUSD);
+                            cmd.Parameters["@mon"].Value = esUSD ? "USD" : "GTQ";
+                            cmd.Parameters["@canc"].Value = p.Canceled ? "Y" : "N";
+                            cmd.Parameters["@fact"].Value =
+                                string.IsNullOrEmpty(facturas) ? (object)DBNull.Value : facturas;
+
+                            cmd.ExecuteNonQuery();
+                        }
+                        catch (Exception ex)
+                        {
+                            errores.Add(string.Format("[{0}] SapDocs {1}/DocEntry {2}: {3}",
+                                empresa, par.Key, p.DocEntry, ex.Message));
+                        }
+                    }
+                }
+            }
+            return errores;
         }
 
         /// <summary>

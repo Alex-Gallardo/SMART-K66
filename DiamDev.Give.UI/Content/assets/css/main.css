@@ -44,7 +44,7 @@ h1, h2, h3 {
 textarea, input[type="text"], input[type="password"], input[type="datetime"], input[type="datetime-local"], input[type="date"], input[type="month"], input[type="time"], input[type="week"], input[type="number"], input[type="email"], input[type="url"], input[type="search"], input[type="tel"], input[type="color"] {
 	background-color: #FFFFFF;
 	border: 1px solid #D5D5D5;
-	border-radius: 0 0 0 0 !important;
+	border-radius: 0 0 0 0;
 	color: #858585;
 	font-family: inherit;
 	font-size: 14px;

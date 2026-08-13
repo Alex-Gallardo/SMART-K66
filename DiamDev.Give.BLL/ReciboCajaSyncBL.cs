@@ -23,6 +23,36 @@ namespace DiamDev.Give.BLL
         // Tolerancia de conciliación (App.config -> SyncToleranciaMonto). Default 0.05.
         private const decimal TOLERANCIA_FALLBACK = 0.05m;
 
+        // Prefijo de las notas de conciliación. DEBE coincidir EXACTAMENTE con el
+        // que antepone ReciboCajaSyncDA.MarcarConciliacion. Si se desincronizan,
+        // la comparación "¿cambió la observación?" nunca da igual y volvemos a
+        // un UPDATE por ciclo por recibo.
+        private const string PREFIJO_CONCIL = "[CONCIL] ";
+
+        // Prefijo de los avisos de enlace cruzado (typo en el UDF de SAP).
+        // Lo reconocen los 3 intérpretes: SyncObservacionInterprete (Entities),
+        // Index.cshtml y Dashboard.cshtml.
+        private const string PREFIJO_ENLACE = "[ENLACE] ";
+
+        // REC_CAJA_ENC.SYNC_OBSERVACION es nvarchar(200). Un mensaje más largo hace
+        // que SQL Server lance "String or binary data would be truncated", el catch
+        // por recibo se lo traga, y ESE recibo no se marca. En silencio.
+        private const int MAX_OBSERVACION = 200;
+
+        /// <summary>Recorta a 'max' caracteres para que el UPDATE nunca truene.</summary>
+        private static string RecortarA(string texto, int max)
+        {
+            if (string.IsNullOrEmpty(texto) || texto.Length <= max) return texto;
+            return texto.Substring(0, max - 3) + "...";
+        }
+
+        /// <summary>Recorta a MAX_OBSERVACION para que el UPDATE nunca truene.</summary>
+        private static string Recortar(string texto)
+        {
+            if (string.IsNullOrEmpty(texto) || texto.Length <= MAX_OBSERVACION) return texto;
+            return texto.Substring(0, MAX_OBSERVACION - 3) + "...";
+        }
+
         private readonly ReciboCajaSyncDA _sql = new ReciboCajaSyncDA();
         private readonly HanaRepository _hana = new HanaRepository();
 
@@ -45,6 +75,7 @@ namespace DiamDev.Give.BLL
             public int Conciliados { get; set; }     // revisados por conciliación
             public int Descuadrados { get; set; }    // transiciones NUEVAS a DESCUADRE
             public int Sanados { get; set; }         // DESCUADRE -> OPERADO (self-healing)
+            public int EnlacesSospechosos { get; set; }  // UDF apunta a recibo de otro cliente
             public List<string> Errores { get; } = new List<string>();
         }
 
@@ -68,21 +99,57 @@ namespace DiamDev.Give.BLL
             RevisarAnulaciones(empresa, res);   // pasada inversa + conciliación
         }
 
-        // ── Pasada normal: PENDIENTE -> OPERADO (sin cambios) ──────────────
+        // ── Pasada normal: PENDIENTE -> OPERADO ────────────────────────────
         private void ProcesarPendientes(string empresa, ResultadoSync res)
         {
-            List<string> pendientes = _sql.ObtenerRecibosPendientes(empresa);
+            // ID_RECIBO -> ID_CLIENTE (para validar el enlace contra SAP)
+            Dictionary<string, string> pendientes = _sql.ObtenerRecibosPendientes(empresa);
             if (pendientes.Count == 0) return;
 
             res.Revisados += pendientes.Count;
 
-            List<SapCobroAplicado> operados = _hana.ObtenerCobrosOperados(empresa, pendientes);
+            List<SapCobroAplicado> operados =
+                _hana.ObtenerCobrosOperados(empresa, pendientes.Keys.ToList());
 
             var idsOperados = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var cobro in operados)
             {
                 try
                 {
+                    // ══ VALIDACIÓN DE ENLACE (anti-typo) ══
+                    // El match con SAP es por igualdad exacta del UDF
+                    // U_Recibocaja_Webapp, que Créditos escribe A MANO. Un dígito
+                    // mal tecleado puede apuntar a un recibo REAL de otro cliente,
+                    // y sin esta comparación el sync lo marcaría OPERADO con el
+                    // pago equivocado (caso visto: RF11-04658 quedó como
+                    // RF11-04659 en el pago DocNum 1005886).
+                    //
+                    // Solo se valida si AMBOS lados tienen dato. Si ID_CLIENTE
+                    // viene vacío (recibos con encabezado editable, tipo SALA DE
+                    // VENTAS) se procede normal: fallar cerrado ahí dejaría
+                    // recibos legítimos atascados para siempre.
+                    string clienteSql;
+                    pendientes.TryGetValue(cobro.IdRecibo, out clienteSql);
+                    clienteSql = (clienteSql ?? "").Trim();
+                    string clienteSap = (cobro.CardCode ?? "").Trim();
+
+                    if (clienteSql.Length > 0 && clienteSap.Length > 0 &&
+                        !string.Equals(clienteSql, clienteSap, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Sin fecha/hora A PROPÓSITO: el mensaje debe ser estable
+                        // para que el UPDATE del DA sea idempotente.
+                        string obsEnlace = RecortarA(string.Format(
+                            "{0}El pago DocNum {1} en SAP apunta a este recibo, pero pertenece al " +
+                            "cliente {2} y el recibo es del cliente {3}. Verifique el campo " +
+                            "Recibo Caja Webapp del pago en SAP.",
+                            PREFIJO_ENLACE, cobro.SapDocNum, clienteSap, clienteSql),
+                            MAX_OBSERVACION);
+
+                        _sql.MarcarPosibleErrorEnlace(cobro.IdRecibo, empresa, obsEnlace);
+                        res.EnlacesSospechosos++;
+                        continue;   // NO se marca OPERADO: el enlace es dudoso
+                    }
+
                     _sql.MarcarReciboOperado(cobro, empresa);
                     idsOperados.Add(cobro.IdRecibo);
                     res.Operados++;
@@ -94,7 +161,7 @@ namespace DiamDev.Give.BLL
                 }
             }
 
-            var noOperados = pendientes.Where(id => !idsOperados.Contains(id)).ToList();
+            var noOperados = pendientes.Keys.Where(id => !idsOperados.Contains(id)).ToList();
             _sql.MarcarUltimoCheckLote(noOperados, empresa);
         }
 
@@ -117,6 +184,20 @@ namespace DiamDev.Give.BLL
                 .GroupBy(p => p.IdRecibo, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
+            // ── Bitácora REC_CAJA_SAP_DOCS: UNA conexión para todo el lote ──
+            // Antes se llamaba UpsertSapDocs DENTRO del foreach: una conexión
+            // por recibo (~300 por empresa por ciclo). UpsertSapDocsLote ya
+            // existía en el DA y hace exactamente esto, pero nadie lo llamaba.
+            //
+            // Los errores se DEVUELVEN (no se lanzan) para que un ORCT con
+            // datos raros no tumbe la bitácora de los otros 299. Se suman a
+            // res.Errores y terminan en el log, igual que antes.
+            //
+            // Diferencia de comportamiento (a mejor): antes, si la bitácora
+            // fallaba para un recibo, ese recibo se saltaba TODA la revisión.
+            // Ahora la bitácora es auxiliar: falla sola y la conciliación sigue.
+            res.Errores.AddRange(_sql.UpsertSapDocsLote(empresa, pagosPorRecibo));
+
             Dictionary<string, ReciboMontoSql> datosSql =
                 _sql.ObtenerDatosConciliacion(empresa, ids);
 
@@ -128,9 +209,6 @@ namespace DiamDev.Give.BLL
                 {
                     pagosPorRecibo.TryGetValue(op.IdRecibo, out var pagosRecibo);
                     pagosRecibo = pagosRecibo ?? new List<SapPagoDetalle>();
-
-                    // Bitácora: registrar TODO lo visto en SAP (activos y anulados)
-                    _sql.UpsertSapDocs(op.IdRecibo, empresa, pagosRecibo);
 
                     var activos = pagosRecibo.Where(p => !p.Canceled).ToList();
 
@@ -184,8 +262,32 @@ namespace DiamDev.Give.BLL
         }
 
         // ── Conciliación de un recibo (multi-ORCT) ─────────────────────────
-        // Devuelve true si el recibo quedó OPERADO cuadrado sin transición
-        // (para el lote de "último check"); false en cualquier otro caso.
+        //
+        // DOS NIVELES:
+        //
+        //   NIVEL 1 — DINERO (única autoridad para OPERADO/DESCUADRE)
+        //     SUM(ORCT.DocTotal) de pagos activos  vs  REC_CAJA_ENC.MONTO_T_REC
+        //     Ambos significan "cuánto dinero entró".
+        //
+        //   NIVEL 2 — APLICACIÓN (informativo, NO decide estado)
+        //     DocTotal - SUM(RCT2) = lo que quedó A CUENTA del cliente.
+        //     En SAP eso NO es un error: es un saldo a favor que se concilia
+        //     después (conciliación interna: OITR/ITR1 + JDT1.BalDueCred).
+        //
+        // ⚠ EL NIVEL 2 SOLO SE EVALÚA SI SAP REPORTÓ LÍNEAS RCT2.
+        // Sin ellas hay DOS escenarios que desde aquí son indistinguibles:
+        //     a) anticipo puro          -> no hay nada que conciliar
+        //     b) la consulta RCT2 falló -> "aplicado 0.00" sería MENTIRA
+        // En ambos casos no se escribe nada. El estado ya lo resolvió el
+        // Nivel 1, que NO depende de RCT2.
+        //
+        // ⚠ La nota [CONCIL] NO lleva fecha A PROPÓSITO. Si la llevara, el
+        // texto cambiaría cada minuto y la comparación de abajo nunca daría
+        // igual: un UPDATE por recibo por ciclo, para siempre.
+        // SYNC_ULTIMO_CHECK ya guarda cuándo se verificó, que es su trabajo.
+        //
+        // Devuelve true si el recibo quedó OPERADO cuadrado y SIN escribir
+        // nada (va al lote de "último check"); false en cualquier otro caso.
         private bool ConciliarRecibo(ReciboRevisionSql op, string empresa,
                                      List<SapPagoDetalle> activos,
                                      List<SapPagoDetalle> todos,
@@ -200,32 +302,111 @@ namespace DiamDev.Give.BLL
                                        StringComparison.OrdinalIgnoreCase);
             bool eraDescuadre = string.Equals(op.SyncEstado, "DESCUADRE",
                                               StringComparison.OrdinalIgnoreCase);
+            string codMon = esUSD ? "USD" : "GTQ";
+            string sim = esUSD ? "$" : "Q";
 
-            // Suma de TODOS los pagos activos (RCT2; anticipos por total ORCT)
-            decimal montoSap = activos.Sum(p => p.MontoEfectivo(esUSD));
-            decimal montoSql = sql.MontoTDoc;
-            decimal diferencia = Math.Abs(montoSql - montoSap);
+            // ══ NIVEL 1 — DINERO ══
+            decimal recibidoSap = activos.Sum(p => p.MontoRecibido(esUSD));
+            decimal recibidoSql = sql.MontoTRec;
+            decimal diferencia = Math.Abs(recibidoSql - recibidoSap);
 
-            // ── Cuadra ──
+            // ══ NIVEL 2 — APLICACIÓN (solo si HAY datos de RCT2) ══
+            bool hayDatosRct2 = activos.Any(p => p.TieneLineasRct2);
+            decimal aCuenta = activos.Sum(p => p.MontoACuenta(esUSD));
+            decimal aplicado = activos.Sum(p => p.MontoAplicado(esUSD));
+
+            // ── CUADRA: el dinero está registrado en SAP ──
             if (diferencia <= Tolerancia)
             {
+                // ══════════════════════════════════════════════════════════
+                // NIVEL 2 DESACTIVADO PERMANENTEMENTE (validado 2026-08-10)
+                // ══════════════════════════════════════════════════════════
+                // El cálculo DocTotal - RCT2 NO puede medir "monto a cuenta"
+                // porque en SAP hay DOS rutas de aplicación y RCT2 solo ve una:
+                //
+                //   Ruta A) Aplicación al crear el pago  -> RCT2 SÍ se llena
+                //   Ruta B) Reconciliación interna       -> RCT2 queda VACÍO
+                //           (OITR/ITR1; se refleja en JDT1.BalDueCred)
+                //
+                // Créditos usa la ruta B cuando la factura es posterior al pago
+                // y siempre para recibos contra PEDIDO (cuenta Anticipos Cliente
+                // #21202001 local / #21202002 expo). Un PEDIDO además nunca
+                // aparece en RCT2: el filtro InvType=13 solo trae facturas OINV.
+                //
+                // Evidencia: RB10-01089 (FACTURA 1007003) y RB01-00669
+                // (PEDIDO 8000762) tenían RCT2 vacío, pero JDT1.BalDueCred = 0
+                // y OINV.DocStatus = 'C' -> el pago SÍ estaba aplicado.
+                // La nota "a cuenta" era falsa.
+                //
+                // No se reimplementa con JDT1: Créditos reconcilia DIARIO, así
+                // que el saldo a cuenta vive horas. La nota se escribiría y se
+                // borraría sola cada día, con un viaje extra a HANA por ciclo
+                // para ~955 recibos, y sin nada accionable para nadie.
+                //
+                // El NIVEL 1 (SUM(ORCT.DocTotal) vs MONTO_T_REC) NO se ve
+                // afectado: sigue siendo la autoridad de OPERADO/DESCUADRE.
+                //
+                // ⚠ NOTA: IntrnMatch de JDT1 NO sirve como indicador. Desde
+                // SAP B1 8.8 la reconciliación vive en OITR/ITR1 y ese campo
+                // quedó legacy (queda en 0 aunque el saldo esté conciliado).
+                // El campo confiable es BalDueCred.
+                const bool NIVEL2_ACTIVO = false;
+
+                string nota = (NIVEL2_ACTIVO && hayDatosRct2 && aCuenta > Tolerancia)
+                    ? RecortarA(string.Format(
+                        "Conciliación ({0}): a cuenta {1} {2:N2} de {1} {3:N2} recibidos " +
+                        "(aplicado {1} {4:N2}).",
+                        codMon, sim, aCuenta, recibidoSap, aplicado),
+                        MAX_OBSERVACION - PREFIJO_CONCIL.Length)
+                    : null;
+
                 if (eraDescuadre)
                 {
-                    // Self-healing: Créditos ya re-aplicó → DESCUADRE -> OPERADO
+                    // Self-healing: DESCUADRE -> OPERADO. Transición de estado:
+                    // se escribe UNA vez, por eso aquí sí puede llevar fecha.
+                    string obsSano = (nota != null)
+                        ? PREFIJO_CONCIL + nota
+                        : RecortarA(string.Format(
+                            "Descuadre resuelto: {0} {1:N2} = SAP ({2} pago(s) activo(s)). " +
+                            "{3:dd/MM/yyyy HH:mm}.",
+                            sim, recibidoSql, activos.Count, DateTime.Now), MAX_OBSERVACION);
+
                     _sql.LimpiarMarcasDetalle(op.IdRecibo, empresa);
-                    _sql.MarcarReciboCuadrado(op.IdRecibo, empresa, string.Format(
-                        "Descuadre resuelto: SQL={0:N2} = SAP={1:N2} ({2} pago(s) activo(s)) {3:dd/MM/yyyy HH:mm}.",
-                        montoSql, montoSap, activos.Count, DateTime.Now));
+                    _sql.MarcarReciboCuadrado(op.IdRecibo, empresa, obsSano);
                     res.Sanados++;
                     return false;
                 }
 
-                // Ya estaba OPERADO y cuadra: limpiar bandera previa si había
-                _sql.MarcarConciliacion(op.IdRecibo, empresa, null);
-                return true;
+                // Ya estaba OPERADO: escribir SOLO si la observación cambia.
+                bool tieneMarcaConcil = (op.SyncObservacion ?? "")
+                    .StartsWith(PREFIJO_CONCIL, StringComparison.OrdinalIgnoreCase);
+
+                if (nota == null)
+                {
+                    // Sin datos de RCT2 no afirmamos NADA sobre el nivel 2,
+                    // ni siquiera para limpiar: si el vacío viene de una
+                    // consulta fallida, limpiar y re-escribir en el siguiente
+                    // ciclo produce el parpadeo que estamos matando.
+                    if (!hayDatosRct2) return true;
+
+                    // Con datos y sin saldo a cuenta: el recibo se aplicó
+                    // completo. Solo limpiamos si la marca es NUESTRA
+                    // (una observación de re-apunte se respeta).
+                    if (!tieneMarcaConcil) return true;
+                    _sql.MarcarConciliacion(op.IdRecibo, empresa, null);
+                    return false;
+                }
+
+                if (string.Equals(op.SyncObservacion ?? "", PREFIJO_CONCIL + nota,
+                                  StringComparison.Ordinal))
+                    return true;   // idéntica -> lote de último check, sin escribir
+
+                _sql.MarcarConciliacion(op.IdRecibo, empresa, nota);
+                return false;
             }
 
-            // ── NO cuadra: anulación parcial (u otra causa) → DESCUADRE ──
+            // ── NO CUADRA: falta dinero en SAP -> DESCUADRE real ──
+            // Formato conservado (incluye "dif=") para no romper los intérpretes.
             var facturasActivas = activos
                 .SelectMany(p => p.FacturasAplicadas)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -235,17 +416,17 @@ namespace DiamDev.Give.BLL
                                 .Select(p => p.DocNum.ToString())
                                 .ToList();
 
-            string obs = string.Format(
+            string obs = RecortarA(string.Format(
                 "[DESC] Descuadre ({0}): SQL={1:N2} vs SAP activo={2:N2}, dif={3:N2}. " +
-                "Pago(s) anulado(s) en SAP: {4}. Recibido sin aplicar: {3:N2}. {5:dd/MM/yyyy HH:mm}.",
-                esUSD ? "USD" : "GTQ", montoSql, montoSap, diferencia,
+                "Pago(s) anulado(s) en SAP: {4}. {5:dd/MM/yyyy HH:mm}.",
+                codMon, recibidoSql, recibidoSap, diferencia,
                 anulados.Count == 0 ? "ninguno detectado" : "DocNum " + string.Join(", ", anulados),
-                DateTime.Now);
+                DateTime.Now), MAX_OBSERVACION);
 
             _sql.MarcarLineasAnuladas(op.IdRecibo, empresa, facturasActivas);
             _sql.MarcarReciboDescuadre(op.IdRecibo, empresa, obs);
 
-            if (!eraDescuadre) res.Descuadrados++;   // solo contar la transición nueva
+            if (!eraDescuadre) res.Descuadrados++;
             return false;
         }
     }

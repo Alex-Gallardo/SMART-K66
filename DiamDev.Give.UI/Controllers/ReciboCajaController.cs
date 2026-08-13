@@ -473,11 +473,22 @@ namespace DiamDev.Give.UI.Controllers
                 // querystring: el front es cosmético y se puede falsificar desde F12.
                 var alcance = AlcanceActual();
 
+                bool truncado;
                 var filas = _admin.ObtenerDetalle(empresa, situacion,
                                                   fechaIni, fechaFin,
                                                   incluirOperados, incluirAnulados,
-                                                  alcance);
-                return Json(new { ok = true, data = filas }, JsonRequestBehavior.AllowGet);
+                                                  alcance, out truncado);
+
+                // 'tope' viaja al front para que el aviso muestre el número REAL,
+                // no una constante espejada en JS que puede desincronizarse del
+                // Web.config. Un solo lugar donde vive la verdad.
+                return Json(new
+                {
+                    ok = true,
+                    data = filas,
+                    truncado,
+                    tope = _admin.TopeFilas
+                }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {

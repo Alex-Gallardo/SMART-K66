@@ -234,6 +234,10 @@
         .dash-card .num {
             font-size: 24px;
         }
+
+        .dash-toolbar {
+            justify-content: space-between;
+        }
     }
 
     /* ── Barra de filtros (entre cards y grid) ── */
@@ -417,27 +421,52 @@
         font-weight: 700;
         cursor: help;
     }
+
+    .panel-new{
+        padding-left: 16px;
+        display: flex;
+        flex-direction: row;
+        height: auto;
+        flex-wrap: nowrap;
+
+    }
+
+    @@media (max-width:767px) {
+        #btnRefrescar{
+            max-height: 38px;
+        }
+
+        .btn-enlace{
+            max-height: 38px;
+            display:flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+    }
+
 </style>
 
 <div class="panel panel-default" style="border-top:4px solid #2c3e50;">
-    <div class="panel-heading" style="background:#f7f9fa; border-bottom:1px solid #eee;">
-        <h4 class="panel-title" style="display:flex; align-items:center; flex-wrap:wrap; gap:8px; color:#5d6d7e; font-size:13px;">
+    <div class="panel-heading panel-new" style="background:#f7f9fa; border-bottom:1px solid #eee;">
+        <h4 class="panel-title" style="display:flex; align-items:center; gap:8px; color:#5d6d7e; font-size:13px;">
             <i class="clip-stats"></i>
             <span style="font-weight:700;">Supervisión de Recibos</span>
             <small style="color:#95a5a6;"></small>
-            <span style="margin-left:auto; display:flex; gap:6px;">
-                <!-- SERIES ACCESO -->
-                <!-- <a href=" Url.Action("Series","ReciboCaja")" class="btn btn-default btn-xs" title="Mantenimiento de series de numeración">
-                    <i class="icon-cogs"></i> Series
-                </a> -->
-                <a href="@Url.Action("Index","ReciboCaja")" class="btn btn-default btn-xs">
-                    <i class="icon-file-text"></i> Nuevo Recibo
-                </a>
-                <button id="btnRefrescar" class="btn btn-primary btn-xs">
-                    <i class="icon-refresh"></i> Actualizar
-                </button>
-            </span>
+
         </h4>
+        <span style="margin-left:auto; display:flex; gap:6px;">
+            <!-- SERIES ACCESO -->
+            <!-- <a href=" Url.Action("Series","ReciboCaja")" class="btn btn-default btn-xs" title="Mantenimiento de series de numeración">
+            <i class="icon-cogs"></i> Series
+            </a> -->
+            <a href="@Url.Action("Index","ReciboCaja")" class="btn btn-default btn-xs btn-enlace">
+                <i class="icon-file-text"></i> Nuevo Recibo
+            </a>
+            <button id="btnRefrescar" class="btn btn-primary btn-xs">
+                <i class="icon-refresh"></i> Actualizar
+            </button>
+        </span>
     </div>
     <div class="panel-body">
 

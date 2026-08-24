@@ -423,7 +423,12 @@ namespace DiamDev.Give.UI.Controllers
 
         private bool PuedeConsultar(BorradorNcEncabezado enc)
         {
-            if (CustomHelper.Permiso(PERMISO_VER_TODOS)) return true;
+            // Quien autoriza o anula necesita abrir e imprimir solicitudes de
+            // otros capturadores dentro de sus empresas asignadas, aun cuando el
+            // rol no tenga VerTodos por una configuración incompleta.
+            if (CustomHelper.Permiso(PERMISO_VER_TODOS) ||
+                CustomHelper.Permiso(PERMISO_AUTORIZAR) ||
+                CustomHelper.Permiso(PERMISO_ANULAR)) return true;
             if (EsAgente())
             {
                 var agentes = Asignaciones()

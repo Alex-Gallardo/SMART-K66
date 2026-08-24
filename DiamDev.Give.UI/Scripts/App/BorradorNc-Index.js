@@ -28,6 +28,8 @@
         esAgente: String($root.data("es-agente")) === "true",
         puedeAnular: String($root.data("puede-anular")) === "true"
     };
+    var estadoFacturaTimer = null;
+    var estadoFacturaSecuencia = 0;
 
     function token() {
         return $root.find('input[name="__RequestVerificationToken"]').val();
@@ -52,6 +54,19 @@
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
         });
+    }
+
+    function resumenMonedas(filas) {
+        var totales = {};
+        $.each(filas || [], function (_, x) {
+            var moneda = String(x.Moneda || "SIN MONEDA").toUpperCase();
+            totales[moneda] = numero(totales[moneda]) + numero(x.Total);
+        });
+        var monedas = Object.keys(totales).sort();
+        if (!monedas.length) return dinero(0);
+        return $.map(monedas, function (moneda) {
+            return dinero(totales[moneda], moneda);
+        }).join(" / ");
     }
 
     function fechaCorta(value) {
@@ -177,6 +192,8 @@
     }
 
     function limpiarFactura() {
+        window.clearTimeout(estadoFacturaTimer);
+        estadoFacturaSecuencia++;
         state.factura = null;
         $("#bncDocumento,#bncFechaDoc,#bncSerieFel,#bncNumeroFel,#bncImporte,#bncDescripcion").val("");
         $("#bncConcepto").val("");
@@ -203,11 +220,15 @@
     function mostrarAlertasFactura(f) {
         var mensajes = [];
         var clase = "is-warning";
+        var importeActual = numero($("#bncImporte").val());
         if (f.GeneraSaldoAFavor) mensajes.push("La factura está pagada; la NC generará saldo a favor.");
         if (numero(f.NcPreviaSap) > 0) mensajes.push("Existen " + dinero(f.NcPreviaSap, f.Moneda) + " en notas de crédito previas de SAP.");
         if (numero(f.Acumulado) > 0) mensajes.push("Ya está comprometida en " + escapeHtml(f.BorradoresRelacionados || "otros borradores") + ".");
         if (numero(f.Disponible) <= 0) {
             mensajes.push("El documento no tiene disponible para otro borrador.");
+            clase = "is-danger";
+        } else if (importeActual - numero(f.Disponible) > 0.005) {
+            mensajes.push("El importe ingresado supera el disponible actualizado.");
             clase = "is-danger";
         }
         if (!mensajes.length) { ocultarAlertaFactura(); return; }
@@ -217,6 +238,45 @@
 
     function ocultarAlertaFactura() {
         $("#bncFacturaAlert").attr("class", "bnc-inline-alert").empty();
+    }
+
+    function programarEstadoFactura() {
+        window.clearTimeout(estadoFacturaTimer);
+        if (!state.factura) return;
+
+        var documento = String(state.factura.DocNum || "");
+        var secuencia = ++estadoFacturaSecuencia;
+        estadoFacturaTimer = window.setTimeout(function () {
+            get(urls.estadoFactura, {
+                empresa: empresa(),
+                documento: documento,
+                docTotal: numero(state.factura.DocTotal),
+                pagado: numero(state.factura.Pagado)
+            }).done(function (r) {
+                if (secuencia !== estadoFacturaSecuencia || !state.factura ||
+                    String(state.factura.DocNum || "") !== documento) return;
+
+                if (!r || !r.ok) {
+                    avisar("warning", r && r.msg ? r.msg :
+                        "No se pudo actualizar el disponible de la factura.");
+                    return;
+                }
+
+                var actual = r.data || {};
+                $.extend(state.factura, {
+                    Acumulado: numero(actual.Acumulado),
+                    NcPreviaSap: numero(actual.NcPreviaSap),
+                    Disponible: numero(actual.Disponible),
+                    DisponibleNeto: numero(actual.DisponibleNeto),
+                    GeneraSaldoAFavor: !!actual.GeneraSaldoAFavor,
+                    BorradoresRelacionados: actual.BorradoresRelacionados || ""
+                });
+                renderFacturaSeleccionada();
+            }).fail(function (xhr) {
+                if (secuencia === estadoFacturaSecuencia)
+                    avisar("warning", mensajeAjax(xhr));
+            });
+        }, 500);
     }
 
     function cargarSerie() {
@@ -457,8 +517,13 @@
     function filasFiltradas() {
         var estado = $("#bncFiltroEstado").val() || "";
         var texto = String($("#bncFiltroTexto").val() || "").toLowerCase();
+        var desde = $("#bncFiltroDesde").val() || "";
+        var hasta = $("#bncFiltroHasta").val() || "";
         return $.grep(state.seguimiento, function (x) {
             if (estado && x.Estado !== estado) return false;
+            var fecha = String(x.Fecha || "").substring(0, 10);
+            if (desde && fecha < desde) return false;
+            if (hasta && fecha > hasta) return false;
             if (!texto) return true;
             return [x.IdBorrador, x.IdEmpresa, x.IdCliente, x.Nombre, x.Agente, x.IdUsr]
                 .join(" ").toLowerCase().indexOf(texto) >= 0;
@@ -483,17 +548,17 @@
     }
 
     function renderKpis() {
-        var p = 0, a = 0, r = 0, monto = 0;
-        $.each(state.seguimiento, function (_, x) {
+        var p = 0, a = 0, r = 0;
+        var filas = filasFiltradas();
+        $.each(filas, function (_, x) {
             if (x.Estado === "PENDIENTE") p++;
             else if (x.Estado === "AUTORIZADO") a++;
             else r++;
-            monto += numero(x.Total);
         });
         $("#bncKpiPendientes").text(p);
         $("#bncKpiAutorizados").text(a);
         $("#bncKpiRechazados").text(r);
-        $("#bncKpiMonto").text(dinero(monto));
+        $("#bncKpiMonto").text(resumenMonedas(filas));
     }
 
     function cargarDetalle(empresaId, id) {
@@ -594,11 +659,15 @@
         $("#bncFacturaBody").on("click dblclick", "tr", function () { seleccionarFactura(Number($(this).data("index"))); });
 
         $("#bncAgregarLinea").on("click", agregarLinea);
+        $("#bncImporte").on("input", programarEstadoFactura);
         $("#bncLineBody").on("click", ".bnc-remove-line", function () {
             state.lineas.splice(Number($(this).data("index")), 1);
             renderLineas();
         });
-        $("#bncNuevo").on("click", function () { resetFormulario(false); });
+        $("#bncNuevo").on("click", function () {
+            if (state.lineas.length && !window.confirm("Se perderán las líneas no guardadas. ¿Desea crear un borrador nuevo?")) return;
+            resetFormulario(false);
+        });
         $("#bncCancelar").on("click", function () {
             if (state.lineas.length && !window.confirm("Se perderán las líneas no guardadas. ¿Desea continuar?")) return;
             resetFormulario(true);

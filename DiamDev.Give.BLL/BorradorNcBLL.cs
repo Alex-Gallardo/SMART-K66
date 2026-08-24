@@ -160,15 +160,64 @@ namespace DiamDev.Give.BLL
                 return ResultadoBorradorNc.Error("Debe seleccionar un cliente.");
             if (string.IsNullOrWhiteSpace(enc.Agente))
                 return ResultadoBorradorNc.Error("No se pudo determinar el agente del cliente.");
-            if (string.IsNullOrWhiteSpace(enc.Nit))
-                return ResultadoBorradorNc.Error(
-                    "El cliente no tiene NIT registrado en SAP. Corríjalo antes de continuar.");
             if (string.IsNullOrWhiteSpace(enc.Moneda))
                 return ResultadoBorradorNc.Error("Debe seleccionar una moneda.");
             if (enc.Detalles == null || enc.Detalles.Count == 0)
                 return ResultadoBorradorNc.Error("El borrador debe tener al menos una línea.");
 
             enc.IdEmpresa = enc.IdEmpresa.Trim().ToUpperInvariant();
+
+            // El navegador solo propone estos datos. Antes de aplicar las reglas,
+            // se reconstruyen desde HANA para impedir que una petición manipulada
+            // cambie el cliente, el total, la fecha o la moneda de una factura.
+            var clienteSap = _hana.BuscarClientes(enc.IdEmpresa, enc.Agente)
+                .FirstOrDefault(c => string.Equals(c.CardCode, enc.IdCliente,
+                                                   StringComparison.OrdinalIgnoreCase));
+            if (clienteSap == null)
+                return ResultadoBorradorNc.Error(
+                    "El cliente ya no está disponible para el agente seleccionado en SAP.");
+
+            enc.IdCliente = clienteSap.CardCode;
+            enc.Nombre = clienteSap.CardName;
+            enc.Nit = clienteSap.LicTradNum;
+            enc.Agente = string.IsNullOrWhiteSpace(clienteSap.SlpName)
+                ? enc.Agente.Trim() : clienteSap.SlpName.Trim();
+            enc.Direccion = string.IsNullOrWhiteSpace(enc.Direccion)
+                ? clienteSap.Address : enc.Direccion.Trim();
+            enc.Correo = string.IsNullOrWhiteSpace(enc.Correo)
+                ? clienteSap.Email : enc.Correo.Trim();
+
+            if (string.IsNullOrWhiteSpace(enc.Nit))
+                return ResultadoBorradorNc.Error(
+                    "El cliente no tiene NIT registrado en SAP. Corríjalo antes de continuar.");
+
+            if (Longitud(enc.Direccion) > 200)
+                return ResultadoBorradorNc.Error("La dirección no puede exceder 200 caracteres.");
+            if (Longitud(enc.Correo) > 100)
+                return ResultadoBorradorNc.Error("El correo no puede exceder 100 caracteres.");
+
+            var facturasSap = _hana.ObtenerFacturasBorradorNc(
+                enc.IdEmpresa, enc.IdCliente, enc.Agente, "")
+                .GroupBy(f => (f.DocNum ?? "").Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            foreach (var detalle in enc.Detalles)
+            {
+                string documento = (detalle.Documento ?? "").Trim();
+                FacturaBorradorNc facturaSap;
+                if (documento.Length == 0 || !facturasSap.TryGetValue(documento, out facturaSap))
+                    return ResultadoBorradorNc.Error(string.Format(
+                        "El documento {0} no pertenece al cliente o ya no está disponible en SAP.",
+                        documento.Length == 0 ? "indicado" : documento));
+
+                detalle.Documento = facturaSap.DocNum;
+                detalle.FechaDoc = facturaSap.DocDate;
+                detalle.SerieFel = facturaSap.SerieFel;
+                detalle.NumeroFel = facturaSap.NumeroFel;
+                detalle.TotalFactura = facturaSap.DocTotal;
+                detalle.Pagado = facturaSap.Pagado;
+                detalle.Moneda = facturaSap.Moneda;
+            }
 
             // ── R8: la serie debe existir ANTES de abrir la transacción ──────
             if (!_da.ExisteSerie(enc.IdEmpresa))
@@ -199,6 +248,9 @@ namespace DiamDev.Give.BLL
                 if (string.IsNullOrWhiteSpace(d.Descripcion))
                     return ResultadoBorradorNc.Error(string.Format(
                         "La línea del documento {0} no tiene descripción.", doc));
+                if (Longitud(d.Descripcion) > 500)
+                    return ResultadoBorradorNc.Error(string.Format(
+                        "La descripción del documento {0} no puede exceder 500 caracteres.", doc));
                 if (d.Importe <= 0)
                     return ResultadoBorradorNc.Error(string.Format(
                         "El importe del documento {0} debe ser mayor a cero.", doc));
@@ -312,6 +364,9 @@ namespace DiamDev.Give.BLL
             }
             catch (Exception ex)
             {
+                if (ex is BorradorNcDisponibilidadException)
+                    return ResultadoBorradorNc.Error(ex.Message);
+
                 // La UNIQUE de documento por borrador es la última defensa:
                 // si dos peticiones simultáneas pasaran la validación, truena aquí.
                 if (ex.Message.IndexOf("UQ_BORR_NC_DET_DOC",
@@ -349,6 +404,8 @@ namespace DiamDev.Give.BLL
             // R10: rechazar exige motivo; autorizar no.
             if (estado == EstadosBorradorNc.Rechazado && string.IsNullOrWhiteSpace(motivo))
                 return ResultadoBorradorNc.Error("Debe indicar el motivo del rechazo.");
+            if (Longitud(motivo) > 1000)
+                return ResultadoBorradorNc.Error("El motivo o comentario no puede exceder 1000 caracteres.");
 
             int filas = _da.Resolver(empresa, idBorrador, estado, usuario, motivo);
 
@@ -383,6 +440,8 @@ namespace DiamDev.Give.BLL
         {
             if (string.IsNullOrWhiteSpace(motivo))
                 return ResultadoBorradorNc.Error("Debe indicar el motivo de la anulación.");
+            if (Longitud(motivo) > 1000)
+                return ResultadoBorradorNc.Error("El motivo de la anulación no puede exceder 1000 caracteres.");
 
             int filas = _da.Anular(empresa, idBorrador, usuario, motivo);
 
@@ -503,5 +562,7 @@ namespace DiamDev.Give.BLL
             !string.IsNullOrEmpty(texto) &&
             CultureInfo.InvariantCulture.CompareInfo.IndexOf(
                 texto, busqueda, CompareOptions.IgnoreCase) >= 0;
+
+        private static int Longitud(string valor) => valor == null ? 0 : valor.Length;
     }
 }

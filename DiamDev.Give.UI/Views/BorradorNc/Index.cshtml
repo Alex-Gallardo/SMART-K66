@@ -1,0 +1,477 @@
+@model DiamDev.Give.UI.Models.BorradorNcIndexViewModel
+@using System
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hoy = DateTime.Today.ToString("yyyy-MM-dd");
+}
+
+@section styles {
+    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260824")" rel="stylesheet" />
+}
+
+<div class="bnc bnc-shell" id="bncApp"
+     data-url-clientes="@Url.Action("BuscarClientes", "BorradorNc")"
+     data-url-facturas="@Url.Action("BuscarFacturas", "BorradorNc")"
+     data-url-estado-factura="@Url.Action("ObtenerEstadoFactura", "BorradorNc")"
+     data-url-serie="@Url.Action("ObtenerSerie", "BorradorNc")"
+     data-url-guardar="@Url.Action("Guardar", "BorradorNc")"
+     data-url-listar="@Url.Action("Listar", "BorradorNc")"
+     data-url-seguimiento="@Url.Action("ListarSeguimiento", "BorradorNc")"
+     data-url-detalle="@Url.Action("ObtenerDetalle", "BorradorNc")"
+     data-url-anular="@Url.Action("Anular", "BorradorNc")"
+     data-url-imprimir="@Url.Action("Imprimir", "BorradorNc")"
+     data-es-agente="@Model.EsAgente.ToString().ToLowerInvariant()"
+     data-puede-anular="@Model.PuedeAnular.ToString().ToLowerInvariant()">
+
+    @Html.AntiForgeryToken()
+
+    <header class="bnc-hero">
+        <div class="bnc-hero-copy">
+            <span class="bnc-hero-icon" aria-hidden="true"><i class="icon-file-text"></i></span>
+            <div>
+                <h2>Borradores de nota de crédito</h2>
+                <p>Captura solicitudes contra facturas de SAP y consulta su resolución.</p>
+            </div>
+        </div>
+        <div class="bnc-hero-meta">
+            <span class="bnc-hero-chip"><i class="icon-user"></i> @Model.UsuarioActual</span>
+            @if (Model.EsAgente)
+            {
+                <span class="bnc-hero-chip"><i class="icon-lock"></i> Agente asignado</span>
+            }
+            @if (Model.PuedeAutorizar)
+            {
+                <a class="bnc-hero-chip" href="@Url.Action("Autorizaciones", "BorradorNc")">
+                    <i class="icon-check"></i> Ir a autorizaciones
+                </a>
+            }
+        </div>
+    </header>
+
+    @if (Model.Empresas.Count == 0)
+    {
+        <div class="bnc-inline-alert is-visible is-danger" role="alert">
+            <i class="icon-warning-sign"></i>
+            <span>No tiene empresas asignadas. Solicite al administrador una asignación en Usuario_Empresa.</span>
+        </div>
+    }
+
+    <ul class="nav nav-tabs bnc-tabs" role="tablist">
+        <li class="active" role="presentation">
+            <a href="#bncCaptura" aria-controls="bncCaptura" role="tab" data-toggle="tab">
+                <i class="icon-edit"></i> Captura
+            </a>
+        </li>
+        <li role="presentation">
+            <a href="#bncSeguimiento" aria-controls="bncSeguimiento" role="tab" data-toggle="tab" id="bncTabSeguimiento">
+                <i class="icon-time"></i> Seguimiento
+            </a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <section role="tabpanel" class="tab-pane active" id="bncCaptura">
+            <div class="bnc-card">
+                <div class="bnc-card-head">
+                    <div class="bnc-card-title">
+                        <i class="icon-building"></i>
+                        <div>
+                            <h3>Encabezado</h3>
+                            <small>Empresa, cliente y datos generales de la solicitud.</small>
+                        </div>
+                    </div>
+                    <span class="bnc-status bnc-status-pendiente">Nuevo borrador</span>
+                </div>
+                <div class="bnc-card-body">
+                    <div class="bnc-grid">
+                        <div class="bnc-field bnc-col-3">
+                            <label for="bncEmpresa">Empresa <span class="bnc-required">*</span></label>
+                            <select class="form-control" id="bncEmpresa" @(Model.Empresas.Count == 0 ? "disabled" : "")>
+                                <option value="">Seleccione...</option>
+                                @foreach (var empresa in Model.Empresas)
+                                {
+                                    <option value="@empresa.Nombre"
+                                            data-agent="@empresa.Agente"
+                                            data-code="@empresa.CodigoOperador"
+                                            data-depto="@empresa.Depto">@empresa.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="bnc-field bnc-col-2">
+                            <label>Próxima serie</label>
+                            <div class="bnc-prefix"><i class="icon-tag"></i><strong id="bncPrefijo">—</strong></div>
+                        </div>
+                        <div class="bnc-field bnc-col-3">
+                            <label for="bncFecha">Fecha <span class="bnc-required">*</span></label>
+                            <input class="form-control" type="date" id="bncFecha" value="@hoy" max="@hoy" />
+                        </div>
+                        <div class="bnc-field bnc-col-4">
+                            <label for="bncAgente">Agente <span class="bnc-required">*</span></label>
+                            <input class="form-control" id="bncAgente" maxlength="155"
+                                   placeholder="Se completa al seleccionar el cliente"
+                                   @(Model.EsAgente ? "readonly" : "") />
+                        </div>
+
+                        <div class="bnc-field bnc-col-3">
+                            <label for="bncClienteCodigo">Código cliente <span class="bnc-required">*</span></label>
+                            <div class="bnc-input-group">
+                                <input class="form-control" id="bncClienteCodigo" readonly placeholder="Seleccione un cliente" />
+                                <button class="bnc-icon-btn" type="button" id="bncBuscarCliente" title="Buscar cliente">
+                                    <i class="icon-search"></i><span class="sr-only">Buscar cliente</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="bnc-field bnc-col-5">
+                            <label for="bncClienteNombre">Nombre</label>
+                            <input class="form-control" id="bncClienteNombre" readonly />
+                        </div>
+                        <div class="bnc-field bnc-col-2">
+                            <label for="bncNit">NIT</label>
+                            <input class="form-control" id="bncNit" readonly />
+                        </div>
+                        <div class="bnc-field bnc-col-2">
+                            <label for="bncMoneda">Moneda <span class="bnc-required">*</span></label>
+                            <select class="form-control" id="bncMoneda">
+                                <option value="">Seleccione...</option>
+                                <option value="GTQ">GTQ</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                            </select>
+                        </div>
+                        <div class="bnc-field bnc-col-7">
+                            <label for="bncDireccion">Dirección</label>
+                            <input class="form-control" id="bncDireccion" maxlength="200" />
+                        </div>
+                        <div class="bnc-field bnc-col-5">
+                            <label for="bncCorreo">Correo</label>
+                            <input class="form-control" type="email" id="bncCorreo" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <div class="bnc-client-strip" id="bncClientStrip" aria-live="polite">
+                        <span class="bnc-client-avatar"><i class="icon-user"></i></span>
+                        <div class="bnc-client-copy">
+                            <strong id="bncClientStripTitle">Ningún cliente seleccionado</strong>
+                            <span id="bncClientStripMeta">Elija la empresa y luego busque por código, nombre o NIT.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bnc-card">
+                <div class="bnc-card-head">
+                    <div class="bnc-card-title">
+                        <i class="icon-list"></i>
+                        <div>
+                            <h3>Detalle de la nota de crédito</h3>
+                            <small>Seleccione una factura y defina el importe solicitado.</small>
+                        </div>
+                    </div>
+                    <button class="bnc-btn bnc-btn-ghost" type="button" id="bncBuscarFactura">
+                        <i class="icon-search"></i> Buscar factura
+                    </button>
+                </div>
+                <div class="bnc-card-body">
+                    <div class="bnc-selected-doc is-empty" id="bncSelectedDoc">
+                        <i class="icon-file-text"></i>
+                        <span>Seleccione una factura para visualizar su disponible.</span>
+                    </div>
+
+                    <div class="bnc-grid">
+                        <div class="bnc-field bnc-col-3">
+                            <label for="bncConcepto">Concepto <span class="bnc-required">*</span></label>
+                            <select class="form-control" id="bncConcepto">
+                                <option value="">Seleccione...</option>
+                                @foreach (var concepto in Model.Conceptos)
+                                {
+                                    <option value="@concepto">@concepto</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="bnc-field bnc-col-3">
+                            <label for="bncDocumento">Documento</label>
+                            <input class="form-control" id="bncDocumento" readonly />
+                        </div>
+                        <div class="bnc-field bnc-col-3">
+                            <label for="bncFechaDoc">Fecha documento</label>
+                            <input class="form-control" type="date" id="bncFechaDoc" readonly />
+                        </div>
+                        <div class="bnc-field bnc-col-3">
+                            <label for="bncImporte">Importe <span class="bnc-required">*</span></label>
+                            <input class="form-control" id="bncImporte" inputmode="decimal" placeholder="0.00" />
+                        </div>
+                        <div class="bnc-field bnc-col-3">
+                            <label for="bncSerieFel">Serie FEL</label>
+                            <input class="form-control" id="bncSerieFel" readonly />
+                        </div>
+                        <div class="bnc-field bnc-col-3">
+                            <label for="bncNumeroFel">Número FEL</label>
+                            <input class="form-control" id="bncNumeroFel" readonly />
+                        </div>
+                        <div class="bnc-field bnc-col-6">
+                            <label for="bncDescripcion">Descripción <span class="bnc-required">*</span></label>
+                            <textarea class="form-control" id="bncDescripcion" maxlength="500"
+                                      placeholder="Explique brevemente el motivo de la solicitud"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="bnc-inline-alert" id="bncFacturaAlert" role="status" aria-live="polite"></div>
+
+                    <div style="display:flex; justify-content:flex-end; margin-top:12px;">
+                        <button class="bnc-btn bnc-btn-primary" type="button" id="bncAgregarLinea">
+                            <i class="icon-plus"></i> Agregar línea
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bnc-card">
+                <div class="bnc-card-head">
+                    <div class="bnc-card-title">
+                        <i class="icon-th-list"></i>
+                        <div>
+                            <h3>Líneas agregadas</h3>
+                            <small>El total se calcula automáticamente en el servidor.</small>
+                        </div>
+                    </div>
+                    <span class="bnc-status bnc-status-pendiente" id="bncLineCount">0 líneas</span>
+                </div>
+                <div class="bnc-table-wrap" id="bncLineTableWrap">
+                    <table class="table bnc-table" aria-label="Detalle del borrador">
+                        <thead>
+                            <tr>
+                                <th>Concepto</th>
+                                <th>Documento</th>
+                                <th>Fecha</th>
+                                <th>FEL</th>
+                                <th class="text-right">Total factura</th>
+                                <th class="text-right">Disponible</th>
+                                <th>Descripción</th>
+                                <th class="text-right">Importe</th>
+                                <th aria-label="Acciones"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="bncLineBody"></tbody>
+                    </table>
+                    <div class="bnc-empty" id="bncLineEmpty">
+                        <i class="icon-inbox"></i>
+                        <strong>Aún no hay líneas</strong>
+                        <span>Busque una factura y agregue el primer concepto.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bnc-actions">
+                <div class="bnc-total">
+                    <span>Total del borrador</span>
+                    <strong id="bncTotal">0.00</strong>
+                </div>
+                <button class="bnc-btn bnc-btn-ghost" type="button" id="bncNuevo">
+                    <i class="icon-file"></i> Nuevo
+                </button>
+                <button class="bnc-btn bnc-btn-ghost" type="button" id="bncCancelar">
+                    <i class="icon-remove"></i> Cancelar
+                </button>
+                <button class="bnc-btn bnc-btn-primary" type="button" id="bncGuardar"
+                        @(Model.Empresas.Count == 0 ? "disabled" : "")>
+                    <i class="icon-save"></i> Guardar borrador
+                </button>
+            </div>
+        </section>
+
+        <section role="tabpanel" class="tab-pane" id="bncSeguimiento">
+            <div class="bnc-summary-grid" aria-label="Resumen de borradores">
+                <div class="bnc-summary is-pending"><span>Pendientes</span><strong id="bncKpiPendientes">0</strong></div>
+                <div class="bnc-summary is-approved"><span>Autorizados</span><strong id="bncKpiAutorizados">0</strong></div>
+                <div class="bnc-summary is-rejected"><span>Rechazados / anulados</span><strong id="bncKpiRechazados">0</strong></div>
+                <div class="bnc-summary is-total"><span>Monto visible</span><strong id="bncKpiMonto">0.00</strong></div>
+            </div>
+
+            <div class="bnc-card">
+                <div class="bnc-card-head">
+                    <div class="bnc-card-title">
+                        <i class="icon-filter"></i>
+                        <div>
+                            <h3>Consulta y seguimiento</h3>
+                            <small>Filtre por empresa, estado, fecha o texto.</small>
+                        </div>
+                    </div>
+                    <button class="bnc-btn bnc-btn-ghost" type="button" id="bncRefrescarSeguimiento">
+                        <i class="icon-refresh"></i> Actualizar
+                    </button>
+                </div>
+                <div class="bnc-card-body">
+                    <div class="bnc-toolbar">
+                        <div class="bnc-field">
+                            <label for="bncFiltroEmpresa">Empresa</label>
+                            <select class="form-control" id="bncFiltroEmpresa">
+                                <option value="">Todas</option>
+                                @foreach (var empresa in Model.Empresas)
+                                {
+                                    <option value="@empresa.Nombre">@empresa.Nombre</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="bnc-field">
+                            <label for="bncFiltroEstado">Estado</label>
+                            <select class="form-control" id="bncFiltroEstado">
+                                <option value="">Todos</option>
+                                <option value="PENDIENTE">Pendiente</option>
+                                <option value="AUTORIZADO">Autorizado</option>
+                                <option value="RECHAZADO">Rechazado</option>
+                                <option value="ANULADO">Anulado</option>
+                            </select>
+                        </div>
+                        <div class="bnc-field">
+                            <label for="bncFiltroDesde">Desde</label>
+                            <input class="form-control" type="date" id="bncFiltroDesde" />
+                        </div>
+                        <div class="bnc-field">
+                            <label for="bncFiltroHasta">Hasta</label>
+                            <input class="form-control" type="date" id="bncFiltroHasta" />
+                        </div>
+                        <div class="bnc-field bnc-search">
+                            <label for="bncFiltroTexto">Buscar</label>
+                            <input class="form-control" id="bncFiltroTexto" placeholder="Borrador, cliente, agente..." />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bnc-detail-layout">
+                <div class="bnc-card">
+                    <div class="bnc-table-wrap">
+                        <table class="table bnc-table" aria-label="Borradores visibles">
+                            <thead>
+                                <tr>
+                                    <th>Borrador</th>
+                                    <th>Empresa</th>
+                                    <th>Fecha</th>
+                                    <th>Cliente</th>
+                                    <th>Agente</th>
+                                    <th>Estado</th>
+                                    <th class="text-right">Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bncFollowBody"></tbody>
+                        </table>
+                        <div class="bnc-empty" id="bncFollowEmpty">
+                            <i class="icon-search"></i>
+                            <strong>No hay resultados</strong>
+                            <span>Ajuste los filtros o actualice la consulta.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <aside class="bnc-detail-panel" id="bncFollowDetail" aria-live="polite">
+                    <div class="bnc-empty">
+                        <i class="icon-hand-right"></i>
+                        <strong>Seleccione un borrador</strong>
+                        <span>Su detalle y acciones aparecerán aquí.</span>
+                    </div>
+                </aside>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div class="modal fade bnc-modal" id="bncClienteModal" tabindex="-1" role="dialog" aria-labelledby="bncClienteModalTitle">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="bncClienteModalTitle"><i class="icon-user"></i> Seleccionar cliente</h4>
+            </div>
+            <div class="modal-body">
+                <div class="bnc-field">
+                    <label for="bncClienteSelect">Código, nombre o NIT</label>
+                    <input type="hidden" id="bncClienteSelect" style="width:100%;" />
+                </div>
+                <div class="bnc-inline-alert is-visible is-info" style="margin-top:12px;">
+                    <i class="icon-info-sign"></i>
+                    <span>Escriba al menos dos caracteres. La búsqueda consulta los clientes disponibles en SAP.</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="bnc-btn bnc-btn-ghost" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="bnc-btn bnc-btn-primary" id="bncSeleccionarCliente">
+                    <i class="icon-check"></i> Seleccionar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade bnc-modal" id="bncFacturaModal" tabindex="-1" role="dialog" aria-labelledby="bncFacturaModalTitle">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="bncFacturaModalTitle"><i class="icon-file-text"></i> Facturas disponibles</h4>
+            </div>
+            <div class="modal-body">
+                <div class="bnc-toolbar" style="margin-bottom:12px;">
+                    <div class="bnc-field bnc-search">
+                        <label for="bncFacturaFiltro">Número de documento</label>
+                        <input class="form-control" id="bncFacturaFiltro" placeholder="Deje vacío para ver todas" />
+                    </div>
+                    <button class="bnc-btn bnc-btn-primary" type="button" id="bncCargarFacturas">
+                        <i class="icon-search"></i> Buscar
+                    </button>
+                </div>
+                <div class="bnc-table-wrap">
+                    <table class="table bnc-table bnc-invoice-table" aria-label="Facturas de SAP">
+                        <thead>
+                            <tr>
+                                <th>Documento</th>
+                                <th>Fecha</th>
+                                <th>Moneda</th>
+                                <th class="text-right">Total</th>
+                                <th class="text-right">Acumulado</th>
+                                <th class="text-right">NC SAP</th>
+                                <th class="text-right">Disponible</th>
+                                <th>Alertas</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bncFacturaBody"></tbody>
+                    </table>
+                    <div class="bnc-empty" id="bncFacturaEmpty">
+                        <i class="icon-search"></i>
+                        <strong>Ejecute la búsqueda</strong>
+                        <span>Aquí verá disponible, NC previas y estado de pago antes de elegir.</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <span class="pull-left text-muted" id="bncFacturaCount"></span>
+                <button type="button" class="bnc-btn bnc-btn-ghost" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade bnc-modal" id="bncAnularModal" tabindex="-1" role="dialog" aria-labelledby="bncAnularTitle">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="bncAnularTitle"><i class="icon-ban-circle"></i> Anular borrador</h4>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Esta acción libera el monto comprometido. Indique el motivo para dejar trazabilidad.</p>
+                <div class="bnc-field">
+                    <label for="bncMotivoAnular">Motivo <span class="bnc-required">*</span></label>
+                    <textarea class="form-control" id="bncMotivoAnular" maxlength="1000"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="bnc-btn bnc-btn-ghost" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="bnc-btn bnc-btn-danger" id="bncConfirmarAnular">Anular</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260824")"></script>
+}

@@ -1,0 +1,171 @@
+@model DiamDev.Give.UI.Models.BorradorNcIndexViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260824")" rel="stylesheet" />
+}
+
+<div class="bnc bnc-shell" id="bncAuthApp"
+     data-url-listar="@Url.Action("ListarPendientes", "BorradorNc")"
+     data-url-detalle="@Url.Action("ObtenerDetalleAutorizacion", "BorradorNc")"
+     data-url-notas="@Url.Action("ObtenerNotasCreditoPrevias", "BorradorNc")"
+     data-url-resolver="@Url.Action("Resolver", "BorradorNc")"
+     data-url-imprimir="@Url.Action("Imprimir", "BorradorNc")">
+
+    @Html.AntiForgeryToken()
+
+    <header class="bnc-hero">
+        <div class="bnc-hero-copy">
+            <span class="bnc-hero-icon" aria-hidden="true"><i class="icon-check"></i></span>
+            <div>
+                <h2>Autorización de borradores NC</h2>
+                <p>Revise la solicitud, sus facturas y antecedentes antes de decidir.</p>
+            </div>
+        </div>
+        <div class="bnc-hero-meta">
+            <span class="bnc-hero-chip"><i class="icon-user"></i> @Model.UsuarioActual</span>
+            <a class="bnc-hero-chip" href="@Url.Action("Index", "BorradorNc")">
+                <i class="icon-arrow-left"></i> Volver a captura
+            </a>
+        </div>
+    </header>
+
+    <div class="bnc-summary-grid">
+        <div class="bnc-summary is-pending"><span>Pendientes</span><strong id="bncAuthKpiCount">0</strong></div>
+        <div class="bnc-summary is-total"><span>Monto pendiente</span><strong id="bncAuthKpiMonto">0.00</strong></div>
+        <div class="bnc-summary"><span>Con NC previas</span><strong id="bncAuthKpiNc">0</strong></div>
+        <div class="bnc-summary"><span>Empresas visibles</span><strong>@Model.Empresas.Count</strong></div>
+    </div>
+
+    <div class="bnc-card">
+        <div class="bnc-card-head">
+            <div class="bnc-card-title">
+                <i class="icon-filter"></i>
+                <div>
+                    <h3>Bandeja de revisión</h3>
+                    <small>Los pendientes más recientes aparecen primero.</small>
+                </div>
+            </div>
+            <button class="bnc-btn bnc-btn-ghost" type="button" id="bncAuthRefresh">
+                <i class="icon-refresh"></i> Actualizar
+            </button>
+        </div>
+        <div class="bnc-card-body">
+            <div class="bnc-toolbar">
+                <div class="bnc-field">
+                    <label for="bncAuthEmpresa">Empresa</label>
+                    <select class="form-control" id="bncAuthEmpresa">
+                        <option value="">Todas</option>
+                        @foreach (var empresa in Model.Empresas)
+                        {
+                            <option value="@empresa.Nombre">@empresa.Nombre</option>
+                        }
+                    </select>
+                </div>
+                <div class="bnc-field bnc-search">
+                    <label for="bncAuthSearch">Buscar</label>
+                    <input class="form-control" id="bncAuthSearch" placeholder="Borrador, cliente o agente..." />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bnc-auth-layout">
+        <section class="bnc-card bnc-auth-list">
+            <div class="bnc-card-head">
+                <div class="bnc-card-title">
+                    <i class="icon-inbox"></i>
+                    <div>
+                        <h3>Solicitudes pendientes</h3>
+                        <small id="bncAuthResultCount">0 resultados</small>
+                    </div>
+                </div>
+            </div>
+            <div class="bnc-table-wrap">
+                <table class="table bnc-table" aria-label="Borradores pendientes de autorización">
+                    <thead>
+                        <tr>
+                            <th>Borrador</th>
+                            <th>Fecha</th>
+                            <th>Cliente</th>
+                            <th>Agente</th>
+                            <th class="text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bncAuthBody"></tbody>
+                </table>
+                <div class="bnc-empty" id="bncAuthEmpty">
+                    <i class="icon-check"></i>
+                    <strong>Bandeja al día</strong>
+                    <span>No hay solicitudes pendientes con estos filtros.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="bnc-detail-panel" id="bncAuthDetail" aria-live="polite">
+            <div class="bnc-empty">
+                <i class="icon-hand-left"></i>
+                <strong>Seleccione una solicitud</strong>
+                <span>Revise cada línea y sus NC previas antes de autorizar.</span>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div class="modal fade bnc-modal" id="bncRejectModal" tabindex="-1" role="dialog" aria-labelledby="bncRejectTitle">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="bncRejectTitle"><i class="icon-remove"></i> Rechazar borrador</h4>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">El solicitante verá este motivo en seguimiento.</p>
+                <div class="bnc-field">
+                    <label for="bncRejectReason">Motivo <span class="bnc-required">*</span></label>
+                    <textarea class="form-control" id="bncRejectReason" maxlength="1000"
+                              placeholder="Explique claramente qué debe corregirse"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="bnc-btn bnc-btn-ghost" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="bnc-btn bnc-btn-danger" id="bncConfirmReject">
+                    <i class="icon-remove"></i> Confirmar rechazo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade bnc-modal" id="bncApproveModal" tabindex="-1" role="dialog" aria-labelledby="bncApproveTitle">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="bncApproveTitle"><i class="icon-check"></i> Autorizar borrador</h4>
+            </div>
+            <div class="modal-body">
+                <div class="bnc-inline-alert is-visible is-info">
+                    <i class="icon-info-sign"></i>
+                    <span>Confirme que revisó importes, documentos y notas de crédito previas de SAP.</span>
+                </div>
+                <div class="bnc-field" style="margin-top:12px;">
+                    <label for="bncApproveNote">Comentario opcional</label>
+                    <textarea class="form-control" id="bncApproveNote" maxlength="1000"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="bnc-btn bnc-btn-ghost" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="bnc-btn bnc-btn-success" id="bncConfirmApprove">
+                    <i class="icon-check"></i> Autorizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Autorizaciones.js?v=20260824")"></script>
+}

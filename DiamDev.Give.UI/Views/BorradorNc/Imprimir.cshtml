@@ -1,0 +1,172 @@
+@model DiamDev.Give.Entities.BorradorNcEncabezado
+@using System.Linq
+@{
+    Layout = null;
+    var detalles = Model.Detalles ?? new System.Collections.Generic.List<DiamDev.Give.Entities.BorradorNcDetalle>();
+    var colorEstado = Model.Estado == "AUTORIZADO" ? "#047857" :
+                      Model.Estado == "RECHAZADO" ? "#b91c1c" :
+                      Model.Estado == "ANULADO" ? "#64748b" : "#a16207";
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Borrador NC @Model.IdBorrador</title>
+    <style>
+        * { box-sizing: border-box; }
+        html, body { margin: 0; min-height: 100%; }
+        body { background: #eef2f7; color: #172033; font-family: "Segoe UI", Arial, sans-serif; font-size: 12px; line-height: 1.45; padding: 28px 16px; }
+        .print-actions { display: flex; gap: 8px; justify-content: center; margin: 0 auto 14px; max-width: 920px; }
+        .print-actions button { background: #fff; border: 1px solid #cbd5e1; border-radius: 7px; color: #334155; cursor: pointer; font: inherit; font-weight: 650; padding: 8px 13px; }
+        .print-actions .primary { background: #2563eb; border-color: #2563eb; color: #fff; }
+        .sheet { background: #fff; border: 1px solid #dbe2ea; box-shadow: 0 18px 55px rgba(15,23,42,.14); margin: 0 auto; max-width: 920px; min-height: 1180px; padding: 42px 46px; position: relative; }
+        .top-rule { background: linear-gradient(90deg, #1d4ed8, #60a5fa); height: 5px; left: 0; position: absolute; right: 0; top: 0; }
+        .header { align-items: flex-start; border-bottom: 1px solid #dbe2ea; display: flex; gap: 30px; justify-content: space-between; padding-bottom: 20px; }
+        .brand { align-items: center; display: flex; gap: 12px; }
+        .brand-mark { align-items: center; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 11px; color: #1d4ed8; display: flex; font-size: 22px; font-weight: 800; height: 48px; justify-content: center; width: 48px; }
+        .brand h1 { color: #0f172a; font-size: 19px; letter-spacing: -.02em; margin: 0; }
+        .brand p { color: #64748b; margin: 3px 0 0; }
+        .doc-id { text-align: right; }
+        .doc-id small { color: #64748b; display: block; font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+        .doc-id strong { color: #0f172a; display: block; font-family: Consolas, monospace; font-size: 21px; margin-top: 3px; }
+        .status { border: 1px solid @colorEstado; border-radius: 999px; color: @colorEstado; display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: .06em; margin-top: 7px; padding: 4px 9px; text-transform: uppercase; }
+        .meta { display: grid; gap: 15px 20px; grid-template-columns: repeat(4, 1fr); padding: 22px 0; }
+        .meta div { min-width: 0; }
+        .meta .wide { grid-column: span 2; }
+        .meta small { color: #64748b; display: block; font-size: 8.5px; font-weight: 750; letter-spacing: .055em; text-transform: uppercase; }
+        .meta strong { color: #273449; display: block; font-size: 11px; margin-top: 4px; overflow-wrap: anywhere; }
+        .section-title { align-items: center; color: #0f172a; display: flex; font-size: 12px; font-weight: 750; gap: 8px; margin: 4px 0 9px; }
+        .section-title::after { background: #dbe2ea; content: ""; flex: 1; height: 1px; }
+        table { border-collapse: collapse; table-layout: fixed; width: 100%; }
+        th { background: #f1f5f9; border-bottom: 1px solid #cbd5e1; color: #475569; font-size: 8px; letter-spacing: .045em; padding: 8px 7px; text-align: left; text-transform: uppercase; }
+        td { border-bottom: 1px solid #e7edf4; color: #334155; font-size: 9.5px; padding: 9px 7px; vertical-align: top; word-break: break-word; }
+        .num { font-variant-numeric: tabular-nums; text-align: right; }
+        .muted { color: #64748b; display: block; font-size: 8.5px; margin-top: 2px; }
+        .totals { display: flex; justify-content: flex-end; margin-top: 14px; }
+        .total-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px; min-width: 245px; padding: 12px 14px; text-align: right; }
+        .total-box small { color: #1e40af; display: block; font-size: 8.5px; font-weight: 750; text-transform: uppercase; }
+        .total-box strong { color: #1e3a8a; display: block; font-size: 20px; margin-top: 3px; }
+        .resolution { background: #f8fafc; border: 1px solid #dbe2ea; border-left: 4px solid @colorEstado; border-radius: 7px; margin-top: 22px; padding: 11px 13px; }
+        .resolution strong { color: #334155; }
+        .resolution p { color: #475569; margin: 4px 0 0; white-space: pre-wrap; }
+        .signatures { display: grid; gap: 55px; grid-template-columns: repeat(3, 1fr); margin-top: 76px; text-align: center; }
+        .signature { border-top: 1px solid #94a3b8; color: #475569; font-size: 9px; padding-top: 7px; }
+        .footer { bottom: 28px; color: #94a3b8; display: flex; font-size: 8px; justify-content: space-between; left: 46px; position: absolute; right: 46px; }
+        @@page { margin: 11mm; size: Letter portrait; }
+        @@media print {
+            body { background: #fff; padding: 0; }
+            .print-actions { display: none; }
+            .sheet { border: 0; box-shadow: none; margin: 0; max-width: none; min-height: 250mm; padding: 12mm 11mm; }
+            .footer { bottom: 5mm; left: 11mm; right: 11mm; }
+            .top-rule { left: 0; right: 0; top: 0; }
+        }
+        @@media (max-width: 700px) {
+            body { padding: 0; }
+            .sheet { border: 0; box-shadow: none; min-height: 100vh; padding: 28px 20px 70px; }
+            .header { flex-direction: column; }
+            .doc-id { text-align: left; }
+            .meta { grid-template-columns: repeat(2, 1fr); }
+            .signatures { gap: 35px; grid-template-columns: 1fr; }
+            .footer { left: 20px; right: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-actions">
+        <button type="button" onclick="window.close()">Cerrar</button>
+        <button type="button" class="primary" onclick="window.print()">Imprimir / Guardar PDF</button>
+    </div>
+
+    <main class="sheet">
+        <div class="top-rule"></div>
+        <header class="header">
+            <div class="brand">
+                <div class="brand-mark">K66</div>
+                <div>
+                    <h1>Borrador de nota de crédito</h1>
+                    <p>Solicitud interna para revisión y autorización</p>
+                </div>
+            </div>
+            <div class="doc-id">
+                <small>Número de borrador</small>
+                <strong>@Model.IdBorrador</strong>
+                <span class="status">@Model.Estado</span>
+            </div>
+        </header>
+
+        <section class="meta">
+            <div><small>Empresa</small><strong>@Model.IdEmpresa</strong></div>
+            <div><small>Fecha</small><strong>@Model.Fecha.ToString("dd/MM/yyyy")</strong></div>
+            <div><small>Moneda</small><strong>@Model.Moneda</strong></div>
+            <div><small>Registro</small><strong>@(Model.Registro.HasValue ? Model.Registro.Value.ToString("dd/MM/yyyy HH:mm") : "—")</strong></div>
+            <div><small>Código cliente</small><strong>@Model.IdCliente</strong></div>
+            <div class="wide"><small>Cliente</small><strong>@Model.Nombre</strong></div>
+            <div><small>NIT</small><strong>@Model.Nit</strong></div>
+            <div class="wide"><small>Dirección</small><strong>@Model.Direccion</strong></div>
+            <div><small>Correo</small><strong>@Model.Correo</strong></div>
+            <div><small>Agente</small><strong>@Model.Agente</strong></div>
+            <div><small>Capturado por</small><strong>@Model.IdUsr</strong></div>
+        </section>
+
+        <div class="section-title">Detalle solicitado</div>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:12%">Concepto</th>
+                    <th style="width:12%">Documento</th>
+                    <th style="width:10%">Fecha</th>
+                    <th style="width:14%">Serie / número FEL</th>
+                    <th style="width:12%" class="num">Total factura</th>
+                    <th style="width:25%">Descripción</th>
+                    <th style="width:15%" class="num">Importe</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in detalles)
+                {
+                    <tr>
+                        <td>@item.Concepto</td>
+                        <td>@item.Documento</td>
+                        <td>@item.FechaDoc.ToString("dd/MM/yyyy")</td>
+                        <td>@item.SerieFel <span class="muted">@item.NumeroFel</span></td>
+                        <td class="num">@item.TotalFactura.ToString("N2")</td>
+                        <td>@item.Descripcion
+                            @if (item.NcPreviaSap > 0)
+                            { <span class="muted">NC previa SAP: @item.NcPreviaSap.ToString("N2")</span> }
+                        </td>
+                        <td class="num"><strong>@item.Importe.ToString("N2")</strong></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <div class="total-box">
+                <small>Total del borrador</small>
+                <strong>@Model.Moneda @Model.Total.ToString("N2")</strong>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ResueltoPor) || !string.IsNullOrWhiteSpace(Model.MotivoResolucion))
+        {
+            <section class="resolution">
+                <strong>Resolución: @Model.Estado por @Model.ResueltoPor @(Model.FechaResolucion.HasValue ? "el " + Model.FechaResolucion.Value.ToString("dd/MM/yyyy HH:mm") : "")</strong>
+                @if (!string.IsNullOrWhiteSpace(Model.MotivoResolucion))
+                { <p>@Model.MotivoResolucion</p> }
+            </section>
+        }
+
+        <section class="signatures">
+            <div class="signature">Solicitante</div>
+            <div class="signature">Revisado por</div>
+            <div class="signature">Autorizado por</div>
+        </section>
+
+        <footer class="footer">
+            <span>Smart K66 · Borradores NC</span>
+            <span>Documento generado el @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
+        </footer>
+    </main>
+</body>
+</html>

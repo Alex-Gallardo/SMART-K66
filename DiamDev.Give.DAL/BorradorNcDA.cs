@@ -9,6 +9,16 @@ using DiamDev.Give.Entities;
 namespace DiamDev.Give.DAL
 {
     /// <summary>
+    /// El disponible cambió entre la validación de negocio y la escritura. Se
+    /// diferencia de una falla técnica para que la UI pueda pedir al usuario que
+    /// actualice la factura, sin presentar un mensaje de motor de base de datos.
+    /// </summary>
+    public sealed class BorradorNcDisponibilidadException : InvalidOperationException
+    {
+        public BorradorNcDisponibilidadException(string message) : base(message) { }
+    }
+
+    /// <summary>
     /// Acceso a datos del módulo Borradores de Nota de Crédito.
     /// ★ VERSIÓN FINAL — reemplaza a cualquier versión anterior.
     ///
@@ -252,6 +262,16 @@ namespace DiamDev.Give.DAL
                      @serie, @numero, @totalFact, @pagado, @ncPrevia,
                      @moneda, @descripcion, @importe);";
 
+            const string sqlAcumulado = @"
+                SELECT ISNULL(SUM(D.IMPORTE), 0)
+                FROM dbo.BORR_NC_DET D
+                INNER JOIN dbo.BORR_NC_ENC E
+                        ON E.ID_EMPRESA = D.ID_EMPRESA
+                       AND E.ID_BORRADOR = D.ID_BORRADOR
+                WHERE D.ID_EMPRESA = @empresa
+                  AND D.DOCUMENTO = @documento
+                  AND E.ESTADO IN ('PENDIENTE', 'AUTORIZADO');";
+
             using (var cn = new SqlConnection(_conn))
             {
                 cn.Open();
@@ -285,7 +305,32 @@ namespace DiamDev.Give.DAL
                             throw new InvalidOperationException(
                                 "No se pudo generar el número de borrador.");
 
-                        // ── 2. Detalle ───────────────────────────────────────
+                        // ── 2. Revalidación dentro de la transacción ─────────
+                        // El UPDATE de la serie mantiene un candado por empresa hasta
+                        // el COMMIT. Por eso esta segunda lectura ve cualquier borrador
+                        // que haya ganado la carrera después de la validación del BLL y
+                        // serializa también la regla R4, no solo el correlativo.
+                        foreach (var d in enc.Detalles)
+                        {
+                            decimal acumulado;
+                            using (var cmd = new SqlCommand(sqlAcumulado, cn, tx))
+                            {
+                                cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = enc.IdEmpresa;
+                                cmd.Parameters.Add("@documento", SqlDbType.NVarChar, 50).Value = d.Documento;
+                                acumulado = Convert.ToDecimal(cmd.ExecuteScalar());
+                            }
+
+                            decimal disponible = d.TotalFactura - acumulado;
+                            if (d.Importe - disponible > 0.005m)
+                            {
+                                throw new BorradorNcDisponibilidadException(string.Format(
+                                    "El disponible del documento {0} cambió mientras se guardaba. " +
+                                    "Ahora quedan {1:N2}; actualice la factura e inténtelo de nuevo.",
+                                    d.Documento, disponible < 0 ? 0 : disponible));
+                            }
+                        }
+
+                        // ── 3. Detalle ───────────────────────────────────────
                         foreach (var d in enc.Detalles)
                         {
                             using (var cmd = new SqlCommand(sqlDet, cn, tx))
@@ -409,8 +454,14 @@ namespace DiamDev.Give.DAL
             SELECT ID_BORRADOR, ID_EMPRESA, FECHA, ID_CLIENTE, NOMBRE, NIT,
                    DIRECCION, CORREO, AGENTE, MONEDA, TOTAL, ESTADO,
                    ID_USR, DEPTO, CODIGO_OPERADOR, REGISTRO,
-                   RESUELTO_POR, FECHA_RESOLUCION, MOTIVO_RESOLUCION
-            FROM   dbo.BORR_NC_ENC ";
+                   RESUELTO_POR, FECHA_RESOLUCION, MOTIVO_RESOLUCION,
+                   CAST(CASE WHEN EXISTS (
+                       SELECT 1 FROM dbo.BORR_NC_DET D
+                       WHERE D.ID_EMPRESA = E.ID_EMPRESA
+                         AND D.ID_BORRADOR = E.ID_BORRADOR
+                         AND D.NC_PREVIA_SAP > 0
+                   ) THEN 1 ELSE 0 END AS BIT) AS TIENE_NC_PREVIA
+            FROM   dbo.BORR_NC_ENC E ";
 
         /// <summary>
         /// Listado con filtros combinables (null = sin filtrar).
@@ -547,7 +598,8 @@ namespace DiamDev.Give.DAL
                 ResueltoPor = Txt(r["RESUELTO_POR"]),
                 FechaResolucion = r["FECHA_RESOLUCION"] != DBNull.Value
                                      ? (DateTime?)Convert.ToDateTime(r["FECHA_RESOLUCION"]) : null,
-                MotivoResolucion = Txt(r["MOTIVO_RESOLUCION"])
+                MotivoResolucion = Txt(r["MOTIVO_RESOLUCION"]),
+                TieneNcPrevia = Convert.ToBoolean(r["TIENE_NC_PREVIA"])
             };
 
         private static decimal Val(object o) =>

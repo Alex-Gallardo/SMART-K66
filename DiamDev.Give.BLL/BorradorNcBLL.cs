@@ -23,8 +23,12 @@ namespace DiamDev.Give.BLL
     /// </summary>
     public class BorradorNcBLL
     {
+        private const string PERMISO_AUTORIZAR = "Control.BorradorNC.Autorizar";
+        private const string PERMISO_ANULAR = "Control.BorradorNC.Anular";
+
         private readonly BorradorNcDA _da = new BorradorNcDA();
         private readonly HanaRepository _hana = new HanaRepository();
+        private readonly RolBL _roles = new RolBL();
 
         /// <summary>
         /// Tolerancia de comparación monetaria. SAP entrega decimales con 6
@@ -219,6 +223,14 @@ namespace DiamDev.Give.BLL
                 detalle.Moneda = facturaSap.Moneda;
             }
 
+            // Una sola ida a HANA para todas las líneas. Además de reducir la
+            // latencia, todas las advertencias del borrador se calculan sobre la
+            // misma fotografía temporal de INF_VRC_FACRNC.
+            var notasPreviasSap = _hana.ObtenerNotasCreditoPrevias(
+                enc.IdEmpresa,
+                enc.Detalles.Select(d => d.Documento)
+                    .Distinct(StringComparer.OrdinalIgnoreCase).ToList());
+
             // ── R8: la serie debe existir ANTES de abrir la transacción ──────
             if (!_da.ExisteSerie(enc.IdEmpresa))
                 return ResultadoBorradorNc.Error(string.Format(
@@ -302,7 +314,9 @@ namespace DiamDev.Give.BLL
                 }
 
                 // ── NC previas en SAP: advertencia o bloqueo, según config ───
-                var notasPrevias = _hana.ObtenerNotasCreditoPrevias(enc.IdEmpresa, doc);
+                List<NotaCreditoPreviaSap> notasPrevias;
+                if (!notasPreviasSap.TryGetValue(doc, out notasPrevias))
+                    notasPrevias = new List<NotaCreditoPreviaSap>();
                 d.NcPreviaSap = notasPrevias.Sum(n => n.Total);
 
                 if (d.NcPreviaSap > 0)
@@ -392,6 +406,13 @@ namespace DiamDev.Give.BLL
             string empresa, string idBorrador, string usuario,
             string accion, string motivo)
         {
+            // R9 también se defiende aquí. El atributo MVC sigue siendo la
+            // primera barrera, pero un job o controller futuro no puede saltarse
+            // el permiso invocando directamente esta capa.
+            if (!_roles.AutorizacionPermisoPorUsuario(usuario, PERMISO_AUTORIZAR))
+                return ResultadoBorradorNc.Error(
+                    "El usuario no tiene permiso para autorizar o rechazar borradores.");
+
             if (string.IsNullOrWhiteSpace(empresa) || string.IsNullOrWhiteSpace(idBorrador))
                 return ResultadoBorradorNc.Error("Falta identificar el borrador.");
 
@@ -438,6 +459,10 @@ namespace DiamDev.Give.BLL
         public ResultadoBorradorNc Anular(
             string empresa, string idBorrador, string usuario, string motivo)
         {
+            if (!_roles.AutorizacionPermisoPorUsuario(usuario, PERMISO_ANULAR))
+                return ResultadoBorradorNc.Error(
+                    "El usuario no tiene permiso para anular borradores.");
+
             if (string.IsNullOrWhiteSpace(motivo))
                 return ResultadoBorradorNc.Error("Debe indicar el motivo de la anulación.");
             if (Longitud(motivo) > 1000)

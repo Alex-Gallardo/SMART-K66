@@ -21,6 +21,18 @@
             minimumFractionDigits: 2, maximumFractionDigits: 2
         });
     }
+    function resumenMonedas(filas) {
+        var totales = {};
+        $.each(filas || [], function (_, x) {
+            var moneda = String(x.Moneda || "SIN MONEDA").toUpperCase();
+            totales[moneda] = numero(totales[moneda]) + numero(x.Total);
+        });
+        var monedas = Object.keys(totales).sort();
+        if (!monedas.length) return dinero(0);
+        return $.map(monedas, function (moneda) {
+            return dinero(totales[moneda], moneda);
+        }).join(" / ");
+    }
     function fecha(value) {
         if (!value) return "—";
         var p = String(value).substring(0, 10).split("-");
@@ -78,9 +90,9 @@
     }
 
     function renderLista() {
-        var filas = filtrados(), html = "", total = 0, conNc = 0;
-        $.each(state.pendientes, function (_, x) { total += numero(x.Total); if (x.TieneNcPrevia) conNc++; });
+        var filas = filtrados(), html = "", conNc = 0;
         $.each(filas, function (_, x) {
+            if (x.TieneNcPrevia) conNc++;
             html += '<tr data-empresa="' + escapeHtml(x.IdEmpresa) + '" data-id="' + escapeHtml(x.IdBorrador) + '">' +
                 '<td class="bnc-main-cell"><strong>' + escapeHtml(x.IdBorrador) + '</strong><small>' + escapeHtml(x.IdEmpresa) + " · " + escapeHtml(x.IdUsr) + "</small></td>" +
                 "<td>" + fecha(x.Fecha) + "</td>" +
@@ -91,8 +103,8 @@
         $("#bncAuthBody").html(html);
         $("#bncAuthEmpty").toggle(!filas.length);
         $("#bncAuthResultCount").text(filas.length + (filas.length === 1 ? " resultado" : " resultados"));
-        $("#bncAuthKpiCount").text(state.pendientes.length);
-        $("#bncAuthKpiMonto").text(dinero(total));
+        $("#bncAuthKpiCount").text(filas.length);
+        $("#bncAuthKpiMonto").text(resumenMonedas(filas));
         $("#bncAuthKpiNc").text(conNc);
     }
 

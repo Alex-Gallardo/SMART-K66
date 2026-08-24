@@ -63,6 +63,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BorradorNcBLL.cs" />
     <Compile Include="PedidoTipok66BL.cs" />
     <Compile Include="Descuentok66BL.cs" />
     <Compile Include="Pedidok66BL.cs" />

@@ -498,5 +498,268 @@ namespace DiamDev.Give.DAL
                     $"Error HANA al obtener tipo de cambio ({empresa} / {schema}): {ex.Message}", ex);
             }
         }
+        // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+        /* ============================================================================
+            DOS MÉTODOS para AGREGAR a DiamDev.Give.DAL/HanaRepository.cs
+
+            Pégalos dentro de la clase existente, junto a ObtenerFacturas().
+            NO crees un repositorio nuevo: los helpers privados que usan
+            (ResolverSchema, Esc, LeerCampo, LeerDecimal, LeerFecha, NormalizarMoneda)
+            ya viven en esa clase.
+
+            Columnas reales de las dos vistas, confirmadas contra SYS.VIEW_COLUMNS:
+
+            RC_FACTURAS_BORRNC                    INF_VRC_FACRNC
+                1 Empresa            VARCHAR(5)       1 Tipo      VARCHAR(8)
+                2 SlpName            NVARCHAR(155)    2 Factura   INTEGER
+                3 DocNum             INTEGER          3 Nota      INTEGER
+                4 U_SERIE_FACE       NVARCHAR(20)     4 DocDate   TIMESTAMP
+                5 U_NUMERO_DOCUMENTO NVARCHAR(150)    5 CardCode  NVARCHAR(15)
+                6 DocDate            TIMESTAMP        6 CardName  NVARCHAR(200)
+                7 CardCode           NVARCHAR(15)     7 DocCur    NVARCHAR(3)
+                8 CardName           NVARCHAR(200)    8 DocTotal  DECIMAL(21,6)
+                9 DocCur             NVARCHAR(3)      9 JrnlMemo  NVARCHAR(254)
+            10 DocTotal           DECIMAL(21,6)   10 Comments  NVARCHAR(254)
+            11 PaidToDate         DECIMAL(21,6)
+        ============================================================================ */
+
+
+        // ═════════════════════════════════════════════════════════════════════════════
+        // MÉTODO 1 — Facturas disponibles para NC
+        // ═════════════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Facturas de un cliente contra las que se puede emitir nota de crédito.
+        ///
+        /// Réplica de FrmFacturasCL_BorrNC del desktop, con tres diferencias:
+        ///
+        ///   1. El schema se resuelve por configuración (ResolverSchema), en vez de
+        ///      un if/else if/else if con la misma consulta repetida tres veces y las
+        ///      credenciales de SYSTEM incrustadas en el formulario.
+        ///
+        ///   2. El filtro de DocNum usa TO_VARCHAR explícito. La vista declara DocNum
+        ///      como INTEGER; el legado hacía "DocNum" LIKE '%123%' confiando en la
+        ///      conversión implícita de HANA, cuyo comportamiento depende de la
+        ///      configuración del servidor.
+        ///
+        ///   3. Se trae PaidToDate, que el desktop ignoraba por completo.
+        ///
+        /// Los parámetros vacíos actúan como "sin filtro", igual que en el desktop.
+        /// </summary>
+        public List<FacturaBorradorNc> ObtenerFacturasBorradorNc(
+            string empresa, string clienteId, string agente, string filtroDoc)
+        {
+            var lista = new List<FacturaBorradorNc>();
+
+            string schema = ResolverSchema(empresa);
+            if (schema == null) return lista;   // empresa desconocida
+
+            var condiciones = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(clienteId))
+                condiciones.Add(string.Format("\"CardCode\" = '{0}'", Esc(clienteId.Trim())));
+
+            if (!string.IsNullOrWhiteSpace(agente))
+                condiciones.Add(string.Format("\"SlpName\" = '{0}'", Esc(agente.Trim())));
+
+            if (!string.IsNullOrWhiteSpace(filtroDoc))
+                condiciones.Add(string.Format(
+                    "TO_VARCHAR(\"DocNum\") LIKE '%{0}%'", Esc(filtroDoc.Trim())));
+
+            string where = condiciones.Count > 0
+                ? " WHERE " + string.Join(" AND ", condiciones)
+                : string.Empty;
+
+            string query = string.Format(
+                "SELECT \"DocNum\", \"DocDate\", \"CardCode\", \"CardName\", \"SlpName\", " +
+                "       \"DocCur\", \"DocTotal\", \"PaidToDate\", " +
+                "       \"U_SERIE_FACE\", \"U_NUMERO_DOCUMENTO\" " +
+                "FROM \"{0}\".\"RC_FACTURAS_BORRNC\"{1} " +
+                "ORDER BY \"DocDate\" DESC, \"DocNum\" DESC",
+                schema, where);
+
+            try
+            {
+                DataTable dt = HanaHelper.EjecutarConsulta(query);
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    lista.Add(new FacturaBorradorNc
+                    {
+                        // DocNum llega como INTEGER; se guarda como texto porque así
+                        // viaja al resto del sistema (BORR_NC_DET.DOCUMENTO es
+                        // NVARCHAR, para convivir con los datos legados).
+                        DocNum = LeerCampo(row, "DocNum"),
+                        DocDate = LeerFecha(row, "DocDate"),
+                        CardCode = LeerCampo(row, "CardCode"),
+                        CardName = LeerCampo(row, "CardName"),
+                        SlpName = LeerCampo(row, "SlpName"),
+                        Moneda = NormalizarMoneda(LeerCampo(row, "DocCur")),
+                        DocTotal = LeerDecimal(row, "DocTotal"),
+                        Pagado = LeerDecimal(row, "PaidToDate"),
+                        SerieFel = LeerCampo(row, "U_SERIE_FACE"),
+                        NumeroFel = LeerCampo(row, "U_NUMERO_DOCUMENTO")
+                        // Acumulado, NcPreviaSap y Disponible los pone el BLL:
+                        // dependen de datos que HANA no conoce.
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(string.Format(
+                    "Error HANA al buscar facturas para NC ({0} / {1}): {2}",
+                    empresa, schema, ex.Message), ex);
+            }
+
+            return lista;
+        }
+
+
+        // ═════════════════════════════════════════════════════════════════════════════
+        // MÉTODO 2 — Notas de crédito y devoluciones ya emitidas en SAP
+        // ═════════════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// NC y devoluciones ya emitidas en SAP contra una factura.
+        ///
+        /// El desktop consultaba esta vista solo en FrmAutorizaciones, como una
+        /// pestaña informativa para el autorizador. Aquí se usa además para calcular
+        /// el disponible neto y para dejar constancia en BORR_NC_DET.NC_PREVIA_SAP.
+        ///
+        /// Nota sobre el filtro: "Factura" es INTEGER en la vista, así que el número
+        /// se valida como entero y se inyecta como número, no como cadena. Eso quita
+        /// de raíz cualquier riesgo de inyección en este parámetro, y además evita la
+        /// conversión implícita que hacía el legado.
+        ///
+        /// Devuelve lista vacía —nunca lanza por documento no numérico— porque un
+        /// DocNum mal formado es un dato del usuario, no un fallo del sistema.
+        /// </summary>
+        public List<NotaCreditoPreviaSap> ObtenerNotasCreditoPrevias(
+            string empresa, string documento)
+        {
+            var lista = new List<NotaCreditoPreviaSap>();
+
+            string schema = ResolverSchema(empresa);
+            if (schema == null) return lista;
+
+            int docNum;
+            if (!int.TryParse((documento ?? "").Trim(), out docNum))
+                return lista;
+
+            string query = string.Format(
+                "SELECT \"Tipo\", \"Factura\", \"Nota\", \"DocDate\", \"CardCode\", " +
+                "       \"CardName\", \"DocCur\", \"DocTotal\", \"JrnlMemo\", \"Comments\" " +
+                "FROM \"{0}\".\"INF_VRC_FACRNC\" " +
+                "WHERE \"Factura\" = {1} AND \"Nota\" IS NOT NULL " +
+                "ORDER BY \"DocDate\" DESC",
+                schema, docNum);
+
+            try
+            {
+                DataTable dt = HanaHelper.EjecutarConsulta(query);
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    lista.Add(new NotaCreditoPreviaSap
+                    {
+                        Tipo = LeerCampo(row, "Tipo"),
+                        Factura = LeerCampo(row, "Factura"),
+                        Nota = LeerCampo(row, "Nota"),
+                        Fecha = LeerFecha(row, "DocDate"),
+                        CardCode = LeerCampo(row, "CardCode"),
+                        CardName = LeerCampo(row, "CardName"),
+                        Moneda = NormalizarMoneda(LeerCampo(row, "DocCur")),
+                        Total = LeerDecimal(row, "DocTotal"),
+                        Origen = LeerCampo(row, "JrnlMemo"),
+                        Comentarios = LeerCampo(row, "Comments")
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(string.Format(
+                    "Error HANA al consultar NC previas del documento {0} ({1}): {2}",
+                    documento, schema, ex.Message), ex);
+            }
+
+            return lista;
+        }
+
+
+        // ═════════════════════════════════════════════════════════════════════════════
+        // MÉTODO 3 — Versión por lote (para el modal de facturas)
+        // ═════════════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// NC previas de VARIAS facturas en una sola consulta.
+        ///
+        /// El modal puede traer decenas de facturas; una consulta por cada una serían
+        /// decenas de viajes a HANA, que está en otra máquina de la red interna.
+        /// Mismo criterio que BorradorNcDA.ObtenerAcumuladoDocumentos.
+        ///
+        /// Los DocNum se validan como enteros antes de armar el IN, así que la lista
+        /// no puede contener nada más que números.
+        /// </summary>
+        public Dictionary<string, List<NotaCreditoPreviaSap>> ObtenerNotasCreditoPrevias(
+            string empresa, IList<string> documentos)
+        {
+            var mapa = new Dictionary<string, List<NotaCreditoPreviaSap>>(
+                            StringComparer.OrdinalIgnoreCase);
+
+            string schema = ResolverSchema(empresa);
+            if (schema == null || documentos == null || documentos.Count == 0) return mapa;
+
+            var numeros = new List<int>();
+            foreach (var d in documentos)
+            {
+                int n;
+                if (int.TryParse((d ?? "").Trim(), out n) && !numeros.Contains(n))
+                    numeros.Add(n);
+            }
+            if (numeros.Count == 0) return mapa;
+
+            string query = string.Format(
+                "SELECT \"Tipo\", \"Factura\", \"Nota\", \"DocDate\", \"CardCode\", " +
+                "       \"CardName\", \"DocCur\", \"DocTotal\", \"JrnlMemo\", \"Comments\" " +
+                "FROM \"{0}\".\"INF_VRC_FACRNC\" " +
+                "WHERE \"Nota\" IS NOT NULL AND \"Factura\" IN ({1}) " +
+                "ORDER BY \"Factura\", \"DocDate\" DESC",
+                schema, string.Join(",", numeros));
+
+            try
+            {
+                DataTable dt = HanaHelper.EjecutarConsulta(query);
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    string factura = LeerCampo(row, "Factura");
+                    if (!mapa.ContainsKey(factura))
+                        mapa[factura] = new List<NotaCreditoPreviaSap>();
+
+                    mapa[factura].Add(new NotaCreditoPreviaSap
+                    {
+                        Tipo = LeerCampo(row, "Tipo"),
+                        Factura = factura,
+                        Nota = LeerCampo(row, "Nota"),
+                        Fecha = LeerFecha(row, "DocDate"),
+                        CardCode = LeerCampo(row, "CardCode"),
+                        CardName = LeerCampo(row, "CardName"),
+                        Moneda = NormalizarMoneda(LeerCampo(row, "DocCur")),
+                        Total = LeerDecimal(row, "DocTotal"),
+                        Origen = LeerCampo(row, "JrnlMemo"),
+                        Comentarios = LeerCampo(row, "Comments")
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(string.Format(
+                    "Error HANA al consultar NC previas por lote ({0}): {1}",
+                    schema, ex.Message), ex);
+            }
+
+            return mapa;
+        }
+
     }
 }

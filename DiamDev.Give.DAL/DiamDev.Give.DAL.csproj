@@ -57,6 +57,7 @@
   <ItemGroup>
     <Compile Include="AnalyticsRecibosDA.cs" />
     <Compile Include="APK66Context.cs" />
+    <Compile Include="BorradorNcDA.cs" />
     <Compile Include="HanaHelper.cs" />
     <Compile Include="HanaRepository.cs" />
     <Compile Include="Migrations\202111112211234_SeQuitaCampoEmpresaTablaAgencia.cs" />

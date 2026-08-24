@@ -41,6 +41,10 @@ namespace DiamDev.Give.Entities
         public DateTime? FechaResolucion { get; set; }
         public string MotivoResolucion { get; set; }
 
+        // Indicador agregado por las consultas de bandeja. No es una columna del
+        // encabezado; evita una consulta por fila para pintar alertas y KPIs.
+        public bool TieneNcPrevia { get; set; }
+
         public List<BorradorNcDetalle> Detalles { get; set; }
 
         public BorradorNcEncabezado()

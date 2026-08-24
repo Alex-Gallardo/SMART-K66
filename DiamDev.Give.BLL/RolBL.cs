@@ -199,6 +199,27 @@ namespace DiamDev.Give.BLL
                 return Autorizacion;
             }
 
+            /// <summary>
+            /// Indica si el usuario pertenece al rol solicitado. A diferencia de
+            /// ObtenerPermisoPorUsuario(long), revisa todos los roles asignados y no
+            /// depende del orden en que SQL Server los devuelva.
+            /// </summary>
+            public bool UsuarioTieneRol(string usuario, string rol)
+            {
+                if (string.IsNullOrWhiteSpace(usuario) || string.IsNullOrWhiteSpace(rol))
+                {
+                    return false;
+                }
+
+                return db.Set<Usuario>()
+                    .Where(x => x.Login.Equals(usuario))
+                    .Join(db.Set<UsuarioRol>(), u => u.UsuarioId, ur => ur.UsuarioId,
+                          (u, ur) => ur)
+                    .Join(db.Set<Rol>(), ur => ur.RolId, r => r.RolId,
+                          (ur, r) => r)
+                    .Any(r => r.Nombre.Equals(rol));
+            }
+
             public List<Rol> Buscar(string Buscar)
             {
                 List<Rol> Roles = new List<Rol>();

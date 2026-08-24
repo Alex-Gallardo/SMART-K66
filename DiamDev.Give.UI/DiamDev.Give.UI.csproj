@@ -597,6 +597,7 @@
     <Content Include="Content\img\logos\LogoGraco.svg" />
     <Content Include="Content\PagedList.css" />
     <Content Include="Content\Site.css" />
+    <Content Include="Content\borrador-nc.css" />
     <Content Include="Content\ui-shell.css" />
     <Content Include="Content\themes\base\accordion.css" />
     <Content Include="Content\themes\base\all.css" />
@@ -649,6 +650,8 @@
     <Content Include="Reports\ReportViewer.aspx" />
     <Content Include="Scripts\App\ProductosSalidaMasiva-Index.js" />
     <Content Include="Scripts\App\ProductosCargaMasiva-Index.js" />
+    <Content Include="Scripts\App\BorradorNc-Index.js" />
+    <Content Include="Scripts\App\BorradorNc-Autorizaciones.js" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
     <Content Include="Scripts\data.js" />
@@ -832,6 +835,7 @@
     <Compile Include="Controllers\Pedido_K66Controller.cs" />
     <Compile Include="Controllers\Producto_Alerta_K66Controller.cs" />
     <Compile Include="Controllers\ReciboCajaController.cs" />
+    <Compile Include="Controllers\BorradorNcController.cs" />
     <Compile Include="Controllers\VisitaController.cs" />
     <Compile Include="Controllers\Tipo_VisitaController.cs" />
     <Compile Include="Controllers\PaqueteController.cs" />
@@ -931,6 +935,7 @@
     <Compile Include="Models\ProductoCargaMasivaArchivo.cs" />
     <Compile Include="Models\ProductoCargaMasivaDetalle.cs" />
     <Compile Include="Models\ReciboCajaViewModel.cs" />
+    <Compile Include="Models\BorradorNcViewModel.cs" />
     <Compile Include="Models\SerieAgenciaFacturaModel.cs" />
     <Compile Include="Models\UsuarioModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -1378,6 +1383,9 @@
     <Content Include="Views\ReciboCaja\Series.cshtml" />
     <Content Include="Views\ReciboCaja\ImprimirLote.cshtml" />
     <Content Include="Views\ReciboCaja\_ReciboImpresionEstilos.cshtml" />
+    <Content Include="Views\BorradorNc\Index.cshtml" />
+    <Content Include="Views\BorradorNc\Autorizaciones.cshtml" />
+    <Content Include="Views\BorradorNc\Imprimir.cshtml" />
     <Content Include="Views\ReciboCaja\_ReciboImpresion.cshtml" />
     <Content Include="Views\ReciboCaja\Analytics.cshtml" />
     <None Include="Web.Debug.config">
@@ -1389,7 +1397,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
-    <Folder Include="Views\Borradores\" />
     <Folder Include="Views\ServiciosApp\" />
   </ItemGroup>
   <ItemGroup>

@@ -500,12 +500,7 @@ namespace DiamDev.Give.DAL
         }
         // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         /* ============================================================================
-            DOS MÉTODOS para AGREGAR a DiamDev.Give.DAL/HanaRepository.cs
-
-            Pégalos dentro de la clase existente, junto a ObtenerFacturas().
-            NO crees un repositorio nuevo: los helpers privados que usan
-            (ResolverSchema, Esc, LeerCampo, LeerDecimal, LeerFecha, NormalizarMoneda)
-            ya viven en esa clase.
+            Contratos HANA usados por Borradores NC.
 
             Columnas reales de las dos vistas, confirmadas contra SYS.VIEW_COLUMNS:
 

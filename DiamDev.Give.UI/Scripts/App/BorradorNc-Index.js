@@ -30,6 +30,10 @@
     };
     var estadoFacturaTimer = null;
     var estadoFacturaSecuencia = 0;
+    var serieSecuencia = 0;
+    var seguimientoSecuencia = 0;
+    var detalleSecuencia = 0;
+    var empresaAnterior = empresa();
 
     function token() {
         return $root.find('input[name="__RequestVerificationToken"]').val();
@@ -135,13 +139,21 @@
     }
 
     function seleccionarCliente(cliente) {
+        var cambiaCliente = !state.cliente ||
+            String(state.cliente.CardCode || "") !== String(cliente.CardCode || "");
+        if (cambiaCliente && state.lineas.length) {
+            if (!window.confirm("Cambiar de cliente eliminará las líneas no guardadas. ¿Desea continuar?")) return;
+            state.lineas = [];
+            renderLineas();
+        }
+
         state.cliente = cliente;
         $("#bncClienteCodigo").val(cliente.CardCode || "");
         $("#bncClienteNombre").val(cliente.CardName || "");
         $("#bncNit").val(cliente.LicTradNum || "");
         $("#bncDireccion").val(cliente.Address || "");
         $("#bncCorreo").val(cliente.Email || "");
-        $("#bncMoneda").val(normalizarMoneda(cliente.Currency || ""));
+        if (!state.lineas.length) $("#bncMoneda").val(normalizarMoneda(cliente.Currency || ""));
         if (!state.esAgente) $("#bncAgente").val(cliente.SlpName || "");
         $("#bncClientStripTitle").text((cliente.CardCode || "") + " · " + (cliente.CardName || ""));
         $("#bncClientStripMeta").text((cliente.LicTradNum || "Sin NIT") + " · " + (cliente.SlpName || "Sin agente") + " · " + (normalizarMoneda(cliente.Currency) || "Sin moneda"));
@@ -195,6 +207,7 @@
         window.clearTimeout(estadoFacturaTimer);
         estadoFacturaSecuencia++;
         state.factura = null;
+        state.facturas = [];
         $("#bncDocumento,#bncFechaDoc,#bncSerieFel,#bncNumeroFel,#bncImporte,#bncDescripcion").val("");
         $("#bncConcepto").val("");
         $("#bncSelectedDoc").addClass("is-empty").html('<i class="icon-file-text"></i><span>Seleccione una factura para visualizar su disponible.</span>');
@@ -281,12 +294,16 @@
 
     function cargarSerie() {
         var emp = empresa();
+        var secuencia = ++serieSecuencia;
         $("#bncPrefijo").text("—");
         if (!emp) return;
         get(urls.serie, { empresa: emp }).done(function (r) {
+            if (secuencia !== serieSecuencia || empresa() !== emp) return;
             if (r && r.ok) $("#bncPrefijo").text((r.data && r.data.Prefijo) || "Sin serie");
             else avisar("warning", r && r.msg ? r.msg : "No se encontró la serie.");
-        }).fail(function (xhr) { avisar("error", mensajeAjax(xhr)); });
+        }).fail(function (xhr) {
+            if (secuencia === serieSecuencia) avisar("error", mensajeAjax(xhr));
+        });
     }
 
     function cargarFacturas() {
@@ -425,6 +442,23 @@
         if (!agente().trim()) return "No se pudo determinar el agente.";
         if (!$("#bncMoneda").val()) return "Seleccione la moneda.";
         if (!state.lineas.length) return "Agregue al menos una línea.";
+        if ($("#bncDireccion").val().trim().length > 200) return "La dirección no puede exceder 200 caracteres.";
+        if ($("#bncCorreo").val().trim().length > 100) return "El correo no puede exceder 100 caracteres.";
+
+        var fecha = $("#bncFecha").val();
+        var moneda = normalizarMoneda($("#bncMoneda").val());
+        var error = "";
+        $.each(state.lineas, function (_, linea) {
+            if (String(linea.FechaDoc || "").substring(0, 10) > fecha) {
+                error = "La fecha del documento " + linea.Documento + " es posterior a la del borrador.";
+                return false;
+            }
+            if (normalizarMoneda(linea.Moneda) !== moneda) {
+                error = "El documento " + linea.Documento + " está en una moneda distinta al borrador.";
+                return false;
+            }
+        });
+        if (error) return error;
         return "";
     }
 
@@ -470,6 +504,7 @@
         state.lineas = [];
         limpiarCliente();
         $("#bncEmpresa").val(emp);
+        empresaAnterior = emp;
         $("#bncFecha").val(hoyLocal());
         $("#bncMoneda").val("").prop("disabled", false);
         $("#bncPrefijo").text("—");
@@ -486,6 +521,7 @@
     }
 
     function cargarSeguimiento() {
+        var secuencia = ++seguimientoSecuencia;
         var empresaFiltro = $("#bncFiltroEmpresa").val() || "";
         var desde = $("#bncFiltroDesde").val() || "";
         var hasta = $("#bncFiltroHasta").val() || "";
@@ -494,24 +530,37 @@
 
         var pendientes = null, resueltos = null, fallido = false;
         function completar() {
+            if (secuencia !== seguimientoSecuencia) return;
             if (pendientes === null || resueltos === null) return;
-            state.seguimiento = (pendientes || []).concat(resueltos || []);
+            var unicos = {};
+            $.each((pendientes || []).concat(resueltos || []), function (_, x) {
+                unicos["b:" + String(x.IdEmpresa) + "|" + String(x.IdBorrador)] = x;
+            });
+            state.seguimiento = $.map(unicos, function (x) { return x; });
             state.seguimiento.sort(function (a, b) { return String(b.Fecha + b.IdBorrador).localeCompare(String(a.Fecha + a.IdBorrador)); });
             state.seguimientoCargado = !fallido;
             renderSeguimiento();
         }
 
         get(urls.listar, { empresa: empresaFiltro }).done(function (r) {
+            if (secuencia !== seguimientoSecuencia) return;
             if (!r || !r.ok) { fallido = true; avisar("error", r && r.msg ? r.msg : "No se pudieron cargar pendientes."); pendientes = []; }
             else pendientes = r.data || [];
             completar();
-        }).fail(function (xhr) { fallido = true; pendientes = []; avisar("error", mensajeAjax(xhr)); completar(); });
+        }).fail(function (xhr) {
+            if (secuencia !== seguimientoSecuencia) return;
+            fallido = true; pendientes = []; avisar("error", mensajeAjax(xhr)); completar();
+        });
 
         get(urls.seguimiento, { empresa: empresaFiltro, desde: desde, hasta: hasta }).done(function (r) {
+            if (secuencia !== seguimientoSecuencia) return;
             if (!r || !r.ok) { fallido = true; avisar("error", r && r.msg ? r.msg : "No se pudo cargar el seguimiento."); resueltos = []; }
             else resueltos = r.data || [];
             completar();
-        }).fail(function (xhr) { fallido = true; resueltos = []; avisar("error", mensajeAjax(xhr)); completar(); });
+        }).fail(function (xhr) {
+            if (secuencia !== seguimientoSecuencia) return;
+            fallido = true; resueltos = []; avisar("error", mensajeAjax(xhr)); completar();
+        });
     }
 
     function filasFiltradas() {
@@ -562,15 +611,20 @@
     }
 
     function cargarDetalle(empresaId, id) {
+        var secuencia = ++detalleSecuencia;
         state.seleccionado = { empresa: empresaId, id: id };
         $("#bncFollowBody tr").removeClass("is-selected").filter(function () {
             return $(this).data("empresa") === empresaId && String($(this).data("id")) === String(id);
         }).addClass("is-selected");
         $("#bncFollowDetail").html('<div class="bnc-loading"><span class="bnc-spinner"></span>Cargando detalle...</div>');
         get(urls.detalle, { empresa: empresaId, idBorrador: id }).done(function (r) {
+            if (secuencia !== detalleSecuencia || !state.seleccionado ||
+                state.seleccionado.empresa !== empresaId || String(state.seleccionado.id) !== String(id)) return;
             if (!r || !r.ok) { avisar("error", r && r.msg ? r.msg : "No se pudo abrir el detalle."); return; }
             renderDetalle(r.data);
-        }).fail(function (xhr) { avisar("error", mensajeAjax(xhr)); });
+        }).fail(function (xhr) {
+            if (secuencia === detalleSecuencia) avisar("error", mensajeAjax(xhr));
+        });
     }
 
     function renderDetalle(x) {
@@ -630,6 +684,13 @@
 
     function enlazarEventos() {
         $("#bncEmpresa").on("change", function () {
+            var nuevaEmpresa = empresa();
+            if (state.lineas.length && nuevaEmpresa !== empresaAnterior &&
+                !window.confirm("Cambiar de empresa eliminará las líneas no guardadas. ¿Desea continuar?")) {
+                $(this).val(empresaAnterior);
+                return;
+            }
+            empresaAnterior = nuevaEmpresa;
             var option = $(this).find("option:selected");
             limpiarCliente();
             state.lineas = [];
@@ -687,6 +748,9 @@
             $("#bncAnularModal").modal("show");
         });
         $("#bncConfirmarAnular").on("click", confirmarAnulacion);
+        $(window).on("beforeunload.borradorNc", function () {
+            if (state.lineas.length) return "Hay líneas de borrador sin guardar.";
+        });
     }
 
     $(function () {

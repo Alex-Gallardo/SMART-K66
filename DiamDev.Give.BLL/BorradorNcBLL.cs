@@ -55,6 +55,12 @@ namespace DiamDev.Give.BLL
             string.Equals(ConfigurationManager.AppSettings["BorradorNC.BloquearPorNcPrevia"],
                           "true", StringComparison.OrdinalIgnoreCase);
 
+        // Temporal para pruebas. Cuando el appSetting cambie a false, el BLL
+        // vuelve a exigir los permisos incluso si alguien lo invoca sin MVC.
+        private static bool OmitirPermisos =>
+            string.Equals(ConfigurationManager.AppSettings["BorradorNC.OmitirPermisos"],
+                          "true", StringComparison.OrdinalIgnoreCase);
+
         // =====================================================================
         //  CONSULTA DE FACTURAS  (HANA + datos locales)
         // =====================================================================
@@ -170,6 +176,26 @@ namespace DiamDev.Give.BLL
                 return ResultadoBorradorNc.Error("El borrador debe tener al menos una línea.");
 
             enc.IdEmpresa = enc.IdEmpresa.Trim().ToUpperInvariant();
+            enc.IdCliente = enc.IdCliente.Trim();
+            enc.Agente = enc.Agente.Trim();
+            enc.Moneda = enc.Moneda.Trim().ToUpperInvariant();
+            enc.IdUsr = (loginUsuario ?? "").Trim();
+            enc.Depto = Limpiar(enc.Depto);
+            enc.CodigoOperador = Limpiar(enc.CodigoOperador);
+
+            if (enc.IdEmpresa.Length > 15)
+                return ResultadoBorradorNc.Error("La empresa excede los 15 caracteres permitidos.");
+            if (enc.IdCliente.Length > 20)
+                return ResultadoBorradorNc.Error("El código del cliente excede los 20 caracteres permitidos.");
+            if (enc.Agente.Length > 155)
+                return ResultadoBorradorNc.Error("El agente excede los 155 caracteres permitidos.");
+            if (enc.Moneda.Length > 5)
+                return ResultadoBorradorNc.Error("La moneda excede los 5 caracteres permitidos.");
+            if (enc.IdUsr.Length == 0 || enc.IdUsr.Length > 50)
+                return ResultadoBorradorNc.Error("No se pudo identificar correctamente al usuario que captura.");
+            if (Longitud(enc.Depto) > 50 || Longitud(enc.CodigoOperador) > 50)
+                return ResultadoBorradorNc.Error(
+                    "La asignación de empresa del usuario contiene datos que exceden el tamaño permitido.");
 
             // El navegador solo propone estos datos. Antes de aplicar las reglas,
             // se reconstruyen desde HANA para impedir que una petición manipulada
@@ -181,20 +207,31 @@ namespace DiamDev.Give.BLL
                 return ResultadoBorradorNc.Error(
                     "El cliente ya no está disponible para el agente seleccionado en SAP.");
 
-            enc.IdCliente = clienteSap.CardCode;
-            enc.Nombre = clienteSap.CardName;
-            enc.Nit = clienteSap.LicTradNum;
+            enc.IdCliente = Limpiar(clienteSap.CardCode);
+            enc.Nombre = Limpiar(clienteSap.CardName);
+            enc.Nit = Limpiar(clienteSap.LicTradNum);
             enc.Agente = string.IsNullOrWhiteSpace(clienteSap.SlpName)
                 ? enc.Agente.Trim() : clienteSap.SlpName.Trim();
             enc.Direccion = string.IsNullOrWhiteSpace(enc.Direccion)
-                ? clienteSap.Address : enc.Direccion.Trim();
+                ? Limpiar(clienteSap.Address) : enc.Direccion.Trim();
             enc.Correo = string.IsNullOrWhiteSpace(enc.Correo)
-                ? clienteSap.Email : enc.Correo.Trim();
+                ? Limpiar(clienteSap.Email) : enc.Correo.Trim();
 
+            if (string.IsNullOrWhiteSpace(enc.IdCliente) || string.IsNullOrWhiteSpace(enc.Nombre))
+                return ResultadoBorradorNc.Error(
+                    "El cliente no tiene código y nombre completos en SAP.");
             if (string.IsNullOrWhiteSpace(enc.Nit))
                 return ResultadoBorradorNc.Error(
                     "El cliente no tiene NIT registrado en SAP. Corríjalo antes de continuar.");
 
+            if (Longitud(enc.IdCliente) > 20)
+                return ResultadoBorradorNc.Error("El código del cliente de SAP excede 20 caracteres.");
+            if (Longitud(enc.Nombre) > 200)
+                return ResultadoBorradorNc.Error("El nombre del cliente de SAP excede 200 caracteres.");
+            if (Longitud(enc.Nit) > 50)
+                return ResultadoBorradorNc.Error("El NIT del cliente de SAP excede 50 caracteres.");
+            if (Longitud(enc.Agente) > 155)
+                return ResultadoBorradorNc.Error("El nombre del agente de SAP excede 155 caracteres.");
             if (Longitud(enc.Direccion) > 200)
                 return ResultadoBorradorNc.Error("La dirección no puede exceder 200 caracteres.");
             if (Longitud(enc.Correo) > 100)
@@ -260,9 +297,14 @@ namespace DiamDev.Give.BLL
                 if (string.IsNullOrWhiteSpace(d.Descripcion))
                     return ResultadoBorradorNc.Error(string.Format(
                         "La línea del documento {0} no tiene descripción.", doc));
+                d.Descripcion = d.Descripcion.Trim();
                 if (Longitud(d.Descripcion) > 500)
                     return ResultadoBorradorNc.Error(string.Format(
                         "La descripción del documento {0} no puede exceder 500 caracteres.", doc));
+                // El esquema persiste tres decimales. Normalizar antes de validar
+                // y sumar evita que TOTAL difiera de la suma del detalle por
+                // redondeos independientes en SQL Server.
+                d.Importe = decimal.Round(d.Importe, 3, MidpointRounding.AwayFromZero);
                 if (d.Importe <= 0)
                     return ResultadoBorradorNc.Error(string.Format(
                         "El importe del documento {0} debe ser mayor a cero.", doc));
@@ -361,7 +403,6 @@ namespace DiamDev.Give.BLL
             // El desktop lo tomaba de un TextBox y lo enviaba como string.
             // Nunca confiamos en un total que venga del navegador.
             enc.Total = enc.Detalles.Sum(d => d.Importe);
-            enc.IdUsr = loginUsuario;
             enc.Estado = EstadosBorradorNc.Pendiente;
 
             if (enc.Total <= 0)
@@ -409,7 +450,8 @@ namespace DiamDev.Give.BLL
             // R9 también se defiende aquí. El atributo MVC sigue siendo la
             // primera barrera, pero un job o controller futuro no puede saltarse
             // el permiso invocando directamente esta capa.
-            if (!_roles.AutorizacionPermisoPorUsuario(usuario, PERMISO_AUTORIZAR))
+            if (!OmitirPermisos &&
+                !_roles.AutorizacionPermisoPorUsuario(usuario, PERMISO_AUTORIZAR))
                 return ResultadoBorradorNc.Error(
                     "El usuario no tiene permiso para autorizar o rechazar borradores.");
 
@@ -459,7 +501,8 @@ namespace DiamDev.Give.BLL
         public ResultadoBorradorNc Anular(
             string empresa, string idBorrador, string usuario, string motivo)
         {
-            if (!_roles.AutorizacionPermisoPorUsuario(usuario, PERMISO_ANULAR))
+            if (!OmitirPermisos &&
+                !_roles.AutorizacionPermisoPorUsuario(usuario, PERMISO_ANULAR))
                 return ResultadoBorradorNc.Error(
                     "El usuario no tiene permiso para anular borradores.");
 
@@ -587,6 +630,9 @@ namespace DiamDev.Give.BLL
             !string.IsNullOrEmpty(texto) &&
             CultureInfo.InvariantCulture.CompareInfo.IndexOf(
                 texto, busqueda, CompareOptions.IgnoreCase) >= 0;
+
+        private static string Limpiar(string valor) =>
+            string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
 
         private static int Longitud(string valor) => valor == null ? 0 : valor.Length;
     }

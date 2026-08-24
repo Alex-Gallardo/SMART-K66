@@ -12,6 +12,9 @@
         imprimir: $root.data("url-imprimir")
     };
     var state = { pendientes: [], seleccionado: null, documento: null };
+    var cargaSecuencia = 0;
+    var detalleSecuencia = 0;
+    var notasSecuencia = 0;
 
     function token() { return $root.find('input[name="__RequestVerificationToken"]').val(); }
     function escapeHtml(value) { return $("<div>").text(value == null ? "" : String(value)).html(); }
@@ -62,18 +65,23 @@
     }
 
     function cargar() {
+        var secuencia = ++cargaSecuencia;
+        detalleSecuencia++;
+        notasSecuencia++;
         state.seleccionado = null;
         state.documento = null;
         $("#bncAuthDetail").html('<div class="bnc-empty"><i class="icon-hand-left"></i><strong>Seleccione una solicitud</strong><span>Revise cada línea y sus NC previas antes de autorizar.</span></div>');
         $("#bncAuthBody").html('<tr><td colspan="5"><div class="bnc-loading"><span class="bnc-spinner"></span>Consultando pendientes...</div></td></tr>');
         $("#bncAuthEmpty").hide();
         get(urls.listar, { empresa: $("#bncAuthEmpresa").val() || "" }).done(function (r) {
+            if (secuencia !== cargaSecuencia) return;
             if (!r || !r.ok) {
                 state.pendientes = [];
                 avisar("error", r && r.msg ? r.msg : "No se pudo abrir la bandeja.");
             } else state.pendientes = r.data || [];
             renderLista();
         }).fail(function (xhr) {
+            if (secuencia !== cargaSecuencia) return;
             state.pendientes = [];
             avisar("error", mensajeAjax(xhr));
             renderLista();
@@ -109,17 +117,23 @@
     }
 
     function seleccionar(empresa, id) {
+        var secuencia = ++detalleSecuencia;
+        notasSecuencia++;
         state.seleccionado = { empresa: empresa, id: id };
         $("#bncAuthBody tr").removeClass("is-selected").filter(function () {
             return $(this).data("empresa") === empresa && String($(this).data("id")) === String(id);
         }).addClass("is-selected");
         $("#bncAuthDetail").html('<div class="bnc-loading"><span class="bnc-spinner"></span>Cargando solicitud y antecedentes...</div>');
         get(urls.detalle, { empresa: empresa, idBorrador: id }).done(function (r) {
+            if (secuencia !== detalleSecuencia || !state.seleccionado ||
+                state.seleccionado.empresa !== empresa || String(state.seleccionado.id) !== String(id)) return;
             if (!r || !r.ok) { avisar("error", r && r.msg ? r.msg : "No se pudo cargar el detalle."); return; }
             state.documento = r.data;
             renderDetalle(r.data);
             cargarNotas(r.data);
-        }).fail(function (xhr) { avisar("error", mensajeAjax(xhr)); });
+        }).fail(function (xhr) {
+            if (secuencia === detalleSecuencia) avisar("error", mensajeAjax(xhr));
+        });
     }
 
     function renderDetalle(x) {
@@ -154,13 +168,16 @@
     }
 
     function cargarNotas(x) {
+        var secuencia = ++notasSecuencia;
         var detalles = x.Detalles || [];
         if (!detalles.length) { $("#bncAuthNotes").html('<div class="bnc-empty"><span>Sin documentos.</span></div>'); return; }
         var notas = [], terminadas = 0;
         $.each(detalles, function (_, d) {
             get(urls.notas, { empresa: x.IdEmpresa, documento: d.Documento }).done(function (r) {
+                if (secuencia !== notasSecuencia) return;
                 if (r && r.ok) notas = notas.concat(r.data || []);
             }).always(function () {
+                if (secuencia !== notasSecuencia) return;
                 terminadas++;
                 if (terminadas === detalles.length) renderNotas(notas);
             });

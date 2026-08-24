@@ -24,7 +24,7 @@ namespace DiamDev.Give.UI.Controllers
         private readonly UsuarioEmpresaBL _usuarioEmpresa = new UsuarioEmpresaBL();
         private readonly RolBL _roles = new RolBL();
 
-        [Permiso(PERMISO_VER)]
+        [BorradorNcPermiso(PERMISO_VER)]
         public ActionResult Index()
         {
             CustomHelper.setTitle("Borradores de nota de crédito", "Captura y seguimiento");
@@ -32,7 +32,7 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso(PERMISO_VER)]
+        [BorradorNcPermiso(PERMISO_VER)]
         public JsonResult BuscarClientes(string empresa, string agente, string filtro)
         {
             return JsonGet(() =>
@@ -43,7 +43,7 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso(PERMISO_VER)]
+        [BorradorNcPermiso(PERMISO_VER)]
         public JsonResult BuscarFacturas(string empresa, string clienteId, string agente, string filtro)
         {
             return JsonGet(() =>
@@ -58,7 +58,7 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso(PERMISO_VER)]
+        [BorradorNcPermiso(PERMISO_VER)]
         public JsonResult ObtenerEstadoFactura(string empresa, string documento,
                                                decimal docTotal, decimal pagado)
         {
@@ -70,7 +70,7 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso(PERMISO_VER)]
+        [BorradorNcPermiso(PERMISO_VER)]
         public JsonResult ObtenerSerie(string empresa)
         {
             return JsonGet(() =>
@@ -82,7 +82,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Permiso(PERMISO_GUARDAR)]
+        [BorradorNcPermiso(PERMISO_GUARDAR)]
         public JsonResult Guardar(GuardarBorradorNcRequest request)
         {
             try
@@ -158,13 +158,13 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso(PERMISO_VER)]
+        [BorradorNcPermiso(PERMISO_VER)]
         public JsonResult Listar(string empresa = null)
         {
             return JsonGet(() =>
             {
                 var filas = new List<BorradorNcEncabezado>();
-                bool puedeVerTodos = CustomHelper.Permiso(PERMISO_VER_TODOS);
+                bool puedeVerTodos = TienePermiso(PERMISO_VER_TODOS);
                 foreach (var contexto in ContextosConsulta(empresa))
                 {
                     filas.AddRange(_bll.ListarPendientes(
@@ -178,7 +178,7 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso(PERMISO_VER)]
+        [BorradorNcPermiso(PERMISO_VER)]
         public JsonResult ListarSeguimiento(string empresa = null, string desde = null, string hasta = null)
         {
             return JsonGet(() =>
@@ -189,7 +189,7 @@ namespace DiamDev.Give.UI.Controllers
                 DateTime? fHasta = TryFecha(hasta, out fechaHasta) ? (DateTime?)fechaHasta : null;
 
                 var filas = new List<BorradorNcEncabezado>();
-                bool puedeVerTodos = CustomHelper.Permiso(PERMISO_VER_TODOS);
+                bool puedeVerTodos = TienePermiso(PERMISO_VER_TODOS);
                 foreach (var contexto in ContextosConsulta(empresa))
                 {
                     filas.AddRange(_bll.ListarSeguimiento(
@@ -205,7 +205,7 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso(PERMISO_VER)]
+        [BorradorNcPermiso(PERMISO_VER)]
         public JsonResult ObtenerDetalle(string empresa, string idBorrador)
         {
             return JsonGet(() =>
@@ -219,7 +219,7 @@ namespace DiamDev.Give.UI.Controllers
             });
         }
 
-        [Permiso(PERMISO_AUTORIZAR)]
+        [BorradorNcPermiso(PERMISO_AUTORIZAR)]
         public ActionResult Autorizaciones()
         {
             CustomHelper.setTitle("Autorización de borradores NC", "Bandeja de pendientes");
@@ -227,7 +227,7 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso(PERMISO_AUTORIZAR)]
+        [BorradorNcPermiso(PERMISO_AUTORIZAR)]
         public JsonResult ListarPendientes(string empresa = null)
         {
             return JsonGet(() =>
@@ -240,7 +240,7 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso(PERMISO_AUTORIZAR)]
+        [BorradorNcPermiso(PERMISO_AUTORIZAR)]
         public JsonResult ObtenerDetalleAutorizacion(string empresa, string idBorrador)
         {
             return JsonGet(() =>
@@ -253,7 +253,7 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso(PERMISO_AUTORIZAR)]
+        [BorradorNcPermiso(PERMISO_AUTORIZAR)]
         public JsonResult ObtenerNotasCreditoPrevias(string empresa, string documento)
         {
             return JsonGet(() =>
@@ -265,7 +265,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Permiso(PERMISO_AUTORIZAR)]
+        [BorradorNcPermiso(PERMISO_AUTORIZAR)]
         public new JsonResult Resolver(ResolverBorradorNcRequest request)
         {
             try
@@ -285,7 +285,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Permiso(PERMISO_ANULAR)]
+        [BorradorNcPermiso(PERMISO_ANULAR)]
         public JsonResult Anular(AnularBorradorNcRequest request)
         {
             try
@@ -303,7 +303,7 @@ namespace DiamDev.Give.UI.Controllers
             }
         }
 
-        [Permiso(PERMISO_VER)]
+        [BorradorNcPermiso(PERMISO_VER)]
         public ActionResult Imprimir(string empresa, string idBorrador)
         {
             ValidarEmpresa(empresa);
@@ -319,9 +319,9 @@ namespace DiamDev.Give.UI.Controllers
             {
                 UsuarioActual = User.Identity.Name,
                 EsAgente = EsAgente(),
-                PuedeVerTodos = CustomHelper.Permiso(PERMISO_VER_TODOS),
-                PuedeAutorizar = CustomHelper.Permiso(PERMISO_AUTORIZAR),
-                PuedeAnular = CustomHelper.Permiso(PERMISO_ANULAR),
+                PuedeVerTodos = TienePermiso(PERMISO_VER_TODOS),
+                PuedeAutorizar = TienePermiso(PERMISO_AUTORIZAR),
+                PuedeAnular = TienePermiso(PERMISO_ANULAR),
                 Conceptos = ConceptosBorradorNc.Todos().OrderBy(x => x).ToList()
             };
 
@@ -335,9 +335,7 @@ namespace DiamDev.Give.UI.Controllers
                     {
                         EmpresaId = item.EmpresaId,
                         Nombre = _usuarioEmpresa.GetEmpresaNombre(item.EmpresaId),
-                        CodigoOperador = item.Codigo,
-                        Agente = codigo.AgenteNombre,
-                        Depto = item.DEPTO_RECIBO
+                        Agente = codigo.AgenteNombre
                     };
                 })
                 .Where(x => x.Nombre != "DESCONOCIDA")
@@ -423,7 +421,12 @@ namespace DiamDev.Give.UI.Controllers
 
         private bool PuedeConsultar(BorradorNcEncabezado enc)
         {
-            if (CustomHelper.Permiso(PERMISO_VER_TODOS)) return true;
+            // Quien autoriza o anula necesita abrir e imprimir solicitudes de
+            // otros capturadores dentro de sus empresas asignadas, aun cuando el
+            // rol no tenga VerTodos por una configuración incompleta.
+            if (TienePermiso(PERMISO_VER_TODOS) ||
+                TienePermiso(PERMISO_AUTORIZAR) ||
+                TienePermiso(PERMISO_ANULAR)) return true;
             if (EsAgente())
             {
                 var agentes = Asignaciones()
@@ -433,6 +436,11 @@ namespace DiamDev.Give.UI.Controllers
                 return agentes.Any(x => string.Equals(x, enc.Agente, StringComparison.OrdinalIgnoreCase));
             }
             return string.Equals(enc.IdUsr, User.Identity.Name, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TienePermiso(string permiso)
+        {
+            return BorradorNcPermisoAttribute.OmitirPermisos || CustomHelper.Permiso(permiso);
         }
 
         private JsonResult JsonGet(Func<object> consulta)

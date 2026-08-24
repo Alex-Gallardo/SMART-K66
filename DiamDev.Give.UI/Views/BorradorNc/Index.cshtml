@@ -91,9 +91,7 @@
                                 @foreach (var empresa in Model.Empresas)
                                 {
                                     <option value="@empresa.Nombre"
-                                            data-agent="@empresa.Agente"
-                                            data-code="@empresa.CodigoOperador"
-                                            data-depto="@empresa.Depto">@empresa.Nombre</option>
+                                            data-agent="@empresa.Agente">@empresa.Nombre</option>
                                 }
                             </select>
                         </div>

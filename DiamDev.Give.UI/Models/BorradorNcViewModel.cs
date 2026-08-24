@@ -23,9 +23,7 @@ namespace DiamDev.Give.UI.Models
     {
         public long EmpresaId { get; set; }
         public string Nombre { get; set; }
-        public string CodigoOperador { get; set; }
         public string Agente { get; set; }
-        public string Depto { get; set; }
     }
 
     // El total no forma parte de este contrato. Siempre lo calcula el BLL.

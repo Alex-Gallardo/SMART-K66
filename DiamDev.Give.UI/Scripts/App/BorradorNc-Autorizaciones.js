@@ -37,9 +37,7 @@
         }).join(" / ");
     }
     function fecha(value) {
-        if (!value) return "—";
-        var p = String(value).substring(0, 10).split("-");
-        return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : value;
+        return window.BorradorNcFechas.corta(value);
     }
     function avisar(tipo, mensaje) {
         if (window.toastr && toastr[tipo]) {

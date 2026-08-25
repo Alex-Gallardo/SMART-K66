@@ -77,9 +77,15 @@
     }
 
     function fechaCorta(value) {
-        if (!value) return "—";
-        var p = String(value).substring(0, 10).split("-");
-        return p.length === 3 ? p[2] + "/" + p[1] + "/" + p[0] : value;
+        return window.BorradorNcFechas.corta(value);
+    }
+
+    function fechaInput(value) {
+        return window.BorradorNcFechas.paraInput(value);
+    }
+
+    function fechaHora(value) {
+        return window.BorradorNcFechas.fechaHora(value);
     }
 
     function hoyLocal() {
@@ -315,7 +321,7 @@
             '<div class="bnc-doc-metric is-money is-available"><small>Disponible</small><strong>' + dinero(Math.max(0, numero(f.Disponible)), f.Moneda) + "</strong></div>"
         );
         $("#bncDocumento").val(f.DocNum || "");
-        $("#bncFechaDoc").val(String(f.DocDate || "").substring(0, 10));
+        $("#bncFechaDoc").val(fechaInput(f.DocDate));
         $("#bncSerieFel").val(f.SerieFel || "");
         $("#bncNumeroFel").val(f.NumeroFel || "");
         mostrarAlertasFactura(f);
@@ -472,7 +478,9 @@
         var importe = numero($("#bncImporte").val());
         if (importe <= 0) return "El importe debe ser mayor a cero.";
         if (importe - numero(state.factura.Disponible) > 0.005) return "El importe supera el disponible de la factura.";
-        if (String(state.factura.DocDate).substring(0, 10) > $("#bncFecha").val()) return "La fecha de la factura es posterior a la fecha del borrador.";
+        var fechaDocumento = fechaInput(state.factura.DocDate);
+        if (!fechaDocumento) return "No se pudo interpretar la fecha de la factura seleccionada.";
+        if (fechaDocumento > $("#bncFecha").val()) return "La fecha de la factura es posterior a la fecha del borrador.";
         var repetida = $.grep(state.lineas, function (l) { return String(l.Documento) === String(state.factura.DocNum); }).length;
         if (repetida) return "La factura ya está agregada al borrador.";
         var moneda = normalizarMoneda($("#bncMoneda").val());
@@ -487,7 +495,7 @@
         state.lineas.push({
             Concepto: $("#bncConcepto").val(),
             Documento: f.DocNum,
-            FechaDoc: String(f.DocDate).substring(0, 10),
+            FechaDoc: fechaInput(f.DocDate),
             SerieFel: f.SerieFel || "",
             NumeroFel: f.NumeroFel || "",
             TotalFactura: numero(f.DocTotal),
@@ -541,7 +549,12 @@
         var moneda = normalizarMoneda($("#bncMoneda").val());
         var error = "";
         $.each(state.lineas, function (_, linea) {
-            if (String(linea.FechaDoc || "").substring(0, 10) > fecha) {
+            var fechaDocumento = fechaInput(linea.FechaDoc);
+            if (!fechaDocumento) {
+                error = "No se pudo interpretar la fecha del documento " + linea.Documento + ".";
+                return false;
+            }
+            if (fechaDocumento > fecha) {
                 error = "La fecha del documento " + linea.Documento + " es posterior a la del borrador.";
                 return false;
             }
@@ -627,7 +640,10 @@
                 unicos["b:" + String(x.IdEmpresa) + "|" + String(x.IdBorrador)] = x;
             });
             state.seguimiento = $.map(unicos, function (x) { return x; });
-            state.seguimiento.sort(function (a, b) { return String(b.Fecha + b.IdBorrador).localeCompare(String(a.Fecha + a.IdBorrador)); });
+            state.seguimiento.sort(function (a, b) {
+                return String(fechaInput(b.Fecha) + b.IdBorrador)
+                    .localeCompare(String(fechaInput(a.Fecha) + a.IdBorrador));
+            });
             state.seguimientoCargado = !fallido;
             renderSeguimiento();
         }
@@ -660,7 +676,7 @@
         var hasta = $("#bncFiltroHasta").val() || "";
         return $.grep(state.seguimiento, function (x) {
             if (estado && x.Estado !== estado) return false;
-            var fecha = String(x.Fecha || "").substring(0, 10);
+            var fecha = fechaInput(x.Fecha);
             if (desde && fecha < desde) return false;
             if (hasta && fecha > hasta) return false;
             if (!texto) return true;
@@ -739,7 +755,7 @@
             "</strong></div><div><small>NIT</small><strong>" + escapeHtml(x.Nit || "—") +
             "</strong></div><div><small>Total</small><strong>" + dinero(x.Total, x.Moneda) +
             "</strong></div><div><small>Capturado por</small><strong>" + escapeHtml(x.IdUsr) +
-            "</strong></div><div><small>Resolución</small><strong>" + escapeHtml(x.ResueltoPor || "Pendiente") + " " + escapeHtml(x.FechaResolucion || "") + "</strong></div></div>" +
+            "</strong></div><div><small>Resolución</small><strong>" + escapeHtml(x.ResueltoPor || "Pendiente") + (x.FechaResolucion ? " · " + fechaHora(x.FechaResolucion) : "") + "</strong></div></div>" +
             motivo +
             '<div class="bnc-table-wrap" style="border-width:1px 0 0;border-radius:0;"><table class="table bnc-table" style="min-width:620px"><thead><tr><th>Documento</th><th>Fecha</th><th>Descripción</th><th class="text-right">Importe</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
             '<div class="bnc-decision-bar"><button class="bnc-btn bnc-btn-ghost" type="button" id="bncImprimirSeleccionado"><i class="icon-print"></i> Imprimir</button>' + anular + "</div>"

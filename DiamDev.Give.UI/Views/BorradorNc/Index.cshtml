@@ -6,7 +6,7 @@
 }
 
 @section styles {
-    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260825")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260825b")" rel="stylesheet" />
 }
 
 <div class="bnc bnc-shell" id="bncApp"
@@ -417,7 +417,7 @@
 </div>
 
 <div class="modal fade bnc-modal" id="bncFacturaModal" tabindex="-1" role="dialog" aria-labelledby="bncFacturaModalTitle">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg bnc-invoice-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
@@ -487,5 +487,6 @@
 </div>
 
 @section scripts {
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260825")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Fechas.js?v=20260825")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260825b")"></script>
 }

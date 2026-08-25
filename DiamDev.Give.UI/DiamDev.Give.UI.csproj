@@ -650,6 +650,7 @@
     <Content Include="Reports\ReportViewer.aspx" />
     <Content Include="Scripts\App\ProductosSalidaMasiva-Index.js" />
     <Content Include="Scripts\App\ProductosCargaMasiva-Index.js" />
+    <Content Include="Scripts\App\BorradorNc-Fechas.js" />
     <Content Include="Scripts\App\BorradorNc-Index.js" />
     <Content Include="Scripts\App\BorradorNc-Autorizaciones.js" />
     <Content Include="Scripts\bootstrap.js" />

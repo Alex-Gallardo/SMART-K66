@@ -829,6 +829,11 @@
 }
 
 .bnc-invoice-table tbody tr { cursor: pointer; }
+.bnc-invoice-table { min-width: 1060px; }
+.bnc-invoice-table > thead > tr > th,
+.bnc-invoice-table > tbody > tr > td { white-space: nowrap; }
+.bnc-invoice-table > thead > tr > th:first-child,
+.bnc-invoice-table > tbody > tr > td:first-child { white-space: normal; }
 .bnc-paid-flag,
 .bnc-nc-flag {
     border-radius: 999px;
@@ -912,6 +917,13 @@
 
 @keyframes bnc-spin {
     to { transform: rotate(360deg); }
+}
+
+@media (min-width: 992px) {
+    #bncFacturaModal .bnc-invoice-dialog {
+        max-width: 1380px;
+        width: calc(100vw - 80px);
+    }
 }
 
 @media (max-width: 1100px) {

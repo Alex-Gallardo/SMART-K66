@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.Data.Common;
 using System.Data.SqlClient;
 using System.Linq;
 using DiamDev.Give.Entities;
@@ -22,10 +23,11 @@ namespace DiamDev.Give.DAL
     /// Acceso a datos del módulo Borradores de Nota de Crédito.
     /// ★ VERSIÓN FINAL — reemplaza a cualquier versión anterior.
     ///
-    /// Mismo criterio que APK66Context y ReciboCajaAdminDA: ADO.NET directo
-    /// contra el connection string "RecibosContext", SQL parametrizado escrito
-    /// aquí (no stored procedures), y transacción explícita donde hay más de
-    /// una escritura.
+    /// ADO.NET directo contra el connection string exclusivo
+    /// "BorradorNcContext", SQL parametrizado escrito aquí (no stored
+    /// procedures), y transacción explícita donde hay más de una escritura.
+    /// El contexto admite heredar credenciales de otra conexión y sobrescribir
+    /// solo la base, para aislar este módulo sin alterar RecibosContext.
     ///
     /// ¿Por qué no seguimos llamando los SP legados (rec_borr_*)? Porque su
     /// lógica vivía solo en el servidor, sin versionar, y tenía defectos que
@@ -34,13 +36,73 @@ namespace DiamDev.Give.DAL
     /// </summary>
     public class BorradorNcDA : IDisposable
     {
+        private const string CONNECTION_NAME = "BorradorNcContext";
+        private const string ALIAS_KEY = "Alias";
+
         private readonly string _conn;
 
         public BorradorNcDA()
         {
-            _conn = ConfigurationManager
-                        .ConnectionStrings["RecibosContext"]
-                        .ConnectionString;
+            _conn = ResolverCadenaConexion();
+        }
+
+        /// <summary>
+        /// BorradorNcContext puede contener una cadena SQL normal o un perfil
+        /// aislado como:
+        ///
+        ///   Alias=RecibosContext;Initial Catalog=POS-SmartK66
+        ///
+        /// En el segundo caso reutiliza servidor y credenciales del alias, pero
+        /// aplica únicamente las propiedades declaradas en BorradorNcContext.
+        /// Así se evita duplicar secretos y cambiar RecibosContext no obliga a
+        /// mover los borradores de base accidentalmente.
+        /// </summary>
+        private static string ResolverCadenaConexion()
+        {
+            var perfil = ConfigurationManager.ConnectionStrings[CONNECTION_NAME];
+            if (perfil == null || string.IsNullOrWhiteSpace(perfil.ConnectionString))
+                throw new ConfigurationErrorsException(
+                    "No existe una cadena de conexión válida llamada '" +
+                    CONNECTION_NAME + "'.");
+
+            try
+            {
+                var propiedades = new DbConnectionStringBuilder
+                {
+                    ConnectionString = perfil.ConnectionString.Trim()
+                };
+
+                object nombreAlias;
+                if (!propiedades.TryGetValue(ALIAS_KEY, out nombreAlias))
+                    return new SqlConnectionStringBuilder(
+                        perfil.ConnectionString).ConnectionString;
+
+                string alias = Convert.ToString(nombreAlias)?.Trim();
+                if (string.IsNullOrWhiteSpace(alias) ||
+                    string.Equals(alias, CONNECTION_NAME,
+                                  StringComparison.OrdinalIgnoreCase))
+                    throw new ConfigurationErrorsException(
+                        "El alias de BorradorNcContext no es válido.");
+
+                var origen = ConfigurationManager.ConnectionStrings[alias];
+                if (origen == null || string.IsNullOrWhiteSpace(origen.ConnectionString))
+                    throw new ConfigurationErrorsException(
+                        "No existe la cadena base indicada por BorradorNcContext.");
+
+                var resultado = new SqlConnectionStringBuilder(origen.ConnectionString);
+                propiedades.Remove(ALIAS_KEY);
+
+                foreach (string clave in propiedades.Keys)
+                    resultado[clave] = propiedades[clave];
+
+                return resultado.ConnectionString;
+            }
+            catch (ArgumentException ex)
+            {
+                throw new ConfigurationErrorsException(
+                    "La configuración de BorradorNcContext no es una cadena SQL válida.",
+                    ex);
+            }
         }
 
         // =====================================================================

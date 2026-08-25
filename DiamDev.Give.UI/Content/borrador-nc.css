@@ -145,6 +145,7 @@
 .bnc-tabs > li > a:focus {
     background: rgba(255,255,255,.65);
     color: var(--bnc-ink);
+    border-radius: 7px !important;
 }
 
 .bnc-tabs > li.active > a,
@@ -625,13 +626,14 @@
     border-radius: 10px;
     padding: 12px 14px;
     position: relative;
+    overflow: hidden;
 }
 
 .bnc-summary::before {
     background: #cbd5e1;
     border-radius: 10px 10px 0 0;
     content: "";
-    height: 3px;
+    height: 4px;
     left: -1px;
     position: absolute;
     right: -1px;

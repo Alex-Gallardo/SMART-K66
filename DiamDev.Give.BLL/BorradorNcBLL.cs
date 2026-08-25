@@ -618,12 +618,14 @@ namespace DiamDev.Give.BLL
         public List<ClienteHana> BuscarClientes(string empresa, string agente, string filtro)
         {
             var clientes = _hana.BuscarClientes(empresa, agente);
-            if (string.IsNullOrWhiteSpace(filtro)) return clientes;
+            if (string.IsNullOrWhiteSpace(filtro)) return clientes.Take(50).ToList();
 
             string f = filtro.Trim();
             return clientes.Where(c => Contiene(c.CardName, f) ||
                                        Contiene(c.CardCode, f) ||
-                                       Contiene(c.LicTradNum, f)).ToList();
+                                       Contiene(c.LicTradNum, f))
+                            .Take(50)
+                            .ToList();
         }
 
         private static bool Contiene(string texto, string busqueda) =>

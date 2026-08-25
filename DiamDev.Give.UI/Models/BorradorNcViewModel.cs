@@ -21,9 +21,21 @@ namespace DiamDev.Give.UI.Models
 
     public class BorradorNcEmpresaViewModel
     {
+        public BorradorNcEmpresaViewModel()
+        {
+            Operadores = new List<BorradorNcOperadorViewModel>();
+        }
+
         public long EmpresaId { get; set; }
         public string Nombre { get; set; }
+        public List<BorradorNcOperadorViewModel> Operadores { get; set; }
+    }
+
+    public class BorradorNcOperadorViewModel
+    {
+        public string Codigo { get; set; }
         public string Agente { get; set; }
+        public string Depto { get; set; }
     }
 
     // El total no forma parte de este contrato. Siempre lo calcula el BLL.
@@ -41,7 +53,7 @@ namespace DiamDev.Give.UI.Models
         public string Nit { get; set; }
         public string Direccion { get; set; }
         public string Correo { get; set; }
-        public string Agente { get; set; }
+        public string CodigoOperador { get; set; }
         public string Moneda { get; set; }
         public List<BorradorNcDetalleRequest> Detalles { get; set; }
     }

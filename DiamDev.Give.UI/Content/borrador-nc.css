@@ -726,6 +726,106 @@
 .bnc-modal .modal-footer { background: #f8fafc; border-top: 1px solid var(--bnc-border); padding: 10px 16px; }
 .bnc-modal .close { color: #64748b; font-size: 24px; opacity: .75; }
 
+.bnc-client-search {
+    position: relative;
+}
+
+.bnc-client-search-input {
+    position: relative;
+}
+
+.bnc-client-search-input > i {
+    color: #64748b;
+    left: 12px;
+    pointer-events: none;
+    position: absolute;
+    top: 11px;
+    z-index: 2;
+}
+
+.bnc-client-search-input .form-control {
+    padding-left: 34px;
+}
+
+.bnc-client-results {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    box-shadow: 0 16px 36px rgba(15, 23, 42, .16);
+    display: none;
+    margin-top: 6px;
+    max-height: 285px;
+    overflow-y: auto;
+}
+
+.bnc-client-results.is-visible {
+    display: block;
+}
+
+.bnc-client-result {
+    align-items: center;
+    background: #fff;
+    border: 0;
+    border-bottom: 1px solid #eef2f7;
+    color: var(--bnc-ink);
+    display: flex;
+    gap: 12px;
+    min-height: 54px;
+    padding: 9px 12px;
+    text-align: left;
+    transition: background .16s ease, color .16s ease, transform .16s ease;
+    width: 100%;
+}
+
+.bnc-client-result:last-child {
+    border-bottom: 0;
+}
+
+.bnc-client-result:hover,
+.bnc-client-result:focus {
+    background: #eff6ff;
+    color: #1d4ed8;
+    outline: 0;
+}
+
+.bnc-client-result:active {
+    transform: scale(.995);
+}
+
+.bnc-client-result-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.bnc-client-result-main strong {
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.bnc-client-result-main small {
+    color: #64748b;
+    font-size: 10px;
+    margin-top: 2px;
+}
+
+.bnc-client-result > i {
+    color: #94a3b8;
+    flex: 0 0 auto;
+}
+
+.bnc-client-result-empty {
+    align-items: center;
+    color: #64748b;
+    display: flex;
+    font-size: 11px;
+    gap: 9px;
+    justify-content: center;
+    min-height: 58px;
+    padding: 12px;
+}
+
 .bnc-invoice-table tbody tr { cursor: pointer; }
 .bnc-paid-flag,
 .bnc-nc-flag {

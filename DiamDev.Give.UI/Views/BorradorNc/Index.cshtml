@@ -6,7 +6,7 @@
 }
 
 @section styles {
-    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260824")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260825")" rel="stylesheet" />
 }
 
 <div class="bnc bnc-shell" id="bncApp"
@@ -20,7 +20,6 @@
      data-url-detalle="@Url.Action("ObtenerDetalle", "BorradorNc")"
      data-url-anular="@Url.Action("Anular", "BorradorNc")"
      data-url-imprimir="@Url.Action("Imprimir", "BorradorNc")"
-     data-es-agente="@Model.EsAgente.ToString().ToLowerInvariant()"
      data-puede-anular="@Model.PuedeAnular.ToString().ToLowerInvariant()">
 
     @Html.AntiForgeryToken()
@@ -37,7 +36,7 @@
             <span class="bnc-hero-chip"><i class="icon-user"></i> @Model.UsuarioActual</span>
             @if (Model.EsAgente)
             {
-                <span class="bnc-hero-chip"><i class="icon-lock"></i> Agente asignado</span>
+                <span class="bnc-hero-chip"><i class="icon-user"></i> Agentes asignados</span>
             }
             @if (Model.PuedeAutorizar)
             {
@@ -52,7 +51,7 @@
     {
         <div class="bnc-inline-alert is-visible is-danger" role="alert">
             <i class="icon-warning-sign"></i>
-            <span>No tiene empresas asignadas. Solicite al administrador una asignación en Usuario_Empresa.</span>
+            <span>No tiene empresas con códigos de agente configurados. Solicite al administrador una asignación válida en Usuario_Empresa.</span>
         </div>
     }
 
@@ -90,8 +89,7 @@
                                 <option value="">Seleccione...</option>
                                 @foreach (var empresa in Model.Empresas)
                                 {
-                                    <option value="@empresa.Nombre"
-                                            data-agent="@empresa.Agente">@empresa.Nombre</option>
+                                    <option value="@empresa.Nombre">@empresa.Nombre</option>
                                 }
                             </select>
                         </div>
@@ -105,9 +103,22 @@
                         </div>
                         <div class="bnc-field bnc-col-4">
                             <label for="bncAgente">Agente <span class="bnc-required">*</span></label>
-                            <input class="form-control" id="bncAgente" maxlength="155"
-                                   placeholder="Se completa al seleccionar el cliente"
-                                   @(Model.EsAgente ? "readonly" : "") />
+                            <select class="form-control" id="bncAgente" disabled>
+                                <option value="">Seleccione primero una empresa...</option>
+                            </select>
+                        </div>
+
+                        <div id="bncOperadoresCatalogo" style="display:none" aria-hidden="true">
+                            @foreach (var empresa in Model.Empresas)
+                            {
+                                foreach (var operador in empresa.Operadores)
+                                {
+                                    <span data-empresa="@empresa.Nombre"
+                                          data-codigo="@operador.Codigo"
+                                          data-agente="@operador.Agente"
+                                          data-depto="@operador.Depto"></span>
+                                }
+                            }
                         </div>
 
                         <div class="bnc-field bnc-col-3">
@@ -382,19 +393,24 @@
             </div>
             <div class="modal-body">
                 <div class="bnc-field">
-                    <label for="bncClienteSelect">Código, nombre o NIT</label>
-                    <input type="hidden" id="bncClienteSelect" style="width:100%;" />
+                    <label for="bncClienteFiltro">Código, nombre o NIT</label>
+                    <div class="bnc-client-search">
+                        <div class="bnc-client-search-input">
+                            <i class="icon-search" aria-hidden="true"></i>
+                            <input type="text" class="form-control" id="bncClienteFiltro"
+                                   placeholder="Escriba para buscar..." autocomplete="off" />
+                        </div>
+                        <div class="bnc-client-results" id="bncClienteResultados"
+                             role="listbox" aria-label="Clientes encontrados" aria-live="polite"></div>
+                    </div>
                 </div>
                 <div class="bnc-inline-alert is-visible is-info" style="margin-top:12px;">
                     <i class="icon-info-sign"></i>
-                    <span>Escriba al menos dos caracteres. La búsqueda consulta los clientes disponibles en SAP.</span>
+                    <span>Escriba al menos dos caracteres y haga clic en un resultado para seleccionarlo.</span>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="bnc-btn bnc-btn-ghost" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="bnc-btn bnc-btn-primary" id="bncSeleccionarCliente">
-                    <i class="icon-check"></i> Seleccionar
-                </button>
+                <button type="button" class="bnc-btn bnc-btn-ghost" data-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
@@ -471,5 +487,5 @@
 </div>
 
 @section scripts {
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260824")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260825")"></script>
 }

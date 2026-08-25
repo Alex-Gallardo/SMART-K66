@@ -34,6 +34,13 @@ SET XACT_ABORT ON;
 SET LOCK_TIMEOUT 5000;
 GO
 
+/* La marca de sesion evita que los lotes de salida reporten exito si el lote
+   principal no llego a compilar o fue revertido. Se reinicia en cada corrida. */
+EXEC sys.sp_set_session_context
+     @key = N'BorrNcEstructuraValidada',
+     @value = 0;
+GO
+
 IF DB_NAME() <> N'POS-SmartK66'
 BEGIN
     THROW 51000,
@@ -77,11 +84,11 @@ IF EXISTS
     SELECT 1
     FROM @ObjetosEsperados E
     JOIN sys.schemas S
-      ON S.name = E.ESQUEMA
+      ON S.name COLLATE DATABASE_DEFAULT = E.ESQUEMA
     JOIN sys.objects O
       ON O.schema_id = S.schema_id
-     AND O.name = E.OBJETO
-    WHERE O.type <> E.TIPO
+     AND O.name COLLATE DATABASE_DEFAULT = E.OBJETO
+    WHERE O.type COLLATE DATABASE_DEFAULT <> E.TIPO
 )
 BEGIN
     THROW 51002,
@@ -94,11 +101,11 @@ DECLARE @ObjetosPresentes int =
     SELECT COUNT(*)
     FROM @ObjetosEsperados E
     JOIN sys.schemas S
-      ON S.name = E.ESQUEMA
+      ON S.name COLLATE DATABASE_DEFAULT = E.ESQUEMA
     JOIN sys.objects O
       ON O.schema_id = S.schema_id
-     AND O.name = E.OBJETO
-     AND O.type = E.TIPO
+     AND O.name COLLATE DATABASE_DEFAULT = E.OBJETO
+     AND O.type COLLATE DATABASE_DEFAULT = E.TIPO
 );
 
 IF @ObjetosPresentes NOT IN (0, 4)
@@ -311,11 +318,11 @@ BEGIN TRY
         SELECT COUNT(*)
         FROM @ObjetosEsperados E
         JOIN sys.schemas S
-          ON S.name = E.ESQUEMA
+          ON S.name COLLATE DATABASE_DEFAULT = E.ESQUEMA
         JOIN sys.objects O
           ON O.schema_id = S.schema_id
-         AND O.name = E.OBJETO
-         AND O.type = E.TIPO
+         AND O.name COLLATE DATABASE_DEFAULT = E.OBJETO
+         AND O.type COLLATE DATABASE_DEFAULT = E.TIPO
     ) <> 4
     BEGIN
         THROW 51005, 'La creacion de los objetos BORR_NC no quedo completa.', 1;
@@ -381,8 +388,8 @@ BEGIN TRY
             JOIN sys.schemas S
               ON S.schema_id = T.schema_id
             WHERE S.name = N'dbo'
-              AND T.name = E.TABLA
-              AND C.name = E.COLUMNA
+              AND T.name COLLATE DATABASE_DEFAULT = E.TABLA
+              AND C.name COLLATE DATABASE_DEFAULT = E.COLUMNA
         )
     )
     OR
@@ -444,8 +451,8 @@ BEGIN TRY
             JOIN sys.schemas S
               ON S.schema_id = T.schema_id
             WHERE S.name = N'dbo'
-              AND T.name = E.TABLA
-              AND O.name = E.RESTRICCION
+              AND T.name COLLATE DATABASE_DEFAULT = E.TABLA
+              AND O.name COLLATE DATABASE_DEFAULT = E.RESTRICCION
               AND O.type IN ('PK', 'UQ', 'F', 'C', 'D')
         )
     )
@@ -505,8 +512,8 @@ BEGIN TRY
             JOIN sys.schemas S
               ON S.schema_id = T.schema_id
             WHERE S.name = N'dbo'
-              AND T.name = E.TABLA
-              AND I.name = E.INDICE
+              AND T.name COLLATE DATABASE_DEFAULT = E.TABLA
+              AND I.name COLLATE DATABASE_DEFAULT = E.INDICE
               AND I.is_disabled = 0
               AND I.is_hypothetical = 0
         )
@@ -540,6 +547,10 @@ BEGIN TRY
     END;
 
     COMMIT TRANSACTION;
+
+    EXEC sys.sp_set_session_context
+         @key = N'BorrNcEstructuraValidada',
+         @value = 1;
 END TRY
 BEGIN CATCH
     IF XACT_STATE() <> 0
@@ -548,6 +559,21 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
+
+/* La salida completa vive en un solo lote. Si la marca no fue establecida o
+   falta algun objeto, THROW cancela el lote antes de consultar tablas nuevas
+   y antes de imprimir el mensaje final de exito. */
+IF ISNULL(TRY_CONVERT(int,
+       SESSION_CONTEXT(N'BorrNcEstructuraValidada')), 0) <> 1
+   OR OBJECT_ID(N'dbo.BORR_NC_SERIES', N'U') IS NULL
+   OR OBJECT_ID(N'dbo.BORR_NC_ENC', N'U') IS NULL
+   OR OBJECT_ID(N'dbo.BORR_NC_DET', N'U') IS NULL
+   OR OBJECT_ID(N'dbo.VW_BORR_NC_ACUMULADO', N'V') IS NULL
+BEGIN
+    THROW 51012,
+          'La migracion BORR_NC no finalizo correctamente; no se reportara exito.',
+          1;
+END;
 
 /* 01B — Objetos creados ---------------------------------------------------- */
 SELECT
@@ -565,19 +591,20 @@ WHERE S.name = N'dbo'
       (N'BORR_NC_SERIES', N'BORR_NC_ENC', N'BORR_NC_DET',
        N'VW_BORR_NC_ACUMULADO')
 ORDER BY O.name;
-GO
 
 /* 01C — Series configuradas ------------------------------------------------ */
-SELECT
-    N'01C_SERIES' AS SECCION,
-    EMPRESA,
-    SERIE,
-    NUMERACION,
-    ACTIVO
-FROM dbo.BORR_NC_SERIES
-WHERE EMPRESA IN (N'BOLIK', N'FAES', N'GRACO')
-ORDER BY EMPRESA;
-GO
+/* SQL dinamico evita resolver la tabla antes de que el guard clause anterior
+   pueda detener una corrida cuyo lote principal no compilo. */
+EXEC sys.sp_executesql N'
+    SELECT
+        N''01C_SERIES'' AS SECCION,
+        EMPRESA,
+        SERIE,
+        NUMERACION,
+        ACTIVO
+    FROM dbo.BORR_NC_SERIES
+    WHERE EMPRESA IN (N''BOLIK'', N''FAES'', N''GRACO'')
+    ORDER BY EMPRESA;';
 
 /* 01D — Restricciones ------------------------------------------------------ */
 SELECT
@@ -592,7 +619,6 @@ WHERE O.parent_object_id IN
        OBJECT_ID(N'dbo.BORR_NC_DET'))
   AND O.type IN ('PK', 'UQ', 'F', 'C', 'D')
 ORDER BY TABLA, TIPO, RESTRICCION;
-GO
 
 /* 01E — Indices ------------------------------------------------------------ */
 SELECT
@@ -610,7 +636,6 @@ WHERE I.object_id IN
        OBJECT_ID(N'dbo.BORR_NC_DET'))
   AND I.name IS NOT NULL
 ORDER BY TABLA, I.index_id;
-GO
 
 PRINT 'OK: estructura BORR_NC validada en POS-SmartK66.';
 GO

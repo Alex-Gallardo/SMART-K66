@@ -33,26 +33,26 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpGet]
         [BorradorNcPermiso(PERMISO_VER)]
-        public JsonResult BuscarClientes(string empresa, string agente, string filtro)
+        public JsonResult BuscarClientes(string empresa, string codigoOperador, string filtro)
         {
             return JsonGet(() =>
             {
-                string agenteEfectivo = ResolverAgente(empresa, agente);
+                string agenteEfectivo = ResolverAgente(empresa, codigoOperador);
                 return _bll.BuscarClientes(empresa, agenteEfectivo, filtro ?? "");
             });
         }
 
         [HttpGet]
         [BorradorNcPermiso(PERMISO_VER)]
-        public JsonResult BuscarFacturas(string empresa, string clienteId, string agente, string filtro)
+        public JsonResult BuscarFacturas(string empresa, string clienteId,
+                                         string codigoOperador, string filtro)
         {
             return JsonGet(() =>
             {
-                ValidarEmpresa(empresa);
                 if (string.IsNullOrWhiteSpace(clienteId))
                     throw new InvalidOperationException("Seleccione un cliente antes de buscar facturas.");
 
-                string agenteEfectivo = ResolverAgente(empresa, agente);
+                string agenteEfectivo = ResolverAgente(empresa, codigoOperador);
                 return _bll.BuscarFacturas(empresa, clienteId, agenteEfectivo, filtro ?? "");
             });
         }
@@ -90,7 +90,7 @@ namespace DiamDev.Give.UI.Controllers
                 if (request == null)
                     return Json(new { ok = false, msg = "No se recibió información del borrador." });
 
-                var asignacion = ValidarEmpresa(request.IdEmpresa);
+                var asignacion = ValidarOperador(request.IdEmpresa, request.CodigoOperador);
                 DateTime fecha;
                 if (!TryFecha(request.Fecha, out fecha))
                     return Json(new { ok = false, msg = "La fecha del borrador no es válida." });
@@ -122,9 +122,8 @@ namespace DiamDev.Give.UI.Controllers
                     });
                 }
 
-                bool esAgente = EsAgente();
                 var codigo = _usuarioEmpresa.ParseCodigo(asignacion.Codigo);
-                string agente = esAgente ? codigo.AgenteNombre : request.Agente;
+                string agente = codigo.AgenteNombre;
 
                 var enc = new BorradorNcEncabezado
                 {
@@ -326,19 +325,34 @@ namespace DiamDev.Give.UI.Controllers
             };
 
             modelo.Empresas = Asignaciones()
+                .Where(x => !string.IsNullOrWhiteSpace(x.Codigo))
                 .GroupBy(x => x.EmpresaId)
                 .Select(g =>
                 {
-                    var item = g.First();
-                    var codigo = _usuarioEmpresa.ParseCodigo(item.Codigo);
                     return new BorradorNcEmpresaViewModel
                     {
-                        EmpresaId = item.EmpresaId,
-                        Nombre = _usuarioEmpresa.GetEmpresaNombre(item.EmpresaId),
-                        Agente = codigo.AgenteNombre
+                        EmpresaId = g.Key,
+                        Nombre = _usuarioEmpresa.GetEmpresaNombre(g.Key),
+                        Operadores = g
+                            .GroupBy(x => x.Codigo.Trim(), StringComparer.OrdinalIgnoreCase)
+                            .Select(x => x.First())
+                            .Select(x =>
+                            {
+                                var codigo = _usuarioEmpresa.ParseCodigo(x.Codigo);
+                                return new BorradorNcOperadorViewModel
+                                {
+                                    Codigo = x.Codigo.Trim(),
+                                    Agente = codigo.AgenteNombre,
+                                    Depto = (x.DEPTO_RECIBO ?? "").Trim()
+                                };
+                            })
+                            .Where(x => !string.IsNullOrWhiteSpace(x.Agente))
+                            .OrderBy(x => OrdenOperador(x.Codigo))
+                            .ThenBy(x => x.Codigo)
+                            .ToList()
                     };
                 })
-                .Where(x => x.Nombre != "DESCONOCIDA")
+                .Where(x => x.Nombre != "DESCONOCIDA" && x.Operadores.Count > 0)
                 .OrderBy(x => x.Nombre)
                 .ToList();
 
@@ -366,21 +380,43 @@ namespace DiamDev.Give.UI.Controllers
             return asignacion;
         }
 
-        private string ResolverAgente(string empresa, string agenteSolicitado)
+        private UsuarioEmpresa ValidarOperador(string empresa, string codigoOperador)
         {
-            var asignaciones = Asignaciones().Where(x =>
-                string.Equals(_usuarioEmpresa.GetEmpresaNombre(x.EmpresaId), empresa,
-                              StringComparison.OrdinalIgnoreCase)).ToList();
-            if (asignaciones.Count == 0)
-                throw new UnauthorizedAccessException("La empresa no está asignada al usuario actual.");
+            string empresaNormalizada = (empresa ?? "").Trim();
+            string codigoNormalizado = (codigoOperador ?? "").Trim();
+            if (codigoNormalizado.Length == 0)
+                throw new InvalidOperationException("Seleccione el agente con el que operará.");
 
-            if (!EsAgente()) return agenteSolicitado ?? "";
+            var asignacion = Asignaciones().FirstOrDefault(x =>
+                string.Equals(_usuarioEmpresa.GetEmpresaNombre(x.EmpresaId), empresaNormalizada,
+                              StringComparison.OrdinalIgnoreCase) &&
+                string.Equals((x.Codigo ?? "").Trim(), codigoNormalizado,
+                              StringComparison.OrdinalIgnoreCase));
+            if (asignacion == null)
+                throw new UnauthorizedAccessException(
+                    "El agente seleccionado no está asignado al usuario actual para esta empresa.");
 
-            string agente = asignaciones.Select(x => _usuarioEmpresa.ParseCodigo(x.Codigo).AgenteNombre)
-                                         .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+            return asignacion;
+        }
+
+        private string ResolverAgente(string empresa, string codigoOperador)
+        {
+            var asignacion = ValidarOperador(empresa, codigoOperador);
+            string agente = _usuarioEmpresa.ParseCodigo(asignacion.Codigo).AgenteNombre;
             if (string.IsNullOrWhiteSpace(agente))
-                throw new InvalidOperationException("El usuario agente no tiene un agente SAP configurado para esta empresa.");
+                throw new InvalidOperationException(
+                    "El código seleccionado no tiene un agente SAP configurado.");
             return agente;
+        }
+
+        private static int OrdenOperador(string codigo)
+        {
+            string valor = (codigo ?? "").Trim();
+            int separador = valor.IndexOf('-');
+            int numero;
+            return separador > 0 && int.TryParse(valor.Substring(0, separador), out numero)
+                ? numero
+                : int.MaxValue;
         }
 
         private IEnumerable<ContextoConsulta> ContextosConsulta(string empresa)

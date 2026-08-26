@@ -598,6 +598,7 @@
     <Content Include="Content\PagedList.css" />
     <Content Include="Content\Site.css" />
     <Content Include="Content\borrador-nc.css" />
+    <Content Include="Content\cotizaciones.css" />
     <Content Include="Content\ui-shell.css" />
     <Content Include="Content\themes\base\accordion.css" />
     <Content Include="Content\themes\base\all.css" />
@@ -653,6 +654,7 @@
     <Content Include="Scripts\App\BorradorNc-Fechas.js" />
     <Content Include="Scripts\App\BorradorNc-Index.js" />
     <Content Include="Scripts\App\BorradorNc-Autorizaciones.js" />
+    <Content Include="Scripts\App\Cotizacion-Index.js" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
     <Content Include="Scripts\data.js" />
@@ -827,6 +829,7 @@
   <ItemGroup>
     <Compile Include="App_Start\CustomHelper.cs" />
     <Compile Include="App_Start\BorradorNcPermisoAttribute.cs" />
+    <Compile Include="App_Start\CotizacionPermisoAttribute.cs" />
     <Compile Include="App_Start\PermisoAttribute.cs" />
     <Compile Include="App_Start\RouteConfig.cs" />
     <Compile Include="App_Start\SeguridadAttribute.cs" />
@@ -838,6 +841,7 @@
     <Compile Include="Controllers\Producto_Alerta_K66Controller.cs" />
     <Compile Include="Controllers\ReciboCajaController.cs" />
     <Compile Include="Controllers\BorradorNcController.cs" />
+    <Compile Include="Controllers\CotizacionController.cs" />
     <Compile Include="Controllers\VisitaController.cs" />
     <Compile Include="Controllers\Tipo_VisitaController.cs" />
     <Compile Include="Controllers\PaqueteController.cs" />
@@ -938,6 +942,7 @@
     <Compile Include="Models\ProductoCargaMasivaDetalle.cs" />
     <Compile Include="Models\ReciboCajaViewModel.cs" />
     <Compile Include="Models\BorradorNcViewModel.cs" />
+    <Compile Include="Models\CotizacionViewModel.cs" />
     <Compile Include="Models\SerieAgenciaFacturaModel.cs" />
     <Compile Include="Models\UsuarioModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -1388,6 +1393,8 @@
     <Content Include="Views\BorradorNc\Index.cshtml" />
     <Content Include="Views\BorradorNc\Autorizaciones.cshtml" />
     <Content Include="Views\BorradorNc\Imprimir.cshtml" />
+    <Content Include="Views\Cotizacion\Index.cshtml" />
+    <Content Include="Views\Cotizacion\Imprimir.cshtml" />
     <Content Include="Views\ReciboCaja\_ReciboImpresion.cshtml" />
     <Content Include="Views\ReciboCaja\Analytics.cshtml" />
     <None Include="Web.Debug.config">

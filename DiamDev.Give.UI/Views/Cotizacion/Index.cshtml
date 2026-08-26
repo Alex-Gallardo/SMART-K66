@@ -1,0 +1,288 @@
+@model DiamDev.Give.UI.Models.CotizacionIndexViewModel
+@using System
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hoy = DateTime.Today.ToString("yyyy-MM-dd");
+    var validez = DateTime.Today.AddDays(15).ToString("yyyy-MM-dd");
+}
+
+@section styles {
+    <link href="@Url.Content("~/Content/cotizaciones.css?v=20260825")" rel="stylesheet" />
+}
+
+<div class="cot cot-shell" id="cotApp"
+     data-url-clientes="@Url.Action("BuscarClientes", "Cotizacion")"
+     data-url-productos="@Url.Action("BuscarProductos", "Cotizacion")"
+     data-url-guardar="@Url.Action("Guardar", "Cotizacion")"
+     data-url-listar="@Url.Action("Listar", "Cotizacion")"
+     data-url-detalle="@Url.Action("ObtenerDetalle", "Cotizacion")"
+     data-url-imprimir="@Url.Action("Imprimir", "Cotizacion")"
+     data-url-anular="@Url.Action("Anular", "Cotizacion")"
+     data-puede-anular="@Model.PuedeAnular.ToString().ToLowerInvariant()">
+
+    @Html.AntiForgeryToken()
+
+    <header class="cot-hero">
+        <div class="cot-hero-copy">
+            <span class="cot-hero-icon"><i class="icon-file-text"></i></span>
+            <div>
+                <h2>Cotizaciones</h2>
+                <p>Cree propuestas comerciales con clientes, existencias y precios obtenidos de SAP.</p>
+            </div>
+        </div>
+        <div class="cot-hero-meta">
+            <span class="cot-chip"><i class="icon-user"></i> @Model.UsuarioActual</span>
+            <span class="cot-chip"><i class="icon-shield"></i> Datos validados en servidor</span>
+        </div>
+    </header>
+
+    @if (Model.Empresas.Count == 0)
+    {
+        <div class="cot-alert is-visible is-danger" role="alert">
+            <i class="icon-warning-sign"></i>
+            <span>No tiene empresas con agentes configurados en Usuario_Empresa.</span>
+        </div>
+    }
+
+    <ul class="nav nav-tabs cot-tabs" role="tablist">
+        <li class="active">
+            <a href="#cotNueva" role="tab" data-toggle="tab"><i class="icon-plus"></i> Nueva cotización</a>
+        </li>
+        <li>
+            <a href="#cotListado" role="tab" data-toggle="tab" id="cotTabListado"><i class="icon-th-list"></i> Listado</a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <section class="tab-pane active" id="cotNueva" role="tabpanel">
+            <div class="cot-card">
+                <div class="cot-card-head">
+                    <div class="cot-card-title">
+                        <i class="icon-building"></i>
+                        <div><h3>Datos comerciales</h3><small>Empresa, agente y cliente que respaldan la propuesta.</small></div>
+                    </div>
+                    <span class="cot-status is-draft">Nueva</span>
+                </div>
+                <div class="cot-card-body">
+                    <div class="cot-grid">
+                        <div class="cot-field cot-col-3">
+                            <label for="cotEmpresa">Empresa <span>*</span></label>
+                            <select id="cotEmpresa" class="form-control" @(Model.Empresas.Count == 0 ? "disabled" : "")>
+                                <option value="">Seleccione...</option>
+                                @foreach (var empresa in Model.Empresas)
+                                { <option value="@empresa.Nombre">@empresa.Nombre</option> }
+                            </select>
+                        </div>
+                        <div class="cot-field cot-col-4">
+                            <label for="cotAgente">Agente <span>*</span></label>
+                            <select id="cotAgente" class="form-control" disabled>
+                                <option value="">Seleccione primero una empresa...</option>
+                            </select>
+                        </div>
+                        <div class="cot-field cot-col-2">
+                            <label for="cotFecha">Emisión <span>*</span></label>
+                            <input id="cotFecha" class="form-control" type="date" value="@hoy" />
+                        </div>
+                        <div class="cot-field cot-col-2">
+                            <label for="cotValidaHasta">Válida hasta <span>*</span></label>
+                            <input id="cotValidaHasta" class="form-control" type="date" value="@validez" />
+                        </div>
+                        <div class="cot-field cot-col-1">
+                            <label for="cotMoneda">Moneda</label>
+                            <select id="cotMoneda" class="form-control">
+                                <option value="GTQ">GTQ</option>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                            </select>
+                        </div>
+
+                        <div id="cotOperadoresCatalogo" hidden aria-hidden="true">
+                            @foreach (var empresa in Model.Empresas)
+                            {
+                                foreach (var operador in empresa.Operadores)
+                                {
+                                    <span data-empresa="@empresa.Nombre" data-codigo="@operador.Codigo"
+                                          data-agente="@operador.Agente"></span>
+                                }
+                            }
+                        </div>
+
+                        <div class="cot-field cot-col-3">
+                            <label for="cotClienteCodigo">Código cliente <span>*</span></label>
+                            <div class="cot-input-group">
+                                <input id="cotClienteCodigo" class="form-control" readonly placeholder="Seleccione un cliente" />
+                                <button id="cotBuscarCliente" class="cot-icon-btn" type="button" title="Buscar cliente"><i class="icon-search"></i></button>
+                            </div>
+                        </div>
+                        <div class="cot-field cot-col-5">
+                            <label for="cotClienteNombre">Cliente</label>
+                            <input id="cotClienteNombre" class="form-control" readonly />
+                        </div>
+                        <div class="cot-field cot-col-2">
+                            <label for="cotNit">NIT</label>
+                            <input id="cotNit" class="form-control" readonly />
+                        </div>
+                        <div class="cot-field cot-col-2">
+                            <label for="cotCorreo">Correo</label>
+                            <input id="cotCorreo" class="form-control" readonly />
+                        </div>
+                        <div class="cot-field cot-col-12">
+                            <label for="cotDireccion">Dirección</label>
+                            <input id="cotDireccion" class="form-control" readonly />
+                        </div>
+                    </div>
+                    <div class="cot-client-strip" id="cotClientStrip">
+                        <span class="cot-avatar"><i class="icon-user"></i></span>
+                        <div><strong id="cotClientTitle">Ningún cliente seleccionado</strong>
+                            <span id="cotClientMeta">Seleccione empresa y agente; después busque el cliente en SAP.</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cot-card">
+                <div class="cot-card-head">
+                    <div class="cot-card-title">
+                        <i class="icon-truck"></i>
+                        <div><h3>Condiciones</h3><small>Información que aparecerá en el documento impreso.</small></div>
+                    </div>
+                </div>
+                <div class="cot-card-body">
+                    <div class="cot-grid">
+                        <div class="cot-field cot-col-4">
+                            <label for="cotCondicionesPago">Condiciones de pago</label>
+                            <input id="cotCondicionesPago" class="form-control" maxlength="250" placeholder="Ej. crédito 30 días" />
+                        </div>
+                        <div class="cot-field cot-col-4">
+                            <label for="cotTiempoEntrega">Tiempo de entrega</label>
+                            <input id="cotTiempoEntrega" class="form-control" maxlength="250" placeholder="Ej. 5 días hábiles" />
+                        </div>
+                        <div class="cot-field cot-col-4">
+                            <label for="cotObservaciones">Observaciones</label>
+                            <textarea id="cotObservaciones" class="form-control" maxlength="1500" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cot-card">
+                <div class="cot-card-head">
+                    <div class="cot-card-title">
+                        <i class="icon-shopping-cart"></i>
+                        <div><h3>Productos</h3><small>Edite cantidad, descripción, precio, descuento e IVA antes de guardar.</small></div>
+                    </div>
+                    <div class="cot-head-actions">
+                        <span class="cot-count" id="cotLineCount">0 productos</span>
+                        <button id="cotAgregarProducto" type="button" class="cot-btn cot-btn-primary"><i class="icon-plus"></i> Agregar producto</button>
+                    </div>
+                </div>
+                <div class="cot-table-wrap">
+                    <table class="table cot-table cot-line-table" aria-label="Productos cotizados">
+                        <thead><tr>
+                            <th>Producto</th><th>Descripción</th><th>Unidad</th><th class="text-right">Disponible</th>
+                            <th class="text-right">Cantidad</th><th class="text-right">Precio</th>
+                            <th class="text-right">Desc. %</th><th class="text-right">IVA SAP</th>
+                            <th class="text-right">Total</th><th></th>
+                        </tr></thead>
+                        <tbody id="cotLineBody"></tbody>
+                    </table>
+                    <div class="cot-empty" id="cotLineEmpty">
+                        <i class="icon-shopping-cart"></i><strong>Aún no hay productos</strong>
+                        <span>Seleccione un cliente y agregue artículos desde SAP.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cot-savebar">
+                <div class="cot-totals">
+                    <div><span>Bruto</span><strong id="cotBruto">0.00</strong></div>
+                    <div><span>Descuento</span><strong id="cotDescuento">0.00</strong></div>
+                    <div><span>Subtotal</span><strong id="cotSubtotal">0.00</strong></div>
+                    <div><span>IVA</span><strong id="cotImpuesto">0.00</strong></div>
+                    <div class="is-grand"><span>Total</span><strong id="cotTotal">0.00</strong></div>
+                </div>
+                <div class="cot-save-actions">
+                    <button id="cotNuevo" type="button" class="cot-btn cot-btn-ghost"><i class="icon-file"></i> Limpiar</button>
+                    <button id="cotGuardar" type="button" class="cot-btn cot-btn-success" @(Model.Empresas.Count == 0 ? "disabled" : "")>
+                        <i class="icon-save"></i> Crear cotización
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="tab-pane" id="cotListado" role="tabpanel">
+            <div class="cot-summary-grid">
+                <div class="cot-summary is-active"><span>Vigentes</span><strong id="cotKpiVigentes">0</strong></div>
+                <div class="cot-summary is-expired"><span>Vencidas</span><strong id="cotKpiVencidas">0</strong></div>
+                <div class="cot-summary is-cancelled"><span>Anuladas</span><strong id="cotKpiAnuladas">0</strong></div>
+                <div class="cot-summary is-total"><span>Total visible</span><strong id="cotKpiTotal">0.00</strong></div>
+            </div>
+            <div class="cot-card">
+                <div class="cot-card-head">
+                    <div class="cot-card-title"><i class="icon-filter"></i><div><h3>Buscar cotizaciones</h3><small>Hasta 500 resultados por empresa consultada.</small></div></div>
+                    <button id="cotRefrescar" type="button" class="cot-btn cot-btn-ghost"><i class="icon-refresh"></i> Actualizar</button>
+                </div>
+                <div class="cot-card-body cot-toolbar">
+                    <div class="cot-field"><label for="cotFiltroEmpresa">Empresa</label><select id="cotFiltroEmpresa" class="form-control"><option value="">Todas</option>@foreach (var empresa in Model.Empresas) { <option value="@empresa.Nombre">@empresa.Nombre</option> }</select></div>
+                    <div class="cot-field"><label for="cotFiltroEstado">Estado</label><select id="cotFiltroEstado" class="form-control"><option value="">Todos</option><option>VIGENTE</option><option>VENCIDA</option><option>ANULADA</option></select></div>
+                    <div class="cot-field"><label for="cotFiltroDesde">Desde</label><input id="cotFiltroDesde" class="form-control" type="date" /></div>
+                    <div class="cot-field"><label for="cotFiltroHasta">Hasta</label><input id="cotFiltroHasta" class="form-control" type="date" /></div>
+                    <div class="cot-field cot-search"><label for="cotFiltroTexto">Buscar</label><input id="cotFiltroTexto" class="form-control" placeholder="Número, cliente o agente" /></div>
+                </div>
+            </div>
+            <div class="cot-detail-layout">
+                <div class="cot-card cot-list-card">
+                    <div class="cot-table-wrap">
+                        <table class="table cot-table cot-list-table"><thead><tr>
+                            <th>Cotización</th><th>Fecha</th><th>Empresa</th><th>Cliente</th><th>Agente</th><th>Estado</th><th class="text-right">Total</th>
+                        </tr></thead><tbody id="cotListBody"></tbody></table>
+                        <div class="cot-empty" id="cotListEmpty"><i class="icon-search"></i><strong>No hay resultados</strong><span>Ajuste los filtros o actualice.</span></div>
+                    </div>
+                </div>
+                <aside class="cot-detail" id="cotDetail">
+                    <div class="cot-empty"><i class="icon-hand-right"></i><strong>Seleccione una cotización</strong><span>Verá aquí todos sus datos y acciones.</span></div>
+                </aside>
+            </div>
+        </section>
+    </div>
+</div>
+
+<div class="modal fade cot-modal" id="cotClienteModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4><i class="icon-user"></i> Seleccionar cliente</h4></div>
+        <div class="modal-body">
+            <div class="cot-field"><label for="cotClienteFiltro">Código, nombre o NIT</label><input id="cotClienteFiltro" class="form-control" autocomplete="off" placeholder="Escriba al menos 2 caracteres" /></div>
+            <div class="cot-results" id="cotClienteResultados"></div>
+        </div>
+        <div class="modal-footer"><button class="cot-btn cot-btn-ghost" data-dismiss="modal">Cerrar</button></div>
+    </div></div>
+</div>
+
+<div class="modal fade cot-modal" id="cotProductoModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg"><div class="modal-content">
+        <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4><i class="icon-shopping-cart"></i> Productos disponibles en SAP</h4></div>
+        <div class="modal-body">
+            <div class="cot-product-toolbar"><div class="cot-field"><label for="cotProductoFiltro">Código, nombre o grupo</label><input id="cotProductoFiltro" class="form-control" placeholder="Vacío permite recorrer todo el catálogo" /></div><button id="cotBuscarProducto" class="cot-btn cot-btn-primary"><i class="icon-search"></i> Buscar</button></div>
+            <div class="cot-table-wrap"><table class="table cot-table cot-product-table"><thead><tr><th>Producto</th><th>Grupo</th><th>Unidad</th><th class="text-right">Existencia</th><th class="text-right">Comprometido</th><th class="text-right">Disponible</th><th class="text-right">Precio</th><th class="text-right">IVA SAP</th></tr></thead><tbody id="cotProductoBody"></tbody></table><div class="cot-empty" id="cotProductoEmpty"><i class="icon-search"></i><strong>Ejecute la búsqueda</strong><span>Seleccione una fila para agregar el producto.</span></div></div>
+        </div>
+        <div class="modal-footer cot-product-footer">
+            <span class="text-muted" id="cotProductoCount"></span>
+            <div class="cot-product-pages">
+                <button id="cotProductoAnterior" type="button" class="cot-btn cot-btn-ghost"><i class="icon-chevron-left"></i> Anterior</button>
+                <button id="cotProductoSiguiente" type="button" class="cot-btn cot-btn-ghost">Siguiente <i class="icon-chevron-right"></i></button>
+                <button class="cot-btn cot-btn-ghost" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div></div>
+</div>
+
+<div class="modal fade cot-modal" id="cotAnularModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-sm"><div class="modal-content">
+        <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4><i class="icon-ban-circle"></i> Anular cotización</h4></div>
+        <div class="modal-body"><p class="text-muted">La cotización quedará marcada y conservará toda su trazabilidad.</p><div class="cot-field"><label for="cotMotivoAnular">Motivo <span>*</span></label><textarea id="cotMotivoAnular" class="form-control" maxlength="1000"></textarea></div></div>
+        <div class="modal-footer"><button class="cot-btn cot-btn-ghost" data-dismiss="modal">Cancelar</button><button id="cotConfirmarAnular" class="cot-btn cot-btn-danger">Anular</button></div>
+    </div></div>
+</div>
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/App/Cotizacion-Index.js?v=20260825")"></script>
+}

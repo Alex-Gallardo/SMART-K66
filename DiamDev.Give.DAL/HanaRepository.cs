@@ -374,6 +374,146 @@ namespace DiamDev.Give.DAL
             return lista;
         }
 
+        // ─────────────────────────────────────────────
+        // PRODUCTOS PARA COTIZACIONES
+        // ─────────────────────────────────────────────
+        /// <summary>
+        /// Artículos de venta activos de SAP para el cliente elegido. El precio
+        /// viene de ITM1 usando OCRD.ListNum; existencia y comprometido son los
+        /// acumulados de OITM. La consulta está limitada para que una búsqueda
+        /// vacía no transporte el catálogo completo al navegador.
+        /// </summary>
+        public PaginaProductosCotizacionHana BuscarProductosCotizacion(
+            string empresa, string clienteId, string filtro,
+            int pagina = 1, int tamano = 100)
+        {
+            pagina = Math.Max(1, pagina);
+            tamano = Math.Max(10, Math.Min(tamano, 100));
+            var resultado = new PaginaProductosCotizacionHana
+            {
+                Pagina = pagina,
+                Tamano = tamano,
+                TieneAnterior = pagina > 1
+            };
+
+            if (string.IsNullOrWhiteSpace(clienteId))
+                return resultado;
+
+            string texto = (filtro ?? "").Trim().ToUpperInvariant();
+            string condicion = texto.Length == 0
+                ? "1 = 1"
+                : string.Format(
+                    "(UPPER(I.\"ItemCode\") LIKE '%{0}%' OR " +
+                    "UPPER(I.\"ItemName\") LIKE '%{0}%' OR " +
+                    "UPPER(COALESCE(G.\"ItmsGrpNam\", '')) LIKE '%{0}%')", Esc(texto));
+
+            int desplazamiento = checked((pagina - 1) * tamano);
+            resultado.Items = ConsultarProductosCotizacion(
+                empresa, clienteId, condicion,
+                string.Format(" LIMIT {0} OFFSET {1}", tamano + 1,
+                              desplazamiento));
+            resultado.TieneMas = resultado.Items.Count > tamano;
+            if (resultado.TieneMas)
+                resultado.Items.RemoveAt(resultado.Items.Count - 1);
+            return resultado;
+        }
+
+        /// <summary>
+        /// Obtiene en un viaje los artículos exactos de las líneas recibidas. Se
+        /// usa al guardar para verificar contra SAP y evitar nombres inventados.
+        /// </summary>
+        public List<ProductoCotizacionHana> ObtenerProductosCotizacion(
+            string empresa, string clienteId, IEnumerable<string> itemCodes)
+        {
+            var codigos = (itemCodes ?? Enumerable.Empty<string>())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(100)
+                .ToList();
+
+            if (codigos.Count == 0 || string.IsNullOrWhiteSpace(clienteId))
+                return new List<ProductoCotizacionHana>();
+
+            string valores = string.Join(",", codigos.Select(x => "'" + Esc(x) + "'"));
+            return ConsultarProductosCotizacion(
+                empresa, clienteId, "I.\"ItemCode\" IN (" + valores + ")", "");
+        }
+
+        private static List<ProductoCotizacionHana> ConsultarProductosCotizacion(
+            string empresa, string clienteId, string condicion, string limiteSql)
+        {
+            var lista = new List<ProductoCotizacionHana>();
+            string schema = ResolverSchema(empresa);
+            if (schema == null) return lista;
+
+            string query = string.Format(@"
+                SELECT
+                    I.""ItemCode"" AS ""ItemCode"",
+                    I.""ItemName"" AS ""ItemName"",
+                    COALESCE(G.""ItmsGrpNam"", '') AS ""Grupo"",
+                    COALESCE(NULLIF(I.""SalUnitMsr"", ''),
+                             NULLIF(I.""InvntryUom"", ''), 'UN') AS ""Unidad"",
+                    C.""ListNum"" AS ""ListaPrecio"",
+                    COALESCE(NULLIF(P.""Currency"", ''),
+                             NULLIF(C.""Currency"", ''), 'QTZ') AS ""Moneda"",
+                    COALESCE(P.""Price"", 0) AS ""Precio"",
+                    COALESCE(I.""VatGourpSa"", '') AS ""GrupoImpuesto"",
+                    COALESCE(T.""Rate"", 0) AS ""ImpuestoPorcentaje"",
+                    COALESCE(I.""OnHand"", 0) AS ""Existencia"",
+                    COALESCE(I.""IsCommited"", 0) AS ""Comprometido"",
+                    COALESCE(I.""OnOrder"", 0) AS ""Pedido"",
+                    COALESCE(I.""OnHand"", 0) - COALESCE(I.""IsCommited"", 0)
+                        AS ""Disponible""
+                FROM ""{0}"".""OITM"" I
+                INNER JOIN ""{0}"".""OCRD"" C
+                        ON C.""CardCode"" = '{1}' AND C.""CardType"" = 'C'
+                LEFT JOIN ""{0}"".""ITM1"" P
+                       ON P.""ItemCode"" = I.""ItemCode""
+                      AND P.""PriceList"" = C.""ListNum""
+                LEFT JOIN ""{0}"".""OITB"" G
+                       ON G.""ItmsGrpCod"" = I.""ItmsGrpCod""
+                LEFT JOIN ""{0}"".""OVTG"" T
+                       ON T.""Code"" = I.""VatGourpSa""
+                WHERE I.""SellItem"" = 'Y'
+                  AND I.""validFor"" = 'Y'
+                  AND {2}
+                ORDER BY I.""ItemCode""{3}",
+                schema, Esc(clienteId.Trim()), condicion, limiteSql ?? "");
+
+            try
+            {
+                DataTable dt = HanaHelper.EjecutarConsulta(query);
+                foreach (DataRow row in dt.Rows)
+                {
+                    lista.Add(new ProductoCotizacionHana
+                    {
+                        ItemCode = LeerCampo(row, "ItemCode"),
+                        ItemName = LeerCampo(row, "ItemName"),
+                        Grupo = LeerCampo(row, "Grupo"),
+                        Unidad = LeerCampo(row, "Unidad"),
+                        ListaPrecio = LeerEntero(row, "ListaPrecio"),
+                        Moneda = NormalizarMoneda(LeerCampo(row, "Moneda")),
+                        Precio = LeerDecimal(row, "Precio"),
+                        GrupoImpuesto = LeerCampo(row, "GrupoImpuesto"),
+                        ImpuestoPorcentaje = LeerDecimal(row, "ImpuestoPorcentaje"),
+                        Existencia = LeerDecimal(row, "Existencia"),
+                        Comprometido = LeerDecimal(row, "Comprometido"),
+                        Pedido = LeerDecimal(row, "Pedido"),
+                        Disponible = LeerDecimal(row, "Disponible")
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(string.Format(
+                    "Error HANA al buscar productos para cotización ({0} / {1}): {2}",
+                    empresa, schema, ex.Message), ex);
+            }
+
+            return lista;
+        }
+
         // ── Helpers privados ──────────────────────────────────────────────
         /// <summary>
         /// Traduce el código de moneda de SAP al código canónico de la app.
@@ -445,6 +585,16 @@ namespace DiamDev.Give.DAL
                 return (v != null && v != DBNull.Value) ? Convert.ToDecimal(v) : 0m;
             }
             catch { return 0m; }
+        }
+
+        private static int LeerEntero(DataRow row, string columna)
+        {
+            try
+            {
+                var v = row[columna];
+                return (v != null && v != DBNull.Value) ? Convert.ToInt32(v) : 0;
+            }
+            catch { return 0; }
         }
 
         private static DateTime LeerFecha(DataRow row, string columna)

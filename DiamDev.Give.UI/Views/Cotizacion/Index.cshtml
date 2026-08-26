@@ -13,6 +13,7 @@
 <div class="cot cot-shell" id="cotApp"
      data-url-clientes="@Url.Action("BuscarClientes", "Cotizacion")"
      data-url-productos="@Url.Action("BuscarProductos", "Cotizacion")"
+     data-url-precio="@Url.Action("ObtenerPrecio", "Cotizacion")"
      data-url-guardar="@Url.Action("Guardar", "Cotizacion")"
      data-url-listar="@Url.Action("Listar", "Cotizacion")"
      data-url-detalle="@Url.Action("ObtenerDetalle", "Cotizacion")"
@@ -179,7 +180,7 @@
                     <table class="table cot-table cot-line-table" aria-label="Productos cotizados">
                         <thead><tr>
                             <th>Producto</th><th>Descripción</th><th>Unidad</th><th class="text-right">Disponible</th>
-                            <th class="text-right">Cantidad</th><th class="text-right">Precio</th>
+                            <th class="text-right">Cantidad</th><th class="text-right">Precio neto</th>
                             <th class="text-right">Desc. %</th><th class="text-right">IVA SAP</th>
                             <th class="text-right">Total</th><th></th>
                         </tr></thead>
@@ -284,5 +285,5 @@
 </div>
 
 @section scripts {
-    <script src="@Url.Content("~/Scripts/App/Cotizacion-Index.js?v=20260825")"></script>
+    <script src="@Url.Content("~/Scripts/App/Cotizacion-Index.js?v=20260826")"></script>
 }

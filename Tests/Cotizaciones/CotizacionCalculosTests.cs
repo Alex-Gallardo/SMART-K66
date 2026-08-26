@@ -57,8 +57,16 @@ namespace Tests.Cotizaciones
             Igual(28m, sinIva.Subtotal, "cantidad decimal");
             Igual(28m, sinIva.Total, "línea exenta");
 
+            Igual(100m, CotizacionBLL.PrecioNetoDesdeBruto(112m, 12m),
+                "precio bruto SAP a neto");
+            Igual(112m, CotizacionBLL.PrecioNetoDesdeBruto(112m, 0m),
+                "precio exento conserva bruto");
+            Igual(226.410714m,
+                CotizacionBLL.PrecioNetoDesdeBruto(253.58m, 12m),
+                "precio especial conserva seis decimales");
+
             Console.WriteLine(_fallas == 0
-                ? "OK: 8 aserciones de cálculos de cotización."
+                ? "OK: 11 aserciones de cálculos de cotización."
                 : "FALLAS: " + _fallas);
             return _fallas == 0 ? 0 : 1;
         }

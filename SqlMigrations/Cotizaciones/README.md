@@ -14,6 +14,9 @@ Ejecuta y comparte la salida completa de:
 4. Ejecuta `HANA_02_diagnostico_determinacion_iva_precio.sql` después de
    `HANA_01` para confirmar los defaults fiscales y la fuente de precio que SAP
    aplicó en documentos reales.
+5. Después de incorporar los resultados, ejecuta
+   `HANA_03_smoke_consulta_final.sql`. Es una prueba de solo lectura sobre un
+   caso real de BOLIK y valida la consulta definitiva usada por la aplicación.
 
 La salida HANA confirma las columnas estándar de SAP Business One, las listas y
 monedas utilizadas y si existen precios especiales en `OSPP`/`SPP1`. Esta
@@ -30,6 +33,24 @@ añadió porque `HANA_01` confirmó que los artículos activos no tienen un grup
 de IVA en `OITM`, mientras que sí existen precios especiales por cliente,
 periodo y cantidad. El script compara la configuración con facturas y
 cotizaciones SAP recientes sin modificar HANA.
+
+`HANA_03_smoke_consulta_final.sql` debe devolver exactamente una fila, con
+`GRUPO_IVA=IVA`, `TASA=12`, una `FUENTE` distinta de `SIN_PRECIO` y precios
+bruto/neto mayores que cero.
+
+## Decisiones confirmadas con los diagnósticos
+
+- `OVTG` no contiene tasas en las tres compañías; los códigos comerciales
+  vigentes están en `OSTC`: `IVA=12%` y `EXE=0%`.
+- `OCRD.VatStatus` separa clientes afectos (`Y`) y exentos (`N`). Los documentos
+  recientes confirman ambos comportamientos.
+- Todos los clientes usan precio efectivo predeterminado (`EffecPrice=D`) y no
+  comparan todas las fuentes (`EffcAllSrc=N`).
+- Existen precios por cliente, vigencia y cantidad en `OSPP`/`SPP1`/`SPP2`, y
+  grupos de descuento en `OEDG`/`EDG1`.
+- Las fuentes SAP están expresadas como precio bruto en las compañías
+  analizadas. Cotizaciones calcula con precio neto y agrega después la tasa
+  correspondiente para evitar duplicar el IVA.
 
 ## Fase 2 — instalación en pruebas
 

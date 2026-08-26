@@ -87,6 +87,9 @@
     <Compile Include="BodegaActivaModel.cs" />
     <Compile Include="BorradorNcDetalle.cs" />
     <Compile Include="BorradorNcEncabezado.cs" />
+    <Compile Include="CotizacionDetalle.cs" />
+    <Compile Include="CotizacionEncabezado.cs" />
+    <Compile Include="PaginaProductosCotizacionHana.cs" />
     <Compile Include="ClienteHana.cs" />
     <Compile Include="ClienteK66.cs" />
     <Compile Include="CodeFile1.cs" />
@@ -112,6 +115,7 @@
     <Compile Include="EstadoSmartK66.cs" />
     <Compile Include="PendienteDocumento.cs" />
     <Compile Include="PrecioxCantidadModel.cs" />
+    <Compile Include="ProductoCotizacionHana.cs" />
     <Compile Include="ReciboCajaAdmin.cs" />
     <Compile Include="ReciboCajaCobro.cs" />
     <Compile Include="ReciboCajaDetalle.cs" />
@@ -119,6 +123,7 @@
     <Compile Include="ReciboMontoSql.cs" />
     <Compile Include="RecibosCajaUsuarioDepto.cs" />
     <Compile Include="ResultadoBorradorNc.cs" />
+    <Compile Include="ResultadoCotizacion.cs" />
     <Compile Include="ResultadoRecibo.cs" />
     <Compile Include="SapCobroAplicado.cs" />
     <Compile Include="SapPagoDetalle.cs" />

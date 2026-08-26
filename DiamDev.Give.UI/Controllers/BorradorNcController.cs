@@ -218,6 +218,28 @@ namespace DiamDev.Give.UI.Controllers
             });
         }
 
+        [HttpGet]
+        [BorradorNcPermiso(PERMISO_VER)]
+        public JsonResult ObtenerDetallesFacturas(string empresa, string idBorrador)
+        {
+            return JsonGet(() =>
+            {
+                ValidarEmpresa(empresa);
+                var enc = _bll.ObtenerPorId(empresa, idBorrador);
+                if (enc == null) throw new InvalidOperationException("Borrador no encontrado.");
+                if (!PuedeConsultar(enc))
+                    throw new UnauthorizedAccessException("No tiene acceso a este borrador.");
+
+                var documentos = (enc.Detalles ?? new List<BorradorNcDetalle>())
+                    .Select(x => x.Documento)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                return _bll.ObtenerDetallesFacturas(empresa, enc.IdCliente, documentos);
+            });
+        }
+
         [BorradorNcPermiso(PERMISO_AUTORIZAR)]
         public ActionResult Autorizaciones()
         {

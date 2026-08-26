@@ -759,6 +759,139 @@ namespace DiamDev.Give.DAL
             return lista;
         }
 
+        /// <summary>
+        /// Obtiene los renglones originales de varias facturas de clientes en
+        /// lotes. Los DocNum se convierten a entero antes de llegar al SQL y se
+        /// envían como parámetros ODBC; no se acepta texto libre en el IN.
+        ///
+        /// Se consultan OINV + INV1 directamente porque RC_FACTURAS_BORRNC solo
+        /// expone el encabezado. Los importes se devuelven en moneda de documento:
+        /// LineTotal/VatSum para moneda local y TotalFrgn/VatSumFrgn para moneda
+        /// extranjera. CardCode se valida además de DocNum para mantener la
+        /// consulta dentro del cliente almacenado en el borrador.
+        /// </summary>
+        public List<FacturaDetalleSap> ObtenerDetallesFacturas(
+            string empresa, string clienteId, IEnumerable<string> documentos)
+        {
+            var resultado = new List<FacturaDetalleSap>();
+            string schema = ResolverSchema(empresa);
+            if (schema == null || documentos == null) return resultado;
+
+            var numeros = documentos
+                .Select(x =>
+                {
+                    int numero;
+                    return int.TryParse((x ?? "").Trim(), out numero) ? (int?)numero : null;
+                })
+                .Where(x => x.HasValue)
+                .Select(x => x.Value)
+                .Distinct()
+                .ToList();
+
+            if (numeros.Count == 0) return resultado;
+
+            const int TAM_LOTE = 100;
+            try
+            {
+                for (int i = 0; i < numeros.Count; i += TAM_LOTE)
+                {
+                    var lote = numeros.Skip(i).Take(TAM_LOTE).ToList();
+                    string placeholders = string.Join(",", lote.Select(_ => "?"));
+                    string filtroCliente = string.IsNullOrWhiteSpace(clienteId)
+                        ? ""
+                        : @" AND H.""CardCode"" = ?";
+                    string query = string.Format(@"
+                        SELECT
+                            H.""DocNum"" AS ""Documento"",
+                            L.""LineNum"" AS ""NumeroLinea"",
+                            COALESCE(L.""ItemCode"", '') AS ""CodigoArticulo"",
+                            COALESCE(L.""Dscription"", '') AS ""Descripcion"",
+                            COALESCE(L.""Quantity"", 0) AS ""Cantidad"",
+                            COALESCE(L.""unitMsr"", '') AS ""UnidadMedida"",
+                            COALESCE(L.""PriceBefDi"", 0) AS ""PrecioUnitario"",
+                            COALESCE(L.""DiscPrcnt"", 0) AS ""DescuentoPorcentaje"",
+                            CASE
+                                WHEN UPPER(COALESCE(H.""DocCur"", '')) IN ('QTZ', 'GTQ')
+                                    THEN COALESCE(L.""LineTotal"", 0)
+                                ELSE COALESCE(L.""TotalFrgn"", 0)
+                            END AS ""Subtotal"",
+                            COALESCE(L.""VatGroup"", '') AS ""CodigoImpuesto"",
+                            COALESCE(L.""VatPrcnt"", 0) AS ""ImpuestoPorcentaje"",
+                            CASE
+                                WHEN UPPER(COALESCE(H.""DocCur"", '')) IN ('QTZ', 'GTQ')
+                                    THEN COALESCE(L.""VatSum"", 0)
+                                ELSE COALESCE(L.""VatSumFrgn"", 0)
+                            END AS ""Impuesto"",
+                            CASE
+                                WHEN UPPER(COALESCE(H.""DocCur"", '')) IN ('QTZ', 'GTQ')
+                                    THEN COALESCE(L.""LineTotal"", 0) + COALESCE(L.""VatSum"", 0)
+                                ELSE COALESCE(L.""TotalFrgn"", 0) + COALESCE(L.""VatSumFrgn"", 0)
+                            END AS ""Total"",
+                            COALESCE(H.""DocCur"", '') AS ""Moneda"",
+                            COALESCE(L.""WhsCode"", '') AS ""Bodega""
+                        FROM ""{0}"".""OINV"" H
+                        INNER JOIN ""{0}"".""INV1"" L
+                                ON L.""DocEntry"" = H.""DocEntry""
+                        WHERE H.""DocNum"" IN ({1}){2}
+                        ORDER BY H.""DocNum"", L.""LineNum""",
+                        schema, placeholders, filtroCliente);
+
+                    var parametros = lote
+                        .Select(numero => new OdbcParameter
+                        {
+                            OdbcType = OdbcType.Int,
+                            Value = numero
+                        })
+                        .ToList();
+
+                    if (!string.IsNullOrWhiteSpace(clienteId))
+                    {
+                        parametros.Add(new OdbcParameter
+                        {
+                            OdbcType = OdbcType.NVarChar,
+                            Value = clienteId.Trim()
+                        });
+                    }
+
+                    DataTable dt = HanaHelper.EjecutarConsulta(query, parametros.ToArray());
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        decimal subtotal = LeerDecimal(row, "Subtotal");
+                        decimal impuesto = LeerDecimal(row, "Impuesto");
+                        resultado.Add(new FacturaDetalleSap
+                        {
+                            Documento = LeerCampo(row, "Documento"),
+                            NumeroLinea = LeerEntero(row, "NumeroLinea"),
+                            CodigoArticulo = LeerCampo(row, "CodigoArticulo"),
+                            Descripcion = LeerCampo(row, "Descripcion"),
+                            Cantidad = LeerDecimal(row, "Cantidad"),
+                            UnidadMedida = LeerCampo(row, "UnidadMedida"),
+                            PrecioUnitario = LeerDecimal(row, "PrecioUnitario"),
+                            DescuentoPorcentaje = LeerDecimal(row, "DescuentoPorcentaje"),
+                            Subtotal = subtotal,
+                            CodigoImpuesto = LeerCampo(row, "CodigoImpuesto"),
+                            ImpuestoPorcentaje = LeerDecimal(row, "ImpuestoPorcentaje"),
+                            Impuesto = impuesto,
+                            Total = LeerDecimal(row, "Total"),
+                            Moneda = NormalizarMoneda(LeerCampo(row, "Moneda")),
+                            Bodega = LeerCampo(row, "Bodega")
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(string.Format(
+                    "Error HANA al consultar el detalle de facturas ({0} / {1}): {2}",
+                    empresa, schema, ex.Message), ex);
+            }
+
+            return resultado
+                .OrderBy(x => x.Documento)
+                .ThenBy(x => x.NumeroLinea)
+                .ToList();
+        }
+
 
         // ═════════════════════════════════════════════════════════════════════════════
         // MÉTODO 2 — Notas de crédito y devoluciones ya emitidas en SAP

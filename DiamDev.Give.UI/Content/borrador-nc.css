@@ -710,6 +710,219 @@
 
 .bnc-detail-note.is-visible { display: block; }
 
+.bnc-follow-invoices {
+    background: #f8fafc;
+    border-top: 1px solid var(--bnc-border);
+    padding: 14px 16px 16px;
+}
+
+.bnc-follow-section-head {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.bnc-follow-section-head > div,
+.bnc-follow-section-head > div > span:last-child {
+    align-items: center;
+    display: flex;
+    min-width: 0;
+}
+
+.bnc-follow-section-head > div { gap: 9px; }
+.bnc-follow-section-head > div > span:last-child { align-items: flex-start; flex-direction: column; }
+.bnc-follow-section-head strong { color: var(--bnc-ink); font-size: 12px; }
+.bnc-follow-section-head small { color: var(--bnc-muted); font-size: 9.5px; margin-top: 2px; }
+
+.bnc-follow-section-icon {
+    align-items: center;
+    background: var(--bnc-blue-soft);
+    border-radius: 7px;
+    color: var(--bnc-blue);
+    display: inline-flex;
+    flex: 0 0 30px;
+    height: 30px;
+    justify-content: center;
+}
+
+#bncFollowInvoiceItems {
+    display: grid;
+    gap: 9px;
+}
+
+.bnc-invoice-items-loading { background: #fff; border: 1px dashed #cbd5e1; border-radius: 9px; min-height: 92px; }
+
+.bnc-invoice-items-state {
+    align-items: center;
+    background: #fff;
+    border: 1px dashed #cbd5e1;
+    border-radius: 9px;
+    color: var(--bnc-muted);
+    display: flex;
+    font-size: 10.5px;
+    gap: 10px;
+    min-height: 76px;
+    padding: 12px;
+}
+
+.bnc-invoice-items-state > div { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
+.bnc-invoice-items-state strong { color: #334155; font-size: 11px; }
+.bnc-invoice-items-state span:not(.bnc-follow-section-icon) { margin-top: 2px; overflow-wrap: anywhere; }
+.bnc-invoice-items-state.is-error { background: #fff7ed; border-color: #fdba74; color: #9a3412; }
+.bnc-invoice-items-state.is-error .bnc-follow-section-icon { background: #ffedd5; color: #c2410c; }
+
+.bnc-sap-invoice {
+    background: #fff;
+    border: 1px solid var(--bnc-border);
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, .035);
+    overflow: hidden;
+    transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.bnc-sap-invoice.is-open { border-color: #bfdbfe; box-shadow: 0 7px 18px rgba(37, 99, 235, .07); }
+
+.bnc-sap-invoice-toggle {
+    align-items: center;
+    background: #fff;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+    min-height: 70px;
+    padding: 10px 12px;
+    text-align: left;
+    width: 100%;
+}
+
+.bnc-sap-invoice-toggle:hover { background: #f8fafc; }
+.bnc-sap-invoice-toggle:focus { box-shadow: inset 0 0 0 2px #93c5fd; outline: 0; }
+
+.bnc-sap-invoice-heading {
+    align-items: center;
+    display: flex;
+    gap: 9px;
+    min-width: 150px;
+}
+
+.bnc-sap-invoice-heading > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.bnc-sap-invoice-heading strong { color: var(--bnc-ink); font-size: 11.5px; }
+.bnc-sap-invoice-heading small { color: var(--bnc-muted); font-size: 9px; margin-top: 2px; overflow-wrap: anywhere; }
+
+.bnc-sap-invoice-icon {
+    align-items: center;
+    background: #eff6ff;
+    border-radius: 8px;
+    color: var(--bnc-blue);
+    display: inline-flex;
+    flex: 0 0 34px;
+    height: 34px;
+    justify-content: center;
+}
+
+.bnc-sap-invoice-summary {
+    align-items: center;
+    display: flex;
+    flex: 1 1 auto;
+    gap: 12px;
+    justify-content: flex-end;
+    min-width: 0;
+}
+
+.bnc-sap-invoice-summary > span:not(.bnc-sap-invoice-count) { display: flex; flex-direction: column; text-align: right; }
+.bnc-sap-invoice-summary small { color: var(--bnc-muted); font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.bnc-sap-invoice-summary strong { color: #334155; font-size: 10.5px; margin-top: 1px; white-space: nowrap; }
+
+.bnc-sap-invoice-count {
+    background: #f1f5f9;
+    border-radius: 999px;
+    color: #475569;
+    font-size: 8.5px;
+    font-weight: 700;
+    padding: 4px 7px;
+    white-space: nowrap;
+}
+
+.bnc-sap-invoice-chevron { color: #94a3b8; flex: 0 0 auto; transition: transform .18s ease; }
+.bnc-sap-invoice.is-open .bnc-sap-invoice-chevron { transform: rotate(180deg); }
+
+.bnc-sap-invoice-body { border-top: 1px solid #eef2f7; display: none; }
+.bnc-sap-invoice.is-open .bnc-sap-invoice-body { animation: bnc-enter .18s ease both; display: block; }
+
+.bnc-sap-item-list { display: grid; gap: 8px; padding: 10px; }
+
+.bnc-sap-item {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.bnc-sap-item-head {
+    align-items: flex-start;
+    background: #fcfdff;
+    border-bottom: 1px solid #eef2f7;
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+    padding: 9px 10px;
+}
+
+.bnc-sap-item-identity { align-items: flex-start; display: flex; gap: 8px; min-width: 0; }
+.bnc-sap-item-identity > span:last-child { display: flex; flex-direction: column; min-width: 0; }
+.bnc-sap-item-identity small { color: var(--bnc-blue); font-size: 8.5px; font-weight: 750; letter-spacing: .025em; }
+.bnc-sap-item-identity strong { color: #334155; font-size: 10.5px; line-height: 1.35; margin-top: 2px; overflow-wrap: anywhere; }
+
+.bnc-sap-item-number {
+    align-items: center;
+    background: #e2e8f0;
+    border-radius: 6px;
+    color: #475569;
+    display: inline-flex;
+    flex: 0 0 24px;
+    font-size: 9px;
+    font-weight: 750;
+    height: 24px;
+    justify-content: center;
+}
+
+.bnc-sap-item-tags { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 5px; justify-content: flex-end; }
+.bnc-sap-item-tag { background: #ecfdf5; border-radius: 999px; color: #047857; font-size: 8px; font-weight: 700; padding: 3px 6px; white-space: nowrap; }
+.bnc-sap-item-tag.is-muted { background: #f1f5f9; color: #64748b; }
+
+.bnc-sap-item-metrics {
+    display: grid;
+    gap: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+}
+
+.bnc-sap-item-metrics > div { border-bottom: 1px solid #f1f5f9; min-width: 0; padding: 8px 10px; }
+.bnc-sap-item-metrics > div:nth-child(odd) { border-right: 1px solid #f1f5f9; }
+.bnc-sap-item-metrics > div:nth-last-child(-n+2) { border-bottom: 0; }
+.bnc-sap-item-metrics dt { color: var(--bnc-muted); font-size: 8px; font-weight: 700; text-transform: uppercase; }
+.bnc-sap-item-metrics dt small { display: block; font-size: 7.5px; font-weight: 500; margin-top: 1px; text-transform: none; }
+.bnc-sap-item-metrics dd { color: #334155; font-size: 10px; font-variant-numeric: tabular-nums; font-weight: 650; margin: 2px 0 0; overflow-wrap: anywhere; }
+.bnc-sap-item-metrics .is-total { background: #eff6ff; }
+.bnc-sap-item-metrics .is-total dt { color: #1d4ed8; }
+.bnc-sap-item-metrics .is-total dd { color: #1e40af; }
+
+.bnc-sap-invoice-empty {
+    align-items: center;
+    color: var(--bnc-muted);
+    display: flex;
+    font-size: 10px;
+    gap: 7px;
+    justify-content: center;
+    min-height: 62px;
+    padding: 12px;
+    text-align: center;
+}
+
 .bnc-modal .modal-content {
     border: 0;
     border-radius: 12px;
@@ -974,6 +1187,12 @@
     .bnc-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .bnc-toolbar { align-items: stretch; flex-direction: column; }
     .bnc-toolbar .bnc-field { flex: 1 1 auto; width: 100%; }
+    .bnc-follow-section-head { align-items: flex-start; }
+    .bnc-sap-invoice-toggle { align-items: stretch; flex-direction: column; }
+    .bnc-sap-invoice-summary { flex-wrap: wrap; justify-content: flex-start; padding-left: 43px; }
+    .bnc-sap-invoice-summary > span:not(.bnc-sap-invoice-count) { text-align: left; }
+    .bnc-invoice-items-state { align-items: flex-start; flex-wrap: wrap; }
+    .bnc-invoice-items-state .bnc-btn { margin-left: 40px; }
 }
 
 @media (max-width: 430px) {
@@ -981,6 +1200,15 @@
     .bnc-summary-grid { grid-template-columns: 1fr 1fr; }
     .bnc-summary strong { font-size: 18px; }
     .bnc-detail-meta { grid-template-columns: 1fr; }
+    .bnc-follow-invoices { padding-left: 10px; padding-right: 10px; }
+    .bnc-follow-section-head { flex-direction: column; }
+    .bnc-sap-invoice-summary { gap: 8px; padding-left: 0; }
+    .bnc-sap-item-head { flex-direction: column; }
+    .bnc-sap-item-tags { justify-content: flex-start; padding-left: 32px; }
+    .bnc-sap-item-metrics { grid-template-columns: 1fr; }
+    .bnc-sap-item-metrics > div:nth-child(odd) { border-right: 0; }
+    .bnc-sap-item-metrics > div:nth-last-child(-n+2) { border-bottom: 1px solid #f1f5f9; }
+    .bnc-sap-item-metrics > div:last-child { border-bottom: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

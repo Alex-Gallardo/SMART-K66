@@ -78,7 +78,7 @@
 .cot-icon-btn:hover, .cot-icon-btn:focus { background: var(--cot-blue-dark); }
 
 .cot-client-strip { align-items: center; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 9px; display: flex; gap: 11px; margin-top: 14px; padding: 10px 12px; }
-.cot-avatar { align-items: center; background: #e2e8f0; border-radius: 50%; color: #64748b; display: flex; flex: 0 0 auto; height: 34px; justify-content: center; width: 34px; }
+.cot-avatar { align-items: center; background: #e2e8f0; border-radius: 50%; color: #64748b; display: flex !important; flex-direction: row; align-items:center; flex: 0 0 auto; height: 34px; justify-content: center; width: 34px; }
 .cot-client-strip div { min-width: 0; }
 .cot-client-strip strong, .cot-client-strip span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cot-client-strip strong { font-size: 11px; }

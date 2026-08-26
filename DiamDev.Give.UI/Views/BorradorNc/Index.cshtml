@@ -98,8 +98,8 @@
                             <div class="bnc-prefix"><i class="icon-tag"></i><strong id="bncPrefijo">—</strong></div>
                         </div>
                         <div class="bnc-field bnc-col-3">
-                            <label for="bncFecha">Fecha <span class="bnc-required">*</span></label>
-                            <input class="form-control" type="date" id="bncFecha" value="@hoy" max="@hoy" />
+                            <label for="bncFecha">Fecha <!--<span class="bnc-required">*</span>--></label>
+                            <input class="form-control" type="date" id="bncFecha" value="@hoy" max="@hoy" disabled />
                         </div>
                         <div class="bnc-field bnc-col-4">
                             <label for="bncAgente">Agente <span class="bnc-required">*</span></label>
@@ -122,7 +122,7 @@
                         </div>
 
                         <div class="bnc-field bnc-col-3">
-                            <label for="bncClienteCodigo">Código cliente <span class="bnc-required">*</span></label>
+                            <label for="bncClienteCodigo">Cliente <span class="bnc-required">*</span></label>
                             <div class="bnc-input-group">
                                 <input class="form-control" id="bncClienteCodigo" readonly placeholder="Seleccione un cliente" />
                                 <button class="bnc-icon-btn" type="button" id="bncBuscarCliente" title="Buscar cliente">

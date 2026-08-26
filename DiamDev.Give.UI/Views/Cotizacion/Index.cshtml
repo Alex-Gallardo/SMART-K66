@@ -70,7 +70,9 @@
                             <select id="cotEmpresa" class="form-control" @(Model.Empresas.Count == 0 ? "disabled" : "")>
                                 <option value="">Seleccione...</option>
                                 @foreach (var empresa in Model.Empresas)
-                                { <option value="@empresa.Nombre">@empresa.Nombre</option> }
+                                {
+                                    <option value="@empresa.Nombre">@empresa.Nombre</option>
+}
                             </select>
                         </div>
                         <div class="cot-field cot-col-4">
@@ -133,12 +135,51 @@
                     </div>
                     <div class="cot-client-strip" id="cotClientStrip">
                         <span class="cot-avatar"><i class="icon-user"></i></span>
-                        <div><strong id="cotClientTitle">Ningún cliente seleccionado</strong>
-                            <span id="cotClientMeta">Seleccione empresa y agente; después busque el cliente en SAP.</span></div>
+                        <div>
+                            <strong id="cotClientTitle">Ningún cliente seleccionado</strong>
+                            <span id="cotClientMeta">Seleccione empresa y agente; después busque el cliente en SAP.</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            <div class="cot-card">
+                <div class="cot-card-head">
+                    <div class="cot-card-title">
+                        <i class="icon-shopping-cart"></i>
+                        <div><h3>Productos</h3><small>Edite cantidad, descripción, precio, descuento e IVA antes de guardar.</small></div>
+                    </div>
+                    <div class="cot-head-actions">
+                        <span class="cot-count" id="cotLineCount">0 productos</span>
+                        <button id="cotAgregarProducto" type="button" class="cot-btn cot-btn-primary"><i class="icon-plus"></i> Agregar producto</button>
+                    </div>
+                </div>
+                <div class="cot-table-wrap">
+                    <table class="table cot-table cot-line-table" aria-label="Productos cotizados">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Descripción</th>
+                                <th>Unidad</th>
+                                <th class="text-right">Disponible</th>
+                                <th class="text-right">Cantidad</th>
+                                <th class="text-right">Precio</th>
+                                <th class="text-right">Desc. %</th>
+                                <th class="text-right">IVA SAP</th>
+                                <th class="text-right">Total</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="cotLineBody"></tbody>
+                    </table>
+                    <div class="cot-empty" id="cotLineEmpty">
+                        <i class="icon-shopping-cart"></i><strong>Aún no hay productos</strong>
+                        <span>Seleccione un cliente y agregue artículos desde SAP.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD DE DATOS DE PRODUCION -->
             <div class="cot-card">
                 <div class="cot-card-head">
                     <div class="cot-card-title">
@@ -160,34 +201,6 @@
                             <label for="cotObservaciones">Observaciones</label>
                             <textarea id="cotObservaciones" class="form-control" maxlength="1500" rows="2"></textarea>
                         </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="cot-card">
-                <div class="cot-card-head">
-                    <div class="cot-card-title">
-                        <i class="icon-shopping-cart"></i>
-                        <div><h3>Productos</h3><small>Edite cantidad, descripción, precio, descuento e IVA antes de guardar.</small></div>
-                    </div>
-                    <div class="cot-head-actions">
-                        <span class="cot-count" id="cotLineCount">0 productos</span>
-                        <button id="cotAgregarProducto" type="button" class="cot-btn cot-btn-primary"><i class="icon-plus"></i> Agregar producto</button>
-                    </div>
-                </div>
-                <div class="cot-table-wrap">
-                    <table class="table cot-table cot-line-table" aria-label="Productos cotizados">
-                        <thead><tr>
-                            <th>Producto</th><th>Descripción</th><th>Unidad</th><th class="text-right">Disponible</th>
-                            <th class="text-right">Cantidad</th><th class="text-right">Precio</th>
-                            <th class="text-right">Desc. %</th><th class="text-right">IVA SAP</th>
-                            <th class="text-right">Total</th><th></th>
-                        </tr></thead>
-                        <tbody id="cotLineBody"></tbody>
-                    </table>
-                    <div class="cot-empty" id="cotLineEmpty">
-                        <i class="icon-shopping-cart"></i><strong>Aún no hay productos</strong>
-                        <span>Seleccione un cliente y agregue artículos desde SAP.</span>
                     </div>
                 </div>
             </div>

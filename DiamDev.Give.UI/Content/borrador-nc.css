@@ -1,4 +1,7 @@
 .bnc {
+    --cot-blue: #2563eb;
+    --cot-blue-dark: #1d4ed8;
+    --cot-blue-soft: #eff6ff;
     --bnc-blue: #2563eb;
     --bnc-blue-dark: #1d4ed8;
     --bnc-blue-soft: #eff6ff;
@@ -302,22 +305,27 @@
 
 .bnc-icon-btn {
     align-items: center;
-    background: #fff;
+    /*background: #fff;
     border: 1px solid #cbd5e1;
-    color: #475569;
+    color: #475569;*/
     display: inline-flex;
     height: 36px;
     justify-content: center;
     padding: 0;
     width: 36px;
+    background: var(--cot-blue);
+    border: 1px solid var(--cot-blue);
+    border-radius: 0 7px 7px 0;
+    color: #fff;
 }
 
-.bnc-icon-btn:hover,
-.bnc-icon-btn:focus {
-    background: var(--bnc-blue-soft);
-    border-color: #93c5fd;
-    color: var(--bnc-blue-dark);
-}
+    .bnc-icon-btn:hover,
+    .bnc-icon-btn:focus {
+        background: var(--cot-blue-dark);
+        /*background: var(--bnc-blue-soft);
+        border-color: #93c5fd;
+        color: var(--bnc-blue-dark);*/
+    }
 
 .bnc-prefix {
     align-items: center;

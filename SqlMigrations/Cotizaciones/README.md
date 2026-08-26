@@ -11,6 +11,9 @@ Ejecuta y comparte la salida completa de:
 2. `HANA_00_diagnostico_catalogo_productos.sql` en SAP HANA.
 3. Si `HANA_00` devuelve filas en `OSPP`, ejecuta también
    `HANA_01_diagnostico_precios_impuestos.sql`.
+4. Ejecuta `HANA_02_diagnostico_determinacion_iva_precio.sql` después de
+   `HANA_01` para confirmar los defaults fiscales y la fuente de precio que SAP
+   aplicó en documentos reales.
 
 La salida HANA confirma las columnas estándar de SAP Business One, las listas y
 monedas utilizadas y si existen precios especiales en `OSPP`/`SPP1`. Esta
@@ -21,6 +24,12 @@ Si `HANA_00` reporta precios especiales, ejecuta después
 `HANA_01_diagnostico_precios_impuestos.sql`. Este segundo diagnóstico incluye
 `SPP2` (escalas por cantidad), tasas reales de `OVTG`, descuentos generales y
 la búsqueda de un posible schema SAP para `EMPAQUES`.
+
+`HANA_02_diagnostico_determinacion_iva_precio.sql` es el diagnóstico final. Se
+añadió porque `HANA_01` confirmó que los artículos activos no tienen un grupo
+de IVA en `OITM`, mientras que sí existen precios especiales por cliente,
+periodo y cantidad. El script compara la configuración con facturas y
+cotizaciones SAP recientes sin modificar HANA.
 
 ## Fase 2 — instalación en pruebas
 

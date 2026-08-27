@@ -927,8 +927,6 @@
 .bnc-sap-invoice.is-open .bnc-sap-invoice-body { animation: bnc-enter .18s ease both; background: #f8fafc; display: block; }
 
 .bnc-sap-table-shell {
-    container-name: bnc-invoice-table;
-    container-type: inline-size;
     max-width: 100%;
     padding: 12px;
 }
@@ -936,13 +934,18 @@
 .bnc-sap-table-region {
     background: #fff;
     border: 1px solid #dfe7f1;
-    border-radius: 10px;
-    box-shadow: 0 2px 7px rgba(15, 23, 42, .035);
+    border-radius: 8px;
     max-width: 100%;
     overflow-x: auto;
+    overscroll-behavior-inline: contain;
     scrollbar-color: #94a3b8 #e2e8f0;
     scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
 }
+
+.bnc-sap-table-region::-webkit-scrollbar { height: 10px; }
+.bnc-sap-table-region::-webkit-scrollbar-track { background: #e2e8f0; }
+.bnc-sap-table-region::-webkit-scrollbar-thumb { background: #94a3b8; border: 2px solid #e2e8f0; border-radius: 999px; }
 
 .bnc-sap-table-region:focus {
     border-color: #93c5fd;
@@ -972,14 +975,20 @@
 .bnc-sap-lines-table thead th {
     background: #f1f5f9;
     border-bottom: 1px solid #dbe4f0;
+    border-right: 1px solid #dbe4f0;
     color: #52637a;
     font-size: 7.5px;
     font-weight: 800;
     letter-spacing: .035em;
     padding: 9px 8px;
+    position: sticky;
+    top: 0;
     text-transform: uppercase;
     vertical-align: bottom;
+    z-index: 2;
 }
+
+.bnc-sap-lines-table thead th:last-child { border-right: 0; }
 
 .bnc-sap-lines-table thead th:nth-child(1) { width: 58px; }
 .bnc-sap-lines-table thead th:nth-child(2) { width: 250px; }
@@ -996,6 +1005,7 @@
 .bnc-sap-lines-table tbody td {
     background: #fff;
     border-bottom: 1px solid #edf1f6;
+    border-right: 1px solid #edf1f6;
     color: #334155;
     font-size: 9px;
     line-height: 1.35;
@@ -1003,22 +1013,19 @@
     vertical-align: middle;
 }
 
+.bnc-sap-lines-table tbody tr > *:last-child { border-right: 0; }
 .bnc-sap-lines-table tbody tr:last-child > * { border-bottom: 0; }
+.bnc-sap-lines-table tbody tr:nth-child(even) > * { background: #fbfdff; }
 .bnc-sap-lines-table tbody tr:hover > * { background: #f8fbff; }
 
-.bnc-sap-line-number { text-align: center; }
+.bnc-sap-line-number { background: #f8fafc !important; text-align: center; }
 .bnc-sap-line-number > span {
     align-items: center;
-    background: #eff6ff;
-    border: 1px solid #dbeafe;
-    border-radius: 7px;
     color: #1d4ed8;
     display: inline-flex;
     font-size: 10px;
     font-weight: 800;
-    height: 28px;
     justify-content: center;
-    min-width: 30px;
 }
 
 .bnc-sap-line-product { overflow-wrap: anywhere; }
@@ -1057,66 +1064,6 @@
 .bnc-sap-line-number-value.is-total { background: #eff6ff; }
 .bnc-sap-lines-table tbody tr:hover .bnc-sap-line-number-value.is-total { background: #e8f1ff; }
 .bnc-sap-line-number-value.is-total > strong { color: #1e40af; font-size: 10px; font-weight: 800; }
-
-@container bnc-invoice-table (max-width: 780px) {
-    .bnc-sap-table-region { background: transparent; border: 0; box-shadow: none; overflow: visible; }
-    .bnc-sap-lines-table { background: transparent; display: block; min-width: 0; table-layout: auto; }
-    .bnc-sap-lines-table thead {
-        clip: rect(0 0 0 0);
-        clip-path: inset(50%);
-        height: 1px;
-        overflow: hidden;
-        position: absolute;
-        white-space: nowrap;
-        width: 1px;
-    }
-    .bnc-sap-lines-table tbody { display: grid; gap: 10px; }
-    .bnc-sap-lines-table tbody tr {
-        background: #fff;
-        border: 1px solid #dfe7f1;
-        border-radius: 9px;
-        box-shadow: 0 2px 7px rgba(15, 23, 42, .035);
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        overflow: hidden;
-    }
-    .bnc-sap-lines-table tbody th,
-    .bnc-sap-lines-table tbody td {
-        align-items: flex-start;
-        border-bottom: 1px solid #edf1f6;
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-        padding: 9px 10px;
-        text-align: left;
-    }
-    .bnc-sap-lines-table tbody th::before,
-    .bnc-sap-lines-table tbody td::before {
-        color: var(--bnc-muted);
-        content: attr(data-label);
-        display: block;
-        font-size: 7px;
-        font-weight: 800;
-        letter-spacing: .035em;
-        margin-bottom: 4px;
-        text-transform: uppercase;
-    }
-    .bnc-sap-lines-table tbody tr:hover > * { background: #fff; }
-    .bnc-sap-lines-table .bnc-sap-line-number { grid-column: 1; }
-    .bnc-sap-lines-table .bnc-sap-line-number > span { height: 25px; min-width: 27px; }
-    .bnc-sap-lines-table .bnc-sap-line-product { grid-column: 2 / -1; }
-    .bnc-sap-lines-table .bnc-sap-line-warehouse { grid-column: 1 / span 2; }
-    .bnc-sap-lines-table .bnc-sap-line-warehouse + .bnc-sap-line-number-value { grid-column: 3 / span 2; }
-    .bnc-sap-lines-table .bnc-sap-line-number-value { grid-column: span 2; }
-    .bnc-sap-lines-table .bnc-sap-line-number-value.is-total {
-        align-items: flex-end;
-        background: #eff6ff;
-        border-bottom: 0;
-        grid-column: 1 / -1;
-        text-align: right;
-    }
-    .bnc-sap-lines-table tbody tr:hover .bnc-sap-line-number-value.is-total { background: #eff6ff; }
-}
 
 .bnc-sap-invoice-empty {
     align-items: center;
@@ -1419,6 +1366,7 @@
     .bnc-summary strong { font-size: 18px; }
     .bnc-detail-meta { grid-template-columns: 1fr; }
     .bnc-follow-invoices { padding-left: 10px; padding-right: 10px; }
+    .bnc-sap-table-shell { padding: 8px; }
     .bnc-follow-section-head { flex-direction: column; }
     .bnc-sap-invoice-summary { gap: 8px; padding-left: 0; }
     .bnc-sap-invoice-controls { gap: 8px; padding-left: 0; }

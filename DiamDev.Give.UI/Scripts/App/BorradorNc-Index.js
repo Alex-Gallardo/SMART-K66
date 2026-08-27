@@ -13,6 +13,7 @@
         listar: $root.data("url-listar"),
         seguimiento: $root.data("url-seguimiento"),
         detalle: $root.data("url-detalle"),
+        detalleFacturas: $root.data("url-detalle-facturas"),
         anular: $root.data("url-anular"),
         imprimir: $root.data("url-imprimir")
     };
@@ -37,6 +38,10 @@
     var detalleSecuencia = 0;
     var empresaAnterior = empresa();
     var operadorAnterior = "";
+    var facturasDetalle = window.BorradorNcFacturasDetalle.crear({
+        id: "bncFollowInvoices",
+        url: urls.detalleFacturas
+    });
 
     function token() {
         return $root.find('input[name="__RequestVerificationToken"]').val();
@@ -625,6 +630,7 @@
 
     function cargarSeguimiento() {
         var secuencia = ++seguimientoSecuencia;
+        facturasDetalle.cancelar();
         var empresaFiltro = $("#bncFiltroEmpresa").val() || "";
         var desde = $("#bncFiltroDesde").val() || "";
         var hasta = $("#bncFiltroHasta").val() || "";
@@ -718,6 +724,7 @@
 
     function cargarDetalle(empresaId, id) {
         var secuencia = ++detalleSecuencia;
+        facturasDetalle.cancelar();
         state.seleccionado = { empresa: empresaId, id: id };
         $("#bncFollowBody tr").removeClass("is-selected").filter(function () {
             return $(this).data("empresa") === empresaId && String($(this).data("id")) === String(id);
@@ -728,6 +735,7 @@
                 state.seleccionado.empresa !== empresaId || String(state.seleccionado.id) !== String(id)) return;
             if (!r || !r.ok) { avisar("error", r && r.msg ? r.msg : "No se pudo abrir el detalle."); return; }
             renderDetalle(r.data);
+            facturasDetalle.cargar(r.data);
         }).fail(function (xhr) {
             if (secuencia === detalleSecuencia) avisar("error", mensajeAjax(xhr));
         });
@@ -758,6 +766,7 @@
             "</strong></div><div><small>Resolución</small><strong>" + escapeHtml(x.ResueltoPor || "Pendiente") + (x.FechaResolucion ? " · " + fechaHora(x.FechaResolucion) : "") + "</strong></div></div>" +
             motivo +
             '<div class="bnc-table-wrap" style="border-width:1px 0 0;border-radius:0;"><table class="table bnc-table" style="min-width:620px"><thead><tr><th>Documento</th><th>Fecha</th><th>Descripción</th><th class="text-right">Importe</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
+            window.BorradorNcFacturasDetalle.plantilla("bncFollowInvoices") +
             '<div class="bnc-decision-bar"><button class="bnc-btn bnc-btn-ghost" type="button" id="bncImprimirSeleccionado"><i class="icon-print"></i> Imprimir</button>' + anular + "</div>"
         );
         state.seleccionado.documento = x;
@@ -781,6 +790,7 @@
             if (!r || !r.ok) { avisar("error", r && r.msg ? r.msg : "No se pudo anular."); return; }
             avisar("success", r.msg || "Borrador anulado.");
             $("#bncAnularModal").modal("hide");
+            facturasDetalle.cancelar();
             state.seleccionado = null;
             cargarSeguimiento();
             $("#bncFollowDetail").html('<div class="bnc-empty"><i class="icon-hand-right"></i><strong>Seleccione un borrador</strong><span>Su detalle y acciones aparecerán aquí.</span></div>');
@@ -865,7 +875,10 @@
         $("#bncGuardar").on("click", guardar);
 
         $("#bncTabSeguimiento").on("shown.bs.tab", function () { if (!state.seguimientoCargado) cargarSeguimiento(); });
-        $("#bncRefrescarSeguimiento").on("click", cargarSeguimiento);
+        $("#bncRefrescarSeguimiento").on("click", function () {
+            facturasDetalle.invalidar();
+            cargarSeguimiento();
+        });
         $("#bncFiltroEmpresa,#bncFiltroDesde,#bncFiltroHasta").on("change", cargarSeguimiento);
         $("#bncFiltroEstado").on("change", renderSeguimiento);
         $("#bncFiltroTexto").on("input", renderSeguimiento);

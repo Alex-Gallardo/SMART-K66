@@ -6,7 +6,7 @@
 }
 
 @section styles {
-    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260825b")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260827")" rel="stylesheet" />
 }
 
 <div class="bnc bnc-shell" id="bncApp"
@@ -18,6 +18,7 @@
      data-url-listar="@Url.Action("Listar", "BorradorNc")"
      data-url-seguimiento="@Url.Action("ListarSeguimiento", "BorradorNc")"
      data-url-detalle="@Url.Action("ObtenerDetalle", "BorradorNc")"
+     data-url-detalle-facturas="@Url.Action("ObtenerDetallesFacturas", "BorradorNc")"
      data-url-anular="@Url.Action("Anular", "BorradorNc")"
      data-url-imprimir="@Url.Action("Imprimir", "BorradorNc")"
      data-puede-anular="@Model.PuedeAnular.ToString().ToLowerInvariant()">
@@ -98,8 +99,8 @@
                             <div class="bnc-prefix"><i class="icon-tag"></i><strong id="bncPrefijo">—</strong></div>
                         </div>
                         <div class="bnc-field bnc-col-3">
-                            <label for="bncFecha">Fecha <span class="bnc-required">*</span></label>
-                            <input class="form-control" type="date" id="bncFecha" value="@hoy" max="@hoy" />
+                            <label for="bncFecha">Fecha <!--<span class="bnc-required">*</span>--></label>
+                            <input class="form-control" type="date" id="bncFecha" value="@hoy" max="@hoy" disabled />
                         </div>
                         <div class="bnc-field bnc-col-4">
                             <label for="bncAgente">Agente <span class="bnc-required">*</span></label>
@@ -122,7 +123,7 @@
                         </div>
 
                         <div class="bnc-field bnc-col-3">
-                            <label for="bncClienteCodigo">Código cliente <span class="bnc-required">*</span></label>
+                            <label for="bncClienteCodigo">Cliente <span class="bnc-required">*</span></label>
                             <div class="bnc-input-group">
                                 <input class="form-control" id="bncClienteCodigo" readonly placeholder="Seleccione un cliente" />
                                 <button class="bnc-icon-btn" type="button" id="bncBuscarCliente" title="Buscar cliente">
@@ -488,5 +489,6 @@
 
 @section scripts {
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Fechas.js?v=20260825")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260825b")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-FacturasDetalle.js?v=20260827")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260826b")"></script>
 }

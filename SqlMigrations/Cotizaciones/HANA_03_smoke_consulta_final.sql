@@ -1,7 +1,8 @@
 /* =============================================================================
    SAP HANA — SMOKE TEST DE LA CONSULTA FINAL DE COTIZACIONES
 
-   Caso real observado en HANA_02:
+   Caso real de precio observado en HANA_02 (el prefijo PT se usa solamente
+   como dato de esta muestra, no como regla de visibilidad del catálogo):
      Empresa BOLIK, cliente CL0023, artículo PT00054, cantidad 300.
 
    Objetivo: validar en HANA la misma sintaxis y prioridad utilizada por la
@@ -159,6 +160,6 @@ FROM (
             AND WLQN."Amount">WLQ."Amount" AND WLQN."Amount"<=Q."Cantidad"
             AND (WLQN."UomEntry" IS NULL OR WLQN."UomEntry"=-1 OR
                  WLQN."UomEntry"=P."UomEntry")
-     WHERE I."SellItem"='Y' AND I."validFor"='Y'
+     WHERE I."SellItem"='Y'
        AND ECQN."ItemCode" IS NULL AND WLQN."ItemCode" IS NULL
 ) X;

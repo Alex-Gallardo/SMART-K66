@@ -17,6 +17,10 @@ Ejecuta y comparte la salida completa de:
 5. Después de incorporar los resultados, ejecuta
    `HANA_03_smoke_consulta_final.sql`. Es una prueba de solo lectura sobre un
    caso real de BOLIK y valida la consulta definitiva usada por la aplicación.
+6. Ejecuta `HANA_04_verificar_productos_venta.sql` para comprobar la regla de
+   catálogo confirmada: se muestran únicamente artículos con `SellItem='Y'`,
+   sin restringir códigos por prefijo, grupo, inventario ni `validFor`. Esto
+   incluye artículos con existencia o disponible igual a cero.
 
 La salida HANA confirma las columnas estándar de SAP Business One, las listas y
 monedas utilizadas y si existen precios especiales en `OSPP`/`SPP1`. Esta
@@ -37,6 +41,10 @@ cotizaciones SAP recientes sin modificar HANA.
 `HANA_03_smoke_consulta_final.sql` debe devolver exactamente una fila, con
 `GRUPO_IVA=IVA`, `TASA=12`, una `FUENTE` distinta de `SIN_PRECIO` y precios
 bruto/neto mayores que cero.
+
+`HANA_04_verificar_productos_venta.sql` devuelve un resumen y muestras de los
+artículos incluidos y excluidos. Es de solo lectura; no crea procedimientos ni
+modifica datos de SAP.
 
 ## Decisiones confirmadas con los diagnósticos
 

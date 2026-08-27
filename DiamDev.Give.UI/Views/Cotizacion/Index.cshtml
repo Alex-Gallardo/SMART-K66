@@ -275,8 +275,8 @@
     <div class="modal-dialog modal-lg"><div class="modal-content">
         <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4><i class="icon-shopping-cart"></i> Productos disponibles en SAP</h4></div>
         <div class="modal-body">
-            <div class="cot-product-toolbar"><div class="cot-field"><label for="cotProductoFiltro">Código, nombre o grupo</label><input id="cotProductoFiltro" class="form-control" placeholder="Vacío permite recorrer todo el catálogo" /></div><button id="cotBuscarProducto" class="cot-btn cot-btn-primary"><i class="icon-search"></i> Buscar</button></div>
-            <div class="cot-table-wrap"><table class="table cot-table cot-product-table"><thead><tr><th>Producto</th><th>Grupo</th><th>Unidad</th><th class="text-right">Existencia</th><th class="text-right">Comprometido</th><th class="text-right">Disponible</th><th class="text-right">Precio</th><th class="text-right">IVA SAP</th></tr></thead><tbody id="cotProductoBody"></tbody></table><div class="cot-empty" id="cotProductoEmpty"><i class="icon-search"></i><strong>Ejecute la búsqueda</strong><span>Seleccione una fila para agregar el producto.</span></div></div>
+            <div class="cot-product-toolbar"><div class="cot-field"><label for="cotProductoFiltro">Código, nombre o grupo</label><input id="cotProductoFiltro" class="form-control" placeholder="Vacío permite recorrer todo el catálogo" autocomplete="off" /></div><button id="cotBuscarProducto" type="button" class="cot-btn cot-btn-primary"><i class="icon-search"></i> Buscar</button></div>
+            <div class="cot-table-wrap"><table class="table cot-table cot-product-table"><thead><tr><th>Producto</th><th>Grupo</th><th>Unidad</th><th class="text-right">Existencia</th><th class="text-right">Comprometido</th><th class="text-right">Disponible</th><th class="text-right">Precio</th><th class="text-right">IVA SAP</th></tr></thead><tbody id="cotProductoBody"></tbody></table><div class="cot-empty" id="cotProductoEmpty" role="status" aria-live="polite"><i class="icon-search"></i><strong>Ejecute la búsqueda</strong><span>Seleccione una fila para agregar el producto.</span></div></div>
         </div>
         <div class="modal-footer cot-product-footer">
             <span class="text-muted" id="cotProductoCount"></span>
@@ -298,5 +298,5 @@
 </div>
 
 @section scripts {
-    <script src="@Url.Content("~/Scripts/App/Cotizacion-Index.js?v=20260826")"></script>
+    <script src="@Url.Content("~/Scripts/App/Cotizacion-Index.js?v=20260827")"></script>
 }

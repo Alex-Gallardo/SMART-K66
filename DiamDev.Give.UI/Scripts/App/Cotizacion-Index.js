@@ -26,7 +26,10 @@
         seleccionado: null,
         anular: null,
         clienteTimer: null,
-        filtroTimer: null
+        filtroTimer: null,
+        productoTimer: null,
+        productoRequest: null,
+        productoSolicitud: 0
     };
 
     function token() {
@@ -137,6 +140,7 @@
     }
 
     function limpiarCliente() {
+        cancelarBusquedaProductos();
         estado.cliente = null;
         $("#cotClienteCodigo,#cotClienteNombre,#cotNit,#cotCorreo,#cotDireccion").val("");
         $("#cotClientStrip").removeClass("is-selected");
@@ -147,6 +151,7 @@
     }
 
     function seleccionarCliente(c) {
+        cancelarBusquedaProductos();
         estado.cliente = c;
         $("#cotClienteCodigo").val(c.CardCode || "");
         $("#cotClienteNombre").val(c.CardName || "");
@@ -202,44 +207,95 @@
             avisar("warning", "Seleccione un cliente antes de agregar productos.");
             return;
         }
+        cancelarBusquedaProductos();
         $("#cotProductoFiltro").val("");
-        $("#cotProductoBody").empty();
-        $("#cotProductoEmpty").show();
+        estado.productos = [];
         $("#cotProductoCount").text("");
         estado.productoPagina = 1;
         estado.productoTieneMas = false;
+        mostrarEstadoProductos("icon-search", "Preparando catálogo", "Consultando productos disponibles para la venta.");
         $("#cotProductoModal").modal("show");
         buscarProductos(1);
+        setTimeout(function () { $("#cotProductoFiltro").focus(); }, 250);
+    }
+
+    function cancelarBusquedaProductos() {
+        clearTimeout(estado.productoTimer);
+        estado.productoTimer = null;
+        estado.productoSolicitud++;
+        if (estado.productoRequest && estado.productoRequest.readyState !== 4) {
+            estado.productoRequest.abort();
+        }
+        estado.productoRequest = null;
+        setBusy($("#cotBuscarProducto"), false);
+    }
+
+    function mostrarEstadoProductos(icono, titulo, detalle) {
+        $("#cotProductoBody").empty();
+        $("#cotProductoEmpty")
+            .html('<i class="' + atributo(icono) + '"></i><strong>' + html(titulo) + '</strong>' +
+                (detalle ? '<span>' + html(detalle) + '</span>' : ''))
+            .show();
+        $("#cotProductoAnterior,#cotProductoSiguiente").prop("disabled", true);
     }
 
     function buscarProductos(pagina) {
+        cancelarBusquedaProductos();
         pagina = Math.max(1, parseInt(pagina, 10) || 1);
+        var solicitud = estado.productoSolicitud;
+        var filtro = $.trim($("#cotProductoFiltro").val() || "");
         var $btn = $("#cotBuscarProducto");
         setBusy($btn, true, "Buscando");
-        get(urls.productos, {
+        $("#cotProductoCount").text("Buscando…");
+        mostrarEstadoProductos("icon-spinner icon-spin", "Consultando SAP", filtro ? "Buscando “" + filtro + "”." : "Recorriendo el catálogo disponible para la venta.");
+
+        var request = get(urls.productos, {
             empresa: empresa(), codigoOperador: codigoOperador(),
             clienteId: estado.cliente ? estado.cliente.CardCode : "",
-            filtro: $("#cotProductoFiltro").val() || "",
+            filtro: filtro,
             pagina: pagina, tamano: 100
-        }).done(function (r) {
-            if (!r.ok) { avisar("error", r.msg); return; }
+        });
+        estado.productoRequest = request;
+
+        request.done(function (r) {
+            if (solicitud !== estado.productoSolicitud) return;
+            if (!r.ok) {
+                estado.productos = [];
+                $("#cotProductoCount").text("");
+                mostrarEstadoProductos("icon-warning-sign", "No se pudo consultar SAP", r.msg || "La consulta no devolvió una respuesta válida.");
+                avisar("error", r.msg);
+                return;
+            }
             var datos = r.data || {};
             estado.productos = datos.Items || [];
             estado.productoPagina = numero(datos.Pagina) || pagina;
             estado.productoTieneMas = !!datos.TieneMas;
             renderProductos();
-        }).fail(function (xhr) { avisar("error", mensajeError(xhr)); })
-          .always(function () { setBusy($btn, false); });
+        }).fail(function (xhr, estadoAjax) {
+            if (solicitud !== estado.productoSolicitud || estadoAjax === "abort") return;
+            estado.productos = [];
+            $("#cotProductoCount").text("");
+            mostrarEstadoProductos("icon-warning-sign", "No se pudo consultar SAP", mensajeError(xhr));
+            avisar("error", mensajeError(xhr));
+        }).always(function () {
+            if (solicitud !== estado.productoSolicitud) return;
+            estado.productoRequest = null;
+            setBusy($btn, false);
+        });
     }
 
     function renderProductos() {
         var $body = $("#cotProductoBody").empty();
-        $("#cotProductoEmpty").toggle(!estado.productos.length);
         $("#cotProductoCount").text(
             "Página " + estado.productoPagina + " · " +
             estado.productos.length + " productos");
         $("#cotProductoAnterior").prop("disabled", estado.productoPagina <= 1);
         $("#cotProductoSiguiente").prop("disabled", !estado.productoTieneMas);
+        if (!estado.productos.length) {
+            mostrarEstadoProductos("icon-search", "Sin coincidencias", "Pruebe con otro código, nombre o grupo.");
+            return;
+        }
+        $("#cotProductoEmpty").hide();
         $.each(estado.productos, function (i, p) {
             var stockClass = numero(p.Disponible) <= 0 ? "cot-stock-low" : "";
             var $tr = $("<tr tabindex='0'></tr>").append(
@@ -512,7 +568,20 @@
         $("#cotClienteFiltro").on("input", function () { clearTimeout(estado.clienteTimer); estado.clienteTimer = setTimeout(buscarClientes, 280); }).on("keydown", function (e) { if (e.keyCode === 13) { e.preventDefault(); buscarClientes(); } });
         $("#cotAgregarProducto").on("click", abrirProductos);
         $("#cotBuscarProducto").on("click", function () { buscarProductos(1); });
-        $("#cotProductoFiltro").on("keydown", function (e) { if (e.keyCode === 13) { e.preventDefault(); buscarProductos(1); } });
+        $("#cotProductoFiltro").on("input", function () {
+            cancelarBusquedaProductos();
+            estado.productoPagina = 1;
+            estado.productoTieneMas = false;
+            $("#cotProductoCount").text("");
+            mostrarEstadoProductos("icon-spinner icon-spin", "Preparando búsqueda", "Los resultados se actualizarán al terminar de escribir.");
+            estado.productoTimer = setTimeout(function () {
+                estado.productoTimer = null;
+                buscarProductos(1);
+            }, 300);
+        }).on("keydown", function (e) {
+            if (e.keyCode === 13) { e.preventDefault(); buscarProductos(1); }
+        });
+        $("#cotProductoModal").on("hidden.bs.modal", cancelarBusquedaProductos);
         $("#cotProductoAnterior").on("click", function () { buscarProductos(estado.productoPagina - 1); });
         $("#cotProductoSiguiente").on("click", function () { buscarProductos(estado.productoPagina + 1); });
         $("#cotLineBody").on("change", "input", function () {

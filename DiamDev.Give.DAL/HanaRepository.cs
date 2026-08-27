@@ -379,7 +379,7 @@ namespace DiamDev.Give.DAL
         // PRODUCTOS PARA COTIZACIONES
         // ─────────────────────────────────────────────
         /// <summary>
-        /// Artículos de venta activos de SAP para el cliente elegido. La fuente
+        /// Artículos habilitados para venta en SAP para el cliente elegido. La fuente
         /// de precio respeta la prioridad predeterminada de SAP confirmada en
         /// HANA_02: especial del cliente y sus periodos/cantidades, grupos de
         /// descuento, especial de la lista y, finalmente, ITM1. La búsqueda usa
@@ -598,7 +598,6 @@ namespace DiamDev.Give.DAL
                       AND (WLQN.""UomEntry"" IS NULL OR WLQN.""UomEntry""=-1 OR
                            WLQN.""UomEntry""=P.""UomEntry"")
                 WHERE I.""SellItem"" = 'Y'
-                  AND I.""validFor"" = 'Y'
                   AND ECQN.""ItemCode"" IS NULL
                   AND WLQN.""ItemCode"" IS NULL
                   AND {2}

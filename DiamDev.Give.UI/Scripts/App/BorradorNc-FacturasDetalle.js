@@ -48,12 +48,13 @@
         var titleId = id + "Title";
         return '<section class="bnc-follow-invoices" id="' + escapeHtml(id) +
             '" aria-labelledby="' + escapeHtml(titleId) + '">' +
-            '<div class="bnc-follow-section-head"><div>' +
+            '<div class="bnc-follow-section-head"><div class="bnc-follow-section-title">' +
             '<span class="bnc-follow-section-icon" aria-hidden="true"><i class="icon-list"></i></span>' +
             '<span><strong id="' + escapeHtml(titleId) + '">' +
             escapeHtml(opciones.titulo || "Productos y servicios de las facturas") + '</strong>' +
             '<small>' + escapeHtml(opciones.subtitulo || "Renglones originales que conforman cada factura en SAP.") +
-            '</small></span></div><span class="bnc-status" data-role="invoice-product-count">Cargando</span></div>' +
+            '</small></span></div><span class="bnc-invoice-overview" data-role="invoice-product-count">' +
+            '<i class="icon-refresh icon-spin" aria-hidden="true"></i> Cargando</span></div>' +
             '<div data-role="invoice-products"><div class="bnc-loading bnc-invoice-items-loading">' +
             '<span class="bnc-spinner"></span>Consultando productos y servicios en SAP...</div></div></section>';
     }
@@ -86,6 +87,8 @@
                     $(this).attr("aria-expanded", abrir ? "true" : "false");
                     $factura.find(".bnc-sap-invoice-body").first()
                         .prop("hidden", !abrir).attr("aria-hidden", abrir ? "false" : "true");
+                    $(this).find('[data-role="invoice-toggle-label"]')
+                        .text(abrir ? "Ocultar detalle" : "Ver detalle");
                 })
                 .on("click" + namespace, '[data-action="retry-invoice-products"]', function () {
                     if (actual) cargar(actual, true);
@@ -93,13 +96,13 @@
         }
 
         function renderCargando() {
-            $contador().text("Cargando productos");
+            $contador().html('<i class="icon-refresh icon-spin" aria-hidden="true"></i> Cargando');
             $contenido().html('<div class="bnc-loading bnc-invoice-items-loading">' +
                 '<span class="bnc-spinner"></span>Consultando productos y servicios en SAP...</div>');
         }
 
         function renderError(mensaje) {
-            $contador().text("No disponible");
+            $contador().html('<i class="icon-warning-sign" aria-hidden="true"></i> No disponible');
             $contenido().html(
                 '<div class="bnc-invoice-items-state is-error"><span class="bnc-follow-section-icon" aria-hidden="true"><i class="icon-warning-sign"></i></span>' +
                 '<div><strong>No fue posible consultar los productos</strong><span>' + escapeHtml(mensaje) +
@@ -110,34 +113,35 @@
         function renderProducto(producto, indice) {
             var sku = producto.Sku || "SERVICIO";
             var tipo = producto.EsServicio ? "Servicio" : "SKU";
-            var unidad = producto.UnidadMedida ? " " + escapeHtml(producto.UnidadMedida) : "";
-            var impuestoMeta = escapeHtml(producto.CodigoImpuesto || "Sin código") +
-                " · " + decimal(producto.ImpuestoPorcentaje, 2) + "%";
+            var unidad = producto.UnidadMedida ? escapeHtml(producto.UnidadMedida) : "Sin unidad";
+            var descuento = numero(producto.DescuentoPorcentaje);
+            var impuestoMeta = decimal(producto.ImpuestoPorcentaje, 2) + "%" +
+                (producto.CodigoImpuesto ? " · " + escapeHtml(producto.CodigoImpuesto) : "");
             var bodega = producto.Bodega
-                ? '<span class="bnc-sap-item-tag"><i class="icon-archive"></i> Bodega ' + escapeHtml(producto.Bodega) + '</span>'
-                : '<span class="bnc-sap-item-tag is-muted">Sin bodega</span>';
+                ? '<span class="bnc-sap-item-tag"><i class="icon-archive" aria-hidden="true"></i> Bodega ' + escapeHtml(producto.Bodega) + '</span>'
+                : '<span class="bnc-sap-item-tag is-muted"><i class="icon-archive" aria-hidden="true"></i> Sin bodega</span>';
 
             return '<article class="bnc-sap-item">' +
                 '<div class="bnc-sap-item-head"><div class="bnc-sap-item-identity">' +
-                '<span class="bnc-sap-item-number">' + decimal((producto.NumeroLinea == null ? indice : producto.NumeroLinea) + 1, 0) + '</span>' +
-                '<span><small class="bnc-sap-item-sku"><span>' + escapeHtml(tipo) + '</span> ' + escapeHtml(sku) + '</small>' +
+                '<span class="bnc-sap-item-number"><small>Línea</small>' + decimal((producto.NumeroLinea == null ? indice : producto.NumeroLinea) + 1, 0) + '</span>' +
+                '<span class="bnc-sap-item-copy"><span class="bnc-sap-item-sku"><span>' + escapeHtml(tipo) + '</span><b>' + escapeHtml(sku) + '</b></span>' +
                 '<strong>' + escapeHtml(producto.Descripcion || "Sin descripción") + '</strong></span></div>' +
                 '<div class="bnc-sap-item-tags">' + bodega + '</div></div>' +
-                '<dl class="bnc-sap-item-metrics"><div><dt>Cantidad</dt><dd>' + decimal(producto.Cantidad, 4) + unidad + '</dd></div>' +
+                '<dl class="bnc-sap-item-metrics"><div><dt>Cantidad</dt><dd>' + decimal(producto.Cantidad, 4) + '<small>' + unidad + '</small></dd></div>' +
                 '<div><dt>Precio unitario</dt><dd>' + dinero(producto.PrecioUnitario, producto.Moneda) + '</dd></div>' +
-                '<div><dt>Descuento</dt><dd>' + decimal(producto.DescuentoPorcentaje, 2) + '%</dd></div>' +
+                '<div' + (descuento ? '' : ' class="is-muted"') + '><dt>Descuento</dt><dd>' + (descuento ? decimal(descuento, 2) + '%' : 'Sin descuento') + '</dd></div>' +
                 '<div><dt>Subtotal</dt><dd>' + dinero(producto.Subtotal, producto.Moneda) + '</dd></div>' +
                 '<div><dt>Impuesto <small>' + impuestoMeta + '</small></dt><dd>' + dinero(producto.Impuesto, producto.Moneda) + '</dd></div>' +
-                '<div class="is-total"><dt>Total línea</dt><dd>' + dinero(producto.Total, producto.Moneda) + '</dd></div></dl></article>';
+                '<div class="is-total"><dt>Total de línea</dt><dd>' + dinero(producto.Total, producto.Moneda) + '</dd></div></dl></article>';
         }
 
         function renderFactura(factura, indice) {
             var productos = factura.Productos || [];
             var idContenido = id + "InvoiceContent" + indice;
             var fel = $.trim((factura.SerieFel || "") + " " + (factura.NumeroFel || ""));
-            var metadatos = fecha(factura.FechaDoc);
-            if (fel) metadatos += " · FEL " + escapeHtml(fel);
-            if (factura.Concepto) metadatos += " · " + escapeHtml(factura.Concepto);
+            var metadatos = '<span><i class="icon-calendar" aria-hidden="true"></i> ' + fecha(factura.FechaDoc) + '</span>';
+            if (fel) metadatos += '<span><i class="icon-file-text" aria-hidden="true"></i> FEL ' + escapeHtml(fel) + '</span>';
+            if (factura.Concepto) metadatos += '<span><i class="icon-tag" aria-hidden="true"></i> ' + escapeHtml(factura.Concepto) + '</span>';
 
             var items = "";
             $.each(productos, function (i, producto) { items += renderProducto(producto, i); });
@@ -151,11 +155,13 @@
                 '<button type="button" class="bnc-sap-invoice-toggle" data-action="toggle-invoice-products" ' +
                 'aria-expanded="' + (abierta ? "true" : "false") + '" aria-controls="' + escapeHtml(idContenido) + '">' +
                 '<span class="bnc-sap-invoice-heading"><span class="bnc-sap-invoice-icon" aria-hidden="true"><i class="icon-file-text"></i></span>' +
-                '<span><strong>Factura ' + escapeHtml(factura.Documento) + '</strong><small>' + metadatos + '</small></span></span>' +
-                '<span class="bnc-sap-invoice-summary"><span><small>Solicitado</small><strong>' + dinero(factura.ImporteSolicitado, factura.Moneda) + '</strong></span>' +
-                '<span><small>Total factura</small><strong>' + dinero(factura.TotalFactura, factura.Moneda) + '</strong></span>' +
-                '<span class="bnc-sap-invoice-count">' + productos.length + (productos.length === 1 ? " producto/servicio" : " productos/servicios") + '</span>' +
-                '<i class="icon-chevron-down bnc-sap-invoice-chevron" aria-hidden="true"></i></span></button>' +
+                '<span class="bnc-sap-invoice-copy"><small class="bnc-sap-invoice-eyebrow">Factura</small><strong>' + escapeHtml(factura.Documento) + '</strong>' +
+                '<span class="bnc-sap-invoice-meta">' + metadatos + '</span></span></span>' +
+                '<span class="bnc-sap-invoice-summary"><span class="bnc-sap-invoice-amount"><small>Monto solicitado</small><strong>' + dinero(factura.ImporteSolicitado, factura.Moneda) + '</strong></span>' +
+                '<span class="bnc-sap-invoice-amount"><small>Total de factura</small><strong>' + dinero(factura.TotalFactura, factura.Moneda) + '</strong></span>' +
+                '<span class="bnc-sap-invoice-count"><i class="icon-list" aria-hidden="true"></i> ' + productos.length + (productos.length === 1 ? " línea" : " líneas") + '</span>' +
+                '<span class="bnc-sap-invoice-action"><span data-role="invoice-toggle-label">' + (abierta ? "Ocultar detalle" : "Ver detalle") + '</span>' +
+                '<i class="icon-chevron-down bnc-sap-invoice-chevron" aria-hidden="true"></i></span></span></button>' +
                 '<div class="bnc-sap-invoice-body" id="' + escapeHtml(idContenido) + '" role="region" ' +
                 'aria-label="Productos de la factura ' + escapeHtml(factura.Documento) + '" aria-hidden="' + (abierta ? "false" : "true") + '"' +
                 (abierta ? "" : " hidden") + '><div class="bnc-sap-item-list">' + items + '</div></div></article>';
@@ -168,9 +174,9 @@
                 html += renderFactura(factura, indice);
             });
 
-            $contador().text(
+            $contador().html('<i class="icon-ok-circle" aria-hidden="true"></i> ' +
                 (facturas || []).length + ((facturas || []).length === 1 ? " factura" : " facturas") + " · " +
-                totalProductos + (totalProductos === 1 ? " producto/servicio" : " productos/servicios"));
+                totalProductos + (totalProductos === 1 ? " línea facturada" : " líneas facturadas"));
 
             if (!html) {
                 html = '<div class="bnc-invoice-items-state"><span class="bnc-follow-section-icon" aria-hidden="true"><i class="icon-info-sign"></i></span>' +

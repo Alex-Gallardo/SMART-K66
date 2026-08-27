@@ -592,6 +592,15 @@ namespace DiamDev.Give.BLL
         public BorradorNcEncabezado ObtenerPorId(string empresa, string idBorrador) =>
             _da.ObtenerPorId(empresa, idBorrador);
 
+        /// <summary>
+        /// Renglones originales en SAP de todas las facturas asociadas al
+        /// borrador. La consulta es por lote para no hacer una llamada HANA por
+        /// cada documento.
+        /// </summary>
+        public List<FacturaDetalleSap> ObtenerDetallesFacturas(
+            string empresa, string clienteId, IEnumerable<string> documentos) =>
+            _hana.ObtenerDetallesFacturas(empresa, clienteId, documentos);
+
         /// <summary>Prefijo de la serie, solo para mostrarlo en la UI.</summary>
         public string ObtenerPrefijoSerie(string empresa) =>
             _da.ObtenerPrefijoSerie(empresa);

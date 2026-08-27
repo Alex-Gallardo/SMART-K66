@@ -122,6 +122,51 @@ namespace DiamDev.Give.UI.Models
         public decimal Importe { get; set; }
     }
 
+    /// <summary>
+    /// Factura asociada al borrador con sus renglones originales de SAP.
+    /// Mantiene explícita la jerarquía Factura -> Productos/servicios para que
+    /// Seguimiento y Autorizaciones consuman exactamente el mismo contrato.
+    /// </summary>
+    public class BorradorNcFacturaContenidoViewModel
+    {
+        public BorradorNcFacturaContenidoViewModel()
+        {
+            Productos = new List<BorradorNcProductoFacturaViewModel>();
+        }
+
+        public string Documento { get; set; }
+        public string FechaDoc { get; set; }
+        public string SerieFel { get; set; }
+        public string NumeroFel { get; set; }
+        public string Moneda { get; set; }
+        public decimal TotalFactura { get; set; }
+        public decimal Pagado { get; set; }
+        public decimal ImporteSolicitado { get; set; }
+        public string Concepto { get; set; }
+        public string DescripcionSolicitud { get; set; }
+        public List<BorradorNcProductoFacturaViewModel> Productos { get; set; }
+    }
+
+    /// <summary>Producto o servicio facturado en un renglón de SAP INV1.</summary>
+    public class BorradorNcProductoFacturaViewModel
+    {
+        public int NumeroLinea { get; set; }
+        public string Sku { get; set; }
+        public bool EsServicio { get; set; }
+        public string Descripcion { get; set; }
+        public decimal Cantidad { get; set; }
+        public string UnidadMedida { get; set; }
+        public decimal PrecioUnitario { get; set; }
+        public decimal DescuentoPorcentaje { get; set; }
+        public decimal Subtotal { get; set; }
+        public string CodigoImpuesto { get; set; }
+        public decimal ImpuestoPorcentaje { get; set; }
+        public decimal Impuesto { get; set; }
+        public decimal Total { get; set; }
+        public string Moneda { get; set; }
+        public string Bodega { get; set; }
+    }
+
     public class BorradorNcDocumentoViewModel : BorradorNcListaItemViewModel
     {
         public BorradorNcDocumentoViewModel()

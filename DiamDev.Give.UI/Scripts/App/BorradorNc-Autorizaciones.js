@@ -7,6 +7,7 @@
     var urls = {
         listar: $root.data("url-listar"),
         detalle: $root.data("url-detalle"),
+        detalleFacturas: $root.data("url-detalle-facturas"),
         notas: $root.data("url-notas"),
         resolver: $root.data("url-resolver"),
         imprimir: $root.data("url-imprimir")
@@ -15,6 +16,10 @@
     var cargaSecuencia = 0;
     var detalleSecuencia = 0;
     var notasSecuencia = 0;
+    var facturasDetalle = window.BorradorNcFacturasDetalle.crear({
+        id: "bncAuthInvoices",
+        url: urls.detalleFacturas
+    });
 
     function token() { return $root.find('input[name="__RequestVerificationToken"]').val(); }
     function escapeHtml(value) { return $("<div>").text(value == null ? "" : String(value)).html(); }
@@ -66,6 +71,7 @@
         var secuencia = ++cargaSecuencia;
         detalleSecuencia++;
         notasSecuencia++;
+        facturasDetalle.invalidar();
         state.seleccionado = null;
         state.documento = null;
         $("#bncAuthDetail").html('<div class="bnc-empty"><i class="icon-hand-left"></i><strong>Seleccione una solicitud</strong><span>Revise cada línea y sus NC previas antes de autorizar.</span></div>');
@@ -117,6 +123,7 @@
     function seleccionar(empresa, id) {
         var secuencia = ++detalleSecuencia;
         notasSecuencia++;
+        facturasDetalle.cancelar();
         state.seleccionado = { empresa: empresa, id: id };
         $("#bncAuthBody tr").removeClass("is-selected").filter(function () {
             return $(this).data("empresa") === empresa && String($(this).data("id")) === String(id);
@@ -128,6 +135,7 @@
             if (!r || !r.ok) { avisar("error", r && r.msg ? r.msg : "No se pudo cargar el detalle."); return; }
             state.documento = r.data;
             renderDetalle(r.data);
+            facturasDetalle.cargar(r.data);
             cargarNotas(r.data);
         }).fail(function (xhr) {
             if (secuencia === detalleSecuencia) avisar("error", mensajeAjax(xhr));
@@ -157,6 +165,10 @@
             "</strong></div><div><small>Moneda</small><strong>" + escapeHtml(x.Moneda) +
             "</strong></div><div><small>Total solicitado</small><strong>" + dinero(x.Total, x.Moneda) + "</strong></div></div>" +
             '<div class="bnc-table-wrap" style="border-width:1px 0;border-radius:0"><table class="table bnc-table" style="min-width:700px"><thead><tr><th>Documento</th><th>Fecha</th><th class="text-right">Total factura</th><th class="text-right">Solicitado</th><th>Alertas</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
+            window.BorradorNcFacturasDetalle.plantilla("bncAuthInvoices", {
+                titulo: "Productos y servicios a revisar",
+                subtitulo: "Contenido completo de las facturas incluidas en este borrador."
+            }) +
             '<div class="bnc-card-head" style="min-height:46px"><div class="bnc-card-title"><i class="icon-warning-sign"></i><div><h3>Notas de crédito previas en SAP</h3><small>Antecedentes por cada documento del borrador.</small></div></div></div>' +
             '<div class="bnc-nc-list" id="bncAuthNotes"><div class="bnc-loading"><span class="bnc-spinner"></span>Consultando SAP...</div></div>' +
             '<div class="bnc-decision-bar"><button class="bnc-btn bnc-btn-ghost" type="button" id="bncAuthPrint"><i class="icon-print"></i> Imprimir</button>' +

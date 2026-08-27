@@ -230,13 +230,7 @@ namespace DiamDev.Give.UI.Controllers
                 if (!PuedeConsultar(enc))
                     throw new UnauthorizedAccessException("No tiene acceso a este borrador.");
 
-                var documentos = (enc.Detalles ?? new List<BorradorNcDetalle>())
-                    .Select(x => x.Documento)
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-                return _bll.ObtenerDetallesFacturas(empresa, enc.IdCliente, documentos);
+                return ProyectarContenidoFacturas(enc);
             });
         }
 
@@ -270,6 +264,19 @@ namespace DiamDev.Give.UI.Controllers
                 var enc = _bll.ObtenerPorId(empresa, idBorrador);
                 if (enc == null) throw new InvalidOperationException("Borrador no encontrado.");
                 return ProyectarDocumento(enc);
+            });
+        }
+
+        [HttpGet]
+        [BorradorNcPermiso(PERMISO_AUTORIZAR)]
+        public JsonResult ObtenerDetallesFacturasAutorizacion(string empresa, string idBorrador)
+        {
+            return JsonGet(() =>
+            {
+                ValidarEmpresa(empresa);
+                var enc = _bll.ObtenerPorId(empresa, idBorrador);
+                if (enc == null) throw new InvalidOperationException("Borrador no encontrado.");
+                return ProyectarContenidoFacturas(enc);
             });
         }
 
@@ -597,6 +604,64 @@ namespace DiamDev.Give.UI.Controllers
                         Importe = d.Importe
                     }).ToList()
             };
+        }
+
+        private List<BorradorNcFacturaContenidoViewModel> ProyectarContenidoFacturas(
+            BorradorNcEncabezado enc)
+        {
+            var facturas = (enc.Detalles ?? new List<BorradorNcDetalle>())
+                .Where(x => !string.IsNullOrWhiteSpace(x.Documento))
+                .GroupBy(x => x.Documento, StringComparer.OrdinalIgnoreCase)
+                .Select(x => x.First())
+                .ToList();
+
+            var documentos = facturas.Select(x => x.Documento).ToList();
+            var renglones = _bll.ObtenerDetallesFacturas(
+                enc.IdEmpresa, enc.IdCliente, documentos);
+            var productosPorDocumento = renglones
+                .GroupBy(x => x.Documento ?? "", StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(x => x.Key, x => x.OrderBy(y => y.NumeroLinea).ToList(),
+                              StringComparer.OrdinalIgnoreCase);
+
+            return facturas.Select(factura =>
+            {
+                List<FacturaDetalleSap> productos;
+                if (!productosPorDocumento.TryGetValue(factura.Documento, out productos))
+                    productos = new List<FacturaDetalleSap>();
+
+                return new BorradorNcFacturaContenidoViewModel
+                {
+                    Documento = factura.Documento,
+                    FechaDoc = factura.FechaDoc.ToString("yyyy-MM-dd"),
+                    SerieFel = factura.SerieFel,
+                    NumeroFel = factura.NumeroFel,
+                    Moneda = factura.Moneda,
+                    TotalFactura = factura.TotalFactura,
+                    Pagado = factura.Pagado,
+                    ImporteSolicitado = factura.Importe,
+                    Concepto = factura.Concepto,
+                    DescripcionSolicitud = factura.Descripcion,
+                    Productos = productos.Select(producto =>
+                        new BorradorNcProductoFacturaViewModel
+                        {
+                            NumeroLinea = producto.NumeroLinea,
+                            Sku = producto.CodigoArticulo,
+                            EsServicio = string.IsNullOrWhiteSpace(producto.CodigoArticulo),
+                            Descripcion = producto.Descripcion,
+                            Cantidad = producto.Cantidad,
+                            UnidadMedida = producto.UnidadMedida,
+                            PrecioUnitario = producto.PrecioUnitario,
+                            DescuentoPorcentaje = producto.DescuentoPorcentaje,
+                            Subtotal = producto.Subtotal,
+                            CodigoImpuesto = producto.CodigoImpuesto,
+                            ImpuestoPorcentaje = producto.ImpuestoPorcentaje,
+                            Impuesto = producto.Impuesto,
+                            Total = producto.Total,
+                            Moneda = producto.Moneda,
+                            Bodega = producto.Bodega
+                        }).ToList()
+                };
+            }).ToList();
         }
 
         private class ContextoConsulta

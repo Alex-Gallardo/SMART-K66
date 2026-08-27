@@ -26,7 +26,6 @@
         operadores: [],
         seguimiento: [],
         seleccionado: null,
-        detallesFacturasCache: {},
         seguimientoCargado: false,
         puedeAnular: String($root.data("puede-anular")) === "true"
     };
@@ -37,9 +36,12 @@
     var serieSecuencia = 0;
     var seguimientoSecuencia = 0;
     var detalleSecuencia = 0;
-    var detalleFacturasSecuencia = 0;
     var empresaAnterior = empresa();
     var operadorAnterior = "";
+    var facturasDetalle = window.BorradorNcFacturasDetalle.crear({
+        id: "bncFollowInvoices",
+        url: urls.detalleFacturas
+    });
 
     function token() {
         return $root.find('input[name="__RequestVerificationToken"]').val();
@@ -63,13 +65,6 @@
         return (moneda ? escapeHtml(moneda) + " " : "") + n.toLocaleString("es-GT", {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-        });
-    }
-
-    function decimal(value, maximoDecimales) {
-        return numero(value).toLocaleString("es-GT", {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: maximoDecimales == null ? 4 : maximoDecimales
         });
     }
 
@@ -635,6 +630,7 @@
 
     function cargarSeguimiento() {
         var secuencia = ++seguimientoSecuencia;
+        facturasDetalle.cancelar();
         var empresaFiltro = $("#bncFiltroEmpresa").val() || "";
         var desde = $("#bncFiltroDesde").val() || "";
         var hasta = $("#bncFiltroHasta").val() || "";
@@ -728,7 +724,7 @@
 
     function cargarDetalle(empresaId, id) {
         var secuencia = ++detalleSecuencia;
-        detalleFacturasSecuencia++;
+        facturasDetalle.cancelar();
         state.seleccionado = { empresa: empresaId, id: id };
         $("#bncFollowBody tr").removeClass("is-selected").filter(function () {
             return $(this).data("empresa") === empresaId && String($(this).data("id")) === String(id);
@@ -739,7 +735,7 @@
                 state.seleccionado.empresa !== empresaId || String(state.seleccionado.id) !== String(id)) return;
             if (!r || !r.ok) { avisar("error", r && r.msg ? r.msg : "No se pudo abrir el detalle."); return; }
             renderDetalle(r.data);
-            cargarDetallesFacturas(r.data, secuencia, false);
+            facturasDetalle.cargar(r.data);
         }).fail(function (xhr) {
             if (secuencia === detalleSecuencia) avisar("error", mensajeAjax(xhr));
         });
@@ -770,132 +766,10 @@
             "</strong></div><div><small>Resolución</small><strong>" + escapeHtml(x.ResueltoPor || "Pendiente") + (x.FechaResolucion ? " · " + fechaHora(x.FechaResolucion) : "") + "</strong></div></div>" +
             motivo +
             '<div class="bnc-table-wrap" style="border-width:1px 0 0;border-radius:0;"><table class="table bnc-table" style="min-width:620px"><thead><tr><th>Documento</th><th>Fecha</th><th>Descripción</th><th class="text-right">Importe</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
-            '<section class="bnc-follow-invoices" aria-labelledby="bncFollowInvoicesTitle"><div class="bnc-follow-section-head"><div><span class="bnc-follow-section-icon"><i class="icon-list"></i></span><span><strong id="bncFollowInvoicesTitle">Contenido de las facturas</strong><small>Artículos y servicios originales consultados en SAP.</small></span></div><span class="bnc-status" id="bncInvoiceItemCount">Cargando</span></div>' +
-            '<div id="bncFollowInvoiceItems"><div class="bnc-loading bnc-invoice-items-loading"><span class="bnc-spinner"></span>Consultando renglones en SAP...</div></div></section>' +
+            window.BorradorNcFacturasDetalle.plantilla("bncFollowInvoices") +
             '<div class="bnc-decision-bar"><button class="bnc-btn bnc-btn-ghost" type="button" id="bncImprimirSeleccionado"><i class="icon-print"></i> Imprimir</button>' + anular + "</div>"
         );
         state.seleccionado.documento = x;
-    }
-
-    function claveDetallesFacturas(empresaId, id) {
-        return String(empresaId || "").toUpperCase() + "|" + String(id || "");
-    }
-
-    function seleccionDetalleVigente(documento, secuencia) {
-        return secuencia === detalleSecuencia && state.seleccionado && documento &&
-            state.seleccionado.empresa === documento.IdEmpresa &&
-            String(state.seleccionado.id) === String(documento.IdBorrador);
-    }
-
-    function cargarDetallesFacturas(documento, secuencia, forzar) {
-        if (!seleccionDetalleVigente(documento, secuencia)) return;
-        var clave = claveDetallesFacturas(documento.IdEmpresa, documento.IdBorrador);
-        if (!forzar && Object.prototype.hasOwnProperty.call(state.detallesFacturasCache, clave)) {
-            renderDetallesFacturas(documento, state.detallesFacturasCache[clave]);
-            return;
-        }
-
-        var secuenciaFacturas = ++detalleFacturasSecuencia;
-        $("#bncInvoiceItemCount").text("Cargando");
-        $("#bncFollowInvoiceItems").html(
-            '<div class="bnc-loading bnc-invoice-items-loading"><span class="bnc-spinner"></span>Consultando renglones en SAP...</div>');
-
-        get(urls.detalleFacturas, {
-            empresa: documento.IdEmpresa,
-            idBorrador: documento.IdBorrador
-        }).done(function (r) {
-            if (secuenciaFacturas !== detalleFacturasSecuencia ||
-                !seleccionDetalleVigente(documento, secuencia)) return;
-            if (!r || !r.ok) {
-                renderErrorDetallesFacturas(r && r.msg
-                    ? r.msg
-                    : "No se pudo consultar el contenido de las facturas.");
-                return;
-            }
-            state.detallesFacturasCache[clave] = r.data || [];
-            renderDetallesFacturas(documento, state.detallesFacturasCache[clave]);
-        }).fail(function (xhr) {
-            if (secuenciaFacturas !== detalleFacturasSecuencia ||
-                !seleccionDetalleVigente(documento, secuencia)) return;
-            renderErrorDetallesFacturas(mensajeAjax(xhr));
-        });
-    }
-
-    function renderErrorDetallesFacturas(mensaje) {
-        $("#bncInvoiceItemCount").text("No disponible");
-        $("#bncFollowInvoiceItems").html(
-            '<div class="bnc-invoice-items-state is-error"><span class="bnc-follow-section-icon"><i class="icon-warning-sign"></i></span><div><strong>No fue posible consultar SAP</strong><span>' + escapeHtml(mensaje) + '</span></div><button type="button" class="bnc-btn bnc-btn-ghost" id="bncReintentarDetalleFacturas"><i class="icon-refresh"></i> Reintentar</button></div>');
-    }
-
-    function renderDetallesFacturas(documento, renglones) {
-        var porDocumento = {};
-        $.each(renglones || [], function (_, renglon) {
-            var clave = String(renglon.Documento || "");
-            if (!porDocumento[clave]) porDocumento[clave] = [];
-            porDocumento[clave].push(renglon);
-        });
-
-        var vistos = {}, html = "", facturas = 0, totalRenglones = 0;
-        $.each(documento.Detalles || [], function (_, factura) {
-            var numeroDocumento = String(factura.Documento || "");
-            if (!numeroDocumento || vistos[numeroDocumento]) return;
-            vistos[numeroDocumento] = true;
-            var items = porDocumento[numeroDocumento] || [];
-            totalRenglones += items.length;
-            html += renderFacturaConDetalles(factura, items, facturas, facturas === 0);
-            facturas++;
-        });
-
-        $("#bncInvoiceItemCount").text(
-            facturas + (facturas === 1 ? " factura" : " facturas") + " · " +
-            totalRenglones + (totalRenglones === 1 ? " renglón" : " renglones"));
-
-        if (!facturas) {
-            html = '<div class="bnc-invoice-items-state"><span class="bnc-follow-section-icon"><i class="icon-info-sign"></i></span><div><strong>Sin facturas asociadas</strong><span>Este borrador no contiene documentos para consultar en SAP.</span></div></div>';
-        }
-        $("#bncFollowInvoiceItems").html(html);
-    }
-
-    function renderFacturaConDetalles(factura, renglones, indice, abierta) {
-        var idContenido = "bncInvoiceContent" + indice;
-        var fel = $.trim((factura.SerieFel || "") + " " + (factura.NumeroFel || ""));
-        var metadatos = fechaCorta(factura.FechaDoc);
-        if (fel) metadatos += " · FEL " + escapeHtml(fel);
-
-        var items = "";
-        $.each(renglones, function (i, renglon) {
-            items += renderRenglonFactura(renglon, i);
-        });
-        if (!items) {
-            items = '<div class="bnc-sap-invoice-empty"><i class="icon-info-sign"></i><span>SAP no devolvió artículos o servicios para esta factura.</span></div>';
-        }
-
-        return '<article class="bnc-sap-invoice' + (abierta ? " is-open" : "") + '">' +
-            '<button type="button" class="bnc-sap-invoice-toggle" aria-expanded="' + (abierta ? "true" : "false") + '" aria-controls="' + idContenido + '">' +
-            '<span class="bnc-sap-invoice-heading"><span class="bnc-sap-invoice-icon"><i class="icon-file-text"></i></span><span><strong>Factura ' + escapeHtml(factura.Documento) + '</strong><small>' + metadatos + '</small></span></span>' +
-            '<span class="bnc-sap-invoice-summary"><span><small>Solicitado</small><strong>' + dinero(factura.Importe, factura.Moneda) + '</strong></span><span><small>Total factura</small><strong>' + dinero(factura.TotalFactura, factura.Moneda) + '</strong></span><span class="bnc-sap-invoice-count">' + renglones.length + (renglones.length === 1 ? " renglón" : " renglones") + '</span><i class="icon-chevron-down bnc-sap-invoice-chevron"></i></span>' +
-            '</button><div class="bnc-sap-invoice-body" id="' + idContenido + '" role="region" aria-label="Detalle de factura ' + escapeHtml(factura.Documento) + '"><div class="bnc-sap-item-list">' + items + '</div></div></article>';
-    }
-
-    function renderRenglonFactura(renglon, indice) {
-        var codigo = renglon.CodigoArticulo || "SERVICIO";
-        var descripcion = renglon.Descripcion || "Sin descripción";
-        var unidad = renglon.UnidadMedida ? " " + escapeHtml(renglon.UnidadMedida) : "";
-        var impuestoMeta = escapeHtml(renglon.CodigoImpuesto || "Sin código") +
-            " · " + decimal(renglon.ImpuestoPorcentaje, 2) + "%";
-        var bodega = renglon.Bodega
-            ? '<span class="bnc-sap-item-tag"><i class="icon-archive"></i> ' + escapeHtml(renglon.Bodega) + '</span>'
-            : '<span class="bnc-sap-item-tag is-muted">Sin bodega</span>';
-
-        return '<article class="bnc-sap-item">' +
-            '<div class="bnc-sap-item-head"><div class="bnc-sap-item-identity"><span class="bnc-sap-item-number">' + decimal((renglon.NumeroLinea == null ? indice : renglon.NumeroLinea) + 1, 0) + '</span><span><small>' + escapeHtml(codigo) + '</small><strong>' + escapeHtml(descripcion) + '</strong></span></div>' +
-            '<div class="bnc-sap-item-tags">' + bodega + '</div></div>' +
-            '<dl class="bnc-sap-item-metrics"><div><dt>Cantidad</dt><dd>' + decimal(renglon.Cantidad, 4) + unidad + '</dd></div>' +
-            '<div><dt>Precio unitario</dt><dd>' + dinero(renglon.PrecioUnitario, renglon.Moneda) + '</dd></div>' +
-            '<div><dt>Descuento</dt><dd>' + decimal(renglon.DescuentoPorcentaje, 2) + '%</dd></div>' +
-            '<div><dt>Subtotal</dt><dd>' + dinero(renglon.Subtotal, renglon.Moneda) + '</dd></div>' +
-            '<div><dt>Impuesto <small>' + impuestoMeta + '</small></dt><dd>' + dinero(renglon.Impuesto, renglon.Moneda) + '</dd></div>' +
-            '<div class="is-total"><dt>Total línea</dt><dd>' + dinero(renglon.Total, renglon.Moneda) + '</dd></div></dl></article>';
     }
 
     function abrirImpresion(emp, id) {
@@ -916,6 +790,7 @@
             if (!r || !r.ok) { avisar("error", r && r.msg ? r.msg : "No se pudo anular."); return; }
             avisar("success", r.msg || "Borrador anulado.");
             $("#bncAnularModal").modal("hide");
+            facturasDetalle.cancelar();
             state.seleccionado = null;
             cargarSeguimiento();
             $("#bncFollowDetail").html('<div class="bnc-empty"><i class="icon-hand-right"></i><strong>Seleccione un borrador</strong><span>Su detalle y acciones aparecerán aquí.</span></div>');
@@ -1001,8 +876,7 @@
 
         $("#bncTabSeguimiento").on("shown.bs.tab", function () { if (!state.seguimientoCargado) cargarSeguimiento(); });
         $("#bncRefrescarSeguimiento").on("click", function () {
-            state.detallesFacturasCache = {};
-            detalleFacturasSecuencia++;
+            facturasDetalle.invalidar();
             cargarSeguimiento();
         });
         $("#bncFiltroEmpresa,#bncFiltroDesde,#bncFiltroHasta").on("change", cargarSeguimiento);
@@ -1014,14 +888,6 @@
         }).on("click", "#bncAnularSeleccionado", function () {
             $("#bncMotivoAnular").val("");
             $("#bncAnularModal").modal("show");
-        }).on("click", ".bnc-sap-invoice-toggle", function () {
-            var $factura = $(this).closest(".bnc-sap-invoice");
-            var abrir = !$factura.hasClass("is-open");
-            $factura.toggleClass("is-open", abrir);
-            $(this).attr("aria-expanded", abrir ? "true" : "false");
-        }).on("click", "#bncReintentarDetalleFacturas", function () {
-            if (state.seleccionado && state.seleccionado.documento)
-                cargarDetallesFacturas(state.seleccionado.documento, detalleSecuencia, true);
         });
         $("#bncConfirmarAnular").on("click", confirmarAnulacion);
         $(window).on("beforeunload.borradorNc", function () {

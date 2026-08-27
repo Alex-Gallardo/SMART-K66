@@ -57,6 +57,24 @@ namespace DiamDev.Give.UI.Controllers
             });
         }
 
+        [HttpGet]
+        [CotizacionPermiso(PermisoVer)]
+        public JsonResult ObtenerPrecio(
+            string empresa, string codigoOperador, string clienteId,
+            string itemCode, decimal cantidad)
+        {
+            return JsonGet(delegate
+            {
+                string agente = ResolverAgente(empresa, codigoOperador);
+                var producto = _bll.ObtenerPrecioProducto(
+                    empresa, agente, clienteId, itemCode, cantidad);
+                if (producto == null)
+                    throw new InvalidOperationException(
+                        "El producto ya no está disponible para venta en SAP.");
+                return producto;
+            });
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [CotizacionPermiso(PermisoCrear)]

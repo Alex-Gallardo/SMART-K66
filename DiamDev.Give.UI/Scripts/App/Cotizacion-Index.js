@@ -7,6 +7,7 @@
     var urls = {
         clientes: $app.data("url-clientes"),
         productos: $app.data("url-productos"),
+        precio: $app.data("url-precio"),
         guardar: $app.data("url-guardar"),
         listar: $app.data("url-listar"),
         detalle: $app.data("url-detalle"),
@@ -25,7 +26,10 @@
         seleccionado: null,
         anular: null,
         clienteTimer: null,
-        filtroTimer: null
+        filtroTimer: null,
+        productoTimer: null,
+        productoRequest: null,
+        productoSolicitud: 0
     };
 
     function token() {
@@ -63,6 +67,21 @@
     function normalizarMoneda(valor) {
         var m = String(valor || "").trim().toUpperCase();
         return m === "QTZ" || m === "Q" ? "GTQ" : m;
+    }
+
+    function fuentePrecio(valor) {
+        var fuentes = {
+            CLIENTE_CANTIDAD: "Especial cliente por cantidad",
+            CLIENTE_PERIODO: "Especial cliente por vigencia",
+            CLIENTE: "Especial del cliente",
+            GRUPO_DESCUENTO: "Grupo de descuento SAP",
+            LISTA_CANTIDAD: "Especial de lista por cantidad",
+            LISTA_PERIODO: "Especial de lista por vigencia",
+            LISTA_ESPECIAL: "Especial de lista",
+            LISTA: "Lista de precios",
+            SIN_PRECIO: "Sin precio configurado"
+        };
+        return fuentes[String(valor || "").toUpperCase()] || "Precio SAP";
     }
 
     function avisar(tipo, mensaje) {
@@ -121,6 +140,7 @@
     }
 
     function limpiarCliente() {
+        cancelarBusquedaProductos();
         estado.cliente = null;
         $("#cotClienteCodigo,#cotClienteNombre,#cotNit,#cotCorreo,#cotDireccion").val("");
         $("#cotClientStrip").removeClass("is-selected");
@@ -131,6 +151,7 @@
     }
 
     function seleccionarCliente(c) {
+        cancelarBusquedaProductos();
         estado.cliente = c;
         $("#cotClienteCodigo").val(c.CardCode || "");
         $("#cotClienteNombre").val(c.CardName || "");
@@ -186,44 +207,95 @@
             avisar("warning", "Seleccione un cliente antes de agregar productos.");
             return;
         }
+        cancelarBusquedaProductos();
         $("#cotProductoFiltro").val("");
-        $("#cotProductoBody").empty();
-        $("#cotProductoEmpty").show();
+        estado.productos = [];
         $("#cotProductoCount").text("");
         estado.productoPagina = 1;
         estado.productoTieneMas = false;
+        mostrarEstadoProductos("icon-search", "Preparando catálogo", "Consultando productos disponibles para la venta.");
         $("#cotProductoModal").modal("show");
         buscarProductos(1);
+        setTimeout(function () { $("#cotProductoFiltro").focus(); }, 250);
+    }
+
+    function cancelarBusquedaProductos() {
+        clearTimeout(estado.productoTimer);
+        estado.productoTimer = null;
+        estado.productoSolicitud++;
+        if (estado.productoRequest && estado.productoRequest.readyState !== 4) {
+            estado.productoRequest.abort();
+        }
+        estado.productoRequest = null;
+        setBusy($("#cotBuscarProducto"), false);
+    }
+
+    function mostrarEstadoProductos(icono, titulo, detalle) {
+        $("#cotProductoBody").empty();
+        $("#cotProductoEmpty")
+            .html('<i class="' + atributo(icono) + '"></i><strong>' + html(titulo) + '</strong>' +
+                (detalle ? '<span>' + html(detalle) + '</span>' : ''))
+            .show();
+        $("#cotProductoAnterior,#cotProductoSiguiente").prop("disabled", true);
     }
 
     function buscarProductos(pagina) {
+        cancelarBusquedaProductos();
         pagina = Math.max(1, parseInt(pagina, 10) || 1);
+        var solicitud = estado.productoSolicitud;
+        var filtro = $.trim($("#cotProductoFiltro").val() || "");
         var $btn = $("#cotBuscarProducto");
         setBusy($btn, true, "Buscando");
-        get(urls.productos, {
+        $("#cotProductoCount").text("Buscando…");
+        mostrarEstadoProductos("icon-spinner icon-spin", "Consultando SAP", filtro ? "Buscando “" + filtro + "”." : "Recorriendo el catálogo disponible para la venta.");
+
+        var request = get(urls.productos, {
             empresa: empresa(), codigoOperador: codigoOperador(),
             clienteId: estado.cliente ? estado.cliente.CardCode : "",
-            filtro: $("#cotProductoFiltro").val() || "",
+            filtro: filtro,
             pagina: pagina, tamano: 100
-        }).done(function (r) {
-            if (!r.ok) { avisar("error", r.msg); return; }
+        });
+        estado.productoRequest = request;
+
+        request.done(function (r) {
+            if (solicitud !== estado.productoSolicitud) return;
+            if (!r.ok) {
+                estado.productos = [];
+                $("#cotProductoCount").text("");
+                mostrarEstadoProductos("icon-warning-sign", "No se pudo consultar SAP", r.msg || "La consulta no devolvió una respuesta válida.");
+                avisar("error", r.msg);
+                return;
+            }
             var datos = r.data || {};
             estado.productos = datos.Items || [];
             estado.productoPagina = numero(datos.Pagina) || pagina;
             estado.productoTieneMas = !!datos.TieneMas;
             renderProductos();
-        }).fail(function (xhr) { avisar("error", mensajeError(xhr)); })
-          .always(function () { setBusy($btn, false); });
+        }).fail(function (xhr, estadoAjax) {
+            if (solicitud !== estado.productoSolicitud || estadoAjax === "abort") return;
+            estado.productos = [];
+            $("#cotProductoCount").text("");
+            mostrarEstadoProductos("icon-warning-sign", "No se pudo consultar SAP", mensajeError(xhr));
+            avisar("error", mensajeError(xhr));
+        }).always(function () {
+            if (solicitud !== estado.productoSolicitud) return;
+            estado.productoRequest = null;
+            setBusy($btn, false);
+        });
     }
 
     function renderProductos() {
         var $body = $("#cotProductoBody").empty();
-        $("#cotProductoEmpty").toggle(!estado.productos.length);
         $("#cotProductoCount").text(
             "Página " + estado.productoPagina + " · " +
             estado.productos.length + " productos");
         $("#cotProductoAnterior").prop("disabled", estado.productoPagina <= 1);
         $("#cotProductoSiguiente").prop("disabled", !estado.productoTieneMas);
+        if (!estado.productos.length) {
+            mostrarEstadoProductos("icon-search", "Sin coincidencias", "Pruebe con otro código, nombre o grupo.");
+            return;
+        }
+        $("#cotProductoEmpty").hide();
         $.each(estado.productos, function (i, p) {
             var stockClass = numero(p.Disponible) <= 0 ? "cot-stock-low" : "";
             var $tr = $("<tr tabindex='0'></tr>").append(
@@ -232,7 +304,7 @@
                 '<td class="text-right">' + numero(p.Existencia).toLocaleString("es-GT") + '</td>' +
                 '<td class="text-right">' + numero(p.Comprometido).toLocaleString("es-GT") + '</td>' +
                 '<td class="text-right ' + stockClass + '">' + numero(p.Disponible).toLocaleString("es-GT") + '</td>' +
-                '<td class="text-right"><strong>' + html(moneda(p.Precio, normalizarMoneda(p.Moneda))) + '</strong><br><small class="text-muted">Lista ' + html(p.ListaPrecio) + '</small></td>' +
+                '<td class="text-right"><strong>' + html(moneda(p.Precio, normalizarMoneda(p.Moneda))) + '</strong><br><small class="text-muted">Neto · ' + html(fuentePrecio(p.FuentePrecio)) + '</small></td>' +
                 '<td class="text-right"><strong>' + numero(p.ImpuestoPorcentaje).toFixed(2) + '%</strong><br><small class="text-muted">' + html(p.GrupoImpuesto || "—") + '</small></td>');
             $tr.on("click keydown", function (e) {
                 if (e.type === "click" || e.keyCode === 13) agregarProducto(i);
@@ -263,10 +335,46 @@
             PrecioLista: numero(p.Precio),
             PrecioUnitario: numero(p.Precio),
             DescuentoPorcentaje: 0,
-            ImpuestoPorcentaje: numero(p.ImpuestoPorcentaje)
+            ImpuestoPorcentaje: numero(p.ImpuestoPorcentaje),
+            PrecioBruto: numero(p.PrecioBruto),
+            FuentePrecio: p.FuentePrecio,
+            PrecioManual: false,
+            PrecioVersion: 0
         });
         renderLineas();
         $("#cotProductoModal").modal("hide");
+        actualizarPrecioSap(existente >= 0 ? existente : estado.lineas.length - 1);
+    }
+
+    function actualizarPrecioSap(indice) {
+        var x = estado.lineas[indice];
+        if (!x || numero(x.Cantidad) <= 0 || !estado.cliente) return;
+        x.PrecioVersion = numero(x.PrecioVersion) + 1;
+        var version = x.PrecioVersion, referencia = x;
+        get(urls.precio, {
+            empresa: empresa(), codigoOperador: codigoOperador(),
+            clienteId: estado.cliente.CardCode, itemCode: x.ItemCode,
+            cantidad: numero(x.Cantidad)
+        }).done(function (r) {
+            if (!r.ok) {
+                avisar("warning", r.msg ||
+                    "No fue posible actualizar la escala de precio SAP.");
+                return;
+            }
+            if (!r.data || estado.lineas[indice] !== referencia ||
+                estado.lineas[indice].PrecioVersion !== version) return;
+            var p = r.data, linea = estado.lineas[indice];
+            linea.PrecioLista = numero(p.Precio);
+            linea.PrecioBruto = numero(p.PrecioBruto);
+            linea.FuentePrecio = p.FuentePrecio;
+            linea.ImpuestoPorcentaje = numero(p.ImpuestoPorcentaje);
+            linea.Existencia = numero(p.Existencia);
+            linea.Disponible = numero(p.Disponible);
+            if (!linea.PrecioManual) linea.PrecioUnitario = numero(p.Precio);
+            renderLineas();
+        }).fail(function () {
+            avisar("warning", "No fue posible actualizar la escala SAP de " + x.ItemCode + ".");
+        });
     }
 
     function calcularLinea(x) {
@@ -290,7 +398,7 @@
                 '<td data-label="Unidad">' + html(x.Unidad || "—") + '</td>' +
                 '<td data-label="Disponible" class="text-right ' + stockClass + '">' + numero(x.Disponible).toLocaleString("es-GT") + '</td>' +
                 '<td data-label="Cantidad"><input class="form-control text-right" type="number" min="0.000001" step="0.01" data-field="Cantidad" value="' + numero(x.Cantidad) + '" /></td>' +
-                '<td data-label="Precio"><input class="form-control text-right" type="number" min="0" step="0.01" data-field="PrecioUnitario" title="Precio de lista SAP: ' + numero(x.PrecioLista).toFixed(2) + '" value="' + numero(x.PrecioUnitario) + '" /></td>' +
+                '<td data-label="Precio neto"><input class="form-control text-right" type="number" min="0" step="0.01" data-field="PrecioUnitario" title="Referencia SAP neta: ' + numero(x.PrecioLista).toFixed(2) + ' · ' + atributo(fuentePrecio(x.FuentePrecio)) + '" value="' + numero(x.PrecioUnitario) + '" /><small class="text-muted">' + html(fuentePrecio(x.FuentePrecio)) + '</small></td>' +
                 '<td data-label="Descuento %"><input class="form-control text-right" type="number" min="0" max="100" step="0.01" data-field="DescuentoPorcentaje" value="' + numero(x.DescuentoPorcentaje) + '" /></td>' +
                 '<td data-label="IVA SAP"><input class="form-control text-right" type="number" readonly data-field="ImpuestoPorcentaje" value="' + numero(x.ImpuestoPorcentaje) + '" /></td>' +
                 '<td data-label="Total" class="text-right"><strong>' + html(moneda(c.total)) + '</strong></td>' +
@@ -460,10 +568,33 @@
         $("#cotClienteFiltro").on("input", function () { clearTimeout(estado.clienteTimer); estado.clienteTimer = setTimeout(buscarClientes, 280); }).on("keydown", function (e) { if (e.keyCode === 13) { e.preventDefault(); buscarClientes(); } });
         $("#cotAgregarProducto").on("click", abrirProductos);
         $("#cotBuscarProducto").on("click", function () { buscarProductos(1); });
-        $("#cotProductoFiltro").on("keydown", function (e) { if (e.keyCode === 13) { e.preventDefault(); buscarProductos(1); } });
+        $("#cotProductoFiltro").on("input", function () {
+            cancelarBusquedaProductos();
+            estado.productoPagina = 1;
+            estado.productoTieneMas = false;
+            $("#cotProductoCount").text("");
+            mostrarEstadoProductos("icon-spinner icon-spin", "Preparando búsqueda", "Los resultados se actualizarán al terminar de escribir.");
+            estado.productoTimer = setTimeout(function () {
+                estado.productoTimer = null;
+                buscarProductos(1);
+            }, 300);
+        }).on("keydown", function (e) {
+            if (e.keyCode === 13) { e.preventDefault(); buscarProductos(1); }
+        });
+        $("#cotProductoModal").on("hidden.bs.modal", cancelarBusquedaProductos);
         $("#cotProductoAnterior").on("click", function () { buscarProductos(estado.productoPagina - 1); });
         $("#cotProductoSiguiente").on("click", function () { buscarProductos(estado.productoPagina + 1); });
-        $("#cotLineBody").on("change", "input", function () { var i = numero($(this).closest("tr").data("index")); var campo = $(this).data("field"); if (!estado.lineas[i]) return; estado.lineas[i][campo] = campo === "Descripcion" ? $(this).val() : numero($(this).val()); renderLineas(); })
+        $("#cotLineBody").on("change", "input", function () {
+            var i = numero($(this).closest("tr").data("index"));
+            var campo = $(this).data("field");
+            if (!estado.lineas[i]) return;
+            estado.lineas[i][campo] = campo === "Descripcion"
+                ? $(this).val() : numero($(this).val());
+            if (campo === "PrecioUnitario")
+                estado.lineas[i].PrecioManual = true;
+            renderLineas();
+            if (campo === "Cantidad") actualizarPrecioSap(i);
+        })
             .on("input", ".cot-desc", function () { var i = numero($(this).closest("tr").data("index")); if (estado.lineas[i]) estado.lineas[i].Descripcion = $(this).val(); })
             .on("click", ".cot-remove", function () { estado.lineas.splice(numero($(this).closest("tr").data("index")), 1); renderLineas(); });
         $("#cotMoneda").on("change", renderLineas);

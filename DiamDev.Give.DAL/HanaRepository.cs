@@ -5,6 +5,7 @@ using DiamDev.Give.Entities;
 using System.Data.Odbc;
 using System.Linq;
 using System.Configuration;   // ← NUEVO: para leer AppSettings (ConfigurationManager)
+using System.Globalization;
 
 namespace DiamDev.Give.DAL
 {
@@ -378,10 +379,11 @@ namespace DiamDev.Give.DAL
         // PRODUCTOS PARA COTIZACIONES
         // ─────────────────────────────────────────────
         /// <summary>
-        /// Artículos de venta activos de SAP para el cliente elegido. El precio
-        /// viene de ITM1 usando OCRD.ListNum; existencia y comprometido son los
-        /// acumulados de OITM. La consulta está limitada para que una búsqueda
-        /// vacía no transporte el catálogo completo al navegador.
+        /// Artículos habilitados para venta en SAP para el cliente elegido. La fuente
+        /// de precio respeta la prioridad predeterminada de SAP confirmada en
+        /// HANA_02: especial del cliente y sus periodos/cantidades, grupos de
+        /// descuento, especial de la lista y, finalmente, ITM1. La búsqueda usa
+        /// cantidad uno.
         /// </summary>
         public PaginaProductosCotizacionHana BuscarProductosCotizacion(
             string empresa, string clienteId, string filtro,
@@ -411,7 +413,7 @@ namespace DiamDev.Give.DAL
             resultado.Items = ConsultarProductosCotizacion(
                 empresa, clienteId, condicion,
                 string.Format(" LIMIT {0} OFFSET {1}", tamano + 1,
-                              desplazamiento));
+                              desplazamiento), null);
             resultado.TieneMas = resultado.Items.Count > tamano;
             if (resultado.TieneMas)
                 resultado.Items.RemoveAt(resultado.Items.Count - 1);
@@ -423,12 +425,16 @@ namespace DiamDev.Give.DAL
         /// usa al guardar para verificar contra SAP y evitar nombres inventados.
         /// </summary>
         public List<ProductoCotizacionHana> ObtenerProductosCotizacion(
-            string empresa, string clienteId, IEnumerable<string> itemCodes)
+            string empresa, string clienteId,
+            IDictionary<string, decimal> cantidades)
         {
-            var codigos = (itemCodes ?? Enumerable.Empty<string>())
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Select(x => x.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+            var cantidadesLimpias = (cantidades ??
+                    new Dictionary<string, decimal>())
+                .Where(x => !string.IsNullOrWhiteSpace(x.Key) && x.Value > 0m)
+                .GroupBy(x => x.Key.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(x => x.Key, x => x.First().Value,
+                              StringComparer.OrdinalIgnoreCase);
+            var codigos = cantidadesLimpias.Keys
                 .Take(100)
                 .ToList();
 
@@ -437,15 +443,74 @@ namespace DiamDev.Give.DAL
 
             string valores = string.Join(",", codigos.Select(x => "'" + Esc(x) + "'"));
             return ConsultarProductosCotizacion(
-                empresa, clienteId, "I.\"ItemCode\" IN (" + valores + ")", "");
+                empresa, clienteId, "I.\"ItemCode\" IN (" + valores + ")", "",
+                cantidadesLimpias);
         }
 
         private static List<ProductoCotizacionHana> ConsultarProductosCotizacion(
-            string empresa, string clienteId, string condicion, string limiteSql)
+            string empresa, string clienteId, string condicion, string limiteSql,
+            IDictionary<string, decimal> cantidades)
         {
             var lista = new List<ProductoCotizacionHana>();
             string schema = ResolverSchema(empresa);
             if (schema == null) return lista;
+
+            string cantidadSql = "CAST(1 AS DECIMAL(19,6))";
+            string joinCantidades = "";
+            if (cantidades != null && cantidades.Count > 0)
+            {
+                string filas = string.Join(" UNION ALL ", cantidades.Take(100)
+                    .Select(x => string.Format(CultureInfo.InvariantCulture,
+                        "SELECT '{0}' AS \"ItemCode\", CAST({1} AS DECIMAL(19,6)) AS \"Cantidad\" FROM DUMMY",
+                        Esc(x.Key),
+                        x.Value.ToString("0.######", CultureInfo.InvariantCulture))));
+                joinCantidades = " INNER JOIN (" + filas +
+                    ") Q ON Q.\"ItemCode\"=I.\"ItemCode\" ";
+                cantidadSql = "Q.\"Cantidad\"";
+            }
+
+            string descuentoGrupo = string.Format(@"(SELECT MAX(DR.""Discount"")
+                    FROM ""{0}"".""OEDG"" DH
+                    INNER JOIN ""{0}"".""EDG1"" DR
+                            ON DR.""AbsEntry""=DH.""AbsEntry""
+                    WHERE COALESCE(DH.""ValidFor"", 'Y')='Y'
+                      AND (DH.""ValidForm"" IS NULL OR DH.""ValidForm""<=CURRENT_DATE)
+                      AND (DH.""ValidTo"" IS NULL OR DH.""ValidTo"">=CURRENT_DATE)
+                      AND (DH.""Type""='A' OR
+                           (DH.""Type""='S' AND DH.""ObjCode""=C.""CardCode"") OR
+                           (DH.""Type""='C' AND
+                            DH.""ObjCode""=TO_NVARCHAR(C.""GroupCode"")))
+                      AND DR.""DiscType""='D'
+                      AND ((DR.""ObjType""='4' AND DR.""ObjKey""=I.""ItemCode"") OR
+                           (DR.""ObjType""='52' AND
+                            DR.""ObjKey""=TO_NVARCHAR(I.""ItmsGrpCod"")) OR
+                           (DR.""ObjType""='43' AND
+                            DR.""ObjKey""=TO_NVARCHAR(I.""FirmCode""))))", schema);
+            string precioFuente = @"COALESCE(
+                    ECQ.""Price"", ECP.""Price"", EC.""Price"", CASE WHEN " +
+                    descuentoGrupo + @" IS NOT NULL THEN
+                        P.""Price"" * (1 - " + descuentoGrupo + @" / 100)
+                    END, WLQ.""Price"", WLP.""Price"", WL.""Price"",
+                    P.""Price"", 0)";
+            string monedaFuente = @"COALESCE(
+                    NULLIF(ECQ.""Currency"", ''), NULLIF(ECP.""Currency"", ''),
+                    NULLIF(EC.""Currency"", ''), CASE WHEN " + descuentoGrupo +
+                    @" IS NOT NULL THEN NULLIF(P.""Currency"", '') END,
+                    NULLIF(WLQ.""Currency"", ''),
+                    NULLIF(WLP.""Currency"", ''), NULLIF(WL.""Currency"", ''),
+                    NULLIF(P.""Currency"", ''),
+                    NULLIF(NULLIF(C.""Currency"", ''), '##'),
+                    NULLIF(A.""MainCurncy"", ''), 'QTZ')";
+            string nombreFuente = @"CASE
+                    WHEN ECQ.""Price"" IS NOT NULL THEN 'CLIENTE_CANTIDAD'
+                    WHEN ECP.""Price"" IS NOT NULL THEN 'CLIENTE_PERIODO'
+                    WHEN EC.""Price"" IS NOT NULL THEN 'CLIENTE'
+                    WHEN " + descuentoGrupo + @" IS NOT NULL THEN 'GRUPO_DESCUENTO'
+                    WHEN WLQ.""Price"" IS NOT NULL THEN 'LISTA_CANTIDAD'
+                    WHEN WLP.""Price"" IS NOT NULL THEN 'LISTA_PERIODO'
+                    WHEN WL.""Price"" IS NOT NULL THEN 'LISTA_ESPECIAL'
+                    WHEN P.""Price"" IS NOT NULL THEN 'LISTA'
+                    ELSE 'SIN_PRECIO' END";
 
             string query = string.Format(@"
                 SELECT
@@ -455,10 +520,11 @@ namespace DiamDev.Give.DAL
                     COALESCE(NULLIF(I.""SalUnitMsr"", ''),
                              NULLIF(I.""InvntryUom"", ''), 'UN') AS ""Unidad"",
                     C.""ListNum"" AS ""ListaPrecio"",
-                    COALESCE(NULLIF(P.""Currency"", ''),
-                             NULLIF(C.""Currency"", ''), 'QTZ') AS ""Moneda"",
-                    COALESCE(P.""Price"", 0) AS ""Precio"",
-                    COALESCE(I.""VatGourpSa"", '') AS ""GrupoImpuesto"",
+                    {4} AS ""Moneda"",
+                    {5} AS ""PrecioBruto"",
+                    {6} AS ""FuentePrecio"",
+                    CASE WHEN COALESCE(C.""VatStatus"", 'Y')='N'
+                         THEN 'EXE' ELSE 'IVA' END AS ""GrupoImpuesto"",
                     COALESCE(T.""Rate"", 0) AS ""ImpuestoPorcentaje"",
                     COALESCE(I.""OnHand"", 0) AS ""Existencia"",
                     COALESCE(I.""IsCommited"", 0) AS ""Comprometido"",
@@ -466,20 +532,79 @@ namespace DiamDev.Give.DAL
                     COALESCE(I.""OnHand"", 0) - COALESCE(I.""IsCommited"", 0)
                         AS ""Disponible""
                 FROM ""{0}"".""OITM"" I
+                {7}
                 INNER JOIN ""{0}"".""OCRD"" C
                         ON C.""CardCode"" = '{1}' AND C.""CardType"" = 'C'
+                INNER JOIN ""{0}"".""OADM"" A ON 1=1
                 LEFT JOIN ""{0}"".""ITM1"" P
                        ON P.""ItemCode"" = I.""ItemCode""
                       AND P.""PriceList"" = C.""ListNum""
                 LEFT JOIN ""{0}"".""OITB"" G
                        ON G.""ItmsGrpCod"" = I.""ItmsGrpCod""
-                LEFT JOIN ""{0}"".""OVTG"" T
-                       ON T.""Code"" = I.""VatGourpSa""
+                LEFT JOIN ""{0}"".""OSTC"" T
+                       ON T.""Code"" = CASE
+                           WHEN COALESCE(C.""VatStatus"", 'Y')='N'
+                           THEN 'EXE' ELSE 'IVA' END
+                LEFT JOIN ""{0}"".""OSPP"" EC
+                       ON EC.""ItemCode""=I.""ItemCode""
+                      AND EC.""CardCode""=C.""CardCode""
+                      AND (COALESCE(EC.""Valid"", 'N')='N' OR
+                           ((EC.""ValidFrom"" IS NULL OR EC.""ValidFrom""<=CURRENT_DATE) AND
+                            (EC.""ValidTo"" IS NULL OR EC.""ValidTo"">=CURRENT_DATE)))
+                LEFT JOIN ""{0}"".""SPP1"" ECP
+                       ON ECP.""ItemCode""=EC.""ItemCode""
+                      AND ECP.""CardCode""=EC.""CardCode""
+                      AND (ECP.""FromDate"" IS NULL OR ECP.""FromDate""<=CURRENT_DATE)
+                      AND (ECP.""ToDate"" IS NULL OR ECP.""ToDate"">=CURRENT_DATE)
+                LEFT JOIN ""{0}"".""SPP2"" ECQ
+                       ON ECQ.""ItemCode""=EC.""ItemCode""
+                      AND ECQ.""CardCode""=EC.""CardCode""
+                      AND ECQ.""SPP1LNum""=ECP.""LINENUM""
+                      AND ECQ.""Amount""<={8}
+                      AND (ECQ.""UomEntry"" IS NULL OR ECQ.""UomEntry""=-1 OR
+                           ECQ.""UomEntry""=P.""UomEntry"")
+                LEFT JOIN ""{0}"".""SPP2"" ECQN
+                       ON ECQN.""ItemCode""=ECQ.""ItemCode""
+                      AND ECQN.""CardCode""=ECQ.""CardCode""
+                      AND ECQN.""SPP1LNum""=ECQ.""SPP1LNum""
+                      AND ECQN.""Amount"">ECQ.""Amount""
+                      AND ECQN.""Amount""<={8}
+                      AND (ECQN.""UomEntry"" IS NULL OR ECQN.""UomEntry""=-1 OR
+                           ECQN.""UomEntry""=P.""UomEntry"")
+                LEFT JOIN ""{0}"".""OSPP"" WL
+                       ON WL.""ItemCode""=I.""ItemCode""
+                      AND WL.""CardCode""='*' || TO_NVARCHAR(C.""ListNum"")
+                      AND (COALESCE(WL.""Valid"", 'N')='N' OR
+                           ((WL.""ValidFrom"" IS NULL OR WL.""ValidFrom""<=CURRENT_DATE) AND
+                            (WL.""ValidTo"" IS NULL OR WL.""ValidTo"">=CURRENT_DATE)))
+                LEFT JOIN ""{0}"".""SPP1"" WLP
+                       ON WLP.""ItemCode""=WL.""ItemCode""
+                      AND WLP.""CardCode""=WL.""CardCode""
+                      AND (WLP.""FromDate"" IS NULL OR WLP.""FromDate""<=CURRENT_DATE)
+                      AND (WLP.""ToDate"" IS NULL OR WLP.""ToDate"">=CURRENT_DATE)
+                LEFT JOIN ""{0}"".""SPP2"" WLQ
+                       ON WLQ.""ItemCode""=WL.""ItemCode""
+                      AND WLQ.""CardCode""=WL.""CardCode""
+                      AND WLQ.""SPP1LNum""=WLP.""LINENUM""
+                      AND WLQ.""Amount""<={8}
+                      AND (WLQ.""UomEntry"" IS NULL OR WLQ.""UomEntry""=-1 OR
+                           WLQ.""UomEntry""=P.""UomEntry"")
+                LEFT JOIN ""{0}"".""SPP2"" WLQN
+                       ON WLQN.""ItemCode""=WLQ.""ItemCode""
+                      AND WLQN.""CardCode""=WLQ.""CardCode""
+                      AND WLQN.""SPP1LNum""=WLQ.""SPP1LNum""
+                      AND WLQN.""Amount"">WLQ.""Amount""
+                      AND WLQN.""Amount""<={8}
+                      AND (WLQN.""UomEntry"" IS NULL OR WLQN.""UomEntry""=-1 OR
+                           WLQN.""UomEntry""=P.""UomEntry"")
                 WHERE I.""SellItem"" = 'Y'
-                  AND I.""validFor"" = 'Y'
+                  AND ECQN.""ItemCode"" IS NULL
+                  AND WLQN.""ItemCode"" IS NULL
                   AND {2}
                 ORDER BY I.""ItemCode""{3}",
-                schema, Esc(clienteId.Trim()), condicion, limiteSql ?? "");
+                schema, Esc(clienteId.Trim()), condicion, limiteSql ?? "",
+                monedaFuente, precioFuente, nombreFuente, joinCantidades,
+                cantidadSql);
 
             try
             {
@@ -494,7 +619,10 @@ namespace DiamDev.Give.DAL
                         Unidad = LeerCampo(row, "Unidad"),
                         ListaPrecio = LeerEntero(row, "ListaPrecio"),
                         Moneda = NormalizarMoneda(LeerCampo(row, "Moneda")),
-                        Precio = LeerDecimal(row, "Precio"),
+                        PrecioBruto = LeerDecimal(row, "PrecioBruto"),
+                        Precio = LeerDecimal(row, "PrecioBruto"),
+                        FuentePrecio = LeerCampo(row, "FuentePrecio"),
+                        PrecioEsBruto = true,
                         GrupoImpuesto = LeerCampo(row, "GrupoImpuesto"),
                         ImpuestoPorcentaje = LeerDecimal(row, "ImpuestoPorcentaje"),
                         Existencia = LeerDecimal(row, "Existencia"),

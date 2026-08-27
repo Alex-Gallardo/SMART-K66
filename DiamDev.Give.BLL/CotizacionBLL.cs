@@ -30,8 +30,29 @@ namespace DiamDev.Give.BLL
             int pagina, int tamano)
         {
             ObtenerClienteAsignado(empresa, agente, clienteId);
-            return _hana.BuscarProductosCotizacion(
+            var paginaResultado = _hana.BuscarProductosCotizacion(
                 empresa, clienteId, filtro, pagina, tamano);
+            NormalizarPreciosSap(paginaResultado.Items);
+            return paginaResultado;
+        }
+
+        public ProductoCotizacionHana ObtenerPrecioProducto(
+            string empresa, string agente, string clienteId,
+            string itemCode, decimal cantidad)
+        {
+            ObtenerClienteAsignado(empresa, agente, clienteId);
+            if (string.IsNullOrWhiteSpace(itemCode) || cantidad <= 0m ||
+                cantidad > 999999999m)
+                throw new InvalidOperationException(
+                    "Indique un producto y una cantidad válida mayor que cero.");
+
+            var cantidades = new Dictionary<string, decimal>(
+                StringComparer.OrdinalIgnoreCase);
+            cantidades[itemCode.Trim()] = cantidad;
+            var productos = _hana.ObtenerProductosCotizacion(
+                empresa, clienteId, cantidades);
+            NormalizarPreciosSap(productos);
+            return productos.FirstOrDefault();
         }
 
         /// <summary>
@@ -63,8 +84,14 @@ namespace DiamDev.Give.BLL
                     return ResultadoCotizacion.Error(
                         "Un producto aparece más de una vez. Edite su cantidad en la línea existente.");
 
+                var cantidades = enc.Detalles
+                    .GroupBy(x => Limpiar(x.ItemCode),
+                             StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(x => x.Key, x => x.First().Cantidad,
+                                  StringComparer.OrdinalIgnoreCase);
                 var productos = _hana.ObtenerProductosCotizacion(
-                    enc.IdEmpresa, enc.IdCliente, codigos);
+                    enc.IdEmpresa, enc.IdCliente, cantidades);
+                NormalizarPreciosSap(productos);
                 var porCodigo = productos
                     .GroupBy(x => x.ItemCode, StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(x => x.Key, x => x.First(),
@@ -155,6 +182,22 @@ namespace DiamDev.Give.BLL
             d.ImpuestoMonto = Redondear(
                 d.Subtotal * d.ImpuestoPorcentaje / 100m);
             d.Total = Redondear(d.Subtotal + d.ImpuestoMonto);
+        }
+
+        /// <summary>
+        /// HANA_02 confirmó que las fuentes de precio de las tres compañías son
+        /// brutas. La aplicación calcula líneas netas y agrega IVA después, por
+        /// lo que debe retirar el impuesto sin perder la precisión de SAP.
+        /// </summary>
+        public static decimal PrecioNetoDesdeBruto(
+            decimal precioBruto, decimal impuestoPorcentaje)
+        {
+            if (precioBruto <= 0m || impuestoPorcentaje <= 0m)
+                return Math.Round(precioBruto, 6,
+                                  MidpointRounding.AwayFromZero);
+            return Math.Round(
+                precioBruto / (1m + impuestoPorcentaje / 100m), 6,
+                MidpointRounding.AwayFromZero);
         }
 
         public List<CotizacionEncabezado> Listar(
@@ -256,6 +299,19 @@ namespace DiamDev.Give.BLL
                 throw new InvalidOperationException(
                     "La moneda enviada no coincide con la moneda del cliente en SAP.");
             return sap;
+        }
+
+        private static void NormalizarPreciosSap(
+            IEnumerable<ProductoCotizacionHana> productos)
+        {
+            foreach (var producto in productos ??
+                     Enumerable.Empty<ProductoCotizacionHana>())
+            {
+                producto.Precio = producto.PrecioEsBruto
+                    ? PrecioNetoDesdeBruto(
+                        producto.PrecioBruto, producto.ImpuestoPorcentaje)
+                    : producto.PrecioBruto;
+            }
         }
 
         private static string NormalizarMoneda(string valor)

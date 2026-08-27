@@ -166,7 +166,7 @@
             "</strong></div><div><small>Total solicitado</small><strong>" + dinero(x.Total, x.Moneda) + "</strong></div></div>" +
             '<div class="bnc-table-wrap" style="border-width:1px 0;border-radius:0"><table class="table bnc-table" style="min-width:700px"><thead><tr><th>Documento</th><th>Fecha</th><th class="text-right">Total factura</th><th class="text-right">Solicitado</th><th>Alertas</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
             window.BorradorNcFacturasDetalle.plantilla("bncAuthInvoices", {
-                titulo: "Productos y servicios a revisar",
+                titulo: "Productos a revisar",
                 subtitulo: "Contenido completo de las facturas incluidas en este borrador."
             }) +
             '<div class="bnc-card-head" style="min-height:46px"><div class="bnc-card-title"><i class="icon-warning-sign"></i><div><h3>Notas de crédito previas en SAP</h3><small>Antecedentes por cada documento del borrador.</small></div></div></div>' +

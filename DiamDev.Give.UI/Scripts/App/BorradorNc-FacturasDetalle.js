@@ -51,7 +51,7 @@
             '<div class="bnc-follow-section-head"><div class="bnc-follow-section-title">' +
             '<span class="bnc-follow-section-icon" aria-hidden="true"><i class="icon-list"></i></span>' +
             '<span><strong id="' + escapeHtml(titleId) + '">' +
-            escapeHtml(opciones.titulo || "Productos y servicios de las facturas") + '</strong>' +
+            escapeHtml(opciones.titulo || "Productos de las facturas") + '</strong>' +
             '<small>' + escapeHtml(opciones.subtitulo || "Renglones originales que conforman cada factura en SAP.") +
             '</small></span></div><span class="bnc-invoice-overview" data-role="invoice-product-count">' +
             '<i class="icon-refresh icon-spin" aria-hidden="true"></i> Cargando</span></div>' +
@@ -126,7 +126,7 @@
                 '<span class="bnc-sap-item-number"><small>Línea</small>' + decimal((producto.NumeroLinea == null ? indice : producto.NumeroLinea) + 1, 0) + '</span>' +
                 '<span class="bnc-sap-item-copy"><span class="bnc-sap-item-sku"><span>' + escapeHtml(tipo) + '</span><b>' + escapeHtml(sku) + '</b></span>' +
                 '<strong>' + escapeHtml(producto.Descripcion || "Sin descripción") + '</strong></span></div>' +
-                '<div class="bnc-sap-item-tags">' + bodega + '</div></div>' +
+                '<div class="bnc-sap-item-tags">' + bodega + '</div>'+'</div>' +
                 '<dl class="bnc-sap-item-metrics"><div><dt>Cantidad</dt><dd>' + decimal(producto.Cantidad, 4) + '<small>' + unidad + '</small></dd></div>' +
                 '<div><dt>Precio unitario</dt><dd>' + dinero(producto.PrecioUnitario, producto.Moneda) + '</dd></div>' +
                 '<div' + (descuento ? '' : ' class="is-muted"') + '><dt>Descuento</dt><dd>' + (descuento ? decimal(descuento, 2) + '%' : 'Sin descuento') + '</dd></div>' +
@@ -157,11 +157,14 @@
                 '<span class="bnc-sap-invoice-heading"><span class="bnc-sap-invoice-icon" aria-hidden="true"><i class="icon-file-text"></i></span>' +
                 '<span class="bnc-sap-invoice-copy"><small class="bnc-sap-invoice-eyebrow">Factura</small><strong>' + escapeHtml(factura.Documento) + '</strong>' +
                 '<span class="bnc-sap-invoice-meta">' + metadatos + '</span></span></span>' +
-                '<span class="bnc-sap-invoice-summary"><span class="bnc-sap-invoice-amount"><small>Monto solicitado</small><strong>' + dinero(factura.ImporteSolicitado, factura.Moneda) + '</strong></span>' +
-                '<span class="bnc-sap-invoice-amount"><small>Total de factura</small><strong>' + dinero(factura.TotalFactura, factura.Moneda) + '</strong></span>' +
+                // '<span class="bnc-sap-invoice-summary"><span class="bnc-sap-invoice-amount"><small>Monto solicitado</small><strong>' + dinero(factura.ImporteSolicitado, factura.Moneda) + '</strong></span>' +
+                // '<span class="bnc-sap-invoice-amount"><small>Total de factura</small><strong>' + dinero(factura.TotalFactura, factura.Moneda) + '</strong></span>' +
+                '<div style="gap: 1em;display:flex;">'+
                 '<span class="bnc-sap-invoice-count"><i class="icon-list" aria-hidden="true"></i> ' + productos.length + (productos.length === 1 ? " línea" : " líneas") + '</span>' +
                 '<span class="bnc-sap-invoice-action"><span data-role="invoice-toggle-label">' + (abierta ? "Ocultar detalle" : "Ver detalle") + '</span>' +
-                '<i class="icon-chevron-down bnc-sap-invoice-chevron" aria-hidden="true"></i></span></span></button>' +
+                '<i class="icon-chevron-down bnc-sap-invoice-chevron" aria-hidden="true"></i></span>' +
+                '</div>'+
+                '</span></button>' +
                 '<div class="bnc-sap-invoice-body" id="' + escapeHtml(idContenido) + '" role="region" ' +
                 'aria-label="Productos de la factura ' + escapeHtml(factura.Documento) + '" aria-hidden="' + (abierta ? "false" : "true") + '"' +
                 (abierta ? "" : " hidden") + '><div class="bnc-sap-item-list">' + items + '</div></div></article>';

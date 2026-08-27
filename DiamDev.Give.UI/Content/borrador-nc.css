@@ -747,7 +747,7 @@
     justify-content: center;
 }
 
-#bncFollowInvoiceItems {
+[data-role="invoice-products"] {
     display: grid;
     gap: 9px;
 }
@@ -850,7 +850,8 @@
 .bnc-sap-invoice-chevron { color: #94a3b8; flex: 0 0 auto; transition: transform .18s ease; }
 .bnc-sap-invoice.is-open .bnc-sap-invoice-chevron { transform: rotate(180deg); }
 
-.bnc-sap-invoice-body { border-top: 1px solid #eef2f7; display: none; }
+.bnc-sap-invoice-body,
+.bnc-sap-invoice-body[hidden] { border-top: 1px solid #eef2f7; display: none; }
 .bnc-sap-invoice.is-open .bnc-sap-invoice-body { animation: bnc-enter .18s ease both; display: block; }
 
 .bnc-sap-item-list { display: grid; gap: 8px; padding: 10px; }
@@ -876,6 +877,7 @@
 .bnc-sap-item-identity > span:last-child { display: flex; flex-direction: column; min-width: 0; }
 .bnc-sap-item-identity small { color: var(--bnc-blue); font-size: 8.5px; font-weight: 750; letter-spacing: .025em; }
 .bnc-sap-item-identity strong { color: #334155; font-size: 10.5px; line-height: 1.35; margin-top: 2px; overflow-wrap: anywhere; }
+.bnc-sap-item-sku span { background: #dbeafe; border-radius: 4px; color: #1e40af; display: inline-block; font-size: 7px; margin-right: 3px; padding: 2px 4px; text-transform: uppercase; }
 
 .bnc-sap-item-number {
     align-items: center;

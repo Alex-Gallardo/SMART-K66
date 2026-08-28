@@ -452,8 +452,10 @@
         });
         $("#bncFacturaBody").html(html);
         $("#bncFacturaEmpty").toggle(!state.facturas.length).html(
-            '<i class="icon-inbox"></i><strong>Sin facturas disponibles</strong><span>Pruebe otro número o confirme el cliente.</span>');
-        $("#bncFacturaCount").text(state.facturas.length + (state.facturas.length === 1 ? " factura" : " facturas"));
+            '<i class="icon-inbox"></i><strong>Sin facturas abiertas disponibles</strong>' +
+            '<span>Solo se muestran facturas con saldo pendiente. Pruebe otro número o confirme el cliente.</span>');
+        $("#bncFacturaCount").text(state.facturas.length +
+            (state.facturas.length === 1 ? " factura abierta" : " facturas abiertas"));
     }
 
     function seleccionarFactura(index) {

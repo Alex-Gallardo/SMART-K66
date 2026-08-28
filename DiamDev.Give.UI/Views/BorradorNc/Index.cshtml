@@ -422,7 +422,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="bncFacturaModalTitle"><i class="icon-file-text"></i> Facturas disponibles</h4>
+                <h4 class="modal-title" id="bncFacturaModalTitle"><i class="icon-file-text"></i> Facturas abiertas disponibles</h4>
             </div>
             <div class="modal-body">
                 <div class="bnc-toolbar" style="margin-bottom:12px;">
@@ -435,7 +435,7 @@
                     </button>
                 </div>
                 <div class="bnc-table-wrap">
-                    <table class="table bnc-table bnc-invoice-table" aria-label="Facturas de SAP">
+                    <table class="table bnc-table bnc-invoice-table" aria-label="Facturas abiertas de SAP">
                         <thead>
                             <tr>
                                 <th>Documento</th>
@@ -453,7 +453,7 @@
                     <div class="bnc-empty" id="bncFacturaEmpty">
                         <i class="icon-search"></i>
                         <strong>Ejecute la búsqueda</strong>
-                        <span>Aquí verá disponible, NC previas y estado de pago antes de elegir.</span>
+                        <span>Solo se muestran facturas con saldo pendiente en SAP.</span>
                     </div>
                 </div>
             </div>
@@ -490,5 +490,5 @@
 @section scripts {
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Fechas.js?v=20260825")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-FacturasDetalle.js?v=20260827-table")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260826b")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260828-open")"></script>
 }

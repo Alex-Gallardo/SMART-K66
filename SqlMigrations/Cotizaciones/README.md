@@ -21,6 +21,9 @@ Ejecuta y comparte la salida completa de:
    catálogo confirmada: se muestran únicamente artículos con `SellItem='Y'`,
    sin restringir códigos por prefijo, grupo, inventario ni `validFor`. Esto
    incluye artículos con existencia o disponible igual a cero.
+7. Para diagnosticar precios en cero del caso `GRACO / CL0087`, ejecuta
+   `HANA_05_diagnostico_precio_cero_CL0087.sql`. Compara `ITM1`, monedas
+   adicionales, precios especiales y los procedimientos de `Pedidos_K66`.
 
 La salida HANA confirma las columnas estándar de SAP Business One, las listas y
 monedas utilizadas y si existen precios especiales en `OSPP`/`SPP1`. Esta
@@ -45,6 +48,10 @@ bruto/neto mayores que cero.
 `HANA_04_verificar_productos_venta.sql` devuelve un resumen y muestras de los
 artículos incluidos y excluidos. Es de solo lectura; no crea procedimientos ni
 modifica datos de SAP.
+
+`HANA_05_diagnostico_precio_cero_CL0087.sql` también es de solo lectura. Sus
+resultados distinguen un precio omitido por precedencia o moneda de un artículo
+que realmente no tiene ninguna fuente de precio configurada en SAP.
 
 ## Decisiones confirmadas con los diagnósticos
 

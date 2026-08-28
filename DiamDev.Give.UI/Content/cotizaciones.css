@@ -109,6 +109,10 @@
 .cot-line-table .cot-product small { color: var(--cot-muted); font-size: 8.5px; margin-top: 2px; }
 .cot-remove { background: transparent; border: 0; color: var(--cot-red); font-size: 14px; padding: 5px; }
 .cot-stock-low { color: var(--cot-red); font-weight: 700; }
+.cot-price-missing { color: var(--cot-amber); font-size: 10px; }
+.cot-price-help { color: #b45309; font-size: 8.5px; font-weight: 650; }
+.cot .form-control.cot-price-input-missing { background: var(--cot-amber-soft); border-color: #f59e0b; color: #92400e; }
+.cot .form-control.cot-price-input-missing:focus { border-color: #d97706; box-shadow: 0 0 0 3px rgba(217,119,6,.12); }
 
 .cot-empty { align-items: center; color: #94a3b8; display: flex; flex-direction: column; gap: 5px; justify-content: center; min-height: 145px; padding: 24px; text-align: center; }
 .cot-empty i { font-size: 25px; opacity: .65; }

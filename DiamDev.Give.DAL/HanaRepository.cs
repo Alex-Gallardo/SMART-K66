@@ -486,30 +486,86 @@ namespace DiamDev.Give.DAL
                             DR.""ObjKey""=TO_NVARCHAR(I.""ItmsGrpCod"")) OR
                            (DR.""ObjType""='43' AND
                             DR.""ObjKey""=TO_NVARCHAR(I.""FirmCode""))))", schema);
-            string precioFuente = @"COALESCE(
-                    ECQ.""Price"", ECP.""Price"", EC.""Price"", CASE WHEN " +
-                    descuentoGrupo + @" IS NOT NULL THEN
-                        P.""Price"" * (1 - " + descuentoGrupo + @" / 100)
-                    END, WLQ.""Price"", WLP.""Price"", WL.""Price"",
-                    P.""Price"", 0)";
-            string monedaFuente = @"COALESCE(
-                    NULLIF(ECQ.""Currency"", ''), NULLIF(ECP.""Currency"", ''),
-                    NULLIF(EC.""Currency"", ''), CASE WHEN " + descuentoGrupo +
-                    @" IS NOT NULL THEN NULLIF(P.""Currency"", '') END,
-                    NULLIF(WLQ.""Currency"", ''),
-                    NULLIF(WLP.""Currency"", ''), NULLIF(WL.""Currency"", ''),
-                    NULLIF(P.""Currency"", ''),
+            string monedaCliente = @"COALESCE(
                     NULLIF(NULLIF(C.""Currency"", ''), '##'),
                     NULLIF(A.""MainCurncy"", ''), 'QTZ')";
+            string precioLista = @"CASE
+                    WHEN COALESCE(P.""Price"", 0)>0
+                     AND NULLIF(P.""Currency"", '')=" + monedaCliente + @"
+                        THEN P.""Price""
+                    WHEN COALESCE(P.""AddPrice1"", 0)>0
+                     AND NULLIF(P.""Currency1"", '')=" + monedaCliente + @"
+                        THEN P.""AddPrice1""
+                    WHEN COALESCE(P.""AddPrice2"", 0)>0
+                     AND NULLIF(P.""Currency2"", '')=" + monedaCliente + @"
+                        THEN P.""AddPrice2""
+                    WHEN COALESCE(P.""Price"", 0)>0 THEN P.""Price""
+                    WHEN COALESCE(P.""AddPrice1"", 0)>0 THEN P.""AddPrice1""
+                    WHEN COALESCE(P.""AddPrice2"", 0)>0 THEN P.""AddPrice2""
+                    ELSE NULL END";
+            string monedaLista = @"CASE
+                    WHEN COALESCE(P.""Price"", 0)>0
+                     AND NULLIF(P.""Currency"", '')=" + monedaCliente + @"
+                        THEN NULLIF(P.""Currency"", '')
+                    WHEN COALESCE(P.""AddPrice1"", 0)>0
+                     AND NULLIF(P.""Currency1"", '')=" + monedaCliente + @"
+                        THEN NULLIF(P.""Currency1"", '')
+                    WHEN COALESCE(P.""AddPrice2"", 0)>0
+                     AND NULLIF(P.""Currency2"", '')=" + monedaCliente + @"
+                        THEN NULLIF(P.""Currency2"", '')
+                    WHEN COALESCE(P.""Price"", 0)>0
+                        THEN NULLIF(P.""Currency"", '')
+                    WHEN COALESCE(P.""AddPrice1"", 0)>0
+                        THEN NULLIF(P.""Currency1"", '')
+                    WHEN COALESCE(P.""AddPrice2"", 0)>0
+                        THEN NULLIF(P.""Currency2"", '')
+                    ELSE NULL END";
+            string precioGrupo = @"CASE WHEN " + descuentoGrupo +
+                    " IS NOT NULL AND (" + precioLista + @")>0 THEN
+                        (" + precioLista + ") * (1 - " + descuentoGrupo +
+                    @" / 100) END";
+            string precioFuente = @"COALESCE(
+                    CASE WHEN COALESCE(ECQ.""Price"", 0)>0
+                         THEN ECQ.""Price"" END,
+                    CASE WHEN COALESCE(ECP.""Price"", 0)>0
+                         THEN ECP.""Price"" END,
+                    CASE WHEN COALESCE(EC.""Price"", 0)>0
+                         THEN EC.""Price"" END,
+                    " + precioGrupo + @",
+                    CASE WHEN COALESCE(WLQ.""Price"", 0)>0
+                         THEN WLQ.""Price"" END,
+                    CASE WHEN COALESCE(WLP.""Price"", 0)>0
+                         THEN WLP.""Price"" END,
+                    CASE WHEN COALESCE(WL.""Price"", 0)>0
+                         THEN WL.""Price"" END,
+                    " + precioLista + @", 0)";
+            string monedaFuente = @"CASE
+                    WHEN COALESCE(ECQ.""Price"", 0)>0 THEN COALESCE(
+                         NULLIF(ECQ.""Currency"", ''), " + monedaCliente + @")
+                    WHEN COALESCE(ECP.""Price"", 0)>0 THEN COALESCE(
+                         NULLIF(ECP.""Currency"", ''), " + monedaCliente + @")
+                    WHEN COALESCE(EC.""Price"", 0)>0 THEN COALESCE(
+                         NULLIF(EC.""Currency"", ''), " + monedaCliente + @")
+                    WHEN (" + precioGrupo + @")>0 THEN COALESCE(
+                         " + monedaLista + ", " + monedaCliente + @")
+                    WHEN COALESCE(WLQ.""Price"", 0)>0 THEN COALESCE(
+                         NULLIF(WLQ.""Currency"", ''), " + monedaCliente + @")
+                    WHEN COALESCE(WLP.""Price"", 0)>0 THEN COALESCE(
+                         NULLIF(WLP.""Currency"", ''), " + monedaCliente + @")
+                    WHEN COALESCE(WL.""Price"", 0)>0 THEN COALESCE(
+                         NULLIF(WL.""Currency"", ''), " + monedaCliente + @")
+                    WHEN (" + precioLista + @")>0 THEN COALESCE(
+                         " + monedaLista + ", " + monedaCliente + @")
+                    ELSE " + monedaCliente + @" END";
             string nombreFuente = @"CASE
-                    WHEN ECQ.""Price"" IS NOT NULL THEN 'CLIENTE_CANTIDAD'
-                    WHEN ECP.""Price"" IS NOT NULL THEN 'CLIENTE_PERIODO'
-                    WHEN EC.""Price"" IS NOT NULL THEN 'CLIENTE'
-                    WHEN " + descuentoGrupo + @" IS NOT NULL THEN 'GRUPO_DESCUENTO'
-                    WHEN WLQ.""Price"" IS NOT NULL THEN 'LISTA_CANTIDAD'
-                    WHEN WLP.""Price"" IS NOT NULL THEN 'LISTA_PERIODO'
-                    WHEN WL.""Price"" IS NOT NULL THEN 'LISTA_ESPECIAL'
-                    WHEN P.""Price"" IS NOT NULL THEN 'LISTA'
+                    WHEN COALESCE(ECQ.""Price"", 0)>0 THEN 'CLIENTE_CANTIDAD'
+                    WHEN COALESCE(ECP.""Price"", 0)>0 THEN 'CLIENTE_PERIODO'
+                    WHEN COALESCE(EC.""Price"", 0)>0 THEN 'CLIENTE'
+                    WHEN (" + precioGrupo + @")>0 THEN 'GRUPO_DESCUENTO'
+                    WHEN COALESCE(WLQ.""Price"", 0)>0 THEN 'LISTA_CANTIDAD'
+                    WHEN COALESCE(WLP.""Price"", 0)>0 THEN 'LISTA_PERIODO'
+                    WHEN COALESCE(WL.""Price"", 0)>0 THEN 'LISTA_ESPECIAL'
+                    WHEN (" + precioLista + @")>0 THEN 'LISTA'
                     ELSE 'SIN_PRECIO' END";
 
             string query = string.Format(@"

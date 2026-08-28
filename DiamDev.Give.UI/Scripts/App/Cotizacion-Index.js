@@ -84,6 +84,11 @@
         return fuentes[String(valor || "").toUpperCase()] || "Precio SAP";
     }
 
+    function tienePrecioSap(producto) {
+        return producto && numero(producto.Precio) > 0 &&
+            String(producto.FuentePrecio || "").toUpperCase() !== "SIN_PRECIO";
+    }
+
     function avisar(tipo, mensaje) {
         if (window.toastr && window.toastr[tipo]) window.toastr[tipo](mensaje);
         else window.alert(mensaje);
@@ -298,13 +303,18 @@
         $("#cotProductoEmpty").hide();
         $.each(estado.productos, function (i, p) {
             var stockClass = numero(p.Disponible) <= 0 ? "cot-stock-low" : "";
+            var precioHtml = tienePrecioSap(p)
+                ? '<strong>' + html(moneda(p.Precio, normalizarMoneda(p.Moneda))) + '</strong>' +
+                  '<br><small class="text-muted">Neto · ' + html(fuentePrecio(p.FuentePrecio)) + '</small>'
+                : '<strong class="cot-price-missing">Sin precio SAP</strong>' +
+                  '<br><small class="cot-price-help">Se requiere precio manual</small>';
             var $tr = $("<tr tabindex='0'></tr>").append(
                 '<td><strong>' + html(p.ItemCode) + '</strong><br><small class="text-muted">' + html(p.ItemName) + '</small></td>' +
                 '<td>' + html(p.Grupo || "—") + '</td><td>' + html(p.Unidad || "—") + '</td>' +
                 '<td class="text-right">' + numero(p.Existencia).toLocaleString("es-GT") + '</td>' +
                 '<td class="text-right">' + numero(p.Comprometido).toLocaleString("es-GT") + '</td>' +
                 '<td class="text-right ' + stockClass + '">' + numero(p.Disponible).toLocaleString("es-GT") + '</td>' +
-                '<td class="text-right"><strong>' + html(moneda(p.Precio, normalizarMoneda(p.Moneda))) + '</strong><br><small class="text-muted">Neto · ' + html(fuentePrecio(p.FuentePrecio)) + '</small></td>' +
+                '<td class="text-right">' + precioHtml + '</td>' +
                 '<td class="text-right"><strong>' + numero(p.ImpuestoPorcentaje).toFixed(2) + '%</strong><br><small class="text-muted">' + html(p.GrupoImpuesto || "—") + '</small></td>');
             $tr.on("click keydown", function (e) {
                 if (e.type === "click" || e.keyCode === 13) agregarProducto(i);
@@ -316,6 +326,7 @@
     function agregarProducto(indice) {
         var p = estado.productos[indice];
         if (!p) return;
+        var sinPrecioSap = !tienePrecioSap(p);
         var existente = -1;
         $.each(estado.lineas, function (i, x) {
             if (String(x.ItemCode).toUpperCase() === String(p.ItemCode).toUpperCase()) existente = i;
@@ -343,6 +354,10 @@
         });
         renderLineas();
         $("#cotProductoModal").modal("hide");
+        if (sinPrecioSap) {
+            avisar("warning", "SAP no tiene un precio efectivo para " +
+                p.ItemCode + ". Ingrese un precio neto manual mayor que cero.");
+        }
         actualizarPrecioSap(existente >= 0 ? existente : estado.lineas.length - 1);
     }
 
@@ -392,13 +407,16 @@
         $.each(estado.lineas, function (i, x) {
             var c = calcularLinea(x);
             var stockClass = numero(x.Disponible) < numero(x.Cantidad) ? "cot-stock-low" : "";
+            var priceClass = numero(x.PrecioUnitario) <= 0 ? " cot-price-input-missing" : "";
+            var priceHelpClass = numero(x.PrecioLista) <= 0
+                ? "cot-price-help" : "text-muted";
             $body.append('<tr data-index="' + i + '">' +
                 '<td data-label="Producto"><div class="cot-product"><strong>' + html(x.ItemCode) + '</strong><small>' + html(x.ItemName) + '</small></div></td>' +
                 '<td data-label="Descripción"><input class="form-control cot-desc" maxlength="500" data-field="Descripcion" value="' + atributo(x.Descripcion) + '" /></td>' +
                 '<td data-label="Unidad">' + html(x.Unidad || "—") + '</td>' +
                 '<td data-label="Disponible" class="text-right ' + stockClass + '">' + numero(x.Disponible).toLocaleString("es-GT") + '</td>' +
                 '<td data-label="Cantidad"><input class="form-control text-right" type="number" min="0.000001" step="0.01" data-field="Cantidad" value="' + numero(x.Cantidad) + '" /></td>' +
-                '<td data-label="Precio neto"><input class="form-control text-right" type="number" min="0" step="0.01" data-field="PrecioUnitario" title="Referencia SAP neta: ' + numero(x.PrecioLista).toFixed(2) + ' · ' + atributo(fuentePrecio(x.FuentePrecio)) + '" value="' + numero(x.PrecioUnitario) + '" /><small class="text-muted">' + html(fuentePrecio(x.FuentePrecio)) + '</small></td>' +
+                '<td data-label="Precio neto"><input class="form-control text-right' + priceClass + '" type="number" min="0.000001" step="0.01" data-field="PrecioUnitario" title="Referencia SAP neta: ' + numero(x.PrecioLista).toFixed(2) + ' · ' + atributo(fuentePrecio(x.FuentePrecio)) + '" value="' + numero(x.PrecioUnitario) + '" /><small class="' + priceHelpClass + '">' + html(fuentePrecio(x.FuentePrecio)) + '</small></td>' +
                 '<td data-label="Descuento %"><input class="form-control text-right" type="number" min="0" max="100" step="0.01" data-field="DescuentoPorcentaje" value="' + numero(x.DescuentoPorcentaje) + '" /></td>' +
                 '<td data-label="IVA SAP"><input class="form-control text-right" type="number" readonly data-field="ImpuestoPorcentaje" value="' + numero(x.ImpuestoPorcentaje) + '" /></td>' +
                 '<td data-label="Total" class="text-right"><strong>' + html(moneda(c.total)) + '</strong></td>' +
@@ -430,7 +448,7 @@
         for (var i = 0; i < estado.lineas.length; i++) {
             var x = estado.lineas[i];
             if (numero(x.Cantidad) <= 0) return "La cantidad de " + x.ItemCode + " debe ser mayor que cero.";
-            if (numero(x.PrecioUnitario) < 0) return "El precio de " + x.ItemCode + " no puede ser negativo.";
+            if (numero(x.PrecioUnitario) <= 0) return "Ingrese un precio neto mayor que cero para " + x.ItemCode + ".";
             if (numero(x.DescuentoPorcentaje) < 0 || numero(x.DescuentoPorcentaje) > 100) return "Revise el descuento de " + x.ItemCode + ".";
             if (numero(x.ImpuestoPorcentaje) < 0 || numero(x.ImpuestoPorcentaje) > 100) return "Revise el IVA de " + x.ItemCode + ".";
         }
@@ -533,8 +551,10 @@
     function renderDetalle(x) {
         var lineas = "";
         $.each(x.Detalles || [], function (_, d) {
-            var referencia = Math.abs(numero(d.PrecioLista) - numero(d.PrecioUnitario)) > 0.000001
-                ? ' · lista SAP ' + numero(d.PrecioLista).toFixed(2) : '';
+            var referencia = numero(d.PrecioLista) <= 0
+                ? ' · precio manual'
+                : (Math.abs(numero(d.PrecioLista) - numero(d.PrecioUnitario)) > 0.000001
+                    ? ' · lista SAP ' + numero(d.PrecioLista).toFixed(2) : '');
             lineas += '<div class="cot-detail-line"><div><strong>' + html(d.ItemCode) + ' · ' + html(d.Descripcion) + '</strong><span>' + numero(d.Cantidad) + ' ' + html(d.Unidad) + ' × ' + numero(d.PrecioUnitario).toFixed(2) + referencia + '</span></div><strong>' + html(moneda(d.Total, x.Moneda)) + '</strong></div>';
         });
         var acciones = '<button class="cot-btn cot-btn-primary cot-print"><i class="icon-print"></i> Imprimir</button>';

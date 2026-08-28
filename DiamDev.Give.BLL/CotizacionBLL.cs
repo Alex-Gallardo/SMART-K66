@@ -275,7 +275,8 @@ namespace DiamDev.Give.BLL
         {
             if (d.Cantidad <= 0m) return "la cantidad debe ser mayor que cero.";
             if (d.Cantidad > 999999999m) return "la cantidad es demasiado grande.";
-            if (d.PrecioUnitario < 0m) return "el precio no puede ser negativo.";
+            if (d.PrecioUnitario <= 0m)
+                return "el precio neto debe ser mayor que cero.";
             if (d.PrecioUnitario > 999999999999m) return "el precio es demasiado grande.";
             if (d.DescuentoPorcentaje < 0m || d.DescuentoPorcentaje > 100m)
                 return "el descuento debe estar entre 0 y 100%.";

@@ -463,7 +463,6 @@
         var request = {
             IdEmpresa: empresa(), Fecha: $("#cotFecha").val(), ValidaHasta: $("#cotValidaHasta").val(),
             IdCliente: estado.cliente.CardCode, CodigoOperador: codigoOperador(), Moneda: $("#cotMoneda").val(),
-            CondicionesPago: $("#cotCondicionesPago").val(), TiempoEntrega: $("#cotTiempoEntrega").val(),
             Observaciones: $("#cotObservaciones").val()
         };
         $.each(estado.lineas, function (i, x) {
@@ -491,7 +490,7 @@
         $("#cotEmpresa").val(emp);
         if (!conservarEmpresa) poblarAgentes("");
         limpiarCliente();
-        $("#cotCondicionesPago,#cotTiempoEntrega,#cotObservaciones").val("");
+        $("#cotObservaciones").val("");
         var hoy = new Date(), valida = new Date(); valida.setDate(valida.getDate() + 15);
         $("#cotFecha").val(fechaInput(hoy)); $("#cotValidaHasta").val(fechaInput(valida));
     }
@@ -562,7 +561,7 @@
         var acciones = '<button class="cot-btn cot-btn-primary cot-print"><i class="icon-print"></i> Imprimir</button>';
         if (puedeAnular && x.Estado !== "ANULADA") acciones += '<button class="cot-btn cot-btn-danger cot-cancel"><i class="icon-ban-circle"></i> Anular</button>';
         $("#cotDetail").html('<div class="cot-detail-head"><h4>' + html(x.IdCotizacion) + '</h4><p>' + html(x.NombreCliente) + '</p></div>' +
-            '<div class="cot-detail-meta"><div><small>Estado</small><strong><span class="cot-status ' + claseEstado(x.Estado) + '">' + html(x.Estado) + '</span></strong></div><div><small>Total</small><strong>' + html(moneda(x.Total, x.Moneda)) + '</strong></div><div><small>Emisión / validez</small><strong>' + html(x.Fecha) + ' / ' + html(x.ValidaHasta) + '</strong></div><div><small>Agente</small><strong>' + html(x.Agente) + '</strong></div><div><small>NIT</small><strong>' + html(x.Nit || "—") + '</strong></div><div><small>Creada por</small><strong>' + html(x.IdUsr) + '</strong></div><div><small>Pago</small><strong>' + html(x.CondicionesPago || "—") + '</strong></div><div><small>Entrega</small><strong>' + html(x.TiempoEntrega || "—") + '</strong></div></div>' +
+            '<div class="cot-detail-meta"><div><small>Estado</small><strong><span class="cot-status ' + claseEstado(x.Estado) + '">' + html(x.Estado) + '</span></strong></div><div><small>Total</small><strong>' + html(moneda(x.Total, x.Moneda)) + '</strong></div><div><small>Emisión / validez</small><strong>' + html(x.Fecha) + ' / ' + html(x.ValidaHasta) + '</strong></div><div><small>Agente</small><strong>' + html(x.Agente) + '</strong></div><div><small>NIT</small><strong>' + html(x.Nit || "—") + '</strong></div><div><small>Creada por</small><strong>' + html(x.IdUsr) + '</strong></div><div class="cot-detail-wide"><small>Observaciones</small><strong>' + html(x.Observaciones || "—") + '</strong></div></div>' +
             '<div class="cot-detail-lines">' + lineas + '</div><div class="cot-detail-actions">' + acciones + '</div>');
         $("#cotDetail .cot-print").on("click", function () { abrirImpresion(x); });
         $("#cotDetail .cot-cancel").on("click", function () { estado.anular = x; $("#cotMotivoAnular").val(""); $("#cotAnularModal").modal("show"); });

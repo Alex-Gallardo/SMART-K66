@@ -160,6 +160,7 @@
 .cot-detail-meta small, .cot-detail-meta strong { display: block; }
 .cot-detail-meta small { color: var(--cot-muted); font-size: 8px; font-weight: 700; text-transform: uppercase; }
 .cot-detail-meta strong { font-size: 10px; margin-top: 2px; overflow-wrap: anywhere; }
+.cot-detail-meta .cot-detail-wide { grid-column: 1/-1; }
 .cot-detail-lines { border-top: 1px solid var(--cot-border); max-height: 260px; overflow: auto; padding: 10px 14px; }
 .cot-detail-line { border-bottom: 1px solid #e8edf3; display: flex; gap: 10px; justify-content: space-between; padding: 7px 0; }
 .cot-detail-line div { min-width: 0; }

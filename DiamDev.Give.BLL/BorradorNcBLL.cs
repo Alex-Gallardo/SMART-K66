@@ -61,6 +61,15 @@ namespace DiamDev.Give.BLL
             string.Equals(ConfigurationManager.AppSettings["BorradorNC.OmitirPermisos"],
                           "true", StringComparison.OrdinalIgnoreCase);
 
+        /// <summary>
+        /// Interruptor temporal mientras Créditos define la regla definitiva.
+        /// Ausente o false: el selector muestra únicamente facturas con saldo
+        /// pendiente. true: recupera el comportamiento anterior.
+        /// </summary>
+        private static bool MostrarFacturasPagadas =>
+            string.Equals(ConfigurationManager.AppSettings["BorradorNC.MostrarFacturasPagadas"],
+                          "true", StringComparison.OrdinalIgnoreCase);
+
         // =====================================================================
         //  CONSULTA DE FACTURAS  (HANA + datos locales)
         // =====================================================================
@@ -77,13 +86,19 @@ namespace DiamDev.Give.BLL
         ///   Disponible      = DocTotal − Acumulado local        (tope duro, R4)
         ///   DisponibleNeto  = Disponible − NC previas en SAP    (advertencia)
         ///
-        /// PaidToDate NO reduce el tope: una factura pagada admite NC por
-        /// devolución. Solo marca GeneraSaldoAFavor para avisarlo.
+        /// PaidToDate no reduce el tope. Temporalmente, las facturas pagadas
+        /// por completo se excluyen de este selector mediante configuración.
+        /// Cualquier diferencia, por pequeña que sea, mantiene la factura
+        /// abierta: no se aplica tolerancia a esta comparación.
         /// </summary>
         public List<FacturaBorradorNc> BuscarFacturas(
             string empresa, string clienteId, string agente, string filtro)
         {
             var facturas = _hana.ObtenerFacturasBorradorNc(empresa, clienteId, agente, filtro);
+
+            if (!MostrarFacturasPagadas)
+                facturas = facturas.Where(EsFacturaAbierta).ToList();
+
             if (facturas.Count == 0) return facturas;
 
             var docs = facturas.Select(f => f.DocNum).ToList();
@@ -116,6 +131,15 @@ namespace DiamDev.Give.BLL
             }
 
             return facturas;
+        }
+
+        /// <summary>
+        /// Una factura conserva estado abierto mientras exista cualquier saldo
+        /// pendiente. Solo la igualdad o un pago superior al total la cierran.
+        /// </summary>
+        private static bool EsFacturaAbierta(FacturaBorradorNc factura)
+        {
+            return factura != null && factura.Pagado < factura.DocTotal;
         }
 
         /// <summary>

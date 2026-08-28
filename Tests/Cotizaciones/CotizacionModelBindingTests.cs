@@ -32,6 +32,9 @@ namespace Tests.Cotizaciones
                 { "IdCliente", "C0001" },
                 { "CodigoOperador", "12-AGENTE DEMO" },
                 { "Moneda", "GTQ" },
+                { "CondicionesPago", "Crédito 30 días" },
+                { "TiempoEntrega", "5 días hábiles" },
+                { "Observaciones", "Entregar en bodega central" },
                 { "Detalles[0].ItemCode", "ITEM-01" },
                 { "Detalles[0].Descripcion", "Producto uno" },
                 { "Detalles[0].Cantidad", "2.5" },
@@ -61,6 +64,15 @@ namespace Tests.Cotizaciones
             Verdad(modelo != null, "el encabezado se enlaza");
             Verdad(modelo != null && modelo.IdEmpresa == "GRACO",
                 "empresa conserva su valor");
+            Verdad(modelo != null &&
+                    modelo.CondicionesPago == "Crédito 30 días",
+                "condiciones de pago conservan su valor");
+            Verdad(modelo != null &&
+                    modelo.TiempoEntrega == "5 días hábiles",
+                "tiempo de entrega conserva su valor");
+            Verdad(modelo != null &&
+                    modelo.Observaciones == "Entregar en bodega central",
+                "observaciones conservan su valor");
             Verdad(modelo != null && modelo.Detalles != null &&
                     modelo.Detalles.Count == 2,
                 "se reconstruyen dos líneas");
@@ -75,7 +87,7 @@ namespace Tests.Cotizaciones
                 "segunda línea conserva impuesto exento");
 
             Console.WriteLine(_fallas == 0
-                ? "OK: 6 aserciones de model binding de cotizaciones."
+                ? "OK: 9 aserciones de model binding de cotizaciones."
                 : "FALLAS: " + _fallas);
             return _fallas == 0 ? 0 : 1;
         }

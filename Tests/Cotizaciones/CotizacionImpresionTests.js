@@ -18,19 +18,19 @@ const controlador = fs.readFileSync(
     path.join(raiz, "DiamDev.Give.UI", "Controllers", "CotizacionController.cs"),
     "utf8");
 
-assert(!vistaCrear.includes('id="cotCondicionesPago"') &&
-       !vistaCrear.includes('id="cotTiempoEntrega"'),
-    "La creación no debe mostrar condiciones de pago ni tiempo de entrega.");
-assert(vistaCrear.includes('cot-field cot-col-12') &&
+assert(vistaCrear.includes('id="cotCondicionesPago"') &&
+       vistaCrear.includes('id="cotTiempoEntrega"') &&
        vistaCrear.includes('id="cotObservaciones"'),
-    "Observaciones debe conservarse y ocupar el ancho disponible.");
-assert(!javascript.includes("cotCondicionesPago") &&
-       !javascript.includes("cotTiempoEntrega"),
-    "El navegador no debe intentar leer controles ocultos o eliminados.");
+    "La creación debe mostrar pago, entrega y observaciones.");
+assert(javascript.includes('CondicionesPago: $("#cotCondicionesPago").val()') &&
+       javascript.includes('TiempoEntrega: $("#cotTiempoEntrega").val()'),
+    "El navegador debe enviar pago y entrega al guardar.");
+assert(javascript.includes("#cotCondicionesPago,#cotTiempoEntrega,#cotObservaciones"),
+    "El reinicio debe limpiar los tres campos de condiciones.");
 assert(javascript.includes("<small>Observaciones</small>") &&
-       !javascript.includes("<small>Pago</small>") &&
-       !javascript.includes("<small>Entrega</small>"),
-    "El detalle debe mostrar observaciones y ocultar pago/entrega.");
+       javascript.includes("<small>Pago</small>") &&
+       javascript.includes("<small>Entrega</small>"),
+    "El detalle debe mostrar pago, entrega y observaciones.");
 
 assert(!vistaImprimir.includes(">Desc.</th>") &&
        !vistaImprimir.includes("d.DescuentoPorcentaje"),
@@ -39,10 +39,12 @@ assert(!vistaImprimir.includes("Importe bruto") &&
        !vistaImprimir.includes("Model.ImporteBruto") &&
        !vistaImprimir.includes("Model.DescuentoTotal"),
     "El resumen impreso no debe renderizar bruto ni descuento.");
-assert(!vistaImprimir.includes("Condiciones de pago") &&
-       !vistaImprimir.includes("Tiempo de entrega") &&
+assert(vistaImprimir.includes("Condiciones de pago") &&
+       vistaImprimir.includes("Model.CondicionesPago") &&
+       vistaImprimir.includes("Tiempo de entrega") &&
+       vistaImprimir.includes("Model.TiempoEntrega") &&
        vistaImprimir.includes(">Observaciones</span>"),
-    "La impresión debe conservar únicamente Observaciones.");
+    "La impresión debe mostrar pago, entrega y observaciones.");
 assert(vistaImprimir.includes("ViewBag.TotalEnLetras") &&
        vistaImprimir.includes('class="amount-words"') &&
        controlador.includes("CotizacionBLL.TotalEnLetras"),
@@ -51,4 +53,4 @@ assert(vistaImprimir.includes("Model.Agente") &&
        !vistaImprimir.includes("Agente / asesor comercial"),
     "La firma debe usar el agente persistido en la cotización.");
 
-console.log("OK: contrato simplificado de creación, detalle e impresión verificado.");
+console.log("OK: condiciones restauradas en creación, detalle e impresión.");

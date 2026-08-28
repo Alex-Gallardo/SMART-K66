@@ -11,6 +11,9 @@ const javascript = fs.readFileSync(
 const hana = fs.readFileSync(
     path.join(raiz, "DiamDev.Give.DAL", "HanaRepository.cs"),
     "utf8");
+const bll = fs.readFileSync(
+    path.join(raiz, "DiamDev.Give.BLL", "CotizacionBLL.cs"),
+    "utf8");
 
 const inicioProductos = hana.indexOf("// PRODUCTOS PARA COTIZACIONES");
 const finProductos = hana.indexOf("// ── Helpers privados", inicioProductos);
@@ -46,4 +49,23 @@ const filtroVisibilidad = consultaProductos.substring(
 assert(!/(OnHand|IsCommited|Disponible)/i.test(filtroVisibilidad),
     "El stock cero no debe excluir ni bloquear productos con SellItem=Y.");
 
-console.log("OK: búsqueda reactiva, SellItem y stock cero verificados.");
+assert(consultaProductos.includes('COALESCE(ECQ.""Price"", 0)>0'),
+    "Un precio especial cero no debe bloquear las fuentes posteriores.");
+assert(consultaProductos.includes('P.""AddPrice1""') &&
+       consultaProductos.includes('P.""AddPrice2""'),
+    "La lista debe considerar las monedas adicionales configuradas en ITM1.");
+assert(!consultaProductos.includes('WHEN P.""Price"" IS NOT NULL THEN \'LISTA\''),
+    "Una fila ITM1 con precio cero no debe etiquetarse como Lista de precios.");
+assert(consultaProductos.includes("ELSE 'SIN_PRECIO' END"),
+    "Los artículos sin fuente positiva deben identificarse explícitamente.");
+assert(javascript.includes('Sin precio SAP') &&
+       javascript.includes('Se requiere precio manual'),
+    "La interfaz debe diferenciar un producto genuinamente sin precio SAP.");
+assert(javascript.includes('numero(x.PrecioUnitario) <= 0'),
+    "La interfaz no debe permitir guardar accidentalmente un precio cero.");
+assert(javascript.includes("' · precio manual'"),
+    "El detalle debe identificar precios capturados manualmente sin referencia SAP.");
+assert(bll.includes('d.PrecioUnitario <= 0m'),
+    "El servidor también debe rechazar precios netos en cero.");
+
+console.log("OK: búsqueda, SellItem, stock cero y precios SAP verificados.");

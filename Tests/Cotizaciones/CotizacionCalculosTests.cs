@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using DiamDev.Give.BLL;
 using DiamDev.Give.Entities;
 
@@ -65,8 +66,28 @@ namespace Tests.Cotizaciones
                 CotizacionBLL.PrecioNetoDesdeBruto(253.58m, 12m),
                 "precio especial conserva seis decimales");
 
+            var validarLinea = typeof(CotizacionBLL).GetMethod(
+                "ValidarLinea", BindingFlags.NonPublic | BindingFlags.Static);
+            var errorPrecioCero = validarLinea == null
+                ? null
+                : validarLinea.Invoke(null, new object[] { new CotizacionDetalle
+                {
+                    Cantidad = 1m,
+                    PrecioUnitario = 0m,
+                    DescuentoPorcentaje = 0m,
+                    ImpuestoPorcentaje = 12m
+                } }) as string;
+            if (string.IsNullOrWhiteSpace(errorPrecioCero) ||
+                errorPrecioCero.IndexOf("mayor que cero",
+                    StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                Console.Error.WriteLine(
+                    "FALLA validación: el servidor aceptó un precio neto cero.");
+                _fallas++;
+            }
+
             Console.WriteLine(_fallas == 0
-                ? "OK: 11 aserciones de cálculos de cotización."
+                ? "OK: 12 aserciones de cálculos y validación de cotización."
                 : "FALLAS: " + _fallas);
             return _fallas == 0 ? 0 : 1;
         }

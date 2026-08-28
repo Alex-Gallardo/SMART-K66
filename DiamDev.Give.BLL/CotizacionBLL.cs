@@ -200,6 +200,69 @@ namespace DiamDev.Give.BLL
                 MidpointRounding.AwayFromZero);
         }
 
+        /// <summary>
+        /// Expresa el total monetario con dos decimales para el documento
+        /// impreso. Numalet se configura por instancia para evitar que la
+        /// denominación quede fija en quetzales.
+        /// </summary>
+        public static string TotalEnLetras(decimal total, string moneda)
+        {
+            decimal importe = Redondear(total);
+            if (importe < 0m)
+                throw new ArgumentOutOfRangeException(
+                    "total", "El total no puede ser negativo.");
+
+            string codigo = NormalizarMoneda(moneda);
+            string singular;
+            string plural;
+            switch (codigo)
+            {
+                case "GTQ":
+                    singular = "quetzal";
+                    plural = "quetzales";
+                    break;
+                case "USD":
+                    singular = "dólar estadounidense";
+                    plural = "dólares estadounidenses";
+                    break;
+                case "EUR":
+                    singular = "euro";
+                    plural = "euros";
+                    break;
+                default:
+                    singular = string.IsNullOrWhiteSpace(codigo)
+                        ? "unidad monetaria" : codigo;
+                    plural = string.IsNullOrWhiteSpace(codigo)
+                        ? "unidades monetarias" : codigo;
+                    break;
+            }
+
+            string denominacion = decimal.Truncate(importe) == 1m
+                ? singular : plural;
+            var conversor = new Numalet
+            {
+                MascaraSalidaDecimal = "00'/100'",
+                SeparadorDecimalSalida = denominacion + " con",
+                ConvertirDecimales = false,
+                LetraCapital = false
+            };
+
+            try
+            {
+                return conversor.ToCustomCardinal(Convert.ToDouble(importe))
+                    .Trim()
+                    .ToUpperInvariant();
+            }
+            catch (ArgumentException)
+            {
+                // Una cotización histórica fuera del rango de Numalet debe
+                // seguir siendo imprimible en lugar de romper el documento.
+                return (importe.ToString("N2") + " " + codigo)
+                    .Trim()
+                    .ToUpperInvariant();
+            }
+        }
+
         public List<CotizacionEncabezado> Listar(
             string empresa, string estado, string idUsr, string agente,
             DateTime? desde, DateTime? hasta, string filtro)

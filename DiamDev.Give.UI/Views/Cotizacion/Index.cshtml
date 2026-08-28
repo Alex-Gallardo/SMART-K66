@@ -7,7 +7,7 @@
 }
 
 @section styles {
-    <link href="@Url.Content("~/Content/cotizaciones.css?v=20260827.2")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/cotizaciones.css?v=20260828.1")" rel="stylesheet" />
 }
 
 <div class="cot cot-shell" id="cotApp"
@@ -190,15 +190,7 @@
                 </div>
                 <div class="cot-card-body">
                     <div class="cot-grid">
-                        <div class="cot-field cot-col-4">
-                            <label for="cotCondicionesPago">Condiciones de pago</label>
-                            <input id="cotCondicionesPago" class="form-control" maxlength="250" placeholder="Ej. crédito 30 días" />
-                        </div>
-                        <div class="cot-field cot-col-4">
-                            <label for="cotTiempoEntrega">Tiempo de entrega</label>
-                            <input id="cotTiempoEntrega" class="form-control" maxlength="250" placeholder="Ej. 5 días hábiles" />
-                        </div>
-                        <div class="cot-field cot-col-4">
+                        <div class="cot-field cot-col-12">
                             <label for="cotObservaciones">Observaciones</label>
                             <textarea id="cotObservaciones" class="form-control" maxlength="1500" rows="2"></textarea>
                         </div>
@@ -300,5 +292,5 @@
 </div>
 
 @section scripts {
-    <script src="@Url.Content("~/Scripts/App/Cotizacion-Index.js?v=20260827.2")"></script>
+    <script src="@Url.Content("~/Scripts/App/Cotizacion-Index.js?v=20260828.1")"></script>
 }

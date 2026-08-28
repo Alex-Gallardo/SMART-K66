@@ -196,6 +196,8 @@ namespace DiamDev.Give.UI.Controllers
             var enc = _bll.ObtenerPorId(empresa, idCotizacion);
             if (enc == null) return HttpNotFound("Cotización no encontrada.");
             if (!PuedeConsultar(enc)) return new HttpUnauthorizedResult();
+            ViewBag.TotalEnLetras = CotizacionBLL.TotalEnLetras(
+                enc.Total, enc.Moneda);
             return View(enc);
         }
 

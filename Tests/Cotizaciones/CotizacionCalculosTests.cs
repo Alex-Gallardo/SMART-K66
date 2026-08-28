@@ -21,6 +21,15 @@ namespace Tests.Cotizaciones
             _fallas++;
         }
 
+        private static void Igual(string esperado, string real, string caso)
+        {
+            if (string.Equals(esperado, real, StringComparison.Ordinal)) return;
+            Console.Error.WriteLine(
+                "FALLA " + caso + ": esperado '" + esperado +
+                "', real '" + real + "'");
+            _fallas++;
+        }
+
         public static int Main()
         {
             var normal = new CotizacionDetalle
@@ -66,6 +75,19 @@ namespace Tests.Cotizaciones
                 CotizacionBLL.PrecioNetoDesdeBruto(253.58m, 12m),
                 "precio especial conserva seis decimales");
 
+            Igual("UN QUETZAL CON 00/100",
+                CotizacionBLL.TotalEnLetras(1m, "GTQ"),
+                "total singular GTQ");
+            Igual("VEINTIÚN QUETZALES CON 25/100",
+                CotizacionBLL.TotalEnLetras(21.25m, "QTZ"),
+                "total plural y alias QTZ");
+            Igual("UN DÓLAR ESTADOUNIDENSE CON 50/100",
+                CotizacionBLL.TotalEnLetras(1.50m, "USD"),
+                "total singular USD");
+            Igual("DOS EUROS CON 05/100",
+                CotizacionBLL.TotalEnLetras(2.05m, "EUR"),
+                "total plural EUR");
+
             var validarLinea = typeof(CotizacionBLL).GetMethod(
                 "ValidarLinea", BindingFlags.NonPublic | BindingFlags.Static);
             var errorPrecioCero = validarLinea == null
@@ -87,7 +109,7 @@ namespace Tests.Cotizaciones
             }
 
             Console.WriteLine(_fallas == 0
-                ? "OK: 12 aserciones de cálculos y validación de cotización."
+                ? "OK: cálculos, validación y total en letras verificados."
                 : "FALLAS: " + _fallas);
             return _fallas == 0 ? 0 : 1;
         }

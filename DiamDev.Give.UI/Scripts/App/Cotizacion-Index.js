@@ -79,9 +79,11 @@
             LISTA_PERIODO: "Especial de lista por vigencia",
             LISTA_ESPECIAL: "Especial de lista",
             LISTA: "Lista de precios",
-            SIN_PRECIO: "Sin precio configurado"
+            // SIN_PRECIO: "Sin precio configurado"
+            SIN_PRECIO: ""
         };
-        return fuentes[String(valor || "").toUpperCase()] || "Precio SAP";
+        // return fuentes[String(valor || "").toUpperCase()] || "Precio SAP";
+        return fuentes[String(valor || "").toUpperCase()] || "";
     }
 
     function tienePrecioSap(producto) {
@@ -305,9 +307,9 @@
             var stockClass = numero(p.Disponible) <= 0 ? "cot-stock-low" : "";
             var precioHtml = tienePrecioSap(p)
                 ? '<strong>' + html(moneda(p.Precio, normalizarMoneda(p.Moneda))) + '</strong>' +
-                  '<br><small class="text-muted">Neto · ' + html(fuentePrecio(p.FuentePrecio)) + '</small>'
-                : '<strong class="cot-price-missing">Sin precio SAP</strong>' +
-                  '<br><small class="cot-price-help">Se requiere precio manual</small>';
+                '<br><small class="text-muted">Neto · ' + html(fuentePrecio(p.FuentePrecio)) + '</small>'
+                : '<strong class="cot-price-missing">Sin precio SAP</strong>';
+                  // '<br><small class="cot-price-help">Se requiere precio manual</small>';
             var $tr = $("<tr tabindex='0'></tr>").append(
                 '<td><strong>' + html(p.ItemCode) + '</strong><br><small class="text-muted">' + html(p.ItemName) + '</small></td>' +
                 '<td>' + html(p.Grupo || "—") + '</td><td>' + html(p.Unidad || "—") + '</td>' +

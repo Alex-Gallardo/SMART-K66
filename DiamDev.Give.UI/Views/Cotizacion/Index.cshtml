@@ -72,8 +72,8 @@
                                 <option value="">Seleccione...</option>
                                 @foreach (var empresa in Model.Empresas)
                                 {
-                                    <option value="@empresa.Nombre">@empresa.Nombre</option>
-}
+                                    <option value="@empresa.Nombre">🏭 @empresa.Nombre</option>
+                                }
                             </select>
                         </div>
                         <div class="cot-field cot-col-4">
@@ -84,7 +84,7 @@
                         </div>
                         <div class="cot-field cot-col-2">
                             <label for="cotFecha">Emisión <span>*</span></label>
-                            <input id="cotFecha" class="form-control" type="date" value="@hoy" />
+                            <input id="cotFecha" class="form-control" type="date" value="@hoy" disabled />
                         </div>
                         <div class="cot-field cot-col-2">
                             <label for="cotValidaHasta">Válida hasta <span>*</span></label>
@@ -260,6 +260,7 @@
     </div>
 </div>
 
+<!--    MODAL CLIENTE   -->
 <div class="modal fade cot-modal" id="cotClienteModal" tabindex="-1" role="dialog">
     <div class="modal-dialog"><div class="modal-content">
         <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4><i class="icon-user"></i> Seleccionar cliente</h4></div>
@@ -271,8 +272,9 @@
     </div></div>
 </div>
 
+<!--    MODAL PRODUCTO  -->
 <div class="modal fade cot-modal" id="cotProductoModal" tabindex="-1" role="dialog">
-    <div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-dialog modal-lg modal-product"><div class="modal-content">
         <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4><i class="icon-shopping-cart"></i> Productos disponibles en SAP</h4></div>
         <div class="modal-body">
             <div class="cot-product-toolbar"><div class="cot-field"><label for="cotProductoFiltro">Código, nombre o grupo</label><input id="cotProductoFiltro" class="form-control" placeholder="Vacío permite recorrer todo el catálogo" autocomplete="off" /></div><button id="cotBuscarProducto" type="button" class="cot-btn cot-btn-primary"><i class="icon-search"></i> Buscar</button></div>

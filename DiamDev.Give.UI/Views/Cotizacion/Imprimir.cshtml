@@ -133,6 +133,5 @@
     </div>
 </div>
 <section class="amount-words"><span class="label">Total en letras</span><span class="value">@totalEnLetras</span></section>
-<section class="terms"><span class="label">Observaciones</span><span class="value">@(string.IsNullOrWhiteSpace(Model.Observaciones) ? "—" : Model.Observaciones)</span></section>
+<section class="terms"><div><span class="label">Condiciones de pago</span><span class="value">@(string.IsNullOrWhiteSpace(Model.CondicionesPago) ? "—" : Model.CondicionesPago)</span></div><div><span class="label">Tiempo de entrega</span><span class="value">@(string.IsNullOrWhiteSpace(Model.TiempoEntrega) ? "—" : Model.TiempoEntrega)</span></div><div class="wide"><span class="label">Observaciones</span><span class="value">@(string.IsNullOrWhiteSpace(Model.Observaciones) ? "—" : Model.Observaciones)</span></div></section>
 <section class="sign"><div>@(string.IsNullOrWhiteSpace(Model.Agente) ? "Agente" : Model.Agente)</div><div>Aceptación del cliente</div></section><footer class="footer"><span>Smart K66 · Cotizaciones</span><span>Documento generado @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span></footer></main></body></html>
-

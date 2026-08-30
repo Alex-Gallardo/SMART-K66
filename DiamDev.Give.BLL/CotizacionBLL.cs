@@ -69,11 +69,15 @@ namespace DiamDev.Give.BLL
                 var cliente = ObtenerClienteAsignado(
                     enc.IdEmpresa, enc.Agente, enc.IdCliente);
                 enc.IdCliente = Limpiar(cliente.CardCode);
-                enc.NombreCliente = Limpiar(cliente.CardName);
-                enc.Nit = Limpiar(cliente.LicTradNum);
-                enc.Direccion = Limpiar(cliente.Address);
-                enc.Correo = Limpiar(cliente.Email);
-                enc.Moneda = ResolverMoneda(enc.Moneda, cliente.Currency);
+                // SAP conserva la autoridad sobre la identidad y asignación del
+                // cliente. Los datos comerciales son la fotografía confirmada
+                // por el usuario para esta cotización y pueden ajustarse antes
+                // de guardar sin modificar el maestro en SAP.
+                enc.NombreCliente = Limpiar(enc.NombreCliente);
+                enc.Nit = Limpiar(enc.Nit);
+                enc.Direccion = Limpiar(enc.Direccion);
+                enc.Correo = Limpiar(enc.Correo);
+                enc.Moneda = ResolverMoneda(enc.Moneda);
                 enc.IdUsr = Limpiar(usuario);
                 enc.Estado = EstadosCotizacion.Vigente;
 
@@ -320,6 +324,12 @@ namespace DiamDev.Give.BLL
             if (string.IsNullOrWhiteSpace(enc.CodigoOperador)) return "Seleccione un agente.";
             if (string.IsNullOrWhiteSpace(enc.Agente)) return "El agente seleccionado no es válido.";
             if (string.IsNullOrWhiteSpace(enc.IdCliente)) return "Seleccione un cliente.";
+            if (string.IsNullOrWhiteSpace(enc.NombreCliente)) return "Ingrese el nombre del cliente.";
+            if (Longitud(enc.NombreCliente) > 200) return "El nombre del cliente excede 200 caracteres.";
+            if (Longitud(enc.Nit) > 50) return "El NIT excede 50 caracteres.";
+            if (Longitud(enc.Direccion) > 300) return "La dirección excede 300 caracteres.";
+            if (Longitud(enc.Correo) > 150) return "El correo excede 150 caracteres.";
+            if (string.IsNullOrWhiteSpace(enc.Moneda)) return "Seleccione una moneda.";
             if (enc.ValidaHasta.Date < enc.Fecha.Date)
                 return "La fecha de validez no puede ser anterior a la fecha de emisión.";
             if (enc.ValidaHasta.Date > enc.Fecha.Date.AddYears(1))
@@ -350,19 +360,13 @@ namespace DiamDev.Give.BLL
             return null;
         }
 
-        private static string ResolverMoneda(string solicitada, string monedaCliente)
+        private static string ResolverMoneda(string solicitada)
         {
-            string sap = NormalizarMoneda(monedaCliente);
             string app = NormalizarMoneda(solicitada);
-            if (sap == "##" || string.IsNullOrWhiteSpace(sap))
-                sap = app;
-            if (sap != "GTQ" && sap != "USD" && sap != "EUR")
+            if (app != "GTQ" && app != "USD" && app != "EUR")
                 throw new InvalidOperationException(
-                    "La moneda del cliente en SAP no está soportada: '" + sap + "'.");
-            if (!string.IsNullOrWhiteSpace(app) && app != sap)
-                throw new InvalidOperationException(
-                    "La moneda enviada no coincide con la moneda del cliente en SAP.");
-            return sap;
+                    "La moneda seleccionada no está soportada: '" + app + "'.");
+            return app;
         }
 
         private static void NormalizarPreciosSap(

@@ -150,11 +150,23 @@
         cancelarBusquedaProductos();
         estado.cliente = null;
         $("#cotClienteCodigo,#cotClienteNombre,#cotNit,#cotCorreo,#cotDireccion").val("");
+        $("#cotMoneda").val("");
         $("#cotClientStrip").removeClass("is-selected");
         $("#cotClientTitle").text("Ningún cliente seleccionado");
         $("#cotClientMeta").text("Seleccione empresa y agente; después busque el cliente en SAP.");
         estado.lineas = [];
         renderLineas();
+    }
+
+    function actualizarResumenCliente() {
+        if (!estado.cliente) return;
+        var codigo = estado.cliente.CardCode || "";
+        var nombre = $("#cotClienteNombre").val().trim() || "Sin nombre";
+        var nit = $("#cotNit").val().trim() || "Sin NIT";
+        var monedaActual = normalizarMoneda($("#cotMoneda").val()) || "Sin moneda";
+        $("#cotClientTitle").text(codigo + " · " + nombre);
+        $("#cotClientMeta").text("NIT: " + nit + " · Agente: " +
+            (estado.cliente.SlpName || agente()) + " · Moneda: " + monedaActual);
     }
 
     function seleccionarCliente(c) {
@@ -166,10 +178,9 @@
         $("#cotCorreo").val(c.Email || "");
         $("#cotDireccion").val(c.Address || "");
         var m = normalizarMoneda(c.Currency);
-        if (m && m !== "##") $("#cotMoneda").val(m);
+        $("#cotMoneda").val(m && m !== "##" ? m : "");
         $("#cotClientStrip").addClass("is-selected");
-        $("#cotClientTitle").text((c.CardCode || "") + " · " + (c.CardName || ""));
-        $("#cotClientMeta").text("Agente: " + (c.SlpName || agente()) + " · Moneda SAP: " + (m || "—"));
+        actualizarResumenCliente();
         estado.lineas = [];
         renderLineas();
         $("#cotClienteModal").modal("hide");
@@ -444,6 +455,14 @@
         if (!empresa()) return "Seleccione una empresa.";
         if (!codigoOperador()) return "Seleccione un agente.";
         if (!estado.cliente) return "Seleccione un cliente.";
+        if (!$("#cotClienteNombre").val().trim()) return "Ingrese el nombre del cliente.";
+        if ($("#cotClienteNombre").val().trim().length > 200) return "El nombre del cliente excede 200 caracteres.";
+        if ($("#cotNit").val().trim().length > 50) return "El NIT excede 50 caracteres.";
+        if ($("#cotDireccion").val().trim().length > 300) return "La dirección excede 300 caracteres.";
+        if ($("#cotCorreo").val().trim().length > 150) return "El correo excede 150 caracteres.";
+        if ($("#cotCorreo").val().trim() && !document.getElementById("cotCorreo").checkValidity())
+            return "Ingrese un correo electrónico válido.";
+        if (!$("#cotMoneda").val()) return "Seleccione una moneda.";
         if (!$("#cotFecha").val() || !$("#cotValidaHasta").val()) return "Complete las fechas.";
         if ($("#cotValidaHasta").val() < $("#cotFecha").val()) return "La validez no puede ser anterior a la emisión.";
         if (!estado.lineas.length) return "Agregue al menos un producto.";
@@ -462,7 +481,10 @@
         if (error) { avisar("warning", error); return; }
         var request = {
             IdEmpresa: empresa(), Fecha: $("#cotFecha").val(), ValidaHasta: $("#cotValidaHasta").val(),
-            IdCliente: estado.cliente.CardCode, CodigoOperador: codigoOperador(), Moneda: $("#cotMoneda").val(),
+            IdCliente: estado.cliente.CardCode,
+            NombreCliente: $("#cotClienteNombre").val().trim(), Nit: $("#cotNit").val().trim(),
+            Direccion: $("#cotDireccion").val().trim(), Correo: $("#cotCorreo").val().trim(),
+            CodigoOperador: codigoOperador(), Moneda: $("#cotMoneda").val(),
             CondicionesPago: $("#cotCondicionesPago").val(), TiempoEntrega: $("#cotTiempoEntrega").val(),
             Observaciones: $("#cotObservaciones").val()
         };
@@ -619,7 +641,8 @@
         })
             .on("input", ".cot-desc", function () { var i = numero($(this).closest("tr").data("index")); if (estado.lineas[i]) estado.lineas[i].Descripcion = $(this).val(); })
             .on("click", ".cot-remove", function () { estado.lineas.splice(numero($(this).closest("tr").data("index")), 1); renderLineas(); });
-        $("#cotMoneda").on("change", renderLineas);
+        $("#cotClienteNombre,#cotNit,#cotCorreo,#cotDireccion").on("input", actualizarResumenCliente);
+        $("#cotMoneda").on("change", function () { renderLineas(); actualizarResumenCliente(); });
         $("#cotGuardar").on("click", guardar); $("#cotNuevo").on("click", function () { resetFormulario(false); });
         $("#cotTabListado").on("shown.bs.tab click", function () { if (!estado.listado.length) cargarListado(); });
         $("#cotRefrescar").on("click", cargarListado);

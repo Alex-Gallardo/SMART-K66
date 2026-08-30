@@ -30,6 +30,10 @@ namespace Tests.Cotizaciones
                 { "Fecha", "2026-08-26" },
                 { "ValidaHasta", "2026-09-10" },
                 { "IdCliente", "C0001" },
+                { "NombreCliente", "Cliente editado" },
+                { "Nit", "CF-EDITADO" },
+                { "Direccion", "Dirección editada" },
+                { "Correo", "editado@example.com" },
                 { "CodigoOperador", "12-AGENTE DEMO" },
                 { "Moneda", "GTQ" },
                 { "CondicionesPago", "Crédito 30 días" },
@@ -64,6 +68,11 @@ namespace Tests.Cotizaciones
             Verdad(modelo != null, "el encabezado se enlaza");
             Verdad(modelo != null && modelo.IdEmpresa == "GRACO",
                 "empresa conserva su valor");
+            Verdad(modelo != null && modelo.NombreCliente == "Cliente editado" &&
+                    modelo.Nit == "CF-EDITADO" &&
+                    modelo.Direccion == "Dirección editada" &&
+                    modelo.Correo == "editado@example.com",
+                "datos comerciales editables conservan sus valores");
             Verdad(modelo != null &&
                     modelo.CondicionesPago == "Crédito 30 días",
                 "condiciones de pago conservan su valor");
@@ -87,7 +96,7 @@ namespace Tests.Cotizaciones
                 "segunda línea conserva impuesto exento");
 
             Console.WriteLine(_fallas == 0
-                ? "OK: 9 aserciones de model binding de cotizaciones."
+                ? "OK: 10 aserciones de model binding de cotizaciones."
                 : "FALLAS: " + _fallas);
             return _fallas == 0 ? 0 : 1;
         }

@@ -44,6 +44,10 @@ namespace DiamDev.Give.UI.Models
         public string Fecha { get; set; }
         public string ValidaHasta { get; set; }
         public string IdCliente { get; set; }
+        public string NombreCliente { get; set; }
+        public string Nit { get; set; }
+        public string Direccion { get; set; }
+        public string Correo { get; set; }
         public string CodigoOperador { get; set; }
         public string Moneda { get; set; }
         public string CondicionesPago { get; set; }

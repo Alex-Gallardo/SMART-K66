@@ -91,8 +91,9 @@
                             <input id="cotValidaHasta" class="form-control" type="date" value="@validez" />
                         </div>
                         <div class="cot-field cot-col-1">
-                            <label for="cotMoneda">Moneda</label>
+                            <label for="cotMoneda">Moneda <span>*</span></label>
                             <select id="cotMoneda" class="form-control">
+                                <option value="">Seleccione...</option>
                                 <option value="GTQ">GTQ</option>
                                 <option value="USD">USD</option>
                                 <option value="EUR">EUR</option>
@@ -118,20 +119,20 @@
                             </div>
                         </div>
                         <div class="cot-field cot-col-5">
-                            <label for="cotClienteNombre">Cliente</label>
-                            <input id="cotClienteNombre" class="form-control" readonly />
+                            <label for="cotClienteNombre">Cliente <span>*</span></label>
+                            <input id="cotClienteNombre" class="form-control" maxlength="200" />
                         </div>
                         <div class="cot-field cot-col-2">
                             <label for="cotNit">NIT</label>
-                            <input id="cotNit" class="form-control" readonly />
+                            <input id="cotNit" class="form-control" maxlength="50" />
                         </div>
                         <div class="cot-field cot-col-2">
                             <label for="cotCorreo">Correo</label>
-                            <input id="cotCorreo" class="form-control" readonly />
+                            <input id="cotCorreo" class="form-control" type="email" maxlength="150" />
                         </div>
                         <div class="cot-field cot-col-12">
                             <label for="cotDireccion">Dirección</label>
-                            <input id="cotDireccion" class="form-control" readonly />
+                            <input id="cotDireccion" class="form-control" maxlength="300" />
                         </div>
                     </div>
                     <div class="cot-client-strip" id="cotClientStrip">

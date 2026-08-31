@@ -163,13 +163,11 @@ namespace DiamDev.Give.UI.Controllers
             return JsonGet(() =>
             {
                 var filas = new List<BorradorNcEncabezado>();
-                bool puedeVerTodos = TienePermiso(PERMISO_VER_TODOS);
                 foreach (var contexto in ContextosConsulta(empresa))
                 {
                     filas.AddRange(_bll.ListarPendientes(
                         User.Identity.Name,
-                        puedeVerTodos,
-                        contexto.Agente,
+                        contexto.Agentes,
                         contexto.Empresa));
                 }
                 return ProyectarLista(SinDuplicados(filas));
@@ -188,13 +186,11 @@ namespace DiamDev.Give.UI.Controllers
                 DateTime? fHasta = TryFecha(hasta, out fechaHasta) ? (DateTime?)fechaHasta : null;
 
                 var filas = new List<BorradorNcEncabezado>();
-                bool puedeVerTodos = TienePermiso(PERMISO_VER_TODOS);
                 foreach (var contexto in ContextosConsulta(empresa))
                 {
                     filas.AddRange(_bll.ListarSeguimiento(
                         User.Identity.Name,
-                        puedeVerTodos,
-                        contexto.Agente,
+                        contexto.Agentes,
                         contexto.Empresa,
                         fDesde,
                         fHasta));
@@ -212,7 +208,7 @@ namespace DiamDev.Give.UI.Controllers
                 ValidarEmpresa(empresa);
                 var enc = _bll.ObtenerPorId(empresa, idBorrador);
                 if (enc == null) throw new InvalidOperationException("Borrador no encontrado.");
-                if (!PuedeConsultar(enc))
+                if (!PuedeConsultarSeguimiento(enc))
                     throw new UnauthorizedAccessException("No tiene acceso a este borrador.");
                 return ProyectarDocumento(enc);
             });
@@ -227,7 +223,7 @@ namespace DiamDev.Give.UI.Controllers
                 ValidarEmpresa(empresa);
                 var enc = _bll.ObtenerPorId(empresa, idBorrador);
                 if (enc == null) throw new InvalidOperationException("Borrador no encontrado.");
-                if (!PuedeConsultar(enc))
+                if (!PuedeConsultarSeguimiento(enc))
                     throw new UnauthorizedAccessException("No tiene acceso a este borrador.");
 
                 return ProyectarContenidoFacturas(enc);
@@ -337,7 +333,7 @@ namespace DiamDev.Give.UI.Controllers
             ValidarEmpresa(empresa);
             var enc = _bll.ObtenerPorId(empresa, idBorrador);
             if (enc == null) return HttpNotFound("Borrador no encontrado.");
-            if (!PuedeConsultar(enc)) return new HttpUnauthorizedResult();
+            if (!PuedeImprimir(enc)) return new HttpUnauthorizedResult();
             return View(enc);
         }
 
@@ -450,7 +446,6 @@ namespace DiamDev.Give.UI.Controllers
 
         private IEnumerable<ContextoConsulta> ContextosConsulta(string empresa)
         {
-            bool esAgente = EsAgente();
             var asignaciones = string.IsNullOrWhiteSpace(empresa)
                 ? Asignaciones()
                 : Asignaciones().Where(x =>
@@ -461,14 +456,21 @@ namespace DiamDev.Give.UI.Controllers
                 throw new UnauthorizedAccessException(
                     "La empresa no está asignada al usuario actual.");
 
-            return asignaciones.Select(x => new ContextoConsulta
+            return asignaciones.Select(x => new
                 {
                     Empresa = _usuarioEmpresa.GetEmpresaNombre(x.EmpresaId),
-                    Agente = esAgente ? _usuarioEmpresa.ParseCodigo(x.Codigo).AgenteNombre : null
+                    Agente = _usuarioEmpresa.ParseCodigo(x.Codigo).AgenteNombre
                 })
                 .Where(x => x.Empresa != "DESCONOCIDA")
-                .GroupBy(x => x.Empresa + "|" + (x.Agente ?? ""), StringComparer.OrdinalIgnoreCase)
-                .Select(g => g.First());
+                .GroupBy(x => x.Empresa, StringComparer.OrdinalIgnoreCase)
+                .Select(g => new ContextoConsulta
+                {
+                    Empresa = g.Key,
+                    Agentes = g.Select(x => (x.Agente ?? "").Trim())
+                               .Where(x => x.Length > 0)
+                               .Distinct(StringComparer.OrdinalIgnoreCase)
+                               .ToList()
+                });
         }
 
         private IEnumerable<string> EmpresasConsulta(string empresa)
@@ -484,23 +486,25 @@ namespace DiamDev.Give.UI.Controllers
                 .Distinct(StringComparer.OrdinalIgnoreCase);
         }
 
-        private bool PuedeConsultar(BorradorNcEncabezado enc)
+        private bool PuedeConsultarSeguimiento(BorradorNcEncabezado enc)
         {
-            // Quien autoriza o anula necesita abrir e imprimir solicitudes de
-            // otros capturadores dentro de sus empresas asignadas, aun cuando el
-            // rol no tenga VerTodos por una configuración incompleta.
-            if (TienePermiso(PERMISO_VER_TODOS) ||
-                TienePermiso(PERMISO_AUTORIZAR) ||
-                TienePermiso(PERMISO_ANULAR)) return true;
-            if (EsAgente())
-            {
-                var agentes = Asignaciones()
-                    .Where(x => string.Equals(_usuarioEmpresa.GetEmpresaNombre(x.EmpresaId), enc.IdEmpresa,
-                                              StringComparison.OrdinalIgnoreCase))
-                    .Select(x => _usuarioEmpresa.ParseCodigo(x.Codigo).AgenteNombre);
-                return agentes.Any(x => string.Equals(x, enc.Agente, StringComparison.OrdinalIgnoreCase));
-            }
-            return string.Equals(enc.IdUsr, User.Identity.Name, StringComparison.OrdinalIgnoreCase);
+            if (string.Equals(enc.IdUsr, User.Identity.Name,
+                              StringComparison.OrdinalIgnoreCase)) return true;
+
+            return ContextosConsulta(enc.IdEmpresa)
+                .SelectMany(x => x.Agentes)
+                .Any(x => string.Equals(x, enc.Agente,
+                                        StringComparison.OrdinalIgnoreCase));
+        }
+
+        private bool PuedeImprimir(BorradorNcEncabezado enc)
+        {
+            // La impresión también se usa en Autorizaciones. En Seguimiento se
+            // respeta el alcance por creador/agente; los permisos operativos
+            // conservan el acceso requerido por sus flujos específicos.
+            return PuedeConsultarSeguimiento(enc) ||
+                   TienePermiso(PERMISO_AUTORIZAR) ||
+                   TienePermiso(PERMISO_ANULAR);
         }
 
         private static bool TienePermiso(string permiso)
@@ -667,7 +671,7 @@ namespace DiamDev.Give.UI.Controllers
         private class ContextoConsulta
         {
             public string Empresa { get; set; }
-            public string Agente { get; set; }
+            public List<string> Agentes { get; set; }
         }
     }
 }

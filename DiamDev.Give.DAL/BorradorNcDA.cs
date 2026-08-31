@@ -573,6 +573,67 @@ namespace DiamDev.Give.DAL
             return lista;
         }
 
+        /// <summary>
+        /// Listado limitado al ámbito del usuario en Seguimiento: registros
+        /// capturados por él o pertenecientes a cualquiera de sus agentes
+        /// asignados. Los valores siempre se envían como parámetros SQL.
+        /// </summary>
+        public List<BorradorNcEncabezado> ListarVisibles(
+            string empresa,
+            string estado,
+            string idUsr,
+            IEnumerable<string> agentes,
+            DateTime? desde = null,
+            DateTime? hasta = null)
+        {
+            if (string.IsNullOrWhiteSpace(empresa))
+                throw new ArgumentException(
+                    "La empresa es obligatoria para consultar el seguimiento.", "empresa");
+
+            var agentesNormalizados = (agentes ?? Enumerable.Empty<string>())
+                .Select(x => (x ?? "").Trim())
+                .Where(x => x.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var alcance = new List<string>();
+            if (!string.IsNullOrWhiteSpace(idUsr)) alcance.Add("ID_USR = @idUsr");
+            for (int i = 0; i < agentesNormalizados.Count; i++)
+                alcance.Add("AGENTE = @agente" + i);
+
+            if (alcance.Count == 0) return new List<BorradorNcEncabezado>();
+
+            string sql = SELECT_ENC + @"
+                WHERE ID_EMPRESA = @empresa
+                  AND (@estado  IS NULL OR ESTADO     = @estado)
+                  AND (@desde   IS NULL OR FECHA     >= @desde)
+                  AND (@hasta   IS NULL OR FECHA     <= @hasta)
+                  AND (" + string.Join(" OR ", alcance) + @")
+                ORDER BY FECHA DESC, ID_BORRADOR DESC;";
+
+            var lista = new List<BorradorNcEncabezado>();
+            using (var cn = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = empresa.Trim();
+                cmd.Parameters.Add("@estado", SqlDbType.VarChar, 20).Value = Nulo(estado);
+                if (!string.IsNullOrWhiteSpace(idUsr))
+                    cmd.Parameters.Add("@idUsr", SqlDbType.NVarChar, 50).Value = idUsr.Trim();
+                for (int i = 0; i < agentesNormalizados.Count; i++)
+                    cmd.Parameters.Add("@agente" + i, SqlDbType.NVarChar, 155).Value
+                        = agentesNormalizados[i];
+                cmd.Parameters.Add("@desde", SqlDbType.Date).Value
+                    = desde.HasValue ? (object)desde.Value.Date : DBNull.Value;
+                cmd.Parameters.Add("@hasta", SqlDbType.Date).Value
+                    = hasta.HasValue ? (object)hasta.Value.Date : DBNull.Value;
+
+                cn.Open();
+                using (var r = cmd.ExecuteReader())
+                    while (r.Read()) lista.Add(LeerEncabezado(r));
+            }
+            return lista;
+        }
+
         /// <summary>Un borrador con su detalle cargado. Null si no existe.</summary>
         public BorradorNcEncabezado ObtenerPorId(string empresa, string idBorrador)
         {

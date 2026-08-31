@@ -1,0 +1,270 @@
+/* =============================================================================
+   Backlog dashboard — visual system now matched to "Dashboard producción v2"
+   per Luigi's request (28/08/2026): dark by default, same per-empresa accent
+   palette (GRACO/BOLIK/ESCOCESA) and the same brand-badge component. The
+   light theme is kept reachable via the existing toggle for anyone who wants
+   it, but dark + the selected empresa's accent is now the default look,
+   matching Producción v2 (which has no light mode at all). The semantic
+   good/warning/serious/critical colors stay fixed across companies, same
+   reasoning as Producción v2: a full reskin of those would make severity
+   harder to read at a glance.
+   ============================================================================= */
+/* NOTE (28/08/2026 fix): these variables must live on :root, not on the
+   .viz-root wrapper div. .viz-root is a *child* of <body>, and custom
+   properties only cascade downward — a variable defined on a descendant is
+   invisible to its ancestors. body's `color: var(--text-primary)` below sat
+   above .viz-root in the DOM, so it was reading an undefined variable, which
+   made the color declaration invalid and fall back to inherited/initial
+   black — every heading and stat value that didn't set its own color then
+   inherited that black, in EVERY theme, not just dark (dark was just where
+   it was noticeable against the dark background). Moving the variables to
+   :root (matching produccion-v2-shared.css's structure) fixes this for good. */
+:root {
+  color-scheme: dark;
+  --surface-1:      #1e293b;
+  --page-plane:     #0f172a;
+  --text-primary:   #e2e8f0;
+  --text-secondary: #c3c2b7;
+  --text-muted:     #94a3b8;
+  --gridline:       #273449;
+  --baseline:       #334155;
+  --border:         #334155;
+  --series-1:       #22d3ee; /* overridden per-empresa below */
+  --series-2:       #eb6834;
+  --series-3:       #1baf7a;
+  --seq-100:        #184f95;
+  --seq-450:        #22d3ee;
+  --good:           #10b981;
+  --warning:        #f59e0b;
+  --serious:        #ec835a;
+  --critical:       #ef4444;
+  --success-text:   #10b981;
+  --accent2:        #0d2a5c;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --surface-1:      #fcfcfb;
+  --page-plane:     #f9f9f7;
+  --text-primary:   #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted:     #898781;
+  --gridline:       #e1e0d9;
+  --baseline:       #c3c2b7;
+  --border:         rgba(11,11,11,0.10);
+  --series-1:       #2a78d6;
+  --series-2:       #eb6834;
+  --series-3:       #1baf7a;
+  --seq-100:        #cde2fb;
+  --seq-450:        #2a78d6;
+  --good:           #0ca30c;
+  --warning:        #fab219;
+  --serious:        #ec835a;
+  --critical:       #d03b3b;
+  --success-text:   #006300;
+}
+
+/* Per-empresa accent + surface tint — same values as produccion-v2-shared.css
+   so switching companies looks identical across both dashboards. Only
+   applies in dark mode (matching Producción, which is dark-only); the light
+   theme stays a fixed neutral palette regardless of empresa. */
+:root[data-empresa="GRACO"]:not([data-theme="light"]) {
+  --page-plane: #0a1710;
+  --surface-1:  #122619;
+  --gridline:   #1a3524;
+  --border:     #2c4a37;
+  --text-muted: #9fbfa9;
+  --series-1:   #3fae4c;
+  --accent2:    #0d2a5c;
+}
+:root[data-empresa="BOLIK"]:not([data-theme="light"]) {
+  --page-plane: #070707;
+  --surface-1:  #151515;
+  --gridline:   #1f1f1f;
+  --border:     #343434;
+  --text-muted: #a8a8a8;
+  --series-1:   #f5d90a;
+  --accent2:    #111111;
+}
+:root[data-empresa="ESCOCESA"]:not([data-theme="light"]) {
+  --page-plane: #170a0a;
+  --surface-1:  #271313;
+  --gridline:   #351919;
+  --border:     #4a2323;
+  --text-muted: #c9a3a3;
+  --series-1:   #d13239;
+  --accent2:    #f0a83c;
+}
+
+.brand-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 7px;
+  background: var(--series-1); color: var(--accent2, #0d2a5c);
+  font-weight: 800; font-size: 12px; flex: none;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--page-plane);
+  color: var(--text-primary);
+}
+.viz-root { background: var(--page-plane); min-height: 100vh; padding-bottom: 48px; }
+
+.topbar {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 28px 32px 20px; max-width: 1280px; margin: 0 auto;
+  flex-wrap: wrap; gap: 12px;
+}
+h1 { font-size: 22px; margin: 0 0 4px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.subtitle { color: var(--text-secondary); font-size: 13.5px; margin: 0; max-width: 640px; line-height: 1.5; }
+.asof { color: var(--text-muted); font-size: 12.5px; margin-top: 6px; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sub-label { color: var(--text-muted); font-size: 12px; }
+.theme-toggle {
+  border: 1px solid var(--border); background: var(--surface-1); color: var(--text-secondary);
+  border-radius: 8px; padding: 7px 12px; font-size: 12.5px; cursor: pointer; font-family: inherit;
+}
+.theme-toggle:hover { color: var(--text-primary); }
+
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
+
+.kpi-row {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px;
+  margin-bottom: 28px;
+}
+@media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+.stat-tile {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px;
+}
+.stat-label { font-size: 11.5px; color: var(--text-secondary); margin-bottom: 6px; }
+.stat-value { font-size: 24px; font-weight: 600; line-height: 1.1; }
+.stat-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 4px; }
+.stat-tile.tile-critical .stat-value { color: var(--critical); }
+.stat-tile.tile-warning .stat-value { color: #b3790f; }
+:root[data-theme="dark"] .stat-tile.tile-warning .stat-value { color: var(--warning); }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .stat-tile.tile-warning .stat-value { color: var(--warning); } }
+
+.card {
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px 22px 22px; margin-bottom: 24px;
+}
+.card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 8px; }
+.card-title { font-size: 15px; font-weight: 700; margin: 0; }
+.card-desc { font-size: 12.5px; color: var(--text-secondary); margin: 2px 0 16px; max-width: 780px; line-height: 1.5; }
+
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.legend-line { width: 14px; height: 2px; border-radius: 1px; flex: none; }
+
+svg { display: block; overflow: visible; max-width: 100%; height: auto; }
+.bar { rx: 4; }
+.bar-hit { cursor: pointer; }
+.bar-hit:hover rect.bar { filter: brightness(1.08); }
+.axis-label { fill: var(--text-muted); font-size: 11px; }
+.axis-line { stroke: var(--baseline); stroke-width: 1; }
+.grid-line { stroke: var(--gridline); stroke-width: 1; }
+.value-label { fill: var(--text-secondary); font-size: 11px; font-weight: 600; }
+.cat-label { fill: var(--text-primary); font-size: 12px; }
+
+.tooltip {
+  position: fixed; pointer-events: none; z-index: 50;
+  background: var(--text-primary); color: var(--surface-1);
+  font-size: 12px; padding: 8px 10px; border-radius: 6px; line-height: 1.5;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25); opacity: 0; transition: opacity 0.08s ease;
+  max-width: 260px;
+}
+.tooltip.show { opacity: 1; }
+.tooltip .t-title { font-weight: 700; margin-bottom: 2px; }
+.tooltip .t-row { display: flex; justify-content: space-between; gap: 12px; }
+.tooltip .t-val { font-weight: 700; }
+
+.toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.search-input, .filter-select, input[type=file], input[type=date] {
+  background: var(--page-plane); border: 1px solid var(--border); border-radius: 8px;
+  padding: 7px 10px; font-size: 12.5px; color: var(--text-primary); font-family: inherit;
+}
+.search-input { min-width: 220px; }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  border: 1px solid var(--border); background: transparent; color: var(--text-secondary);
+  border-radius: 999px; padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.chip.active { background: var(--series-1); border-color: var(--series-1); color: #fff; }
+.table-toggle-btn {
+  border: 1px solid var(--border); background: transparent; color: var(--text-secondary);
+  border-radius: 8px; padding: 6px 11px; font-size: 12px; cursor: pointer; font-family: inherit; margin-left: auto;
+}
+.table-toggle-btn:hover { color: var(--text-primary); }
+.table-toggle-btn:disabled, .theme-toggle:disabled {
+  cursor: wait; opacity: 0.6;
+}
+
+/* Global filter bar (item/family/customer/origen) — applies to every section,
+   distinct from the per-section chips (bucket) which only filter that table. */
+.global-filters {
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  padding: 14px 16px; background: var(--surface-1); border: 1px solid var(--border);
+  border-radius: 10px; margin-bottom: 20px;
+}
+.global-filters .filter-label { font-size: 11.5px; color: var(--text-muted); margin-right: -4px; }
+.clear-filters-btn {
+  border: 1px solid var(--border); background: transparent; color: var(--text-secondary);
+  border-radius: 8px; padding: 6px 11px; font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.clear-filters-btn:hover { color: var(--text-primary); }
+
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+thead th {
+  text-align: left; font-weight: 600; color: var(--text-secondary); font-size: 11.5px;
+  padding: 8px 10px; border-bottom: 1px solid var(--baseline); cursor: pointer; user-select: none;
+  white-space: nowrap; position: sticky; top: 0; background: var(--surface-1);
+}
+thead th:hover { color: var(--text-primary); }
+thead th .sort-arrow { opacity: 0.4; margin-left: 3px; font-size: 10px; }
+tbody td {
+  padding: 7px 10px; border-bottom: 1px solid var(--gridline); color: var(--text-primary);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+tbody tr:hover { background: var(--page-plane); }
+.num { text-align: right; }
+.table-scroll { max-height: 420px; overflow-y: auto; overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; }
+table { min-width: 100%; }
+#backlogTable tbody td:nth-child(3), #backlogTable thead th:nth-child(3),
+#itemTable tbody td:nth-child(2), #itemTable thead th:nth-child(2) { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#backlogTable tbody td:nth-child(2), #backlogTable thead th:nth-child(2) { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.badge-critical { background: rgba(208,59,59,0.14); color: var(--critical); }
+.badge-serious { background: rgba(236,131,90,0.16); color: #b8542c; }
+.badge-warning { background: rgba(250,178,25,0.20); color: #93650a; }
+.badge-good { background: rgba(12,163,12,0.14); color: var(--good); }
+.badge-neutral { background: rgba(11,11,11,0.08); color: var(--text-secondary); }
+:root[data-theme="dark"] .badge-serious, :root[data-theme="dark"] .badge-warning { color: var(--text-primary); }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .badge-serious, :root:where(:not([data-theme="light"])) .badge-warning { color: var(--text-primary); } }
+:root[data-theme="dark"] .badge-neutral { color: var(--text-primary); }
+@media (prefers-color-scheme: dark) { :root:where(:not([data-theme="light"])) .badge-neutral { color: var(--text-primary); } }
+.row-count { font-size: 11.5px; color: var(--text-muted); margin-top: 8px; }
+.wh-hover { cursor: help; border-bottom: 1px dotted var(--text-muted); }
+
+.two-col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px; }
+.two-col > div,
+#bucketChart, #itemChart, #trendChart, #seasonChart { min-width: 0; }
+@media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+@media (max-width: 640px) {
+  .topbar { padding: 20px 16px 16px; }
+  .wrap { padding: 0 16px; }
+  .topbar-actions { width: 100%; }
+  .search-input { min-width: min(220px, 100%); }
+}
+
+footer { max-width: 1280px; margin: 0 auto; padding: 8px 32px 0; color: var(--text-muted); font-size: 11.5px; line-height: 1.7; }
+footer ul { margin: 6px 0 0; padding-left: 18px; }
+@media (max-width: 640px) {
+  footer { padding-left: 16px; padding-right: 16px; }
+}
+
+.empty-state { color: var(--text-muted); font-size: 13px; padding: 24px; text-align: center; }

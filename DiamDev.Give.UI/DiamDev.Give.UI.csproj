@@ -599,6 +599,7 @@
     <Content Include="Content\Site.css" />
     <Content Include="Content\borrador-nc.css" />
     <Content Include="Content\cotizaciones.css" />
+    <Content Include="Content\backlog-viz.css" />
     <Content Include="Content\produccion-v2-shared.css" />
     <Content Include="Content\ui-shell.css" />
     <Content Include="Content\themes\base\accordion.css" />
@@ -636,6 +637,7 @@
     <Content Include="Content\themes\base\tooltip.css" />
     <Content Include="Content\toastr.css" />
     <Content Include="Content\toastr.min.css" />
+    <Content Include="App_Data\backlog.sql" />
     <Content Include="App_Data\dashboard_v2.sql" />
     <Content Include="dashboard.sql" />
     <Content Include="DeliveryModel.Context.tt">
@@ -658,6 +660,7 @@
     <Content Include="Scripts\App\BorradorNc-Index.js" />
     <Content Include="Scripts\App\BorradorNc-Autorizaciones.js" />
     <Content Include="Scripts\App\Cotizacion-Index.js" />
+    <Content Include="Scripts\App\backlog-viz.js" />
     <Content Include="Scripts\App\produccion-v2-shared.js" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
@@ -738,6 +741,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Views\Dashboard\Index.cshtml" />
+    <Content Include="Views\Backlog\Index.cshtml" />
     <Content Include="Views\ProduccionV2\Index.cshtml" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
@@ -840,6 +844,7 @@
     <Compile Include="App_Start\SeguridadAttribute.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\DashboardController.cs" />
+    <Compile Include="Controllers\BacklogController.cs" />
     <Compile Include="Controllers\ProduccionV2Controller.cs" />
     <Compile Include="Controllers\Pedido_Tipo_K66Controller.cs" />
     <Compile Include="Controllers\Descuento_K66Controller.cs" />

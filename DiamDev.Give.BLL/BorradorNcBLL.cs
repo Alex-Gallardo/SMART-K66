@@ -556,28 +556,15 @@ namespace DiamDev.Give.BLL
         // =====================================================================
 
         /// <summary>
-        /// Borradores pendientes visibles para el usuario (pestaña de captura).
-        ///
-        /// El legado tenía esto partido entre rec_borr_listar —que duplicaba su
-        /// cuerpo para el caso AGENTE— y el parámetro @tipo, que en realidad era
-        /// el departamento. Aquí se decide por permiso:
-        ///
-        ///   - puedeVerTodos        → todos
-        ///   - el usuario es AGENTE → los de su nombre de agente
-        ///   - resto                → los que él capturó
+        /// Borradores pendientes visibles para el usuario en Seguimiento. El
+        /// alcance se compone de lo capturado por él y de todos los agentes que
+        /// tiene asignados en Usuario_Empresa para la empresa consultada.
         /// </summary>
         public List<BorradorNcEncabezado> ListarPendientes(
-            string login, bool puedeVerTodos, string agente, string empresa = null)
+            string login, IEnumerable<string> agentes, string empresa)
         {
-            if (puedeVerTodos)
-                return _da.Listar(empresa: empresa, estado: EstadosBorradorNc.Pendiente);
-
-            if (!string.IsNullOrWhiteSpace(agente))
-                return _da.Listar(empresa: empresa,
-                                  estado: EstadosBorradorNc.Pendiente, agente: agente);
-
-            return _da.Listar(empresa: empresa,
-                              estado: EstadosBorradorNc.Pendiente, idUsr: login);
+            return _da.ListarVisibles(
+                empresa, EstadosBorradorNc.Pendiente, login, agentes);
         }
 
         /// <summary>
@@ -585,8 +572,8 @@ namespace DiamDev.Give.BLL
         /// rec_borr_listar_seg, que filtraba STATUS IN ('R','X').
         /// </summary>
         public List<BorradorNcEncabezado> ListarSeguimiento(
-            string login, bool puedeVerTodos, string agente,
-            string empresa = null, DateTime? desde = null, DateTime? hasta = null)
+            string login, IEnumerable<string> agentes,
+            string empresa, DateTime? desde = null, DateTime? hasta = null)
         {
             var resueltos = new[] { EstadosBorradorNc.Autorizado,
                                     EstadosBorradorNc.Rechazado,
@@ -595,12 +582,8 @@ namespace DiamDev.Give.BLL
 
             foreach (var estado in resueltos)
             {
-                if (puedeVerTodos)
-                    todos.AddRange(_da.Listar(empresa, estado, null, null, desde, hasta));
-                else if (!string.IsNullOrWhiteSpace(agente))
-                    todos.AddRange(_da.Listar(empresa, estado, null, agente, desde, hasta));
-                else
-                    todos.AddRange(_da.Listar(empresa, estado, login, null, desde, hasta));
+                todos.AddRange(_da.ListarVisibles(
+                    empresa, estado, login, agentes, desde, hasta));
             }
 
             return todos.OrderByDescending(b => b.Fecha)

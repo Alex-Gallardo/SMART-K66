@@ -1,0 +1,222 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Backlog de Pedidos — Grupo K66</title>
+    <link rel="stylesheet" href="@Url.Content("~/Content/backlog-viz.css?v=20260831.1")">
+</head>
+<body>
+<div class="viz-root">
+
+    <div class="topbar">
+        <div>
+            <h1><span class="brand-badge" id="brandBadge">GP</span> Backlog de Pedidos de Venta</h1>
+            <p class="subtitle">Líneas abiertas de pedido de venta, estado de entrega, demanda por item y tendencia histórica.</p>
+            <div class="asof" id="asOfLine"></div>
+        </div>
+        <div class="topbar-actions">
+            <label class="sub-label" for="empresa">Empresa</label>
+            <select class="filter-select" id="empresa">
+                <option value="GRACO" selected>Graco</option>
+                <option value="BOLIK">Bolik</option>
+                <option value="ESCOCESA">Escocesa</option>
+            </select>
+            <label class="filter-label" style="font-size:12.5px;color:var(--text-secondary);">Desde</label>
+            <input type="date" id="from">
+            <label class="filter-label" style="font-size:12.5px;color:var(--text-secondary);">Hasta</label>
+            <input type="date" id="to">
+            <button class="table-toggle-btn" id="refresh" style="margin-left:0;">Actualizar</button>
+            <button class="theme-toggle" id="themeToggle">Cambiar a claro</button>
+        </div>
+    </div>
+
+    <div class="wrap">
+        <div id="status" class="row-count" style="margin-bottom:12px;" aria-live="polite">Cargando…</div>
+
+        <div class="global-filters">
+            <span class="filter-label">Filtros:</span>
+            <input class="search-input" id="globalSearch" placeholder="Pedido, cliente, item o descripción…">
+            <select class="filter-select" id="filFamilia"><option value="">Todas las familias</option></select>
+            <input class="search-input" id="filItemCode" list="itemCodeList" placeholder="Código de item…" style="min-width:150px;">
+            <datalist id="itemCodeList"></datalist>
+            <input class="search-input" id="filCustomerCode" list="customerCodeList" placeholder="Código de cliente…" style="min-width:150px;">
+            <datalist id="customerCodeList"></datalist>
+            <select class="filter-select" id="filAgente"><option value="">Todos los vendedores</option></select>
+            <select class="filter-select" id="filEstado"><option value="">Todos los departamentos</option></select>
+            <div class="chip-row" id="origenChips"></div>
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-secondary);">
+                <input type="checkbox" id="filOpenOnly" checked> Solo líneas abiertas
+            </label>
+            <button class="clear-filters-btn" id="clearFiltersBtn">Limpiar filtros</button>
+        </div>
+
+        <div class="kpi-row" id="kpiRow"></div>
+
+        <div class="card">
+            <div class="card-head">
+                <h2 class="card-title">Estado de entrega de pedidos abiertos</h2>
+            </div>
+            <p class="card-desc">Cada línea de pedido de venta abierta, agrupada según qué tan cerca está (o cuánto pasó) de su fecha de entrega prometida. Usa la fecha de embarque de línea cuando existe, si no la fecha de vencimiento del pedido. La tabla incluye fecha de pedido, vendedor, departamento del cliente (filtrables arriba), cantidad pedida/despachada/abierta, stock actual del item, y stock disponible tentativo — este último reserva el stock primero para los pedidos más viejos de cada item, así que un pedido reciente puede mostrar poco o nada disponible aunque haya stock, si pedidos más antiguos del mismo item ya lo reclaman.</p>
+            <div id="bucketChart"></div>
+            <div class="toolbar" style="margin-top:18px;">
+                <input class="search-input" id="backlogSearch" placeholder="Filtrar por pedido, cliente o item…">
+                <div class="chip-row" id="bucketChips"></div>
+                <button class="table-toggle-btn" id="backlogTableToggle">Ocultar tabla</button>
+            </div>
+            <div id="backlogTableWrap">
+                <div class="table-scroll">
+                    <table id="backlogTable">
+                        <thead><tr>
+                            <th data-key="order">Pedido #</th>
+                            <th data-key="customer">Cliente</th>
+                            <th data-key="item">Item</th>
+                            <th data-key="desc">Descripción</th>
+                            <th data-key="origen">Origen</th>
+                            <th data-key="orderDate">Fecha pedido</th>
+                            <th data-key="agent">Vendedor</th>
+                            <th data-key="estado">Depto.</th>
+                            <th data-key="qtyOrdered" class="num">Cant. pedida</th>
+                            <th data-key="qtyDispatched" class="num">Cant. despachada</th>
+                            <th data-key="qty" class="num">Cant. abierta</th>
+                            <th data-key="due">Fecha entrega</th>
+                            <th data-key="daysLate" class="num">Días</th>
+                            <th data-key="stockOnHand" class="num">Stock actual</th>
+                            <th data-key="tentativeAvailable" class="num">Stock disp. tentativo</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="row-count" id="backlogRowCount"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head">
+                <h2 class="card-title">Demanda abierta por item</h2>
+            </div>
+            <p class="card-desc">Cantidad abierta a través de todos los pedidos pendientes, por item — según los filtros de arriba.</p>
+            <div id="itemChart"></div>
+            <div class="toolbar" style="margin-top:18px;">
+                <input class="search-input" id="itemSearch" placeholder="Filtrar por código o descripción de item…">
+                <button class="table-toggle-btn" id="itemTableToggle">Ocultar tabla</button>
+            </div>
+            <div id="itemTableWrap">
+                <div class="table-scroll">
+                    <table id="itemTable">
+                        <thead><tr>
+                            <th data-key="item">Item</th>
+                            <th data-key="desc">Descripción</th>
+                            <th data-key="qty" class="num">Cant. abierta</th>
+                            <th data-key="orders" class="num">Pedidos</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="row-count" id="itemRowCount"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head">
+                <h2 class="card-title">Volumen de pedidos — tendencia y estacionalidad</h2>
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);">
+                    Agrupar por
+                    <select class="filter-select" id="trendBucket">
+                        <option value="week">Semana</option>
+                        <option value="month" selected>Mes</option>
+                        <option value="year">Año</option>
+                    </select>
+                </label>
+            </div>
+            <p class="card-desc">Cantidad pedida a través del tiempo dentro del rango consultado (todos los estados) — respeta los filtros de item/familia de arriba, así que para ver unidades vendidas de un item o familia específico en el tiempo, fíltralo arriba. La línea punteada es una tendencia lineal (regresión simple) sobre el período y los intervalos que estés viendo — se recalcula sola según el rango de fechas, el agrupado (Semana/Mes/Año) y los filtros activos; el intervalo actual (todavía sin terminar) no se usa para calcularla, para no sesgarla a la baja, pero sí se dibuja hasta ese punto. La de la derecha es el promedio por mes calendario. Ninguna de las dos se ve afectada por el filtro "Solo líneas abiertas".</p>
+            <div class="two-col">
+                <div>
+                    <div class="legend">
+                        <div class="legend-item"><span class="legend-line" style="background:var(--series-1)"></span>Cantidad pedida</div>
+                        <div class="legend-item"><span class="legend-line" style="border-top:2px dashed var(--series-2);background:none;height:0;"></span>Tendencia lineal (promedio del período)</div>
+                    </div>
+                    <div id="trendChart"></div>
+                </div>
+                <div>
+                    <div class="legend"><div class="legend-item"><span class="legend-swatch" style="background:var(--series-1)"></span>Promedio por mes calendario</div></div>
+                    <div id="seasonChart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div><strong>Metodología y notas</strong></div>
+        <ul>
+            <li>Fuente: <code>App_Data/backlog.sql</code> (ORDR/RDR1), con Familia (OITM→OITB) y Origen (CL = Local, CE = Extranjero, por prefijo de CardCode).</li>
+            <li>"Líneas abiertas" = cantidad abierta (OpenQty) mayor a cero — desmarca "Solo líneas abiertas" para incluir también las líneas cerradas del rango consultado.</li>
+            <li>El stock disponible tentativo aplica una reserva FIFO sobre el backlog abierto completo cargado; es una estimación visual y no una asignación real de SAP.</li>
+            <li>Esta versión no compara la demanda contra capacidad de máquina.</li>
+        </ul>
+    </footer>
+
+    <div class="tooltip" id="tooltip"></div>
+</div>
+
+<script src="@Url.Content("~/Scripts/App/backlog-viz.js?v=20260831.1")"></script>
+<script>
+    const $ = id => document.getElementById(id);
+    let latestRequest = 0;
+
+    function initDates() {
+        BacklogViz.setDefaultDateRange($('from'), $('to'));
+    }
+
+    async function load() {
+        const from = $('from').value;
+        const to = $('to').value;
+        const empresa = $('empresa').value;
+        const requestId = ++latestRequest;
+
+        if (!from || !to) {
+            $('status').textContent = 'Selecciona fecha desde y hasta.';
+            return;
+        }
+
+        $('status').textContent = 'Cargando…';
+        $('refresh').disabled = true;
+
+        try {
+            var urlGetData = '@Url.Action("GetData", "Backlog")';
+            const url = urlGetData
+                + `?from=${encodeURIComponent(from)}`
+                + `&to=${encodeURIComponent(to)}`
+                + `&empresa=${encodeURIComponent(empresa)}`;
+
+            const r = await fetch(url, { cache: 'no-store' });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) {
+                throw new Error(j.error || ('Error HTTP ' + r.status));
+            }
+            if (requestId !== latestRequest) return;
+            BacklogViz.setRawData(Array.isArray(j.rows) ? j.rows : []);
+        } catch (err) {
+            if (requestId !== latestRequest) return;
+            console.error(err);
+            $('status').textContent = 'Error: ' + err.message;
+        } finally {
+            if (requestId === latestRequest) $('refresh').disabled = false;
+        }
+    }
+
+    document.getElementById('asOfLine').textContent = 'Vista generada ' + new Date().toLocaleString('es-GT');
+
+    $('refresh').addEventListener('click', load);
+    $('empresa').addEventListener('change', () => { BacklogViz.applyPalette($('empresa').value); load(); });
+    BacklogViz.init();
+    BacklogViz.applyPalette($('empresa').value);
+
+    initDates();
+    load();
+</script>
+</body>
+</html>

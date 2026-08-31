@@ -1,0 +1,303 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Dashboard de Producción v2 — Grupo K66</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="@Url.Content("~/Content/produccion-v2-shared.css?v=20260831.1")">
+</head>
+
+<body>
+
+    <header>
+        <div>
+            <h1>Tiempos Reales por Recurso <span class="sub">v2</span></h1>
+            <div class="sub">Grupo K66 · SAP B1 + BEAS</div>
+        </div>
+
+        <div class="filters">
+            <span class="brand-badge" id="brandBadge">GP</span>
+
+            <label class="sub">Empresa</label>
+            <select id="empresa">
+                <option value="GRACO" selected>Graco</option>
+                <option value="BOLIK">Bolik</option>
+                <option value="ESCOCESA">Escocesa</option>
+            </select>
+
+            <label class="sub">Desde</label>
+            <input type="date" id="from">
+
+            <label class="sub">Hasta</label>
+            <input type="date" id="to">
+
+            <div class="presets" id="presets">
+                <button type="button" data-preset="hoy">Hoy</button>
+                <button type="button" data-preset="7d">7 días</button>
+                <button type="button" data-preset="30d" class="active">30 días</button>
+                <button type="button" data-preset="mes">Este mes</button>
+                <button type="button" data-preset="mes-pasado">Mes pasado</button>
+                <button type="button" data-preset="anio">Este año</button>
+            </div>
+
+            <label class="sub">Agrupar</label>
+            <select id="bucket">
+                <option value="day" selected>Día</option>
+                <option value="week">Semana</option>
+                <option value="month">Mes</option>
+                <option value="year">Año</option>
+            </select>
+
+            <button id="refresh" type="button">Actualizar</button>
+        </div>
+    </header>
+
+    <main>
+        <div id="status" class="status">Cargando…</div>
+
+        <div id="bannerRecurso" class="banner">
+            ⚠️ El rango seleccionado cruza el 2026-05-01, fecha en la que los códigos/nombres de recurso (máquina)
+            fueron renombrados. Comparar u agrupar por Recurso a través de esa fecha puede mezclar máquinas
+            distintas o partir una misma máquina en dos — ver la nota en <code>dashboard_v2.sql</code>.
+        </div>
+
+        <section class="filters" style="margin:0;">
+            <label class="sub">Producto</label>
+            <div class="msel" id="mselItem">
+                <button type="button" class="msel-btn">Todos</button>
+                <div class="msel-panel">
+                    <input type="text" class="msel-search" placeholder="Buscar código o descripción…">
+                    <div class="msel-options"></div>
+                    <div class="msel-actions"><button type="button" data-act="clear">Limpiar</button></div>
+                </div>
+            </div>
+
+            <label class="sub">Recurso</label>
+            <div class="msel" id="mselRecurso">
+                <button type="button" class="msel-btn">Todos</button>
+                <div class="msel-panel">
+                    <input type="text" class="msel-search" placeholder="Buscar recurso…">
+                    <div class="msel-options"></div>
+                    <div class="msel-actions"><button type="button" data-act="clear">Limpiar</button></div>
+                </div>
+            </div>
+
+            <label class="sub">Familia</label>
+            <div class="msel" id="mselFamilia">
+                <button type="button" class="msel-btn">Todas</button>
+                <div class="msel-panel">
+                    <input type="text" class="msel-search" placeholder="Buscar familia…">
+                    <div class="msel-options"></div>
+                    <div class="msel-actions"><button type="button" data-act="clear">Limpiar</button></div>
+                </div>
+            </div>
+
+            <label class="sub">Categoría</label>
+            <div class="msel" id="mselTipo">
+                <button type="button" class="msel-btn">Todas</button>
+                <div class="msel-panel">
+                    <input type="text" class="msel-search" placeholder="Buscar categoría…">
+                    <div class="msel-options"></div>
+                    <div class="msel-actions"><button type="button" data-act="clear">Limpiar</button></div>
+                </div>
+            </div>
+
+            <label class="sub">Estado OT</label>
+            <select id="filEstado">
+                <option value="">Todos</option>
+                <option value="Abierta">Abierta</option>
+                <option value="Cerrada">Cerrada</option>
+            </select>
+        </section>
+
+        <section class="kpis">
+            <div class="kpi">
+                <div class="label">Horas Reales</div>
+                <div class="value" id="kpiReal">—</div>
+                <div class="delta" id="kpiRealSub"></div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">Horas Planificadas</div>
+                <div class="value" id="kpiPlan">—</div>
+                <div class="delta" id="kpiPlanSub"></div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">% Cumplimiento</div>
+                <div class="value" id="kpiCump">—</div>
+                <div class="delta">Real / Plan</div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">% Eficiencia</div>
+                <div class="value" id="kpiEf">—</div>
+                <div class="delta">Plan / Real OT</div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">Horas Paro</div>
+                <div class="value" id="kpiParo">—</div>
+                <div class="delta" id="kpiParoSub"></div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">Cant. Producida</div>
+                <div class="value" id="kpiEM">—</div>
+                <div class="delta">cant. total OTs en rango, según filtros</div>
+            </div>
+        </section>
+
+        <section class="charts">
+            <div class="card full">
+                <h3>Tendencia: Real vs. Plan vs. Paro (% de capacidad)</h3>
+                <div class="chart-box trend-box"><canvas id="chartTrend"></canvas></div>
+            </div>
+
+            <div class="card full">
+                <h3>Cantidad producida en el tiempo</h3>
+                <div class="chart-box trend-box"><canvas id="chartQty"></canvas></div>
+            </div>
+
+            <div class="card">
+                <h3>Horas reales por recurso</h3>
+                <div class="chart-box small-chart"><canvas id="chartRec"></canvas></div>
+            </div>
+
+            <div class="card">
+                <h3>Cantidad real por recurso</h3>
+                <div class="chart-box small-chart"><canvas id="chartRecQty"></canvas></div>
+            </div>
+
+            <div class="card">
+                <h3>Utilización 24h por recurso</h3>
+                <div class="chart-box small-chart"><canvas id="chartUtil"></canvas></div>
+            </div>
+
+            <div class="card">
+                <h3>Cantidad hecha por familia</h3>
+                <div class="chart-box small-chart"><canvas id="chartFamilia"></canvas></div>
+            </div>
+
+            <div class="card">
+                <h3>Cantidad hecha por item</h3>
+                <div class="chart-box small-chart"><canvas id="chartItem"></canvas></div>
+            </div>
+
+            <div class="card">
+                <h3>Cantidad hecha por categoría</h3>
+                <div class="chart-box small-chart"><canvas id="chartTipo"></canvas></div>
+            </div>
+
+            <div class="card full">
+                <h3>Detalle por OT / Posición / Recurso</h3>
+                <div class="table-wrap">
+                    <table id="tabla">
+                        <thead>
+                            <tr>
+                                <th data-key="Fecha">Fecha</th>
+                                <th data-key="OT">OT</th>
+                                <th data-key="PosicionOT">Pos</th>
+                                <th data-key="ItemID">Item</th>
+                                <th data-key="DescripcionItem">Descripción Item</th>
+                                <th data-key="UnidadMedida">UoM</th>
+                                <th data-key="FamilyName">Familia</th>
+                                <th data-key="TipoItem">Categoría</th>
+                                <th data-key="DescripcionRecurso">Máquina</th>
+                                <th data-key="EstadoOT">Estado OT</th>
+                                <th class="num" data-key="Cantidad Planeada">Cant.Plan</th>
+                                <th class="num" data-key="Cantidad Hecha">Cant.Hecha</th>
+                                <th class="num" data-key="Hora Plan">H.Plan</th>
+                                <th class="num" data-key="Hora Real Día">H.Real Día</th>
+                                <th class="num" data-key="Hora Real Rango">H.Real Rango</th>
+                                <th class="num" data-key="Hora Real OT">H.Real OT</th>
+                                <th class="num" data-key="Pieza*turnoPlan">P×T Plan</th>
+                                <th class="num" data-key="Pieza*turnoReal">P×T Real</th>
+                                <th class="num" data-key="Eficiencia Dia">Efic.Día</th>
+                                <th class="num" data-key="Eficiencia Rango">Efic.Rango</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="@Url.Content("~/Scripts/App/produccion-v2-shared.js?v=20260831.1")"></script>
+    <script>
+        const $ = id => document.getElementById(id);
+
+        function initDates() {
+            ProduccionV2Dashboard.applyDatePreset('30d', $('from'), $('to'));
+        }
+
+        async function load() {
+            const from = $('from').value;
+            const to = $('to').value;
+            const empresa = $('empresa').value;
+
+            if (!from || !to) {
+                $('status').textContent = 'Selecciona fecha desde y hasta.';
+                return;
+            }
+
+            ProduccionV2Dashboard.checkResourceRelabelBanner(from, to);
+
+            $('status').textContent = 'Cargando…';
+            document.body.classList.add('loading');
+
+            try {
+                var urlGetData = '@Url.Action("GetData", "ProduccionV2")';
+                const url = urlGetData
+                    + `?from=${encodeURIComponent(from)}`
+                    + `&to=${encodeURIComponent(to)}`
+                    + `&empresa=${encodeURIComponent(empresa)}`;
+
+                const r = await fetch(url, { cache: 'no-store' });
+                if (!r.ok) {
+                    const errorText = await r.text();
+                    throw new Error('Error ' + r.status + ': ' + errorText);
+                }
+
+                const j = await r.json();
+                ProduccionV2Dashboard.setRawData(Array.isArray(j.rows) ? j.rows : []);
+            } catch (err) {
+                console.error(err);
+                $('status').textContent = 'Error: ' + err.message;
+            } finally {
+                document.body.classList.remove('loading');
+            }
+        }
+
+        function wirePresets() {
+            document.querySelectorAll('#presets button').forEach(b => {
+                b.addEventListener('click', () => {
+                    document.querySelectorAll('#presets button').forEach(x => x.classList.remove('active'));
+                    b.classList.add('active');
+                    ProduccionV2Dashboard.applyDatePreset(b.dataset.preset, $('from'), $('to'));
+                    load();
+                });
+            });
+        }
+
+        $('refresh').addEventListener('click', load);
+        $('empresa').addEventListener('change', () => {
+            ProduccionV2Dashboard.applyPalette($('empresa').value);
+            load();
+        });
+        ProduccionV2Dashboard.wireFilterControls({ onDateChange: load });
+        wirePresets();
+
+        ProduccionV2Dashboard.applyPalette($('empresa').value);
+        initDates();
+        load();
+    </script>
+
+</body>
+</html>

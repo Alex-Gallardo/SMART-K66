@@ -14,6 +14,7 @@
         seguimiento: $root.data("url-seguimiento"),
         detalle: $root.data("url-detalle"),
         detalleFacturas: $root.data("url-detalle-facturas"),
+        adjunto: $root.data("url-adjunto"),
         anular: $root.data("url-anular"),
         imprimir: $root.data("url-imprimir")
     };
@@ -23,11 +24,19 @@
         factura: null,
         facturas: [],
         lineas: [],
+        archivos: [],
+        enlaces: [],
         operadores: [],
         seguimiento: [],
         seleccionado: null,
         seguimientoCargado: false,
         puedeAnular: String($root.data("puede-anular")) === "true"
+    };
+    var limitesAdjuntos = {
+        archivos: Number($root.attr("data-max-archivos")) || 5,
+        enlaces: Number($root.attr("data-max-enlaces")) || 5,
+        archivoBytes: Number($root.attr("data-max-archivo-bytes")) || 10 * 1024 * 1024,
+        totalBytes: Number($root.attr("data-max-total-bytes")) || 25 * 1024 * 1024
     };
     var estadoFacturaTimer = null;
     var clienteTimer = null;
@@ -128,6 +137,18 @@
         var payload = $.extend({}, data || {});
         payload.__RequestVerificationToken = token();
         return $.ajax({ url: url, type: "POST", dataType: "json", data: payload });
+    }
+
+    function postMultipart(url, data) {
+        data.append("__RequestVerificationToken", token());
+        return $.ajax({
+            url: url,
+            type: "POST",
+            dataType: "json",
+            data: data,
+            processData: false,
+            contentType: false
+        });
     }
 
     function empresa() { return $("#bncEmpresa").val() || ""; }
@@ -540,6 +561,113 @@
         $("#bncMoneda").prop("disabled", state.lineas.length > 0);
     }
 
+    function formatoBytes(value) {
+        return window.BorradorNcAdjuntos.formatoBytes(value);
+    }
+
+    function tieneCambiosSinGuardar() {
+        return state.lineas.length || state.archivos.length || state.enlaces.length;
+    }
+
+    function renderAdjuntosCaptura() {
+        var archivosHtml = "";
+        var enlacesHtml = "";
+
+        $.each(state.archivos, function (i, archivo) {
+            archivosHtml += '<div class="bnc-attachment-capture-item"><span class="bnc-support-icon"><i class="icon-file"></i></span>' +
+                '<div class="bnc-support-copy"><strong>' + escapeHtml(archivo.name) + '</strong><small>' +
+                escapeHtml(formatoBytes(archivo.size)) + '</small></div>' +
+                '<button class="bnc-icon-btn bnc-remove-attachment" type="button" data-kind="archivo" data-index="' + i +
+                '" title="Quitar archivo"><i class="icon-trash"></i><span class="sr-only">Quitar archivo</span></button></div>';
+        });
+        $.each(state.enlaces, function (i, enlace) {
+            enlacesHtml += '<div class="bnc-attachment-capture-item"><span class="bnc-support-icon is-link"><i class="icon-link"></i></span>' +
+                '<div class="bnc-support-copy"><strong>' + escapeHtml(enlace.Titulo || "Enlace") + '</strong><small title="' +
+                escapeHtml(enlace.Url) + '">' + escapeHtml(enlace.Url) + '</small></div>' +
+                '<button class="bnc-icon-btn bnc-remove-attachment" type="button" data-kind="enlace" data-index="' + i +
+                '" title="Quitar enlace"><i class="icon-trash"></i><span class="sr-only">Quitar enlace</span></button></div>';
+        });
+
+        $("#bncArchivoLista").html(archivosHtml || '<div class="bnc-attachment-list-empty">No ha seleccionado archivos.</div>');
+        $("#bncEnlaceLista").html(enlacesHtml || '<div class="bnc-attachment-list-empty">No ha agregado enlaces.</div>');
+        $("#bncArchivoContador").text(state.archivos.length + " / " + limitesAdjuntos.archivos);
+        $("#bncEnlaceContador").text(state.enlaces.length + " / " + limitesAdjuntos.enlaces);
+        var total = state.archivos.length + state.enlaces.length;
+        $("#bncAdjuntoCount").text(total ? total + (total === 1 ? " adjunto" : " adjuntos") : "Sin adjuntos");
+    }
+
+    function agregarArchivos(lista) {
+        var candidatos = $.makeArray(lista || []);
+        if (!candidatos.length) return;
+        if (state.archivos.length + candidatos.length > limitesAdjuntos.archivos) {
+            avisar("warning", "Puede adjuntar como máximo " + limitesAdjuntos.archivos + " archivos.");
+            $("#bncArchivos").val("");
+            return;
+        }
+
+        var permitidas = /\.(pdf|jpe?g|png|webp|docx?|xlsx?|txt)$/i;
+        var firmas = {};
+        var total = 0;
+        $.each(state.archivos, function (_, archivo) {
+            firmas[String(archivo.name).toLowerCase() + "|" + archivo.size + "|" + (archivo.lastModified || 0)] = true;
+            total += Number(archivo.size) || 0;
+        });
+
+        var error = "";
+        $.each(candidatos, function (_, archivo) {
+            var nombre = String(archivo.name || "");
+            var firma = nombre.toLowerCase() + "|" + archivo.size + "|" + (archivo.lastModified || 0);
+            if (!permitidas.test(nombre)) error = "El formato de " + nombre + " no está permitido.";
+            else if (!archivo.size) error = "El archivo " + nombre + " está vacío.";
+            else if (archivo.size > limitesAdjuntos.archivoBytes) error = "El archivo " + nombre + " excede el límite de 10 MB.";
+            else if (firmas[firma]) error = "El archivo " + nombre + " ya está agregado.";
+            total += Number(archivo.size) || 0;
+            firmas[firma] = true;
+            if (!error && total > limitesAdjuntos.totalBytes)
+                error = "Los archivos adjuntos exceden el límite total de 25 MB.";
+            return !error;
+        });
+
+        if (error) avisar("warning", error);
+        else state.archivos = state.archivos.concat(candidatos);
+        $("#bncArchivos").val("");
+        renderAdjuntosCaptura();
+    }
+
+    function normalizarEnlace(url) {
+        var valor = String(url || "").trim();
+        if (!/^https?:\/\//i.test(valor)) return "";
+        var enlace = document.createElement("a");
+        enlace.href = valor;
+        if ((enlace.protocol !== "http:" && enlace.protocol !== "https:") || !enlace.hostname) return "";
+        return enlace.href;
+    }
+
+    function agregarEnlace() {
+        if (state.enlaces.length >= limitesAdjuntos.enlaces) {
+            avisar("warning", "Puede agregar como máximo " + limitesAdjuntos.enlaces + " enlaces.");
+            return;
+        }
+        var url = normalizarEnlace($("#bncEnlaceUrl").val());
+        if (!url) {
+            avisar("warning", "Escriba una dirección completa que inicie con http:// o https://.");
+            $("#bncEnlaceUrl").focus();
+            return;
+        }
+        var repetido = $.grep(state.enlaces, function (x) {
+            return String(x.Url).toLowerCase() === url.toLowerCase();
+        }).length > 0;
+        if (repetido) {
+            avisar("warning", "Ese enlace ya está agregado.");
+            return;
+        }
+        var titulo = $("#bncEnlaceTitulo").val().trim();
+        state.enlaces.push({ Titulo: titulo, Url: url });
+        $("#bncEnlaceTitulo,#bncEnlaceUrl").val("");
+        renderAdjuntosCaptura();
+        $("#bncEnlaceTitulo").focus();
+    }
+
     function validarBorrador() {
         if (!empresa()) return "Seleccione una empresa.";
         if (!codigoOperador()) return "Seleccione el agente con el que operará.";
@@ -551,6 +679,8 @@
         if (!state.lineas.length) return "Agregue al menos una línea.";
         if ($("#bncDireccion").val().trim().length > 200) return "La dirección no puede exceder 200 caracteres.";
         if ($("#bncCorreo").val().trim().length > 100) return "El correo no puede exceder 100 caracteres.";
+        if ($("#bncEnlaceTitulo").val().trim() || $("#bncEnlaceUrl").val().trim())
+            return "Agregue el enlace pendiente o limpie sus campos antes de guardar.";
 
         var fecha = $("#bncFecha").val();
         var moneda = normalizarMoneda($("#bncMoneda").val());
@@ -598,7 +728,20 @@
             });
         });
 
-        post(urls.guardar, payload).done(function (r) {
+        $.each(state.enlaces, function (i, enlace) {
+            payload["Enlaces[" + i + "].Titulo"] = enlace.Titulo || "";
+            payload["Enlaces[" + i + "].Url"] = enlace.Url;
+        });
+
+        var formulario = new window.FormData();
+        $.each(payload, function (nombre, valor) {
+            formulario.append(nombre, valor == null ? "" : valor);
+        });
+        $.each(state.archivos, function (_, archivo) {
+            formulario.append("archivos", archivo, archivo.name);
+        });
+
+        postMultipart(urls.guardar, formulario).done(function (r) {
             if (!r || !r.ok) { avisar("error", r && r.msg ? r.msg : "No fue posible guardar el borrador."); return; }
             avisar("success", r.msg || "Borrador guardado.");
             $.each(r.advertencias || [], function (_, m) { avisar("warning", m); });
@@ -615,6 +758,8 @@
         var emp = conservarEmpresa ? empresa() : "";
         var codigo = conservarEmpresa ? codigoOperador() : "";
         state.lineas = [];
+        state.archivos = [];
+        state.enlaces = [];
         limpiarCliente();
         $("#bncEmpresa").val(emp);
         empresaAnterior = emp;
@@ -622,7 +767,9 @@
         $("#bncFecha").val(hoyLocal());
         $("#bncMoneda").val("").prop("disabled", false);
         $("#bncPrefijo").text("—");
+        $("#bncArchivos,#bncEnlaceTitulo,#bncEnlaceUrl").val("");
         renderLineas();
+        renderAdjuntosCaptura();
         if (emp) cargarSerie();
     }
 
@@ -769,6 +916,7 @@
             motivo +
             '<div class="bnc-table-wrap" style="border-width:1px 0 0;border-radius:0;"><table class="table bnc-table" style="min-width:620px"><thead><tr><th>Documento</th><th>Fecha</th><th>Descripción</th><th class="text-right">Importe</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
             window.BorradorNcFacturasDetalle.plantilla("bncFollowInvoices") +
+            window.BorradorNcAdjuntos.plantilla(x, { baseUrl: urls.adjunto }) +
             '<div class="bnc-decision-bar"><button class="bnc-btn bnc-btn-ghost" type="button" id="bncImprimirSeleccionado"><i class="icon-print"></i> Imprimir</button>' + anular + "</div>"
         );
         state.seleccionado.documento = x;
@@ -866,12 +1014,38 @@
             state.lineas.splice(Number($(this).data("index")), 1);
             renderLineas();
         });
+        $("#bncArchivos").on("change", function () {
+            agregarArchivos(this.files);
+        });
+        $("#bncDropzone").on("dragenter dragover", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).addClass("is-dragging");
+        }).on("dragleave drop", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass("is-dragging");
+        }).on("drop", function (e) {
+            agregarArchivos(e.originalEvent && e.originalEvent.dataTransfer
+                ? e.originalEvent.dataTransfer.files
+                : []);
+        });
+        $("#bncAgregarEnlace").on("click", agregarEnlace);
+        $("#bncEnlaceUrl").on("keydown", function (e) {
+            if (e.which === 13) { e.preventDefault(); agregarEnlace(); }
+        });
+        $("#bncArchivoLista,#bncEnlaceLista").on("click", ".bnc-remove-attachment", function () {
+            var indice = Number($(this).data("index"));
+            if ($(this).data("kind") === "archivo") state.archivos.splice(indice, 1);
+            else state.enlaces.splice(indice, 1);
+            renderAdjuntosCaptura();
+        });
         $("#bncNuevo").on("click", function () {
-            if (state.lineas.length && !window.confirm("Se perderán las líneas no guardadas. ¿Desea crear un borrador nuevo?")) return;
+            if (tieneCambiosSinGuardar() && !window.confirm("Se perderán las líneas y adjuntos no guardados. ¿Desea crear un borrador nuevo?")) return;
             resetFormulario(false);
         });
         $("#bncCancelar").on("click", function () {
-            if (state.lineas.length && !window.confirm("Se perderán las líneas no guardadas. ¿Desea continuar?")) return;
+            if (tieneCambiosSinGuardar() && !window.confirm("Se perderán las líneas y adjuntos no guardados. ¿Desea continuar?")) return;
             resetFormulario(true);
         });
         $("#bncGuardar").on("click", guardar);
@@ -893,7 +1067,7 @@
         });
         $("#bncConfirmarAnular").on("click", confirmarAnulacion);
         $(window).on("beforeunload.borradorNc", function () {
-            if (state.lineas.length) return "Hay líneas de borrador sin guardar.";
+            if (tieneCambiosSinGuardar()) return "Hay datos del borrador sin guardar.";
         });
     }
 
@@ -902,6 +1076,7 @@
         poblarOperadores("", "");
         enlazarEventos();
         renderLineas();
+        renderAdjuntosCaptura();
         if ($("#bncEmpresa option").length === 2) $("#bncEmpresa").val($("#bncEmpresa option:eq(1)").val()).trigger("change");
     });
 })(window.jQuery);

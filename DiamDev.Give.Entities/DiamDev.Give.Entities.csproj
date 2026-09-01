@@ -85,6 +85,7 @@
     <Compile Include="AnticipoTransito.cs" />
     <Compile Include="AutenticarToken.cs" />
     <Compile Include="BodegaActivaModel.cs" />
+    <Compile Include="BorradorNcAdjunto.cs" />
     <Compile Include="BorradorNcDetalle.cs" />
     <Compile Include="BorradorNcEncabezado.cs" />
     <Compile Include="CotizacionDetalle.cs" />

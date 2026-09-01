@@ -1449,7 +1449,7 @@
     grid-template-columns: 34px minmax(0, 1fr) auto;
     margin-bottom: 11px;
 }
-.bnc-follow-section-copy { display: flex; flex: 1 1 220px; flex-direction: column; min-width: 0; }
+.bnc-follow-section-copy { display: flex; flex: 1 1 220px; flex-direction: column; min-width: 0; align-items: start !important; gap: 0 !important; justify-content: center;}
 .bnc-follow-section-copy strong { color: var(--bnc-ink); font-size: 12.5px; line-height: 1.25; }
 .bnc-follow-section-copy span { color: var(--bnc-muted); font-size: 10px; margin-top: 2px; }
 .bnc-support-summary {

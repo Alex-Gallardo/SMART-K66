@@ -127,7 +127,7 @@
 .cot-totals strong { font-size: 13px; margin-top: 2px; }
 .cot-totals .is-grand { border-left: 1px solid #dbe3ec; padding-left: 18px; }
 .cot-totals .is-grand strong { color: var(--cot-blue-dark); font-size: 19px; }
-.cot-save-actions { display: flex; gap: 8px; }
+.cot-save-actions { display: flex; }
 
 .cot-status { border: 1px solid; border-radius: 999px; font-size: 8.5px; font-weight: 800; padding: 4px 8px; text-transform: uppercase; }
 .cot-status.is-draft { background: var(--cot-blue-soft); border-color: #bfdbfe; color: var(--cot-blue-dark); }

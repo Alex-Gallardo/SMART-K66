@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Web;
 using System.Web.Mvc;
 using DiamDev.Give.BLL;
 using DiamDev.Give.Entities;
@@ -83,7 +85,9 @@ namespace DiamDev.Give.UI.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [BorradorNcPermiso(PERMISO_GUARDAR)]
-        public JsonResult Guardar(GuardarBorradorNcRequest request)
+        public JsonResult Guardar(
+            GuardarBorradorNcRequest request,
+            IEnumerable<HttpPostedFileBase> archivos)
         {
             try
             {
@@ -125,6 +129,67 @@ namespace DiamDev.Give.UI.Controllers
                 var codigo = _usuarioEmpresa.ParseCodigo(asignacion.Codigo);
                 string agente = codigo.AgenteNombre;
 
+                var adjuntos = new List<BorradorNcAdjunto>();
+                foreach (var enlace in request.Enlaces ?? new List<BorradorNcEnlaceRequest>())
+                {
+                    if (enlace == null ||
+                        (string.IsNullOrWhiteSpace(enlace.Titulo) &&
+                         string.IsNullOrWhiteSpace(enlace.Url))) continue;
+
+                    adjuntos.Add(new BorradorNcAdjunto
+                    {
+                        Tipo = TiposAdjuntoBorradorNc.Enlace,
+                        Nombre = enlace.Titulo,
+                        Url = enlace.Url
+                    });
+                }
+
+                var archivosRecibidos = (archivos ?? Enumerable.Empty<HttpPostedFileBase>())
+                    .Where(x => x != null && x.ContentLength > 0)
+                    .ToList();
+                if (archivosRecibidos.Count > BorradorNcBLL.MaximoArchivosAdjuntos)
+                    return Json(new
+                    {
+                        ok = false,
+                        msg = "Puede adjuntar como máximo " +
+                              BorradorNcBLL.MaximoArchivosAdjuntos + " archivos."
+                    });
+
+                long totalArchivos = 0;
+                foreach (var archivo in archivosRecibidos)
+                {
+                    if (archivo.ContentLength > BorradorNcBLL.MaximoBytesPorArchivo)
+                        return Json(new
+                        {
+                            ok = false,
+                            msg = "El archivo " + Path.GetFileName(archivo.FileName) +
+                                  " excede el límite de 10 MB."
+                        });
+
+                    totalArchivos += archivo.ContentLength;
+                    if (totalArchivos > BorradorNcBLL.MaximoBytesAdjuntos)
+                        return Json(new
+                        {
+                            ok = false,
+                            msg = "Los archivos adjuntos exceden el límite total de 25 MB."
+                        });
+
+                    byte[] contenido;
+                    using (var memoria = new MemoryStream())
+                    {
+                        archivo.InputStream.CopyTo(memoria);
+                        contenido = memoria.ToArray();
+                    }
+
+                    adjuntos.Add(new BorradorNcAdjunto
+                    {
+                        Tipo = TiposAdjuntoBorradorNc.Archivo,
+                        Nombre = Path.GetFileName(archivo.FileName),
+                        ContentType = archivo.ContentType,
+                        Contenido = contenido
+                    });
+                }
+
                 var enc = new BorradorNcEncabezado
                 {
                     IdEmpresa = request.IdEmpresa,
@@ -138,7 +203,8 @@ namespace DiamDev.Give.UI.Controllers
                     Moneda = request.Moneda,
                     Depto = asignacion.DEPTO_RECIBO,
                     CodigoOperador = asignacion.Codigo,
-                    Detalles = detalles
+                    Detalles = detalles,
+                    Adjuntos = adjuntos
                 };
 
                 var resultado = _bll.GuardarBorrador(enc, User.Identity.Name);
@@ -497,6 +563,42 @@ namespace DiamDev.Give.UI.Controllers
                                         StringComparison.OrdinalIgnoreCase));
         }
 
+        [HttpGet]
+        public ActionResult DescargarAdjunto(
+            string empresa, string idBorrador, long adjuntoId, bool inline = false)
+        {
+            ValidarEmpresa(empresa);
+            var enc = _bll.ObtenerPorId(empresa, idBorrador);
+            if (enc == null) return HttpNotFound("Borrador no encontrado.");
+            if (!PuedeImprimir(enc)) return new HttpUnauthorizedResult();
+
+            var adjunto = _bll.ObtenerAdjunto(empresa, idBorrador, adjuntoId);
+            if (adjunto == null || !adjunto.EsArchivo ||
+                adjunto.Contenido == null || adjunto.Contenido.Length == 0)
+                return HttpNotFound("Adjunto no encontrado.");
+
+            string contentType = string.IsNullOrWhiteSpace(adjunto.ContentType)
+                ? "application/octet-stream"
+                : adjunto.ContentType;
+            string nombre = NombreDescargaSeguro(adjunto.Nombre);
+            bool mostrarEnLinea = inline &&
+                (string.Equals(contentType, "application/pdf",
+                               StringComparison.OrdinalIgnoreCase) ||
+                 contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase));
+
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            Response.Cache.SetCacheability(HttpCacheability.Private);
+            Response.Cache.SetMaxAge(TimeSpan.Zero);
+
+            if (!mostrarEnLinea)
+                return File(adjunto.Contenido, contentType, nombre);
+
+            Response.AddHeader(
+                "Content-Disposition",
+                "inline; filename=\"" + nombre.Replace("\"", "'") + "\"");
+            return File(adjunto.Contenido, contentType);
+        }
+
         private bool PuedeImprimir(BorradorNcEncabezado enc)
         {
             // La impresión también se usa en Autorizaciones. En Seguimiento se
@@ -606,8 +708,40 @@ namespace DiamDev.Give.UI.Controllers
                         Moneda = d.Moneda,
                         Descripcion = d.Descripcion,
                         Importe = d.Importe
+                    }).ToList(),
+                Adjuntos = (x.Adjuntos ?? new List<BorradorNcAdjunto>()).Select(a =>
+                    new BorradorNcAdjuntoViewModel
+                    {
+                        AdjuntoId = a.AdjuntoId,
+                        Tipo = a.Tipo,
+                        Nombre = a.Nombre,
+                        Extension = a.Extension,
+                        ContentType = a.ContentType,
+                        Tamano = a.Tamano,
+                        Url = a.Url,
+                        Orden = a.Orden,
+                        IdUsr = a.IdUsr,
+                        Registro = a.Registro.HasValue
+                            ? a.Registro.Value.ToString("yyyy-MM-dd HH:mm")
+                            : "",
+                        EsVisualizable = string.Equals(
+                            a.ContentType, "application/pdf",
+                            StringComparison.OrdinalIgnoreCase) ||
+                            (!string.IsNullOrWhiteSpace(a.ContentType) &&
+                             a.ContentType.StartsWith(
+                                 "image/", StringComparison.OrdinalIgnoreCase))
                     }).ToList()
             };
+        }
+
+        private static string NombreDescargaSeguro(string nombre)
+        {
+            string limpio = Path.GetFileName(nombre ?? "adjunto")
+                .Replace("\r", "")
+                .Replace("\n", "")
+                .Replace("\\", "_")
+                .Replace("/", "_");
+            return string.IsNullOrWhiteSpace(limpio) ? "adjunto" : limpio;
         }
 
         private List<BorradorNcFacturaContenidoViewModel> ProyectarContenidoFacturas(

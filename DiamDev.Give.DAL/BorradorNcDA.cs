@@ -324,6 +324,16 @@ namespace DiamDev.Give.DAL
                      @serie, @numero, @totalFact, @pagado, @ncPrevia,
                      @moneda, @descripcion, @importe);";
 
+            const string sqlAdjunto = @"
+                INSERT INTO dbo.BORR_NC_ADJUNTO
+                    (ID_BORRADOR, ID_EMPRESA, TIPO, NOMBRE, EXTENSION,
+                     CONTENT_TYPE, TAMANO, CONTENIDO, URL, HASH_SHA256,
+                     ORDEN, ID_USR, REGISTRO)
+                VALUES
+                    (@idBorr, @empresa, @tipo, @nombre, @extension,
+                     @contentType, @tamano, @contenido, @url, @hash,
+                     @orden, @idUsr, SYSDATETIME());";
+
             const string sqlAcumulado = @"
                 SELECT ISNULL(SUM(D.IMPORTE), 0)
                 FROM dbo.BORR_NC_DET D
@@ -419,6 +429,28 @@ namespace DiamDev.Give.DAL
                                 var pIm = cmd.Parameters.Add("@importe", SqlDbType.Decimal);
                                 pIm.Precision = 20; pIm.Scale = 3; pIm.Value = d.Importe;
 
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        // ── 4. Documentación opcional ───────────────────────
+                        foreach (var adjunto in enc.Adjuntos ?? new List<BorradorNcAdjunto>())
+                        {
+                            using (var cmd = new SqlCommand(sqlAdjunto, cn, tx))
+                            {
+                                cmd.Parameters.Add("@idBorr", SqlDbType.NVarChar, 20).Value = enc.IdBorrador;
+                                cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = enc.IdEmpresa;
+                                cmd.Parameters.Add("@tipo", SqlDbType.VarChar, 10).Value = adjunto.Tipo;
+                                cmd.Parameters.Add("@nombre", SqlDbType.NVarChar, 255).Value = adjunto.Nombre;
+                                cmd.Parameters.Add("@extension", SqlDbType.NVarChar, 10).Value = Nulo(adjunto.Extension);
+                                cmd.Parameters.Add("@contentType", SqlDbType.NVarChar, 150).Value = Nulo(adjunto.ContentType);
+                                cmd.Parameters.Add("@tamano", SqlDbType.BigInt).Value = adjunto.Tamano;
+                                cmd.Parameters.Add("@contenido", SqlDbType.VarBinary, -1).Value
+                                    = (object)adjunto.Contenido ?? DBNull.Value;
+                                cmd.Parameters.Add("@url", SqlDbType.NVarChar, 2048).Value = Nulo(adjunto.Url);
+                                cmd.Parameters.Add("@hash", SqlDbType.Binary, 32).Value = adjunto.HashSha256;
+                                cmd.Parameters.Add("@orden", SqlDbType.SmallInt).Value = adjunto.Orden;
+                                cmd.Parameters.Add("@idUsr", SqlDbType.NVarChar, 50).Value = enc.IdUsr;
                                 cmd.ExecuteNonQuery();
                             }
                         }
@@ -686,8 +718,50 @@ namespace DiamDev.Give.DAL
                             });
                     }
                 }
+
+                const string sqlAdjuntos = @"
+                    SELECT ADJUNTO_ID, ID_BORRADOR, ID_EMPRESA, TIPO, NOMBRE,
+                           EXTENSION, CONTENT_TYPE, TAMANO, URL, HASH_SHA256,
+                           ORDEN, ID_USR, REGISTRO
+                    FROM dbo.BORR_NC_ADJUNTO
+                    WHERE ID_EMPRESA = @empresa AND ID_BORRADOR = @idBorr
+                    ORDER BY ORDEN, ADJUNTO_ID;";
+
+                using (var cmd = new SqlCommand(sqlAdjuntos, cn))
+                {
+                    cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = empresa ?? "";
+                    cmd.Parameters.Add("@idBorr", SqlDbType.NVarChar, 20).Value = idBorrador ?? "";
+                    using (var r = cmd.ExecuteReader())
+                    {
+                        while (r.Read()) enc.Adjuntos.Add(LeerAdjunto(r, false));
+                    }
+                }
             }
             return enc;
+        }
+
+        public BorradorNcAdjunto ObtenerAdjunto(
+            string empresa, string idBorrador, long adjuntoId)
+        {
+            const string sql = @"
+                SELECT ADJUNTO_ID, ID_BORRADOR, ID_EMPRESA, TIPO, NOMBRE,
+                       EXTENSION, CONTENT_TYPE, TAMANO, CONTENIDO, URL,
+                       HASH_SHA256, ORDEN, ID_USR, REGISTRO
+                FROM dbo.BORR_NC_ADJUNTO
+                WHERE ID_EMPRESA = @empresa
+                  AND ID_BORRADOR = @idBorr
+                  AND ADJUNTO_ID = @adjuntoId;";
+
+            using (var cn = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = empresa ?? "";
+                cmd.Parameters.Add("@idBorr", SqlDbType.NVarChar, 20).Value = idBorrador ?? "";
+                cmd.Parameters.Add("@adjuntoId", SqlDbType.BigInt).Value = adjuntoId;
+                cn.Open();
+                using (var r = cmd.ExecuteReader())
+                    return r.Read() ? LeerAdjunto(r, true) : null;
+            }
         }
 
         /// <summary>Solo el detalle — para refrescar la grilla sin recargar todo.</summary>
@@ -724,6 +798,38 @@ namespace DiamDev.Give.DAL
                 MotivoResolucion = Txt(r["MOTIVO_RESOLUCION"]),
                 TieneNcPrevia = Convert.ToBoolean(r["TIENE_NC_PREVIA"])
             };
+
+        private static BorradorNcAdjunto LeerAdjunto(
+            IDataRecord r, bool incluirContenido)
+        {
+            return new BorradorNcAdjunto
+            {
+                AdjuntoId = Convert.ToInt64(r["ADJUNTO_ID"]),
+                IdBorrador = Txt(r["ID_BORRADOR"]),
+                IdEmpresa = Txt(r["ID_EMPRESA"]),
+                Tipo = Txt(r["TIPO"]),
+                Nombre = Txt(r["NOMBRE"]),
+                Extension = Txt(r["EXTENSION"]),
+                ContentType = Txt(r["CONTENT_TYPE"]),
+                Tamano = r["TAMANO"] != DBNull.Value
+                    ? Convert.ToInt64(r["TAMANO"])
+                    : 0L,
+                Contenido = incluirContenido && r["CONTENIDO"] != DBNull.Value
+                    ? (byte[])r["CONTENIDO"]
+                    : null,
+                Url = Txt(r["URL"]),
+                HashSha256 = r["HASH_SHA256"] != DBNull.Value
+                    ? (byte[])r["HASH_SHA256"]
+                    : null,
+                Orden = r["ORDEN"] != DBNull.Value
+                    ? Convert.ToInt16(r["ORDEN"])
+                    : (short)0,
+                IdUsr = Txt(r["ID_USR"]),
+                Registro = r["REGISTRO"] != DBNull.Value
+                    ? (DateTime?)Convert.ToDateTime(r["REGISTRO"])
+                    : null
+            };
+        }
 
         private static decimal Val(object o) =>
             o != null && o != DBNull.Value ? Convert.ToDecimal(o) : 0m;

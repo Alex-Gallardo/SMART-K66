@@ -1,5 +1,6 @@
 @model DiamDev.Give.UI.Models.BorradorNcIndexViewModel
 @using System
+@using DiamDev.Give.BLL
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     var hoy = DateTime.Today.ToString("yyyy-MM-dd");
@@ -19,8 +20,13 @@
      data-url-seguimiento="@Url.Action("ListarSeguimiento", "BorradorNc")"
      data-url-detalle="@Url.Action("ObtenerDetalle", "BorradorNc")"
      data-url-detalle-facturas="@Url.Action("ObtenerDetallesFacturas", "BorradorNc")"
+     data-url-adjunto="@Url.Action("DescargarAdjunto", "BorradorNc")"
      data-url-anular="@Url.Action("Anular", "BorradorNc")"
      data-url-imprimir="@Url.Action("Imprimir", "BorradorNc")"
+     data-max-archivos="@BorradorNcBLL.MaximoArchivosAdjuntos"
+     data-max-enlaces="@BorradorNcBLL.MaximoEnlacesAdjuntos"
+     data-max-archivo-bytes="@BorradorNcBLL.MaximoBytesPorArchivo"
+     data-max-total-bytes="@BorradorNcBLL.MaximoBytesAdjuntos"
      data-puede-anular="@Model.PuedeAnular.ToString().ToLowerInvariant()">
 
     @Html.AntiForgeryToken()
@@ -271,6 +277,70 @@
                 </div>
             </div>
 
+            <div class="bnc-card bnc-attachments-capture">
+                <div class="bnc-card-head">
+                    <div class="bnc-card-title">
+                        <i class="icon-paper-clip"></i>
+                        <div>
+                            <h3>Documentación de respaldo</h3>
+                            <small>Opcional. Adjunte archivos o enlaces relacionados con la solicitud.</small>
+                        </div>
+                    </div>
+                    <span class="bnc-status bnc-status-neutral" id="bncAdjuntoCount">Sin adjuntos</span>
+                </div>
+                <div class="bnc-card-body">
+                    <div class="bnc-attachment-capture-grid">
+                        <section class="bnc-attachment-box" aria-labelledby="bncArchivosTitulo">
+                            <div class="bnc-attachment-box-head">
+                                <div>
+                                    <strong id="bncArchivosTitulo"><i class="icon-cloud-upload"></i> Archivos</strong>
+                                    <span>PDF, imágenes, Word, Excel o TXT</span>
+                                </div>
+                                <span id="bncArchivoContador">0 / @BorradorNcBLL.MaximoArchivosAdjuntos</span>
+                            </div>
+                            <label class="bnc-dropzone" id="bncDropzone" for="bncArchivos">
+                                <input class="sr-only" type="file" id="bncArchivos" multiple
+                                       accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt" />
+                                <span class="bnc-dropzone-icon"><i class="icon-cloud-upload"></i></span>
+                                <strong>Arrastre archivos aquí o haga clic para buscarlos</strong>
+                                <small>Máximo 10 MB por archivo y 25 MB en total.</small>
+                            </label>
+                            <div class="bnc-attachment-list" id="bncArchivoLista" aria-live="polite"></div>
+                        </section>
+
+                        <section class="bnc-attachment-box" aria-labelledby="bncEnlacesTitulo">
+                            <div class="bnc-attachment-box-head">
+                                <div>
+                                    <strong id="bncEnlacesTitulo"><i class="icon-link"></i> Enlaces</strong>
+                                    <span>Recursos externos con dirección HTTP o HTTPS</span>
+                                </div>
+                                <span id="bncEnlaceContador">0 / @BorradorNcBLL.MaximoEnlacesAdjuntos</span>
+                            </div>
+                            <div class="bnc-link-editor">
+                                <div class="bnc-field">
+                                    <label for="bncEnlaceTitulo">Título</label>
+                                    <input class="form-control" id="bncEnlaceTitulo" maxlength="255"
+                                           placeholder="Ej. Evidencia en SharePoint" />
+                                </div>
+                                <div class="bnc-field">
+                                    <label for="bncEnlaceUrl">Dirección</label>
+                                    <input class="form-control" id="bncEnlaceUrl" type="url" maxlength="2048"
+                                           placeholder="https://..." />
+                                </div>
+                                <button class="bnc-btn bnc-btn-ghost" type="button" id="bncAgregarEnlace">
+                                    <i class="icon-plus"></i> Agregar enlace
+                                </button>
+                            </div>
+                            <div class="bnc-attachment-list" id="bncEnlaceLista" aria-live="polite"></div>
+                        </section>
+                    </div>
+                    <div class="bnc-inline-alert is-visible is-info bnc-attachment-hint">
+                        <i class="icon-info-sign"></i>
+                        <span>Puede guardar el borrador sin documentación. Los adjuntos quedarán protegidos y no podrán modificarse después de crearlo.</span>
+                    </div>
+                </div>
+            </div>
+
             <div class="bnc-actions">
                 <div class="bnc-total">
                     <span>Total del borrador</span>
@@ -490,5 +560,6 @@
 @section scripts {
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Fechas.js?v=20260825")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-FacturasDetalle.js?v=20260827-table")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260828-open")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Adjuntos.js?v=20260831")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260831-adjuntos")"></script>
 }

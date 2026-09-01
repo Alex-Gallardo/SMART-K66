@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using DiamDev.Give.DAL;
 using DiamDev.Give.Entities;
 
@@ -36,6 +39,26 @@ namespace DiamDev.Give.BLL
         /// produce rechazos por redondeos invisibles para el usuario.
         /// </summary>
         private const decimal TOLERANCIA = 0.005m;
+
+        public const int MaximoArchivosAdjuntos = 5;
+        public const int MaximoEnlacesAdjuntos = 5;
+        public const long MaximoBytesPorArchivo = 10L * 1024L * 1024L;
+        public const long MaximoBytesAdjuntos = 25L * 1024L * 1024L;
+
+        private static readonly Dictionary<string, string> FormatosAdjuntos =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                { ".pdf", "application/pdf" },
+                { ".jpg", "image/jpeg" },
+                { ".jpeg", "image/jpeg" },
+                { ".png", "image/png" },
+                { ".webp", "image/webp" },
+                { ".doc", "application/msword" },
+                { ".docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+                { ".xls", "application/vnd.ms-excel" },
+                { ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+                { ".txt", "text/plain" }
+            };
 
         /// <summary>
         /// ¿Las NC ya emitidas en SAP BLOQUEAN o solo ADVIERTEN?
@@ -220,6 +243,10 @@ namespace DiamDev.Give.BLL
             if (Longitud(enc.Depto) > 50 || Longitud(enc.CodigoOperador) > 50)
                 return ResultadoBorradorNc.Error(
                     "La asignación de empresa del usuario contiene datos que exceden el tamaño permitido.");
+
+            string errorAdjuntos = ValidarYNormalizarAdjuntos(enc);
+            if (!string.IsNullOrWhiteSpace(errorAdjuntos))
+                return ResultadoBorradorNc.Error(errorAdjuntos);
 
             // El navegador solo propone estos datos. Antes de aplicar las reglas,
             // se reconstruyen desde HANA para impedir que una petición manipulada
@@ -599,6 +626,10 @@ namespace DiamDev.Give.BLL
         public BorradorNcEncabezado ObtenerPorId(string empresa, string idBorrador) =>
             _da.ObtenerPorId(empresa, idBorrador);
 
+        public BorradorNcAdjunto ObtenerAdjunto(
+            string empresa, string idBorrador, long adjuntoId) =>
+            _da.ObtenerAdjunto(empresa, idBorrador, adjuntoId);
+
         /// <summary>
         /// Renglones originales en SAP de todas las facturas asociadas al
         /// borrador. La consulta es por lote para no hacer una llamada HANA por
@@ -653,5 +684,141 @@ namespace DiamDev.Give.BLL
             string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
 
         private static int Longitud(string valor) => valor == null ? 0 : valor.Length;
+
+        private static string ValidarYNormalizarAdjuntos(BorradorNcEncabezado enc)
+        {
+            enc.Adjuntos = enc.Adjuntos ?? new List<BorradorNcAdjunto>();
+            var archivos = enc.Adjuntos.Where(x => x != null && x.EsArchivo).ToList();
+            var enlaces = enc.Adjuntos.Where(x => x != null && x.EsEnlace).ToList();
+
+            if (enc.Adjuntos.Any(x => x == null || (!x.EsArchivo && !x.EsEnlace)))
+                return "La documentación contiene un tipo de adjunto no válido.";
+            if (archivos.Count > MaximoArchivosAdjuntos)
+                return string.Format("Puede adjuntar como máximo {0} archivos.",
+                                     MaximoArchivosAdjuntos);
+            if (enlaces.Count > MaximoEnlacesAdjuntos)
+                return string.Format("Puede agregar como máximo {0} enlaces.",
+                                     MaximoEnlacesAdjuntos);
+
+            long total = 0;
+            var huellas = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            short orden = 1;
+
+            foreach (var adjunto in enc.Adjuntos)
+            {
+                adjunto.IdEmpresa = enc.IdEmpresa;
+                adjunto.IdUsr = enc.IdUsr;
+                adjunto.Orden = orden++;
+
+                if (adjunto.EsArchivo)
+                {
+                    string nombre = Path.GetFileName(adjunto.Nombre ?? "").Trim();
+                    if (nombre.Length == 0)
+                        return "Hay un archivo adjunto sin nombre.";
+                    if (nombre.Length > 255)
+                        return string.Format("El nombre del archivo {0} excede 255 caracteres.",
+                                             nombre);
+                    if (nombre.Any(char.IsControl))
+                        return string.Format("El nombre del archivo {0} contiene caracteres no válidos.",
+                                             nombre);
+
+                    string extension = (Path.GetExtension(nombre) ?? "").ToLowerInvariant();
+                    string contentType;
+                    if (!FormatosAdjuntos.TryGetValue(extension, out contentType))
+                        return string.Format("El formato {0} no está permitido.",
+                                             extension.Length == 0 ? "sin extensión" : extension);
+
+                    byte[] contenido = adjunto.Contenido;
+                    if (contenido == null || contenido.LongLength == 0)
+                        return string.Format("El archivo {0} está vacío.", nombre);
+                    if (contenido.LongLength > MaximoBytesPorArchivo)
+                        return string.Format("El archivo {0} excede el límite de 10 MB.", nombre);
+                    if (!FirmaValida(extension, contenido))
+                        return string.Format(
+                            "El contenido del archivo {0} no coincide con su formato.", nombre);
+
+                    total += contenido.LongLength;
+                    if (total > MaximoBytesAdjuntos)
+                        return "Los archivos adjuntos exceden el límite total de 25 MB.";
+
+                    adjunto.Nombre = nombre;
+                    adjunto.Extension = extension;
+                    adjunto.ContentType = contentType;
+                    adjunto.Tamano = contenido.LongLength;
+                    adjunto.Url = null;
+                    adjunto.HashSha256 = CalcularHash(contenido);
+                }
+                else
+                {
+                    Uri uri;
+                    string url = (adjunto.Url ?? "").Trim();
+                    if (url.Length == 0 || url.Length > 2048 ||
+                        !Uri.TryCreate(url, UriKind.Absolute, out uri) ||
+                        (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) ||
+                        string.IsNullOrWhiteSpace(uri.Host))
+                        return "Cada enlace debe ser una dirección HTTP o HTTPS válida.";
+
+                    string nombre = (adjunto.Nombre ?? "").Trim();
+                    if (nombre.Length == 0) nombre = uri.Host;
+                    if (nombre.Length > 255)
+                        return "El título de un enlace no puede exceder 255 caracteres.";
+                    if (nombre.Any(char.IsControl))
+                        return "El título de un enlace contiene caracteres no válidos.";
+
+                    adjunto.Nombre = nombre;
+                    adjunto.Url = uri.AbsoluteUri;
+                    adjunto.Extension = null;
+                    adjunto.ContentType = null;
+                    adjunto.Tamano = 0;
+                    adjunto.Contenido = null;
+                    adjunto.HashSha256 = CalcularHash(
+                        Encoding.UTF8.GetBytes(adjunto.Url.ToLowerInvariant()));
+                }
+
+                string huella = adjunto.Tipo + ":" +
+                    Convert.ToBase64String(adjunto.HashSha256);
+                if (!huellas.Add(huella))
+                    return string.Format("El adjunto {0} está agregado más de una vez.",
+                                         adjunto.Nombre);
+            }
+
+            return null;
+        }
+
+        private static byte[] CalcularHash(byte[] contenido)
+        {
+            using (var sha = SHA256.Create()) return sha.ComputeHash(contenido);
+        }
+
+        private static bool FirmaValida(string extension, byte[] contenido)
+        {
+            if (extension == ".txt")
+                return !contenido.Take(Math.Min(contenido.Length, 4096)).Any(x => x == 0);
+            if (extension == ".pdf")
+                return EmpiezaCon(contenido, 0x25, 0x50, 0x44, 0x46, 0x2D);
+            if (extension == ".jpg" || extension == ".jpeg")
+                return EmpiezaCon(contenido, 0xFF, 0xD8, 0xFF);
+            if (extension == ".png")
+                return EmpiezaCon(contenido, 0x89, 0x50, 0x4E, 0x47,
+                                  0x0D, 0x0A, 0x1A, 0x0A);
+            if (extension == ".webp")
+                return contenido.Length >= 12 &&
+                       Encoding.ASCII.GetString(contenido, 0, 4) == "RIFF" &&
+                       Encoding.ASCII.GetString(contenido, 8, 4) == "WEBP";
+            if (extension == ".doc" || extension == ".xls")
+                return EmpiezaCon(contenido, 0xD0, 0xCF, 0x11, 0xE0,
+                                  0xA1, 0xB1, 0x1A, 0xE1);
+            if (extension == ".docx" || extension == ".xlsx")
+                return EmpiezaCon(contenido, 0x50, 0x4B, 0x03, 0x04);
+            return false;
+        }
+
+        private static bool EmpiezaCon(byte[] contenido, params byte[] firma)
+        {
+            if (contenido == null || contenido.Length < firma.Length) return false;
+            for (int i = 0; i < firma.Length; i++)
+                if (contenido[i] != firma[i]) return false;
+            return true;
+        }
     }
 }

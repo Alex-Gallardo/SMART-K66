@@ -46,10 +46,12 @@ namespace DiamDev.Give.Entities
         public bool TieneNcPrevia { get; set; }
 
         public List<BorradorNcDetalle> Detalles { get; set; }
+        public List<BorradorNcAdjunto> Adjuntos { get; set; }
 
         public BorradorNcEncabezado()
         {
             Detalles = new List<BorradorNcDetalle>();
+            Adjuntos = new List<BorradorNcAdjunto>();
             Estado = EstadosBorradorNc.Pendiente;
             Fecha = DateTime.Today;
         }

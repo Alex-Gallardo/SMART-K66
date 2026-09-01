@@ -44,6 +44,7 @@ namespace DiamDev.Give.UI.Models
         public GuardarBorradorNcRequest()
         {
             Detalles = new List<BorradorNcDetalleRequest>();
+            Enlaces = new List<BorradorNcEnlaceRequest>();
         }
 
         public string IdEmpresa { get; set; }
@@ -56,6 +57,13 @@ namespace DiamDev.Give.UI.Models
         public string CodigoOperador { get; set; }
         public string Moneda { get; set; }
         public List<BorradorNcDetalleRequest> Detalles { get; set; }
+        public List<BorradorNcEnlaceRequest> Enlaces { get; set; }
+    }
+
+    public class BorradorNcEnlaceRequest
+    {
+        public string Titulo { get; set; }
+        public string Url { get; set; }
     }
 
     public class BorradorNcDetalleRequest
@@ -172,6 +180,7 @@ namespace DiamDev.Give.UI.Models
         public BorradorNcDocumentoViewModel()
         {
             Detalles = new List<BorradorNcDetalleViewModel>();
+            Adjuntos = new List<BorradorNcAdjuntoViewModel>();
         }
 
         public string Nit { get; set; }
@@ -180,5 +189,21 @@ namespace DiamDev.Give.UI.Models
         public string Depto { get; set; }
         public string CodigoOperador { get; set; }
         public List<BorradorNcDetalleViewModel> Detalles { get; set; }
+        public List<BorradorNcAdjuntoViewModel> Adjuntos { get; set; }
+    }
+
+    public class BorradorNcAdjuntoViewModel
+    {
+        public long AdjuntoId { get; set; }
+        public string Tipo { get; set; }
+        public string Nombre { get; set; }
+        public string Extension { get; set; }
+        public string ContentType { get; set; }
+        public long Tamano { get; set; }
+        public string Url { get; set; }
+        public short Orden { get; set; }
+        public string IdUsr { get; set; }
+        public string Registro { get; set; }
+        public bool EsVisualizable { get; set; }
     }
 }

@@ -8,6 +8,7 @@
         listar: $root.data("url-listar"),
         detalle: $root.data("url-detalle"),
         detalleFacturas: $root.data("url-detalle-facturas"),
+        adjunto: $root.data("url-adjunto"),
         notas: $root.data("url-notas"),
         resolver: $root.data("url-resolver"),
         imprimir: $root.data("url-imprimir")
@@ -168,6 +169,11 @@
             window.BorradorNcFacturasDetalle.plantilla("bncAuthInvoices", {
                 titulo: "Productos a revisar",
                 subtitulo: "Contenido completo de las facturas incluidas en este borrador."
+            }) +
+            window.BorradorNcAdjuntos.plantilla(x, {
+                baseUrl: urls.adjunto,
+                titulo: "Documentación de respaldo",
+                subtitulo: "Evidencias proporcionadas por quien creó la solicitud."
             }) +
             '<div class="bnc-card-head" style="min-height:46px"><div class="bnc-card-title"><i class="icon-warning-sign"></i><div><h3>Notas de crédito previas en SAP</h3><small>Antecedentes por cada documento del borrador.</small></div></div></div>' +
             '<div class="bnc-nc-list" id="bncAuthNotes"><div class="bnc-loading"><span class="bnc-spinner"></span>Consultando SAP...</div></div>' +

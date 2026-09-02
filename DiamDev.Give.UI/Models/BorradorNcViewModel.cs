@@ -62,7 +62,6 @@ namespace DiamDev.Give.UI.Models
 
     public class BorradorNcEnlaceRequest
     {
-        public string Titulo { get; set; }
         public string Url { get; set; }
     }
 
@@ -173,6 +172,36 @@ namespace DiamDev.Give.UI.Models
         public decimal Total { get; set; }
         public string Moneda { get; set; }
         public string Bodega { get; set; }
+    }
+
+    /// <summary>
+    /// Consulta independiente y de solo lectura de una factura disponible en SAP.
+    /// Se usa desde el selector de facturas antes de que exista un borrador.
+    /// </summary>
+    public class BorradorNcFacturaConsultaViewModel
+    {
+        public BorradorNcFacturaConsultaViewModel()
+        {
+            Productos = new List<BorradorNcProductoFacturaViewModel>();
+        }
+
+        public string Empresa { get; set; }
+        public string Documento { get; set; }
+        public string FechaDoc { get; set; }
+        public string ClienteId { get; set; }
+        public string ClienteNombre { get; set; }
+        public string Agente { get; set; }
+        public string Moneda { get; set; }
+        public string SerieFel { get; set; }
+        public string NumeroFel { get; set; }
+        public decimal TotalFactura { get; set; }
+        public decimal Pagado { get; set; }
+        public decimal SaldoSap { get; set; }
+        public decimal Acumulado { get; set; }
+        public decimal NcPreviaSap { get; set; }
+        public decimal Disponible { get; set; }
+        public decimal DisponibleNeto { get; set; }
+        public List<BorradorNcProductoFacturaViewModel> Productos { get; set; }
     }
 
     public class BorradorNcDocumentoViewModel : BorradorNcListaItemViewModel

@@ -7,12 +7,13 @@
 }
 
 @section styles {
-    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260827-table2")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260902-factura")" rel="stylesheet" />
 }
 
 <div class="bnc bnc-shell" id="bncApp"
      data-url-clientes="@Url.Action("BuscarClientes", "BorradorNc")"
      data-url-facturas="@Url.Action("BuscarFacturas", "BorradorNc")"
+     data-url-factura-detalle="@Url.Action("DetalleFactura", "BorradorNc")"
      data-url-estado-factura="@Url.Action("ObtenerEstadoFactura", "BorradorNc")"
      data-url-serie="@Url.Action("ObtenerSerie", "BorradorNc")"
      data-url-guardar="@Url.Action("Guardar", "BorradorNc")"
@@ -77,7 +78,7 @@
 
     <div class="tab-content">
         <section role="tabpanel" class="tab-pane active" id="bncCaptura">
-            <div class="bnc-card">
+            <div class="bnc-card bnc-customer-card">
                 <div class="bnc-card-head">
                     <div class="bnc-card-title">
                         <i class="icon-building"></i>
@@ -130,11 +131,18 @@
 
                         <div class="bnc-field bnc-col-3">
                             <label for="bncClienteCodigo">Cliente <span class="bnc-required">*</span></label>
-                            <div class="bnc-input-group">
-                                <input class="form-control" id="bncClienteCodigo" readonly placeholder="Seleccione un cliente" />
-                                <button class="bnc-icon-btn" type="button" id="bncBuscarCliente" title="Buscar cliente">
-                                    <i class="icon-search"></i><span class="sr-only">Buscar cliente</span>
-                                </button>
+                            <div class="bnc-client-combobox" id="bncClienteCombobox">
+                                <div class="bnc-input-group">
+                                    <input class="form-control" id="bncClienteCodigo"
+                                           placeholder="Código, nombre o NIT..." autocomplete="off"
+                                           role="combobox" aria-autocomplete="list"
+                                           aria-controls="bncClienteDropdown" aria-expanded="false" />
+                                    <button class="bnc-icon-btn" type="button" id="bncBuscarCliente" title="Buscar cliente en ventana">
+                                        <i class="icon-search"></i><span class="sr-only">Buscar cliente en ventana</span>
+                                    </button>
+                                </div>
+                                <div class="bnc-client-results bnc-client-dropdown" id="bncClienteDropdown"
+                                     role="listbox" aria-label="Clientes encontrados" aria-live="polite"></div>
                             </div>
                         </div>
                         <div class="bnc-field bnc-col-5">
@@ -318,18 +326,14 @@
                             </div>
                             <div class="bnc-link-editor">
                                 <div class="bnc-field">
-                                    <label for="bncEnlaceTitulo">Título</label>
-                                    <input class="form-control" id="bncEnlaceTitulo" maxlength="255"
-                                           placeholder="Ej. Evidencia en SharePoint" />
-                                </div>
-                                <div class="bnc-field">
-                                    <label for="bncEnlaceUrl">Dirección</label>
+                                    <label for="bncEnlaceUrl">Dirección del enlace</label>
                                     <input class="form-control" id="bncEnlaceUrl" type="url" maxlength="2048"
-                                           placeholder="https://..." />
+                                           placeholder="https://..." aria-describedby="bncEnlaceAyuda" />
                                 </div>
                                 <button class="bnc-btn bnc-btn-ghost" type="button" id="bncAgregarEnlace">
                                     <i class="icon-plus"></i> Agregar enlace
                                 </button>
+                                <small id="bncEnlaceAyuda">El nombre se obtiene automáticamente del sitio enlazado.</small>
                             </div>
                             <div class="bnc-attachment-list" id="bncEnlaceLista" aria-live="polite"></div>
                         </section>
@@ -516,6 +520,7 @@
                                 <th class="text-right">NC SAP</th>
                                 <th class="text-right">Disponible</th>
                                 <th>Alertas</th>
+                                <th class="text-center">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="bncFacturaBody"></tbody>
@@ -561,5 +566,5 @@
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Fechas.js?v=20260825")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-FacturasDetalle.js?v=20260827-table")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Adjuntos.js?v=20260831")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260831-adjuntos")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260902-factura")"></script>
 }

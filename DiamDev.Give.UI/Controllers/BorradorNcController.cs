@@ -61,6 +61,59 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpGet]
         [BorradorNcPermiso(PERMISO_VER)]
+        public ActionResult DetalleFactura(string empresa, string clienteId,
+                                           string codigoOperador, string documento)
+        {
+            if (string.IsNullOrWhiteSpace(clienteId) ||
+                string.IsNullOrWhiteSpace(documento))
+                return HttpNotFound("No se indicó una factura válida.");
+
+            string agenteEfectivo = ResolverAgente(empresa, codigoOperador);
+            string documentoNormalizado = documento.Trim();
+            var factura = _bll.BuscarFacturas(
+                    empresa, clienteId.Trim(), agenteEfectivo, documentoNormalizado)
+                .FirstOrDefault(x => string.Equals(
+                    (x.DocNum ?? "").Trim(), documentoNormalizado,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (factura == null)
+                return HttpNotFound(
+                    "La factura no existe, ya no está abierta o no pertenece al cliente y agente seleccionados.");
+
+            var productos = _bll.ObtenerDetallesFacturas(
+                empresa, factura.CardCode, new[] { factura.DocNum });
+            var modelo = new BorradorNcFacturaConsultaViewModel
+            {
+                Empresa = (empresa ?? "").Trim(),
+                Documento = factura.DocNum,
+                FechaDoc = factura.DocDate.ToString("yyyy-MM-dd"),
+                ClienteId = factura.CardCode,
+                ClienteNombre = factura.CardName,
+                Agente = factura.SlpName,
+                Moneda = factura.Moneda,
+                SerieFel = factura.SerieFel,
+                NumeroFel = factura.NumeroFel,
+                TotalFactura = factura.DocTotal,
+                Pagado = factura.Pagado,
+                SaldoSap = Math.Max(0m, factura.DocTotal - factura.Pagado),
+                Acumulado = factura.Acumulado,
+                NcPreviaSap = factura.NcPreviaSap,
+                Disponible = Math.Max(0m, factura.Disponible),
+                DisponibleNeto = Math.Max(0m, factura.DisponibleNeto),
+                Productos = productos
+                    .OrderBy(x => x.NumeroLinea)
+                    .Select(ProyectarProductoFactura)
+                    .ToList()
+            };
+
+            CustomHelper.setTitle(
+                "Factura " + factura.DocNum,
+                "Detalle de productos y servicios");
+            return View(modelo);
+        }
+
+        [HttpGet]
+        [BorradorNcPermiso(PERMISO_VER)]
         public JsonResult ObtenerEstadoFactura(string empresa, string documento,
                                                decimal docTotal, decimal pagado)
         {
@@ -132,14 +185,11 @@ namespace DiamDev.Give.UI.Controllers
                 var adjuntos = new List<BorradorNcAdjunto>();
                 foreach (var enlace in request.Enlaces ?? new List<BorradorNcEnlaceRequest>())
                 {
-                    if (enlace == null ||
-                        (string.IsNullOrWhiteSpace(enlace.Titulo) &&
-                         string.IsNullOrWhiteSpace(enlace.Url))) continue;
+                    if (enlace == null || string.IsNullOrWhiteSpace(enlace.Url)) continue;
 
                     adjuntos.Add(new BorradorNcAdjunto
                     {
                         Tipo = TiposAdjuntoBorradorNc.Enlace,
-                        Nombre = enlace.Titulo,
                         Url = enlace.Url
                     });
                 }
@@ -779,27 +829,32 @@ namespace DiamDev.Give.UI.Controllers
                     ImporteSolicitado = factura.Importe,
                     Concepto = factura.Concepto,
                     DescripcionSolicitud = factura.Descripcion,
-                    Productos = productos.Select(producto =>
-                        new BorradorNcProductoFacturaViewModel
-                        {
-                            NumeroLinea = producto.NumeroLinea,
-                            Sku = producto.CodigoArticulo,
-                            EsServicio = string.IsNullOrWhiteSpace(producto.CodigoArticulo),
-                            Descripcion = producto.Descripcion,
-                            Cantidad = producto.Cantidad,
-                            UnidadMedida = producto.UnidadMedida,
-                            PrecioUnitario = producto.PrecioUnitario,
-                            DescuentoPorcentaje = producto.DescuentoPorcentaje,
-                            Subtotal = producto.Subtotal,
-                            CodigoImpuesto = producto.CodigoImpuesto,
-                            ImpuestoPorcentaje = producto.ImpuestoPorcentaje,
-                            Impuesto = producto.Impuesto,
-                            Total = producto.Total,
-                            Moneda = producto.Moneda,
-                            Bodega = producto.Bodega
-                        }).ToList()
+                    Productos = productos.Select(ProyectarProductoFactura).ToList()
                 };
             }).ToList();
+        }
+
+        private static BorradorNcProductoFacturaViewModel ProyectarProductoFactura(
+            FacturaDetalleSap producto)
+        {
+            return new BorradorNcProductoFacturaViewModel
+            {
+                NumeroLinea = producto.NumeroLinea,
+                Sku = producto.CodigoArticulo,
+                EsServicio = string.IsNullOrWhiteSpace(producto.CodigoArticulo),
+                Descripcion = producto.Descripcion,
+                Cantidad = producto.Cantidad,
+                UnidadMedida = producto.UnidadMedida,
+                PrecioUnitario = producto.PrecioUnitario,
+                DescuentoPorcentaje = producto.DescuentoPorcentaje,
+                Subtotal = producto.Subtotal,
+                CodigoImpuesto = producto.CodigoImpuesto,
+                ImpuestoPorcentaje = producto.ImpuestoPorcentaje,
+                Impuesto = producto.Impuesto,
+                Total = producto.Total,
+                Moneda = producto.Moneda,
+                Bodega = producto.Bodega
+            };
         }
 
         private class ContextoConsulta

@@ -7,6 +7,7 @@
     var urls = {
         clientes: $root.data("url-clientes"),
         facturas: $root.data("url-facturas"),
+        facturaDetalle: $root.data("url-factura-detalle"),
         estadoFactura: $root.data("url-estado-factura"),
         serie: $root.data("url-serie"),
         guardar: $root.data("url-guardar"),
@@ -169,7 +170,10 @@
     }
 
     function actualizarDisponibilidadCliente() {
-        $("#bncBuscarCliente").prop("disabled", !empresa() || !codigoOperador());
+        var deshabilitado = !empresa() || !codigoOperador();
+        $("#bncBuscarCliente,#bncClienteCodigo").prop("disabled", deshabilitado);
+        $("#bncClienteCodigo").attr("aria-disabled", deshabilitado ? "true" : "false");
+        if (deshabilitado) ocultarResultadosClientes($("#bncClienteDropdown"));
     }
 
     function poblarOperadores(empresaSeleccionada, codigoPreferido) {
@@ -224,6 +228,7 @@
     function limpiarCliente() {
         state.cliente = null;
         $("#bncClienteCodigo,#bncClienteNombre,#bncNit,#bncDireccion,#bncCorreo").val("");
+        ocultarResultadosClientes($("#bncClienteDropdown"));
         if (!state.lineas.length) $("#bncMoneda").val("");
         $("#bncClientStripTitle").text("Ningún cliente seleccionado");
         $("#bncClientStripMeta").text("Elija la empresa y luego busque por código, nombre o NIT.");
@@ -234,7 +239,7 @@
         var cambiaCliente = !state.cliente ||
             String(state.cliente.CardCode || "") !== String(cliente.CardCode || "");
         if (cambiaCliente && state.lineas.length) {
-            if (!window.confirm("Cambiar de cliente eliminará las líneas no guardadas. ¿Desea continuar?")) return;
+            if (!window.confirm("Cambiar de cliente eliminará las líneas no guardadas. ¿Desea continuar?")) return false;
             state.lineas = [];
             renderLineas();
         }
@@ -249,7 +254,9 @@
         $("#bncClientStripTitle").text((cliente.CardCode || "") + " · " + (cliente.CardName || ""));
         $("#bncClientStripMeta").text((cliente.LicTradNum || "Sin NIT") + " · " + (agente() || cliente.SlpName || "Sin agente") + " · " + (normalizarMoneda(cliente.Currency) || "Sin moneda"));
         limpiarFactura();
+        ocultarResultadosClientes($("#bncClienteDropdown"));
         $("#bncClienteModal").modal("hide");
+        return true;
     }
 
     function normalizarMoneda(value) {
@@ -257,18 +264,36 @@
         return m === "QTZ" ? "GTQ" : m;
     }
 
+    function ocultarResultadosClientes($resultados) {
+        $resultados.empty().removeClass("is-visible");
+        if ($resultados.is("#bncClienteDropdown"))
+            $("#bncClienteCodigo").attr("aria-expanded", "false");
+    }
+
     function limpiarBusquedaClientes() {
         window.clearTimeout(clienteTimer);
         clienteSecuencia++;
         $("#bncClienteFiltro").val("");
-        $("#bncClienteResultados").empty().removeClass("is-visible");
+        ocultarResultadosClientes($("#bncClienteResultados"));
     }
 
-    function renderClientes(clientes) {
-        var $resultados = $("#bncClienteResultados").empty();
+    function contextoBusquedaClientes(origen) {
+        return origen === "directo"
+            ? { $input: $("#bncClienteCodigo"), $resultados: $("#bncClienteDropdown") }
+            : { $input: $("#bncClienteFiltro"), $resultados: $("#bncClienteResultados") };
+    }
+
+    function mostrarResultadosClientes($resultados) {
+        $resultados.addClass("is-visible");
+        if ($resultados.is("#bncClienteDropdown"))
+            $("#bncClienteCodigo").attr("aria-expanded", "true");
+    }
+
+    function renderClientes(clientes, $resultados) {
+        $resultados.empty();
         if (!clientes.length) {
             $resultados.html('<div class="bnc-client-result-empty"><i class="icon-search"></i><span>Sin resultados para esta búsqueda.</span></div>')
-                .addClass("is-visible");
+            mostrarResultadosClientes($resultados);
             return;
         }
 
@@ -285,17 +310,18 @@
             ).append('<i class="icon-chevron-right" aria-hidden="true"></i>');
             $resultados.append($opcion);
         });
-        $resultados.addClass("is-visible");
+        mostrarResultadosClientes($resultados);
     }
 
-    function programarBusquedaClientes() {
+    function programarBusquedaClientes(origen) {
         window.clearTimeout(clienteTimer);
-        var filtro = $("#bncClienteFiltro").val().trim();
-        var $resultados = $("#bncClienteResultados");
+        var contexto = contextoBusquedaClientes(origen);
+        var filtro = contexto.$input.val().trim();
+        var $resultados = contexto.$resultados;
 
         if (filtro.length < 2) {
             clienteSecuencia++;
-            $resultados.empty().removeClass("is-visible");
+            ocultarResultadosClientes($resultados);
             return;
         }
 
@@ -304,7 +330,7 @@
         var secuencia = ++clienteSecuencia;
         clienteTimer = window.setTimeout(function () {
             $resultados.html('<div class="bnc-client-result-empty"><span class="bnc-spinner"></span><span>Consultando clientes en SAP...</span></div>')
-                .addClass("is-visible");
+            mostrarResultadosClientes($resultados);
             get(urls.clientes, {
                 empresa: empresaConsulta,
                 codigoOperador: operadorConsulta,
@@ -314,16 +340,26 @@
                     codigoOperador() !== operadorConsulta) return;
                 if (!response || !response.ok) {
                     avisar("error", response && response.msg ? response.msg : "No se pudieron consultar los clientes.");
-                    renderClientes([]);
+                    renderClientes([], $resultados);
                     return;
                 }
-                renderClientes(response.data || []);
+                renderClientes(response.data || [], $resultados);
             }).fail(function (xhr) {
                 if (secuencia !== clienteSecuencia) return;
                 avisar("error", mensajeAjax(xhr));
-                renderClientes([]);
+                renderClientes([], $resultados);
             });
         }, 350);
+    }
+
+    function restaurarClienteSeleccionado() {
+        if (!state.cliente) return;
+        $("#bncClienteCodigo").val(state.cliente.CardCode || "");
+    }
+
+    function clienteSeleccionadoValido() {
+        return !!state.cliente && $("#bncClienteCodigo").val().trim().toUpperCase() ===
+            String(state.cliente.CardCode || "").trim().toUpperCase();
     }
 
     function limpiarFactura() {
@@ -461,6 +497,10 @@
             var flags = [];
             if (f.GeneraSaldoAFavor) flags.push('<span class="bnc-paid-flag">Pagada</span>');
             if (numero(f.NcPreviaSap) > 0) flags.push('<span class="bnc-nc-flag">Con NC</span>');
+            var detalleUrl = urls.facturaDetalle + "?empresa=" + encodeURIComponent(empresa()) +
+                "&clienteId=" + encodeURIComponent(state.cliente ? state.cliente.CardCode : "") +
+                "&codigoOperador=" + encodeURIComponent(codigoOperador()) +
+                "&documento=" + encodeURIComponent(f.DocNum || "");
             html += '<tr data-index="' + i + '">' +
                 '<td class="bnc-main-cell"><strong>' + escapeHtml(f.DocNum) + '</strong><small>' + escapeHtml(f.SerieFel || "") + " " + escapeHtml(f.NumeroFel || "") + "</small></td>" +
                 "<td>" + fechaCorta(f.DocDate) + "</td>" +
@@ -469,7 +509,11 @@
                 '<td class="bnc-money">' + dinero(f.Acumulado) + "</td>" +
                 '<td class="bnc-money">' + dinero(f.NcPreviaSap) + "</td>" +
                 '<td class="bnc-money" style="color:' + (numero(f.Disponible) > 0 ? "#047857" : "#b91c1c") + '">' + dinero(Math.max(0, numero(f.Disponible))) + "</td>" +
-                "<td>" + (flags.join(" ") || '<span class="text-muted">Sin alertas</span>') + "</td></tr>";
+                "<td>" + (flags.join(" ") || '<span class="text-muted">Sin alertas</span>') + "</td>" +
+                '<td class="bnc-invoice-actions"><a class="bnc-btn bnc-btn-ghost bnc-btn-compact bnc-view-invoice" href="' +
+                escapeHtml(detalleUrl) + '" target="_blank" rel="noopener" title="Ver productos y datos completos de la factura" ' +
+                'aria-label="Ver detalle de la factura ' + escapeHtml(f.DocNum) + ' en una pestaña nueva">' +
+                '<i class="icon-external-link" aria-hidden="true"></i><span>Ver detalle</span></a></td></tr>';
         });
         $("#bncFacturaBody").html(html);
         $("#bncFacturaEmpty").toggle(!state.facturas.length).html(
@@ -582,7 +626,7 @@
         });
         $.each(state.enlaces, function (i, enlace) {
             enlacesHtml += '<div class="bnc-attachment-capture-item"><span class="bnc-support-icon is-link"><i class="icon-link"></i></span>' +
-                '<div class="bnc-support-copy"><strong>' + escapeHtml(enlace.Titulo || "Enlace") + '</strong><small title="' +
+                '<div class="bnc-support-copy"><strong>' + escapeHtml(nombreEnlace(enlace.Url)) + '</strong><small title="' +
                 escapeHtml(enlace.Url) + '">' + escapeHtml(enlace.Url) + '</small></div>' +
                 '<button class="bnc-icon-btn bnc-remove-attachment" type="button" data-kind="enlace" data-index="' + i +
                 '" title="Quitar enlace"><i class="icon-trash"></i><span class="sr-only">Quitar enlace</span></button></div>';
@@ -643,6 +687,12 @@
         return enlace.href;
     }
 
+    function nombreEnlace(url) {
+        var enlace = document.createElement("a");
+        enlace.href = url;
+        return String(enlace.hostname || "Enlace").replace(/^www\./i, "");
+    }
+
     function agregarEnlace() {
         if (state.enlaces.length >= limitesAdjuntos.enlaces) {
             avisar("warning", "Puede agregar como máximo " + limitesAdjuntos.enlaces + " enlaces.");
@@ -661,26 +711,26 @@
             avisar("warning", "Ese enlace ya está agregado.");
             return;
         }
-        var titulo = $("#bncEnlaceTitulo").val().trim();
-        state.enlaces.push({ Titulo: titulo, Url: url });
-        $("#bncEnlaceTitulo,#bncEnlaceUrl").val("");
+        state.enlaces.push({ Url: url });
+        $("#bncEnlaceUrl").val("");
         renderAdjuntosCaptura();
-        $("#bncEnlaceTitulo").focus();
+        $("#bncEnlaceUrl").focus();
     }
 
     function validarBorrador() {
         if (!empresa()) return "Seleccione una empresa.";
         if (!codigoOperador()) return "Seleccione el agente con el que operará.";
         if (!$("#bncFecha").val()) return "Seleccione la fecha.";
-        if (!state.cliente) return "Seleccione un cliente.";
+        if (!clienteSeleccionadoValido())
+            return "Seleccione un cliente de los resultados de búsqueda.";
         if (!$("#bncNit").val().trim()) return "El cliente no tiene NIT registrado.";
         if (!agente().trim()) return "No se pudo determinar el agente.";
         if (!$("#bncMoneda").val()) return "Seleccione la moneda.";
         if (!state.lineas.length) return "Agregue al menos una línea.";
         if ($("#bncDireccion").val().trim().length > 200) return "La dirección no puede exceder 200 caracteres.";
         if ($("#bncCorreo").val().trim().length > 100) return "El correo no puede exceder 100 caracteres.";
-        if ($("#bncEnlaceTitulo").val().trim() || $("#bncEnlaceUrl").val().trim())
-            return "Agregue el enlace pendiente o limpie sus campos antes de guardar.";
+        if ($("#bncEnlaceUrl").val().trim())
+            return "Agregue el enlace pendiente o limpie el campo antes de guardar.";
 
         var fecha = $("#bncFecha").val();
         var moneda = normalizarMoneda($("#bncMoneda").val());
@@ -729,7 +779,6 @@
         });
 
         $.each(state.enlaces, function (i, enlace) {
-            payload["Enlaces[" + i + "].Titulo"] = enlace.Titulo || "";
             payload["Enlaces[" + i + "].Url"] = enlace.Url;
         });
 
@@ -767,7 +816,7 @@
         $("#bncFecha").val(hoyLocal());
         $("#bncMoneda").val("").prop("disabled", false);
         $("#bncPrefijo").text("—");
-        $("#bncArchivos,#bncEnlaceTitulo,#bncEnlaceUrl").val("");
+        $("#bncArchivos,#bncEnlaceUrl").val("");
         renderLineas();
         renderAdjuntosCaptura();
         if (emp) cargarSerie();
@@ -981,32 +1030,58 @@
         $("#bncBuscarCliente").on("click", function () {
             if (!empresa()) { avisar("warning", "Seleccione una empresa antes de buscar clientes."); return; }
             if (!codigoOperador()) { avisar("warning", "Seleccione primero el agente con el que operará."); return; }
+            ocultarResultadosClientes($("#bncClienteDropdown"));
+            restaurarClienteSeleccionado();
             limpiarBusquedaClientes();
             $("#bncClienteModal").modal("show");
         });
         $("#bncClienteModal").on("shown.bs.modal", function () {
             $("#bncClienteFiltro").focus();
         }).on("hidden.bs.modal", limpiarBusquedaClientes);
-        $("#bncClienteFiltro").on("input", programarBusquedaClientes)
+        $("#bncClienteFiltro").on("input", function () { programarBusquedaClientes("modal"); })
             .on("keydown", function (e) {
                 if (e.which === 13) {
                     e.preventDefault();
                     $("#bncClienteResultados .bnc-client-result:first").trigger("click");
                 }
             });
-        $("#bncClienteResultados").on("click", ".bnc-client-result", function () {
+        $("#bncClienteCodigo").on("input", function () { programarBusquedaClientes("directo"); })
+            .on("keydown", function (e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    $("#bncClienteDropdown .bnc-client-result:first").trigger("click");
+                } else if (e.which === 27) {
+                    ocultarResultadosClientes($("#bncClienteDropdown"));
+                    restaurarClienteSeleccionado();
+                }
+            });
+        $("#bncClienteResultados,#bncClienteDropdown").on("click", ".bnc-client-result", function () {
             var cliente = $(this).data("cliente");
-            if (cliente) seleccionarCliente(cliente);
+            if (cliente && !seleccionarCliente(cliente)) restaurarClienteSeleccionado();
+        });
+        $(document).on("click.borradorNcCliente", function (e) {
+            if (!$(e.target).closest("#bncClienteCombobox").length) {
+                ocultarResultadosClientes($("#bncClienteDropdown"));
+                restaurarClienteSeleccionado();
+            }
         });
 
         $("#bncBuscarFactura").on("click", function () {
-            if (!state.cliente) { avisar("warning", "Seleccione un cliente antes de buscar facturas."); return; }
+            if (!clienteSeleccionadoValido()) {
+                avisar("warning", "Seleccione un cliente de los resultados antes de buscar facturas.");
+                return;
+            }
             $("#bncFacturaModal").modal("show");
             cargarFacturas();
         });
         $("#bncCargarFacturas").on("click", cargarFacturas);
         $("#bncFacturaFiltro").on("keydown", function (e) { if (e.which === 13) { e.preventDefault(); cargarFacturas(); } });
-        $("#bncFacturaBody").on("click dblclick", "tr", function () { seleccionarFactura(Number($(this).data("index"))); });
+        $("#bncFacturaBody").on("click dblclick", "tr", function (e) {
+            if ($(e.target).closest(".bnc-view-invoice").length) return;
+            seleccionarFactura(Number($(this).data("index")));
+        }).on("click", ".bnc-view-invoice", function (e) {
+            e.stopPropagation();
+        });
 
         $("#bncAgregarLinea").on("click", agregarLinea);
         $("#bncImporte").on("input", programarEstadoFactura);

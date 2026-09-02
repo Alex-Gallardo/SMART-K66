@@ -761,9 +761,9 @@ namespace DiamDev.Give.BLL
                     string nombre = (adjunto.Nombre ?? "").Trim();
                     if (nombre.Length == 0) nombre = uri.Host;
                     if (nombre.Length > 255)
-                        return "El título de un enlace no puede exceder 255 caracteres.";
+                        return "El nombre automático del enlace no puede exceder 255 caracteres.";
                     if (nombre.Any(char.IsControl))
-                        return "El título de un enlace contiene caracteres no válidos.";
+                        return "El nombre automático del enlace contiene caracteres no válidos.";
 
                     adjunto.Nombre = nombre;
                     adjunto.Url = uri.AbsoluteUri;

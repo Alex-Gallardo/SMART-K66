@@ -1405,6 +1405,7 @@
     <Content Include="Views\BorradorNc\Index.cshtml" />
     <Content Include="Views\BorradorNc\Autorizaciones.cshtml" />
     <Content Include="Views\BorradorNc\Imprimir.cshtml" />
+    <Content Include="Views\BorradorNc\DetalleFactura.cshtml" />
     <Content Include="Views\Cotizacion\Index.cshtml" />
     <Content Include="Views\Cotizacion\Imprimir.cshtml" />
     <Content Include="Views\ReciboCaja\_ReciboImpresion.cshtml" />

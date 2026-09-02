@@ -19,15 +19,6 @@
 }
 
 <div class="bnc bnc-shell bnc-invoice-detail-page">
-    <div class="bnc-invoice-page-actions" aria-label="Acciones de la factura">
-        <a class="bnc-btn bnc-btn-ghost" href="@Url.Action("Index", "BorradorNc")">
-            <i class="icon-arrow-left" aria-hidden="true"></i> Volver a Borradores NC
-        </a>
-        <button class="bnc-btn bnc-btn-primary" type="button" onclick="window.print()">
-            <i class="icon-print" aria-hidden="true"></i> Imprimir
-        </button>
-    </div>
-
     <header class="bnc-hero bnc-invoice-detail-hero">
         <div class="bnc-hero-copy">
             <span class="bnc-hero-icon" aria-hidden="true"><i class="icon-file-text"></i></span>
@@ -42,6 +33,15 @@
             <span class="bnc-hero-chip"><i class="icon-list"></i> @Model.Productos.Count @(Model.Productos.Count == 1 ? "línea" : "líneas")</span>
         </div>
     </header>
+
+    <div class="bnc-invoice-page-actions" aria-label="Acciones de la factura">
+        <a class="bnc-btn bnc-btn-ghost" href="@Url.Action("Index", "BorradorNc")">
+            <i class="icon-arrow-left" aria-hidden="true"></i> Volver a Borradores NC
+        </a>
+        <button class="bnc-btn bnc-btn-primary" type="button" onclick="window.print()">
+            <i class="icon-print" aria-hidden="true"></i> Imprimir
+        </button>
+    </div>
 
     <section class="bnc-card" aria-labelledby="bncFacturaResumenTitulo">
         <div class="bnc-card-head">

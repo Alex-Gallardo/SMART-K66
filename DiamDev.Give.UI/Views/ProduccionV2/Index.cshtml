@@ -9,7 +9,7 @@
     <title>Dashboard de Producción v2 — Grupo K66</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <link rel="stylesheet" href="@Url.Content("~/Content/produccion-v2-shared.css?v=20260831.1")">
+    <link rel="stylesheet" href="@Url.Content("~/Content/produccion-v2-shared.css?v=20260904.1")">
 </head>
 
 <body>
@@ -117,9 +117,21 @@
 
         <section class="kpis">
             <div class="kpi">
+                <div class="label">Horas Paro</div>
+                <div class="value kpi-paro" id="kpiParo">—</div>
+                <div class="delta" id="kpiParoSub"></div>
+            </div>
+
+            <div class="kpi">
                 <div class="label">Horas Reales</div>
                 <div class="value" id="kpiReal">—</div>
                 <div class="delta" id="kpiRealSub"></div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">Horas Disponible / sin registrar</div>
+                <div class="value" id="kpiDisponible">—</div>
+                <div class="delta" id="kpiDisponibleSub"></div>
             </div>
 
             <div class="kpi">
@@ -129,33 +141,21 @@
             </div>
 
             <div class="kpi">
-                <div class="label">% Cumplimiento</div>
-                <div class="value" id="kpiCump">—</div>
-                <div class="delta">Real / Plan</div>
-            </div>
-
-            <div class="kpi">
-                <div class="label">% Eficiencia</div>
-                <div class="value" id="kpiEf">—</div>
-                <div class="delta">Plan / Real OT</div>
-            </div>
-
-            <div class="kpi">
-                <div class="label">Horas Paro</div>
-                <div class="value" id="kpiParo">—</div>
-                <div class="delta" id="kpiParoSub"></div>
-            </div>
-
-            <div class="kpi">
                 <div class="label">Cant. Producida</div>
                 <div class="value" id="kpiEM">—</div>
                 <div class="delta">cant. total OTs en rango, según filtros</div>
+            </div>
+
+            <div class="kpi">
+                <div class="label">Cambios de Molde</div>
+                <div class="value" id="kpiCambios">—</div>
+                <div class="delta" id="kpiCambiosSub"></div>
             </div>
         </section>
 
         <section class="charts">
             <div class="card full">
-                <h3>Tendencia: Real vs. Plan vs. Paro (% de capacidad)</h3>
+                <h3>Tendencia: Real vs. Plan vs. Paro / Disponible (% de capacidad)</h3>
                 <div class="chart-box trend-box"><canvas id="chartTrend"></canvas></div>
             </div>
 
@@ -200,26 +200,36 @@
                     <table id="tabla">
                         <thead>
                             <tr>
-                                <th data-key="Fecha">Fecha</th>
-                                <th data-key="OT">OT</th>
-                                <th data-key="PosicionOT">Pos</th>
-                                <th data-key="ItemID">Item</th>
-                                <th data-key="DescripcionItem">Descripción Item</th>
-                                <th data-key="UnidadMedida">UoM</th>
-                                <th data-key="FamilyName">Familia</th>
-                                <th data-key="TipoItem">Categoría</th>
-                                <th data-key="DescripcionRecurso">Máquina</th>
-                                <th data-key="EstadoOT">Estado OT</th>
-                                <th class="num" data-key="Cantidad Planeada">Cant.Plan</th>
-                                <th class="num" data-key="Cantidad Hecha">Cant.Hecha</th>
-                                <th class="num" data-key="Hora Plan">H.Plan</th>
-                                <th class="num" data-key="Hora Real Día">H.Real Día</th>
-                                <th class="num" data-key="Hora Real Rango">H.Real Rango</th>
-                                <th class="num" data-key="Hora Real OT">H.Real OT</th>
+                                <th rowspan="2" data-key="Fecha">Fecha</th>
+                                <th rowspan="2" data-key="OT">OT</th>
+                                <th rowspan="2" data-key="PosicionOT">Pos</th>
+                                <th rowspan="2" data-key="ItemID">Item</th>
+                                <th rowspan="2" data-key="DescripcionItem">Descripción Item</th>
+                                <th rowspan="2" data-key="UnidadMedida">UoM</th>
+                                <th rowspan="2" data-key="FamilyName">Familia</th>
+                                <th rowspan="2" data-key="TipoItem">Categoría</th>
+                                <th rowspan="2" data-key="DescripcionRecurso">Máquina</th>
+                                <th rowspan="2" data-key="Turno">Turno</th>
+                                <th rowspan="2" data-key="Supervisor">Supervisor</th>
+                                <th rowspan="2" data-key="Motivo de Paro">Motivo Paro</th>
+                                <th rowspan="2" data-key="Tiempo de Paro">Tiempo Paro</th>
+                                <th rowspan="2" data-key="EstadoOT">Estado OT</th>
+                                <th rowspan="2" class="num" data-key="Cantidad Planeada">Cant.Plan</th>
+                                <th rowspan="2" class="num" data-key="Cantidad Hecha">Cant.Hecha</th>
+                                <th colspan="2" class="th-group">Plan</th>
+                                <th colspan="3" class="th-group">Por Turno</th>
+                                <th colspan="2" class="th-group">Por Rango</th>
+                                <th class="th-group">Total</th>
+                            </tr>
+                            <tr>
+                                <th class="num grp-start" data-key="Hora Plan">H.Plan</th>
                                 <th class="num" data-key="Pieza*turnoPlan">P×T Plan</th>
+                                <th class="num grp-start" data-key="Hora Real Día">H.Real Día</th>
                                 <th class="num" data-key="Pieza*turnoReal">P×T Real</th>
                                 <th class="num" data-key="Eficiencia Dia">Efic.Día</th>
+                                <th class="num grp-start" data-key="Hora Real Rango">H.Real Rango</th>
                                 <th class="num" data-key="Eficiencia Rango">Efic.Rango</th>
+                                <th class="num grp-start" data-key="Hora Real OT">H.Real OT</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -229,7 +239,7 @@
         </section>
     </main>
 
-    <script src="@Url.Content("~/Scripts/App/produccion-v2-shared.js?v=20260831.1")"></script>
+    <script src="@Url.Content("~/Scripts/App/produccion-v2-shared.js?v=20260904.1")"></script>
     <script>
         const $ = id => document.getElementById(id);
 

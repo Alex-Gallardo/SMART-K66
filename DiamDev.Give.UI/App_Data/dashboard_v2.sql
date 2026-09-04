@@ -52,8 +52,9 @@ INGRESOS_DIA AS
     WHERE H."DocDate" BETWEEN P."FechaIni" AND P."FechaFin"
       AND D."U_beas_belnrid" IS NOT NULL
       AND D."U_beas_belposid" IS NOT NULL
-      AND UPPER(D."unitMsr") <> 'KG'
-      AND UPPER(D."Dscription") NOT LIKE '%COPRODUCTO%'
+      -- KG y coproductos se conservan: son la producción válida de
+      -- extrusoras y molinos. El JOIN con BEAS_FTPOS limita la fila al
+      -- artículo planificado y evita incluir consumos de materia prima.
     GROUP BY
         D."U_beas_belnrid",
         D."U_beas_belposid",
@@ -80,8 +81,6 @@ INGRESOS_RANGO AS
     WHERE H."DocDate" BETWEEN P."FechaIni" AND P."FechaFin"
       AND D."U_beas_belnrid" IS NOT NULL
       AND D."U_beas_belposid" IS NOT NULL
-      AND UPPER(D."unitMsr") <> 'KG'
-      AND UPPER(D."Dscription") NOT LIKE '%COPRODUCTO%'
     GROUP BY
         D."U_beas_belnrid",
         D."U_beas_belposid"
@@ -104,8 +103,6 @@ INGRESOS_TOTAL AS
     WHERE H."DocDate" <= P."FechaFin"
       AND D."U_beas_belnrid" IS NOT NULL
       AND D."U_beas_belposid" IS NOT NULL
-      AND UPPER(D."unitMsr") <> 'KG'
-      AND UPPER(D."Dscription") NOT LIKE '%COPRODUCTO%'
     GROUP BY
         D."U_beas_belnrid",
         D."U_beas_belposid"
@@ -118,6 +115,10 @@ HORAS_DIA AS
         A."BELPOS_ID" AS "PosicionOT",
         A."POS_ID",
         A."DocDate"   AS "Fecha",
+        A."UDF2"      AS "TurnoCodigo",
+        MAX(A."UDF1") AS "Supervisor",
+        MAX(A."UDF3") AS "MotivoParoCodigo",
+        MAX(A."UDF4") AS "TiempoParo",
         SUM(A."ZEIT") / 60.0 AS "HoraRealDia"
     FROM "BEAS_ARBZEIT" A
     CROSS JOIN PARAMS P
@@ -127,7 +128,8 @@ HORAS_DIA AS
         A."BELNR_ID",
         A."BELPOS_ID",
         A."POS_ID",
-        A."DocDate"
+        A."DocDate",
+        A."UDF2"
 ),
 
 HORAS_RANGO AS
@@ -215,10 +217,19 @@ DETALLE AS
         T0."APLATZ_ID" AS "CodigoRecurso",
         R."BEZ"        AS "DescripcionRecurso",
 
+        -- Horas productivas efectivas usadas por las fórmulas de rendimiento.
+        -- La UI usa 12 horas reloj por turno para capacidad/paro/disponible.
         11 AS "HorasTurno",
+
+        HD."TurnoCodigo"             AS "TurnoCodigo",
+        MAX(HD."Supervisor")         AS "Supervisor",
+        MAX(HD."MotivoParoCodigo")   AS "MotivoParoCodigo",
+        MAX(HD."TiempoParo")         AS "TiempoParo",
 
         MAX(P."CantidadPlanificada") AS "CantidadPlaneada",
 
+        -- IGN1 no identifica turno: estas cantidades se repiten en Día/Noche.
+        -- La UI usa Cantidad Real Día y desduplica por fecha/OT/posición/item.
         MAX(IDR."CantidadRealDia")   AS "CantidadRealDia",
         MAX(IR."CantidadRealRango")  AS "CantidadRealRango",
         MAX(IT."CantidadRealTotal")  AS "CantidadRealTotal",
@@ -282,7 +293,8 @@ DETALLE AS
         I."DescripcionItem",
         I."UnidadMedida",
         T0."APLATZ_ID",
-        R."BEZ"
+        R."BEZ",
+        HD."TurnoCodigo"
 )
 
 SELECT
@@ -294,6 +306,15 @@ SELECT
     D."UnidadMedida",
     D."CodigoRecurso",
     D."DescripcionRecurso",
+
+    CASE
+        WHEN D."TurnoCodigo" = '1' THEN 'Dia'
+        WHEN D."TurnoCodigo" = '2' THEN 'Noche'
+        ELSE D."TurnoCodigo"
+    END AS "Turno",
+    D."Supervisor"       AS "Supervisor",
+    D."MotivoParoCodigo" AS "Motivo de Paro",
+    D."TiempoParo"       AS "Tiempo de Paro",
 
     -- Familia — OITM.ItmsGrpCod -> OITB.ItmsGrpNam. CONFIRMADO poblado y con
     -- sentido en esta instalación (Luigi corrió la consulta de verificación:

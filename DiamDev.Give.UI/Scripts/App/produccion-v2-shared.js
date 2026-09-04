@@ -11,7 +11,8 @@
 //
 // Expected row shape (viene de dashboard_v2.sql):
 //   Fecha, OT, PosicionOT, ItemID, DescripcionItem, UnidadMedida,
-//   CodigoRecurso, DescripcionRecurso, FamilyCode, FamilyName, TipoItem,
+//   CodigoRecurso, DescripcionRecurso, Turno, Supervisor, "Motivo de Paro",
+//   "Tiempo de Paro", FamilyCode, FamilyName, TipoItem,
 //   EstadoOT, "Cantidad Planeada", "Cantidad Hecha", "Hora Plan",
 //   "Hora Real Día", "Hora Real Rango", "Hora Real OT",
 //   "Pieza*turnoPlan", "Pieza*turnoReal", "Eficiencia Dia", "Eficiencia Rango"
@@ -149,6 +150,156 @@ const ProduccionV2Dashboard = (() => {
         });
 
         return totals;
+    }
+
+    // Capacidad de horas reloj. Es distinta de las 11 horas productivas que el
+    // SQL utiliza exclusivamente en las fórmulas de rendimiento por turno.
+    const TURNO_HORAS = 12;
+    const TURNOS_VALIDOS = ['Dia', 'Noche'];
+
+    function normalizeTurno(value) {
+        const turno = String(value || '').trim().toLowerCase();
+        if (turno === '1' || turno === 'dia' || turno === 'día') return 'Dia';
+        if (turno === '2' || turno === 'noche') return 'Noche';
+        return '';
+    }
+
+    // Cuenta transiciones de producto por recurso. Es una aproximación: los
+    // datos solo permiten ordenar por fecha y turno, no por hora del evento.
+    function computeCambiosDeMolde(rows) {
+        const turnoOrden = { Dia: 1, Noche: 2 };
+        const porRecurso = {};
+
+        rows.forEach((row, sequence) => {
+            const identity = resourceValue(row);
+            if (!porRecurso[identity]) {
+                porRecurso[identity] = { labels: new Set(), rows: [] };
+            }
+            porRecurso[identity].labels.add(resourceLabel(row));
+            porRecurso[identity].rows.push({ row, sequence });
+        });
+
+        let total = 0;
+        const recursosConCambio = new Set();
+        const porRecursoCount = {};
+        const porDiaRecurso = {};
+
+        Object.entries(porRecurso).forEach(([identity, resource]) => {
+            const seen = new Set();
+            const events = [];
+
+            resource.rows.forEach(({ row, sequence }) => {
+                const itemId = String(row.ItemID || '').trim();
+                if (!itemId) return;
+
+                const fecha = normalizeFechaToISO(row.Fecha) || '';
+                const turno = normalizeTurno(row.Turno);
+                const key = `${fecha}|${turno}|${itemId}`;
+                if (seen.has(key)) return;
+
+                seen.add(key);
+                events.push({ fecha, turno, itemId, sequence });
+            });
+
+            events.sort((a, b) => {
+                if (a.fecha !== b.fecha) return a.fecha < b.fecha ? -1 : 1;
+                const byShift = (turnoOrden[a.turno] || 9) - (turnoOrden[b.turno] || 9);
+                return byShift || a.sequence - b.sequence;
+            });
+
+            let count = 0;
+            for (let i = 1; i < events.length; i++) {
+                if (events[i].itemId === events[i - 1].itemId) continue;
+                count++;
+                const dayKey = `${events[i].fecha}|${identity}`;
+                porDiaRecurso[dayKey] = (porDiaRecurso[dayKey] || 0) + 1;
+            }
+
+            resource.labels.forEach(label => { porRecursoCount[label] = count; });
+            if (count > 0) recursosConCambio.add(identity);
+            total += count;
+        });
+
+        return { total, recursosConCambio, porRecursoCount, porDiaRecurso };
+    }
+
+    // "Hora Plan" pertenece a la OT/posición/recurso completa. Para mostrarla
+    // en la tendencia se reparte entre los días activos de esa combinación.
+    function apportionPlanPorDia(rows) {
+        const combinations = {};
+
+        rows.forEach(row => {
+            const key = `${row.OT}|${row.PosicionOT}|${resourceValue(row)}`;
+            const day = normalizeFechaToISO(row.Fecha) || '';
+            if (!day) return;
+            if (!combinations[key]) {
+                combinations[key] = { plan: +row["Hora Plan"] || 0, days: new Set() };
+            }
+            combinations[key].days.add(day);
+        });
+
+        const planPorDia = {};
+        Object.values(combinations).forEach(combination => {
+            if (!combination.days.size) return;
+            const dailyPlan = combination.plan / combination.days.size;
+            combination.days.forEach(day => {
+                planPorDia[day] = (planPorDia[day] || 0) + dailyPlan;
+            });
+        });
+        return planPorDia;
+    }
+
+    function computeHorasPorTurno(rows) {
+        const horasPorTurno = {};
+        const turnosConFila = new Set();
+
+        rows.forEach(row => {
+            const turno = normalizeTurno(row.Turno);
+            if (!TURNOS_VALIDOS.includes(turno)) return;
+
+            const fecha = normalizeFechaToISO(row.Fecha) || '';
+            const key = `${fecha}|${turno}|${resourceValue(row)}`;
+            horasPorTurno[key] = (horasPorTurno[key] || 0) + (+row["Hora Real Día"] || 0);
+            turnosConFila.add(key);
+        });
+
+        return { horasPorTurno, turnosConFila };
+    }
+
+    // Un turno con confirmación usa el faltante de sus 12 horas como paro.
+    // Sin confirmación se considera disponible/sin registrar.
+    function desglosarDiaRecurso(fecha, recurso, horasPorTurno, turnosConFila) {
+        let real = 0;
+        let paro = 0;
+        let disponible = 0;
+
+        TURNOS_VALIDOS.forEach(turno => {
+            const key = `${fecha}|${turno}|${recurso}`;
+            if (turnosConFila.has(key)) {
+                const hours = Math.max(+horasPorTurno[key] || 0, 0);
+                real += hours;
+                paro += Math.max(TURNO_HORAS - hours, 0);
+            } else {
+                disponible += TURNO_HORAS;
+            }
+        });
+
+        return { real, paro, disponible };
+    }
+
+    function enumerarDias(desde, hasta) {
+        const days = [];
+        if (!desde || !hasta) return days;
+
+        const current = new Date(`${desde}T00:00:00Z`);
+        const end = new Date(`${hasta}T00:00:00Z`);
+        if (isNaN(current) || isNaN(end) || current > end) return days;
+
+        while (current <= end) {
+            days.push(current.toISOString().slice(0, 10));
+            current.setUTCDate(current.getUTCDate() + 1);
+        }
+        return days;
     }
 
     let raw = [];
@@ -379,12 +530,12 @@ const ProduccionV2Dashboard = (() => {
 
     function render() {
         if (raw.length === 0) {
-            ['kpiReal', 'kpiPlan', 'kpiCump', 'kpiEf', 'kpiParo', 'kpiEM']
-                .forEach(id => $(id).textContent = '—');
-            $('kpiRealSub').textContent = '';
-            $('kpiPlanSub').textContent = '';
-            $('kpiParoSub').textContent = '';
-            $('tabla').querySelector('tbody').innerHTML = '';
+            ['kpiReal', 'kpiPlan', 'kpiParo', 'kpiDisponible', 'kpiEM', 'kpiCambios']
+                .forEach(id => { if ($(id)) $(id).textContent = '—'; });
+            ['kpiRealSub', 'kpiPlanSub', 'kpiParoSub', 'kpiDisponibleSub', 'kpiCambiosSub']
+                .forEach(id => { if ($(id)) $(id).textContent = ''; });
+            const tbody = $('tabla').querySelector('tbody');
+            while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
             destroyCharts();
             $('status').textContent = 'Sin datos cargados.';
             return;
@@ -393,11 +544,13 @@ const ProduccionV2Dashboard = (() => {
         const filtered = applyFilters();
         $('status').textContent = `${filtered.length} de ${raw.length} filas · filtros aplicados`;
 
-        renderKpis(filtered);
-        drawTrend(filtered);
+        const cambios = computeCambiosDeMolde(filtered);
+
+        renderKpis(filtered, cambios);
+        drawTrend(filtered, cambios);
         drawQtyTrend(filtered);
-        drawByResource(filtered);
-        drawByResourceQty(filtered);
+        drawByResource(filtered, cambios);
+        drawByResourceQty(filtered, cambios);
         drawUtil(filtered);
         drawByFamily(filtered);
         drawByItem(filtered);
@@ -405,106 +558,141 @@ const ProduccionV2Dashboard = (() => {
         renderTable(filtered);
     }
 
-    function renderKpis(rows) {
+    function renderKpis(rows, cambios) {
         const sumReal = rows.reduce((a, r) => a + (+r["Hora Real Día"] || 0), 0);
 
         const planMap = {};
         rows.forEach(r => {
-            const k = `${r.OT}|${r.PosicionOT}|${r.CodigoRecurso}`;
+            const k = `${r.OT}|${r.PosicionOT}|${resourceValue(r)}`;
             if (!(k in planMap)) {
-                planMap[k] = {
-                    plan: +r["Hora Plan"] || 0,
-                    realOT: +r["Hora Real OT"] || 0
-                };
+                planMap[k] = +r["Hora Plan"] || 0;
             }
         });
 
-        const sumPlan = Object.values(planMap).reduce((a, o) => a + o.plan, 0);
-        const sumRealOT = Object.values(planMap).reduce((a, o) => a + o.realOT, 0);
+        const sumPlan = Object.values(planMap).reduce((a, value) => a + value, 0);
 
         const quantityTotals = aggregateDailyQuantity(rows, () => 'total', false);
         const sumCant = quantityTotals.total || 0;
 
-        const recDiaMap = {};
         const recursosVistos = new Set();
-        const diasVistos = new Set();
         rows.forEach(r => {
-            const fecha = String(r.Fecha).slice(0, 10);
-            const k = `${fecha}|${r.CodigoRecurso}`;
-            recDiaMap[k] = (recDiaMap[k] || 0) + (+r["Hora Real Día"] || 0);
-            recursosVistos.add(r.CodigoRecurso);
-            diasVistos.add(fecha);
+            recursosVistos.add(resourceValue(r));
         });
 
-        const sumParo = Object.values(recDiaMap).reduce((a, h) => a + Math.max(24 - h, 0), 0);
+        const fromEl = $('from');
+        const toEl = $('to');
+        let desde = fromEl && fromEl.value;
+        let hasta = toEl && toEl.value;
+        if (!desde || !hasta) {
+            const fechas = rows.map(r => normalizeFechaToISO(r.Fecha)).filter(Boolean).sort();
+            desde = fechas[0];
+            hasta = fechas[fechas.length - 1];
+        }
+
+        const diasVistos = new Set(enumerarDias(desde, hasta));
+        rows.forEach(r => {
+            const fecha = normalizeFechaToISO(r.Fecha);
+            if (fecha) diasVistos.add(fecha);
+        });
+
+        const { horasPorTurno, turnosConFila } = computeHorasPorTurno(rows);
+        let sumParo = 0;
+        let sumDisponible = 0;
+        diasVistos.forEach(fecha => {
+            recursosVistos.forEach(recurso => {
+                const detail = desglosarDiaRecurso(fecha, recurso, horasPorTurno, turnosConFila);
+                sumParo += detail.paro;
+                sumDisponible += detail.disponible;
+            });
+        });
+
         const capacidadTotal = recursosVistos.size * diasVistos.size * 24;
+        const asCapacityPercentage = value => capacidadTotal ? value / capacidadTotal * 100 : null;
 
-        $('kpiReal').textContent = fmt(sumReal) + ' h';
-        $('kpiRealSub').textContent = `${rows.length} registros`;
+        $('kpiReal').textContent = capacidadTotal ? fmtPct(asCapacityPercentage(sumReal)) : '—';
+        $('kpiRealSub').textContent = `${fmt(sumReal)} h · ${rows.length} registros`;
 
-        $('kpiPlan').textContent = fmt(sumPlan) + ' h';
-        $('kpiPlanSub').textContent = sumPlan ? `Δ ${fmt(sumReal - sumPlan)} h vs real` : '';
+        $('kpiPlan').textContent = capacidadTotal ? fmtPct(asCapacityPercentage(sumPlan)) : '—';
+        $('kpiPlanSub').textContent = `${fmt(sumPlan)} h`
+            + (sumPlan ? ` · Δ ${fmt(sumReal - sumPlan)} h vs real` : '');
 
-        $('kpiCump').textContent = sumPlan ? fmtPct(sumReal / sumPlan * 100) : '—';
-        $('kpiEf').textContent = sumRealOT ? fmtPct(sumPlan / sumRealOT * 100) : '—';
-
-        $('kpiParo').textContent = fmt(sumParo) + ' h';
+        $('kpiParo').textContent = capacidadTotal ? fmtPct(asCapacityPercentage(sumParo)) : '—';
+        $('kpiParo').className = 'value kpi-paro';
         $('kpiParoSub').textContent = capacidadTotal
-            ? `${Object.keys(recDiaMap).length} recurso·días · de ${fmt(capacidadTotal)} h posibles (${recursosVistos.size} recursos × ${diasVistos.size} días × 24h)`
-            : `${Object.keys(recDiaMap).length} recurso·días`;
+            ? `${fmt(sumParo)} h · faltante en turnos con confirmación`
+            : `${fmt(sumParo)} h`;
+
+        $('kpiDisponible').textContent = capacidadTotal
+            ? fmtPct(asCapacityPercentage(sumDisponible))
+            : '—';
+        $('kpiDisponibleSub').textContent = capacidadTotal
+            ? `${fmt(sumDisponible)} h · turnos sin confirmación`
+            : `${fmt(sumDisponible)} h`;
 
         $('kpiEM').textContent = fmt(sumCant);
+
+        $('kpiCambios').textContent = fmt(cambios.total);
+        $('kpiCambiosSub').textContent = `en ${cambios.recursosConCambio.size} recurso(s) · estimado, sin duración`;
     }
 
-    function drawTrend(rows) {
+    function drawTrend(rows, cambios) {
         const bucket = $('bucket').value;
-        const agg = {};
-        const planSeen = new Set();
+        const recursos = new Set(rows.map(resourceValue));
+        const fromEl = $('from');
+        const toEl = $('to');
+        let desde = fromEl && fromEl.value;
+        let hasta = toEl && toEl.value;
+        if (!desde || !hasta) {
+            const fechas = rows.map(r => normalizeFechaToISO(r.Fecha)).filter(Boolean).sort();
+            desde = fechas[0];
+            hasta = fechas[fechas.length - 1];
+        }
 
+        const planPorDia = apportionPlanPorDia(rows);
+        const cambiosPorDia = {};
+        Object.entries(cambios.porDiaRecurso).forEach(([key, count]) => {
+            const fecha = key.split('|')[0];
+            cambiosPorDia[fecha] = (cambiosPorDia[fecha] || 0) + count;
+        });
+
+        const { horasPorTurno, turnosConFila } = computeHorasPorTurno(rows);
+        const todosLosDias = new Set(enumerarDias(desde, hasta));
         rows.forEach(r => {
-            const key = bucketKey(r.Fecha, bucket);
+            const fecha = normalizeFechaToISO(r.Fecha);
+            if (fecha) todosLosDias.add(fecha);
+        });
 
-            if (!agg[key]) agg[key] = { real: 0, plan: 0, recDia: {}, recursos: new Set() };
-
-            agg[key].real += (+r["Hora Real Día"] || 0);
-            agg[key].recursos.add(r.CodigoRecurso);
-
-            const planKey = `${key}|${r.OT}|${r.PosicionOT}|${r.CodigoRecurso}`;
-            if (!planSeen.has(planKey)) {
-                planSeen.add(planKey);
-                agg[key].plan += (+r["Hora Plan"] || 0);
+        const agg = {};
+        [...todosLosDias].sort().forEach(fecha => {
+            const key = bucketKey(fecha, bucket);
+            if (!agg[key]) {
+                agg[key] = { real: 0, plan: 0, paro: 0, disponible: 0, capacidad: 0, cambios: 0 };
             }
 
-            // Paro is always figured at day granularity (24h available per
-            // resource per calendar day) and then summed into whichever
-            // bucket the day falls into — that's what makes it comparable to
-            // "Reales" regardless of day/week/month/year grouping.
-            const rk = `${String(r.Fecha).slice(0, 10)}|${r.CodigoRecurso}`;
-            agg[key].recDia[rk] = (agg[key].recDia[rk] || 0) + (+r["Hora Real Día"] || 0);
+            recursos.forEach(recurso => {
+                const detail = desglosarDiaRecurso(fecha, recurso, horasPorTurno, turnosConFila);
+                agg[key].real += detail.real;
+                agg[key].paro += detail.paro;
+                agg[key].disponible += detail.disponible;
+            });
+            agg[key].plan += planPorDia[fecha] || 0;
+            agg[key].capacidad += recursos.size * 24;
+            agg[key].cambios += cambiosPorDia[fecha] || 0;
         });
 
         const keys = Object.keys(agg).sort();
         const labels = keys.map(k => bucketLabel(k, bucket));
         const real = keys.map(k => agg[k].real);
         const plan = keys.map(k => agg[k].plan);
-        const paro = keys.map(k => Object.values(agg[k].recDia).reduce((a, h) => a + Math.max(24 - h, 0), 0));
-        const capacidad = keys.map(k => agg[k].recursos.size * bucketHours(k, bucket));
+        const paro = keys.map(k => agg[k].paro);
+        const disponible = keys.map(k => agg[k].disponible);
+        const capacidad = keys.map(k => agg[k].capacidad);
         const accent = getAccent();
 
-        // Normalized to % of capacidad disponible for that bucket, so the chart
-        // reads the same whether a bucket has 1 resource or 20 — a 100%-stacked
-        // view (Reales + Paro + lo que queda sin registrar) with Planificadas
-        // overlaid as a % line. Raw hours are kept per-dataset for the tooltip,
-        // so nothing is lost by normalizing the axis.
         const pct = (num, den) => den > 0 ? (num / den * 100) : 0;
         const realPct = keys.map((k, i) => pct(real[i], capacidad[i]));
         const paroPct = keys.map((k, i) => pct(paro[i], capacidad[i]));
-        // Clamp at 0 — if Real+Paro adds up to more than Capacidad (e.g. more
-        // resource codes turned out to be active that bucket than the capacity
-        // line assumed — see the resource-rename caveat in dashboard_v2.sql),
-        // don't draw a negative "disponible" segment.
-        const restoPct = keys.map((k, i) => Math.max(0, 100 - realPct[i] - paroPct[i]));
-        const restoHoras = keys.map((k, i) => Math.max(0, capacidad[i] - real[i] - paro[i]));
+        const disponiblePct = keys.map((k, i) => pct(disponible[i], capacidad[i]));
         const planPct = keys.map((k, i) => pct(plan[i], capacidad[i]));
 
         charts.trend?.destroy();
@@ -514,8 +702,12 @@ const ProduccionV2Dashboard = (() => {
                 datasets: [
                     { type: 'bar', label: 'Reales', data: realPct, backgroundColor: accent, stack: 'pct', rawHours: real },
                     { type: 'bar', label: 'Paro', data: paroPct, backgroundColor: '#ef444499', stack: 'pct', rawHours: paro },
-                    { type: 'bar', label: 'Disponible / sin registrar', data: restoPct, backgroundColor: '#94a3b833', stack: 'pct', rawHours: restoHoras },
-                    { type: 'line', label: 'Planificadas', data: planPct, borderColor: '#10b981', backgroundColor: '#10b98133', tension: .3, borderDash: [5, 5], pointRadius: 3, rawHours: plan }
+                    { type: 'bar', label: 'Disponible / sin registrar', data: disponiblePct, backgroundColor: '#94a3b833', stack: 'pct', rawHours: disponible },
+                    {
+                        type: 'line', label: 'Planificadas (prorrateada)', data: planPct,
+                        borderColor: '#fbbf24', backgroundColor: '#fbbf2433', borderWidth: 3,
+                        tension: .3, borderDash: [5, 5], pointRadius: 4, rawHours: plan, order: 0
+                    }
                 ]
             },
             options: {
@@ -530,7 +722,14 @@ const ProduccionV2Dashboard = (() => {
                                 const pctVal = ctx.parsed.y;
                                 return `${ctx.dataset.label}: ${fmtPct(pctVal)}` + (raw !== null ? ` (${fmt(raw)} h)` : '');
                             },
-                            afterBody: (items) => items.length ? [`Capacidad disponible: ${fmt(capacidad[items[0].dataIndex])} h`] : []
+                            afterBody: (items) => {
+                                if (!items.length) return [];
+                                const index = items[0].dataIndex;
+                                return [
+                                    `Capacidad disponible: ${fmt(capacidad[index])} h`,
+                                    `Cambios de molde: ${fmt(agg[keys[index]].cambios)}`
+                                ];
+                            }
                         }
                     }
                 },
@@ -562,10 +761,29 @@ const ProduccionV2Dashboard = (() => {
     // una misma OT/posición para reconciliar con el KPI y los demás desgloses.
     function drawQtyTrend(rows) {
         const bucket = $('bucket').value;
-        const agg = aggregateDailyQuantity(
+        const porDia = aggregateDailyQuantity(
             rows,
-            r => bucketKey(r.Fecha, bucket),
+            r => normalizeFechaToISO(r.Fecha),
             false);
+
+        const fromEl = $('from');
+        const toEl = $('to');
+        let desde = fromEl && fromEl.value;
+        let hasta = toEl && toEl.value;
+        if (!desde || !hasta) {
+            const fechas = Object.keys(porDia).sort();
+            desde = fechas[0];
+            hasta = fechas[fechas.length - 1];
+        }
+        enumerarDias(desde, hasta).forEach(fecha => {
+            if (!(fecha in porDia)) porDia[fecha] = 0;
+        });
+
+        const agg = {};
+        Object.keys(porDia).sort().forEach(fecha => {
+            const key = bucketKey(fecha, bucket);
+            agg[key] = (agg[key] || 0) + porDia[fecha];
+        });
 
         const keys = Object.keys(agg).sort();
         const labels = keys.map(k => bucketLabel(k, bucket));
@@ -593,7 +811,7 @@ const ProduccionV2Dashboard = (() => {
         });
     }
 
-    function drawByResource(rows) {
+    function drawByResource(rows, cambios) {
         const agg = {};
         rows.forEach(r => {
             const k = resourceLabel(r);
@@ -608,7 +826,14 @@ const ProduccionV2Dashboard = (() => {
             data: { labels: pairs.map(p => p[0]), datasets: [{ label: 'Horas reales', data: pairs.map(p => p[1]), backgroundColor: accent }] },
             options: {
                 responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: ctx => `Cambios de molde: ${fmt(cambios.porRecursoCount[ctx.label] || 0)}`
+                        }
+                    }
+                },
                 scales: {
                     x: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: '#27344966' } },
                     y: { ticks: { color: '#94a3b8' }, grid: { color: '#27344966' } }
@@ -617,7 +842,7 @@ const ProduccionV2Dashboard = (() => {
         });
     }
 
-    function drawByResourceQty(rows) {
+    function drawByResourceQty(rows, cambios) {
         const agg = aggregateDailyQuantity(rows, resourceLabel, true);
         const pairs = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 15);
 
@@ -627,7 +852,14 @@ const ProduccionV2Dashboard = (() => {
             data: { labels: pairs.map(p => p[0]), datasets: [{ label: 'Cantidad real', data: pairs.map(p => p[1]), backgroundColor: '#38bdf8' }] },
             options: {
                 responsive: true, maintainAspectRatio: false, indexAxis: 'y',
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: ctx => `Cambios de molde: ${fmt(cambios.porRecursoCount[ctx.label] || 0)}`
+                        }
+                    }
+                },
                 scales: {
                     x: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: '#27344966' } },
                     y: { ticks: { color: '#94a3b8' }, grid: { color: '#27344966' } }
@@ -686,7 +918,7 @@ const ProduccionV2Dashboard = (() => {
         rows.forEach(r => {
             const rec = resourceLabel(r);
             const fecha = String(r.Fecha).slice(0, 10);
-            const dk = fecha + '|' + r.CodigoRecurso;
+            const dk = fecha + '|' + resourceValue(r);
 
             if (!map[rec]) map[rec] = { real: {}, dias: new Set() };
 
@@ -796,24 +1028,28 @@ const ProduccionV2Dashboard = (() => {
             appendCell(tr, r.FamilyName);
             appendCell(tr, r.TipoItem);
             appendCell(tr, r.DescripcionRecurso);
+            appendCell(tr, normalizeTurno(r.Turno) || r.Turno);
+            appendCell(tr, r.Supervisor);
+            appendCell(tr, r["Motivo de Paro"]);
+            appendCell(tr, r["Tiempo de Paro"]);
             appendCell(tr, r.EstadoOT, estadoCls);
             appendCell(tr, fmt(r["Cantidad Planeada"]), 'num');
             appendCell(tr, fmt(r["Cantidad Hecha"]), 'num');
             appendCell(tr, fmt(r["Hora Plan"]), 'num');
-            appendCell(tr, fmt(r["Hora Real Día"]), 'num');
-            appendCell(tr, fmt(r["Hora Real Rango"]), 'num');
-            appendCell(tr, fmt(r["Hora Real OT"]), 'num');
             appendCell(tr, fmt(r["Pieza*turnoPlan"]), 'num');
+            appendCell(tr, fmt(r["Hora Real Día"]), 'num');
             appendCell(tr, fmt(r["Pieza*turnoReal"]), 'num');
             appendCell(tr, isNaN(efDia) ? '' : fmt(efDia) + '%', `num ${cls}`.trim());
+            appendCell(tr, fmt(r["Hora Real Rango"]), 'num');
             appendCell(tr, efRango != null ? fmt(efRango) + '%' : '', 'num');
+            appendCell(tr, fmt(r["Hora Real OT"]), 'num');
             tb.appendChild(tr);
         });
 
         if (rows.length > 500) {
             const tr = document.createElement('tr');
             const td = document.createElement('td');
-            td.colSpan = 20;
+            td.colSpan = 24;
             td.style.textAlign = 'center';
             td.style.color = '#94a3b8';
             td.textContent = `Mostrando 500 de ${rows.length} filas`;
@@ -956,7 +1192,14 @@ const ProduccionV2Dashboard = (() => {
             resourceValue,
             resourceLabel,
             dailyProductionKey,
-            aggregateDailyQuantity
+            aggregateDailyQuantity,
+            normalizeTurno,
+            computeCambiosDeMolde,
+            apportionPlanPorDia,
+            computeHorasPorTurno,
+            desglosarDiaRecurso,
+            enumerarDias,
+            TURNO_HORAS
         }
     };
 })();

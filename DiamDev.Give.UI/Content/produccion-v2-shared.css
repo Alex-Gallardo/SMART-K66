@@ -279,9 +279,20 @@ td {
 th {
     background: var(--panel2);
     position: sticky;
-    top: 0;
     font-weight: 600;
     color: var(--muted);
+    z-index: 2;
+}
+
+/* Mantiene visibles y alineadas las dos filas del encabezado agrupado. */
+thead tr:nth-child(1) th {
+    top: 0;
+    height: 33px;
+    z-index: 3;
+}
+
+thead tr:nth-child(2) th {
+    top: 33px;
 }
 
     th.sortable {
@@ -334,6 +345,19 @@ th {
     color: var(--warn);
     font-weight: 600;
     font-size: 11px;
+}
+
+th.th-group {
+    text-align: center;
+    border-left: 2px solid var(--border);
+}
+
+th.grp-start {
+    border-left: 2px solid var(--border);
+}
+
+.kpi .value.kpi-paro {
+    color: var(--bad);
 }
 
 /* DATE PRESETS */

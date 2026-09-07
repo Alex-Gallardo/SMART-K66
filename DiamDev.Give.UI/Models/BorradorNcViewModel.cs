@@ -15,6 +15,7 @@ namespace DiamDev.Give.UI.Models
         public bool PuedeVerTodos { get; set; }
         public bool PuedeAutorizar { get; set; }
         public bool PuedeAnular { get; set; }
+        public bool PermiteAdjuntarEnlaces { get; set; }
         public List<BorradorNcEmpresaViewModel> Empresas { get; set; }
         public List<string> Conceptos { get; set; }
     }

@@ -24,6 +24,7 @@ assert.match(entidad, /class BorradorNcAdjunto/);
 assert.match(entidad, /byte\[\] Contenido/);
 assert.match(encabezado, /List<BorradorNcAdjunto> Adjuntos/);
 assert.match(modelo, /List<BorradorNcEnlaceRequest> Enlaces/);
+assert.match(modelo, /bool PermiteAdjuntarEnlaces/);
 assert.match(modelo, /List<BorradorNcAdjuntoViewModel> Adjuntos/);
 
 assert.match(bll, /MaximoArchivosAdjuntos = 5/);
@@ -49,10 +50,14 @@ assert.match(controlador, /public ActionResult DescargarAdjunto/);
 assert.match(controlador, /if \(!PuedeImprimir\(enc\)\) return new HttpUnauthorizedResult\(\)/);
 assert.match(controlador, /X-Content-Type-Options/);
 assert.match(controlador, /Adjuntos = \(x\.Adjuntos/);
+assert.match(controlador, /BorradorNC\.HabilitarEnlaces/);
+assert.match(controlador, /PermiteAdjuntarEnlaces = HabilitarEnlaces/);
 
 assert.match(index, /Documentación de respaldo/);
 assert.match(index, /id="bncArchivos" multiple/);
 assert.match(index, /Puede guardar el borrador sin documentación/);
+assert.match(index, /if \(Model\.PermiteAdjuntarEnlaces\)/);
+assert.match(index, /data-habilitar-enlaces=/);
 assert.match(index, /BorradorNc-Adjuntos\.js/);
 assert.match(autorizaciones, /data-url-adjunto/);
 assert.match(autorizaciones, /BorradorNc-Adjuntos\.js/);
@@ -61,15 +66,19 @@ assert.match(captura, /new window\.FormData\(\)/);
 assert.match(captura, /formulario\.append\("archivos", archivo, archivo\.name\)/);
 assert.match(captura, /state\.archivos = \[\]/);
 assert.match(captura, /state\.enlaces = \[\]/);
+assert.match(captura, /enlacesHabilitados/);
+assert.match(captura, /if \(enlacesHabilitados\) \{[\s\S]*?payload\["Enlaces\[" \+ i \+ "\]\.Url"\]/);
 assert.match(captura, /window\.BorradorNcAdjuntos\.plantilla\(x/);
 assert.match(adjuntos, /function plantilla\(documento, opciones\)/);
 assert.match(adjuntos, /Sin documentación adjunta/);
 assert.match(adjuntos, /rel="noopener noreferrer"/);
 assert.match(adjuntos, /bnc-attachment-preview-frame/);
 assert.match(css, /\.bnc-attachment-capture-grid/);
+assert.match(css, /\.bnc-attachment-capture-grid\.is-files-only/);
 assert.match(css, /@media \(max-width: 767px\)[\s\S]*?\.bnc-attachment-capture-grid \{ grid-template-columns: 1fr; \}/);
 
 assert.match(config, /<location path="BorradorNc\/Guardar">/);
+assert.match(config, /<add key="BorradorNC\.HabilitarEnlaces" value="false" \/>/);
 assert.match(config, /maxRequestLength="27648"/);
 assert.match(config, /maxAllowedContentLength="28311552"/);
 

@@ -77,14 +77,17 @@
 .cot-icon-btn { align-items: center; background: var(--cot-blue); border: 1px solid var(--cot-blue); border-radius: 0 7px 7px 0; color: #fff; display: flex; justify-content: center; min-width: 39px; }
 .cot-icon-btn:hover, .cot-icon-btn:focus { background: var(--cot-blue-dark); }
 
-.cot-client-strip { align-items: center; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 9px; display: flex; gap: 11px; margin-top: 14px; padding: 10px 12px; }
+.cot-client-strip { align-items: center; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 9px; display: flex; gap: 14px; justify-content: space-between; margin-top: 14px; padding: 10px 12px; }
+.cot-client-summary { align-items: center; display: flex; gap: 11px; min-width: 0; }
 .cot-avatar { align-items: center; background: #e2e8f0; border-radius: 50%; color: #64748b; display: flex !important; flex-direction: row; align-items:center; flex: 0 0 auto; height: 34px; justify-content: center; width: 34px; }
-.cot-client-strip div { min-width: 0; }
-.cot-client-strip strong, .cot-client-strip span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cot-client-copy { min-width: 0; }
+.cot-client-strip strong, .cot-client-copy > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cot-client-strip strong { font-size: 11px; }
-.cot-client-strip div > span { color: var(--cot-muted); font-size: 9.5px; margin-top: 2px; }
+.cot-client-copy > span { color: var(--cot-muted); font-size: 9.5px; margin-top: 2px; }
 .cot-client-strip.is-selected { background: var(--cot-green-soft); border-color: #a7f3d0; }
 .cot-client-strip.is-selected .cot-avatar { background: #d1fae5; color: var(--cot-green); }
+.cot-client-strip.is-prospect { background: var(--cot-blue-soft); border-color: #93c5fd; }
+.cot-client-strip.is-prospect .cot-avatar { background: #dbeafe; color: var(--cot-blue); }
 
 .cot-btn { align-items: center; border: 1px solid transparent; border-radius: 7px; cursor: pointer; display: inline-flex; font-size: 10.5px; font-weight: 700; gap: 6px; justify-content: center; min-height: 34px; padding: 7px 12px; transition: transform .12s, background .12s; }
 .cot-btn:hover { transform: translateY(-1px); }
@@ -94,6 +97,8 @@
 .cot-btn-success { background: var(--cot-green); border-color: var(--cot-green); color: #fff !important; }
 .cot-btn-danger { background: var(--cot-red); border-color: var(--cot-red); color: #fff !important; }
 .cot-btn-ghost { background: #fff; border-color: #cbd5e1; color: #475569 !important; }
+.cot-btn-prospect { background: #fff; border-color: #93c5fd; color: var(--cot-blue-dark) !important; flex: 0 0 auto; }
+.cot-btn-prospect:hover, .cot-btn-prospect:focus { background: #dbeafe; border-color: #60a5fa; }
 .cot-head-actions { align-items: center; display: flex; gap: 9px; }
 .cot-count { background: #f1f5f9; border-radius: 999px; color: #64748b; font-size: 9.5px; font-weight: 700; padding: 5px 8px; }
 
@@ -198,6 +203,10 @@
 .cot-result span { color: var(--cot-muted); font-size: 9px; margin-top: 2px; }
 .cot-product-toolbar { align-items: flex-end; display: flex; gap: 9px; margin-bottom: 11px; }
 .cot-product-toolbar .cot-field { flex: 1; }
+.cot-catalog-context { align-items: center; background: #f8fafc; border: 1px solid var(--cot-border); border-radius: 8px; color: var(--cot-muted); display: flex; font-size: 9.5px; gap: 8px; margin-bottom: 11px; padding: 8px 10px; }
+.cot-catalog-context i { color: var(--cot-blue); flex: 0 0 auto; font-size: 13px; }
+.cot-catalog-context strong { color: #334155; }
+.cot-catalog-context.is-prospect { background: var(--cot-blue-soft); border-color: #bfdbfe; color: #475569; }
 .cot-product-footer { align-items: center; display: flex; justify-content: space-between; }
 .cot-product-pages { display: flex; gap: 7px; }
 .cot-product-table { min-width: 940px; }
@@ -229,6 +238,9 @@
     .cot-product-footer { align-items: stretch; flex-direction: column; gap: 10px; text-align: left; }
     .cot-product-pages { display: grid; grid-template-columns: 1fr 1fr; }
     .cot-product-pages .cot-btn:last-child { grid-column: 1 / -1; }
+    .cot-client-strip { align-items: stretch; flex-direction: column; }
+    .cot-client-summary { width: 100%; }
+    .cot-client-strip .cot-btn-prospect { width: 100%; }
 
     .cot-line-table { display: block; min-width: 0; }
     .cot-line-table thead { display: none; }

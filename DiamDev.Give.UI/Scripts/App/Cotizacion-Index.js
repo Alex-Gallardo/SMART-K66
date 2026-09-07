@@ -18,6 +18,7 @@
     var estado = {
         operadores: [],
         cliente: null,
+        prospectoActivo: false,
         productos: [],
         productoPagina: 1,
         productoTieneMas: false,
@@ -149,29 +150,66 @@
     function limpiarCliente() {
         cancelarBusquedaProductos();
         estado.cliente = null;
+        estado.prospectoActivo = false;
         $("#cotClienteCodigo,#cotClienteNombre,#cotNit,#cotCorreo,#cotDireccion").val("");
         $("#cotMoneda").val("");
-        $("#cotClientStrip").removeClass("is-selected");
-        $("#cotClientTitle").text("Ningún cliente seleccionado");
-        $("#cotClientMeta").text("Seleccione empresa y agente; después busque el cliente en SAP.");
         estado.lineas = [];
         renderLineas();
+        actualizarResumenCliente();
     }
 
     function actualizarResumenCliente() {
-        if (!estado.cliente) return;
-        var codigo = estado.cliente.CardCode || "";
         var nombre = $("#cotClienteNombre").val().trim() || "Sin nombre";
         var nit = $("#cotNit").val().trim() || "Sin NIT";
         var monedaActual = normalizarMoneda($("#cotMoneda").val()) || "Sin moneda";
-        $("#cotClientTitle").text(codigo + " · " + nombre);
-        $("#cotClientMeta").text("NIT: " + nit + " · Agente: " +
-            (estado.cliente.SlpName || agente()) + " · Moneda: " + monedaActual);
+        var $strip = $("#cotClientStrip").removeClass("is-selected is-prospect");
+
+        if (estado.cliente) {
+            $strip.addClass("is-selected");
+            $("#cotClientTitle").text((estado.cliente.CardCode || "") + " · " + nombre);
+            $("#cotClientMeta").text("NIT: " + nit + " · Agente: " +
+                (estado.cliente.SlpName || agente()) + " · Moneda: " + monedaActual);
+            return;
+        }
+
+        var hayDatos = !!($("#cotClienteNombre").val().trim() || $("#cotNit").val().trim() ||
+            $("#cotCorreo").val().trim() || $("#cotDireccion").val().trim() || $("#cotMoneda").val());
+        if (estado.prospectoActivo || hayDatos) {
+            estado.prospectoActivo = true;
+            $strip.addClass("is-prospect");
+            $("#cotClientTitle").text("Prospecto sin código SAP" +
+                (nombre === "Sin nombre" ? "" : " · " + nombre));
+            $("#cotClientMeta").text("NIT: " + nit + " · Agente: " +
+                (agente() || "Sin agente") + " · Moneda: " + monedaActual);
+            return;
+        }
+
+        $("#cotClientTitle").text("Cliente SAP o prospecto nuevo");
+        $("#cotClientMeta").text(empresa() && codigoOperador()
+            ? "Busque un cliente SAP o capture los datos de un prospecto."
+            : "Seleccione empresa y agente para continuar.");
+    }
+
+    function iniciarProspecto() {
+        if (!empresa() || !codigoOperador()) {
+            avisar("warning", "Seleccione empresa y agente antes de registrar un prospecto.");
+            return;
+        }
+        cancelarBusquedaProductos();
+        estado.cliente = null;
+        estado.prospectoActivo = true;
+        $("#cotClienteCodigo,#cotClienteNombre,#cotNit,#cotCorreo,#cotDireccion").val("");
+        $("#cotMoneda").val("");
+        estado.lineas = [];
+        renderLineas();
+        actualizarResumenCliente();
+        $("#cotClienteNombre").focus();
     }
 
     function seleccionarCliente(c) {
         cancelarBusquedaProductos();
         estado.cliente = c;
+        estado.prospectoActivo = false;
         $("#cotClienteCodigo").val(c.CardCode || "");
         $("#cotClienteNombre").val(c.CardName || "");
         $("#cotNit").val(c.LicTradNum || "");
@@ -221,9 +259,13 @@
     }
 
     function abrirProductos() {
-        if (!estado.cliente) {
-            avisar("warning", "Seleccione un cliente antes de agregar productos.");
+        if (!empresa() || !codigoOperador()) {
+            avisar("warning", "Seleccione empresa y agente antes de agregar productos.");
             return;
+        }
+        if (!estado.cliente) {
+            estado.prospectoActivo = true;
+            actualizarResumenCliente();
         }
         cancelarBusquedaProductos();
         $("#cotProductoFiltro").val("");
@@ -231,6 +273,11 @@
         $("#cotProductoCount").text("");
         estado.productoPagina = 1;
         estado.productoTieneMas = false;
+        $("#cotProductoContexto")
+            .toggleClass("is-prospect", !estado.cliente)
+            .html(estado.cliente
+                ? '<i class="icon-user"></i><span>Precios de referencia para <strong>' + html(estado.cliente.CardCode) + ' · ' + html($("#cotClienteNombre").val().trim()) + '</strong>.</span>'
+                : '<i class="icon-edit"></i><span><strong>Prospecto sin código SAP:</strong> seleccione productos del catálogo e ingrese el precio neto manual en el detalle.</span>');
         mostrarEstadoProductos("icon-search", "Preparando catálogo", "Consultando productos disponibles para la venta.");
         $("#cotProductoModal").modal("show");
         buscarProductos(1);
@@ -316,11 +363,12 @@
         $("#cotProductoEmpty").hide();
         $.each(estado.productos, function (i, p) {
             var stockClass = numero(p.Disponible) <= 0 ? "cot-stock-low" : "";
-            var precioHtml = tienePrecioSap(p)
-                ? '<strong>' + html(moneda(p.Precio, normalizarMoneda(p.Moneda))) + '</strong>' +
-                '<br><small class="text-muted">Neto · ' + html(fuentePrecio(p.FuentePrecio)) + '</small>'
-                : '<strong class="cot-price-missing">Sin precio SAP</strong>';
-                  // '<br><small class="cot-price-help">Se requiere precio manual</small>';
+            var precioHtml = !estado.cliente
+                ? '<strong class="cot-price-missing">Precio manual</strong><br><small class="cot-price-help">Se captura al agregar</small>'
+                : (tienePrecioSap(p)
+                    ? '<strong>' + html(moneda(p.Precio, normalizarMoneda(p.Moneda))) + '</strong>' +
+                    '<br><small class="text-muted">Neto · ' + html(fuentePrecio(p.FuentePrecio)) + '</small>'
+                    : '<strong class="cot-price-missing">Sin precio SAP</strong><br><small class="cot-price-help">Se requiere precio manual</small>');
             var $tr = $("<tr tabindex='0'></tr>").append(
                 '<td><strong>' + html(p.ItemCode) + '</strong><br><small class="text-muted">' + html(p.ItemName) + '</small></td>' +
                 '<td>' + html(p.Grupo || "—") + '</td><td>' + html(p.Unidad || "—") + '</td>' +
@@ -339,7 +387,9 @@
     function agregarProducto(indice) {
         var p = estado.productos[indice];
         if (!p) return;
-        var sinPrecioSap = !tienePrecioSap(p);
+        var esProspecto = !estado.cliente;
+        var sinPrecioSap = esProspecto || !tienePrecioSap(p);
+        var precioInicial = esProspecto ? 0 : numero(p.Precio);
         var existente = -1;
         $.each(estado.lineas, function (i, x) {
             if (String(x.ItemCode).toUpperCase() === String(p.ItemCode).toUpperCase()) existente = i;
@@ -356,18 +406,20 @@
             Existencia: numero(p.Existencia),
             Disponible: numero(p.Disponible),
             Cantidad: 1,
-            PrecioLista: numero(p.Precio),
-            PrecioUnitario: numero(p.Precio),
+            PrecioLista: precioInicial,
+            PrecioUnitario: precioInicial,
             DescuentoPorcentaje: 0,
             ImpuestoPorcentaje: numero(p.ImpuestoPorcentaje),
             PrecioBruto: numero(p.PrecioBruto),
-            FuentePrecio: p.FuentePrecio,
-            PrecioManual: false,
+            FuentePrecio: esProspecto ? "SIN_PRECIO" : p.FuentePrecio,
+            PrecioManual: esProspecto,
             PrecioVersion: 0
         });
         renderLineas();
         $("#cotProductoModal").modal("hide");
-        if (sinPrecioSap) {
+        if (esProspecto) {
+            avisar("info", "Ingrese el precio neto manual para " + p.ItemCode + ".");
+        } else if (sinPrecioSap) {
             avisar("warning", "SAP no tiene un precio efectivo para " +
                 p.ItemCode + ". Ingrese un precio neto manual mayor que cero.");
         }
@@ -454,7 +506,6 @@
     function validar() {
         if (!empresa()) return "Seleccione una empresa.";
         if (!codigoOperador()) return "Seleccione un agente.";
-        if (!estado.cliente) return "Seleccione un cliente.";
         if (!$("#cotClienteNombre").val().trim()) return "Ingrese el nombre del cliente.";
         if ($("#cotClienteNombre").val().trim().length > 200) return "El nombre del cliente excede 200 caracteres.";
         if ($("#cotNit").val().trim().length > 50) return "El NIT excede 50 caracteres.";
@@ -481,7 +532,7 @@
         if (error) { avisar("warning", error); return; }
         var request = {
             IdEmpresa: empresa(), Fecha: $("#cotFecha").val(), ValidaHasta: $("#cotValidaHasta").val(),
-            IdCliente: estado.cliente.CardCode,
+            IdCliente: estado.cliente ? estado.cliente.CardCode : "",
             NombreCliente: $("#cotClienteNombre").val().trim(), Nit: $("#cotNit").val().trim(),
             Direccion: $("#cotDireccion").val().trim(), Correo: $("#cotCorreo").val().trim(),
             CodigoOperador: codigoOperador(), Moneda: $("#cotMoneda").val(),
@@ -551,7 +602,7 @@
             var $tr = $("<tr tabindex='0'></tr>").append(
                 '<td><strong>' + html(x.IdCotizacion) + '</strong><br><small class="text-muted">' + html(x.IdUsr) + '</small></td>' +
                 '<td>' + html(x.Fecha) + '</td><td>' + html(x.IdEmpresa) + '</td>' +
-                '<td><strong>' + html(x.NombreCliente) + '</strong><br><small class="text-muted">' + html(x.IdCliente) + '</small></td>' +
+                '<td><strong>' + html(x.NombreCliente) + '</strong><br><small class="text-muted">' + html(x.IdCliente || "Prospecto") + '</small></td>' +
                 '<td>' + html(x.Agente) + '</td><td><span class="cot-status ' + claseEstado(x.Estado) + '">' + html(x.Estado) + '</span></td>' +
                 '<td class="text-right"><strong>' + html(moneda(x.Total, x.Moneda)) + '</strong></td>');
             $tr.on("click keydown", function (e) { if (e.type === "click" || e.keyCode === 13) cargarDetalle(i, $tr); });
@@ -583,7 +634,7 @@
         });
         var acciones = '<button class="cot-btn cot-btn-primary cot-print"><i class="icon-print"></i> Imprimir</button>';
         if (puedeAnular && x.Estado !== "ANULADA") acciones += '<button class="cot-btn cot-btn-danger cot-cancel"><i class="icon-ban-circle"></i> Anular</button>';
-        $("#cotDetail").html('<div class="cot-detail-head"><h4>' + html(x.IdCotizacion) + '</h4><p>' + html(x.NombreCliente) + '</p></div>' +
+        $("#cotDetail").html('<div class="cot-detail-head"><h4>' + html(x.IdCotizacion) + '</h4><p>' + html((x.IdCliente ? x.IdCliente : "Prospecto") + " · " + x.NombreCliente) + '</p></div>' +
             '<div class="cot-detail-meta"><div><small>Estado</small><strong><span class="cot-status ' + claseEstado(x.Estado) + '">' + html(x.Estado) + '</span></strong></div><div><small>Total</small><strong>' + html(moneda(x.Total, x.Moneda)) + '</strong></div><div><small>Emisión / validez</small><strong>' + html(x.Fecha) + ' / ' + html(x.ValidaHasta) + '</strong></div><div><small>Agente</small><strong>' + html(x.Agente) + '</strong></div><div><small>NIT</small><strong>' + html(x.Nit || "—") + '</strong></div><div><small>Creada por</small><strong>' + html(x.IdUsr) + '</strong></div><div><small>Pago</small><strong>' + html(x.CondicionesPago || "—") + '</strong></div><div><small>Entrega</small><strong>' + html(x.TiempoEntrega || "—") + '</strong></div><div class="cot-detail-wide"><small>Observaciones</small><strong>' + html(x.Observaciones || "—") + '</strong></div></div>' +
             '<div class="cot-detail-lines">' + lineas + '</div><div class="cot-detail-actions">' + acciones + '</div>');
         $("#cotDetail .cot-print").on("click", function () { abrirImpresion(x); });
@@ -606,9 +657,10 @@
     }
 
     function enlazar() {
-        $("#cotEmpresa").on("change", function () { limpiarCliente(); poblarAgentes(empresa()); });
+        $("#cotEmpresa").on("change", function () { limpiarCliente(); poblarAgentes(empresa()); actualizarResumenCliente(); });
         $("#cotAgente").on("change", limpiarCliente);
         $("#cotBuscarCliente").on("click", abrirClientes);
+        $("#cotNuevoProspecto").on("click", iniciarProspecto);
         $("#cotClienteFiltro").on("input", function () { clearTimeout(estado.clienteTimer); estado.clienteTimer = setTimeout(buscarClientes, 280); }).on("keydown", function (e) { if (e.keyCode === 13) { e.preventDefault(); buscarClientes(); } });
         $("#cotAgregarProducto").on("click", abrirProductos);
         $("#cotBuscarProducto").on("click", function () { buscarProductos(1); });

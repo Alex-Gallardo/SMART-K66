@@ -41,7 +41,7 @@ BEGIN TRY
             ID_EMPRESA        nvarchar(15) NOT NULL,
             FECHA             date NOT NULL,
             VALIDA_HASTA      date NOT NULL,
-            ID_CLIENTE        nvarchar(20) NOT NULL,
+            ID_CLIENTE        nvarchar(20) NULL,
             NOMBRE_CLIENTE    nvarchar(200) NOT NULL,
             NIT               nvarchar(50) NULL,
             DIRECCION         nvarchar(300) NULL,

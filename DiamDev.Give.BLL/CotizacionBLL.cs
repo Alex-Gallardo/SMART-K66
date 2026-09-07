@@ -29,10 +29,14 @@ namespace DiamDev.Give.BLL
             string empresa, string agente, string clienteId, string filtro,
             int pagina, int tamano)
         {
-            ObtenerClienteAsignado(empresa, agente, clienteId);
+            bool esProspecto = string.IsNullOrWhiteSpace(clienteId);
+            if (!esProspecto)
+                ObtenerClienteAsignado(empresa, agente, clienteId);
             var paginaResultado = _hana.BuscarProductosCotizacion(
                 empresa, clienteId, filtro, pagina, tamano);
             NormalizarPreciosSap(paginaResultado.Items);
+            if (esProspecto)
+                PrepararPreciosManuales(paginaResultado.Items);
             return paginaResultado;
         }
 
@@ -40,7 +44,9 @@ namespace DiamDev.Give.BLL
             string empresa, string agente, string clienteId,
             string itemCode, decimal cantidad)
         {
-            ObtenerClienteAsignado(empresa, agente, clienteId);
+            bool esProspecto = string.IsNullOrWhiteSpace(clienteId);
+            if (!esProspecto)
+                ObtenerClienteAsignado(empresa, agente, clienteId);
             if (string.IsNullOrWhiteSpace(itemCode) || cantidad <= 0m ||
                 cantidad > 999999999m)
                 throw new InvalidOperationException(
@@ -52,6 +58,8 @@ namespace DiamDev.Give.BLL
             var productos = _hana.ObtenerProductosCotizacion(
                 empresa, clienteId, cantidades);
             NormalizarPreciosSap(productos);
+            if (esProspecto)
+                PrepararPreciosManuales(productos);
             return productos.FirstOrDefault();
         }
 
@@ -66,13 +74,21 @@ namespace DiamDev.Give.BLL
                 string error = ValidarEncabezado(enc);
                 if (error != null) return ResultadoCotizacion.Error(error);
 
-                var cliente = ObtenerClienteAsignado(
-                    enc.IdEmpresa, enc.Agente, enc.IdCliente);
-                enc.IdCliente = Limpiar(cliente.CardCode);
-                // SAP conserva la autoridad sobre la identidad y asignación del
-                // cliente. Los datos comerciales son la fotografía confirmada
-                // por el usuario para esta cotización y pueden ajustarse antes
-                // de guardar sin modificar el maestro en SAP.
+                bool esProspecto = string.IsNullOrWhiteSpace(enc.IdCliente);
+                if (esProspecto)
+                {
+                    enc.IdCliente = null;
+                }
+                else
+                {
+                    var cliente = ObtenerClienteAsignado(
+                        enc.IdEmpresa, enc.Agente, enc.IdCliente);
+                    enc.IdCliente = Limpiar(cliente.CardCode);
+                }
+                // Cuando hay código, SAP conserva la autoridad sobre la identidad
+                // y asignación del cliente. Sin código, estos datos forman la
+                // fotografía comercial de un prospecto. En ambos casos pueden
+                // ajustarse para esta cotización sin modificar el maestro SAP.
                 enc.NombreCliente = Limpiar(enc.NombreCliente);
                 enc.Nit = Limpiar(enc.Nit);
                 enc.Direccion = Limpiar(enc.Direccion);
@@ -96,6 +112,8 @@ namespace DiamDev.Give.BLL
                 var productos = _hana.ObtenerProductosCotizacion(
                     enc.IdEmpresa, enc.IdCliente, cantidades);
                 NormalizarPreciosSap(productos);
+                if (esProspecto)
+                    PrepararPreciosManuales(productos);
                 var porCodigo = productos
                     .GroupBy(x => x.ItemCode, StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(x => x.Key, x => x.First(),
@@ -323,7 +341,7 @@ namespace DiamDev.Give.BLL
             if (string.IsNullOrWhiteSpace(enc.IdEmpresa)) return "Seleccione una empresa.";
             if (string.IsNullOrWhiteSpace(enc.CodigoOperador)) return "Seleccione un agente.";
             if (string.IsNullOrWhiteSpace(enc.Agente)) return "El agente seleccionado no es válido.";
-            if (string.IsNullOrWhiteSpace(enc.IdCliente)) return "Seleccione un cliente.";
+            if (Longitud(enc.IdCliente) > 20) return "El código del cliente excede 20 caracteres.";
             if (string.IsNullOrWhiteSpace(enc.NombreCliente)) return "Ingrese el nombre del cliente.";
             if (Longitud(enc.NombreCliente) > 200) return "El nombre del cliente excede 200 caracteres.";
             if (Longitud(enc.Nit) > 50) return "El NIT excede 50 caracteres.";
@@ -379,6 +397,25 @@ namespace DiamDev.Give.BLL
                     ? PrecioNetoDesdeBruto(
                         producto.PrecioBruto, producto.ImpuestoPorcentaje)
                     : producto.PrecioBruto;
+            }
+        }
+
+        /// <summary>
+        /// Un prospecto todavía no tiene una lista ni reglas comerciales en SAP.
+        /// El catálogo sólo aporta identidad, inventario y el contexto fiscal ya
+        /// resuelto por la consulta; el precio se captura manualmente en la línea.
+        /// </summary>
+        private static void PrepararPreciosManuales(
+            IEnumerable<ProductoCotizacionHana> productos)
+        {
+            foreach (var producto in productos ??
+                     Enumerable.Empty<ProductoCotizacionHana>())
+            {
+                producto.ListaPrecio = 0;
+                producto.Moneda = "";
+                producto.PrecioBruto = 0m;
+                producto.Precio = 0m;
+                producto.FuentePrecio = "SIN_PRECIO";
             }
         }
 

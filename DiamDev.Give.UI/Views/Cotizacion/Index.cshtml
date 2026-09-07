@@ -7,7 +7,7 @@
 }
 
 @section styles {
-    <link href="@Url.Content("~/Content/cotizaciones.css?v=20260828.1")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/cotizaciones.css?v=20260907.1")" rel="stylesheet" />
 }
 
 <div class="cot cot-shell" id="cotApp"
@@ -28,7 +28,7 @@
             <span class="cot-hero-icon"><i class="icon-file-text"></i></span>
             <div>
                 <h2>Cotizaciones</h2>
-                <p>Cree propuestas comerciales con clientes, existencias y precios obtenidos de SAP.</p>
+                <p>Cree propuestas para clientes SAP o prospectos, con existencias obtenidas de SAP.</p>
             </div>
         </div>
         <div class="cot-hero-meta">
@@ -60,7 +60,7 @@
                 <div class="cot-card-head">
                     <div class="cot-card-title">
                         <i class="icon-building"></i>
-                        <div><h3>Datos comerciales</h3><small>Empresa, agente y cliente que respaldan la propuesta.</small></div>
+                        <div><h3>Datos comerciales</h3><small>Empresa, agente y datos del cliente o prospecto que respaldan la propuesta.</small></div>
                     </div>
                     <span class="cot-status is-draft">Nueva</span>
                 </div>
@@ -112,9 +112,9 @@
                         </div>
 
                         <div class="cot-field cot-col-3">
-                            <label for="cotClienteCodigo">Código cliente <span>*</span></label>
+                            <label for="cotClienteCodigo">Código cliente</label>
                             <div class="cot-input-group">
-                                <input id="cotClienteCodigo" class="form-control" readonly placeholder="Seleccione un cliente" />
+                                <input id="cotClienteCodigo" class="form-control" readonly placeholder="Sin código para prospecto" />
                                 <button id="cotBuscarCliente" class="cot-icon-btn" type="button" title="Buscar cliente"><i class="icon-search"></i></button>
                             </div>
                         </div>
@@ -136,11 +136,16 @@
                         </div>
                     </div>
                     <div class="cot-client-strip" id="cotClientStrip">
-                        <span class="cot-avatar"><i class="icon-user"></i></span>
-                        <div>
-                            <strong id="cotClientTitle">Ningún cliente seleccionado</strong>
-                            <span id="cotClientMeta">Seleccione empresa y agente; después busque el cliente en SAP.</span>
+                        <div class="cot-client-summary">
+                            <span class="cot-avatar"><i class="icon-user"></i></span>
+                            <div class="cot-client-copy">
+                                <strong id="cotClientTitle">Cliente SAP o prospecto nuevo</strong>
+                                <span id="cotClientMeta">Seleccione empresa y agente para continuar.</span>
+                            </div>
                         </div>
+                        <button id="cotNuevoProspecto" type="button" class="cot-btn cot-btn-prospect">
+                            <i class="icon-plus"></i> Nuevo prospecto
+                        </button>
                     </div>
                 </div>
             </div>
@@ -176,7 +181,7 @@
                     </table>
                     <div class="cot-empty" id="cotLineEmpty">
                         <i class="icon-shopping-cart"></i><strong>Aún no hay productos</strong>
-                        <span>Seleccione un cliente y agregue artículos desde SAP.</span>
+                        <span>Seleccione empresa y agente; después agregue artículos desde SAP.</span>
                     </div>
                 </div>
             </div>
@@ -279,6 +284,7 @@
         <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4><i class="icon-shopping-cart"></i> Productos disponibles en SAP</h4></div>
         <div class="modal-body">
             <div class="cot-product-toolbar"><div class="cot-field"><label for="cotProductoFiltro">Código, nombre o grupo</label><input id="cotProductoFiltro" class="form-control" placeholder="Vacío permite recorrer todo el catálogo" autocomplete="off" /></div><button id="cotBuscarProducto" type="button" class="cot-btn cot-btn-primary"><i class="icon-search"></i> Buscar</button></div>
+            <div class="cot-catalog-context" id="cotProductoContexto" role="status"></div>
             <div class="cot-table-wrap"><table class="table cot-table cot-product-table"><thead><tr><th>Producto</th><th>Grupo</th><th>Unidad</th><th class="text-right">Existencia</th><th class="text-right">Comprometido</th><th class="text-right">Disponible</th><th class="text-right">Precio</th><th class="text-right">IVA SAP</th></tr></thead><tbody id="cotProductoBody"></tbody></table><div class="cot-empty" id="cotProductoEmpty" role="status" aria-live="polite"><i class="icon-search"></i><strong>Ejecute la búsqueda</strong><span>Seleccione una fila para agregar el producto.</span></div></div>
         </div>
         <div class="modal-footer cot-product-footer">
@@ -301,5 +307,5 @@
 </div>
 
 @section scripts {
-    <script src="@Url.Content("~/Scripts/App/Cotizacion-Index.js?v=20260828.2")"></script>
+    <script src="@Url.Content("~/Scripts/App/Cotizacion-Index.js?v=20260907.1")"></script>
 }

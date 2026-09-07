@@ -82,3 +82,16 @@ incompatible, revierten su transacción y reportan el problema.
 `Cotizaciones.OmitirPermisos` se entrega en `false` en
 `DiamDev.Give.UI/Web.config`; los accesos dependen de los permisos creados por
 el script `02`.
+
+## Fase 3 — prospectos sin código SAP
+
+En una base donde la estructura de Cotizaciones ya fue instalada, ejecuta:
+
+1. `04_habilitar_prospectos_cotizaciones.sql`.
+2. Verifica que el resultado indique `ID_CLIENTE`, `is_nullable = 1` y
+   `ESTADO = LISTO`.
+
+El script sólo cambia la nulabilidad de `dbo.COT_ENC.ID_CLIENTE`; no modifica
+filas, índices, cálculos, impuestos ni objetos de SAP HANA. Es transaccional y
+se puede ejecutar nuevamente sin producir cambios adicionales. En instalaciones
+nuevas, `01_crear_estructura_cotizaciones.sql` ya crea esta columna como opcional.

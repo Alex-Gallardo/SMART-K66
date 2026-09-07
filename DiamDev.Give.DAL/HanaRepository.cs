@@ -962,6 +962,60 @@ namespace DiamDev.Give.DAL
         }
 
         /// <summary>
+        /// Obtiene la ubicación del PDF oficial generado para una factura.
+        /// La URL vive en OINV.U_FACE_PDFFILE; INV1 no participa porque es un
+        /// dato del encabezado y unir los renglones solo duplicaría el valor.
+        /// </summary>
+        public string ObtenerUrlPdfFactura(
+            string empresa, string clienteId, string documento)
+        {
+            string schema = ResolverSchema(empresa);
+            if (schema == null || string.IsNullOrWhiteSpace(clienteId))
+                return string.Empty;
+
+            int docNum;
+            if (!int.TryParse((documento ?? "").Trim(), out docNum))
+                return string.Empty;
+
+            string query = string.Format(@"
+                SELECT TOP 1
+                    COALESCE(H.""U_FACE_PDFFILE"", '') AS ""UrlPdf""
+                FROM ""{0}"".""OINV"" H
+                WHERE H.""DocNum"" = ?
+                  AND H.""CardCode"" = ?
+                  AND H.""CANCELED"" = 'N'",
+                schema);
+
+            try
+            {
+                var parametros = new[]
+                {
+                    new OdbcParameter
+                    {
+                        OdbcType = OdbcType.Int,
+                        Value = docNum
+                    },
+                    new OdbcParameter
+                    {
+                        OdbcType = OdbcType.NVarChar,
+                        Value = clienteId.Trim()
+                    }
+                };
+
+                DataTable dt = HanaHelper.EjecutarConsulta(query, parametros);
+                return dt.Rows.Count == 0
+                    ? string.Empty
+                    : LeerCampo(dt.Rows[0], "UrlPdf").Trim();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(string.Format(
+                    "Error HANA al obtener el PDF de la factura ({0} / {1} / {2}): {3}",
+                    empresa, schema, documento, ex.Message), ex);
+            }
+        }
+
+        /// <summary>
         /// Obtiene los renglones originales de varias facturas de clientes en
         /// lotes. Los DocNum se convierten a entero antes de llegar al SQL y se
         /// envían como parámetros ODBC; no se acepta texto libre en el IN.

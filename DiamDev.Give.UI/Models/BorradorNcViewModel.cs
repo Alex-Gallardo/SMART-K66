@@ -188,6 +188,7 @@ namespace DiamDev.Give.UI.Models
 
         public string Empresa { get; set; }
         public string Documento { get; set; }
+        public string CodigoOperador { get; set; }
         public string FechaDoc { get; set; }
         public string ClienteId { get; set; }
         public string ClienteNombre { get; set; }
@@ -202,6 +203,7 @@ namespace DiamDev.Give.UI.Models
         public decimal NcPreviaSap { get; set; }
         public decimal Disponible { get; set; }
         public decimal DisponibleNeto { get; set; }
+        public bool PdfFacturaDisponible { get; set; }
         public List<BorradorNcProductoFacturaViewModel> Productos { get; set; }
     }
 

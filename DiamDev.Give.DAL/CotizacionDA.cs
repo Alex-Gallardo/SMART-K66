@@ -150,7 +150,7 @@ namespace DiamDev.Give.DAL
                             cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = enc.IdEmpresa;
                             cmd.Parameters.Add("@fecha", SqlDbType.Date).Value = enc.Fecha.Date;
                             cmd.Parameters.Add("@validaHasta", SqlDbType.Date).Value = enc.ValidaHasta.Date;
-                            cmd.Parameters.Add("@idCliente", SqlDbType.NVarChar, 20).Value = enc.IdCliente;
+                            cmd.Parameters.Add("@idCliente", SqlDbType.NVarChar, 20).Value = Nulo(enc.IdCliente);
                             cmd.Parameters.Add("@nombreCliente", SqlDbType.NVarChar, 200).Value = enc.NombreCliente;
                             cmd.Parameters.Add("@nit", SqlDbType.NVarChar, 50).Value = Nulo(enc.Nit);
                             cmd.Parameters.Add("@direccion", SqlDbType.NVarChar, 300).Value = Nulo(enc.Direccion);

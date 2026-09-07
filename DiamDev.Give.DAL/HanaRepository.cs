@@ -379,11 +379,11 @@ namespace DiamDev.Give.DAL
         // PRODUCTOS PARA COTIZACIONES
         // ─────────────────────────────────────────────
         /// <summary>
-        /// Artículos habilitados para venta en SAP para el cliente elegido. La fuente
-        /// de precio respeta la prioridad predeterminada de SAP confirmada en
+        /// Artículos habilitados para venta en SAP. Cuando existe un cliente, la
+        /// fuente de precio respeta la prioridad predeterminada de SAP confirmada en
         /// HANA_02: especial del cliente y sus periodos/cantidades, grupos de
         /// descuento, especial de la lista y, finalmente, ITM1. La búsqueda usa
-        /// cantidad uno.
+        /// cantidad uno. Sin cliente se devuelve el catálogo para captura manual.
         /// </summary>
         public PaginaProductosCotizacionHana BuscarProductosCotizacion(
             string empresa, string clienteId, string filtro,
@@ -397,9 +397,6 @@ namespace DiamDev.Give.DAL
                 Tamano = tamano,
                 TieneAnterior = pagina > 1
             };
-
-            if (string.IsNullOrWhiteSpace(clienteId))
-                return resultado;
 
             string texto = (filtro ?? "").Trim().ToUpperInvariant();
             string condicion = texto.Length == 0
@@ -438,7 +435,7 @@ namespace DiamDev.Give.DAL
                 .Take(100)
                 .ToList();
 
-            if (codigos.Count == 0 || string.IsNullOrWhiteSpace(clienteId))
+            if (codigos.Count == 0)
                 return new List<ProductoCotizacionHana>();
 
             string valores = string.Join(",", codigos.Select(x => "'" + Esc(x) + "'"));
@@ -454,6 +451,28 @@ namespace DiamDev.Give.DAL
             var lista = new List<ProductoCotizacionHana>();
             string schema = ResolverSchema(empresa);
             if (schema == null) return lista;
+
+            string codigoCliente = (clienteId ?? "").Trim();
+            string joinCliente;
+            if (codigoCliente.Length == 0)
+            {
+                // Conserva el mismo SELECT de catálogo y el mismo fallback fiscal,
+                // pero evita asociar listas o condiciones comerciales inexistentes.
+                joinCliente = @"INNER JOIN (
+                        SELECT CAST('' AS NVARCHAR(15)) AS ""CardCode"",
+                               CAST(-1 AS SMALLINT) AS ""ListNum"",
+                               CAST('' AS NVARCHAR(3)) AS ""Currency"",
+                               CAST(NULL AS NVARCHAR(1)) AS ""VatStatus"",
+                               CAST(-1 AS SMALLINT) AS ""GroupCode""
+                        FROM DUMMY
+                    ) C ON 1=1";
+            }
+            else
+            {
+                joinCliente = string.Format(@"INNER JOIN ""{0}"".""OCRD"" C
+                        ON C.""CardCode"" = '{1}' AND C.""CardType"" = 'C'",
+                    schema, Esc(codigoCliente));
+            }
 
             string cantidadSql = "CAST(1 AS DECIMAL(19,6))";
             string joinCantidades = "";
@@ -589,8 +608,7 @@ namespace DiamDev.Give.DAL
                         AS ""Disponible""
                 FROM ""{0}"".""OITM"" I
                 {7}
-                INNER JOIN ""{0}"".""OCRD"" C
-                        ON C.""CardCode"" = '{1}' AND C.""CardType"" = 'C'
+                {9}
                 INNER JOIN ""{0}"".""OADM"" A ON 1=1
                 LEFT JOIN ""{0}"".""ITM1"" P
                        ON P.""ItemCode"" = I.""ItemCode""
@@ -658,9 +676,9 @@ namespace DiamDev.Give.DAL
                   AND WLQN.""ItemCode"" IS NULL
                   AND {2}
                 ORDER BY I.""ItemCode""{3}",
-                schema, Esc(clienteId.Trim()), condicion, limiteSql ?? "",
+                schema, codigoCliente, condicion, limiteSql ?? "",
                 monedaFuente, precioFuente, nombreFuente, joinCantidades,
-                cantidadSql);
+                cantidadSql, joinCliente);
 
             try
             {

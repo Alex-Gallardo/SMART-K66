@@ -48,9 +48,6 @@ namespace DiamDev.Give.UI.Controllers
         {
             return JsonGet(delegate
             {
-                if (string.IsNullOrWhiteSpace(clienteId))
-                    throw new InvalidOperationException(
-                        "Seleccione un cliente antes de buscar productos.");
                 string agente = ResolverAgente(empresa, codigoOperador);
                 return _bll.BuscarProductos(
                     empresa, agente, clienteId, filtro ?? "", pagina, tamano);

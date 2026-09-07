@@ -19,7 +19,7 @@ namespace DiamDev.Give.Entities
         public DateTime Fecha { get; set; }
         public DateTime ValidaHasta { get; set; }
 
-        // Foto del cliente SAP.
+        // Foto del cliente SAP o del prospecto (IdCliente es opcional).
         public string IdCliente { get; set; }
         public string NombreCliente { get; set; }
         public string Nit { get; set; }

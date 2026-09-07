@@ -95,8 +95,54 @@ namespace Tests.Cotizaciones
                     modelo.Detalles[1].ImpuestoPorcentaje == 0m,
                 "segunda línea conserva impuesto exento");
 
+            var datosProspecto = new NameValueCollection
+            {
+                { "IdEmpresa", "GRACO" },
+                { "Fecha", "2026-08-26" },
+                { "ValidaHasta", "2026-09-10" },
+                { "NombreCliente", "Prospecto sin código SAP" },
+                { "Nit", "CF" },
+                { "Direccion", "Dirección proporcionada por el prospecto" },
+                { "Correo", "prospecto@example.com" },
+                { "CodigoOperador", "12-AGENTE DEMO" },
+                { "Moneda", "GTQ" },
+                { "Detalles[0].ItemCode", "ITEM-VENTA" },
+                { "Detalles[0].Descripcion", "Producto con precio manual" },
+                { "Detalles[0].Cantidad", "1" },
+                { "Detalles[0].PrecioUnitario", "125.50" },
+                { "Detalles[0].DescuentoPorcentaje", "0" },
+                { "Detalles[0].ImpuestoPorcentaje", "12" }
+            };
+
+            var contextoProspecto = new ModelBindingContext
+            {
+                ModelMetadata = ModelMetadataProviders.Current.GetMetadataForType(
+                    null, typeof(GuardarCotizacionRequest)),
+                ModelName = "",
+                ValueProvider = new NameValueCollectionValueProvider(
+                    datosProspecto, CultureInfo.InvariantCulture)
+            };
+
+            var prospecto = (GuardarCotizacionRequest)new DefaultModelBinder()
+                .BindModel(new ControllerContext(), contextoProspecto);
+
+            Verdad(prospecto != null &&
+                    string.IsNullOrWhiteSpace(prospecto.IdCliente),
+                "prospecto se enlaza sin código SAP");
+            Verdad(prospecto != null &&
+                    prospecto.NombreCliente == "Prospecto sin código SAP",
+                "prospecto conserva el nombre obligatorio");
+            Verdad(prospecto != null && prospecto.Detalles != null &&
+                    prospecto.Detalles.Count == 1 &&
+                    prospecto.Detalles[0].PrecioUnitario == 125.50m,
+                "prospecto conserva el precio manual");
+            Verdad(prospecto != null && prospecto.Detalles != null &&
+                    prospecto.Detalles.Count == 1 &&
+                    prospecto.Detalles[0].ImpuestoPorcentaje == 12m,
+                "prospecto conserva el contrato de IVA del producto");
+
             Console.WriteLine(_fallas == 0
-                ? "OK: 10 aserciones de model binding de cotizaciones."
+                ? "OK: model binding de cliente SAP y prospecto verificado."
                 : "FALLAS: " + _fallas);
             return _fallas == 0 ? 0 : 1;
         }

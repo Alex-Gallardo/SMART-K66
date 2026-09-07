@@ -8,6 +8,7 @@
         clientes: $root.data("url-clientes"),
         facturas: $root.data("url-facturas"),
         facturaDetalle: $root.data("url-factura-detalle"),
+        facturaBorrador: $root.data("url-factura-borrador"),
         estadoFactura: $root.data("url-estado-factura"),
         serie: $root.data("url-serie"),
         guardar: $root.data("url-guardar"),
@@ -950,11 +951,18 @@
     function renderDetalle(x) {
         var lineas = "";
         $.each(x.Detalles || [], function (_, d) {
+            var urlFactura = window.BorradorNcFacturasDetalle.urlFacturaBorrador(
+                urls.facturaBorrador, x, d, "seguimiento");
             lineas += "<tr>" +
                 '<td class="bnc-main-cell"><strong>' + escapeHtml(d.Documento) + '</strong><small>' + escapeHtml(d.Concepto) + "</small></td>" +
                 "<td>" + fechaCorta(d.FechaDoc) + "</td>" +
                 "<td>" + escapeHtml(d.Descripcion) + "</td>" +
-                '<td class="bnc-money">' + dinero(d.Importe, d.Moneda) + "</td></tr>";
+                '<td class="bnc-money">' + dinero(d.Importe, d.Moneda) + "</td>" +
+                '<td class="text-center"><a class="bnc-btn bnc-btn-ghost bnc-btn-compact" href="' +
+                escapeHtml(urlFactura) + '" target="_blank" rel="noopener noreferrer" ' +
+                'title="Abrir el detalle completo de la factura en una pestaña nueva">' +
+                '<i class="icon-eye-open" aria-hidden="true"></i> Ver factura' +
+                '<span class="sr-only"> ' + escapeHtml(d.Documento) + '</span></a></td></tr>';
         });
         var motivo = x.MotivoResolucion
             ? '<div class="bnc-detail-note is-visible"><strong>Motivo:</strong> ' + escapeHtml(x.MotivoResolucion) + "</div>" : "";
@@ -971,7 +979,7 @@
             "</strong></div><div><small>Capturado por</small><strong>" + escapeHtml(x.IdUsr) +
             "</strong></div><div><small>Resolución</small><strong>" + escapeHtml(x.ResueltoPor || "Pendiente") + (x.FechaResolucion ? " · " + fechaHora(x.FechaResolucion) : "") + "</strong></div></div>" +
             motivo +
-            '<div class="bnc-table-wrap" style="border-width:1px 0 0;border-radius:0;"><table class="table bnc-table" style="min-width:620px"><thead><tr><th>Documento</th><th>Fecha</th><th>Descripción</th><th class="text-right">Importe</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
+            '<div class="bnc-table-wrap" style="border-width:1px 0 0;border-radius:0;"><table class="table bnc-table" style="min-width:760px"><thead><tr><th>Documento</th><th>Fecha</th><th>Descripción</th><th class="text-right">Importe</th><th class="text-center">Acciones</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
             window.BorradorNcFacturasDetalle.plantilla("bncFollowInvoices") +
             window.BorradorNcAdjuntos.plantilla(x, { baseUrl: urls.adjunto }) +
             '<div class="bnc-decision-bar"><button class="bnc-btn bnc-btn-ghost" type="button" id="bncImprimirSeleccionado"><i class="icon-print"></i> Imprimir</button>' + anular + "</div>"

@@ -117,6 +117,34 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
+        public ActionResult DetalleFacturaBorrador(
+            string empresa, string idBorrador, string documento,
+            string origen = null)
+        {
+            ValidarEmpresa(empresa);
+            var enc = _bll.ObtenerPorId(empresa, idBorrador);
+            if (enc == null) return HttpNotFound("Borrador no encontrado.");
+            if (!PuedeConsultarFacturaBorrador(enc))
+                return new HttpUnauthorizedResult();
+
+            var factura = BuscarDetalleFactura(enc, documento);
+            if (factura == null)
+                return HttpNotFound("La factura no pertenece al borrador indicado.");
+
+            bool desdeAutorizaciones =
+                string.Equals(origen, "autorizaciones",
+                              StringComparison.OrdinalIgnoreCase) &&
+                TienePermiso(PERMISO_AUTORIZAR);
+            var modelo = CrearModeloFacturaBorrador(
+                enc, factura, desdeAutorizaciones);
+
+            CustomHelper.setTitle(
+                "Factura " + factura.Documento,
+                "Detalle de productos y servicios");
+            return View("DetalleFactura", modelo);
+        }
+
+        [HttpGet]
         [BorradorNcPermiso(PERMISO_VER)]
         public ActionResult AbrirFacturaSap(string empresa, string clienteId,
                                             string codigoOperador, string documento)
@@ -133,6 +161,29 @@ namespace DiamDev.Give.UI.Controllers
 
             string urlPdf = _bll.ObtenerUrlPdfFactura(
                 empresa, factura.CardCode, factura.DocNum);
+            if (string.IsNullOrWhiteSpace(urlPdf))
+                return HttpNotFound(
+                    "SAP no tiene una dirección válida para el PDF de esta factura.");
+
+            return Redirect(urlPdf);
+        }
+
+        [HttpGet]
+        public ActionResult AbrirFacturaSapBorrador(
+            string empresa, string idBorrador, string documento)
+        {
+            ValidarEmpresa(empresa);
+            var enc = _bll.ObtenerPorId(empresa, idBorrador);
+            if (enc == null) return HttpNotFound("Borrador no encontrado.");
+            if (!PuedeConsultarFacturaBorrador(enc))
+                return new HttpUnauthorizedResult();
+
+            var factura = BuscarDetalleFactura(enc, documento);
+            if (factura == null)
+                return HttpNotFound("La factura no pertenece al borrador indicado.");
+
+            string urlPdf = _bll.ObtenerUrlPdfFactura(
+                enc.IdEmpresa, enc.IdCliente, factura.Documento);
             if (string.IsNullOrWhiteSpace(urlPdf))
                 return HttpNotFound(
                     "SAP no tiene una dirección válida para el PDF de esta factura.");
@@ -604,6 +655,89 @@ namespace DiamDev.Give.UI.Controllers
                                   StringComparison.OrdinalIgnoreCase) &&
                     string.Equals((x.CardCode ?? "").Trim(), clienteNormalizado,
                                   StringComparison.OrdinalIgnoreCase));
+        }
+
+        private bool PuedeConsultarFacturaBorrador(BorradorNcEncabezado enc)
+        {
+            bool puedeDesdeSeguimiento =
+                TienePermiso(PERMISO_VER) && PuedeConsultarSeguimiento(enc);
+            bool puedeDesdeAutorizaciones =
+                TienePermiso(PERMISO_AUTORIZAR) &&
+                string.Equals(enc.Estado, EstadosBorradorNc.Pendiente,
+                              StringComparison.OrdinalIgnoreCase);
+
+            return puedeDesdeSeguimiento || puedeDesdeAutorizaciones;
+        }
+
+        private static BorradorNcDetalle BuscarDetalleFactura(
+            BorradorNcEncabezado enc, string documento)
+        {
+            string documentoNormalizado = (documento ?? "").Trim();
+            if (documentoNormalizado.Length == 0) return null;
+
+            return (enc.Detalles ?? new List<BorradorNcDetalle>())
+                .FirstOrDefault(x => string.Equals(
+                    (x.Documento ?? "").Trim(), documentoNormalizado,
+                    StringComparison.OrdinalIgnoreCase));
+        }
+
+        private BorradorNcFacturaConsultaViewModel CrearModeloFacturaBorrador(
+            BorradorNcEncabezado enc, BorradorNcDetalle factura,
+            bool desdeAutorizaciones)
+        {
+            var estado = _bll.ObtenerEstadoFactura(
+                enc.IdEmpresa, factura.Documento,
+                factura.TotalFactura, factura.Pagado);
+            decimal importeDocumento = (enc.Detalles ?? new List<BorradorNcDetalle>())
+                .Where(x => string.Equals(
+                    (x.Documento ?? "").Trim(),
+                    (factura.Documento ?? "").Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+                .Sum(x => x.Importe);
+            bool borradorComprometeSaldo =
+                EstadosBorradorNc.ComprometeSaldo(enc.Estado);
+            decimal acumuladoOtros = Math.Max(
+                0m,
+                estado.Acumulado -
+                (borradorComprometeSaldo ? importeDocumento : 0m));
+            decimal disponible = Math.Max(
+                0m, factura.TotalFactura - acumuladoOtros);
+            string urlPdf = _bll.ObtenerUrlPdfFactura(
+                enc.IdEmpresa, enc.IdCliente, factura.Documento);
+            var productos = _bll.ObtenerDetallesFacturas(
+                enc.IdEmpresa, enc.IdCliente, new[] { factura.Documento });
+
+            return new BorradorNcFacturaConsultaViewModel
+            {
+                Empresa = enc.IdEmpresa,
+                IdBorrador = enc.IdBorrador,
+                Documento = factura.Documento,
+                CodigoOperador = enc.CodigoOperador,
+                FechaDoc = factura.FechaDoc.ToString("yyyy-MM-dd"),
+                ClienteId = enc.IdCliente,
+                ClienteNombre = enc.Nombre,
+                Agente = enc.Agente,
+                Moneda = string.IsNullOrWhiteSpace(factura.Moneda)
+                    ? enc.Moneda
+                    : factura.Moneda,
+                SerieFel = factura.SerieFel,
+                NumeroFel = factura.NumeroFel,
+                TotalFactura = factura.TotalFactura,
+                Pagado = factura.Pagado,
+                SaldoSap = Math.Max(
+                    0m, factura.TotalFactura - factura.Pagado),
+                Acumulado = acumuladoOtros,
+                NcPreviaSap = estado.NcPreviaSap,
+                Disponible = disponible,
+                DisponibleNeto = Math.Max(
+                    0m, disponible - estado.NcPreviaSap),
+                PdfFacturaDisponible = !string.IsNullOrWhiteSpace(urlPdf),
+                DesdeAutorizaciones = desdeAutorizaciones,
+                Productos = productos
+                    .OrderBy(x => x.NumeroLinea)
+                    .Select(ProyectarProductoFactura)
+                    .ToList()
+            };
         }
 
         private static int OrdenOperador(string codigo)

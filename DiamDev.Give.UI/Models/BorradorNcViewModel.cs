@@ -176,8 +176,8 @@ namespace DiamDev.Give.UI.Models
     }
 
     /// <summary>
-    /// Consulta independiente y de solo lectura de una factura disponible en SAP.
-    /// Se usa desde el selector de facturas antes de que exista un borrador.
+    /// Consulta de solo lectura de una factura en SAP. Se usa tanto desde el
+    /// selector previo a la captura como desde un borrador ya almacenado.
     /// </summary>
     public class BorradorNcFacturaConsultaViewModel
     {
@@ -187,6 +187,7 @@ namespace DiamDev.Give.UI.Models
         }
 
         public string Empresa { get; set; }
+        public string IdBorrador { get; set; }
         public string Documento { get; set; }
         public string CodigoOperador { get; set; }
         public string FechaDoc { get; set; }
@@ -204,6 +205,7 @@ namespace DiamDev.Give.UI.Models
         public decimal Disponible { get; set; }
         public decimal DisponibleNeto { get; set; }
         public bool PdfFacturaDisponible { get; set; }
+        public bool DesdeAutorizaciones { get; set; }
         public List<BorradorNcProductoFacturaViewModel> Productos { get; set; }
     }
 

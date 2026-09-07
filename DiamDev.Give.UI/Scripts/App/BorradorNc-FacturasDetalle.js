@@ -43,6 +43,15 @@
             String(documento.IdBorrador || "");
     }
 
+    function urlFacturaBorrador(baseUrl, borrador, factura, origen) {
+        var separador = String(baseUrl || "").indexOf("?") >= 0 ? "&" : "?";
+        return String(baseUrl || "") + separador +
+            "empresa=" + encodeURIComponent(borrador.IdEmpresa || "") +
+            "&idBorrador=" + encodeURIComponent(borrador.IdBorrador || "") +
+            "&documento=" + encodeURIComponent(factura.Documento || "") +
+            "&origen=" + encodeURIComponent(origen || "seguimiento");
+    }
+
     function plantilla(id, opciones) {
         opciones = opciones || {};
         var titleId = id + "Title";
@@ -241,6 +250,7 @@
 
     window.BorradorNcFacturasDetalle = {
         crear: crear,
-        plantilla: plantilla
+        plantilla: plantilla,
+        urlFacturaBorrador: urlFacturaBorrador
     };
 })(window.jQuery);

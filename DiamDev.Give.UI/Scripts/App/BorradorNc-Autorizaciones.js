@@ -8,6 +8,7 @@
         listar: $root.data("url-listar"),
         detalle: $root.data("url-detalle"),
         detalleFacturas: $root.data("url-detalle-facturas"),
+        facturaBorrador: $root.data("url-factura-borrador"),
         adjunto: $root.data("url-adjunto"),
         notas: $root.data("url-notas"),
         resolver: $root.data("url-resolver"),
@@ -147,13 +148,20 @@
         var lineas = "";
         $.each(x.Detalles || [], function (i, d) {
             var alertas = [];
+            var urlFactura = window.BorradorNcFacturasDetalle.urlFacturaBorrador(
+                urls.facturaBorrador, x, d, "autorizaciones");
             if (numero(d.Pagado) >= numero(d.TotalFactura) - .005) alertas.push('<span class="bnc-paid-flag">Pagada</span>');
             if (numero(d.NcPreviaSap) > 0) alertas.push('<span class="bnc-nc-flag">NC ' + dinero(d.NcPreviaSap) + "</span>");
             lineas += '<tr><td class="bnc-main-cell"><strong>' + escapeHtml(d.Documento) + '</strong><small>' + escapeHtml(d.Concepto) + "</small></td>" +
                 "<td>" + fecha(d.FechaDoc) + "</td>" +
                 '<td class="bnc-money">' + dinero(d.TotalFactura, d.Moneda) + "</td>" +
                 '<td class="bnc-money">' + dinero(d.Importe, d.Moneda) + "</td>" +
-                "<td>" + (alertas.join(" ") || '<span class="text-muted">Sin alertas</span>') + "</td></tr>";
+                "<td>" + (alertas.join(" ") || '<span class="text-muted">Sin alertas</span>') + "</td>" +
+                '<td class="text-center"><a class="bnc-btn bnc-btn-ghost bnc-btn-compact" href="' +
+                escapeHtml(urlFactura) + '" target="_blank" rel="noopener noreferrer" ' +
+                'title="Abrir el detalle completo de la factura en una pestaña nueva">' +
+                '<i class="icon-eye-open" aria-hidden="true"></i> Ver factura' +
+                '<span class="sr-only"> ' + escapeHtml(d.Documento) + '</span></a></td></tr>';
         });
 
         $("#bncAuthDetail").html(
@@ -165,7 +173,7 @@
             "</strong></div><div><small>Fecha</small><strong>" + fecha(x.Fecha) +
             "</strong></div><div><small>Moneda</small><strong>" + escapeHtml(x.Moneda) +
             "</strong></div><div><small>Total solicitado</small><strong>" + dinero(x.Total, x.Moneda) + "</strong></div></div>" +
-            '<div class="bnc-table-wrap" style="border-width:1px 0;border-radius:0"><table class="table bnc-table" style="min-width:700px"><thead><tr><th>Documento</th><th>Fecha</th><th class="text-right">Total factura</th><th class="text-right">Solicitado</th><th>Alertas</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
+            '<div class="bnc-table-wrap" style="border-width:1px 0;border-radius:0"><table class="table bnc-table" style="min-width:840px"><thead><tr><th>Documento</th><th>Fecha</th><th class="text-right">Total factura</th><th class="text-right">Solicitado</th><th>Alertas</th><th class="text-center">Acciones</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
             window.BorradorNcFacturasDetalle.plantilla("bncAuthInvoices", {
                 titulo: "Productos a revisar",
                 subtitulo: "Contenido completo de las facturas incluidas en este borrador."

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -21,6 +22,10 @@ namespace DiamDev.Give.UI.Controllers
         private const string PERMISO_AUTORIZAR = "Control.BorradorNC.Autorizar";
         private const string PERMISO_ANULAR = "Control.BorradorNC.Anular";
         private const string PERMISO_VER_TODOS = "Control.BorradorNC.VerTodos";
+
+        private static bool HabilitarEnlaces =>
+            string.Equals(ConfigurationManager.AppSettings["BorradorNC.HabilitarEnlaces"],
+                          "true", StringComparison.OrdinalIgnoreCase);
 
         private readonly BorradorNcBLL _bll = new BorradorNcBLL();
         private readonly UsuarioEmpresaBL _usuarioEmpresa = new UsuarioEmpresaBL();
@@ -146,6 +151,15 @@ namespace DiamDev.Give.UI.Controllers
             {
                 if (request == null)
                     return Json(new { ok = false, msg = "No se recibió información del borrador." });
+
+                if (!HabilitarEnlaces &&
+                    (request.Enlaces ?? new List<BorradorNcEnlaceRequest>())
+                        .Any(x => x != null && !string.IsNullOrWhiteSpace(x.Url)))
+                    return Json(new
+                    {
+                        ok = false,
+                        msg = "La captura de enlaces está deshabilitada temporalmente."
+                    });
 
                 var asignacion = ValidarOperador(request.IdEmpresa, request.CodigoOperador);
                 DateTime fecha;
@@ -462,6 +476,7 @@ namespace DiamDev.Give.UI.Controllers
                 PuedeVerTodos = TienePermiso(PERMISO_VER_TODOS),
                 PuedeAutorizar = TienePermiso(PERMISO_AUTORIZAR),
                 PuedeAnular = TienePermiso(PERMISO_ANULAR),
+                PermiteAdjuntarEnlaces = HabilitarEnlaces,
                 Conceptos = ConceptosBorradorNc.Todos().OrderBy(x => x).ToList()
             };
 

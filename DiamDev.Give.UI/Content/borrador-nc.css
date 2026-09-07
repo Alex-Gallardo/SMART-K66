@@ -1324,6 +1324,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.bnc-attachment-capture-grid.is-files-only {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .bnc-attachment-box {
     background: #f8fafc;
     border: 1px solid #dbe4f0;

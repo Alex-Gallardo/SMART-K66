@@ -7,7 +7,7 @@
 }
 
 @section styles {
-    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260902-factura")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260907-enlaces")" rel="stylesheet" />
 }
 
 <div class="bnc bnc-shell" id="bncApp"
@@ -28,6 +28,7 @@
      data-max-enlaces="@BorradorNcBLL.MaximoEnlacesAdjuntos"
      data-max-archivo-bytes="@BorradorNcBLL.MaximoBytesPorArchivo"
      data-max-total-bytes="@BorradorNcBLL.MaximoBytesAdjuntos"
+     data-habilitar-enlaces="@Model.PermiteAdjuntarEnlaces.ToString().ToLowerInvariant()"
      data-puede-anular="@Model.PuedeAnular.ToString().ToLowerInvariant()">
 
     @Html.AntiForgeryToken()
@@ -291,13 +292,17 @@
                         <i class="icon-paper-clip"></i>
                         <div>
                             <h3>Documentación de respaldo</h3>
-                            <small>Opcional. Adjunte archivos o enlaces relacionados con la solicitud.</small>
+                            <small>
+                                @(Model.PermiteAdjuntarEnlaces
+                                    ? "Opcional. Adjunte archivos o enlaces relacionados con la solicitud."
+                                    : "Opcional. Adjunte archivos relacionados con la solicitud.")
+                            </small>
                         </div>
                     </div>
                     <span class="bnc-status bnc-status-neutral" id="bncAdjuntoCount">Sin adjuntos</span>
                 </div>
                 <div class="bnc-card-body">
-                    <div class="bnc-attachment-capture-grid">
+                    <div class="bnc-attachment-capture-grid @(Model.PermiteAdjuntarEnlaces ? "" : "is-files-only")">
                         <section class="bnc-attachment-box" aria-labelledby="bncArchivosTitulo">
                             <div class="bnc-attachment-box-head">
                                 <div>
@@ -316,27 +321,30 @@
                             <div class="bnc-attachment-list" id="bncArchivoLista" aria-live="polite"></div>
                         </section>
 
-                        <section class="bnc-attachment-box" aria-labelledby="bncEnlacesTitulo">
-                            <div class="bnc-attachment-box-head">
-                                <div>
-                                    <strong id="bncEnlacesTitulo"><i class="icon-link"></i> Enlaces</strong>
-                                    <span>Recursos externos con dirección HTTP o HTTPS</span>
+                        @if (Model.PermiteAdjuntarEnlaces)
+                        {
+                            <section class="bnc-attachment-box" aria-labelledby="bncEnlacesTitulo">
+                                <div class="bnc-attachment-box-head">
+                                    <div>
+                                        <strong id="bncEnlacesTitulo"><i class="icon-link"></i> Enlaces</strong>
+                                        <span>Recursos externos con dirección HTTP o HTTPS</span>
+                                    </div>
+                                    <span id="bncEnlaceContador">0 / @BorradorNcBLL.MaximoEnlacesAdjuntos</span>
                                 </div>
-                                <span id="bncEnlaceContador">0 / @BorradorNcBLL.MaximoEnlacesAdjuntos</span>
-                            </div>
-                            <div class="bnc-link-editor">
-                                <div class="bnc-field">
-                                    <label for="bncEnlaceUrl">Dirección del enlace</label>
-                                    <input class="form-control" id="bncEnlaceUrl" type="url" maxlength="2048"
-                                           placeholder="https://..." aria-describedby="bncEnlaceAyuda" />
+                                <div class="bnc-link-editor">
+                                    <div class="bnc-field">
+                                        <label for="bncEnlaceUrl">Dirección del enlace</label>
+                                        <input class="form-control" id="bncEnlaceUrl" type="url" maxlength="2048"
+                                               placeholder="https://..." aria-describedby="bncEnlaceAyuda" />
+                                    </div>
+                                    <button class="bnc-btn bnc-btn-ghost" type="button" id="bncAgregarEnlace">
+                                        <i class="icon-plus"></i> Agregar enlace
+                                    </button>
+                                    <small id="bncEnlaceAyuda">El nombre se obtiene automáticamente del sitio enlazado.</small>
                                 </div>
-                                <button class="bnc-btn bnc-btn-ghost" type="button" id="bncAgregarEnlace">
-                                    <i class="icon-plus"></i> Agregar enlace
-                                </button>
-                                <small id="bncEnlaceAyuda">El nombre se obtiene automáticamente del sitio enlazado.</small>
-                            </div>
-                            <div class="bnc-attachment-list" id="bncEnlaceLista" aria-live="polite"></div>
-                        </section>
+                                <div class="bnc-attachment-list" id="bncEnlaceLista" aria-live="polite"></div>
+                            </section>
+                        }
                     </div>
                     <div class="bnc-inline-alert is-visible is-info bnc-attachment-hint">
                         <i class="icon-info-sign"></i>
@@ -566,5 +574,5 @@
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Fechas.js?v=20260825")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-FacturasDetalle.js?v=20260827-table")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Adjuntos.js?v=20260831")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260902-factura")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260907-enlaces")"></script>
 }

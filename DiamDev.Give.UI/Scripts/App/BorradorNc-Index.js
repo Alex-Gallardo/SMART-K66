@@ -33,6 +33,7 @@
         seguimientoCargado: false,
         puedeAnular: String($root.data("puede-anular")) === "true"
     };
+    var enlacesHabilitados = String($root.data("habilitar-enlaces")) === "true";
     var limitesAdjuntos = {
         archivos: Number($root.attr("data-max-archivos")) || 5,
         enlaces: Number($root.attr("data-max-enlaces")) || 5,
@@ -624,19 +625,23 @@
                 '<button class="bnc-icon-btn bnc-remove-attachment" type="button" data-kind="archivo" data-index="' + i +
                 '" title="Quitar archivo"><i class="icon-trash"></i><span class="sr-only">Quitar archivo</span></button></div>';
         });
-        $.each(state.enlaces, function (i, enlace) {
-            enlacesHtml += '<div class="bnc-attachment-capture-item"><span class="bnc-support-icon is-link"><i class="icon-link"></i></span>' +
-                '<div class="bnc-support-copy"><strong>' + escapeHtml(nombreEnlace(enlace.Url)) + '</strong><small title="' +
-                escapeHtml(enlace.Url) + '">' + escapeHtml(enlace.Url) + '</small></div>' +
-                '<button class="bnc-icon-btn bnc-remove-attachment" type="button" data-kind="enlace" data-index="' + i +
-                '" title="Quitar enlace"><i class="icon-trash"></i><span class="sr-only">Quitar enlace</span></button></div>';
-        });
+        if (enlacesHabilitados) {
+            $.each(state.enlaces, function (i, enlace) {
+                enlacesHtml += '<div class="bnc-attachment-capture-item"><span class="bnc-support-icon is-link"><i class="icon-link"></i></span>' +
+                    '<div class="bnc-support-copy"><strong>' + escapeHtml(nombreEnlace(enlace.Url)) + '</strong><small title="' +
+                    escapeHtml(enlace.Url) + '">' + escapeHtml(enlace.Url) + '</small></div>' +
+                    '<button class="bnc-icon-btn bnc-remove-attachment" type="button" data-kind="enlace" data-index="' + i +
+                    '" title="Quitar enlace"><i class="icon-trash"></i><span class="sr-only">Quitar enlace</span></button></div>';
+            });
+        }
 
         $("#bncArchivoLista").html(archivosHtml || '<div class="bnc-attachment-list-empty">No ha seleccionado archivos.</div>');
-        $("#bncEnlaceLista").html(enlacesHtml || '<div class="bnc-attachment-list-empty">No ha agregado enlaces.</div>');
+        if (enlacesHabilitados)
+            $("#bncEnlaceLista").html(enlacesHtml || '<div class="bnc-attachment-list-empty">No ha agregado enlaces.</div>');
         $("#bncArchivoContador").text(state.archivos.length + " / " + limitesAdjuntos.archivos);
-        $("#bncEnlaceContador").text(state.enlaces.length + " / " + limitesAdjuntos.enlaces);
-        var total = state.archivos.length + state.enlaces.length;
+        if (enlacesHabilitados)
+            $("#bncEnlaceContador").text(state.enlaces.length + " / " + limitesAdjuntos.enlaces);
+        var total = state.archivos.length + (enlacesHabilitados ? state.enlaces.length : 0);
         $("#bncAdjuntoCount").text(total ? total + (total === 1 ? " adjunto" : " adjuntos") : "Sin adjuntos");
     }
 
@@ -694,6 +699,7 @@
     }
 
     function agregarEnlace() {
+        if (!enlacesHabilitados) return;
         if (state.enlaces.length >= limitesAdjuntos.enlaces) {
             avisar("warning", "Puede agregar como máximo " + limitesAdjuntos.enlaces + " enlaces.");
             return;
@@ -729,7 +735,7 @@
         if (!state.lineas.length) return "Agregue al menos una línea.";
         if ($("#bncDireccion").val().trim().length > 200) return "La dirección no puede exceder 200 caracteres.";
         if ($("#bncCorreo").val().trim().length > 100) return "El correo no puede exceder 100 caracteres.";
-        if ($("#bncEnlaceUrl").val().trim())
+        if (enlacesHabilitados && $("#bncEnlaceUrl").val().trim())
             return "Agregue el enlace pendiente o limpie el campo antes de guardar.";
 
         var fecha = $("#bncFecha").val();
@@ -778,9 +784,11 @@
             });
         });
 
-        $.each(state.enlaces, function (i, enlace) {
-            payload["Enlaces[" + i + "].Url"] = enlace.Url;
-        });
+        if (enlacesHabilitados) {
+            $.each(state.enlaces, function (i, enlace) {
+                payload["Enlaces[" + i + "].Url"] = enlace.Url;
+            });
+        }
 
         var formulario = new window.FormData();
         $.each(payload, function (nombre, valor) {
@@ -1105,10 +1113,12 @@
                 ? e.originalEvent.dataTransfer.files
                 : []);
         });
-        $("#bncAgregarEnlace").on("click", agregarEnlace);
-        $("#bncEnlaceUrl").on("keydown", function (e) {
-            if (e.which === 13) { e.preventDefault(); agregarEnlace(); }
-        });
+        if (enlacesHabilitados) {
+            $("#bncAgregarEnlace").on("click", agregarEnlace);
+            $("#bncEnlaceUrl").on("keydown", function (e) {
+                if (e.which === 13) { e.preventDefault(); agregarEnlace(); }
+            });
+        }
         $("#bncArchivoLista,#bncEnlaceLista").on("click", ".bnc-remove-attachment", function () {
             var indice = Number($(this).data("index"));
             if ($(this).data("kind") === "archivo") state.archivos.splice(indice, 1);

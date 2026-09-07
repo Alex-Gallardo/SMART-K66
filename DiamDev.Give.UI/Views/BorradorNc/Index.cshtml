@@ -14,6 +14,7 @@
      data-url-clientes="@Url.Action("BuscarClientes", "BorradorNc")"
      data-url-facturas="@Url.Action("BuscarFacturas", "BorradorNc")"
      data-url-factura-detalle="@Url.Action("DetalleFactura", "BorradorNc")"
+     data-url-factura-borrador="@Url.Action("DetalleFacturaBorrador", "BorradorNc")"
      data-url-estado-factura="@Url.Action("ObtenerEstadoFactura", "BorradorNc")"
      data-url-serie="@Url.Action("ObtenerSerie", "BorradorNc")"
      data-url-guardar="@Url.Action("Guardar", "BorradorNc")"
@@ -572,7 +573,7 @@
 
 @section scripts {
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Fechas.js?v=20260825")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-FacturasDetalle.js?v=20260827-table")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-FacturasDetalle.js?v=20260907-borrador")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Adjuntos.js?v=20260831")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260907-enlaces")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260907-borrador")"></script>
 }

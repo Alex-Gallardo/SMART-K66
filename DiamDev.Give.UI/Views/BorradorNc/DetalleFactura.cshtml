@@ -12,6 +12,25 @@
     var fel = string.Join(" ", new[] { Model.SerieFel, Model.NumeroFel }
         .Where(x => !string.IsNullOrWhiteSpace(x)));
     var totalLineas = Model.Productos.Sum(x => x.Total);
+    var desdeBorrador = !string.IsNullOrWhiteSpace(Model.IdBorrador);
+    var accionRegreso = Model.DesdeAutorizaciones ? "Autorizaciones" : "Index";
+    var textoRegreso = Model.DesdeAutorizaciones
+        ? "Volver a autorizaciones"
+        : "Volver a Borradores NC";
+    var urlPdf = desdeBorrador
+        ? Url.Action("AbrirFacturaSapBorrador", "BorradorNc", new
+          {
+              empresa = Model.Empresa,
+              idBorrador = Model.IdBorrador,
+              documento = Model.Documento
+          })
+        : Url.Action("AbrirFacturaSap", "BorradorNc", new
+          {
+              empresa = Model.Empresa,
+              clienteId = Model.ClienteId,
+              codigoOperador = Model.CodigoOperador,
+              documento = Model.Documento
+          });
 }
 
 @section styles {
@@ -25,29 +44,29 @@
             <div>
                 <span class="bnc-invoice-detail-eyebrow">Factura SAP</span>
                 <h2>@Model.Documento</h2>
-                <p>@Model.Empresa · @fechaTexto · @Model.Moneda</p>
+                <p>
+                    @Model.Empresa · @fechaTexto · @Model.Moneda
+                    @if (desdeBorrador)
+                    {
+                        <span> · Borrador @Model.IdBorrador</span>
+                    }
+                </p>
             </div>
         </div>
         <div class="bnc-hero-meta">
-            <span class="bnc-hero-chip"><i class="icon-ok-circle"></i> Factura abierta</span>
+            <span class="bnc-hero-chip"><i class="icon-ok-circle"></i> @(desdeBorrador ? "Factura vinculada" : "Factura abierta")</span>
             <span class="bnc-hero-chip"><i class="icon-list"></i> @Model.Productos.Count @(Model.Productos.Count == 1 ? "línea" : "líneas")</span>
         </div>
     </header>
 
     <div class="bnc-invoice-page-actions" aria-label="Acciones de la factura">
-        <a class="bnc-btn bnc-btn-ghost" href="@Url.Action("Index", "BorradorNc")">
-            <i class="icon-arrow-left" aria-hidden="true"></i> Volver a Borradores NC
+        <a class="bnc-btn bnc-btn-ghost" href="@Url.Action(accionRegreso, "BorradorNc")">
+            <i class="icon-arrow-left" aria-hidden="true"></i> @textoRegreso
         </a>
         @if (Model.PdfFacturaDisponible)
         {
             <a class="bnc-btn bnc-btn-primary"
-               href="@Url.Action("AbrirFacturaSap", "BorradorNc", new
-                     {
-                         empresa = Model.Empresa,
-                         clienteId = Model.ClienteId,
-                         codigoOperador = Model.CodigoOperador,
-                         documento = Model.Documento
-                     })"
+               href="@urlPdf"
                target="_blank" rel="noopener noreferrer"
                title="Abrir el PDF oficial almacenado en SAP en una pestaña nueva">
                 <i class="icon-print" aria-hidden="true"></i> Abrir / imprimir factura

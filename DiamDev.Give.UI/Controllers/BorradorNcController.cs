@@ -73,24 +73,22 @@ namespace DiamDev.Give.UI.Controllers
                 string.IsNullOrWhiteSpace(documento))
                 return HttpNotFound("No se indicó una factura válida.");
 
-            string agenteEfectivo = ResolverAgente(empresa, codigoOperador);
-            string documentoNormalizado = documento.Trim();
-            var factura = _bll.BuscarFacturas(
-                    empresa, clienteId.Trim(), agenteEfectivo, documentoNormalizado)
-                .FirstOrDefault(x => string.Equals(
-                    (x.DocNum ?? "").Trim(), documentoNormalizado,
-                    StringComparison.OrdinalIgnoreCase));
+            var factura = ObtenerFacturaAccesible(
+                empresa, clienteId, codigoOperador, documento);
 
             if (factura == null)
                 return HttpNotFound(
                     "La factura no existe, ya no está abierta o no pertenece al cliente y agente seleccionados.");
 
+            string urlPdf = _bll.ObtenerUrlPdfFactura(
+                empresa, factura.CardCode, factura.DocNum);
             var productos = _bll.ObtenerDetallesFacturas(
                 empresa, factura.CardCode, new[] { factura.DocNum });
             var modelo = new BorradorNcFacturaConsultaViewModel
             {
                 Empresa = (empresa ?? "").Trim(),
                 Documento = factura.DocNum,
+                CodigoOperador = (codigoOperador ?? "").Trim(),
                 FechaDoc = factura.DocDate.ToString("yyyy-MM-dd"),
                 ClienteId = factura.CardCode,
                 ClienteNombre = factura.CardName,
@@ -105,6 +103,7 @@ namespace DiamDev.Give.UI.Controllers
                 NcPreviaSap = factura.NcPreviaSap,
                 Disponible = Math.Max(0m, factura.Disponible),
                 DisponibleNeto = Math.Max(0m, factura.DisponibleNeto),
+                PdfFacturaDisponible = !string.IsNullOrWhiteSpace(urlPdf),
                 Productos = productos
                     .OrderBy(x => x.NumeroLinea)
                     .Select(ProyectarProductoFactura)
@@ -115,6 +114,30 @@ namespace DiamDev.Give.UI.Controllers
                 "Factura " + factura.DocNum,
                 "Detalle de productos y servicios");
             return View(modelo);
+        }
+
+        [HttpGet]
+        [BorradorNcPermiso(PERMISO_VER)]
+        public ActionResult AbrirFacturaSap(string empresa, string clienteId,
+                                            string codigoOperador, string documento)
+        {
+            if (string.IsNullOrWhiteSpace(clienteId) ||
+                string.IsNullOrWhiteSpace(documento))
+                return HttpNotFound("No se indicó una factura válida.");
+
+            var factura = ObtenerFacturaAccesible(
+                empresa, clienteId, codigoOperador, documento);
+            if (factura == null)
+                return HttpNotFound(
+                    "La factura no existe, ya no está abierta o no pertenece al cliente y agente seleccionados.");
+
+            string urlPdf = _bll.ObtenerUrlPdfFactura(
+                empresa, factura.CardCode, factura.DocNum);
+            if (string.IsNullOrWhiteSpace(urlPdf))
+                return HttpNotFound(
+                    "SAP no tiene una dirección válida para el PDF de esta factura.");
+
+            return Redirect(urlPdf);
         }
 
         [HttpGet]
@@ -563,6 +586,24 @@ namespace DiamDev.Give.UI.Controllers
                 throw new InvalidOperationException(
                     "El código seleccionado no tiene un agente SAP configurado.");
             return agente;
+        }
+
+        private FacturaBorradorNc ObtenerFacturaAccesible(
+            string empresa, string clienteId, string codigoOperador,
+            string documento)
+        {
+            string agenteEfectivo = ResolverAgente(empresa, codigoOperador);
+            string clienteNormalizado = (clienteId ?? "").Trim();
+            string documentoNormalizado = (documento ?? "").Trim();
+
+            return _bll.BuscarFacturas(
+                    empresa, clienteNormalizado, agenteEfectivo,
+                    documentoNormalizado)
+                .FirstOrDefault(x =>
+                    string.Equals((x.DocNum ?? "").Trim(), documentoNormalizado,
+                                  StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals((x.CardCode ?? "").Trim(), clienteNormalizado,
+                                  StringComparison.OrdinalIgnoreCase));
         }
 
         private static int OrdenOperador(string codigo)

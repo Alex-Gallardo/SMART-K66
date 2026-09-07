@@ -639,6 +639,26 @@ namespace DiamDev.Give.BLL
             string empresa, string clienteId, IEnumerable<string> documentos) =>
             _hana.ObtenerDetallesFacturas(empresa, clienteId, documentos);
 
+        /// <summary>
+        /// Devuelve únicamente direcciones web absolutas y navegables del PDF
+        /// oficial de SAP. La aplicación redirige al recurso, nunca lo descarga
+        /// en el servidor ni acepta una URL proporcionada por el navegador.
+        /// </summary>
+        public string ObtenerUrlPdfFactura(
+            string empresa, string clienteId, string documento)
+        {
+            string valor = _hana.ObtenerUrlPdfFactura(
+                empresa, clienteId, documento);
+            if (string.IsNullOrWhiteSpace(valor)) return string.Empty;
+
+            Uri uri;
+            if (!Uri.TryCreate(valor.Trim(), UriKind.Absolute, out uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                return string.Empty;
+
+            return uri.AbsoluteUri;
+        }
+
         /// <summary>Prefijo de la serie, solo para mostrarlo en la UI.</summary>
         public string ObtenerPrefijoSerie(string empresa) =>
             _da.ObtenerPrefijoSerie(empresa);

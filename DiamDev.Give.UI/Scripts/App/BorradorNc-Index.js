@@ -954,11 +954,11 @@
             var urlFactura = window.BorradorNcFacturasDetalle.urlFacturaBorrador(
                 urls.facturaBorrador, x, d, "seguimiento");
             lineas += "<tr>" +
-                '<td class="bnc-main-cell"><strong>' + escapeHtml(d.Documento) + '</strong><small>' + escapeHtml(d.Concepto) + "</small>" +
-                '<a class="bnc-btn bnc-btn-primary bnc-linked-invoice-action" href="' + escapeHtml(urlFactura) +
+                '<td class="bnc-linked-invoice-action-cell"><a class="bnc-btn bnc-btn-primary bnc-linked-invoice-action" href="' + escapeHtml(urlFactura) +
                 '" target="_blank" rel="noopener noreferrer" title="Abrir el detalle completo en una pestaña nueva" ' +
                 'aria-label="Ver factura ' + escapeHtml(d.Documento) + ' en una pestaña nueva">' +
                 '<i class="icon-external-link" aria-hidden="true"></i><span>Ver factura</span></a></td>' +
+                '<td class="bnc-main-cell"><strong>' + escapeHtml(d.Documento) + '</strong><small>' + escapeHtml(d.Concepto) + "</small></td>" +
                 "<td>" + fechaCorta(d.FechaDoc) + "</td>" +
                 "<td>" + escapeHtml(d.Descripcion) + "</td>" +
                 '<td class="bnc-money">' + dinero(d.Importe, d.Moneda) + "</td></tr>";
@@ -978,7 +978,7 @@
             "</strong></div><div><small>Capturado por</small><strong>" + escapeHtml(x.IdUsr) +
             "</strong></div><div><small>Resolución</small><strong>" + escapeHtml(x.ResueltoPor || "Pendiente") + (x.FechaResolucion ? " · " + fechaHora(x.FechaResolucion) : "") + "</strong></div></div>" +
             motivo +
-            '<div class="bnc-table-wrap bnc-linked-invoice-table-wrap" style="border-width:1px 0 0;border-radius:0;"><table class="table bnc-table bnc-linked-invoice-table"><thead><tr><th>Documento</th><th>Fecha</th><th>Descripción</th><th class="text-right">Importe</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
+            '<div class="bnc-table-wrap bnc-linked-invoice-table-wrap" style="border-width:1px 0 0;border-radius:0;"><table class="table bnc-table bnc-linked-invoice-table"><thead><tr><th class="text-center">Acción</th><th>Documento</th><th>Fecha</th><th>Descripción</th><th class="text-right">Importe</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
             window.BorradorNcFacturasDetalle.plantilla("bncFollowInvoices") +
             window.BorradorNcAdjuntos.plantilla(x, { baseUrl: urls.adjunto }) +
             '<div class="bnc-decision-bar"><button class="bnc-btn bnc-btn-ghost" type="button" id="bncImprimirSeleccionado"><i class="icon-print"></i> Imprimir</button>' + anular + "</div>"

@@ -1,0 +1,47 @@
+@model IEnumerable<DiamDev.Give.Entities.BorradorNcEncabezado>
+@using System.Linq
+@{
+    Layout = null;
+    var documentos = (Model ?? Enumerable.Empty<DiamDev.Give.Entities.BorradorNcEncabezado>()).ToList();
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Borradores NC · impresión por lote</title>
+    <style>
+        *{box-sizing:border-box}body{background:#edf2f7;color:#172033;font:12px/1.45 "Segoe UI",Arial,sans-serif;margin:0;padding:24px}.actions{display:flex;gap:8px;justify-content:center;margin-bottom:14px}.actions button{background:#fff;border:1px solid #cbd5e1;border-radius:7px;cursor:pointer;font-weight:700;padding:9px 14px}.actions .primary{background:#2563eb;border-color:#2563eb;color:#fff}.sheet{background:#fff;border:1px solid #dbe2ea;box-shadow:0 12px 35px rgba(15,23,42,.11);margin:0 auto 22px;min-height:255mm;padding:13mm 12mm;position:relative;width:216mm}.rule{background:#2563eb;height:5px;left:0;position:absolute;right:0;top:0}.head{align-items:flex-start;border-bottom:2px solid #2563eb;display:flex;justify-content:space-between;padding-bottom:18px}.brand{align-items:center;display:flex;gap:14px}.brand img{height:55px;max-width:180px;object-fit:contain}.brand strong{display:block;font-size:16px}.brand span,.doc span{color:#64748b;display:block}.doc{text-align:right}.doc strong{display:block;font:700 20px Consolas,monospace}.status{border:1px solid #94a3b8;border-radius:999px;display:inline-block!important;font-size:9px;font-weight:800;margin-top:6px;padding:3px 8px}.meta{border-bottom:1px solid #dbe2ea;display:grid;gap:14px 20px;grid-template-columns:repeat(4,1fr);padding:20px 0}.meta small{color:#64748b;display:block;font-size:8px;font-weight:800;text-transform:uppercase}.meta strong{display:block;margin-top:3px;overflow-wrap:anywhere}.meta .wide{grid-column:span 2}h2{font-size:12px;margin:22px 0 8px}table{border-collapse:collapse;table-layout:fixed;width:100%}th{background:#f1f5f9;color:#475569;font-size:8px;padding:7px;text-align:left;text-transform:uppercase}td{border-bottom:1px solid #e5eaf0;font-size:9px;padding:8px 7px;vertical-align:top;word-break:break-word}.num{text-align:right}.total{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;float:right;margin-top:14px;padding:10px 14px;text-align:right}.total small{color:#1e40af;display:block;font-weight:800;text-transform:uppercase}.total strong{color:#1e3a8a;font-size:18px}.resolution{border-left:4px solid #64748b;clear:both;margin-top:75px;padding:8px 12px}.resolution p{margin:3px 0;white-space:pre-wrap}.footer{bottom:10mm;color:#94a3b8;font-size:8px;left:12mm;position:absolute;right:12mm}.page-number{float:right}@page{margin:0;size:Letter portrait}@media print{body{background:#fff;padding:0}.actions{display:none}.sheet{border:0;box-shadow:none;margin:0;page-break-after:always}.sheet:last-child{page-break-after:auto}}@media(max-width:850px){body{padding:0}.sheet{min-height:100vh;padding:24px 18px;width:100%}.meta{grid-template-columns:repeat(2,1fr)}}
+    </style>
+</head>
+<body>
+    <div class="actions"><button onclick="window.close()">Cerrar</button><button class="primary" onclick="window.print()">Imprimir / Guardar PDF</button></div>
+    @foreach (var item in documentos)
+    {
+        var codigo = (item.IdEmpresa ?? "").Trim().ToUpperInvariant();
+        var nombreEmpresa = codigo == "GRACO" ? "GRACOPACK DE CENTROAMÉRICA, S.A." : codigo == "FAES" ? "FÁBRICA ESCOCESA, S.A." : codigo == "BOLIK" ? "INDUSTRIAS BOLIK, S.A." : codigo;
+        var logo = codigo == "GRACO" ? "LogoGraco.svg" : codigo == "FAES" ? "LogoFaes.svg" : codigo == "BOLIK" ? "logoBolik.svg" : "";
+        <article class="sheet">
+            <div class="rule"></div>
+            <header class="head">
+                <div class="brand">@if (logo != "") { <img src="@Url.Content("~/Content/img/logos/" + logo)" alt="@nombreEmpresa" /> }<div><strong>@nombreEmpresa</strong><span>@codigo</span></div></div>
+                <div class="doc"><span>Borrador de nota de crédito</span><strong>@item.IdBorrador</strong><span class="status">@item.Estado</span></div>
+            </header>
+            <section class="meta">
+                <div><small>Fecha</small><strong>@item.Fecha.ToString("dd/MM/yyyy")</strong></div><div><small>Moneda</small><strong>@item.Moneda</strong></div>
+                <div><small>Código cliente</small><strong>@item.IdCliente</strong></div><div><small>NIT</small><strong>@item.Nit</strong></div>
+                <div class="wide"><small>Cliente</small><strong>@item.Nombre</strong></div><div class="wide"><small>Dirección</small><strong>@item.Direccion</strong></div>
+                <div><small>Agente</small><strong>@item.Agente</strong></div><div><small>Creado por</small><strong>@item.IdUsr</strong></div>
+                <div><small>Registro</small><strong>@(item.Registro.HasValue ? item.Registro.Value.ToString("dd/MM/yyyy HH:mm") : "—")</strong></div><div><small>Correo</small><strong>@item.Correo</strong></div>
+            </section>
+            <h2>Facturas e importes solicitados</h2>
+            <table><thead><tr><th>Concepto</th><th>Documento</th><th>Fecha</th><th>FEL</th><th class="num">Total factura</th><th>Descripción</th><th class="num">Solicitado</th></tr></thead>
+                <tbody>@foreach (var detalle in item.Detalles) { <tr><td>@detalle.Concepto</td><td>@detalle.Documento</td><td>@detalle.FechaDoc.ToString("dd/MM/yyyy")</td><td>@detalle.SerieFel<br />@detalle.NumeroFel</td><td class="num">@detalle.Moneda @detalle.TotalFactura.ToString("N2")</td><td>@detalle.Descripcion</td><td class="num"><strong>@detalle.Moneda @detalle.Importe.ToString("N2")</strong></td></tr> }</tbody>
+            </table>
+            <div class="total"><small>Total del borrador</small><strong>@item.Moneda @item.Total.ToString("N2")</strong></div>
+            @if (!string.IsNullOrWhiteSpace(item.ResueltoPor) || !string.IsNullOrWhiteSpace(item.MotivoResolucion)) { <section class="resolution"><strong>Resolución: @item.Estado · @item.ResueltoPor</strong><p>@item.MotivoResolucion</p></section> }
+            <footer class="footer">Smart K66 · Documento interno Borradores NC <span class="page-number">Generado @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span></footer>
+        </article>
+    }
+</body>
+</html>

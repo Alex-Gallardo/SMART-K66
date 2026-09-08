@@ -211,7 +211,7 @@ BEGIN TRY
         SELECT 1
         FROM dbo.Menu
         WHERE Controller = N'BorradorNc'
-          AND (Action IS NULL OR Action NOT IN (N'Index', N'Autorizaciones'))
+          AND (Action IS NULL OR Action NOT IN (N'Index', N'Autorizaciones', N'DashboardBNC'))
     )
     OR (SELECT COUNT(*) FROM dbo.Menu
         WHERE Controller = N'BorradorNc' AND Action = N'Index') > 1

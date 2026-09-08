@@ -152,11 +152,11 @@
                 urls.facturaBorrador, x, d, "autorizaciones");
             if (numero(d.Pagado) >= numero(d.TotalFactura) - .005) alertas.push('<span class="bnc-paid-flag">Pagada</span>');
             if (numero(d.NcPreviaSap) > 0) alertas.push('<span class="bnc-nc-flag">NC ' + dinero(d.NcPreviaSap) + "</span>");
-            lineas += '<tr><td class="bnc-main-cell"><strong>' + escapeHtml(d.Documento) + '</strong><small>' + escapeHtml(d.Concepto) + "</small>" +
-                '<a class="bnc-btn bnc-btn-primary bnc-linked-invoice-action" href="' + escapeHtml(urlFactura) +
+            lineas += '<tr><td class="bnc-linked-invoice-action-cell"><a class="bnc-btn bnc-btn-primary bnc-linked-invoice-action" href="' + escapeHtml(urlFactura) +
                 '" target="_blank" rel="noopener noreferrer" title="Abrir el detalle completo en una pestaña nueva" ' +
                 'aria-label="Ver factura ' + escapeHtml(d.Documento) + ' en una pestaña nueva">' +
                 '<i class="icon-external-link" aria-hidden="true"></i><span>Ver factura</span></a></td>' +
+                '<td class="bnc-main-cell"><strong>' + escapeHtml(d.Documento) + '</strong><small>' + escapeHtml(d.Concepto) + "</small></td>" +
                 "<td>" + fecha(d.FechaDoc) + "</td>" +
                 '<td class="bnc-money">' + dinero(d.TotalFactura, d.Moneda) + "</td>" +
                 '<td class="bnc-money">' + dinero(d.Importe, d.Moneda) + "</td>" +
@@ -172,7 +172,7 @@
             "</strong></div><div><small>Fecha</small><strong>" + fecha(x.Fecha) +
             "</strong></div><div><small>Moneda</small><strong>" + escapeHtml(x.Moneda) +
             "</strong></div><div><small>Total solicitado</small><strong>" + dinero(x.Total, x.Moneda) + "</strong></div></div>" +
-            '<div class="bnc-table-wrap bnc-linked-invoice-table-wrap" style="border-width:1px 0;border-radius:0"><table class="table bnc-table bnc-linked-invoice-table is-authorization"><thead><tr><th>Documento</th><th>Fecha</th><th class="text-right">Total factura</th><th class="text-right">Solicitado</th><th>Alertas</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
+            '<div class="bnc-table-wrap bnc-linked-invoice-table-wrap" style="border-width:1px 0;border-radius:0"><table class="table bnc-table bnc-linked-invoice-table is-authorization"><thead><tr><th class="text-center">Acción</th><th>Documento</th><th>Fecha</th><th class="text-right">Total factura</th><th class="text-right">Solicitado</th><th>Alertas</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
             window.BorradorNcFacturasDetalle.plantilla("bncAuthInvoices", {
                 titulo: "Productos a revisar",
                 subtitulo: "Contenido completo de las facturas incluidas en este borrador."

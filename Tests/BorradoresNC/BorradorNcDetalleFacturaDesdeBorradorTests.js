@@ -29,9 +29,10 @@ assert.match(facturasJs, /empresa=" \+ encodeURIComponent\(borrador\.IdEmpresa/)
 assert.match(facturasJs, /&idBorrador=" \+ encodeURIComponent\(borrador\.IdBorrador/);
 assert.match(facturasJs, /&documento=" \+ encodeURIComponent\(factura\.Documento/);
 
-// El acceso principal está dentro de la primera celda de cada factura, no al
-// extremo derecho de una tabla con desplazamiento horizontal.
+// El acceso principal ocupa una columna independiente y es la primera de la tabla.
 for (const script of [seguimientoJs, autorizacionesJs]) {
+    assert.match(script, /<thead><tr><th class="text-center">Acción<\/th><th>Documento<\/th>/);
+    assert.match(script, /<td class="bnc-linked-invoice-action-cell"><a class="bnc-btn bnc-btn-primary bnc-linked-invoice-action"/);
     assert.match(script, /bnc-linked-invoice-action/);
     assert.match(script, /<span>Ver factura<\/span>/);
     assert.match(script, /target="_blank" rel="noopener noreferrer"/);
@@ -47,6 +48,8 @@ assert.match(autorizacionesJs, /bnc-linked-invoice-table is-authorization/);
 assert.match(estilos, /\.bnc-linked-invoice-table\s*\{[\s\S]*?min-width: 0 !important;[\s\S]*?table-layout: fixed;/);
 assert.match(estilos, /\.bnc-linked-invoice-table-wrap\s*\{[\s\S]*?overflow-x: hidden;/);
 assert.match(estilos, /\.bnc-linked-invoice-action\s*\{/);
+assert.match(estilos, /\.bnc-linked-invoice-action-cell\s*\{/);
+assert.match(estilos, /\.bnc-linked-invoice-action\s*\{[\s\S]*?width: 100%;/);
 assert.match(estilos, /\.bnc-detail-layout > \*,[\s\S]*?\.bnc-auth-layout > \*[\s\S]*?min-width: 0;/);
 
 // El servidor obtiene nuevamente el borrador, comprueba acceso y confirma pertenencia.

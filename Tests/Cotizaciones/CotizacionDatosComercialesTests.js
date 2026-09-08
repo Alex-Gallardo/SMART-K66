@@ -32,8 +32,10 @@ function input(id) {
 
 assert(/\bdisabled\b/i.test(input("cotFecha")),
     "Emisión debe permanecer deshabilitada.");
-assert(/\breadonly\b/i.test(input("cotClienteCodigo")),
-    "El código SAP del cliente debe permanecer protegido.");
+assert(!/\breadonly\b/i.test(input("cotClienteCodigo")) &&
+       /role="combobox"/i.test(input("cotClienteCodigo")) &&
+       /aria-controls="cotClienteDropdown"/i.test(input("cotClienteCodigo")),
+    "El código SAP debe permitir buscar clientes mediante un combobox accesible.");
 
 ["NombreCliente", "Nit", "Direccion", "Correo"].forEach(propiedad => {
     assert(modelo.includes(`public string ${propiedad} { get; set; }`),

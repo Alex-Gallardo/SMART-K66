@@ -6,6 +6,7 @@
    - dbo.BORR_NC_BITACORA (eventos append-only de la aplicación).
    - Permiso Control.BorradorNC.Dashboard.
    - Menú BorradorNc/DashboardBNC.
+   - Crea el rol CREDITOS si todavía no existe.
    - Asigna Dashboard + VerTodos únicamente al rol exacto CREDITOS.
 
    Ejecute el archivo completo en una ventana nueva de SSMS.
@@ -84,10 +85,26 @@ BEGIN TRY
                 N'Consultar el dashboard de borradores de nota de crédito',
                 N'Borradores NC');
 
-    IF (SELECT COUNT(*) FROM dbo.Rol WHERE Nombre=N'CREDITOS') <> 1
-        THROW 56005, 'Debe existir exactamente un rol llamado CREDITOS.', 1;
+    DECLARE @CantidadRolesCreditos int =
+        (SELECT COUNT(*)
+         FROM dbo.Rol WITH (UPDLOCK,HOLDLOCK)
+         WHERE Nombre=N'CREDITOS');
 
-    DECLARE @RolCreditos int = (SELECT Rol_Id FROM dbo.Rol WHERE Nombre=N'CREDITOS');
+    IF @CantidadRolesCreditos > 1
+        THROW 56005, 'Existen varios roles llamados CREDITOS; corrija los duplicados antes de continuar.', 1;
+
+    DECLARE @RolCreditos int;
+
+    IF @CantidadRolesCreditos = 0
+    BEGIN
+        INSERT dbo.Rol (Nombre) VALUES (N'CREDITOS');
+        SET @RolCreditos=CONVERT(int,SCOPE_IDENTITY());
+    END
+    ELSE
+        SELECT @RolCreditos=Rol_Id FROM dbo.Rol WHERE Nombre=N'CREDITOS';
+
+    IF @RolCreditos IS NULL
+        THROW 56005, 'No fue posible obtener o crear el rol CREDITOS.', 1;
     DECLARE @Asignaciones TABLE (Permiso nvarchar(100) PRIMARY KEY);
     INSERT @Asignaciones VALUES
         (N'Control.BorradorNC.Dashboard'),

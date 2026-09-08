@@ -25,6 +25,8 @@ assert.match(view, /Imprimir selección/);
 assert.match(view, /data-url-bitacora/);
 assert.match(migration, /CREATE TABLE dbo\.BORR_NC_BITACORA/);
 assert.match(migration, /N'CREDITOS'/);
+assert.match(migration, /INSERT dbo\.Rol \(Nombre\) VALUES \(N'CREDITOS'\)/);
+assert.match(migration, /SCOPE_IDENTITY\(\)/);
 assert.match(migration, /Control\.BorradorNC\.Dashboard/);
 assert.match(migration, /Control\.BorradorNC\.VerTodos/);
 

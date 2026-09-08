@@ -27,6 +27,7 @@
         seleccionado: null,
         anular: null,
         clienteTimer: null,
+        clienteSolicitud: 0,
         filtroTimer: null,
         productoTimer: null,
         productoRequest: null,
@@ -145,10 +146,21 @@
         });
         $select.prop("disabled", !emp || !lista.length);
         if (lista.length === 1) $select.val(lista[0].codigo).trigger("change");
+        actualizarDisponibilidadCliente();
+    }
+
+    function actualizarDisponibilidadCliente() {
+        var deshabilitado = !empresa() || !codigoOperador();
+        $("#cotBuscarCliente,#cotClienteCodigo").prop("disabled", deshabilitado);
+        $("#cotClienteCodigo").attr("aria-disabled", deshabilitado ? "true" : "false");
+        if (deshabilitado) ocultarResultadosClientes($("#cotClienteDropdown"));
     }
 
     function limpiarCliente() {
         cancelarBusquedaProductos();
+        cancelarBusquedaClientes();
+        ocultarResultadosClientes($("#cotClienteDropdown"));
+        ocultarResultadosClientes($("#cotClienteResultados"));
         estado.cliente = null;
         estado.prospectoActivo = false;
         $("#cotClienteCodigo,#cotClienteNombre,#cotNit,#cotCorreo,#cotDireccion").val("");
@@ -196,6 +208,8 @@
             return;
         }
         cancelarBusquedaProductos();
+        cancelarBusquedaClientes();
+        ocultarResultadosClientes($("#cotClienteDropdown"));
         estado.cliente = null;
         estado.prospectoActivo = true;
         $("#cotClienteCodigo,#cotClienteNombre,#cotNit,#cotCorreo,#cotDireccion").val("");
@@ -207,6 +221,16 @@
     }
 
     function seleccionarCliente(c) {
+        var cambiaCliente = !estado.cliente ||
+            String(estado.cliente.CardCode || "") !== String(c.CardCode || "");
+        if (cambiaCliente && estado.lineas.length) {
+            if (!window.confirm("Cambiar de cliente eliminará los productos no guardados. ¿Desea continuar?"))
+                return false;
+            estado.lineas = [];
+            renderLineas();
+        }
+
+        cancelarBusquedaClientes();
         cancelarBusquedaProductos();
         estado.cliente = c;
         estado.prospectoActivo = false;
@@ -216,12 +240,12 @@
         $("#cotCorreo").val(c.Email || "");
         $("#cotDireccion").val(c.Address || "");
         var m = normalizarMoneda(c.Currency);
-        $("#cotMoneda").val(m && m !== "##" ? m : "");
+        if (!estado.lineas.length) $("#cotMoneda").val(m && m !== "##" ? m : "");
         $("#cotClientStrip").addClass("is-selected");
         actualizarResumenCliente();
-        estado.lineas = [];
-        renderLineas();
+        ocultarResultadosClientes($("#cotClienteDropdown"));
         $("#cotClienteModal").modal("hide");
+        return true;
     }
 
     function abrirClientes() {
@@ -229,33 +253,117 @@
             avisar("warning", "Seleccione empresa y agente antes de buscar clientes.");
             return;
         }
-        $("#cotClienteFiltro").val("");
-        $("#cotClienteResultados").html('<div class="cot-empty"><i class="icon-search"></i><strong>Escriba para buscar</strong><span>Use código, nombre o NIT.</span></div>');
+        ocultarResultadosClientes($("#cotClienteDropdown"));
+        restaurarClienteSeleccionado();
+        limpiarBusquedaClientes();
+        $("#cotClienteResultados").html('<div class="cot-client-result-empty"><i class="icon-search"></i><span>Escriba al menos dos caracteres para buscar.</span></div>');
+        mostrarResultadosClientes($("#cotClienteResultados"));
         $("#cotClienteModal").modal("show");
-        setTimeout(function () { $("#cotClienteFiltro").focus(); }, 250);
     }
 
-    function buscarClientes() {
-        var filtro = $("#cotClienteFiltro").val().trim();
-        if (filtro.length < 2) return;
-        var $resultados = $("#cotClienteResultados").html('<div class="cot-empty"><i class="icon-spinner icon-spin"></i><strong>Consultando SAP</strong></div>');
-        get(urls.clientes, { empresa: empresa(), codigoOperador: codigoOperador(), filtro: filtro })
+    function cancelarBusquedaClientes() {
+        window.clearTimeout(estado.clienteTimer);
+        estado.clienteTimer = null;
+        estado.clienteSolicitud++;
+    }
+
+    function ocultarResultadosClientes($resultados) {
+        $resultados.empty().removeClass("is-visible");
+        if ($resultados.is("#cotClienteDropdown"))
+            $("#cotClienteCodigo").attr("aria-expanded", "false");
+    }
+
+    function limpiarBusquedaClientes() {
+        cancelarBusquedaClientes();
+        $("#cotClienteFiltro").val("");
+        ocultarResultadosClientes($("#cotClienteResultados"));
+    }
+
+    function contextoBusquedaClientes(origen) {
+        return origen === "directo"
+            ? { $input: $("#cotClienteCodigo"), $resultados: $("#cotClienteDropdown") }
+            : { $input: $("#cotClienteFiltro"), $resultados: $("#cotClienteResultados") };
+    }
+
+    function mostrarResultadosClientes($resultados) {
+        $resultados.addClass("is-visible");
+        if ($resultados.is("#cotClienteDropdown"))
+            $("#cotClienteCodigo").attr("aria-expanded", "true");
+    }
+
+    function renderClientes(clientes, $resultados) {
+        $resultados.empty();
+        if (!clientes.length) {
+            $resultados.html('<div class="cot-client-result-empty"><i class="icon-search"></i><span>Sin resultados para esta búsqueda.</span></div>');
+            mostrarResultadosClientes($resultados);
+            return;
+        }
+
+        $.each(clientes, function (_, cliente) {
+            var $opcion = $("<button>", {
+                type: "button",
+                "class": "cot-client-result",
+                role: "option"
+            }).data("cliente", cliente);
+            $opcion.append(
+                $('<span class="cot-client-result-main"></span>')
+                    .append($("<strong>").text((cliente.CardCode || "") + " · " + (cliente.CardName || "")))
+                    .append($("<small>").text((cliente.LicTradNum || "Sin NIT") + " · " + (cliente.SlpName || "Sin agente")))
+            ).append('<i class="icon-chevron-right" aria-hidden="true"></i>');
+            $resultados.append($opcion);
+        });
+        mostrarResultadosClientes($resultados);
+    }
+
+    function programarBusquedaClientes(origen) {
+        window.clearTimeout(estado.clienteTimer);
+        var contexto = contextoBusquedaClientes(origen);
+        var filtro = contexto.$input.val().trim();
+        var $resultados = contexto.$resultados;
+
+        if (filtro.length < 2) {
+            estado.clienteSolicitud++;
+            ocultarResultadosClientes($resultados);
+            return;
+        }
+
+        var empresaConsulta = empresa();
+        var operadorConsulta = codigoOperador();
+        var solicitud = ++estado.clienteSolicitud;
+        estado.clienteTimer = window.setTimeout(function () {
+            $resultados.html('<div class="cot-client-result-empty"><i class="icon-spinner icon-spin"></i><span>Consultando clientes en SAP...</span></div>');
+            mostrarResultadosClientes($resultados);
+            get(urls.clientes, {
+                empresa: empresaConsulta,
+                codigoOperador: operadorConsulta,
+                filtro: filtro
+            })
             .done(function (r) {
-                if (!r.ok) { avisar("error", r.msg); return; }
-                var filas = r.data || [];
-                if (!filas.length) {
-                    $resultados.html('<div class="cot-empty"><i class="icon-search"></i><strong>Sin coincidencias</strong></div>');
+                if (solicitud !== estado.clienteSolicitud || empresa() !== empresaConsulta ||
+                    codigoOperador() !== operadorConsulta) return;
+                if (!r || !r.ok) {
+                    avisar("error", r && r.msg ? r.msg : "No se pudieron consultar los clientes.");
+                    renderClientes([], $resultados);
                     return;
                 }
-                $resultados.empty();
-                $.each(filas, function (i, c) {
-                    var $b = $('<button type="button" class="cot-result"></button>')
-                        .append('<div><strong>' + html(c.CardCode) + ' · ' + html(c.CardName) + '</strong><span>NIT ' + html(c.LicTradNum || "—") + ' · ' + html(normalizarMoneda(c.Currency) || "—") + '</span></div>')
-                        .on("click", function () { seleccionarCliente(filas[i]); });
-                    $resultados.append($b);
-                });
+                renderClientes(r.data || [], $resultados);
             })
-            .fail(function (xhr) { $resultados.empty(); avisar("error", mensajeError(xhr)); });
+            .fail(function (xhr) {
+                if (solicitud !== estado.clienteSolicitud) return;
+                avisar("error", mensajeError(xhr));
+                renderClientes([], $resultados);
+            });
+        }, 350);
+    }
+
+    function restaurarClienteSeleccionado() {
+        if (clienteSeleccionadoValido()) return;
+        $("#cotClienteCodigo").val(estado.cliente ? estado.cliente.CardCode || "" : "");
+    }
+
+    function clienteSeleccionadoValido() {
+        return !!estado.cliente && $("#cotClienteCodigo").val().trim().toUpperCase() ===
+            String(estado.cliente.CardCode || "").trim().toUpperCase();
     }
 
     function abrirProductos() {
@@ -657,11 +765,48 @@
     }
 
     function enlazar() {
-        $("#cotEmpresa").on("change", function () { limpiarCliente(); poblarAgentes(empresa()); actualizarResumenCliente(); });
-        $("#cotAgente").on("change", limpiarCliente);
+        $("#cotEmpresa").on("change", function () {
+            limpiarCliente();
+            poblarAgentes(empresa());
+            actualizarResumenCliente();
+            actualizarDisponibilidadCliente();
+        });
+        $("#cotAgente").on("change", function () {
+            limpiarCliente();
+            actualizarDisponibilidadCliente();
+        });
         $("#cotBuscarCliente").on("click", abrirClientes);
         $("#cotNuevoProspecto").on("click", iniciarProspecto);
-        $("#cotClienteFiltro").on("input", function () { clearTimeout(estado.clienteTimer); estado.clienteTimer = setTimeout(buscarClientes, 280); }).on("keydown", function (e) { if (e.keyCode === 13) { e.preventDefault(); buscarClientes(); } });
+        $("#cotClienteModal").on("shown.bs.modal", function () {
+            $("#cotClienteFiltro").focus();
+        }).on("hidden.bs.modal", limpiarBusquedaClientes);
+        $("#cotClienteFiltro").on("input", function () { programarBusquedaClientes("modal"); })
+            .on("keydown", function (e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    $("#cotClienteResultados .cot-client-result:first").trigger("click");
+                }
+            });
+        $("#cotClienteCodigo").on("input", function () { programarBusquedaClientes("directo"); })
+            .on("keydown", function (e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    $("#cotClienteDropdown .cot-client-result:first").trigger("click");
+                } else if (e.which === 27) {
+                    ocultarResultadosClientes($("#cotClienteDropdown"));
+                    restaurarClienteSeleccionado();
+                }
+            });
+        $("#cotClienteResultados,#cotClienteDropdown").on("click", ".cot-client-result", function () {
+            var cliente = $(this).data("cliente");
+            if (cliente && !seleccionarCliente(cliente)) restaurarClienteSeleccionado();
+        });
+        $(document).on("click.cotizacionCliente", function (e) {
+            if (!$(e.target).closest("#cotClienteCombobox").length) {
+                ocultarResultadosClientes($("#cotClienteDropdown"));
+                restaurarClienteSeleccionado();
+            }
+        });
         $("#cotAgregarProducto").on("click", abrirProductos);
         $("#cotBuscarProducto").on("click", function () { buscarProductos(1); });
         $("#cotProductoFiltro").on("input", function () {
@@ -706,5 +851,6 @@
     cargarOperadores();
     enlazar();
     renderLineas();
+    actualizarDisponibilidadCliente();
     if ($("#cotEmpresa option").length === 2) $("#cotEmpresa").prop("selectedIndex", 1).trigger("change");
 })(jQuery);

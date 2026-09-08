@@ -226,6 +226,54 @@ namespace DiamDev.Give.UI.Models
         public List<BorradorNcAdjuntoViewModel> Adjuntos { get; set; }
     }
 
+    public class BorradorNcDocumentoPrevioResumenViewModel
+    {
+        public string Clase { get; set; }
+        public string ClaseTexto { get; set; }
+        public string TiposOrigen { get; set; }
+        public string Factura { get; set; }
+        public string Documento { get; set; }
+        public string Fecha { get; set; }
+        public string Moneda { get; set; }
+        public decimal Total { get; set; }
+        public string Comentarios { get; set; }
+        public bool Cancelado { get; set; }
+    }
+
+    public class BorradorNcDocumentoPrevioViewModel
+    {
+        public BorradorNcDocumentoPrevioViewModel()
+        {
+            Productos = new List<BorradorNcProductoFacturaViewModel>();
+        }
+
+        public string Empresa { get; set; }
+        public string IdBorrador { get; set; }
+        public string Factura { get; set; }
+        public string Clase { get; set; }
+        public string ClaseTexto { get; set; }
+        public string TiposOrigen { get; set; }
+        public string Documento { get; set; }
+        public string EstadoSap { get; set; }
+        public bool Cancelado { get; set; }
+        public string TipoDocumento { get; set; }
+        public string Fecha { get; set; }
+        public string FechaDocumento { get; set; }
+        public string ClienteId { get; set; }
+        public string ClienteNombre { get; set; }
+        public string Referencia { get; set; }
+        public string Moneda { get; set; }
+        public decimal TipoCambio { get; set; }
+        public decimal Total { get; set; }
+        public string Origen { get; set; }
+        public string Comentarios { get; set; }
+        public string SerieFel { get; set; }
+        public string NumeroFel { get; set; }
+        public bool PdfDisponible { get; set; }
+        public bool DesdeAutorizaciones { get; set; }
+        public List<BorradorNcProductoFacturaViewModel> Productos { get; set; }
+    }
+
     public class BorradorNcAdjuntoViewModel
     {
         public long AdjuntoId { get; set; }

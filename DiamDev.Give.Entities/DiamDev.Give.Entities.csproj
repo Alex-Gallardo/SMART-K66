@@ -102,6 +102,7 @@
     <Compile Include="EstadoxPedidoK66.cs" />
     <Compile Include="FacturaBorradorNc.cs" />
     <Compile Include="FacturaDetalleSap.cs" />
+    <Compile Include="DocumentoPrevioSap.cs" />
     <Compile Include="MontoAplicadoSap.cs" />
     <Compile Include="NotaCreditoPreviaSap.cs" />
     <Compile Include="ObservacionSync.cs" />

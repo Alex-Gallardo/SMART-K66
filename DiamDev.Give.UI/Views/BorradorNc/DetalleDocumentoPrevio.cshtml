@@ -1,142 +1,120 @@
-@model DiamDev.Give.UI.Models.BorradorNcFacturaConsultaViewModel
+@model DiamDev.Give.UI.Models.BorradorNcDocumentoPrevioViewModel
 @using System
 @using System.Globalization
 @using System.Linq
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     DateTime fecha;
-    var fechaTexto = DateTime.TryParseExact(Model.FechaDoc ?? "", "yyyy-MM-dd",
+    var fechaTexto = DateTime.TryParseExact(Model.Fecha ?? "", "yyyy-MM-dd",
         CultureInfo.InvariantCulture, DateTimeStyles.None, out fecha)
         ? fecha.ToString("dd/MM/yyyy")
-        : (Model.FechaDoc ?? "—");
+        : (Model.Fecha ?? "—");
+    DateTime fechaDocumento;
+    var fechaDocumentoTexto = DateTime.TryParseExact(Model.FechaDocumento ?? "", "yyyy-MM-dd",
+        CultureInfo.InvariantCulture, DateTimeStyles.None, out fechaDocumento)
+        ? fechaDocumento.ToString("dd/MM/yyyy")
+        : (Model.FechaDocumento ?? "—");
     var fel = string.Join(" ", new[] { Model.SerieFel, Model.NumeroFel }
         .Where(x => !string.IsNullOrWhiteSpace(x)));
-    var totalLineas = Model.Productos.Sum(x => x.Total);
-    var desdeBorrador = !string.IsNullOrWhiteSpace(Model.IdBorrador);
     var accionRegreso = Model.DesdeAutorizaciones ? "Autorizaciones" : "Index";
     var textoRegreso = Model.DesdeAutorizaciones
         ? "Volver a autorizaciones"
         : "Volver a Borradores NC";
-    var urlPdf = desdeBorrador
-        ? Url.Action("AbrirFacturaSapBorrador", "BorradorNc", new
-          {
-              empresa = Model.Empresa,
-              idBorrador = Model.IdBorrador,
-              documento = Model.Documento
-          })
-        : Url.Action("AbrirFacturaSap", "BorradorNc", new
-          {
-              empresa = Model.Empresa,
-              clienteId = Model.ClienteId,
-              codigoOperador = Model.CodigoOperador,
-              documento = Model.Documento
-          });
+    var totalLineas = Model.Productos.Sum(x => x.Total);
+    var urlPdf = Url.Action("AbrirDocumentoPrevioSap", "BorradorNc", new
+    {
+        empresa = Model.Empresa,
+        idBorrador = Model.IdBorrador,
+        factura = Model.Factura,
+        documento = Model.Documento,
+        clase = Model.Clase
+    });
 }
 
 @section styles {
-    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260902-factura")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260908-documentos-previos")" rel="stylesheet" />
 }
 
-<div class="bnc bnc-shell bnc-invoice-detail-page">
+<div class="bnc bnc-shell bnc-invoice-detail-page bnc-prior-detail-page">
     <header class="bnc-hero bnc-invoice-detail-hero">
         <div class="bnc-hero-copy">
-            <span class="bnc-hero-icon" aria-hidden="true"><i class="icon-file-text"></i></span>
+            <span class="bnc-hero-icon" aria-hidden="true"><i class="@(Model.Clase == "DEVOLUCION" ? "icon-reply" : "icon-file-text")"></i></span>
             <div>
-                <span class="bnc-invoice-detail-eyebrow">Factura SAP</span>
-                <h2>@Model.Documento</h2>
-                <p>
-                    @Model.Empresa · @fechaTexto · @Model.Moneda
-                    @if (desdeBorrador)
-                    {
-                        <span> · Borrador @Model.IdBorrador</span>
-                    }
-                </p>
+                <span class="bnc-invoice-detail-eyebrow">Documento previo en SAP</span>
+                <h2>@Model.ClaseTexto @Model.Documento</h2>
+                <p>@Model.Empresa · @fechaTexto · Factura relacionada @Model.Factura</p>
             </div>
         </div>
         <div class="bnc-hero-meta">
-            <span class="bnc-hero-chip"><i class="icon-ok-circle"></i> @(desdeBorrador ? "Factura vinculada" : "Factura abierta")</span>
+            <span class="bnc-hero-chip"><i class="icon-link"></i> Borrador @Model.IdBorrador</span>
             <span class="bnc-hero-chip"><i class="icon-list"></i> @Model.Productos.Count @(Model.Productos.Count == 1 ? "línea" : "líneas")</span>
         </div>
     </header>
 
-    <div class="bnc-invoice-page-actions" aria-label="Acciones de la factura">
+    <div class="bnc-invoice-page-actions" aria-label="Acciones del documento previo">
         <a class="bnc-btn bnc-btn-ghost" href="@Url.Action(accionRegreso, "BorradorNc")">
             <i class="icon-arrow-left" aria-hidden="true"></i> @textoRegreso
         </a>
-        @if (Model.PdfFacturaDisponible)
+        @if (Model.PdfDisponible)
         {
-            <a class="bnc-btn bnc-btn-primary"
-               href="@urlPdf"
+            <a class="bnc-btn bnc-btn-primary" href="@urlPdf"
                target="_blank" rel="noopener noreferrer"
                title="Abrir el PDF oficial almacenado en SAP en una pestaña nueva">
-                <i class="icon-print" aria-hidden="true"></i> Abrir / imprimir factura
+                <i class="icon-print" aria-hidden="true"></i> Abrir / imprimir documento
                 <span class="sr-only"> en una pestaña nueva</span>
             </a>
         }
-        else
-        {
-            <button class="bnc-btn bnc-btn-primary" type="button" disabled
-                    title="SAP no tiene una URL válida registrada para el PDF de esta factura">
-                <i class="icon-ban-circle" aria-hidden="true"></i> PDF no disponible
-            </button>
-        }
     </div>
 
-    <section class="bnc-card" aria-labelledby="bncFacturaResumenTitulo">
+    <section class="bnc-card" aria-labelledby="bncDocumentoPrevioResumenTitulo">
         <div class="bnc-card-head">
             <div class="bnc-card-title">
                 <i class="icon-info-sign" aria-hidden="true"></i>
                 <div>
-                    <h3 id="bncFacturaResumenTitulo">Resumen de la factura</h3>
-                    <small>Datos comerciales y disponibilidad consultados en SAP.</small>
+                    <h3 id="bncDocumentoPrevioResumenTitulo">Resumen del documento</h3>
+                    <small>Información del encabezado consultada directamente en SAP.</small>
                 </div>
             </div>
-            <span class="bnc-status bnc-status-neutral">Solo lectura</span>
+            <span class="bnc-status @(Model.Cancelado ? "bnc-status-rechazado" : "bnc-status-neutral")">
+                @Model.EstadoSap
+            </span>
         </div>
         <div class="bnc-card-body">
             <div class="bnc-invoice-detail-meta">
+                <div><small>Tipo de documento</small><strong>@Model.ClaseTexto</strong></div>
+                <div><small>Número SAP</small><strong>@Model.Documento</strong></div>
+                <div><small>Factura relacionada</small><strong>@Model.Factura</strong></div>
+                <div><small>Clasificación de origen</small><strong>@(string.IsNullOrWhiteSpace(Model.TiposOrigen) ? "—" : Model.TiposOrigen)</strong></div>
                 <div><small>Cliente</small><strong>@Model.ClienteId · @Model.ClienteNombre</strong></div>
-                <div><small>Agente</small><strong>@Model.Agente</strong></div>
-                <div><small>Fecha de emisión</small><strong>@fechaTexto</strong></div>
+                <div><small>Fecha de contabilización</small><strong>@fechaTexto</strong></div>
+                <div><small>Fecha del documento</small><strong>@fechaDocumentoTexto</strong></div>
+                <div><small>Referencia</small><strong>@(string.IsNullOrWhiteSpace(Model.Referencia) ? "—" : Model.Referencia)</strong></div>
                 <div><small>Documento FEL</small><strong>@(string.IsNullOrWhiteSpace(fel) ? "Sin información FEL" : fel)</strong></div>
+                <div><small>Moneda</small><strong>@Model.Moneda</strong></div>
+                <div><small>Tipo de cambio</small><strong>@Model.TipoCambio.ToString("N6")</strong></div>
+                <div><small>Total del documento</small><strong>@Model.Moneda @Model.Total.ToString("N2")</strong></div>
             </div>
 
-            <div class="bnc-invoice-detail-totals">
+            <div class="bnc-prior-notes">
                 <article>
-                    <span>Total factura</span>
-                    <strong>@Model.Moneda @Model.TotalFactura.ToString("N2")</strong>
+                    <small>Origen contable</small>
+                    <p>@(string.IsNullOrWhiteSpace(Model.Origen) ? "Sin información" : Model.Origen)</p>
                 </article>
                 <article>
-                    <span>Pagado en SAP</span>
-                    <strong>@Model.Moneda @Model.Pagado.ToString("N2")</strong>
-                </article>
-                <article>
-                    <span>Saldo SAP</span>
-                    <strong>@Model.Moneda @Model.SaldoSap.ToString("N2")</strong>
-                </article>
-                <article>
-                    <span>En otros borradores</span>
-                    <strong>@Model.Moneda @Model.Acumulado.ToString("N2")</strong>
-                </article>
-                <article>
-                    <span>Documentos previos SAP</span>
-                    <strong>@Model.Moneda @Model.NcPreviaSap.ToString("N2")</strong>
-                </article>
-                <article class="is-available">
-                    <span>Disponible</span>
-                    <strong>@Model.Moneda @Model.Disponible.ToString("N2")</strong>
+                    <small>Comentarios</small>
+                    <p>@(string.IsNullOrWhiteSpace(Model.Comentarios) ? "Sin comentarios" : Model.Comentarios)</p>
                 </article>
             </div>
         </div>
     </section>
 
-    <section class="bnc-card" aria-labelledby="bncFacturaProductosTitulo">
+    <section class="bnc-card" aria-labelledby="bncDocumentoPrevioProductosTitulo">
         <div class="bnc-card-head">
             <div class="bnc-card-title">
                 <i class="icon-list" aria-hidden="true"></i>
                 <div>
-                    <h3 id="bncFacturaProductosTitulo">Productos y servicios facturados</h3>
-                    <small>Renglones originales de la factura en SAP.</small>
+                    <h3 id="bncDocumentoPrevioProductosTitulo">Productos y servicios del documento</h3>
+                    <small>Renglones originales de @(Model.Clase == "DEVOLUCION" ? "ORDN/RDN1" : "ORIN/RIN1") en SAP.</small>
                 </div>
             </div>
             <span class="bnc-status bnc-status-neutral">@Model.Productos.Count @(Model.Productos.Count == 1 ? "renglón" : "renglones")</span>
@@ -147,16 +125,16 @@
             <div class="bnc-empty bnc-invoice-detail-empty">
                 <i class="icon-info-sign" aria-hidden="true"></i>
                 <strong>Sin productos o servicios disponibles</strong>
-                <span>SAP no devolvió renglones para esta factura.</span>
+                <span>SAP no devolvió renglones para este documento.</span>
             </div>
         }
         else
         {
             <div class="bnc-sap-table-shell bnc-invoice-detail-table-shell">
                 <div class="bnc-sap-table-region" role="region" tabindex="0"
-                     aria-label="Productos y servicios de la factura @Model.Documento">
+                     aria-label="Productos y servicios del documento @Model.Documento">
                     <table class="bnc-sap-lines-table">
-                        <caption>Detalle de productos y servicios de la factura @Model.Documento</caption>
+                        <caption>Detalle de productos y servicios del documento @Model.Documento</caption>
                         <thead>
                             <tr>
                                 <th scope="col">Línea</th>
@@ -189,19 +167,11 @@
                                             @(string.IsNullOrWhiteSpace(producto.Bodega) ? "Sin bodega" : producto.Bodega)
                                         </span>
                                     </td>
-                                    <td class="bnc-sap-line-number-value">
-                                        <strong>@producto.Cantidad.ToString("N4")</strong>
-                                        <small>@(string.IsNullOrWhiteSpace(producto.UnidadMedida) ? "Sin unidad" : producto.UnidadMedida)</small>
-                                    </td>
+                                    <td class="bnc-sap-line-number-value"><strong>@producto.Cantidad.ToString("N4")</strong><small>@(string.IsNullOrWhiteSpace(producto.UnidadMedida) ? "Sin unidad" : producto.UnidadMedida)</small></td>
                                     <td class="bnc-sap-line-number-value"><strong>@monedaLinea @producto.PrecioUnitario.ToString("N2")</strong></td>
-                                    <td class="bnc-sap-line-number-value @(producto.DescuentoPorcentaje == 0 ? "is-muted" : "")">
-                                        <strong>@(producto.DescuentoPorcentaje == 0 ? "Sin descuento" : producto.DescuentoPorcentaje.ToString("N2") + "%")</strong>
-                                    </td>
+                                    <td class="bnc-sap-line-number-value @(producto.DescuentoPorcentaje == 0 ? "is-muted" : "")"><strong>@(producto.DescuentoPorcentaje == 0 ? "Sin descuento" : producto.DescuentoPorcentaje.ToString("N2") + "%")</strong></td>
                                     <td class="bnc-sap-line-number-value"><strong>@monedaLinea @producto.Subtotal.ToString("N2")</strong></td>
-                                    <td class="bnc-sap-line-number-value">
-                                        <strong>@monedaLinea @producto.Impuesto.ToString("N2")</strong>
-                                        <small>@(producto.ImpuestoPorcentaje.ToString("N2"))%@(string.IsNullOrWhiteSpace(producto.CodigoImpuesto) ? "" : " · " + producto.CodigoImpuesto)</small>
-                                    </td>
+                                    <td class="bnc-sap-line-number-value"><strong>@monedaLinea @producto.Impuesto.ToString("N2")</strong><small>@(producto.ImpuestoPorcentaje.ToString("N2"))%@(string.IsNullOrWhiteSpace(producto.CodigoImpuesto) ? "" : " · " + producto.CodigoImpuesto)</small></td>
                                     <td class="bnc-sap-line-number-value is-total"><strong>@monedaLinea @producto.Total.ToString("N2")</strong></td>
                                 </tr>
                             }

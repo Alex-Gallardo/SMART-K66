@@ -9,18 +9,24 @@
         detalle: $root.data("url-detalle"),
         detalleFacturas: $root.data("url-detalle-facturas"),
         facturaBorrador: $root.data("url-factura-borrador"),
+        documentosPrevios: $root.data("url-documentos-previos"),
+        documentoPrevio: $root.data("url-documento-previo"),
         adjunto: $root.data("url-adjunto"),
-        notas: $root.data("url-notas"),
         resolver: $root.data("url-resolver"),
         imprimir: $root.data("url-imprimir")
     };
     var state = { pendientes: [], seleccionado: null, documento: null };
     var cargaSecuencia = 0;
     var detalleSecuencia = 0;
-    var notasSecuencia = 0;
     var facturasDetalle = window.BorradorNcFacturasDetalle.crear({
         id: "bncAuthInvoices",
         url: urls.detalleFacturas
+    });
+    var documentosPrevios = window.BorradorNcDocumentosPrevios.crear({
+        id: "bncAuthPriorDocuments",
+        url: urls.documentosPrevios,
+        detalleUrl: urls.documentoPrevio,
+        origen: "autorizaciones"
     });
 
     function token() { return $root.find('input[name="__RequestVerificationToken"]').val(); }
@@ -72,11 +78,11 @@
     function cargar() {
         var secuencia = ++cargaSecuencia;
         detalleSecuencia++;
-        notasSecuencia++;
         facturasDetalle.invalidar();
+        documentosPrevios.invalidar();
         state.seleccionado = null;
         state.documento = null;
-        $("#bncAuthDetail").html('<div class="bnc-empty"><i class="icon-hand-left"></i><strong>Seleccione una solicitud</strong><span>Revise cada línea y sus NC previas antes de autorizar.</span></div>');
+        $("#bncAuthDetail").html('<div class="bnc-empty"><i class="icon-hand-left"></i><strong>Seleccione una solicitud</strong><span>Revise cada línea y sus documentos previos de SAP antes de autorizar.</span></div>');
         $("#bncAuthBody").html('<tr><td colspan="5"><div class="bnc-loading"><span class="bnc-spinner"></span>Consultando pendientes...</div></td></tr>');
         $("#bncAuthEmpty").hide();
         get(urls.listar, { empresa: $("#bncAuthEmpresa").val() || "" }).done(function (r) {
@@ -110,7 +116,7 @@
             html += '<tr data-empresa="' + escapeHtml(x.IdEmpresa) + '" data-id="' + escapeHtml(x.IdBorrador) + '">' +
                 '<td class="bnc-main-cell"><strong>' + escapeHtml(x.IdBorrador) + '</strong><small>' + escapeHtml(x.IdEmpresa) + " · " + escapeHtml(x.IdUsr) + "</small></td>" +
                 "<td>" + fecha(x.Fecha) + "</td>" +
-                '<td class="bnc-main-cell"><strong>' + escapeHtml(x.Nombre) + '</strong><small>' + escapeHtml(x.IdCliente) + (x.TieneNcPrevia ? ' · <span style="color:#a16207">Con NC previa</span>' : "") + "</small></td>" +
+                '<td class="bnc-main-cell"><strong>' + escapeHtml(x.Nombre) + '</strong><small>' + escapeHtml(x.IdCliente) + (x.TieneNcPrevia ? ' · <span style="color:#a16207">Con antecedentes SAP</span>' : "") + "</small></td>" +
                 "<td>" + escapeHtml(x.Agente) + "</td>" +
                 '<td class="bnc-money">' + dinero(x.Total, x.Moneda) + "</td></tr>";
         });
@@ -124,8 +130,8 @@
 
     function seleccionar(empresa, id) {
         var secuencia = ++detalleSecuencia;
-        notasSecuencia++;
         facturasDetalle.cancelar();
+        documentosPrevios.cancelar();
         state.seleccionado = { empresa: empresa, id: id };
         $("#bncAuthBody tr").removeClass("is-selected").filter(function () {
             return $(this).data("empresa") === empresa && String($(this).data("id")) === String(id);
@@ -138,7 +144,7 @@
             state.documento = r.data;
             renderDetalle(r.data);
             facturasDetalle.cargar(r.data);
-            cargarNotas(r.data);
+            documentosPrevios.cargar(r.data);
         }).fail(function (xhr) {
             if (secuencia === detalleSecuencia) avisar("error", mensajeAjax(xhr));
         });
@@ -151,7 +157,7 @@
             var urlFactura = window.BorradorNcFacturasDetalle.urlFacturaBorrador(
                 urls.facturaBorrador, x, d, "autorizaciones");
             if (numero(d.Pagado) >= numero(d.TotalFactura) - .005) alertas.push('<span class="bnc-paid-flag">Pagada</span>');
-            if (numero(d.NcPreviaSap) > 0) alertas.push('<span class="bnc-nc-flag">NC ' + dinero(d.NcPreviaSap) + "</span>");
+            if (numero(d.NcPreviaSap) > 0) alertas.push('<span class="bnc-nc-flag">Antecedentes SAP ' + dinero(d.NcPreviaSap) + "</span>");
             lineas += '<tr><td class="bnc-linked-invoice-action-cell"><a class="bnc-btn bnc-btn-primary bnc-linked-invoice-action" href="' + escapeHtml(urlFactura) +
                 '" target="_blank" rel="noopener noreferrer" title="Abrir el detalle completo en una pestaña nueva" ' +
                 'aria-label="Ver factura ' + escapeHtml(d.Documento) + ' en una pestaña nueva">' +
@@ -182,42 +188,13 @@
                 titulo: "Documentación de respaldo",
                 subtitulo: "Evidencias proporcionadas por quien creó la solicitud."
             }) +
-            '<div class="bnc-card-head" style="min-height:46px"><div class="bnc-card-title"><i class="icon-warning-sign"></i><div><h3>Notas de crédito previas en SAP</h3><small>Antecedentes por cada documento del borrador.</small></div></div></div>' +
-            '<div class="bnc-nc-list" id="bncAuthNotes"><div class="bnc-loading"><span class="bnc-spinner"></span>Consultando SAP...</div></div>' +
+            window.BorradorNcDocumentosPrevios.plantilla("bncAuthPriorDocuments", {
+                subtitulo: "Revise el detalle de cada antecedente antes de tomar una decisión."
+            }) +
             '<div class="bnc-decision-bar"><button class="bnc-btn bnc-btn-ghost" type="button" id="bncAuthPrint"><i class="icon-print"></i> Imprimir</button>' +
             '<button class="bnc-btn bnc-btn-danger" type="button" id="bncAuthReject"><i class="icon-remove"></i> Rechazar</button>' +
             '<button class="bnc-btn bnc-btn-success" type="button" id="bncAuthApprove"><i class="icon-check"></i> Autorizar</button></div>'
         );
-    }
-
-    function cargarNotas(x) {
-        var secuencia = ++notasSecuencia;
-        var detalles = x.Detalles || [];
-        if (!detalles.length) { $("#bncAuthNotes").html('<div class="bnc-empty"><span>Sin documentos.</span></div>'); return; }
-        var notas = [], terminadas = 0;
-        $.each(detalles, function (_, d) {
-            get(urls.notas, { empresa: x.IdEmpresa, documento: d.Documento }).done(function (r) {
-                if (secuencia !== notasSecuencia) return;
-                if (r && r.ok) notas = notas.concat(r.data || []);
-            }).always(function () {
-                if (secuencia !== notasSecuencia) return;
-                terminadas++;
-                if (terminadas === detalles.length) renderNotas(notas);
-            });
-        });
-    }
-
-    function renderNotas(notas) {
-        if (!notas.length) {
-            $("#bncAuthNotes").html('<div class="bnc-inline-alert is-visible is-info"><i class="icon-check"></i><span>No se encontraron notas de crédito previas en SAP para estos documentos.</span></div>');
-            return;
-        }
-        var html = "";
-        $.each(notas, function (_, n) {
-            html += '<div class="bnc-nc-item"><strong>Factura ' + escapeHtml(n.Factura) + " · NC " + escapeHtml(n.Nota) + " · " + dinero(n.Total, n.Moneda) +
-                "</strong><span>" + fecha(n.Fecha) + " · " + escapeHtml(n.Tipo || "NC") + " · " + escapeHtml(n.Comentarios || n.Origen || "Sin comentario") + "</span></div>";
-        });
-        $("#bncAuthNotes").html(html);
     }
 
     function resolver(accion, motivo, $button) {

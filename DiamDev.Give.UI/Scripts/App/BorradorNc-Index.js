@@ -16,6 +16,8 @@
         seguimiento: $root.data("url-seguimiento"),
         detalle: $root.data("url-detalle"),
         detalleFacturas: $root.data("url-detalle-facturas"),
+        documentosPrevios: $root.data("url-documentos-previos"),
+        documentoPrevio: $root.data("url-documento-previo"),
         adjunto: $root.data("url-adjunto"),
         anular: $root.data("url-anular"),
         imprimir: $root.data("url-imprimir")
@@ -53,6 +55,12 @@
     var facturasDetalle = window.BorradorNcFacturasDetalle.crear({
         id: "bncFollowInvoices",
         url: urls.detalleFacturas
+    });
+    var documentosPrevios = window.BorradorNcDocumentosPrevios.crear({
+        id: "bncFollowPriorDocuments",
+        url: urls.documentosPrevios,
+        detalleUrl: urls.documentoPrevio,
+        origen: "seguimiento"
     });
 
     function token() {
@@ -498,7 +506,7 @@
         $.each(state.facturas, function (i, f) {
             var flags = [];
             if (f.GeneraSaldoAFavor) flags.push('<span class="bnc-paid-flag">Pagada</span>');
-            if (numero(f.NcPreviaSap) > 0) flags.push('<span class="bnc-nc-flag">Con NC</span>');
+            if (numero(f.NcPreviaSap) > 0) flags.push('<span class="bnc-nc-flag">Con antecedentes SAP</span>');
             var detalleUrl = urls.facturaDetalle + "?empresa=" + encodeURIComponent(empresa()) +
                 "&clienteId=" + encodeURIComponent(state.cliente ? state.cliente.CardCode : "") +
                 "&codigoOperador=" + encodeURIComponent(codigoOperador()) +
@@ -838,6 +846,7 @@
     function cargarSeguimiento() {
         var secuencia = ++seguimientoSecuencia;
         facturasDetalle.cancelar();
+        documentosPrevios.cancelar();
         var empresaFiltro = $("#bncFiltroEmpresa").val() || "";
         var desde = $("#bncFiltroDesde").val() || "";
         var hasta = $("#bncFiltroHasta").val() || "";
@@ -932,6 +941,7 @@
     function cargarDetalle(empresaId, id) {
         var secuencia = ++detalleSecuencia;
         facturasDetalle.cancelar();
+        documentosPrevios.cancelar();
         state.seleccionado = { empresa: empresaId, id: id };
         $("#bncFollowBody tr").removeClass("is-selected").filter(function () {
             return $(this).data("empresa") === empresaId && String($(this).data("id")) === String(id);
@@ -943,6 +953,7 @@
             if (!r || !r.ok) { avisar("error", r && r.msg ? r.msg : "No se pudo abrir el detalle."); return; }
             renderDetalle(r.data);
             facturasDetalle.cargar(r.data);
+            documentosPrevios.cargar(r.data);
         }).fail(function (xhr) {
             if (secuencia === detalleSecuencia) avisar("error", mensajeAjax(xhr));
         });
@@ -981,6 +992,7 @@
             '<div class="bnc-table-wrap bnc-linked-invoice-table-wrap" style="border-width:1px 0 0;border-radius:0;"><table class="table bnc-table bnc-linked-invoice-table"><thead><tr><th class="text-center">Acción</th><th>Documento</th><th>Fecha</th><th>Descripción</th><th class="text-right">Importe</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
             window.BorradorNcFacturasDetalle.plantilla("bncFollowInvoices") +
             window.BorradorNcAdjuntos.plantilla(x, { baseUrl: urls.adjunto }) +
+            window.BorradorNcDocumentosPrevios.plantilla("bncFollowPriorDocuments") +
             '<div class="bnc-decision-bar"><button class="bnc-btn bnc-btn-ghost" type="button" id="bncImprimirSeleccionado"><i class="icon-print"></i> Imprimir</button>' + anular + "</div>"
         );
         state.seleccionado.documento = x;
@@ -1005,6 +1017,7 @@
             avisar("success", r.msg || "Borrador anulado.");
             $("#bncAnularModal").modal("hide");
             facturasDetalle.cancelar();
+            documentosPrevios.cancelar();
             state.seleccionado = null;
             cargarSeguimiento();
             $("#bncFollowDetail").html('<div class="bnc-empty"><i class="icon-hand-right"></i><strong>Seleccione un borrador</strong><span>Su detalle y acciones aparecerán aquí.</span></div>');

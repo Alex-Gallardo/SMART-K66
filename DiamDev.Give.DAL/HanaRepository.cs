@@ -1295,5 +1295,327 @@ namespace DiamDev.Give.DAL
             return mapa;
         }
 
+        /// <summary>
+        /// Documentos comerciales previos relacionados con varias facturas.
+        /// INF_VRC_FACRNC puede exponer una misma nota más de una vez (por
+        /// ejemplo como NC y NC RECON); se resuelve contra el documento real de
+        /// SAP y se deduplica por clase, DocEntry y factura.
+        /// </summary>
+        public List<DocumentoPrevioSap> ObtenerDocumentosPrevios(
+            string empresa, IEnumerable<string> facturas)
+        {
+            var resultado = new List<DocumentoPrevioSap>();
+            string schema = ResolverSchema(empresa);
+            if (schema == null || facturas == null) return resultado;
+
+            var numeros = facturas
+                .Select(x =>
+                {
+                    int numero;
+                    return int.TryParse((x ?? "").Trim(), out numero) ? (int?)numero : null;
+                })
+                .Where(x => x.HasValue)
+                .Select(x => x.Value)
+                .Distinct()
+                .ToList();
+            if (numeros.Count == 0) return resultado;
+
+            const int TAM_LOTE = 100;
+            try
+            {
+                for (int i = 0; i < numeros.Count; i += TAM_LOTE)
+                {
+                    var lote = numeros.Skip(i).Take(TAM_LOTE).ToList();
+                    string placeholders = string.Join(",", lote.Select(_ => "?"));
+                    string query = string.Format(@"
+                        SELECT
+                            'NOTA_CREDITO' AS ""Clase"",
+                            V.""Tipo"" AS ""TipoOrigen"",
+                            V.""Factura"",
+                            H.""DocNum"" AS ""Documento"",
+                            H.""DocEntry"",
+                            H.""ObjType"",
+                            H.""CANCELED"",
+                            H.""DocStatus"",
+                            H.""DocType"",
+                            H.""DocDate"",
+                            H.""TaxDate"",
+                            H.""CardCode"",
+                            H.""CardName"",
+                            H.""NumAtCard"",
+                            H.""DocCur"",
+                            H.""DocRate"",
+                            CASE WHEN UPPER(COALESCE(H.""DocCur"", '')) IN ('QTZ', 'GTQ')
+                                 THEN COALESCE(H.""DocTotal"", 0)
+                                 ELSE COALESCE(H.""DocTotalFC"", 0) END AS ""TotalDocumento"",
+                            H.""JrnlMemo"",
+                            H.""Comments"",
+                            COALESCE(H.""U_SERIE_FACE"", '') AS ""SerieFel"",
+                            COALESCE(H.""U_NUMERO_DOCUMENTO"", '') AS ""NumeroFel"",
+                            COALESCE(H.""U_FACE_PDFFILE"", '') AS ""UrlPdf""
+                        FROM ""{0}"".""INF_VRC_FACRNC"" V
+                        INNER JOIN ""{0}"".""ORIN"" H
+                                ON H.""DocNum"" = V.""Nota""
+                               AND H.""CardCode"" = V.""CardCode""
+                        WHERE V.""Nota"" IS NOT NULL
+                          AND V.""Factura"" IN ({1})
+                          AND UPPER(TRIM(COALESCE(V.""Tipo"", ''))) LIKE 'NC%'
+                        UNION ALL
+                        SELECT
+                            'DEVOLUCION',
+                            V.""Tipo"",
+                            V.""Factura"",
+                            H.""DocNum"",
+                            H.""DocEntry"",
+                            H.""ObjType"",
+                            H.""CANCELED"",
+                            H.""DocStatus"",
+                            H.""DocType"",
+                            H.""DocDate"",
+                            H.""TaxDate"",
+                            H.""CardCode"",
+                            H.""CardName"",
+                            H.""NumAtCard"",
+                            H.""DocCur"",
+                            H.""DocRate"",
+                            CASE WHEN UPPER(COALESCE(H.""DocCur"", '')) IN ('QTZ', 'GTQ')
+                                 THEN COALESCE(H.""DocTotal"", 0)
+                                 ELSE COALESCE(H.""DocTotalFC"", 0) END,
+                            H.""JrnlMemo"",
+                            H.""Comments"",
+                            COALESCE(H.""U_SERIE_FACE"", ''),
+                            COALESCE(H.""U_NUMERO_DOCUMENTO"", ''),
+                            COALESCE(H.""U_FACE_PDFFILE"", '')
+                        FROM ""{0}"".""INF_VRC_FACRNC"" V
+                        INNER JOIN ""{0}"".""ORDN"" H
+                                ON H.""DocNum"" = V.""Nota""
+                               AND H.""CardCode"" = V.""CardCode""
+                        WHERE V.""Nota"" IS NOT NULL
+                          AND V.""Factura"" IN ({1})
+                          AND UPPER(TRIM(COALESCE(V.""Tipo"", ''))) NOT LIKE 'NC%'
+                        ORDER BY ""DocDate"" DESC, ""Documento"", ""Clase""",
+                        schema, placeholders);
+
+                    var parametros = lote.Concat(lote)
+                        .Select(numero => new OdbcParameter
+                        {
+                            OdbcType = OdbcType.Int,
+                            Value = numero
+                        }).ToArray();
+
+                    DataTable dt = HanaHelper.EjecutarConsulta(query, parametros);
+                    foreach (DataRow row in dt.Rows)
+                    {
+                        resultado.Add(new DocumentoPrevioSap
+                        {
+                            Clase = LeerCampo(row, "Clase"),
+                            TiposOrigen = LeerCampo(row, "TipoOrigen"),
+                            Factura = LeerCampo(row, "Factura"),
+                            Documento = LeerCampo(row, "Documento"),
+                            DocEntry = LeerEntero(row, "DocEntry"),
+                            ObjType = LeerCampo(row, "ObjType"),
+                            Cancelado = string.Equals(LeerCampo(row, "CANCELED"), "Y",
+                                                      StringComparison.OrdinalIgnoreCase),
+                            Estado = LeerCampo(row, "DocStatus"),
+                            TipoDocumento = LeerCampo(row, "DocType"),
+                            Fecha = LeerFecha(row, "DocDate"),
+                            FechaDocumento = LeerFecha(row, "TaxDate"),
+                            CardCode = LeerCampo(row, "CardCode"),
+                            CardName = LeerCampo(row, "CardName"),
+                            Referencia = LeerCampo(row, "NumAtCard"),
+                            Moneda = NormalizarMoneda(LeerCampo(row, "DocCur")),
+                            TipoCambio = LeerDecimal(row, "DocRate"),
+                            Total = LeerDecimal(row, "TotalDocumento"),
+                            Origen = LeerCampo(row, "JrnlMemo"),
+                            Comentarios = LeerCampo(row, "Comments"),
+                            SerieFel = LeerCampo(row, "SerieFel"),
+                            NumeroFel = LeerCampo(row, "NumeroFel"),
+                            UrlPdf = LeerCampo(row, "UrlPdf")
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(string.Format(
+                    "Error HANA al consultar documentos previos ({0} / {1}): {2}",
+                    empresa, schema, ex.Message), ex);
+            }
+
+            return resultado
+                .GroupBy(x => string.Join("|", x.Clase, x.Factura,
+                                          x.Documento, x.DocEntry),
+                         StringComparer.OrdinalIgnoreCase)
+                .Select(g =>
+                {
+                    var documento = g.First();
+                    documento.TiposOrigen = string.Join(" / ", g
+                        .Select(x => (x.TiposOrigen ?? "").Trim())
+                        .Where(x => x.Length > 0)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(x => x));
+                    return documento;
+                })
+                .OrderByDescending(x => x.Fecha)
+                .ThenBy(x => x.Documento)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Encabezado y renglones completos de una nota de crédito (ORIN/RIN1)
+        /// o devolución (ORDN/RDN1), identificada por el DocEntry que el
+        /// servidor resolvió previamente desde INF_VRC_FACRNC.
+        /// </summary>
+        public DocumentoPrevioSap ObtenerDetalleDocumentoPrevio(
+            string empresa, string clase, int docEntry, string clienteId)
+        {
+            string schema = ResolverSchema(empresa);
+            if (schema == null || docEntry <= 0 || string.IsNullOrWhiteSpace(clienteId))
+                return null;
+
+            bool esNota = string.Equals(clase, "NOTA_CREDITO",
+                                        StringComparison.OrdinalIgnoreCase);
+            bool esDevolucion = string.Equals(clase, "DEVOLUCION",
+                                              StringComparison.OrdinalIgnoreCase);
+            if (!esNota && !esDevolucion) return null;
+
+            string tablaEncabezado = esNota ? "ORIN" : "ORDN";
+            string tablaDetalle = esNota ? "RIN1" : "RDN1";
+            string claseNormalizada = esNota ? "NOTA_CREDITO" : "DEVOLUCION";
+            string queryEncabezado = string.Format(@"
+                SELECT
+                    H.""DocNum"" AS ""Documento"",
+                    H.""DocEntry"",
+                    H.""ObjType"",
+                    H.""CANCELED"",
+                    H.""DocStatus"",
+                    H.""DocType"",
+                    H.""DocDate"",
+                    H.""TaxDate"",
+                    H.""CardCode"",
+                    H.""CardName"",
+                    H.""NumAtCard"",
+                    H.""DocCur"",
+                    H.""DocRate"",
+                    CASE WHEN UPPER(COALESCE(H.""DocCur"", '')) IN ('QTZ', 'GTQ')
+                         THEN COALESCE(H.""DocTotal"", 0)
+                         ELSE COALESCE(H.""DocTotalFC"", 0) END AS ""TotalDocumento"",
+                    H.""JrnlMemo"",
+                    H.""Comments"",
+                    COALESCE(H.""U_SERIE_FACE"", '') AS ""SerieFel"",
+                    COALESCE(H.""U_NUMERO_DOCUMENTO"", '') AS ""NumeroFel"",
+                    COALESCE(H.""U_FACE_PDFFILE"", '') AS ""UrlPdf""
+                FROM ""{0}"".""{1}"" H
+                WHERE H.""DocEntry"" = ?
+                  AND H.""CardCode"" = ?",
+                schema, tablaEncabezado);
+
+            try
+            {
+                var parametrosEncabezado = new[]
+                {
+                    new OdbcParameter { OdbcType = OdbcType.Int, Value = docEntry },
+                    new OdbcParameter { OdbcType = OdbcType.NVarChar, Value = clienteId.Trim() }
+                };
+                DataTable dtEncabezado = HanaHelper.EjecutarConsulta(
+                    queryEncabezado, parametrosEncabezado);
+                if (dtEncabezado.Rows.Count == 0) return null;
+
+                DataRow row = dtEncabezado.Rows[0];
+                var documento = new DocumentoPrevioSap
+                {
+                    Clase = claseNormalizada,
+                    Documento = LeerCampo(row, "Documento"),
+                    DocEntry = LeerEntero(row, "DocEntry"),
+                    ObjType = LeerCampo(row, "ObjType"),
+                    Cancelado = string.Equals(LeerCampo(row, "CANCELED"), "Y",
+                                              StringComparison.OrdinalIgnoreCase),
+                    Estado = LeerCampo(row, "DocStatus"),
+                    TipoDocumento = LeerCampo(row, "DocType"),
+                    Fecha = LeerFecha(row, "DocDate"),
+                    FechaDocumento = LeerFecha(row, "TaxDate"),
+                    CardCode = LeerCampo(row, "CardCode"),
+                    CardName = LeerCampo(row, "CardName"),
+                    Referencia = LeerCampo(row, "NumAtCard"),
+                    Moneda = NormalizarMoneda(LeerCampo(row, "DocCur")),
+                    TipoCambio = LeerDecimal(row, "DocRate"),
+                    Total = LeerDecimal(row, "TotalDocumento"),
+                    Origen = LeerCampo(row, "JrnlMemo"),
+                    Comentarios = LeerCampo(row, "Comments"),
+                    SerieFel = LeerCampo(row, "SerieFel"),
+                    NumeroFel = LeerCampo(row, "NumeroFel"),
+                    UrlPdf = LeerCampo(row, "UrlPdf")
+                };
+
+                string queryLineas = string.Format(@"
+                    SELECT
+                        L.""LineNum"" AS ""NumeroLinea"",
+                        COALESCE(L.""ItemCode"", '') AS ""CodigoArticulo"",
+                        COALESCE(L.""Dscription"", '') AS ""Descripcion"",
+                        COALESCE(L.""Quantity"", 0) AS ""Cantidad"",
+                        COALESCE(L.""unitMsr"", '') AS ""UnidadMedida"",
+                        COALESCE(L.""PriceBefDi"", 0) AS ""PrecioUnitario"",
+                        COALESCE(L.""DiscPrcnt"", 0) AS ""DescuentoPorcentaje"",
+                        CASE WHEN UPPER(COALESCE(H.""DocCur"", '')) IN ('QTZ', 'GTQ')
+                             THEN COALESCE(L.""LineTotal"", 0)
+                             ELSE COALESCE(L.""TotalFrgn"", 0) END AS ""Subtotal"",
+                        COALESCE(L.""VatGroup"", '') AS ""CodigoImpuesto"",
+                        COALESCE(L.""VatPrcnt"", 0) AS ""ImpuestoPorcentaje"",
+                        CASE WHEN UPPER(COALESCE(H.""DocCur"", '')) IN ('QTZ', 'GTQ')
+                             THEN COALESCE(L.""VatSum"", 0)
+                             ELSE COALESCE(L.""VatSumFrgn"", 0) END AS ""Impuesto"",
+                        CASE WHEN UPPER(COALESCE(H.""DocCur"", '')) IN ('QTZ', 'GTQ')
+                             THEN COALESCE(L.""LineTotal"", 0) + COALESCE(L.""VatSum"", 0)
+                             ELSE COALESCE(L.""TotalFrgn"", 0) + COALESCE(L.""VatSumFrgn"", 0) END AS ""TotalLinea"",
+                        COALESCE(H.""DocCur"", '') AS ""Moneda"",
+                        COALESCE(L.""WhsCode"", '') AS ""Bodega"",
+                        COALESCE(L.""LineStatus"", '') AS ""EstadoLinea"",
+                        COALESCE(L.""BaseType"", -1) AS ""TipoBase"",
+                        COALESCE(L.""BaseEntry"", -1) AS ""EntradaBase"",
+                        COALESCE(L.""BaseLine"", -1) AS ""LineaBase"",
+                        COALESCE(L.""BaseRef"", '') AS ""ReferenciaBase""
+                    FROM ""{0}"".""{1}"" H
+                    INNER JOIN ""{0}"".""{2}"" L
+                            ON L.""DocEntry"" = H.""DocEntry""
+                    WHERE H.""DocEntry"" = ?
+                    ORDER BY L.""LineNum""",
+                    schema, tablaEncabezado, tablaDetalle);
+                DataTable dtLineas = HanaHelper.EjecutarConsulta(queryLineas,
+                    new[] { new OdbcParameter { OdbcType = OdbcType.Int, Value = docEntry } });
+                foreach (DataRow linea in dtLineas.Rows)
+                {
+                    documento.Lineas.Add(new DocumentoPrevioDetalleSap
+                    {
+                        NumeroLinea = LeerEntero(linea, "NumeroLinea"),
+                        CodigoArticulo = LeerCampo(linea, "CodigoArticulo"),
+                        Descripcion = LeerCampo(linea, "Descripcion"),
+                        Cantidad = LeerDecimal(linea, "Cantidad"),
+                        UnidadMedida = LeerCampo(linea, "UnidadMedida"),
+                        PrecioUnitario = LeerDecimal(linea, "PrecioUnitario"),
+                        DescuentoPorcentaje = LeerDecimal(linea, "DescuentoPorcentaje"),
+                        Subtotal = LeerDecimal(linea, "Subtotal"),
+                        CodigoImpuesto = LeerCampo(linea, "CodigoImpuesto"),
+                        ImpuestoPorcentaje = LeerDecimal(linea, "ImpuestoPorcentaje"),
+                        Impuesto = LeerDecimal(linea, "Impuesto"),
+                        Total = LeerDecimal(linea, "TotalLinea"),
+                        Moneda = NormalizarMoneda(LeerCampo(linea, "Moneda")),
+                        Bodega = LeerCampo(linea, "Bodega"),
+                        EstadoLinea = LeerCampo(linea, "EstadoLinea"),
+                        TipoBase = LeerEntero(linea, "TipoBase"),
+                        EntradaBase = LeerEntero(linea, "EntradaBase"),
+                        LineaBase = LeerEntero(linea, "LineaBase"),
+                        ReferenciaBase = LeerCampo(linea, "ReferenciaBase")
+                    });
+                }
+                return documento;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(string.Format(
+                    "Error HANA al consultar el detalle del documento previo ({0} / {1} / {2}): {3}",
+                    empresa, claseNormalizada, docEntry, ex.Message), ex);
+            }
+        }
+
     }
 }

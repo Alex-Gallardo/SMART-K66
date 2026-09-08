@@ -4,7 +4,7 @@
 }
 
 @section styles {
-    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260907-factura-action-first")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc.css?v=20260908-documentos-previos")" rel="stylesheet" />
 }
 
 <div class="bnc bnc-shell" id="bncAuthApp"
@@ -12,8 +12,9 @@
      data-url-detalle="@Url.Action("ObtenerDetalleAutorizacion", "BorradorNc")"
      data-url-detalle-facturas="@Url.Action("ObtenerDetallesFacturasAutorizacion", "BorradorNc")"
      data-url-factura-borrador="@Url.Action("DetalleFacturaBorrador", "BorradorNc")"
+     data-url-documentos-previos="@Url.Action("ObtenerDocumentosPreviosAutorizacion", "BorradorNc")"
+     data-url-documento-previo="@Url.Action("DetalleDocumentoPrevio", "BorradorNc")"
      data-url-adjunto="@Url.Action("DescargarAdjunto", "BorradorNc")"
-     data-url-notas="@Url.Action("ObtenerNotasCreditoPrevias", "BorradorNc")"
      data-url-resolver="@Url.Action("Resolver", "BorradorNc")"
      data-url-imprimir="@Url.Action("Imprimir", "BorradorNc")">
 
@@ -38,7 +39,7 @@
     <div class="bnc-summary-grid">
         <div class="bnc-summary is-pending"><span>Pendientes</span><strong id="bncAuthKpiCount">0</strong></div>
         <div class="bnc-summary is-total"><span>Monto pendiente</span><strong id="bncAuthKpiMonto">0.00</strong></div>
-        <div class="bnc-summary"><span>Con NC previas</span><strong id="bncAuthKpiNc">0</strong></div>
+        <div class="bnc-summary"><span>Con antecedentes SAP</span><strong id="bncAuthKpiNc">0</strong></div>
         <div class="bnc-summary"><!--<span>Empresas visibles</span><strong>@@Model.Empresas.Count</strong>--></div>
     </div>
 
@@ -111,7 +112,7 @@
             <div class="bnc-empty">
                 <i class="icon-hand-left"></i>
                 <strong>Seleccione una solicitud</strong>
-                <span>Revise cada línea y sus NC previas antes de autorizar.</span>
+                <span>Revise cada línea y sus documentos previos de SAP antes de autorizar.</span>
             </div>
         </section>
     </div>
@@ -152,7 +153,7 @@
             <div class="modal-body">
                 <div class="bnc-inline-alert is-visible is-info">
                     <i class="icon-info-sign"></i>
-                    <span>Confirme que revisó importes, documentos y notas de crédito previas de SAP.</span>
+                    <span>Confirme que revisó importes, documentos, notas de crédito y devoluciones previas de SAP.</span>
                 </div>
                 <div class="bnc-field" style="margin-top:12px;">
                     <label for="bncApproveNote">Comentario opcional</label>
@@ -172,6 +173,7 @@
 @section scripts {
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Fechas.js?v=20260825")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-FacturasDetalle.js?v=20260907-borrador")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-DocumentosPrevios.js?v=20260908")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Adjuntos.js?v=20260831")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Autorizaciones.js?v=20260907-factura-action-first")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Autorizaciones.js?v=20260908-documentos-previos")"></script>
 }

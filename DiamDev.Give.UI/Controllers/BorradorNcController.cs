@@ -145,6 +145,43 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
+        public ActionResult DetalleDocumentoPrevio(
+            string empresa, string idBorrador, string factura,
+            string documento, string clase, string origen = null)
+        {
+            ValidarEmpresa(empresa);
+            var enc = _bll.ObtenerPorId(empresa, idBorrador);
+            if (enc == null) return HttpNotFound("Borrador no encontrado.");
+            if (!PuedeConsultarFacturaBorrador(enc))
+                return new HttpUnauthorizedResult();
+
+            var previo = BuscarDocumentoPrevio(
+                enc, factura, documento, clase);
+            if (previo == null)
+                return HttpNotFound(
+                    "El documento previo no está relacionado con las facturas del borrador.");
+
+            var detalle = _bll.ObtenerDetalleDocumentoPrevio(
+                enc.IdEmpresa, previo.Clase, previo.DocEntry, enc.IdCliente);
+            if (detalle == null)
+                return HttpNotFound("El documento ya no está disponible en SAP.");
+
+            detalle.Factura = previo.Factura;
+            detalle.TiposOrigen = previo.TiposOrigen;
+            bool desdeAutorizaciones =
+                string.Equals(origen, "autorizaciones",
+                              StringComparison.OrdinalIgnoreCase) &&
+                TienePermiso(PERMISO_AUTORIZAR);
+            var modelo = ProyectarDetalleDocumentoPrevio(
+                enc, detalle, desdeAutorizaciones);
+
+            CustomHelper.setTitle(
+                modelo.ClaseTexto + " " + modelo.Documento,
+                "Detalle del documento previo en SAP");
+            return View(modelo);
+        }
+
+        [HttpGet]
         [BorradorNcPermiso(PERMISO_VER)]
         public ActionResult AbrirFacturaSap(string empresa, string clienteId,
                                             string codigoOperador, string documento)
@@ -187,6 +224,32 @@ namespace DiamDev.Give.UI.Controllers
             if (string.IsNullOrWhiteSpace(urlPdf))
                 return HttpNotFound(
                     "SAP no tiene una dirección válida para el PDF de esta factura.");
+
+            return Redirect(urlPdf);
+        }
+
+        [HttpGet]
+        public ActionResult AbrirDocumentoPrevioSap(
+            string empresa, string idBorrador, string factura,
+            string documento, string clase)
+        {
+            ValidarEmpresa(empresa);
+            var enc = _bll.ObtenerPorId(empresa, idBorrador);
+            if (enc == null) return HttpNotFound("Borrador no encontrado.");
+            if (!PuedeConsultarFacturaBorrador(enc))
+                return new HttpUnauthorizedResult();
+
+            var previo = BuscarDocumentoPrevio(
+                enc, factura, documento, clase);
+            if (previo == null)
+                return HttpNotFound(
+                    "El documento previo no está relacionado con las facturas del borrador.");
+
+            string urlPdf = _bll.ObtenerUrlPdfDocumentoPrevio(
+                enc.IdEmpresa, previo.Clase, previo.DocEntry, enc.IdCliente);
+            if (string.IsNullOrWhiteSpace(urlPdf))
+                return HttpNotFound(
+                    "SAP no tiene una dirección válida para el PDF de este documento.");
 
             return Redirect(urlPdf);
         }
@@ -434,6 +497,23 @@ namespace DiamDev.Give.UI.Controllers
             });
         }
 
+        [HttpGet]
+        [BorradorNcPermiso(PERMISO_VER)]
+        public JsonResult ObtenerDocumentosPrevios(
+            string empresa, string idBorrador)
+        {
+            return JsonGet(() =>
+            {
+                ValidarEmpresa(empresa);
+                var enc = _bll.ObtenerPorId(empresa, idBorrador);
+                if (enc == null) throw new InvalidOperationException("Borrador no encontrado.");
+                if (!PuedeConsultarSeguimiento(enc))
+                    throw new UnauthorizedAccessException("No tiene acceso a este borrador.");
+
+                return ProyectarDocumentosPrevios(enc);
+            });
+        }
+
         [BorradorNcPermiso(PERMISO_AUTORIZAR)]
         public ActionResult Autorizaciones()
         {
@@ -477,6 +557,25 @@ namespace DiamDev.Give.UI.Controllers
                 var enc = _bll.ObtenerPorId(empresa, idBorrador);
                 if (enc == null) throw new InvalidOperationException("Borrador no encontrado.");
                 return ProyectarContenidoFacturas(enc);
+            });
+        }
+
+        [HttpGet]
+        [BorradorNcPermiso(PERMISO_AUTORIZAR)]
+        public JsonResult ObtenerDocumentosPreviosAutorizacion(
+            string empresa, string idBorrador)
+        {
+            return JsonGet(() =>
+            {
+                ValidarEmpresa(empresa);
+                var enc = _bll.ObtenerPorId(empresa, idBorrador);
+                if (enc == null) throw new InvalidOperationException("Borrador no encontrado.");
+                if (!string.Equals(enc.Estado, EstadosBorradorNc.Pendiente,
+                                   StringComparison.OrdinalIgnoreCase))
+                    throw new UnauthorizedAccessException(
+                        "El borrador ya no está pendiente de autorización.");
+
+                return ProyectarDocumentosPrevios(enc);
             });
         }
 
@@ -679,6 +778,29 @@ namespace DiamDev.Give.UI.Controllers
                 .FirstOrDefault(x => string.Equals(
                     (x.Documento ?? "").Trim(), documentoNormalizado,
                     StringComparison.OrdinalIgnoreCase));
+        }
+
+        private DocumentoPrevioSap BuscarDocumentoPrevio(
+            BorradorNcEncabezado enc, string factura, string documento,
+            string clase)
+        {
+            var facturaGuardada = BuscarDetalleFactura(enc, factura);
+            if (facturaGuardada == null) return null;
+
+            string documentoNormalizado = (documento ?? "").Trim();
+            string claseNormalizada = (clase ?? "").Trim();
+            if (documentoNormalizado.Length == 0 || claseNormalizada.Length == 0)
+                return null;
+
+            return _bll.ObtenerDocumentosPrevios(
+                    enc.IdEmpresa, new[] { facturaGuardada.Documento })
+                .FirstOrDefault(x =>
+                    string.Equals((x.Documento ?? "").Trim(),
+                                  documentoNormalizado,
+                                  StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals((x.Clase ?? "").Trim(),
+                                  claseNormalizada,
+                                  StringComparison.OrdinalIgnoreCase));
         }
 
         private BorradorNcFacturaConsultaViewModel CrearModeloFacturaBorrador(
@@ -1022,6 +1144,121 @@ namespace DiamDev.Give.UI.Controllers
                     Productos = productos.Select(ProyectarProductoFactura).ToList()
                 };
             }).ToList();
+        }
+
+        private List<BorradorNcDocumentoPrevioResumenViewModel> ProyectarDocumentosPrevios(
+            BorradorNcEncabezado enc)
+        {
+            var facturas = (enc.Detalles ?? new List<BorradorNcDetalle>())
+                .Select(x => (x.Documento ?? "").Trim())
+                .Where(x => x.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            return _bll.ObtenerDocumentosPrevios(enc.IdEmpresa, facturas)
+                .Select(x => new BorradorNcDocumentoPrevioResumenViewModel
+                {
+                    Clase = x.Clase,
+                    ClaseTexto = TextoClaseDocumentoPrevio(x.Clase),
+                    TiposOrigen = x.TiposOrigen,
+                    Factura = x.Factura,
+                    Documento = x.Documento,
+                    Fecha = x.Fecha.ToString("yyyy-MM-dd"),
+                    Moneda = x.Moneda,
+                    Total = x.Total,
+                    Comentarios = string.IsNullOrWhiteSpace(x.Comentarios)
+                        ? x.Origen
+                        : x.Comentarios,
+                    Cancelado = x.Cancelado
+                })
+                .ToList();
+        }
+
+        private static BorradorNcDocumentoPrevioViewModel ProyectarDetalleDocumentoPrevio(
+            BorradorNcEncabezado enc, DocumentoPrevioSap documento,
+            bool desdeAutorizaciones)
+        {
+            return new BorradorNcDocumentoPrevioViewModel
+            {
+                Empresa = enc.IdEmpresa,
+                IdBorrador = enc.IdBorrador,
+                Factura = documento.Factura,
+                Clase = documento.Clase,
+                ClaseTexto = TextoClaseDocumentoPrevio(documento.Clase),
+                TiposOrigen = documento.TiposOrigen,
+                Documento = documento.Documento,
+                EstadoSap = TextoEstadoDocumentoPrevio(documento),
+                Cancelado = documento.Cancelado,
+                TipoDocumento = documento.TipoDocumento,
+                Fecha = documento.Fecha.ToString("yyyy-MM-dd"),
+                FechaDocumento = documento.FechaDocumento.ToString("yyyy-MM-dd"),
+                ClienteId = documento.CardCode,
+                ClienteNombre = documento.CardName,
+                Referencia = documento.Referencia,
+                Moneda = documento.Moneda,
+                TipoCambio = documento.TipoCambio,
+                Total = documento.Total,
+                Origen = documento.Origen,
+                Comentarios = documento.Comentarios,
+                SerieFel = documento.SerieFel,
+                NumeroFel = documento.NumeroFel,
+                PdfDisponible = UrlWebValida(documento.UrlPdf),
+                DesdeAutorizaciones = desdeAutorizaciones,
+                Productos = (documento.Lineas ?? new List<DocumentoPrevioDetalleSap>())
+                    .OrderBy(x => x.NumeroLinea)
+                    .Select(ProyectarProductoDocumentoPrevio)
+                    .ToList()
+            };
+        }
+
+        private static BorradorNcProductoFacturaViewModel ProyectarProductoDocumentoPrevio(
+            DocumentoPrevioDetalleSap producto)
+        {
+            return new BorradorNcProductoFacturaViewModel
+            {
+                NumeroLinea = producto.NumeroLinea,
+                Sku = producto.CodigoArticulo,
+                EsServicio = string.IsNullOrWhiteSpace(producto.CodigoArticulo),
+                Descripcion = producto.Descripcion,
+                Cantidad = producto.Cantidad,
+                UnidadMedida = producto.UnidadMedida,
+                PrecioUnitario = producto.PrecioUnitario,
+                DescuentoPorcentaje = producto.DescuentoPorcentaje,
+                Subtotal = producto.Subtotal,
+                CodigoImpuesto = producto.CodigoImpuesto,
+                ImpuestoPorcentaje = producto.ImpuestoPorcentaje,
+                Impuesto = producto.Impuesto,
+                Total = producto.Total,
+                Moneda = producto.Moneda,
+                Bodega = producto.Bodega
+            };
+        }
+
+        private static string TextoClaseDocumentoPrevio(string clase)
+        {
+            return string.Equals(clase, "DEVOLUCION",
+                                 StringComparison.OrdinalIgnoreCase)
+                ? "Devolución"
+                : "Nota de crédito";
+        }
+
+        private static string TextoEstadoDocumentoPrevio(DocumentoPrevioSap documento)
+        {
+            if (documento.Cancelado) return "Cancelado";
+            if (string.Equals(documento.Estado, "C", StringComparison.OrdinalIgnoreCase))
+                return "Cerrado";
+            if (string.Equals(documento.Estado, "O", StringComparison.OrdinalIgnoreCase))
+                return "Abierto";
+            return string.IsNullOrWhiteSpace(documento.Estado)
+                ? "Sin estado"
+                : documento.Estado;
+        }
+
+        private static bool UrlWebValida(string valor)
+        {
+            Uri uri;
+            return Uri.TryCreate((valor ?? "").Trim(), UriKind.Absolute, out uri) &&
+                   (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
         }
 
         private static BorradorNcProductoFacturaViewModel ProyectarProductoFactura(

@@ -672,6 +672,41 @@ namespace DiamDev.Give.BLL
             string empresa, string documento) =>
             _hana.ObtenerNotasCreditoPrevias(empresa, documento);
 
+        /// <summary>
+        /// Notas de crédito y devoluciones previas relacionadas con las
+        /// facturas del borrador. Este contrato resuelve el documento real de
+        /// SAP y elimina las clasificaciones duplicadas NC / NC RECON para su
+        /// presentación, sin alterar el cálculo financiero existente.
+        /// </summary>
+        public List<DocumentoPrevioSap> ObtenerDocumentosPrevios(
+            string empresa, IEnumerable<string> facturas) =>
+            _hana.ObtenerDocumentosPrevios(empresa, facturas);
+
+        public DocumentoPrevioSap ObtenerDetalleDocumentoPrevio(
+            string empresa, string clase, int docEntry, string clienteId) =>
+            _hana.ObtenerDetalleDocumentoPrevio(
+                empresa, clase, docEntry, clienteId);
+
+        /// <summary>
+        /// Solo permite redirigir a una URL HTTP(S) absoluta recuperada por el
+        /// servidor directamente desde SAP.
+        /// </summary>
+        public string ObtenerUrlPdfDocumentoPrevio(
+            string empresa, string clase, int docEntry, string clienteId)
+        {
+            var documento = ObtenerDetalleDocumentoPrevio(
+                empresa, clase, docEntry, clienteId);
+            string valor = documento == null ? null : documento.UrlPdf;
+            if (string.IsNullOrWhiteSpace(valor)) return string.Empty;
+
+            Uri uri;
+            if (!Uri.TryCreate(valor.Trim(), UriKind.Absolute, out uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+                return string.Empty;
+
+            return uri.AbsoluteUri;
+        }
+
         // =====================================================================
         //  CLIENTES  (reutiliza lo que ya existe para recibos)
         // =====================================================================

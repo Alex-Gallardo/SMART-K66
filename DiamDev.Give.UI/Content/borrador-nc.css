@@ -1381,6 +1381,86 @@
 .bnc-nc-item strong { display: block; font-size: 10.5px; }
 .bnc-nc-item span { display: block; font-size: 9.5px; margin-top: 2px; }
 
+/* Notas de crédito y devoluciones previas relacionadas con el borrador. */
+.bnc-prior-documents {
+    background: #fff;
+    border-top: 1px solid var(--bnc-border);
+    max-width: 100%;
+    min-width: 0;
+    padding: 16px;
+}
+
+.bnc-follow-section-icon.is-warning {
+    background: #fffbeb;
+    border-color: #fde68a;
+    color: #d97706;
+}
+
+.bnc-prior-list { display: grid; gap: 9px; min-width: 0; }
+
+.bnc-prior-item {
+    align-items: center;
+    background: linear-gradient(90deg, #fffdf5 0%, #fff 34%);
+    border: 1px solid #f6d77a;
+    border-radius: 10px;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: 38px minmax(0, 1fr) minmax(94px, auto) minmax(104px, auto);
+    max-width: 100%;
+    min-width: 0;
+    padding: 10px;
+}
+
+.bnc-prior-icon {
+    align-items: center;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 9px;
+    color: #b45309;
+    display: inline-flex;
+    flex: 0 0 38px;
+    font-size: 14px;
+    height: 38px;
+    justify-content: center;
+}
+
+.bnc-prior-copy { min-width: 0; }
+.bnc-prior-title { align-items: center; display: flex; flex-wrap: wrap; gap: 6px; }
+.bnc-prior-title strong { color: #273449; font-size: 11.5px; overflow-wrap: anywhere; }
+.bnc-prior-status {
+    background: #fef3c7;
+    border: 1px solid #fde68a;
+    border-radius: 999px;
+    color: #92400e;
+    font-size: 7.5px;
+    font-weight: 800;
+    letter-spacing: .035em;
+    padding: 3px 6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+.bnc-prior-status.is-cancelled { background: #fee2e2; border-color: #fecaca; color: #991b1b; }
+.bnc-prior-meta { color: #64748b; display: flex; flex-wrap: wrap; font-size: 8.5px; gap: 3px 10px; margin-top: 4px; }
+.bnc-prior-meta span { align-items: center; display: inline-flex; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.bnc-prior-meta i { color: #94a3b8; }
+.bnc-prior-copy p { color: #64748b; font-size: 9px; line-height: 1.4; margin: 5px 0 0; overflow-wrap: anywhere; }
+.bnc-prior-summary { min-width: 0; text-align: right; }
+.bnc-prior-summary small,
+.bnc-prior-summary strong { display: block; }
+.bnc-prior-summary small { color: #64748b; font-size: 7.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.bnc-prior-summary strong { color: #78350f; font-size: 11px; font-variant-numeric: tabular-nums; margin-top: 3px; overflow-wrap: anywhere; }
+.bnc-prior-action { justify-content: center; min-width: 104px; width: 100%; }
+
+.bnc-prior-notes {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-top: 16px;
+}
+.bnc-prior-notes article { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 9px; min-width: 0; padding: 11px 12px; }
+.bnc-prior-notes small { color: var(--bnc-muted); display: block; font-size: 8px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.bnc-prior-notes p { color: #334155; font-size: 10.5px; line-height: 1.45; margin: 5px 0 0; overflow-wrap: anywhere; white-space: pre-line; }
+
 /* Documentación opcional: captura, consulta y vista previa. */
 .bnc-attachment-capture-grid {
     display: grid;
@@ -1771,6 +1851,9 @@
     .bnc-client-dropdown { min-width: 0; }
     .bnc-invoice-page-actions .bnc-btn { flex: 1 1 auto; }
     .bnc-invoice-detail-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .bnc-prior-item { grid-template-columns: 38px minmax(0, 1fr) minmax(104px, auto); }
+    .bnc-prior-summary { grid-column: 2; text-align: left; }
+    .bnc-prior-action { grid-column: 3; grid-row: 1 / span 2; }
 }
 
 @media (max-width: 430px) {
@@ -1798,6 +1881,12 @@
     .bnc-invoice-page-actions { flex-wrap: wrap; }
     .bnc-invoice-page-actions .bnc-btn { justify-content: center; width: 100%; }
     .bnc-invoice-detail-lines-total { align-items: flex-end; flex-direction: column; gap: 4px; }
+    .bnc-prior-documents { padding-left: 10px; padding-right: 10px; }
+    .bnc-prior-item { align-items: start; grid-template-columns: 34px minmax(0, 1fr); }
+    .bnc-prior-icon { flex-basis: 34px; height: 34px; }
+    .bnc-prior-summary { grid-column: 2; }
+    .bnc-prior-action { grid-column: 1 / -1; grid-row: auto; min-width: 0; }
+    .bnc-prior-notes { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -24,7 +24,7 @@
             <span class="bnc-hero-icon" aria-hidden="true"><i class="icon-check"></i></span>
             <div>
                 <h2>Autorización de borradores NC</h2>
-                <p>Revise la solicitud, sus facturas y antecedentes antes de decidir.</p>
+                <p>Revise la solicitud, sus facturas y antecedentes.</p>
             </div>
         </div>
         <div class="bnc-hero-meta">
@@ -39,7 +39,7 @@
         <div class="bnc-summary is-pending"><span>Pendientes</span><strong id="bncAuthKpiCount">0</strong></div>
         <div class="bnc-summary is-total"><span>Monto pendiente</span><strong id="bncAuthKpiMonto">0.00</strong></div>
         <div class="bnc-summary"><span>Con NC previas</span><strong id="bncAuthKpiNc">0</strong></div>
-        <div class="bnc-summary"><span>Empresas visibles</span><strong>@Model.Empresas.Count</strong></div>
+        <div class="bnc-summary"><!--<span>Empresas visibles</span><strong>@@Model.Empresas.Count</strong>--></div>
     </div>
 
     <div class="bnc-card">
@@ -57,6 +57,10 @@
         </div>
         <div class="bnc-card-body">
             <div class="bnc-toolbar">
+                <div class="bnc-field bnc-search">
+                    <label for="bncAuthSearch">Buscar</label>
+                    <input class="form-control" id="bncAuthSearch" placeholder="Borrador, cliente o agente..." />
+                </div>
                 <div class="bnc-field">
                     <label for="bncAuthEmpresa">Empresa</label>
                     <select class="form-control" id="bncAuthEmpresa">
@@ -66,10 +70,6 @@
                             <option value="@empresa.Nombre">@empresa.Nombre</option>
                         }
                     </select>
-                </div>
-                <div class="bnc-field bnc-search">
-                    <label for="bncAuthSearch">Buscar</label>
-                    <input class="form-control" id="bncAuthSearch" placeholder="Borrador, cliente o agente..." />
                 </div>
             </div>
         </div>

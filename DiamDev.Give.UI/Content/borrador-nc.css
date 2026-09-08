@@ -562,13 +562,14 @@
 
 .bnc-linked-invoice-action {
     box-shadow: 0 4px 10px rgba(37, 99, 235, .16);
+    box-sizing: border-box;
     font-size: 9px;
     font-weight: 750;
     justify-content: center;
     margin-top: 7px;
     max-width: 100%;
     min-height: 30px;
-    padding: 5px 8px;
+    padding: 5px 8px !important;
     white-space: normal;
     width: 100%;
 }
@@ -865,7 +866,7 @@
     background: #fff;
     border: 1px solid #dbe4f0;
     border-radius: 12px;
-    box-shadow: 0 3px 10px rgba(15, 23, 42, .04);
+    /*box-shadow: 0 3px 10px rgba(15, 23, 42, .04);*/
     overflow: hidden;
     transition: border-color .18s ease, box-shadow .18s ease;
 }
@@ -996,7 +997,7 @@
 
 .bnc-sap-table-shell {
     max-width: 100%;
-    padding: 12px;
+    /*padding: 12px;*/
 }
 
 .bnc-sap-table-region {

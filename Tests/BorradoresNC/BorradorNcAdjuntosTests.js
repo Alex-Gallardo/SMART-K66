@@ -55,7 +55,7 @@ assert.match(controlador, /PermiteAdjuntarEnlaces = HabilitarEnlaces/);
 
 assert.match(index, /Documentación de respaldo/);
 assert.match(index, /id="bncArchivos" multiple/);
-assert.match(index, /Puede guardar el borrador sin documentación/);
+assert.match(index, /Obligatorio, excepto cuando todas las líneas sean Descuento autorizado/);
 assert.match(index, /if \(Model\.PermiteAdjuntarEnlaces\)/);
 assert.match(index, /data-habilitar-enlaces=/);
 assert.match(index, /BorradorNc-Adjuntos\.js/);
@@ -90,4 +90,4 @@ assert.match(sql, /ON DELETE CASCADE/);
 assert.match(sql, /TIPO IN \('ARCHIVO', 'ENLACE'\)/);
 assert.match(sql, /TAMANO BETWEEN 1 AND 10485760/);
 
-console.log("OK: adjuntos opcionales de BorradorNc validados en captura, persistencia, seguridad y vistas.");
+console.log("OK: adjuntos de BorradorNc validados en captura, persistencia, seguridad y vistas.");

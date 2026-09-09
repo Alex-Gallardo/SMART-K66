@@ -37,6 +37,7 @@
         puedeAnular: String($root.data("puede-anular")) === "true"
     };
     var enlacesHabilitados = String($root.data("habilitar-enlaces")) === "true";
+    var conceptoDescuentoAutorizado = "DESCUENTO AUTORIZADO";
     var limitesAdjuntos = {
         archivos: Number($root.attr("data-max-archivos")) || 5,
         enlaces: Number($root.attr("data-max-enlaces")) || 5,
@@ -613,6 +614,7 @@
         $("#bncLineCount").text(state.lineas.length + (state.lineas.length === 1 ? " línea" : " líneas"));
         $("#bncTotal").text(dinero(total, $("#bncMoneda").val()));
         $("#bncMoneda").prop("disabled", state.lineas.length > 0);
+        actualizarEstadoRespaldo();
     }
 
     function formatoBytes(value) {
@@ -621,6 +623,46 @@
 
     function tieneCambiosSinGuardar() {
         return state.lineas.length || state.archivos.length || state.enlaces.length;
+    }
+
+    function requiereDocumentoRespaldo() {
+        if (!state.lineas.length) return false;
+        return $.grep(state.lineas, function (linea) {
+            return String(linea.Concepto || "").trim().toUpperCase() !== conceptoDescuentoAutorizado;
+        }).length > 0;
+    }
+
+    function actualizarEstadoRespaldo() {
+        var requiere = requiereDocumentoRespaldo();
+        var tieneArchivo = state.archivos.length > 0;
+        var $estado = $("#bncAdjuntoCount");
+        var resumen;
+        var ayuda;
+
+        $estado.removeClass("bnc-status-neutral bnc-status-pendiente bnc-status-autorizado");
+        $("#bncArchivos").attr("aria-required", requiere && !tieneArchivo ? "true" : "false");
+
+        if (tieneArchivo) {
+            $estado.addClass("bnc-status-autorizado").text(
+                state.archivos.length + (state.archivos.length === 1 ? " documento" : " documentos"));
+            resumen = "La documentación seleccionada se guardará con el borrador.";
+            ayuda = "El requisito de documentación está completo. Los archivos no podrán modificarse después de crear el borrador.";
+        } else if (requiere) {
+            $estado.addClass("bnc-status-pendiente").text("Documento requerido");
+            resumen = "Los conceptos seleccionados requieren documentación de respaldo.";
+            ayuda = "Debe adjuntar al menos un archivo para poder guardar este borrador.";
+        } else if (state.lineas.length) {
+            $estado.addClass("bnc-status-autorizado").text("Documento opcional");
+            resumen = "Opcional porque todas las líneas son Descuento autorizado.";
+            ayuda = "Puede guardar este borrador sin documentación de respaldo.";
+        } else {
+            $estado.addClass("bnc-status-neutral").text("Según concepto");
+            resumen = "Obligatorio, excepto cuando todas las líneas sean Descuento autorizado.";
+            ayuda = "Adjunte al menos un archivo. Solo es opcional cuando todas las líneas tengan el concepto Descuento autorizado.";
+        }
+
+        $("#bncRespaldoResumen").text(resumen);
+        $("#bncRespaldoAyuda").text(ayuda);
     }
 
     function renderAdjuntosCaptura() {
@@ -650,8 +692,7 @@
         $("#bncArchivoContador").text(state.archivos.length + " / " + limitesAdjuntos.archivos);
         if (enlacesHabilitados)
             $("#bncEnlaceContador").text(state.enlaces.length + " / " + limitesAdjuntos.enlaces);
-        var total = state.archivos.length + (enlacesHabilitados ? state.enlaces.length : 0);
-        $("#bncAdjuntoCount").text(total ? total + (total === 1 ? " adjunto" : " adjuntos") : "Sin adjuntos");
+        actualizarEstadoRespaldo();
     }
 
     function agregarArchivos(lista) {
@@ -742,6 +783,12 @@
         if (!agente().trim()) return "No se pudo determinar el agente.";
         if (!$("#bncMoneda").val()) return "Seleccione la moneda.";
         if (!state.lineas.length) return "Agregue al menos una línea.";
+        if (requiereDocumentoRespaldo() && !state.archivos.length) {
+            var respaldo = $("#bncRespaldoCard")[0];
+            if (respaldo && respaldo.scrollIntoView)
+                respaldo.scrollIntoView({ behavior: "smooth", block: "center" });
+            return "Debe adjuntar al menos un documento de respaldo para los conceptos seleccionados.";
+        }
         if ($("#bncDireccion").val().trim().length > 200) return "La dirección no puede exceder 200 caracteres.";
         if ($("#bncCorreo").val().trim().length > 100) return "El correo no puede exceder 100 caracteres.";
         if (enlacesHabilitados && $("#bncEnlaceUrl").val().trim())

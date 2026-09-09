@@ -1,39 +1,37 @@
 /* =============================================================================
-   BORRADORES NC — DASHBOARD DE CREDITOS Y BITACORA
-   Destino autorizado: POS-SmartK66
+   BORRADORES NC — DASHBOARD DE CREDITOS Y BITACORA (DESARROLLO)
+   Destino autorizado: POS-SmartK66_DEV
 
    Crea, de forma idempotente:
    - dbo.BORR_NC_BITACORA (eventos append-only de la aplicación).
    - Permiso Control.BorradorNC.Dashboard.
    - Menú BorradorNc/DashboardBNC.
 
-   La asignación de permisos a roles se realiza manualmente después de ejecutar
-   esta migración.
-
+   No crea roles ni asigna permisos. Esa asignación se realiza manualmente.
    Ejecute el archivo completo en una ventana nueva de SSMS.
    ============================================================================= */
-USE [POS-SmartK66];
+USE [POS-SmartK66_DEV];
 GO
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 SET LOCK_TIMEOUT 5000;
 GO
 
-IF DB_NAME() <> N'POS-SmartK66'
-    THROW 56000, 'SEGURIDAD: script autorizado únicamente para POS-SmartK66.', 1;
+IF DB_NAME() <> N'POS-SmartK66_DEV'
+    THROW 56100, 'SEGURIDAD: script autorizado únicamente para POS-SmartK66_DEV.', 1;
 
 IF OBJECT_ID(N'dbo.BORR_NC_ENC', N'U') IS NULL
    OR OBJECT_ID(N'dbo.BORR_NC_DET', N'U') IS NULL
    OR OBJECT_ID(N'dbo.BORR_NC_ADJUNTO', N'U') IS NULL
    OR OBJECT_ID(N'dbo.Permiso', N'U') IS NULL
    OR OBJECT_ID(N'dbo.Menu', N'U') IS NULL
-    THROW 56001, 'Faltan objetos base requeridos por el dashboard.', 1;
+    THROW 56101, 'Faltan objetos base requeridos por el dashboard.', 1;
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Permiso WHERE Nombre=N'Control.BorradorNC.VerTodos')
-    THROW 56008, 'Falta el permiso base Control.BorradorNC.VerTodos. Ejecute primero 02_configurar_permisos_menu_roles.sql.', 1;
+    THROW 56108, 'Falta el permiso base Control.BorradorNC.VerTodos. Ejecute primero 02_configurar_permisos_menu_roles.sql.', 1;
 
 IF NOT EXISTS (SELECT 1 FROM dbo.Menu WHERE Controller=N'BorradorNc' AND Action=N'Index')
-    THROW 56009, 'Falta la entrada base BorradorNc/Index. Ejecute primero 02_configurar_permisos_menu_roles.sql.', 1;
+    THROW 56109, 'Falta la entrada base BorradorNc/Index. Ejecute primero 02_configurar_permisos_menu_roles.sql.', 1;
 GO
 
 BEGIN TRY
@@ -41,9 +39,9 @@ BEGIN TRY
 
     DECLARE @LockResult int;
     EXEC @LockResult = sys.sp_getapplock
-         @Resource=N'BorradorNc.Dashboard.Bitacora', @LockMode=N'Exclusive',
+         @Resource=N'BorradorNc.Dashboard.Bitacora.DEV', @LockMode=N'Exclusive',
          @LockOwner=N'Transaction', @LockTimeout=5000;
-    IF @LockResult < 0 THROW 56002, 'No fue posible obtener el bloqueo de migración.', 1;
+    IF @LockResult < 0 THROW 56102, 'No fue posible obtener el bloqueo de migración.', 1;
 
     IF OBJECT_ID(N'dbo.BORR_NC_BITACORA', N'U') IS NULL
     BEGIN
@@ -78,7 +76,7 @@ BEGIN TRY
        OR COL_LENGTH(N'dbo.BORR_NC_BITACORA', N'EVENTO') IS NULL
        OR COL_LENGTH(N'dbo.BORR_NC_BITACORA', N'USUARIO') IS NULL
        OR COL_LENGTH(N'dbo.BORR_NC_BITACORA', N'REGISTRO') IS NULL
-        THROW 56003, 'BORR_NC_BITACORA existe con una estructura incompatible.', 1;
+        THROW 56103, 'BORR_NC_BITACORA existe con una estructura incompatible.', 1;
 
     IF NOT EXISTS (SELECT 1 FROM sys.indexes
                    WHERE object_id=OBJECT_ID(N'dbo.BORR_NC_BITACORA')
@@ -95,7 +93,7 @@ BEGIN TRY
     IF EXISTS (SELECT 1 FROM dbo.Permiso WHERE Nombre=N'Control.BorradorNC.Dashboard'
                AND (Descripcion<>N'Consultar el dashboard de borradores de nota de crédito'
                     OR Modulo<>N'Borradores NC'))
-        THROW 56004, 'El permiso Dashboard existe con datos incompatibles.', 1;
+        THROW 56104, 'El permiso Dashboard existe con datos incompatibles.', 1;
 
     IF NOT EXISTS (SELECT 1 FROM dbo.Permiso WITH (UPDLOCK,HOLDLOCK)
                    WHERE Nombre=N'Control.BorradorNC.Dashboard')
@@ -113,7 +111,7 @@ BEGIN TRY
                AND (ISNULL(Menu_Padre_Id,-1)<>@MenuPadre
                     OR ISNULL(PermisoId,N'')<>N'Control.BorradorNC.Dashboard'
                     OR ISNULL(IsActive,0)<>1))
-        THROW 56007, 'La entrada DashboardBNC existente es incompatible.', 1;
+        THROW 56107, 'La entrada DashboardBNC existente es incompatible.', 1;
 
     IF NOT EXISTS (SELECT 1 FROM dbo.Menu WHERE Controller=N'BorradorNc' AND Action=N'DashboardBNC')
     BEGIN
@@ -137,22 +135,22 @@ BEGIN CATCH
 END CATCH;
 GO
 
-SELECT N'06A_ENTORNO' SECCION,
+SELECT N'06A_ENTORNO_DEV' SECCION,
        CONVERT(nvarchar(128),SERVERPROPERTY('ServerName')) SERVIDOR,
        DB_NAME() BASE_ACTUAL, SYSDATETIME() FECHA_EJECUCION;
 
-SELECT N'06B_OBJETO' SECCION, s.name ESQUEMA, o.name OBJETO, o.type_desc TIPO
+SELECT N'06B_OBJETO_DEV' SECCION, s.name ESQUEMA, o.name OBJETO, o.type_desc TIPO
 FROM sys.objects o JOIN sys.schemas s ON s.schema_id=o.schema_id
 WHERE o.object_id=OBJECT_ID(N'dbo.BORR_NC_BITACORA');
 
-SELECT N'06C_PERMISO' SECCION, Nombre, Descripcion, Modulo
+SELECT N'06C_PERMISO_DEV' SECCION, Nombre, Descripcion, Modulo
 FROM dbo.Permiso
 WHERE Nombre=N'Control.BorradorNC.Dashboard';
 
-SELECT N'06D_MENU' SECCION,Menu_Id,Menu_Padre_Id,Titulo,Action,Controller,Orden,PermisoId
+SELECT N'06D_MENU_DEV' SECCION,Menu_Id,Menu_Padre_Id,Titulo,Action,Controller,Orden,PermisoId
 FROM dbo.Menu WHERE Controller=N'BorradorNc' AND Action=N'DashboardBNC';
 
-SELECT N'06E_RESUMEN' SECCION, VALIDACION, ESPERADO, REAL,
+SELECT N'06E_RESUMEN_DEV' SECCION, VALIDACION, ESPERADO, REAL,
        CASE WHEN ESPERADO=REAL THEN N'OK' ELSE N'REVISAR' END RESULTADO
 FROM (VALUES
     (N'Tabla de bitácora',CONVERT(bigint,1),CONVERT(bigint,CASE WHEN OBJECT_ID(N'dbo.BORR_NC_BITACORA',N'U') IS NULL THEN 0 ELSE 1 END)),

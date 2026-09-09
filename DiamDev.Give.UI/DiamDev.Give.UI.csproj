@@ -598,6 +598,8 @@
     <Content Include="Content\PagedList.css" />
     <Content Include="Content\Site.css" />
     <Content Include="Content\borrador-nc.css" />
+    <Content Include="Content\borrador-nc-dashboard.css" />
+    <Content Include="Content\borrador-nc-dashboard-audit.css" />
     <Content Include="Content\cotizaciones.css" />
     <Content Include="Content\backlog-viz.css" />
     <Content Include="Content\produccion-v2-shared.css" />
@@ -661,6 +663,7 @@
     <Content Include="Scripts\App\BorradorNc-Adjuntos.js" />
     <Content Include="Scripts\App\BorradorNc-Index.js" />
     <Content Include="Scripts\App\BorradorNc-Autorizaciones.js" />
+    <Content Include="Scripts\App\BorradorNc-Dashboard.js" />
     <Content Include="Scripts\App\Cotizacion-Index.js" />
     <Content Include="Scripts\App\backlog-viz.js" />
     <Content Include="Scripts\App\produccion-v2-shared.js" />
@@ -1408,6 +1411,8 @@
     <Content Include="Views\BorradorNc\Imprimir.cshtml" />
     <Content Include="Views\BorradorNc\DetalleFactura.cshtml" />
     <Content Include="Views\BorradorNc\DetalleDocumentoPrevio.cshtml" />
+    <Content Include="Views\BorradorNc\DashboardBNC.cshtml" />
+    <Content Include="Views\BorradorNc\ImprimirLote.cshtml" />
     <Content Include="Views\Cotizacion\Index.cshtml" />
     <Content Include="Views\Cotizacion\Imprimir.cshtml" />
     <Content Include="Views\ReciboCaja\_ReciboImpresion.cshtml" />

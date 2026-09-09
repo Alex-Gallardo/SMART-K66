@@ -1,0 +1,105 @@
+@model DiamDev.Give.UI.Models.BorradorNcDashboardViewModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="@Url.Content("~/Content/borrador-nc-dashboard.css?v=20260908")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc-dashboard-audit.css?v=20260908")" rel="stylesheet" />
+}
+
+<main class="bncd" id="bncDashboard"
+      data-url-consultar="@Url.Action("ConsultarDashboardBNC", "BorradorNc")"
+      data-url-bitacora="@Url.Action("ObtenerBitacoraBNC", "BorradorNc")"
+      data-url-ver="@Url.Action("Imprimir", "BorradorNc")"
+      data-url-exportar="@Url.Action("ExportarDashboardBNC", "BorradorNc")"
+      data-url-imprimir="@Url.Action("ImprimirLoteBNC", "BorradorNc")"
+      data-max-imprimir="@Model.MaximoImpresion">
+    @Html.AntiForgeryToken()
+
+    <header class="bncd-hero">
+        <div>
+            <span class="bncd-eyebrow">Créditos · control operativo</span>
+            <h1>Dashboard de Borradores NC</h1>
+            <p>Seguimiento, consulta y auditoría de solicitudes y sus facturas.</p>
+        </div>
+        <div class="bncd-scope">
+            <i class="icon-shield"></i>
+            <span><small>Alcance de datos</small><strong>@(Model.AlcanceGlobal ? "Global" : "Mis agentes y creados por mí")</strong></span>
+        </div>
+    </header>
+
+    <section class="bncd-kpis" aria-label="Resumen">
+        <button class="bncd-kpi active" type="button" data-state=""><span>Total</span><strong id="kpiTotal">—</strong></button>
+        <button class="bncd-kpi" type="button" data-state="PENDIENTE"><span>Pendientes</span><strong id="kpiPendientes">—</strong><small id="kpiVencidos">— vencidos</small></button>
+        <button class="bncd-kpi" type="button" data-state="AUTORIZADO"><span>Autorizados</span><strong id="kpiAutorizados">—</strong></button>
+        <button class="bncd-kpi" type="button" data-state="RECHAZADO"><span>Rechazados</span><strong id="kpiRechazados">—</strong></button>
+        <button class="bncd-kpi" type="button" data-state="ANULADO"><span>Anulados</span><strong id="kpiAnulados">—</strong></button>
+        <div class="bncd-kpi"><span>Tiempo promedio</span><strong id="kpiPromedio">—</strong><small>hasta resolución</small></div>
+    </section>
+
+    <section class="bncd-panel bncd-filters">
+        <div class="bncd-panel-head">
+            <div><h2>Filtros</h2><p>Combina criterios para encontrar solicitudes específicas.</p></div>
+            <button type="button" class="bncd-btn ghost" id="btnLimpiar"><i class="icon-refresh"></i> Limpiar</button>
+        </div>
+        <div class="bncd-filter-grid">
+            <label>Empresa<select id="fEmpresa"><option value="">Todas</option></select></label>
+            <label>Estado<select id="fEstado"><option value="">Todos</option><option>PENDIENTE</option><option>AUTORIZADO</option><option>RECHAZADO</option><option>ANULADO</option></select></label>
+            <label>Campo de fecha<select id="fCampoFecha"><option value="REGISTRO">Creación</option><option value="RESOLUCION">Resolución</option></select></label>
+            <label>Desde<input type="date" id="fDesde" /></label>
+            <label>Hasta<input type="date" id="fHasta" /></label>
+            <label>Agente<select id="fAgente"><option value="">Todos</option></select></label>
+            <label>Creado por<select id="fCreador"><option value="">Todos</option></select></label>
+            <label>Resuelto por<select id="fResuelto"><option value="">Todos</option></select></label>
+            <label>Moneda<select id="fMoneda"><option value="">Todas</option></select></label>
+            <label>Adjuntos<select id="fAdjuntos"><option value="">Todos</option><option value="true">Con adjuntos</option><option value="false">Sin adjuntos</option></select></label>
+            <label>Antecedentes SAP<select id="fAntecedentes"><option value="">Todos</option><option value="true">Con antecedentes</option><option value="false">Sin antecedentes</option></select></label>
+            <label class="wide">Buscar<input id="fTexto" type="search" placeholder="Borrador, factura, cliente, NIT o agente…" /></label>
+        </div>
+    </section>
+
+    <section class="bncd-panel">
+        <div class="bncd-toolbar">
+            <div>
+                <h2>Resultados</h2>
+                <p><strong id="totalFilas">0</strong> borradores · <span id="seleccionados">0 seleccionados</span></p>
+            </div>
+            <div class="bncd-actions">
+                <button type="button" class="bncd-btn" id="btnExportar" title="Con selección exporta solo lo marcado; sin selección exporta todos los resultados filtrados"><i class="icon-download"></i> Exportar Excel</button>
+                <button type="button" class="bncd-btn primary" id="btnImprimir" disabled><i class="icon-printer"></i> Imprimir selección</button>
+            </div>
+        </div>
+        <div class="bncd-currency" id="totalesMoneda"></div>
+        <div class="bncd-table-wrap">
+            <table class="bncd-table">
+                <thead><tr>
+                    <th class="action">Ver</th><th class="check"><input type="checkbox" id="seleccionarPagina" aria-label="Seleccionar página" /></th>
+                    <th data-sort="BORRADOR">Borrador</th><th data-sort="EMPRESA">Empresa</th><th data-sort="FECHA">Fecha</th>
+                    <th data-sort="CLIENTE">Cliente</th><th data-sort="AGENTE">Agente</th><th data-sort="ESTADO">Estado</th>
+                    <th data-sort="TOTAL" class="number">Total</th><th>Facturas</th><th>Adjuntos</th><th>Creado por</th><th>Resolución</th>
+                </tr></thead>
+                <tbody id="dashboardFilas"><tr><td colspan="13" class="empty">Cargando…</td></tr></tbody>
+            </table>
+        </div>
+        <footer class="bncd-pagination">
+            <label>Filas <select id="tamanoPagina"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
+            <span id="rangoPagina">0–0 de 0</span>
+            <div><button type="button" id="paginaAnterior" aria-label="Página anterior">‹</button><span id="paginaActual">1 / 1</span><button type="button" id="paginaSiguiente" aria-label="Página siguiente">›</button></div>
+        </footer>
+    </section>
+
+    <form method="post" target="_blank" id="formImprimir" action="@Url.Action("ImprimirLoteBNC", "BorradorNc")">@Html.AntiForgeryToken()</form>
+    <form method="post" id="formExportar" action="@Url.Action("ExportarDashboardBNC", "BorradorNc")">@Html.AntiForgeryToken()</form>
+
+    <div class="bncd-modal" id="modalBitacora" hidden>
+        <div class="bncd-modal-card" role="dialog" aria-modal="true" aria-labelledby="tituloBitacora">
+            <header><div><h2 id="tituloBitacora">Historial del borrador</h2><p id="subtituloBitacora"></p></div><button type="button" id="cerrarBitacora" aria-label="Cerrar">×</button></header>
+            <div class="bncd-timeline" id="listaBitacora"></div>
+        </div>
+    </div>
+</main>
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Dashboard.js?v=20260908")"></script>
+}

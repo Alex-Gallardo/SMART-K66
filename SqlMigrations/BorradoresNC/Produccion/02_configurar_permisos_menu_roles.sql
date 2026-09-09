@@ -1,6 +1,6 @@
 /* =============================================================================
    BORRADORES NC — PERMISOS, MENU Y ROLES
-   Destino autorizado: POS-SmartK66 (PRUEBAS)
+   Destino autorizado: POS-SmartK66_DEV (PRODUCCION)
 
    Alcance autorizado
    ------------------
@@ -17,16 +17,16 @@
    - Calcula Menu_Id y Orden bajo bloqueo exclusivo para evitar colisiones.
    - Usa una transaccion y revierte todo ante cualquier error.
    - Es reejecutable; se detiene ante configuraciones incompatibles.
-   - No cambia BorradorNC.OmitirPermisos: el bypass sigue activo durante pruebas.
+   - No cambia Web.config: en producción BorradorNC.OmitirPermisos debe ser false.
 
    Ejecucion
    ---------
-   1. Abra una ventana NUEVA en SSMS y conectese al servidor de pruebas.
+   1. Abra una ventana NUEVA en SSMS y conectese al servidor de produccion.
    2. Ejecute el archivo COMPLETO, sin seleccionar bloques parciales.
    3. Envie las salidas 02A a 02E y la pestana Messages.
    ============================================================================= */
 
-USE [POS-SmartK66];
+USE [POS-SmartK66_DEV];
 GO
 
 SET NOCOUNT ON;
@@ -39,10 +39,10 @@ EXEC sys.sp_set_session_context
      @value = 0;
 GO
 
-IF DB_NAME() <> N'POS-SmartK66'
+IF DB_NAME() <> N'POS-SmartK66_DEV'
 BEGIN
     THROW 52000,
-          'SEGURIDAD: esta migracion solo esta autorizada para POS-SmartK66.',
+          'SEGURIDAD: esta migracion solo esta autorizada para POS-SmartK66_DEV.',
           1;
 END;
 
@@ -211,7 +211,7 @@ BEGIN TRY
         SELECT 1
         FROM dbo.Menu
         WHERE Controller = N'BorradorNc'
-          AND (Action IS NULL OR Action NOT IN (N'Index', N'Autorizaciones', N'DashboardBNC'))
+          AND (Action IS NULL OR Action NOT IN (N'Index', N'Autorizaciones'))
     )
     OR (SELECT COUNT(*) FROM dbo.Menu
         WHERE Controller = N'BorradorNc' AND Action = N'Index') > 1
@@ -465,5 +465,5 @@ FROM
 ) V
 ORDER BY V.VALIDACION;
 
-PRINT 'OK: permisos, menu y roles de BorradorNC validados en POS-SmartK66.';
+PRINT 'OK: permisos, menu y roles de BorradorNC validados en POS-SmartK66_DEV.';
 GO

@@ -20,6 +20,13 @@ namespace DiamDev.Give.UI.Models
         public List<string> Conceptos { get; set; }
     }
 
+    public class BorradorNcDashboardViewModel
+    {
+        public bool AlcanceGlobal { get; set; }
+        public int MaximoImpresion { get; set; }
+        public string UsuarioActual { get; set; }
+    }
+
     public class BorradorNcEmpresaViewModel
     {
         public BorradorNcEmpresaViewModel()

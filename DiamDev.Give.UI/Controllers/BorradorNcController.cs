@@ -6,6 +6,8 @@ using System.IO;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using OfficeOpenXml;
+using OfficeOpenXml.Style;
 using DiamDev.Give.BLL;
 using DiamDev.Give.Entities;
 using DiamDev.Give.UI.App_Start;
@@ -22,12 +24,14 @@ namespace DiamDev.Give.UI.Controllers
         private const string PERMISO_AUTORIZAR = "Control.BorradorNC.Autorizar";
         private const string PERMISO_ANULAR = "Control.BorradorNC.Anular";
         private const string PERMISO_VER_TODOS = "Control.BorradorNC.VerTodos";
+        private const string PERMISO_DASHBOARD = "Control.BorradorNC.Dashboard";
 
         private static bool HabilitarEnlaces =>
             string.Equals(ConfigurationManager.AppSettings["BorradorNC.HabilitarEnlaces"],
                           "true", StringComparison.OrdinalIgnoreCase);
 
         private readonly BorradorNcBLL _bll = new BorradorNcBLL();
+        private readonly BorradorNcDashboardBLL _dashboard = new BorradorNcDashboardBLL();
         private readonly UsuarioEmpresaBL _usuarioEmpresa = new UsuarioEmpresaBL();
         private readonly RolBL _roles = new RolBL();
 
@@ -121,7 +125,6 @@ namespace DiamDev.Give.UI.Controllers
             string empresa, string idBorrador, string documento,
             string origen = null)
         {
-            ValidarEmpresa(empresa);
             var enc = _bll.ObtenerPorId(empresa, idBorrador);
             if (enc == null) return HttpNotFound("Borrador no encontrado.");
             if (!PuedeConsultarFacturaBorrador(enc))
@@ -149,7 +152,6 @@ namespace DiamDev.Give.UI.Controllers
             string empresa, string idBorrador, string factura,
             string documento, string clase, string origen = null)
         {
-            ValidarEmpresa(empresa);
             var enc = _bll.ObtenerPorId(empresa, idBorrador);
             if (enc == null) return HttpNotFound("Borrador no encontrado.");
             if (!PuedeConsultarFacturaBorrador(enc))
@@ -209,7 +211,6 @@ namespace DiamDev.Give.UI.Controllers
         public ActionResult AbrirFacturaSapBorrador(
             string empresa, string idBorrador, string documento)
         {
-            ValidarEmpresa(empresa);
             var enc = _bll.ObtenerPorId(empresa, idBorrador);
             if (enc == null) return HttpNotFound("Borrador no encontrado.");
             if (!PuedeConsultarFacturaBorrador(enc))
@@ -233,7 +234,6 @@ namespace DiamDev.Give.UI.Controllers
             string empresa, string idBorrador, string factura,
             string documento, string clase)
         {
-            ValidarEmpresa(empresa);
             var enc = _bll.ObtenerPorId(empresa, idBorrador);
             if (enc == null) return HttpNotFound("Borrador no encontrado.");
             if (!PuedeConsultarFacturaBorrador(enc))
@@ -630,14 +630,162 @@ namespace DiamDev.Give.UI.Controllers
             }
         }
 
-        [BorradorNcPermiso(PERMISO_VER)]
         public ActionResult Imprimir(string empresa, string idBorrador)
         {
-            ValidarEmpresa(empresa);
             var enc = _bll.ObtenerPorId(empresa, idBorrador);
             if (enc == null) return HttpNotFound("Borrador no encontrado.");
             if (!PuedeImprimir(enc)) return new HttpUnauthorizedResult();
+            if (TienePermiso(PERMISO_DASHBOARD))
+                _dashboard.RegistrarEvento(enc.IdEmpresa, enc.IdBorrador, "IMPRESO",
+                    User.Identity.Name, "Impresión interna individual", Request.UserHostAddress);
             return View(enc);
+        }
+
+        [BorradorNcPermiso(PERMISO_DASHBOARD)]
+        public ActionResult DashboardBNC()
+        {
+            CustomHelper.setTitle("Dashboard Borradores NC", "Seguimiento y auditoría de Créditos");
+            return View(new BorradorNcDashboardViewModel
+            {
+                AlcanceGlobal = TienePermiso(PERMISO_VER_TODOS),
+                MaximoImpresion = _dashboard.MaximoImpresion,
+                UsuarioActual = User.Identity.Name
+            });
+        }
+
+        [HttpGet]
+        [BorradorNcPermiso(PERMISO_DASHBOARD)]
+        public JsonResult ConsultarDashboardBNC(BorradorNcDashboardFiltro filtro)
+        {
+            return JsonGet(() => _dashboard.Consultar(
+                filtro ?? new BorradorNcDashboardFiltro(), CrearAlcanceDashboard()));
+        }
+
+        [HttpGet]
+        [BorradorNcPermiso(PERMISO_DASHBOARD)]
+        public JsonResult ObtenerBitacoraBNC(string empresa, string idBorrador)
+        {
+            return JsonGet(() =>
+            {
+                var enc = _bll.ObtenerPorId(empresa, idBorrador);
+                if (enc == null) throw new InvalidOperationException("Borrador no encontrado.");
+                if (!PuedeConsultarDashboard(enc))
+                    throw new UnauthorizedAccessException("No tiene acceso a este borrador.");
+                return _dashboard.ConsultarBitacora(empresa, idBorrador);
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [BorradorNcPermiso(PERMISO_DASHBOARD)]
+        public ActionResult ExportarDashboardBNC(BorradorNcDashboardFiltro filtro, string[] claves)
+        {
+            filtro = filtro ?? new BorradorNcDashboardFiltro();
+            var alcance = CrearAlcanceDashboard();
+            var pagina = _dashboard.ConsultarParaExportar(filtro, alcance);
+            var facturas = _dashboard.ConsultarFacturas(filtro, alcance);
+            var seleccion = new HashSet<string>(
+                (claves ?? new string[0]).Where(x => !string.IsNullOrWhiteSpace(x)),
+                StringComparer.OrdinalIgnoreCase);
+            if (seleccion.Count > 0)
+            {
+                pagina.Filas = pagina.Filas.Where(x => seleccion.Contains(
+                    x.IdEmpresa + "|" + x.IdBorrador)).ToList();
+                facturas = facturas.Where(x => seleccion.Contains(
+                    x.IdEmpresa + "|" + x.IdBorrador)).ToList();
+            }
+
+            using (var paquete = new ExcelPackage())
+            {
+                var borradores = paquete.Workbook.Worksheets.Add("Borradores");
+                string[] encabezados = { "Empresa", "Borrador", "Fecha", "Registro", "Estado",
+                    "Cliente", "Nombre", "NIT", "Agente", "Moneda", "Total", "Creado por",
+                    "Resuelto por", "Fecha resolución", "Facturas", "Adjuntos", "Antecedentes SAP" };
+                for (int c = 0; c < encabezados.Length; c++) borradores.Cells[1, c + 1].Value = encabezados[c];
+                int fila = 2;
+                foreach (var item in pagina.Filas)
+                {
+                    borradores.Cells[fila, 1].Value = item.IdEmpresa;
+                    borradores.Cells[fila, 2].Value = item.IdBorrador;
+                    borradores.Cells[fila, 3].Value = item.Fecha;
+                    borradores.Cells[fila, 4].Value = item.Registro;
+                    borradores.Cells[fila, 5].Value = item.Estado;
+                    borradores.Cells[fila, 6].Value = item.IdCliente;
+                    borradores.Cells[fila, 7].Value = item.Nombre;
+                    borradores.Cells[fila, 8].Value = item.Nit;
+                    borradores.Cells[fila, 9].Value = item.Agente;
+                    borradores.Cells[fila, 10].Value = item.Moneda;
+                    borradores.Cells[fila, 11].Value = item.Total;
+                    borradores.Cells[fila, 12].Value = item.IdUsr;
+                    borradores.Cells[fila, 13].Value = item.ResueltoPor;
+                    borradores.Cells[fila, 14].Value = item.FechaResolucion;
+                    borradores.Cells[fila, 15].Value = item.Facturas;
+                    borradores.Cells[fila, 16].Value = item.Adjuntos;
+                    borradores.Cells[fila, 17].Value = item.TieneAntecedentesSap ? "Sí" : "No";
+                    fila++;
+                }
+                FormatearHojaExcel(borradores, encabezados.Length, pagina.Filas.Count + 1);
+                borradores.Column(3).Style.Numberformat.Format = "dd/mm/yyyy";
+                borradores.Column(4).Style.Numberformat.Format = "dd/mm/yyyy hh:mm";
+                borradores.Column(11).Style.Numberformat.Format = "#,##0.00";
+                borradores.Column(14).Style.Numberformat.Format = "dd/mm/yyyy hh:mm";
+
+                var detalle = paquete.Workbook.Worksheets.Add("Facturas");
+                string[] encabezadosFactura = { "Empresa", "Borrador", "Documento", "Fecha",
+                    "Concepto", "Descripción", "Moneda", "Total factura", "Importe solicitado" };
+                for (int c = 0; c < encabezadosFactura.Length; c++) detalle.Cells[1, c + 1].Value = encabezadosFactura[c];
+                fila = 2;
+                foreach (var item in facturas)
+                {
+                    detalle.Cells[fila, 1].Value = item.IdEmpresa;
+                    detalle.Cells[fila, 2].Value = item.IdBorrador;
+                    detalle.Cells[fila, 3].Value = item.Documento;
+                    detalle.Cells[fila, 4].Value = item.FechaDocumento;
+                    detalle.Cells[fila, 5].Value = item.Concepto;
+                    detalle.Cells[fila, 6].Value = item.Descripcion;
+                    detalle.Cells[fila, 7].Value = item.Moneda;
+                    detalle.Cells[fila, 8].Value = item.TotalFactura;
+                    detalle.Cells[fila, 9].Value = item.ImporteSolicitado;
+                    fila++;
+                }
+                FormatearHojaExcel(detalle, encabezadosFactura.Length, facturas.Count + 1);
+                detalle.Column(4).Style.Numberformat.Format = "dd/mm/yyyy";
+                detalle.Column(8).Style.Numberformat.Format = "#,##0.00";
+                detalle.Column(9).Style.Numberformat.Format = "#,##0.00";
+
+                _dashboard.RegistrarEvento(filtro.Empresa ?? "*", "*", "EXPORTADO",
+                    User.Identity.Name, pagina.Filas.Count + " borradores exportados",
+                    Request.UserHostAddress);
+                return File(paquete.GetAsByteArray(),
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "BorradoresNC_" + DateTime.Now.ToString("yyyyMMdd_HHmm") + ".xlsx");
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [BorradorNcPermiso(PERMISO_DASHBOARD)]
+        public ActionResult ImprimirLoteBNC(string[] claves)
+        {
+            var unicas = (claves ?? new string[0]).Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (unicas.Count == 0) return new HttpStatusCodeResult(400, "Seleccione al menos un borrador.");
+            if (unicas.Count > _dashboard.MaximoImpresion)
+                return new HttpStatusCodeResult(400, "El máximo por lote es " + _dashboard.MaximoImpresion + ".");
+
+            var documentos = new List<BorradorNcEncabezado>();
+            foreach (string clave in unicas)
+            {
+                string[] partes = clave.Split(new[] { '|' }, 2);
+                if (partes.Length != 2) return new HttpStatusCodeResult(400, "Selección no válida.");
+                var enc = _bll.ObtenerPorId(partes[0], partes[1]);
+                if (enc == null || !PuedeConsultarDashboard(enc)) return new HttpUnauthorizedResult();
+                documentos.Add(enc);
+            }
+            foreach (var enc in documentos)
+                _dashboard.RegistrarEvento(enc.IdEmpresa, enc.IdBorrador, "IMPRESO_LOTE",
+                    User.Identity.Name, "Impresión interna por lote", Request.UserHostAddress);
+            return View("ImprimirLote", documentos);
         }
 
         private BorradorNcIndexViewModel CrearModeloInicial()
@@ -758,14 +906,17 @@ namespace DiamDev.Give.UI.Controllers
 
         private bool PuedeConsultarFacturaBorrador(BorradorNcEncabezado enc)
         {
-            bool puedeDesdeSeguimiento =
-                TienePermiso(PERMISO_VER) && PuedeConsultarSeguimiento(enc);
-            bool puedeDesdeAutorizaciones =
-                TienePermiso(PERMISO_AUTORIZAR) &&
+            if (TienePermiso(PERMISO_DASHBOARD) && PuedeConsultarDashboard(enc)) return true;
+            if (TienePermiso(PERMISO_AUTORIZAR) &&
                 string.Equals(enc.Estado, EstadosBorradorNc.Pendiente,
-                              StringComparison.OrdinalIgnoreCase);
-
-            return puedeDesdeSeguimiento || puedeDesdeAutorizaciones;
+                              StringComparison.OrdinalIgnoreCase)) return true;
+            try
+            {
+                bool puedeDesdeSeguimiento =
+                    TienePermiso(PERMISO_VER) && PuedeConsultarSeguimiento(enc);
+                return puedeDesdeSeguimiento;
+            }
+            catch (UnauthorizedAccessException) { return false; }
         }
 
         private static BorradorNcDetalle BuscarDetalleFactura(
@@ -929,7 +1080,6 @@ namespace DiamDev.Give.UI.Controllers
         public ActionResult DescargarAdjunto(
             string empresa, string idBorrador, long adjuntoId, bool inline = false)
         {
-            ValidarEmpresa(empresa);
             var enc = _bll.ObtenerPorId(empresa, idBorrador);
             if (enc == null) return HttpNotFound("Borrador no encontrado.");
             if (!PuedeImprimir(enc)) return new HttpUnauthorizedResult();
@@ -966,9 +1116,10 @@ namespace DiamDev.Give.UI.Controllers
             // La impresión también se usa en Autorizaciones. En Seguimiento se
             // respeta el alcance por creador/agente; los permisos operativos
             // conservan el acceso requerido por sus flujos específicos.
-            return PuedeConsultarSeguimiento(enc) ||
-                   TienePermiso(PERMISO_AUTORIZAR) ||
-                   TienePermiso(PERMISO_ANULAR);
+            if (TienePermiso(PERMISO_DASHBOARD) && PuedeConsultarDashboard(enc)) return true;
+            if (TienePermiso(PERMISO_AUTORIZAR) || TienePermiso(PERMISO_ANULAR)) return true;
+            try { return PuedeConsultarSeguimiento(enc); }
+            catch (UnauthorizedAccessException) { return false; }
         }
 
         private static bool TienePermiso(string permiso)
@@ -1282,6 +1433,59 @@ namespace DiamDev.Give.UI.Controllers
                 Moneda = producto.Moneda,
                 Bodega = producto.Bodega
             };
+        }
+
+        private BorradorNcDashboardAlcance CrearAlcanceDashboard()
+        {
+            var alcance = new BorradorNcDashboardAlcance
+            {
+                Global = TienePermiso(PERMISO_VER_TODOS),
+                Usuario = User.Identity.Name
+            };
+            foreach (var grupo in Asignaciones().Where(x => !string.IsNullOrWhiteSpace(x.Codigo))
+                .GroupBy(x => _usuarioEmpresa.GetEmpresaNombre(x.EmpresaId),
+                         StringComparer.OrdinalIgnoreCase))
+            {
+                if (string.Equals(grupo.Key, "DESCONOCIDA", StringComparison.OrdinalIgnoreCase)) continue;
+                alcance.AgentesPorEmpresa[grupo.Key] = grupo
+                    .Select(x => _usuarioEmpresa.ParseCodigo(x.Codigo).AgenteNombre)
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+            return alcance;
+        }
+
+        private bool PuedeConsultarDashboard(BorradorNcEncabezado enc)
+        {
+            if (enc == null || !TienePermiso(PERMISO_DASHBOARD)) return false;
+            if (TienePermiso(PERMISO_VER_TODOS)) return true;
+            if (string.Equals(enc.IdUsr, User.Identity.Name, StringComparison.OrdinalIgnoreCase)) return true;
+            var alcance = CrearAlcanceDashboard();
+            List<string> agentes;
+            return alcance.AgentesPorEmpresa.TryGetValue(enc.IdEmpresa ?? "", out agentes) &&
+                   agentes.Any(x => string.Equals(x, enc.Agente, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static void FormatearHojaExcel(ExcelWorksheet hoja, int columnas, int filas)
+        {
+            using (var rango = hoja.Cells[1, 1, Math.Max(1, filas), columnas])
+            {
+                rango.Style.Font.Name = "Calibri";
+                rango.Style.Font.Size = 10;
+                rango.Style.VerticalAlignment = ExcelVerticalAlignment.Center;
+            }
+            using (var encabezado = hoja.Cells[1, 1, 1, columnas])
+            {
+                encabezado.Style.Font.Bold = true;
+                encabezado.Style.Font.Color.SetColor(System.Drawing.Color.White);
+                encabezado.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                encabezado.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(37, 99, 235));
+                encabezado.AutoFilter = true;
+            }
+            hoja.View.FreezePanes(2, 1);
+            hoja.Cells[1, 1, Math.Max(1, filas), columnas].AutoFitColumns(10, 42);
         }
 
         private class ContextoConsulta

@@ -342,7 +342,13 @@ namespace DiamDev.Give.DAL
                        AND E.ID_BORRADOR = D.ID_BORRADOR
                 WHERE D.ID_EMPRESA = @empresa
                   AND D.DOCUMENTO = @documento
-                  AND E.ESTADO IN ('PENDIENTE', 'AUTORIZADO');";
+                   AND E.ESTADO IN ('PENDIENTE', 'AUTORIZADO');";
+
+            const string sqlBitacora = @"
+                INSERT dbo.BORR_NC_BITACORA
+                    (ID_EMPRESA, ID_BORRADOR, EVENTO, ESTADO_NUEVO, USUARIO, DETALLE)
+                VALUES (@empresa, @idBorr, 'CREADO', 'PENDIENTE', @usuario,
+                        N'Creación del borrador');";
 
             using (var cn = new SqlConnection(_conn))
             {
@@ -455,6 +461,14 @@ namespace DiamDev.Give.DAL
                             }
                         }
 
+                        using (var cmd = new SqlCommand(sqlBitacora, cn, tx))
+                        {
+                            cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = enc.IdEmpresa;
+                            cmd.Parameters.Add("@idBorr", SqlDbType.NVarChar, 20).Value = enc.IdBorrador;
+                            cmd.Parameters.Add("@usuario", SqlDbType.NVarChar, 50).Value = enc.IdUsr;
+                            cmd.ExecuteNonQuery();
+                        }
+
                         tx.Commit();
                     }
                     catch
@@ -495,18 +509,33 @@ namespace DiamDev.Give.DAL
                        MOTIVO_RESOLUCION = @motivo
                  WHERE ID_EMPRESA  = @empresa
                    AND ID_BORRADOR = @idBorr
-                   AND ESTADO      = 'PENDIENTE';";
+                   AND ESTADO      = 'PENDIENTE';
+
+                DECLARE @filas int = @@ROWCOUNT;
+                IF @filas = 1
+                    INSERT dbo.BORR_NC_BITACORA
+                        (ID_EMPRESA, ID_BORRADOR, EVENTO, ESTADO_ANTERIOR,
+                         ESTADO_NUEVO, USUARIO, DETALLE)
+                    VALUES (@empresa, @idBorr, @estado, 'PENDIENTE',
+                            @estado, @usuario, @motivo);
+
+                SELECT @filas;";
 
             using (var cn = new SqlConnection(_conn))
-            using (var cmd = new SqlCommand(sql, cn))
             {
-                cmd.Parameters.Add("@estado", SqlDbType.VarChar, 20).Value = nuevoEstado;
-                cmd.Parameters.Add("@usuario", SqlDbType.NVarChar, 50).Value = usuario ?? "";
-                cmd.Parameters.Add("@motivo", SqlDbType.NVarChar, 1000).Value = Nulo(motivo);
-                cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = empresa ?? "";
-                cmd.Parameters.Add("@idBorr", SqlDbType.NVarChar, 20).Value = idBorrador ?? "";
                 cn.Open();
-                return cmd.ExecuteNonQuery();
+                using (var tx = cn.BeginTransaction())
+                using (var cmd = new SqlCommand(sql, cn, tx))
+                {
+                    cmd.Parameters.Add("@estado", SqlDbType.VarChar, 20).Value = nuevoEstado;
+                    cmd.Parameters.Add("@usuario", SqlDbType.NVarChar, 50).Value = usuario ?? "";
+                    cmd.Parameters.Add("@motivo", SqlDbType.NVarChar, 1000).Value = Nulo(motivo);
+                    cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = empresa ?? "";
+                    cmd.Parameters.Add("@idBorr", SqlDbType.NVarChar, 20).Value = idBorrador ?? "";
+                    int filas = Convert.ToInt32(cmd.ExecuteScalar());
+                    tx.Commit();
+                    return filas;
+                }
             }
         }
 
@@ -526,17 +555,32 @@ namespace DiamDev.Give.DAL
                        MOTIVO_RESOLUCION = @motivo
                  WHERE ID_EMPRESA  = @empresa
                    AND ID_BORRADOR = @idBorr
-                   AND ESTADO      = 'AUTORIZADO';";
+                   AND ESTADO      = 'AUTORIZADO';
+
+                DECLARE @filas int = @@ROWCOUNT;
+                IF @filas = 1
+                    INSERT dbo.BORR_NC_BITACORA
+                        (ID_EMPRESA, ID_BORRADOR, EVENTO, ESTADO_ANTERIOR,
+                         ESTADO_NUEVO, USUARIO, DETALLE)
+                    VALUES (@empresa, @idBorr, 'ANULADO', 'AUTORIZADO',
+                            'ANULADO', @usuario, @motivo);
+
+                SELECT @filas;";
 
             using (var cn = new SqlConnection(_conn))
-            using (var cmd = new SqlCommand(sql, cn))
             {
-                cmd.Parameters.Add("@usuario", SqlDbType.NVarChar, 50).Value = usuario ?? "";
-                cmd.Parameters.Add("@motivo", SqlDbType.NVarChar, 1000).Value = motivo ?? "";
-                cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = empresa ?? "";
-                cmd.Parameters.Add("@idBorr", SqlDbType.NVarChar, 20).Value = idBorrador ?? "";
                 cn.Open();
-                return cmd.ExecuteNonQuery();
+                using (var tx = cn.BeginTransaction())
+                using (var cmd = new SqlCommand(sql, cn, tx))
+                {
+                    cmd.Parameters.Add("@usuario", SqlDbType.NVarChar, 50).Value = usuario ?? "";
+                    cmd.Parameters.Add("@motivo", SqlDbType.NVarChar, 1000).Value = motivo ?? "";
+                    cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = empresa ?? "";
+                    cmd.Parameters.Add("@idBorr", SqlDbType.NVarChar, 20).Value = idBorrador ?? "";
+                    int filas = Convert.ToInt32(cmd.ExecuteScalar());
+                    tx.Commit();
+                    return filas;
+                }
             }
         }
 

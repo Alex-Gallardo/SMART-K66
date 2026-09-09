@@ -475,6 +475,18 @@
             <div id="collapseVentas" class="panel-collapse collapse">
                 <div class="panel-body">
 
+                    <div class="col-md-3 card-reporte-ventas">
+                        <div class="core-box">
+                            <div class="heading">
+                                <i class="clip-stats circle-icon circle-green"></i>
+                                <h2>Reporte de Ventas</h2>
+                            </div>
+                            <a href="javascript:void(0)"
+                               onclick="pedirReporteVentas('@Url.Action("ReporteVentas", "Reporte")')"
+                               class="view-more">Ver Reporte <i class="clip-arrow-right-2"></i></a>
+                        </div>
+                    </div>
+
                     @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Reporte.Ventas_Detalle_Factura"))
                     {
                         <div class="col-md-3 card-empresa" data-empresa-id="20210705001">
@@ -773,6 +785,73 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btnVerInventario">
+                    <i class="icon-file-pdf-alt"></i> Ver PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ════════════════════════════════════════════════════════════
+     MODAL — REPORTE DE VENTAS
+     Parámetros obligatorios: Empresa | Agente | Fecha Inicio | Fecha Fin
+    ════════════════════════════════════════════════════════════ *@
+<div class="modal fade" id="modalReporteVentas" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                <h4 class="modal-title">
+                    <i class="clip-stats teal"></i> Reporte de Ventas
+                </h4>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label" for="rvEmpresa">
+                                Empresa <span class="text-danger">*</span>
+                            </label>
+                            <select id="rvEmpresa" class="form-control"></select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label" for="rvAgente">
+                                Agente <span class="text-danger">*</span>
+                                <small class="text-muted" id="rvAgenteHelp"></small>
+                            </label>
+                            <select id="rvAgente" class="form-control"></select>
+                        </div>
+                    </div>
+                </div>
+                <hr style="margin:8px 0" />
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label" for="rvFechaInicio">
+                                Fecha Inicio <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" id="rvFechaInicio" class="form-control date-picker"
+                                   data-date-format="yyyy-mm-dd"
+                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="control-label" for="rvFechaFin">
+                                Fecha Fin <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" id="rvFechaFin" class="form-control date-picker"
+                                   data-date-format="yyyy-mm-dd"
+                                   value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnVerReporteVentas">
                     <i class="icon-file-pdf-alt"></i> Ver PDF
                 </button>
             </div>
@@ -1199,6 +1278,7 @@
 
     // ── ESTADO GLOBAL ────────────────────────────────────────────────────────
     var _userEmpresaInfo       = null;
+    var _urlReporteVentasBase  = "";
     var _urlCrystalBase        = "";
     var _urlBackorderBase      = "";
     var _urlEstadoCuentaBase   = "";
@@ -1234,6 +1314,30 @@
     $(document).ready(function () {
 
         cargarInfoEmpresaUsuario();
+
+        // ── Reporte de Ventas ────────────────────────────────
+        $("#rvEmpresa").on("change", actualizarAgentesReporteVentas);
+
+        $("#btnVerReporteVentas").on("click", function () {
+            var empresaId = $("#rvEmpresa").val();
+            var agente = $("#rvAgente").val();
+            var fechaInicio = $("#rvFechaInicio").val().trim();
+            var fechaFin = $("#rvFechaFin").val().trim();
+
+            if (!empresaId) { toastr.error("Selecciona una empresa"); return; }
+            if (!agente) { toastr.error("Selecciona un agente"); return; }
+            if (!fechaInicio || !fechaFin) { toastr.error("Selecciona ambas fechas"); return; }
+            if (fechaInicio > fechaFin) { toastr.error("Fecha inicio mayor que fecha fin"); return; }
+
+            var url = _urlReporteVentasBase
+                + "?empresaId=" + encodeURIComponent(empresaId)
+                + "&agente=" + encodeURIComponent(agente)
+                + "&fechaInicio=" + encodeURIComponent(fechaInicio)
+                + "&fechaFin=" + encodeURIComponent(fechaFin);
+
+            $("#modalReporteVentas").modal("hide");
+            window.open(url, "_blank");
+        });
 
         // ── Inventario ───────────────────────────────────────
         $("#btnVerInventario").on("click", function () {
@@ -1383,6 +1487,10 @@
                     $("#btnVerInventario").click();
                     break;
 
+                case "modalReporteVentas":
+                    $("#btnVerReporteVentas").click();
+                    break;
+
                 case "modalBackorder":
                     $("#btnVerBackorder").click();
                     break;
@@ -1423,6 +1531,7 @@
             rptActualizarContadores();   // ← UI: refrescar contadores tras aplicar visibilidad
         }).fail(function () {
             console.warn("[ReporteIndex] No se pudo cargar info de empresas del usuario.");
+            $(".card-reporte-ventas").hide();
         });
     }
 
@@ -1441,6 +1550,9 @@
                 $(this).hide();
             }
         });
+
+        $(".card-reporte-ventas").toggle(
+            !!_userEmpresaInfo && _userEmpresaInfo.Agentes.length > 0);
     }
 
     // ── Helper: puebla select de agentes por empresa ─────────
@@ -1498,7 +1610,65 @@
         });
     }
 
+    /**
+     * Puebla Empresa con el identificador interno que el servidor validará.
+     * El valor Crystal y el schema HANA se resuelven exclusivamente en backend.
+     */
+    function poblarSelectEmpresasId(sel) {
+        sel.empty();
+        sel.append($("<option>", { value: "", text: "-- Seleccione --" }));
+        if (!_userEmpresaInfo) return;
+
+        var vistas = {};
+        var empresaIds = [];
+
+        $.each(_userEmpresaInfo.Agentes, function (i, a) {
+            if (a.EmpresaId && !vistas[a.EmpresaId]) {
+                vistas[a.EmpresaId] = true;
+                empresaIds.push(a.EmpresaId);
+                sel.append($("<option>", {
+                    value: a.EmpresaId,
+                    text: EMP_DISPLAY[a.EmpresaId] || a.EmpresaNombre
+                }));
+            }
+        });
+
+        if (empresaIds.length === 1)
+            sel.val(empresaIds[0]);
+    }
+
     // ── Apertura de modales ──────────────────────────────────
+
+    function pedirReporteVentas(urlBase) {
+        if (!_userEmpresaInfo) {
+            toastr.warning("Espera mientras se cargan tus empresas y agentes");
+            return;
+        }
+
+        if (!_userEmpresaInfo.Agentes || _userEmpresaInfo.Agentes.length === 0) {
+            toastr.error("No tienes empresas y agentes configurados para este reporte");
+            return;
+        }
+
+        _urlReporteVentasBase = urlBase;
+        poblarSelectEmpresasId($("#rvEmpresa"));
+        actualizarAgentesReporteVentas();
+        $("#modalReporteVentas").modal("show");
+        setTimeout(function () { $("#rvEmpresa").focus(); }, 400);
+    }
+
+    function actualizarAgentesReporteVentas() {
+        var empresaId = $("#rvEmpresa").val();
+        var selAgente = $("#rvAgente");
+
+        if (!empresaId) {
+            selAgente.empty();
+            $("#rvAgenteHelp").text("(selecciona una empresa)");
+            return;
+        }
+
+        poblarSelectAgentes(selAgente, empresaId, "#rvAgenteHelp");
+    }
 
     function pedirInventario(urlBase, titulo) {
         _urlCrystalBase = urlBase;

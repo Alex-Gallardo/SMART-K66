@@ -14,6 +14,7 @@ using DiamDev.Give.BLL;
 using System.IO;
 using System.Configuration;
 using System.Data; 
+using System.Globalization;
 
     
 namespace DiamDev.Give.UI.Controllers
@@ -370,6 +371,48 @@ namespace DiamDev.Give.UI.Controllers
             return File(stream, "application/pdf");
         }
 
+        private bool TryResolverAccesoReporteVentas(long usuarioId,
+            long empresaId,
+            string agente,
+            out string empresa,
+            out string hanaDb)
+        {
+            empresa = null;
+            hanaDb = null;
+
+            string agenteNormalizado = (agente ?? "").Trim();
+            if (empresaId <= 0 || agenteNormalizado.Length == 0)
+                return false;
+
+            var bl = new UsuarioEmpresaBL();
+            var registrosEmpresa = bl.ObtenerPorUsuarioId(usuarioId)
+                .Where(r => r.EmpresaId == empresaId)
+                .ToList();
+
+            bool agenteAutorizado = registrosEmpresa.Any(r =>
+                string.Equals(bl.ParseCodigo(r.Codigo).AgenteNombre,
+                    agenteNormalizado,
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (!agenteAutorizado)
+                return false;
+
+            empresa = bl.GetEmpresaNombre(empresaId);
+            hanaDb = bl.GetHanaDb(empresaId);
+
+            return !string.IsNullOrWhiteSpace(hanaDb) &&
+                   !string.Equals(empresa, "DESCONOCIDA", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool TryParseFechaReporte(string valor, out DateTime fecha)
+        {
+            return DateTime.TryParseExact((valor ?? "").Trim(),
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out fecha);
+        }
+
         #endregion
 
         // ════════════════════════════════════════════════════════════════════════
@@ -385,6 +428,69 @@ namespace DiamDev.Give.UI.Controllers
         // ════════════════════════════════════════════════════════════════════════
         //  CRYSTAL REPORTS — HANA  (parámetros verificados con DiagParametros)
         // ════════════════════════════════════════════════════════════════════════
+        [HttpGet]
+        [Permiso("Control.Menu.Reporte_Ventas")]
+        public ActionResult ReporteVentas(long empresaId = 0,
+            string agente = "",
+            string fechaInicio = "",
+            string fechaFin = "")
+        {
+            if (empresaId <= 0 || string.IsNullOrWhiteSpace(agente))
+                return new HttpStatusCodeResult(400, "Empresa y Agente son obligatorios.");
+
+            DateTime fechaInicioValor;
+            DateTime fechaFinValor;
+
+            if (!TryParseFechaReporte(fechaInicio, out fechaInicioValor) ||
+                !TryParseFechaReporte(fechaFin, out fechaFinValor))
+            {
+                return new HttpStatusCodeResult(400,
+                    "Fecha Inicio y Fecha Fin son obligatorias y deben usar el formato yyyy-MM-dd.");
+            }
+
+            if (fechaInicioValor > fechaFinValor)
+                return new HttpStatusCodeResult(400, "Fecha Inicio no puede ser mayor que Fecha Fin.");
+
+            string empresa;
+            string hanaDb;
+            if (!TryResolverAccesoReporteVentas(CustomHelper.getUserId(),
+                empresaId,
+                agente,
+                out empresa,
+                out hanaDb))
+            {
+                return new HttpStatusCodeResult(403,
+                    "El usuario no tiene acceso a la empresa o al agente seleccionado.");
+            }
+
+            var rpt = new ReportDocument();
+            try
+            {
+                rpt.Load(Server.MapPath("~/Reports/Crystal/Reporte de Ventas.rpt"));
+                AplicarConexionHana(rpt, hanaDb);
+
+                // Los cuatro parámetros son obligatorios en el .rpt. Se establecen
+                // directamente para que un cambio de nombre o tipo falle de forma visible.
+                rpt.SetParameterValue("Agente", agente.Trim());
+                rpt.SetParameterValue("Empresa", empresa);
+                rpt.SetParameterValue("Fecha Inicio", fechaInicioValor);
+                rpt.SetParameterValue("Fecha Fin", fechaFinValor);
+
+                return ExportarPdf(rpt, "Reporte_Ventas_" + empresa);
+            }
+            catch (Exception ex)
+            {
+                rpt.Close();
+                rpt.Dispose();
+                System.Diagnostics.Trace.TraceError(
+                    "[ReporteVentas] Error al generar el reporte para empresa {0}: {1}",
+                    empresaId,
+                    ex);
+                return new HttpStatusCodeResult(500,
+                    "No fue posible generar el Reporte de Ventas.");
+            }
+        }
+
         public ActionResult DespachosEnRutaDia(
             string empresa = "",
             string agente = "",
@@ -1189,7 +1295,7 @@ namespace DiamDev.Give.UI.Controllers
                         {
                             string requerido = p.IsOptionalPrompt ? "No" : "<span class='badge'>Sí</span>";
                             sb.Append($"<tr><td>{i++}</td><td><b>{p.Name}</b></td>" +
-                                      $"<td></td><td>{requerido}</td></tr>");
+                                      $"<td>{p.ParameterValueKind}</td><td>{requerido}</td></tr>");
                         }
                         sb.Append("</table>");
                     }

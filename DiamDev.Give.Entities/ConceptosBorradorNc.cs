@@ -15,14 +15,20 @@ namespace DiamDev.Give.Entities
     {
         public const string Devolucion = "DEVOLUCION";
         public const string Descuento = "DESCUENTO";
+        public const string DescuentoAutorizado = "DESCUENTO AUTORIZADO";
         public const string Otros = "OTROS";
 
         private static readonly HashSet<string> _validos =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            { Devolucion, Descuento, Otros };
+            { Devolucion, Descuento, DescuentoAutorizado, Otros };
 
         public static bool EsValido(string concepto) =>
             !string.IsNullOrWhiteSpace(concepto) && _validos.Contains(concepto.Trim());
+
+        public static bool EsDescuentoAutorizado(string concepto) =>
+            !string.IsNullOrWhiteSpace(concepto) &&
+            string.Equals(concepto.Trim(), DescuentoAutorizado,
+                          StringComparison.OrdinalIgnoreCase);
 
         public static IEnumerable<string> Todos() => _validos;
     }

@@ -244,9 +244,22 @@ namespace DiamDev.Give.BLL
                 return ResultadoBorradorNc.Error(
                     "La asignación de empresa del usuario contiene datos que exceden el tamaño permitido.");
 
+            var lineaConceptoInvalido = enc.Detalles.FirstOrDefault(
+                d => d != null && !ConceptosBorradorNc.EsValido(d.Concepto));
+            if (enc.Detalles.Any(d => d == null) || lineaConceptoInvalido != null)
+                return ResultadoBorradorNc.Error(string.Format(
+                    "Concepto no válido: '{0}'. Use DEVOLUCION, DESCUENTO, " +
+                    "DESCUENTO AUTORIZADO u OTROS.",
+                    lineaConceptoInvalido == null ? "" : lineaConceptoInvalido.Concepto));
+
             string errorAdjuntos = ValidarYNormalizarAdjuntos(enc);
             if (!string.IsNullOrWhiteSpace(errorAdjuntos))
                 return ResultadoBorradorNc.Error(errorAdjuntos);
+
+            if (RequiereDocumentoRespaldo(enc.Detalles) &&
+                !enc.Adjuntos.Any(a => a != null && a.EsArchivo))
+                return ResultadoBorradorNc.Error(
+                    "Debe adjuntar al menos un documento de respaldo para los conceptos seleccionados.");
 
             // El navegador solo propone estos datos. Antes de aplicar las reglas,
             // se reconstruyen desde HANA para impedir que una petición manipulada
@@ -339,10 +352,6 @@ namespace DiamDev.Give.BLL
                 string doc = (d.Documento ?? "").Trim();
 
                 // R5: línea completa
-                if (!ConceptosBorradorNc.EsValido(d.Concepto))
-                    return ResultadoBorradorNc.Error(string.Format(
-                        "Concepto no válido: '{0}'. Use DEVOLUCION, DESCUENTO u OTROS.",
-                        d.Concepto));
                 if (doc.Length == 0)
                     return ResultadoBorradorNc.Error("Hay una línea sin número de documento.");
                 if (string.IsNullOrWhiteSpace(d.Descripcion))
@@ -739,6 +748,14 @@ namespace DiamDev.Give.BLL
             string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
 
         private static int Longitud(string valor) => valor == null ? 0 : valor.Length;
+
+        private static bool RequiereDocumentoRespaldo(
+            IEnumerable<BorradorNcDetalle> detalles)
+        {
+            return (detalles ?? Enumerable.Empty<BorradorNcDetalle>())
+                .Any(d => d == null ||
+                          !ConceptosBorradorNc.EsDescuentoAutorizado(d.Concepto));
+        }
 
         private static string ValidarYNormalizarAdjuntos(BorradorNcEncabezado enc)
         {

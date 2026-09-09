@@ -289,20 +289,16 @@
                 </div>
             </div>
 
-            <div class="bnc-card bnc-attachments-capture">
+            <div class="bnc-card bnc-attachments-capture" id="bncRespaldoCard">
                 <div class="bnc-card-head">
                     <div class="bnc-card-title">
                         <i class="icon-paper-clip"></i>
                         <div>
                             <h3>Documentación de respaldo</h3>
-                            <small>
-                                @(Model.PermiteAdjuntarEnlaces
-                                    ? "Opcional. Adjunte archivos o enlaces relacionados con la solicitud."
-                                    : "Opcional. Adjunte archivos relacionados con la solicitud.")
-                            </small>
+                            <small id="bncRespaldoResumen">Obligatorio, excepto cuando todas las líneas sean Descuento autorizado.</small>
                         </div>
                     </div>
-                    <span class="bnc-status bnc-status-neutral" id="bncAdjuntoCount">Sin adjuntos</span>
+                    <span class="bnc-status bnc-status-neutral" id="bncAdjuntoCount">Según concepto</span>
                 </div>
                 <div class="bnc-card-body">
                     <div class="bnc-attachment-capture-grid @(Model.PermiteAdjuntarEnlaces ? "" : "is-files-only")">
@@ -316,7 +312,8 @@
                             </div>
                             <label class="bnc-dropzone" id="bncDropzone" for="bncArchivos">
                                 <input class="sr-only" type="file" id="bncArchivos" multiple
-                                       accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt" />
+                                       accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.txt"
+                                       aria-describedby="bncRespaldoAyuda" />
                                 <span class="bnc-dropzone-icon"><i class="icon-cloud-upload"></i></span>
                                 <strong>Arrastre archivos aquí o haga clic para buscarlos</strong>
                                 <small>Máximo 10 MB por archivo y 25 MB en total.</small>
@@ -351,7 +348,7 @@
                     </div>
                     <div class="bnc-inline-alert is-visible is-info bnc-attachment-hint">
                         <i class="icon-info-sign"></i>
-                        <span>Puede guardar el borrador sin documentación. Los adjuntos quedarán protegidos y no podrán modificarse después de crearlo.</span>
+                        <span id="bncRespaldoAyuda">Adjunte al menos un archivo. Solo es opcional cuando todas las líneas tengan el concepto Descuento autorizado.</span>
                     </div>
                 </div>
             </div>
@@ -578,5 +575,5 @@
     <script src="@Url.Content("~/Scripts/App/BorradorNc-FacturasDetalle.js?v=20260907-borrador")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-DocumentosPrevios.js?v=20260908")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Adjuntos.js?v=20260831")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260908-documentos-previos")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260909-respaldo-obligatorio")"></script>
 }

@@ -20,7 +20,7 @@
     margin: 0 auto 30px;
     max-width: 1660px;
     min-width: 0;
-    padding: 16px 20px 24px;
+    padding: 0px !important;
 }
 
 .bncd *, .bncd *::before, .bncd *::after { box-sizing: border-box; }
@@ -262,14 +262,14 @@
 }
 
 @media (max-width: 1024px) {
-    .bncd { padding-left: 14px; padding-right: 14px; }
+    .bncd { padding:0px; }
     .bncd-filter-grid { grid-template-columns: repeat(6,minmax(0,1fr)); }
     .bncd-field { grid-column: span 2; }
     .bncd-field.span-4 { grid-column: span 4; }
 }
 
 @media (max-width: 767px) {
-    .bncd { margin-bottom: 18px; padding: 10px; }
+    .bncd { margin-bottom: 18px; padding: 0px; }
     .bncd-hero { align-items: flex-start; border-radius: 11px; flex-direction: column; min-height: 0; padding: 16px; }
     .bncd-hero-copy { align-items: flex-start; }
     .bncd-hero-icon { flex-basis: 40px; height: 40px; }

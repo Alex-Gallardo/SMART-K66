@@ -4,8 +4,8 @@
 }
 
 @section styles {
-    <link href="@Url.Content("~/Content/borrador-nc-dashboard.css?v=20260908")" rel="stylesheet" />
-    <link href="@Url.Content("~/Content/borrador-nc-dashboard-audit.css?v=20260908")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc-dashboard.css?v=20260909")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc-dashboard-audit.css?v=20260909")" rel="stylesheet" />
 }
 
 <main class="bncd" id="bncDashboard"
@@ -14,78 +14,119 @@
       data-url-ver="@Url.Action("Imprimir", "BorradorNc")"
       data-url-exportar="@Url.Action("ExportarDashboardBNC", "BorradorNc")"
       data-url-imprimir="@Url.Action("ImprimirLoteBNC", "BorradorNc")"
-      data-max-imprimir="@Model.MaximoImpresion">
+      data-max-imprimir="@Model.MaximoImpresion"
+      aria-busy="true">
     @Html.AntiForgeryToken()
 
+    <div class="bncd-live" id="bncdLive" role="status" aria-live="polite"></div>
+
     <header class="bncd-hero">
-        <div>
-            <span class="bncd-eyebrow">Créditos · control operativo</span>
-            <h1>Dashboard de Borradores NC</h1>
-            <p>Seguimiento, consulta y auditoría de solicitudes y sus facturas.</p>
+        <div class="bncd-hero-copy">
+            <span class="bncd-hero-icon" aria-hidden="true"><i class="clip-stats"></i></span>
+            <div>
+                <span class="bncd-eyebrow">Créditos · control operativo</span>
+                <h1>Dashboard de Borradores NC</h1>
+                <p>Seguimiento, consulta y auditoría de solicitudes y sus facturas.</p>
+            </div>
         </div>
-        <div class="bncd-scope">
-            <i class="icon-shield"></i>
+        <div class="bncd-scope" title="Los resultados respetan los permisos del usuario actual">
+            <i class="icon-shield" aria-hidden="true"></i>
             <span><small>Alcance de datos</small><strong>@(Model.AlcanceGlobal ? "Global" : "Mis agentes y creados por mí")</strong></span>
         </div>
     </header>
 
-    <section class="bncd-kpis" aria-label="Resumen">
-        <button class="bncd-kpi active" type="button" data-state=""><span>Total</span><strong id="kpiTotal">—</strong></button>
-        <button class="bncd-kpi" type="button" data-state="PENDIENTE"><span>Pendientes</span><strong id="kpiPendientes">—</strong><small id="kpiVencidos">— vencidos</small></button>
-        <button class="bncd-kpi" type="button" data-state="AUTORIZADO"><span>Autorizados</span><strong id="kpiAutorizados">—</strong></button>
-        <button class="bncd-kpi" type="button" data-state="RECHAZADO"><span>Rechazados</span><strong id="kpiRechazados">—</strong></button>
-        <button class="bncd-kpi" type="button" data-state="ANULADO"><span>Anulados</span><strong id="kpiAnulados">—</strong></button>
-        <div class="bncd-kpi"><span>Tiempo promedio</span><strong id="kpiPromedio">—</strong><small>hasta resolución</small></div>
+    <section class="bncd-kpis" aria-label="Resumen de borradores">
+        <button class="bncd-kpi is-total active" type="button" data-state="" aria-pressed="true">
+            <span class="bncd-kpi-icon" aria-hidden="true"><i class="clip-stack"></i></span>
+            <span class="bncd-kpi-copy"><span>Total</span><strong id="kpiTotal" class="is-skeleton">0</strong><small>Todos los estados</small></span>
+        </button>
+        <button class="bncd-kpi is-pending" type="button" data-state="PENDIENTE" aria-pressed="false">
+            <span class="bncd-kpi-icon" aria-hidden="true"><i class="clip-clock"></i></span>
+            <span class="bncd-kpi-copy"><span>Pendientes</span><strong id="kpiPendientes" class="is-skeleton">0</strong><small id="kpiVencidos">0 vencidos</small></span>
+        </button>
+        <button class="bncd-kpi is-approved" type="button" data-state="AUTORIZADO" aria-pressed="false">
+            <span class="bncd-kpi-icon" aria-hidden="true"><i class="clip-checkmark-circle"></i></span>
+            <span class="bncd-kpi-copy"><span>Autorizados</span><strong id="kpiAutorizados" class="is-skeleton">0</strong><small>Resueltos favorablemente</small></span>
+        </button>
+        <button class="bncd-kpi is-rejected" type="button" data-state="RECHAZADO" aria-pressed="false">
+            <span class="bncd-kpi-icon" aria-hidden="true"><i class="clip-cancel-circle"></i></span>
+            <span class="bncd-kpi-copy"><span>Rechazados</span><strong id="kpiRechazados" class="is-skeleton">0</strong><small>Solicitudes rechazadas</small></span>
+        </button>
+        <button class="bncd-kpi is-void" type="button" data-state="ANULADO" aria-pressed="false">
+            <span class="bncd-kpi-icon" aria-hidden="true"><i class="clip-remove"></i></span>
+            <span class="bncd-kpi-copy"><span>Anulados</span><strong id="kpiAnulados" class="is-skeleton">0</strong><small>Fuera del flujo activo</small></span>
+        </button>
+        <article class="bncd-kpi is-time">
+            <span class="bncd-kpi-icon" aria-hidden="true"><i class="clip-stopwatch"></i></span>
+            <span class="bncd-kpi-copy"><span>Tiempo promedio</span><strong id="kpiPromedio" class="is-skeleton">—</strong><small>Hasta resolución</small></span>
+        </article>
     </section>
 
-    <section class="bncd-panel bncd-filters">
-        <div class="bncd-panel-head">
-            <div><h2>Filtros</h2><p>Combina criterios para encontrar solicitudes específicas.</p></div>
-            <button type="button" class="bncd-btn ghost" id="btnLimpiar"><i class="icon-refresh"></i> Limpiar</button>
+    <section class="bncd-panel bncd-filters" aria-labelledby="tituloFiltros">
+        <header class="bncd-panel-head">
+            <div class="bncd-section-title">
+                <span class="bncd-section-icon" aria-hidden="true"><i class="clip-search"></i></span>
+                <div><h2 id="tituloFiltros">Buscar y filtrar</h2><p>Encuentra solicitudes por datos comerciales, estado o fecha.</p></div>
+            </div>
+            <div class="bncd-filter-actions">
+                <button type="button" class="bncd-btn ghost" id="btnMasFiltros" aria-expanded="false" aria-controls="filtrosAvanzados">
+                    <i class="clip-settings" aria-hidden="true"></i> Más filtros <span id="contadorFiltros" hidden></span><i class="clip-chevron-down bncd-chevron" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="bncd-btn ghost" id="btnLimpiar"><i class="clip-refresh" aria-hidden="true"></i> Limpiar</button>
+            </div>
+        </header>
+        <div class="bncd-filter-grid bncd-filter-primary">
+            <label class="bncd-field span-2">Empresa<select id="fEmpresa"><option value="">Todas</option></select></label>
+            <label class="bncd-field span-2">Estado<select id="fEstado"><option value="">Todos</option><option>PENDIENTE</option><option>AUTORIZADO</option><option>RECHAZADO</option><option>ANULADO</option></select></label>
+            <label class="bncd-field span-2">Campo de fecha<select id="fCampoFecha"><option value="REGISTRO">Creación</option><option value="RESOLUCION">Resolución</option></select></label>
+            <label class="bncd-field span-2">Desde<input type="date" id="fDesde" /></label>
+            <label class="bncd-field span-2">Hasta<input type="date" id="fHasta" /></label>
+            <label class="bncd-field span-4 bncd-search-field">Buscar<span class="bncd-input-icon"><i class="clip-search" aria-hidden="true"></i><input id="fTexto" type="search" placeholder="Borrador, factura, cliente, NIT o agente…" autocomplete="off" /></span></label>
         </div>
-        <div class="bncd-filter-grid">
-            <label>Empresa<select id="fEmpresa"><option value="">Todas</option></select></label>
-            <label>Estado<select id="fEstado"><option value="">Todos</option><option>PENDIENTE</option><option>AUTORIZADO</option><option>RECHAZADO</option><option>ANULADO</option></select></label>
-            <label>Campo de fecha<select id="fCampoFecha"><option value="REGISTRO">Creación</option><option value="RESOLUCION">Resolución</option></select></label>
-            <label>Desde<input type="date" id="fDesde" /></label>
-            <label>Hasta<input type="date" id="fHasta" /></label>
-            <label>Agente<select id="fAgente"><option value="">Todos</option></select></label>
-            <label>Creado por<select id="fCreador"><option value="">Todos</option></select></label>
-            <label>Resuelto por<select id="fResuelto"><option value="">Todos</option></select></label>
-            <label>Moneda<select id="fMoneda"><option value="">Todas</option></select></label>
-            <label>Adjuntos<select id="fAdjuntos"><option value="">Todos</option><option value="true">Con adjuntos</option><option value="false">Sin adjuntos</option></select></label>
-            <label>Antecedentes SAP<select id="fAntecedentes"><option value="">Todos</option><option value="true">Con antecedentes</option><option value="false">Sin antecedentes</option></select></label>
-            <label class="wide">Buscar<input id="fTexto" type="search" placeholder="Borrador, factura, cliente, NIT o agente…" /></label>
+        <div class="bncd-filter-advanced" id="filtrosAvanzados" hidden>
+            <div class="bncd-filter-grid">
+                <label class="bncd-field span-2">Agente<select id="fAgente"><option value="">Todos</option></select></label>
+                <label class="bncd-field span-2">Creado por<select id="fCreador"><option value="">Todos</option></select></label>
+                <label class="bncd-field span-2">Resuelto por<select id="fResuelto"><option value="">Todos</option></select></label>
+                <label class="bncd-field span-2">Moneda<select id="fMoneda"><option value="">Todas</option></select></label>
+                <label class="bncd-field span-2">Adjuntos<select id="fAdjuntos"><option value="">Todos</option><option value="true">Con adjuntos</option><option value="false">Sin adjuntos</option></select></label>
+                <label class="bncd-field span-2">Antecedentes SAP<select id="fAntecedentes"><option value="">Todos</option><option value="true">Con antecedentes</option><option value="false">Sin antecedentes</option></select></label>
+            </div>
         </div>
     </section>
 
-    <section class="bncd-panel">
-        <div class="bncd-toolbar">
-            <div>
-                <h2>Resultados</h2>
-                <p><strong id="totalFilas">0</strong> borradores · <span id="seleccionados">0 seleccionados</span></p>
+    <section class="bncd-panel bncd-results" aria-labelledby="tituloResultados">
+        <header class="bncd-toolbar">
+            <div class="bncd-section-title">
+                <span class="bncd-section-icon" aria-hidden="true"><i class="clip-list"></i></span>
+                <div><h2 id="tituloResultados">Resultados</h2><p><strong id="totalFilas">0</strong> borradores <span class="bncd-separator">·</span> <span id="seleccionados">0 seleccionados</span></p></div>
             </div>
             <div class="bncd-actions">
-                <button type="button" class="bncd-btn" id="btnExportar" title="Con selección exporta solo lo marcado; sin selección exporta todos los resultados filtrados"><i class="icon-download"></i> Exportar Excel</button>
-                <button type="button" class="bncd-btn primary" id="btnImprimir" disabled><i class="icon-printer"></i> Imprimir selección</button>
+                <button type="button" class="bncd-btn" id="btnExportar" title="Con selección exporta solo lo marcado; sin selección exporta todos los resultados filtrados"><i class="clip-file-excel" aria-hidden="true"></i> Exportar Excel</button>
+                <button type="button" class="bncd-btn primary" id="btnImprimir" disabled><i class="icon-printer" aria-hidden="true"></i> Imprimir selección</button>
             </div>
-        </div>
-        <div class="bncd-currency" id="totalesMoneda"></div>
+        </header>
+        <div class="bncd-currency" id="totalesMoneda" aria-label="Totales por moneda"></div>
         <div class="bncd-table-wrap">
             <table class="bncd-table">
                 <thead><tr>
-                    <th class="action">Ver</th><th class="check"><input type="checkbox" id="seleccionarPagina" aria-label="Seleccionar página" /></th>
-                    <th data-sort="BORRADOR">Borrador</th><th data-sort="EMPRESA">Empresa</th><th data-sort="FECHA">Fecha</th>
-                    <th data-sort="CLIENTE">Cliente</th><th data-sort="AGENTE">Agente</th><th data-sort="ESTADO">Estado</th>
-                    <th data-sort="TOTAL" class="number">Total</th><th>Facturas</th><th>Adjuntos</th><th>Creado por</th><th>Resolución</th>
+                    <th class="action">Acciones</th><th class="check"><input type="checkbox" id="seleccionarPagina" aria-label="Seleccionar página" /></th>
+                    <th data-sort="BORRADOR" aria-sort="none"><button type="button">Borrador <i aria-hidden="true"></i></button></th>
+                    <th data-sort="EMPRESA" aria-sort="none"><button type="button">Empresa <i aria-hidden="true"></i></button></th>
+                    <th data-sort="FECHA" aria-sort="descending"><button type="button">Fecha <i aria-hidden="true"></i></button></th>
+                    <th data-sort="CLIENTE" aria-sort="none"><button type="button">Cliente <i aria-hidden="true"></i></button></th>
+                    <th data-sort="AGENTE" aria-sort="none"><button type="button">Agente <i aria-hidden="true"></i></button></th>
+                    <th data-sort="ESTADO" aria-sort="none"><button type="button">Estado <i aria-hidden="true"></i></button></th>
+                    <th data-sort="TOTAL" class="number" aria-sort="none"><button type="button">Total <i aria-hidden="true"></i></button></th>
+                    <th>Facturas</th><th>Adjuntos</th><th>Creado por</th><th>Resolución</th>
                 </tr></thead>
-                <tbody id="dashboardFilas"><tr><td colspan="13" class="empty">Cargando…</td></tr></tbody>
+                <tbody id="dashboardFilas"></tbody>
             </table>
         </div>
         <footer class="bncd-pagination">
             <label>Filas <select id="tamanoPagina"><option>10</option><option selected>25</option><option>50</option><option>100</option></select></label>
             <span id="rangoPagina">0–0 de 0</span>
-            <div><button type="button" id="paginaAnterior" aria-label="Página anterior">‹</button><span id="paginaActual">1 / 1</span><button type="button" id="paginaSiguiente" aria-label="Página siguiente">›</button></div>
+            <div><button type="button" id="paginaAnterior" aria-label="Página anterior"><i class="clip-chevron-left" aria-hidden="true"></i></button><span id="paginaActual">1 / 1</span><button type="button" id="paginaSiguiente" aria-label="Página siguiente"><i class="clip-chevron-right" aria-hidden="true"></i></button></div>
         </footer>
     </section>
 
@@ -94,12 +135,12 @@
 
     <div class="bncd-modal" id="modalBitacora" hidden>
         <div class="bncd-modal-card" role="dialog" aria-modal="true" aria-labelledby="tituloBitacora">
-            <header><div><h2 id="tituloBitacora">Historial del borrador</h2><p id="subtituloBitacora"></p></div><button type="button" id="cerrarBitacora" aria-label="Cerrar">×</button></header>
+            <header><div><span class="bncd-modal-eyebrow">Auditoría</span><h2 id="tituloBitacora">Historial del borrador</h2><p id="subtituloBitacora"></p></div><button type="button" id="cerrarBitacora" aria-label="Cerrar"><i class="clip-close" aria-hidden="true"></i></button></header>
             <div class="bncd-timeline" id="listaBitacora"></div>
         </div>
     </div>
 </main>
 
 @section scripts {
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Dashboard.js?v=20260908")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Dashboard.js?v=20260909")"></script>
 }

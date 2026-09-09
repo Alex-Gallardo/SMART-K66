@@ -209,17 +209,35 @@ namespace DiamDev.Give.DAL
             try { where = ConstruirWhere(filtro, alcance, parametros); }
             finally { filtro.Estado = estadoSeleccionado; }
             string sql = @"
+                ;WITH Antecedentes AS
+                (
+                    SELECT D.ID_EMPRESA, D.ID_BORRADOR
+                    FROM dbo.BORR_NC_DET D
+                    WHERE D.NC_PREVIA_SAP > 0
+                    GROUP BY D.ID_EMPRESA, D.ID_BORRADOR
+                ),
+                Adjuntos AS
+                (
+                    SELECT A.ID_EMPRESA, A.ID_BORRADOR
+                    FROM dbo.BORR_NC_ADJUNTO A
+                    GROUP BY A.ID_EMPRESA, A.ID_BORRADOR
+                )
                 SELECT COUNT(*) TOTAL,
                        SUM(CASE WHEN E.ESTADO='PENDIENTE' THEN 1 ELSE 0 END) PENDIENTES,
                        SUM(CASE WHEN E.ESTADO='PENDIENTE' AND COALESCE(E.REGISTRO,E.FECHA) < DATEADD(day,-@dias,SYSDATETIME()) THEN 1 ELSE 0 END) VENCIDOS,
                        SUM(CASE WHEN E.ESTADO='AUTORIZADO' THEN 1 ELSE 0 END) AUTORIZADOS,
                        SUM(CASE WHEN E.ESTADO='RECHAZADO' THEN 1 ELSE 0 END) RECHAZADOS,
                        SUM(CASE WHEN E.ESTADO='ANULADO' THEN 1 ELSE 0 END) ANULADOS,
-                       SUM(CASE WHEN EXISTS (SELECT 1 FROM dbo.BORR_NC_DET D WHERE D.ID_EMPRESA=E.ID_EMPRESA AND D.ID_BORRADOR=E.ID_BORRADOR AND D.NC_PREVIA_SAP>0) THEN 1 ELSE 0 END) ANTECEDENTES,
-                       SUM(CASE WHEN EXISTS (SELECT 1 FROM dbo.BORR_NC_ADJUNTO A WHERE A.ID_EMPRESA=E.ID_EMPRESA AND A.ID_BORRADOR=E.ID_BORRADOR) THEN 1 ELSE 0 END) ADJUNTOS,
+                       SUM(CASE WHEN P.ID_BORRADOR IS NOT NULL THEN 1 ELSE 0 END) ANTECEDENTES,
+                       SUM(CASE WHEN J.ID_BORRADOR IS NOT NULL THEN 1 ELSE 0 END) ADJUNTOS,
                        AVG(CASE WHEN E.FECHA_RESOLUCION IS NOT NULL THEN CAST(DATEDIFF(minute,COALESCE(E.REGISTRO,E.FECHA),E.FECHA_RESOLUCION) AS decimal(18,2))/60 END) HORAS,
                        MIN(CASE WHEN E.ESTADO='PENDIENTE' THEN COALESCE(E.REGISTRO,E.FECHA) END) MAS_ANTIGUO
-                FROM dbo.BORR_NC_ENC E WHERE " + where + @";
+                FROM dbo.BORR_NC_ENC E
+                LEFT JOIN Antecedentes P
+                    ON P.ID_EMPRESA=E.ID_EMPRESA AND P.ID_BORRADOR=E.ID_BORRADOR
+                LEFT JOIN Adjuntos J
+                    ON J.ID_EMPRESA=E.ID_EMPRESA AND J.ID_BORRADOR=E.ID_BORRADOR
+                WHERE " + where + @";
                 SELECT E.MONEDA, SUM(E.TOTAL) TOTAL
                 FROM dbo.BORR_NC_ENC E WHERE " + where + @"
                 GROUP BY E.MONEDA ORDER BY E.MONEDA;";

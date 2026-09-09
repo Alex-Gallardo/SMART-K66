@@ -6,8 +6,9 @@
    - dbo.BORR_NC_BITACORA (eventos append-only de la aplicación).
    - Permiso Control.BorradorNC.Dashboard.
    - Menú BorradorNc/DashboardBNC.
-   - Crea el rol CREDITOS si todavía no existe.
-   - Asigna Dashboard + VerTodos únicamente al rol exacto CREDITOS.
+
+   La asignación de permisos a roles se realiza manualmente después de ejecutar
+   esta migración.
 
    Ejecute el archivo completo en una ventana nueva de SSMS.
    ============================================================================= */
@@ -24,8 +25,6 @@ IF DB_NAME() <> N'POS-SmartK66'
 IF OBJECT_ID(N'dbo.BORR_NC_ENC', N'U') IS NULL
    OR OBJECT_ID(N'dbo.Permiso', N'U') IS NULL
    OR OBJECT_ID(N'dbo.Menu', N'U') IS NULL
-   OR OBJECT_ID(N'dbo.Rol', N'U') IS NULL
-   OR OBJECT_ID(N'dbo.Rol_Permiso', N'U') IS NULL
     THROW 56001, 'Faltan objetos base requeridos por el dashboard.', 1;
 GO
 
@@ -85,41 +84,6 @@ BEGIN TRY
                 N'Consultar el dashboard de borradores de nota de crédito',
                 N'Borradores NC');
 
-    DECLARE @CantidadRolesCreditos int =
-        (SELECT COUNT(*)
-         FROM dbo.Rol WITH (UPDLOCK,HOLDLOCK)
-         WHERE Nombre=N'CREDITOS');
-
-    IF @CantidadRolesCreditos > 1
-        THROW 56005, 'Existen varios roles llamados CREDITOS; corrija los duplicados antes de continuar.', 1;
-
-    DECLARE @RolCreditos int;
-
-    IF @CantidadRolesCreditos = 0
-    BEGIN
-        INSERT dbo.Rol (Nombre) VALUES (N'CREDITOS');
-        SET @RolCreditos=CONVERT(int,SCOPE_IDENTITY());
-    END
-    ELSE
-        SELECT @RolCreditos=Rol_Id FROM dbo.Rol WHERE Nombre=N'CREDITOS';
-
-    IF @RolCreditos IS NULL
-        THROW 56005, 'No fue posible obtener o crear el rol CREDITOS.', 1;
-    DECLARE @Asignaciones TABLE (Permiso nvarchar(100) PRIMARY KEY);
-    INSERT @Asignaciones VALUES
-        (N'Control.BorradorNC.Dashboard'),
-        (N'Control.BorradorNC.VerTodos');
-
-    IF EXISTS (SELECT 1 FROM @Asignaciones A
-               WHERE NOT EXISTS (SELECT 1 FROM dbo.Permiso P WHERE P.Nombre=A.Permiso))
-        THROW 56006, 'Falta un permiso requerido por el dashboard.', 1;
-
-    INSERT dbo.Rol_Permiso (Rol_Id,Permiso_Id)
-    SELECT @RolCreditos,A.Permiso
-    FROM @Asignaciones A
-    WHERE NOT EXISTS (SELECT 1 FROM dbo.Rol_Permiso RP WITH (UPDLOCK,HOLDLOCK)
-                      WHERE RP.Rol_Id=@RolCreditos AND RP.Permiso_Id=A.Permiso);
-
     DECLARE @MenuPadre int;
     SELECT @MenuPadre=MIN(Menu_Padre_Id)
     FROM dbo.Menu WHERE Controller=N'BorradorNc' AND Action=N'Index';
@@ -160,11 +124,9 @@ SELECT N'06B_OBJETO' SECCION, s.name ESQUEMA, o.name OBJETO, o.type_desc TIPO
 FROM sys.objects o JOIN sys.schemas s ON s.schema_id=o.schema_id
 WHERE o.object_id=OBJECT_ID(N'dbo.BORR_NC_BITACORA');
 
-SELECT N'06C_SEGURIDAD' SECCION, R.Nombre ROL, RP.Permiso_Id
-FROM dbo.Rol R JOIN dbo.Rol_Permiso RP ON RP.Rol_Id=R.Rol_Id
-WHERE R.Nombre=N'CREDITOS'
-  AND RP.Permiso_Id IN (N'Control.BorradorNC.Dashboard',N'Control.BorradorNC.VerTodos')
-ORDER BY RP.Permiso_Id;
+SELECT N'06C_PERMISO' SECCION, Nombre, Descripcion, Modulo
+FROM dbo.Permiso
+WHERE Nombre=N'Control.BorradorNC.Dashboard';
 
 SELECT N'06D_MENU' SECCION,Menu_Id,Menu_Padre_Id,Titulo,Action,Controller,Orden,PermisoId
 FROM dbo.Menu WHERE Controller=N'BorradorNc' AND Action=N'DashboardBNC';
@@ -173,7 +135,7 @@ SELECT N'06E_RESUMEN' SECCION, VALIDACION, ESPERADO, REAL,
        CASE WHEN ESPERADO=REAL THEN N'OK' ELSE N'REVISAR' END RESULTADO
 FROM (VALUES
     (N'Tabla de bitácora',CONVERT(bigint,1),CONVERT(bigint,CASE WHEN OBJECT_ID(N'dbo.BORR_NC_BITACORA',N'U') IS NULL THEN 0 ELSE 1 END)),
-    (N'Permisos CREDITOS',CONVERT(bigint,2),(SELECT COUNT_BIG(*) FROM dbo.Rol R JOIN dbo.Rol_Permiso RP ON RP.Rol_Id=R.Rol_Id WHERE R.Nombre=N'CREDITOS' AND RP.Permiso_Id IN (N'Control.BorradorNC.Dashboard',N'Control.BorradorNC.VerTodos'))),
+    (N'Permiso Dashboard',CONVERT(bigint,1),(SELECT COUNT_BIG(*) FROM dbo.Permiso WHERE Nombre=N'Control.BorradorNC.Dashboard')),
     (N'Entrada de menú',CONVERT(bigint,1),(SELECT COUNT_BIG(*) FROM dbo.Menu WHERE Controller=N'BorradorNc' AND Action=N'DashboardBNC'))
 ) V(VALIDACION,ESPERADO,REAL);
 GO

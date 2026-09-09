@@ -24,10 +24,9 @@ assert.match(view, /Exportar Excel/);
 assert.match(view, /Imprimir selección/);
 assert.match(view, /data-url-bitacora/);
 assert.match(migration, /CREATE TABLE dbo\.BORR_NC_BITACORA/);
-assert.match(migration, /N'CREDITOS'/);
-assert.match(migration, /INSERT dbo\.Rol \(Nombre\) VALUES \(N'CREDITOS'\)/);
-assert.match(migration, /SCOPE_IDENTITY\(\)/);
 assert.match(migration, /Control\.BorradorNC\.Dashboard/);
-assert.match(migration, /Control\.BorradorNC\.VerTodos/);
+assert.doesNotMatch(migration, /N'CREDITOS'/);
+assert.doesNotMatch(migration, /INSERT\s+(?:INTO\s+)?dbo\.Rol\b/);
+assert.doesNotMatch(migration, /INSERT\s+(?:INTO\s+)?dbo\.Rol_Permiso\b/);
 
 console.log("OK: dashboard BorradorNC valida alcance, exportación, impresión y bitácora.");

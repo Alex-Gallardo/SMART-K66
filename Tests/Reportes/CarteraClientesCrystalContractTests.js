@@ -21,8 +21,9 @@ for (const reporte of reportes) {
     const archivoRpt = path.join(ui, "Reports", "Crystal", reporte.archivo);
     assert(fs.existsSync(archivoRpt) && fs.statSync(archivoRpt).size > 0,
         `El archivo ${reporte.archivo} debe existir y no estar vacío.`);
-    assert(proyecto.includes(`Content Include="Reports\\Crystal\\${reporte.archivo}"`),
-        `El proyecto debe publicar ${reporte.archivo}.`);
+    const entradaProyecto = `Content Include="Reports\\Crystal\\${reporte.archivo}"`;
+    assert(proyecto.split(entradaProyecto).length - 1 === 1,
+        `El proyecto debe publicar ${reporte.archivo} exactamente una vez.`);
     assert(controlador.includes(`public ActionResult CarteraClientes${reporte.empresa}`),
         `Debe conservarse el endpoint CarteraClientes${reporte.empresa}.`);
     assert(controlador.includes(`UsuarioEmpresaBL.${reporte.constante}`) &&
@@ -45,10 +46,11 @@ assert((controlador.match(/\[Permiso\("Control\.Menu\.Reporte_Ventas"\)\]/g) || 
 assert(controlador.includes("private ActionResult GenerarCarteraClientes") &&
        controlador.includes("TryResolverAccesoReporteVentas(CustomHelper.getUserId()"),
     "La generación debe centralizarse y validar empresa/agente para el usuario autenticado.");
-assert(controlador.includes('rpt.SetParameterValue("FECHA CORTE", fechaCorteValor)') &&
-       controlador.includes('rpt.SetParameterValue("AGENTE", agente.Trim())') &&
-       controlador.includes('rpt.SetParameterValue("CLIENTE",'),
-    "Deben establecerse los parámetros obligatorios del contrato Crystal.");
+assert(controlador.includes('rpt.SetParameterValue("Clientes",') &&
+       controlador.includes('rpt.SetParameterValue("Empresa", empresa)') &&
+       controlador.includes('rpt.SetParameterValue("Agente", agente.Trim())') &&
+       controlador.includes('rpt.SetParameterValue("FechaCorte", fechaCorteValor)'),
+    "Deben establecerse Clientes, Empresa, Agente y FechaCorte con sus nombres Crystal exactos.");
 assert(controlador.includes("TryParseFechaReporte(fechaCorte") &&
        controlador.includes('new HttpStatusCodeResult(403'),
     "La fecha debe validarse de forma estable y el acceso no autorizado debe rechazarse.");

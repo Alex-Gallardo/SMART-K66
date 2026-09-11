@@ -1237,7 +1237,8 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label class="control-label">
-                        Agente <small class="text-muted" id="carteraAgenteHelp"></small>
+                        Agente <span class="text-danger">*</span>
+                        <small class="text-muted" id="carteraAgenteHelp"></small>
                     </label>
                     <select id="carteraAgente" class="form-control"></select>
                 </div>
@@ -1417,6 +1418,7 @@
             var fc = $("#carteraFechaCorte").val().trim();
             var cl = $("#carteraCliente").val().trim();
 
+            if (!ag) { toastr.error("Selecciona un agente"); return; }
             if (!fc) { toastr.error("La fecha de corte es obligatoria"); return; }
 
             var url = _urlCarteraBase
@@ -1710,8 +1712,23 @@
         }
 
     function pedirCarteraClientes(urlBase, titulo, empresaId) {
+        if (!_userEmpresaInfo) {
+            toastr.warning("Espera mientras se cargan tus empresas y agentes");
+            return;
+        }
+
+        var empresaIdNormalizada = empresaId ? empresaId.toString() : "";
+        var tieneAgentes = _userEmpresaInfo.Agentes && _userEmpresaInfo.Agentes.some(function (a) {
+            return a.EmpresaId === empresaIdNormalizada && a.AgenteNombre;
+        });
+
+        if (!tieneAgentes) {
+            toastr.error("No tienes agentes configurados para esta empresa");
+            return;
+        }
+
         _urlCarteraBase = urlBase;
-        _empresaIdCartera = empresaId ? empresaId.toString() : null;
+        _empresaIdCartera = empresaIdNormalizada;
         $("#modalCarteraTitulo").text(titulo || "Cartera de Clientes");
         poblarSelectAgentes($("#carteraAgente"), _empresaIdCartera, "#carteraAgenteHelp");
         $("#carteraCliente").val("");

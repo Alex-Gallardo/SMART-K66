@@ -1085,9 +1085,9 @@ namespace DiamDev.Give.UI.Controllers
 
         // ══════════════════════════════════════════════════════════════════════
         //  CARTERA DE CLIENTES — un action y un .rpt por empresa
-        //  Parámetros del .rpt (verificados con DiagParametros):
-        //    FECHA CORTE (fecha) | AGENTE | CLIENTE | Empresa
-        //  ⚠️ Los nombres son EXACTOS: "FECHA CORTE" con espacio, "Empresa" en mixto.
+        //  Parámetros de los tres .rpt (verificados con DiagParametros):
+        //    Clientes | Empresa | Agente | FechaCorte (fecha)
+        //  ⚠️ Los nombres y el uso de mayúsculas son los definidos en Crystal.
         // ══════════════════════════════════════════════════════════════════════
 
         [HttpGet]
@@ -1166,17 +1166,13 @@ namespace DiamDev.Give.UI.Controllers
                 rpt.Load(Server.MapPath("~/Reports/Crystal/" + archivoReporte));
                 AplicarConexionHana(rpt, hanaDb);
 
-                // Los tres reportes conservan el contrato del reporte original.
-                // Los parámetros requeridos se establecen directamente para detectar
-                // cualquier cambio de nombre o tipo en los archivos Crystal.
-                rpt.SetParameterValue("FECHA CORTE", fechaCorteValor);
-                rpt.SetParameterValue("AGENTE", agente.Trim());
-                rpt.SetParameterValue("CLIENTE",
+                // Los cuatro parámetros son obligatorios en los nuevos diseños.
+                // Se establecen directamente para detectar cambios en su contrato.
+                rpt.SetParameterValue("Clientes",
                     string.IsNullOrWhiteSpace(cliente) ? "*" : cliente.Trim());
-
-                // Cada archivo ya está separado por empresa; se mantiene compatibilidad
-                // con versiones del diseño que todavía declaran este parámetro.
-                TrySetParametro(rpt, "Empresa", empresa);
+                rpt.SetParameterValue("Empresa", empresa);
+                rpt.SetParameterValue("Agente", agente.Trim());
+                rpt.SetParameterValue("FechaCorte", fechaCorteValor);
 
                 return ExportarPdf(rpt, "Cartera_Clientes_" + empresa);
             }

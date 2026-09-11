@@ -707,6 +707,9 @@
     <Content Include="Reports\Crystal\Reporte despachos en ruta Faes.rpt" />
     <Content Include="Reports\Crystal\Reporte despachos en ruta Graco.rpt" />
     <Content Include="Reports\Crystal\Cartera de Clientes.rpt" />
+    <Content Include="Reports\Crystal\Cartera Clientes Bolik.rpt" />
+    <Content Include="Reports\Crystal\Cartera Clientes Faes.rpt" />
+    <Content Include="Reports\Crystal\Cartera Clientes Graco.rpt" />
     <Content Include="Reports\Crystal\Reporte de Ventas.rpt" />
     <None Include="Reports\Inventario.xsd">
       <Generator>MSDataSetGenerator</Generator>

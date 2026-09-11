@@ -1084,83 +1084,114 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         // ══════════════════════════════════════════════════════════════════════
-        //  CARTERA DE CLIENTES — un action por empresa, mismo .rpt
+        //  CARTERA DE CLIENTES — un action y un .rpt por empresa
         //  Parámetros del .rpt (verificados con DiagParametros):
         //    FECHA CORTE (fecha) | AGENTE | CLIENTE | Empresa
         //  ⚠️ Los nombres son EXACTOS: "FECHA CORTE" con espacio, "Empresa" en mixto.
         // ══════════════════════════════════════════════════════════════════════
 
+        [HttpGet]
+        [Permiso("Control.Menu.Reporte_Ventas")]
         public ActionResult CarteraClientesBolik(string fechaCorte = "",
                                                  string agente = "",
                                                  string cliente = "")
         {
-            var rpt = new ReportDocument();
-            try
-            {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/Cartera de Clientes.rpt"));
-
-                // Schema HANA de Bolik (mismo patrón que Estado de Cuenta)
-                AplicarConexionHana(rpt, "SBOBOLIK");
-
-                if (string.IsNullOrWhiteSpace(fechaCorte))
-                    throw new Exception("La Fecha de Corte es obligatoria.");
-
-                TrySetParametro(rpt, "FECHA CORTE", Convert.ToDateTime(fechaCorte));
-                TrySetParametro(rpt, "AGENTE", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
-                TrySetParametro(rpt, "CLIENTE", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
-                TrySetParametro(rpt, "Empresa", "BOLIK");
-
-                return ExportarPdf(rpt, "Cartera_Clientes_Bolik");
-            }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Cartera de Clientes Bolik"); }
+            return GenerarCarteraClientes(
+                UsuarioEmpresaBL.ID_BOLIK,
+                "Cartera Clientes Bolik.rpt",
+                fechaCorte,
+                agente,
+                cliente);
         }
 
+        [HttpGet]
+        [Permiso("Control.Menu.Reporte_Ventas")]
         public ActionResult CarteraClientesFaes(string fechaCorte = "",
                                                 string agente = "",
                                                 string cliente = "")
         {
-            var rpt = new ReportDocument();
-            try
-            {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/Cartera de Clientes.rpt"));
-
-                AplicarConexionHana(rpt, "SBOESCOCESA");
-
-                if (string.IsNullOrWhiteSpace(fechaCorte))
-                    throw new Exception("La Fecha de Corte es obligatoria.");
-
-                TrySetParametro(rpt, "FECHA CORTE", Convert.ToDateTime(fechaCorte));
-                TrySetParametro(rpt, "AGENTE", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
-                TrySetParametro(rpt, "CLIENTE", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
-                TrySetParametro(rpt, "Empresa", "FAES");
-
-                return ExportarPdf(rpt, "Cartera_Clientes_Faes");
-            }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Cartera de Clientes Faes"); }
+            return GenerarCarteraClientes(
+                UsuarioEmpresaBL.ID_FAES,
+                "Cartera Clientes Faes.rpt",
+                fechaCorte,
+                agente,
+                cliente);
         }
 
+        [HttpGet]
+        [Permiso("Control.Menu.Reporte_Ventas")]
         public ActionResult CarteraClientesGraco(string fechaCorte = "",
                                                  string agente = "",
                                                  string cliente = "")
         {
+            return GenerarCarteraClientes(
+                UsuarioEmpresaBL.ID_GRACO,
+                "Cartera Clientes Graco.rpt",
+                fechaCorte,
+                agente,
+                cliente);
+        }
+
+        private ActionResult GenerarCarteraClientes(long empresaId,
+            string archivoReporte,
+            string fechaCorte,
+            string agente,
+            string cliente)
+        {
+            if (string.IsNullOrWhiteSpace(agente))
+                return new HttpStatusCodeResult(400, "El Agente es obligatorio.");
+
+            DateTime fechaCorteValor;
+            if (!TryParseFechaReporte(fechaCorte, out fechaCorteValor))
+            {
+                return new HttpStatusCodeResult(400,
+                    "La Fecha de Corte es obligatoria y debe usar el formato yyyy-MM-dd.");
+            }
+
+            string empresa;
+            string hanaDb;
+            if (!TryResolverAccesoReporteVentas(CustomHelper.getUserId(),
+                empresaId,
+                agente,
+                out empresa,
+                out hanaDb))
+            {
+                return new HttpStatusCodeResult(403,
+                    "El usuario no tiene acceso a la empresa o al agente seleccionado.");
+            }
+
             var rpt = new ReportDocument();
             try
             {
-                rpt.Load(Server.MapPath("~/Reports/Crystal/Cartera de Clientes.rpt"));
+                rpt.Load(Server.MapPath("~/Reports/Crystal/" + archivoReporte));
+                AplicarConexionHana(rpt, hanaDb);
 
-                AplicarConexionHana(rpt, "SBO_GRACO");
+                // Los tres reportes conservan el contrato del reporte original.
+                // Los parámetros requeridos se establecen directamente para detectar
+                // cualquier cambio de nombre o tipo en los archivos Crystal.
+                rpt.SetParameterValue("FECHA CORTE", fechaCorteValor);
+                rpt.SetParameterValue("AGENTE", agente.Trim());
+                rpt.SetParameterValue("CLIENTE",
+                    string.IsNullOrWhiteSpace(cliente) ? "*" : cliente.Trim());
 
-                if (string.IsNullOrWhiteSpace(fechaCorte))
-                    throw new Exception("La Fecha de Corte es obligatoria.");
+                // Cada archivo ya está separado por empresa; se mantiene compatibilidad
+                // con versiones del diseño que todavía declaran este parámetro.
+                TrySetParametro(rpt, "Empresa", empresa);
 
-                TrySetParametro(rpt, "FECHA CORTE", Convert.ToDateTime(fechaCorte));
-                TrySetParametro(rpt, "AGENTE", string.IsNullOrWhiteSpace(agente) ? "*" : agente);
-                TrySetParametro(rpt, "CLIENTE", string.IsNullOrWhiteSpace(cliente) ? "*" : cliente);
-                TrySetParametro(rpt, "Empresa", "GRACO");
-
-                return ExportarPdf(rpt, "Cartera_Clientes_Graco");
+                return ExportarPdf(rpt, "Cartera_Clientes_" + empresa);
             }
-            catch (Exception ex) { rpt.Close(); rpt.Dispose(); return ContenidoError(ex, "Cartera de Clientes Graco"); }
+            catch (Exception ex)
+            {
+                rpt.Close();
+                rpt.Dispose();
+                System.Diagnostics.Trace.TraceError(
+                    "[CarteraClientes] Error al generar {0} para empresa {1}: {2}",
+                    archivoReporte,
+                    empresaId,
+                    ex);
+                return new HttpStatusCodeResult(500,
+                    "No fue posible generar el reporte de Cartera de Clientes.");
+            }
         }
 
         // ── Helpers internos ──────────────────────────────────────────────────

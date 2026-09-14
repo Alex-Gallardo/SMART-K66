@@ -118,6 +118,17 @@ const ProduccionV2Dashboard = (() => {
         return description || code || '—';
     }
 
+    // La planta no viene como columna independiente. Se deriva del prefijo
+    // estable del código de recurso, usando la descripción solo como respaldo.
+    function plantaFromRecurso(row) {
+        const source = String(row.CodigoRecurso || row.DescripcionRecurso || '')
+            .trim()
+            .toUpperCase();
+        if (source.startsWith('PC')) return 'PC';
+        if (source.startsWith('PP')) return 'PP';
+        return null;
+    }
+
     function dailyQuantity(row) {
         const value = Number(row["Cantidad Real Día"]);
         return Number.isFinite(value) ? value : 0;
@@ -367,14 +378,19 @@ const ProduccionV2Dashboard = (() => {
 
         function renderOptions() {
             const q = (search.value || '').trim().toLowerCase();
-            optionsBox.innerHTML = '';
+            while (optionsBox.firstChild) optionsBox.removeChild(optionsBox.firstChild);
             allValues
                 .filter(o => !q || o.label.toLowerCase().includes(q))
                 .forEach(o => {
                     const row = document.createElement('label');
+                    const checkbox = document.createElement('input');
+                    const text = document.createElement('span');
                     row.className = 'msel-option';
-                    row.innerHTML = `<input type="checkbox" ${selected.has(o.value) ? 'checked' : ''}> <span></span>`;
-                    row.querySelector('span').textContent = o.label;
+                    checkbox.type = 'checkbox';
+                    checkbox.checked = selected.has(o.value);
+                    text.textContent = o.label;
+                    row.appendChild(checkbox);
+                    row.appendChild(text);
                     row.addEventListener('click', (e) => {
                         e.preventDefault();
                         if (selected.has(o.value)) selected.delete(o.value); else selected.add(o.value);
@@ -445,7 +461,7 @@ const ProduccionV2Dashboard = (() => {
     }
 
     function initMultiSelects() {
-        ['mselItem', 'mselRecurso', 'mselFamilia', 'mselTipo'].forEach(id => {
+        ['mselItem', 'mselRecurso', 'mselFamilia', 'mselTipo', 'mselPlanta'].forEach(id => {
             msel[id] = createMultiSelect(id, onFilterChange);
         });
     }
@@ -484,6 +500,7 @@ const ProduccionV2Dashboard = (() => {
         const fRecursos = skip.has('recurso') ? new Set() : msel.mselRecurso.getSelected();
         const fFamilias = skip.has('familia') ? new Set() : msel.mselFamilia.getSelected();
         const fTipos = skip.has('tipo') ? new Set() : msel.mselTipo.getSelected();
+        const fPlantas = skip.has('planta') ? new Set() : msel.mselPlanta.getSelected();
         const fEstado = skip.has('estado') ? '' : ($('filEstado') ? $('filEstado').value : '');
 
         return raw.filter(r => {
@@ -491,6 +508,7 @@ const ProduccionV2Dashboard = (() => {
             if (fRecursos.size && !fRecursos.has(resourceValue(r))) return false;
             if (fFamilias.size && !fFamilias.has(r.FamilyName)) return false;
             if (fTipos.size && !fTipos.has(r.TipoItem)) return false;
+            if (fPlantas.size && !fPlantas.has(plantaFromRecurso(r))) return false;
             if (fEstado && r.EstadoOT !== fEstado) return false;
             if (!skip.has('fecha') && !dateInRange(r)) return false;
             return true;
@@ -522,6 +540,13 @@ const ProduccionV2Dashboard = (() => {
         const tipos = new Set();
         rowsMatchingFilters(['tipo']).forEach(r => { if (r.TipoItem) tipos.add(r.TipoItem); });
         msel.mselTipo.setOptions([...tipos].sort());
+
+        const plantas = new Set();
+        rowsMatchingFilters(['planta']).forEach(r => {
+            const planta = plantaFromRecurso(r);
+            if (planta) plantas.add(planta);
+        });
+        msel.mselPlanta.setOptions([...plantas].sort());
     }
 
     function applyFilters() {
@@ -555,43 +580,117 @@ const ProduccionV2Dashboard = (() => {
         drawByFamily(filtered);
         drawByItem(filtered);
         drawByTipo(filtered);
+        drawMotivoParo(filtered);
         renderTable(filtered);
     }
 
-    function renderKpis(rows, cambios) {
-        const sumReal = rows.reduce((a, r) => a + (+r["Hora Real Día"] || 0), 0);
+    function computeMotivoParoDist(rows) {
+        const counts = new Map();
+        let sinRegistrar = 0;
 
-        const planMap = {};
-        rows.forEach(r => {
-            const k = `${r.OT}|${r.PosicionOT}|${resourceValue(r)}`;
-            if (!(k in planMap)) {
-                planMap[k] = +r["Hora Plan"] || 0;
+        rows.forEach(row => {
+            const rawValue = row["Motivo de Paro"];
+            const value = rawValue === null || rawValue === undefined
+                ? ''
+                : String(rawValue).trim();
+            if (!value) {
+                sinRegistrar++;
+                return;
             }
+
+            const key = value.toLocaleLowerCase('es');
+            if (!counts.has(key)) counts.set(key, { label: value, count: 0 });
+            counts.get(key).count++;
         });
 
-        const sumPlan = Object.values(planMap).reduce((a, value) => a + value, 0);
+        const sorted = [...counts.values()].sort((a, b) =>
+            b.count - a.count || a.label.localeCompare(b.label, 'es'));
+        const top = sorted.slice(0, 12);
+        const otrosCount = sorted.slice(12).reduce((total, item) => total + item.count, 0);
+        return {
+            top,
+            otrosCount,
+            sinRegistrar,
+            totalConMotivo: sorted.reduce((total, item) => total + item.count, 0)
+        };
+    }
 
-        const quantityTotals = aggregateDailyQuantity(rows, () => 'total', false);
-        const sumCant = quantityTotals.total || 0;
+    function drawMotivoParo(rows) {
+        const canvas = $('chartMotivoParo');
+        if (!canvas) return;
 
-        const recursosVistos = new Set();
-        rows.forEach(r => {
-            recursosVistos.add(resourceValue(r));
-        });
+        const distribution = computeMotivoParoDist(rows);
+        const labels = distribution.top.map(item =>
+            item.label.length > 40 ? item.label.slice(0, 37) + '…' : item.label);
+        const data = distribution.top.map(item => item.count);
+        const colors = distribution.top.map(() => '#f59e0b');
 
-        const fromEl = $('from');
-        const toEl = $('to');
-        let desde = fromEl && fromEl.value;
-        let hasta = toEl && toEl.value;
-        if (!desde || !hasta) {
-            const fechas = rows.map(r => normalizeFechaToISO(r.Fecha)).filter(Boolean).sort();
-            desde = fechas[0];
-            hasta = fechas[fechas.length - 1];
+        if (distribution.otrosCount > 0) {
+            labels.push('Otros');
+            data.push(distribution.otrosCount);
+            colors.push('#94a3b8');
+        }
+        if (distribution.sinRegistrar > 0) {
+            labels.push('Sin motivo registrado');
+            data.push(distribution.sinRegistrar);
+            colors.push('#334155');
         }
 
-        const diasVistos = new Set(enumerarDias(desde, hasta));
-        rows.forEach(r => {
-            const fecha = normalizeFechaToISO(r.Fecha);
+        charts.motivoParo?.destroy();
+        charts.motivoParo = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [{ label: 'Filas', data, backgroundColor: colors }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: context => {
+                                const total = distribution.totalConMotivo + distribution.sinRegistrar;
+                                return `${fmtPct(total ? context.parsed.x / total * 100 : 0)} de las filas visibles`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: '#27344966' } },
+                    y: { ticks: { color: '#94a3b8' }, grid: { color: '#27344966' } }
+                }
+            }
+        });
+    }
+
+    function effectiveDateRange(rows, desde, hasta) {
+        const dates = rows.map(row => normalizeFechaToISO(row.Fecha)).filter(Boolean).sort();
+        return {
+            desde: desde || dates[0],
+            hasta: hasta || dates[dates.length - 1]
+        };
+    }
+
+    function computeKpisData(rows, desde, hasta, cambios) {
+        const sumReal = rows.reduce((total, row) => total + (+row["Hora Real Día"] || 0), 0);
+        const planMap = {};
+
+        rows.forEach(row => {
+            const key = `${row.OT}|${row.PosicionOT}|${resourceValue(row)}`;
+            if (!(key in planMap)) planMap[key] = +row["Hora Plan"] || 0;
+        });
+
+        const sumPlan = Object.values(planMap).reduce((total, value) => total + value, 0);
+        const sumCant = aggregateDailyQuantity(rows, () => 'total', false).total || 0;
+        const recursosVistos = new Set(rows.map(resourceValue));
+        const range = effectiveDateRange(rows, desde, hasta);
+        const diasVistos = new Set(enumerarDias(range.desde, range.hasta));
+
+        rows.forEach(row => {
+            const fecha = normalizeFechaToISO(row.Fecha);
             if (fecha) diasVistos.add(fecha);
         });
 
@@ -608,57 +707,65 @@ const ProduccionV2Dashboard = (() => {
 
         const capacidadTotal = recursosVistos.size * diasVistos.size * 24;
         const asCapacityPercentage = value => capacidadTotal ? value / capacidadTotal * 100 : null;
-
-        $('kpiReal').textContent = capacidadTotal ? fmtPct(asCapacityPercentage(sumReal)) : '—';
-        $('kpiRealSub').textContent = `${fmt(sumReal)} h · ${rows.length} registros`;
-
-        $('kpiPlan').textContent = capacidadTotal ? fmtPct(asCapacityPercentage(sumPlan)) : '—';
-        $('kpiPlanSub').textContent = `${fmt(sumPlan)} h`
-            + (sumPlan ? ` · Δ ${fmt(sumReal - sumPlan)} h vs real` : '');
-
-        $('kpiParo').textContent = capacidadTotal ? fmtPct(asCapacityPercentage(sumParo)) : '—';
-        $('kpiParo').className = 'value kpi-paro';
-        $('kpiParoSub').textContent = capacidadTotal
-            ? `${fmt(sumParo)} h · faltante en turnos con confirmación`
-            : `${fmt(sumParo)} h`;
-
-        $('kpiDisponible').textContent = capacidadTotal
-            ? fmtPct(asCapacityPercentage(sumDisponible))
-            : '—';
-        $('kpiDisponibleSub').textContent = capacidadTotal
-            ? `${fmt(sumDisponible)} h · turnos sin confirmación`
-            : `${fmt(sumDisponible)} h`;
-
-        $('kpiEM').textContent = fmt(sumCant);
-
-        $('kpiCambios').textContent = fmt(cambios.total);
-        $('kpiCambiosSub').textContent = `en ${cambios.recursosConCambio.size} recurso(s) · estimado, sin duración`;
+        return {
+            sumReal,
+            sumPlan,
+            sumCant,
+            sumParo,
+            sumDisponible,
+            capacidadTotal,
+            pctUtil: asCapacityPercentage(sumReal),
+            pctPlanCap: asCapacityPercentage(sumPlan),
+            pctParoCap: asCapacityPercentage(sumParo),
+            pctDispCap: asCapacityPercentage(sumDisponible),
+            recursosVistos,
+            diasVistos,
+            recursoDias: recursosVistos.size * diasVistos.size,
+            numRegistros: rows.length,
+            cambiosTotal: cambios ? cambios.total : 0,
+            cambiosRecursos: cambios ? cambios.recursosConCambio.size : 0
+        };
     }
 
-    function drawTrend(rows, cambios) {
-        const bucket = $('bucket').value;
-        const recursos = new Set(rows.map(resourceValue));
+    function renderKpis(rows, cambios) {
         const fromEl = $('from');
         const toEl = $('to');
-        let desde = fromEl && fromEl.value;
-        let hasta = toEl && toEl.value;
-        if (!desde || !hasta) {
-            const fechas = rows.map(r => normalizeFechaToISO(r.Fecha)).filter(Boolean).sort();
-            desde = fechas[0];
-            hasta = fechas[fechas.length - 1];
-        }
+        const kpis = computeKpisData(
+            rows,
+            fromEl && fromEl.value,
+            toEl && toEl.value,
+            cambios);
 
+        $('kpiReal').textContent = kpis.pctUtil !== null ? fmtPct(kpis.pctUtil) : '—';
+        $('kpiRealSub').textContent = `${fmt(kpis.sumReal)} h · ${kpis.numRegistros} registros`;
+        $('kpiPlan').textContent = kpis.pctPlanCap !== null ? fmtPct(kpis.pctPlanCap) : '—';
+        $('kpiPlanSub').textContent = `${fmt(kpis.sumPlan)} h`
+            + (kpis.sumPlan ? ` · Δ ${fmt(kpis.sumReal - kpis.sumPlan)} h vs real` : '');
+        $('kpiParo').textContent = kpis.pctParoCap !== null ? fmtPct(kpis.pctParoCap) : '—';
+        $('kpiParo').className = 'value kpi-paro';
+        $('kpiParoSub').textContent = `${fmt(kpis.sumParo)} h · faltante en turnos con confirmación`;
+        $('kpiDisponible').textContent = kpis.pctDispCap !== null ? fmtPct(kpis.pctDispCap) : '—';
+        $('kpiDisponibleSub').textContent = `${fmt(kpis.sumDisponible)} h · turnos sin confirmación`;
+        $('kpiEM').textContent = fmt(kpis.sumCant);
+        $('kpiCambios').textContent = fmt(kpis.cambiosTotal);
+        $('kpiCambiosSub').textContent = `en ${kpis.cambiosRecursos} recurso(s) · estimado, sin duración`;
+    }
+
+    function computeTrendSeries(rows, desde, hasta, bucket, cambios) {
+        const resources = new Set(rows.map(resourceValue));
+        const range = effectiveDateRange(rows, desde, hasta);
         const planPorDia = apportionPlanPorDia(rows);
         const cambiosPorDia = {};
-        Object.entries(cambios.porDiaRecurso).forEach(([key, count]) => {
+
+        Object.entries((cambios && cambios.porDiaRecurso) || {}).forEach(([key, count]) => {
             const fecha = key.split('|')[0];
             cambiosPorDia[fecha] = (cambiosPorDia[fecha] || 0) + count;
         });
 
         const { horasPorTurno, turnosConFila } = computeHorasPorTurno(rows);
-        const todosLosDias = new Set(enumerarDias(desde, hasta));
-        rows.forEach(r => {
-            const fecha = normalizeFechaToISO(r.Fecha);
+        const todosLosDias = new Set(enumerarDias(range.desde, range.hasta));
+        rows.forEach(row => {
+            const fecha = normalizeFechaToISO(row.Fecha);
             if (fecha) todosLosDias.add(fecha);
         });
 
@@ -669,65 +776,78 @@ const ProduccionV2Dashboard = (() => {
                 agg[key] = { real: 0, plan: 0, paro: 0, disponible: 0, capacidad: 0, cambios: 0 };
             }
 
-            recursos.forEach(recurso => {
+            resources.forEach(recurso => {
                 const detail = desglosarDiaRecurso(fecha, recurso, horasPorTurno, turnosConFila);
                 agg[key].real += detail.real;
                 agg[key].paro += detail.paro;
                 agg[key].disponible += detail.disponible;
             });
             agg[key].plan += planPorDia[fecha] || 0;
-            agg[key].capacidad += recursos.size * 24;
+            agg[key].capacidad += resources.size * 24;
             agg[key].cambios += cambiosPorDia[fecha] || 0;
         });
 
         const keys = Object.keys(agg).sort();
-        const labels = keys.map(k => bucketLabel(k, bucket));
-        const real = keys.map(k => agg[k].real);
-        const plan = keys.map(k => agg[k].plan);
-        const paro = keys.map(k => agg[k].paro);
-        const disponible = keys.map(k => agg[k].disponible);
-        const capacidad = keys.map(k => agg[k].capacidad);
-        const accent = getAccent();
+        const labels = keys.map(key => bucketLabel(key, bucket));
+        const real = keys.map(key => agg[key].real);
+        const plan = keys.map(key => agg[key].plan);
+        const paro = keys.map(key => agg[key].paro);
+        const disponible = keys.map(key => agg[key].disponible);
+        const capacidad = keys.map(key => agg[key].capacidad);
+        const pct = (value, total) => total > 0 ? value / total * 100 : 0;
 
-        const pct = (num, den) => den > 0 ? (num / den * 100) : 0;
-        const realPct = keys.map((k, i) => pct(real[i], capacidad[i]));
-        const paroPct = keys.map((k, i) => pct(paro[i], capacidad[i]));
-        const disponiblePct = keys.map((k, i) => pct(disponible[i], capacidad[i]));
-        const planPct = keys.map((k, i) => pct(plan[i], capacidad[i]));
+        return {
+            keys,
+            labels,
+            real,
+            plan,
+            paro,
+            disponible,
+            capacidad,
+            realPct: keys.map((key, index) => pct(real[index], capacidad[index])),
+            planPct: keys.map((key, index) => pct(plan[index], capacidad[index])),
+            paroPct: keys.map((key, index) => pct(paro[index], capacidad[index])),
+            disponiblePct: keys.map((key, index) => pct(disponible[index], capacidad[index])),
+            agg,
+            bucket
+        };
+    }
 
-        charts.trend?.destroy();
-        charts.trend = new Chart($('chartTrend'), {
+    function buildTrendChart(canvasId, chartsKey, series, accent) {
+        charts[chartsKey]?.destroy();
+        charts[chartsKey] = new Chart($(canvasId), {
             data: {
-                labels,
+                labels: series.labels,
                 datasets: [
-                    { type: 'bar', label: 'Reales', data: realPct, backgroundColor: accent, stack: 'pct', rawHours: real },
-                    { type: 'bar', label: 'Paro', data: paroPct, backgroundColor: '#ef444499', stack: 'pct', rawHours: paro },
-                    { type: 'bar', label: 'Disponible / sin registrar', data: disponiblePct, backgroundColor: '#94a3b833', stack: 'pct', rawHours: disponible },
+                    { type: 'bar', label: 'Reales', data: series.realPct, backgroundColor: accent, stack: 'pct', rawHours: series.real },
+                    { type: 'bar', label: 'Paro', data: series.paroPct, backgroundColor: '#ef444499', stack: 'pct', rawHours: series.paro },
+                    { type: 'bar', label: 'Disponible / sin registrar', data: series.disponiblePct, backgroundColor: '#94a3b833', stack: 'pct', rawHours: series.disponible },
                     {
-                        type: 'line', label: 'Planificadas (prorrateada)', data: planPct,
+                        type: 'line', label: 'Planificadas (prorrateada)', data: series.planPct,
                         borderColor: '#fbbf24', backgroundColor: '#fbbf2433', borderWidth: 3,
-                        tension: .3, borderDash: [5, 5], pointRadius: 4, rawHours: plan, order: 0
+                        tension: .3, borderDash: [5, 5], pointRadius: 4, rawHours: series.plan, order: 0
                     }
                 ]
             },
             options: {
-                responsive: true, maintainAspectRatio: false,
+                responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: { labels: { color: '#e2e8f0' } },
                     tooltip: {
                         callbacks: {
-                            label: (ctx) => {
-                                const rawArr = ctx.dataset.rawHours;
-                                const raw = rawArr ? rawArr[ctx.dataIndex] : null;
-                                const pctVal = ctx.parsed.y;
-                                return `${ctx.dataset.label}: ${fmtPct(pctVal)}` + (raw !== null ? ` (${fmt(raw)} h)` : '');
+                            label: context => {
+                                const rawHours = context.dataset.rawHours;
+                                const hours = rawHours ? rawHours[context.dataIndex] : null;
+                                return `${context.dataset.label}: ${fmtPct(context.parsed.y)}`
+                                    + (hours !== null ? ` (${fmt(hours)} h)` : '');
                             },
-                            afterBody: (items) => {
+                            afterBody: items => {
                                 if (!items.length) return [];
                                 const index = items[0].dataIndex;
                                 return [
-                                    `Capacidad disponible: ${fmt(capacidad[index])} h`,
-                                    `Cambios de molde: ${fmt(agg[keys[index]].cambios)}`
+                                    `Capacidad disponible: ${fmt(series.capacidad[index])} h`,
+                                    `Cambios de molde: ${fmt(series.agg[series.keys[index]].cambios)}`
                                 ];
                             }
                         }
@@ -738,21 +858,30 @@ const ProduccionV2Dashboard = (() => {
                         stacked: true,
                         ticks: {
                             color: '#94a3b8', maxRotation: 35, minRotation: 35,
-                            autoSkip: true,
-                            // day view is the one that gets cluttered over a long range —
-                            // cap how many labels it draws and let Chart.js thin them out
-                            maxTicksLimit: bucket === 'day' ? 20 : undefined
+                            autoSkip: true, maxTicksLimit: series.bucket === 'day' ? 20 : undefined
                         },
                         grid: { color: '#27344966' }
                     },
                     y: {
                         stacked: true, min: 0, max: 100,
-                        ticks: { color: '#94a3b8', callback: v => v + '%' },
+                        ticks: { color: '#94a3b8', callback: value => value + '%' },
                         grid: { color: '#27344966' }
                     }
                 }
             }
         });
+    }
+
+    function drawTrend(rows, cambios) {
+        const fromEl = $('from');
+        const toEl = $('to');
+        const series = computeTrendSeries(
+            rows,
+            fromEl && fromEl.value,
+            toEl && toEl.value,
+            $('bucket').value,
+            cambios);
+        buildTrendChart('chartTrend', 'trend', series, getAccent());
     }
 
     // Cantidad producida a lo largo del tiempo — mismo eje X/bucket que
@@ -1110,6 +1239,317 @@ const ProduccionV2Dashboard = (() => {
         });
     }
 
+    // ---- comparación por rango u OT + posición ----
+    let otPosLabelMap = new Map();
+
+    function compareFilteredBase() {
+        const selected = id => msel[id] ? msel[id].getSelected() : new Set();
+        const items = selected('mselItemCmp');
+        const resources = selected('mselRecursoCmp');
+        const families = selected('mselFamiliaCmp');
+        const types = selected('mselTipoCmp');
+        const plants = selected('mselPlantaCmp');
+
+        return raw.filter(row => {
+            if (items.size && !items.has(row.ItemID)) return false;
+            if (resources.size && !resources.has(resourceValue(row))) return false;
+            if (families.size && !families.has(row.FamilyName)) return false;
+            if (types.size && !types.has(row.TipoItem)) return false;
+            if (plants.size && !plants.has(plantaFromRecurso(row))) return false;
+            return true;
+        });
+    }
+
+    function populateCompareFilterOptions() {
+        if (!msel.mselItemCmp) return;
+
+        const items = new Map();
+        const resources = new Map();
+        const families = new Set();
+        const types = new Set();
+        const plants = new Set();
+
+        raw.forEach(row => {
+            if (row.ItemID) {
+                items.set(row.ItemID, row.DescripcionItem
+                    ? `${row.ItemID} — ${row.DescripcionItem}`
+                    : row.ItemID);
+            }
+            const resource = resourceValue(row);
+            if (resource !== '—') resources.set(resource, resourceLabel(row));
+            if (row.FamilyName) families.add(row.FamilyName);
+            if (row.TipoItem) types.add(row.TipoItem);
+            const plant = plantaFromRecurso(row);
+            if (plant) plants.add(plant);
+        });
+
+        msel.mselItemCmp.setOptions([...items.entries()]
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([value, label]) => ({ value, label })));
+        msel.mselRecursoCmp.setOptions([...resources.entries()]
+            .sort((a, b) => a[1].localeCompare(b[1]))
+            .map(([value, label]) => ({ value, label })));
+        msel.mselFamiliaCmp.setOptions([...families].sort());
+        msel.mselTipoCmp.setOptions([...types].sort());
+        msel.mselPlantaCmp.setOptions([...plants].sort());
+        populateOtPosDatalist();
+    }
+
+    function clearChildren(element) {
+        while (element && element.firstChild) element.removeChild(element.firstChild);
+    }
+
+    function populateOtPosDatalist() {
+        const datalist = $('dlOtPos');
+        if (!datalist) return;
+
+        const values = new Map();
+        compareFilteredBase().forEach(row => {
+            if (row.OT === null || row.OT === undefined ||
+                row.PosicionOT === null || row.PosicionOT === undefined) return;
+
+            const key = `${row.OT}|${row.PosicionOT}`;
+            if (values.has(key)) return;
+            const item = row.ItemID ? ` — ${row.ItemID}` : '';
+            const description = row.DescripcionItem ? ` — ${row.DescripcionItem}` : '';
+            values.set(key, `OT ${row.OT} | Pos ${row.PosicionOT}${item}${description}`);
+        });
+
+        clearChildren(datalist);
+        const entries = [...values.entries()].sort((a, b) => a[1].localeCompare(b[1], 'es'));
+        entries.forEach(([, label]) => {
+            const option = document.createElement('option');
+            option.value = label;
+            datalist.appendChild(option);
+        });
+
+        otPosLabelMap = new Map(entries.map(([key, label]) => {
+            const separator = key.indexOf('|');
+            return [label, { ot: key.slice(0, separator), pos: key.slice(separator + 1) }];
+        }));
+    }
+
+    function resolveOtPos(inputValue) {
+        return otPosLabelMap.get(inputValue) || null;
+    }
+
+    function switchTab(name) {
+        const selectedName = name === 'comparar' ? 'comparar' : 'dashboard';
+        document.querySelectorAll('.tab-nav button[data-tab]').forEach(button => {
+            const active = button.dataset.tab === selectedName;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-selected', String(active));
+        });
+
+        const dashboard = $('tabDashboard');
+        const compare = $('tabComparar');
+        if (dashboard) dashboard.hidden = selectedName !== 'dashboard';
+        if (compare) compare.hidden = selectedName !== 'comparar';
+        if (selectedName === 'comparar' && raw.length) populateCompareFilterOptions();
+
+        if (typeof window !== 'undefined' && window.requestAnimationFrame) {
+            window.requestAnimationFrame(() => {
+                Object.values(charts).forEach(chart => { if (chart && chart.resize) chart.resize(); });
+            });
+        }
+    }
+
+    function fmtDelta(a, b, percentagePoints) {
+        if (a === null || a === undefined || isNaN(a) ||
+            b === null || b === undefined || isNaN(b)) return '—';
+        const delta = Number(a) - Number(b);
+        const sign = delta > 0 ? '+' : '';
+        return percentagePoints ? `${sign}${delta.toFixed(1)} pp` : `${sign}${fmt(delta)}`;
+    }
+
+    function appendTextCell(row, value, className) {
+        const cell = document.createElement('td');
+        if (className) cell.className = className;
+        cell.textContent = value === null || value === undefined ? '' : String(value);
+        row.appendChild(cell);
+        return cell;
+    }
+
+    function renderCompareKpiTable(kpisA, kpisB, titleA, titleB) {
+        const container = $('cmpKpiGrid');
+        if (!container) return;
+
+        const metrics = [
+            { label: 'Horas Real (% capacidad)', a: kpisA.pctUtil, b: kpisB.pctUtil, pct: true, subA: `${fmt(kpisA.sumReal)} h · ${kpisA.numRegistros} reg.`, subB: `${fmt(kpisB.sumReal)} h · ${kpisB.numRegistros} reg.` },
+            { label: 'Horas Plan (% capacidad)', a: kpisA.pctPlanCap, b: kpisB.pctPlanCap, pct: true, subA: `${fmt(kpisA.sumPlan)} h`, subB: `${fmt(kpisB.sumPlan)} h` },
+            { label: 'Horas Paro (% capacidad)', a: kpisA.pctParoCap, b: kpisB.pctParoCap, pct: true, className: 'cmp-row-paro', subA: `${fmt(kpisA.sumParo)} h`, subB: `${fmt(kpisB.sumParo)} h` },
+            { label: 'Horas Disponible / sin registrar (%)', a: kpisA.pctDispCap, b: kpisB.pctDispCap, pct: true, subA: `${fmt(kpisA.sumDisponible)} h`, subB: `${fmt(kpisB.sumDisponible)} h` },
+            { label: 'Cant. Producida', a: kpisA.sumCant, b: kpisB.sumCant, pct: false },
+            { label: 'Cambios de Molde', a: kpisA.cambiosTotal, b: kpisB.cambiosTotal, pct: false, subA: `${kpisA.cambiosRecursos} recurso(s)`, subB: `${kpisB.cambiosRecursos} recurso(s)` }
+        ];
+        const formatValue = (value, isPercentage) =>
+            value === null || value === undefined || isNaN(value)
+                ? '—'
+                : (isPercentage ? fmtPct(value) : fmt(value));
+
+        clearChildren(container);
+        const table = document.createElement('table');
+        table.className = 'cmp-table';
+        const thead = document.createElement('thead');
+        const header = document.createElement('tr');
+        ['Métrica', titleA, titleB, 'Δ (A − B)'].forEach(value => {
+            const th = document.createElement('th');
+            th.textContent = value;
+            header.appendChild(th);
+        });
+        thead.appendChild(header);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        metrics.forEach(metric => {
+            const row = document.createElement('tr');
+            if (metric.className) row.className = metric.className;
+            appendTextCell(row, metric.label);
+
+            [[metric.a, metric.subA], [metric.b, metric.subB]].forEach(([value, subtitle]) => {
+                const cell = appendTextCell(row, formatValue(value, metric.pct));
+                if (subtitle) {
+                    const sub = document.createElement('div');
+                    sub.className = 'cmp-sub';
+                    sub.textContent = subtitle;
+                    cell.appendChild(sub);
+                }
+            });
+            appendTextCell(row, fmtDelta(metric.a, metric.b, metric.pct));
+            tbody.appendChild(row);
+        });
+        table.appendChild(tbody);
+        container.appendChild(table);
+    }
+
+    function filterRowsByRange(rows, desde, hasta) {
+        return rows.filter(row => {
+            const fecha = normalizeFechaToISO(row.Fecha);
+            return fecha && fecha >= desde && fecha <= hasta;
+        });
+    }
+
+    function filterRowsByOtPosition(rows, selection) {
+        if (!selection) return [];
+        return rows.filter(row =>
+            String(row.OT) === String(selection.ot) &&
+            String(row.PosicionOT) === String(selection.pos));
+    }
+
+    function validateCompareRanges(fromA, toA, fromB, toB, loadedFrom, loadedTo) {
+        if (!fromA || !toA || !fromB || !toB) {
+            return 'Selecciona las cuatro fechas de los rangos A y B.';
+        }
+        if (fromA > toA || fromB > toB) {
+            return 'La fecha Desde no puede ser posterior a Hasta en ninguno de los rangos.';
+        }
+        if (!loadedFrom || !loadedTo) {
+            return 'No se pudo determinar el rango principal de datos cargados.';
+        }
+        if (fromA < loadedFrom || toA > loadedTo || fromB < loadedFrom || toB > loadedTo) {
+            return `Los rangos A y B deben estar dentro de los datos cargados (${loadedFrom} a ${loadedTo}).`;
+        }
+        return '';
+    }
+
+    function showCompareMessage(message) {
+        const result = $('cmpResult');
+        const note = $('cmpEmptyNote');
+        if (result) result.hidden = false;
+        if (note) {
+            note.hidden = false;
+            note.textContent = message;
+        }
+    }
+
+    function renderCompare(rowsA, rowsB, fromA, toA, fromB, toB, titleA, titleB) {
+        $('cmpResult').hidden = false;
+        const note = $('cmpEmptyNote');
+        const hasEmptySide = rowsA.length === 0 || rowsB.length === 0;
+        note.hidden = !hasEmptySide;
+        note.textContent = hasEmptySide
+            ? 'Uno de los dos lados no tiene filas con los filtros y la selección actuales.'
+            : '';
+
+        const cambiosA = computeCambiosDeMolde(rowsA);
+        const cambiosB = computeCambiosDeMolde(rowsB);
+        const kpisA = computeKpisData(rowsA, fromA, toA, cambiosA);
+        const kpisB = computeKpisData(rowsB, fromB, toB, cambiosB);
+        renderCompareKpiTable(kpisA, kpisB, titleA, titleB);
+
+        $('cmpTitleA').textContent = `Tendencia — ${titleA}`;
+        $('cmpTitleB').textContent = `Tendencia — ${titleB}`;
+        const bucket = $('bucketCmp').value;
+        buildTrendChart('chartTrendA', 'trendA',
+            computeTrendSeries(rowsA, fromA, toA, bucket, cambiosA), getAccent());
+        buildTrendChart('chartTrendB', 'trendB',
+            computeTrendSeries(rowsB, fromB, toB, bucket, cambiosB), '#a78bfa');
+    }
+
+    function runCompareRange() {
+        const fromA = $('fromA').value;
+        const toA = $('toA').value;
+        const fromB = $('fromB').value;
+        const toB = $('toB').value;
+        const error = validateCompareRanges(
+            fromA, toA, fromB, toB, $('from').value, $('to').value);
+        if (error) {
+            showCompareMessage(error);
+            return;
+        }
+
+        const base = compareFilteredBase();
+        renderCompare(
+            filterRowsByRange(base, fromA, toA),
+            filterRowsByRange(base, fromB, toB),
+            fromA, toA, fromB, toB,
+            `Rango A (${fromA} a ${toA})`,
+            `Rango B (${fromB} a ${toB})`);
+    }
+
+    function runCompareOtPosition() {
+        const selectionA = resolveOtPos($('otposA').value.trim());
+        const selectionB = resolveOtPos($('otposB').value.trim());
+        if (!selectionA || !selectionB) {
+            showCompareMessage('Selecciona una OT + Posición válida de la lista sugerida para A y B.');
+            return;
+        }
+
+        const base = compareFilteredBase();
+        renderCompare(
+            filterRowsByOtPosition(base, selectionA),
+            filterRowsByOtPosition(base, selectionB),
+            null, null, null, null,
+            `OT ${selectionA.ot} / Pos ${selectionA.pos}`,
+            `OT ${selectionB.ot} / Pos ${selectionB.pos}`);
+    }
+
+    function wireCompareControls() {
+        if (!$('tabComparar')) return;
+
+        document.querySelectorAll('.tab-nav button[data-tab]').forEach(button => {
+            button.addEventListener('click', () => switchTab(button.dataset.tab));
+        });
+        ['mselItemCmp', 'mselRecursoCmp', 'mselFamiliaCmp', 'mselTipoCmp', 'mselPlantaCmp']
+            .forEach(id => {
+                msel[id] = createMultiSelect(id, populateOtPosDatalist);
+            });
+        document.querySelectorAll('[data-cmpmode]').forEach(button => {
+            button.addEventListener('click', () => {
+                document.querySelectorAll('[data-cmpmode]').forEach(item => {
+                    const active = item === button;
+                    item.classList.toggle('active', active);
+                    item.setAttribute('aria-pressed', String(active));
+                });
+                const mode = button.dataset.cmpmode;
+                $('cmpModeRango').hidden = mode !== 'rango';
+                $('cmpModeOT').hidden = mode !== 'ot';
+            });
+        });
+        $('btnComparar').addEventListener('click', runCompareRange);
+        $('btnCompararOT').addEventListener('click', runCompareOtPosition);
+    }
+
     // ---- aviso de recursos renombrados 2026-05-01 (ver dashboard_v2.sql) ----
     function checkResourceRelabelBanner(fromStr, toStr) {
         const cutoff = new Date('2026-05-01');
@@ -1124,12 +1564,121 @@ const ProduccionV2Dashboard = (() => {
         }
     }
 
+    function spreadsheetText(value) {
+        if (value === null || value === undefined) return '';
+        const text = String(value);
+        return /^[=+\-@]/.test(text) ? `'${text}` : text;
+    }
+
+    function buildExportRows(rows) {
+        return rows.map(row => ({
+            'Fecha': normalizeFechaToISO(row.Fecha) || '',
+            'OT': row.OT ?? '',
+            'Pos': row.PosicionOT ?? '',
+            'Item': spreadsheetText(row.ItemID),
+            'Descripción Item': spreadsheetText(row.DescripcionItem),
+            'UoM': spreadsheetText(row.UnidadMedida),
+            'Familia': spreadsheetText(row.FamilyName),
+            'Categoría': spreadsheetText(row.TipoItem),
+            'Máquina': spreadsheetText(row.DescripcionRecurso),
+            'Turno': spreadsheetText(normalizeTurno(row.Turno) || row.Turno),
+            'Supervisor': spreadsheetText(row.Supervisor),
+            'Motivo Paro': spreadsheetText(row["Motivo de Paro"]),
+            'Tiempo Paro': row["Tiempo de Paro"] ?? '',
+            'Estado OT': spreadsheetText(row.EstadoOT),
+            'Cant.Plan': Number(row["Cantidad Planeada"]) || 0,
+            'Cant.Hecha': Number(row["Cantidad Hecha"]) || 0,
+            'H.Plan': Number(row["Hora Plan"]) || 0,
+            'P×T Plan': Number(row["Pieza*turnoPlan"]) || 0,
+            'H.Real Día': Number(row["Hora Real Día"]) || 0,
+            'P×T Real': Number(row["Pieza*turnoReal"]) || 0,
+            'Efic.Día (%)': Number.isFinite(Number(row["Eficiencia Dia"]))
+                ? Number(row["Eficiencia Dia"])
+                : '',
+            'H.Real Rango': Number(row["Hora Real Rango"]) || 0,
+            'Efic.Rango (%)': row["Eficiencia Rango"] !== null &&
+                row["Eficiencia Rango"] !== undefined && row["Eficiencia Rango"] !== ''
+                ? Number(row["Eficiencia Rango"])
+                : '',
+            'H.Real OT': Number(row["Hora Real OT"]) || 0
+        }));
+    }
+
+    function exportTableToExcel() {
+        if (typeof XLSX === 'undefined') {
+            alert('La librería de exportación a Excel no cargó. Revisa la conexión e intenta nuevamente.');
+            return;
+        }
+
+        const data = buildExportRows(sortTableRows(lastTableRows));
+        if (!data.length) {
+            alert('No hay filas para exportar con los filtros actuales.');
+            return;
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        worksheet['!cols'] = Object.keys(data[0]).map(header => ({
+            wch: Math.max(10, Math.min(40, header.length + 4))
+        }));
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Detalle OT-Pos-Recurso');
+
+        const now = new Date();
+        const pad = value => String(value).padStart(2, '0');
+        const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`
+            + `_${pad(now.getHours())}${pad(now.getMinutes())}`;
+        XLSX.writeFile(workbook, `Detalle_OT_Posicion_Recurso_${stamp}.xlsx`);
+    }
+
+    function preparePrintSummary() {
+        const compareActive = $('tabComparar') && !$('tabComparar').hidden;
+        const stamp = new Date().toLocaleString('es-GT');
+        if (compareActive) {
+            const summary = $('printSummaryComparar');
+            if (summary) {
+                summary.textContent = `Dashboard de Producción v2 — Comparación — generado ${stamp}`;
+            }
+            return;
+        }
+
+        const summary = $('printSummaryDashboard');
+        if (!summary) return;
+        const selectedSummary = (id, label) => {
+            if (!msel[id]) return null;
+            const count = msel[id].getSelected().size;
+            return count ? `${label}: ${count} seleccionado(s)` : null;
+        };
+        const parts = [
+            `Empresa: ${$('empresa') ? $('empresa').value : '—'}`,
+            `Rango: ${$('from') ? $('from').value : '—'} a ${$('to') ? $('to').value : '—'}`,
+            selectedSummary('mselItem', 'Producto'),
+            selectedSummary('mselRecurso', 'Recurso'),
+            selectedSummary('mselFamilia', 'Familia'),
+            selectedSummary('mselTipo', 'Categoría'),
+            selectedSummary('mselPlanta', 'Planta'),
+            $('filEstado') && $('filEstado').value ? `Estado OT: ${$('filEstado').value}` : null
+        ].filter(Boolean);
+        summary.textContent = `Dashboard de Producción v2 — generado ${stamp} — ${parts.join(' · ')}`;
+    }
+
+    function downloadPdf() {
+        preparePrintSummary();
+        window.print();
+    }
+
     function setRawData(rows) {
         raw = (Array.isArray(rows) ? rows : []).map(r => (
             r && r.Fecha !== undefined ? { ...r, Fecha: normalizeFechaToISO(r.Fecha) } : r
         ));
         initDateRangeIfEmpty();
         populateFilterOptions();
+        populateCompareFilterOptions();
+        const compareResult = $('cmpResult');
+        if (compareResult) compareResult.hidden = true;
+        ['trendA', 'trendB'].forEach(key => {
+            if (charts[key]) charts[key].destroy();
+            delete charts[key];
+        });
         render();
     }
 
@@ -1137,6 +1686,7 @@ const ProduccionV2Dashboard = (() => {
         const settings = options || {};
         initMultiSelects();
         wireTableSort();
+        wireCompareControls();
         $('filEstado').addEventListener('change', onFilterChange);
         $('bucket').addEventListener('change', () => { if (raw.length > 0) render(); });
         // Client-side date range — narrows whatever is currently loaded and also
@@ -1148,6 +1698,9 @@ const ProduccionV2Dashboard = (() => {
             : onFilterChange;
         if (fromEl) fromEl.addEventListener('change', onDateChange);
         if (toEl) toEl.addEventListener('change', onDateChange);
+        $('btnDescargarPdf').addEventListener('click', downloadPdf);
+        $('btnExportExcel').addEventListener('click', exportTableToExcel);
+        window.addEventListener('beforeprint', preparePrintSummary);
     }
 
     // ---- date range presets ----
@@ -1182,7 +1735,7 @@ const ProduccionV2Dashboard = (() => {
 
     return {
         setRawData, wireFilterControls, render, checkResourceRelabelBanner,
-        applyPalette, applyDatePreset,
+        applyPalette, applyDatePreset, downloadPdf, exportTableToExcel, switchTab,
         __test: {
             normalizeFechaToISO,
             bucketKey,
@@ -1191,6 +1744,7 @@ const ProduccionV2Dashboard = (() => {
             formatLocalDateISO,
             resourceValue,
             resourceLabel,
+            plantaFromRecurso,
             dailyProductionKey,
             aggregateDailyQuantity,
             normalizeTurno,
@@ -1199,6 +1753,14 @@ const ProduccionV2Dashboard = (() => {
             computeHorasPorTurno,
             desglosarDiaRecurso,
             enumerarDias,
+            computeMotivoParoDist,
+            computeKpisData,
+            computeTrendSeries,
+            filterRowsByRange,
+            filterRowsByOtPosition,
+            validateCompareRanges,
+            spreadsheetText,
+            buildExportRows,
             TURNO_HORAS
         }
     };

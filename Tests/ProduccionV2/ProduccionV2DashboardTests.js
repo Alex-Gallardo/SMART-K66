@@ -193,4 +193,106 @@ assert.strictEqual(cambios.porRecursoCount["R1 — Formadora"], 2);
 assert.strictEqual(cambios.porRecursoCount["R2 — Formadora"], 0);
 assert.strictEqual(cambios.porDiaRecurso["2026-09-02|R1"], 2);
 
-console.log("OK: fechas, turnos, capacidad, moldes, recursos y cantidades de Producción v2 verificados.");
+assert.strictEqual(core.plantaFromRecurso({ CodigoRecurso: "pcmq0068" }), "PC",
+    "La planta debe derivarse del código de recurso sin distinguir mayúsculas.");
+assert.strictEqual(core.plantaFromRecurso({ DescripcionRecurso: "PP EXTRUSORA" }), "PP",
+    "La descripción debe funcionar como respaldo cuando no hay código.");
+assert.strictEqual(core.plantaFromRecurso({ CodigoRecurso: "R1", DescripcionRecurso: "PC ARMADO" }), null,
+    "Un código presente y desconocido no debe reclasificarse usando la descripción.");
+assert.strictEqual(core.plantaFromRecurso({}), null,
+    "No se debe inventar una planta para recursos desconocidos.");
+
+const motiveRows = [
+    { "Motivo de Paro": "Mantenimiento" },
+    { "Motivo de Paro": " mantenimiento " },
+    { "Motivo de Paro": "" },
+    { "Motivo de Paro": null }
+];
+for (let i = 0; i < 13; i++) motiveRows.push({ "Motivo de Paro": `Motivo ${i}` });
+const motiveDistribution = core.computeMotivoParoDist(motiveRows);
+assert.strictEqual(motiveDistribution.top[0].label, "Mantenimiento");
+assert.strictEqual(motiveDistribution.top[0].count, 2,
+    "Los motivos deben agruparse sin distinguir mayúsculas y conservando una etiqueta legible.");
+assert.strictEqual(motiveDistribution.top.length, 12,
+    "La gráfica debe limitar los motivos individuales para seguir siendo legible.");
+assert.strictEqual(motiveDistribution.otrosCount, 2,
+    "Los motivos fuera del top 12 deben agruparse en Otros.");
+assert.strictEqual(motiveDistribution.sinRegistrar, 2,
+    "Los valores vacíos deben contarse por separado.");
+
+const oneDayKpis = core.computeKpisData(
+    shiftRows.slice(0, 2),
+    "2026-09-01",
+    "2026-09-01",
+    core.computeCambiosDeMolde(shiftRows.slice(0, 2)));
+assert.strictEqual(oneDayKpis.sumReal, 12);
+assert.strictEqual(oneDayKpis.sumPlan, 20,
+    "El plan repetido por turno debe contarse una vez por OT/posición/recurso.");
+assert.strictEqual(oneDayKpis.sumCant, 100,
+    "La comparación debe usar la cantidad diaria desduplicada, no Cantidad Hecha repetida.");
+assert.strictEqual(oneDayKpis.sumParo, 12);
+assert.strictEqual(oneDayKpis.sumDisponible, 0);
+assert.strictEqual(oneDayKpis.capacidadTotal, 24);
+
+const trend = core.computeTrendSeries(
+    shiftRows,
+    "2026-09-01",
+    "2026-09-02",
+    "day",
+    cambios);
+assert.deepStrictEqual(trend.real, [21, 26]);
+assert.deepStrictEqual(trend.plan, [16, 10]);
+assert.deepStrictEqual(trend.paro, [15, 0]);
+assert.deepStrictEqual(trend.disponible, [12, 24]);
+assert.deepStrictEqual(trend.capacidad, [48, 48]);
+assert.deepStrictEqual(trend.keys, ["2026-09-01", "2026-09-02"]);
+
+const monthlyTrend = core.computeTrendSeries(
+    shiftRows,
+    "2026-09-01",
+    "2026-09-02",
+    "month",
+    cambios);
+assert.deepStrictEqual(monthlyTrend.keys, ["2026-09"]);
+assert.deepStrictEqual(monthlyTrend.real, [47]);
+assert.deepStrictEqual(monthlyTrend.capacidad, [96]);
+
+assert.strictEqual(
+    core.validateCompareRanges(
+        "2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04",
+        "2026-09-01", "2026-09-30"),
+    "");
+assert(core.validateCompareRanges(
+    "2026-09-02", "2026-09-01", "2026-09-03", "2026-09-04",
+    "2026-09-01", "2026-09-30").includes("posterior"),
+    "Los rangos invertidos deben rechazarse.");
+assert(core.validateCompareRanges(
+    "2026-08-31", "2026-09-01", "2026-09-03", "2026-09-04",
+    "2026-09-01", "2026-09-30").includes("dentro"),
+    "No se debe comparar silenciosamente fuera de los datos cargados.");
+
+assert.strictEqual(
+    core.filterRowsByRange(shiftRows, "2026-09-02", "2026-09-02").length,
+    2,
+    "El filtro comparativo por fecha debe incluir ambos extremos.");
+assert.strictEqual(
+    core.filterRowsByOtPosition(shiftRows, { ot: "20", pos: "1" }).length,
+    4,
+    "La selección de OT + posición debe comparar como texto para tolerar tipos del JSON.");
+
+const exported = core.buildExportRows([{
+    Fecha: "14/09/2026",
+    OT: 1,
+    PosicionOT: 2,
+    DescripcionItem: "=CMD()",
+    Turno: "1",
+    "Eficiencia Dia": 80
+}]);
+assert.strictEqual(Object.keys(exported[0]).length, 24,
+    "Excel debe conservar las 24 columnas del detalle.");
+assert.strictEqual(exported[0].Fecha, "2026-09-14");
+assert.strictEqual(exported[0].Turno, "Dia");
+assert.strictEqual(exported[0]["Descripción Item"], "'=CMD()",
+    "El texto exportado no debe poder interpretarse como fórmula de Excel.");
+
+console.log("OK: dashboard, comparación, plantas, motivos y exportación de Producción v2 verificados.");

@@ -16,7 +16,8 @@
 // Expected row shape (from backlog.sql aliases):
 //   OrderDocEntry, OrderNumber, OrderDate, DueDate, OrderStatus, CustomerCode,
 //   CustomerName, Origen, LineNumber, ItemCode, ItemDescription, FamilyCode,
-//   FamilyName, OrderedQty, OpenQty, LineStatus, LineShipDate
+//   FamilyName, OrderedQty, OpenQty, LineStatus, LineShipDate, StockOnHand,
+//   StockByWarehouse, OrderComments
 // =============================================================================
 
 const BacklogViz = (() => {
@@ -362,6 +363,10 @@ const BacklogViz = (() => {
       const shown = rows.slice(0, opts.maxRows || 500);
       shown.forEach(r => {
         const tr = document.createElement('tr');
+        if (opts.rowTitle) {
+          const title = opts.rowTitle(r);
+          if (title) tr.title = String(title);
+        }
         columns.forEach(c => {
           const td = document.createElement('td');
           if (c.num) td.className = 'num';
@@ -515,7 +520,7 @@ const BacklogViz = (() => {
       if (f.itemCode && !String(r.ItemCode ?? '').toLowerCase().includes(f.itemCode)) return false;
       if (f.customerCode && !String(r.CustomerCode ?? '').toLowerCase().includes(f.customerCode)) return false;
       if (f.q) {
-        const hay = `${r.OrderNumber ?? ''} ${r.CustomerName ?? ''} ${r.CustomerCode ?? ''} ${r.ItemCode ?? ''} ${r.ItemDescription ?? ''}`.toLowerCase();
+        const hay = `${r.OrderNumber ?? ''} ${r.CustomerName ?? ''} ${r.CustomerCode ?? ''} ${r.ItemCode ?? ''} ${r.ItemDescription ?? ''} ${r.OrderComments ?? ''}`.toLowerCase();
         if (!hay.includes(f.q)) return false;
       }
       return true;
@@ -720,7 +725,10 @@ const BacklogViz = (() => {
         whBreakdown: r.StockByWarehouse || null,
         tentativeAvailable: allocation && allocation.has(lineKey(r))
           ? allocation.get(lineKey(r))
-          : null
+          : null,
+        comments: r.OrderComments === null || r.OrderComments === undefined
+          ? ''
+          : String(r.OrderComments)
       });
     });
     const bucket = bucketOrder.filter(b => bucketAgg[b]).map(b => ({ label: b, lines: bucketAgg[b].lines, qty: bucketAgg[b].qty }));
@@ -810,6 +818,8 @@ const BacklogViz = (() => {
   function render() {
     if (!$('kpiRow')) return;
     if (raw.length === 0) {
+      lastBacklogRows = [];
+      lastItemRows = [];
       renderKpis({ openLines: 0, openQty: 0, vencidoLines: 0, vencidoQty: 0, due7Lines: 0, due7Qty: 0, clientes: 0, familias: 0, localPct: null });
       ['bucketChart', 'itemChart', 'trendChart', 'seasonChart'].forEach(id => { if ($(id)) $(id).innerHTML = ''; });
       if ($('backlogTable')) $('backlogTable').querySelector('tbody').innerHTML = '';
@@ -914,8 +924,11 @@ const BacklogViz = (() => {
         return `<span class="${short ? 'badge badge-warning' : ''}">${fmt(v)}</span>`;
       }
     },
+    { key: 'comments', render: r => r.comments || '—' },
   ];
   let backlogTableCtl = null;
+  let lastBacklogRows = [];
+  let lastItemRows = [];
 
   // ---------------------------------------------------------------------
   // Per-warehouse stock tooltip — hover over "Stock actual" to see the
@@ -949,20 +962,29 @@ const BacklogViz = (() => {
     });
   }
 
+  function matchesBacklogSearch(row, query) {
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return true;
+    return [row.order, row.customer, row.item, row.desc, row.comments]
+      .some(value => String(value ?? '').toLowerCase().includes(q));
+  }
+
   function renderBacklogTable() {
     if (!backlogTableCtl) {
       backlogTableCtl = makeTable($('backlogTable'), $('backlogRowCount'), backlogCols, {
         maxRows: 500,
         onSort: (key) => { if (backlogSort.key === key) backlogSort.dir = -backlogSort.dir; else backlogSort = { key, dir: 1 }; renderBacklogTable(); },
-        getSortDir: () => backlogSort.dir
+        getSortDir: () => backlogSort.dir,
+        rowTitle: r => r.comments || ''
       });
     }
     const searchEl = $('backlogSearch');
     const q = searchEl ? searchEl.value.trim().toLowerCase() : '';
     let rows = lastComputed.backlogTable;
     if (activeBucket) rows = rows.filter(r => r.bucket === activeBucket);
-    if (q) rows = rows.filter(r => String(r.order).toLowerCase().includes(q) || (r.customer || '').toLowerCase().includes(q) || (r.item || '').toLowerCase().includes(q) || (r.desc || '').toLowerCase().includes(q));
+    if (q) rows = rows.filter(r => matchesBacklogSearch(r, q));
     rows = sortRows(rows, backlogSort.key, backlogSort.dir);
+    lastBacklogRows = rows;
     backlogTableCtl.render(rows);
   }
 
@@ -998,7 +1020,88 @@ const BacklogViz = (() => {
     let rows = lastComputed.itemTable;
     if (q) rows = rows.filter(r => (r.item || '').toLowerCase().includes(q) || (r.desc || '').toLowerCase().includes(q));
     rows = sortRows(rows, itemSort.key, itemSort.dir);
+    lastItemRows = rows;
     itemTableCtl.render(rows);
+  }
+
+  function spreadsheetText(value) {
+    if (value === null || value === undefined) return '';
+    const text = String(value);
+    return /^[=+\-@]/.test(text) ? `'${text}` : text;
+  }
+
+  function numberOrBlank(value) {
+    if (value === null || value === undefined || value === '') return '';
+    const number = Number(value);
+    return Number.isFinite(number) ? number : '';
+  }
+
+  function buildBacklogExportRows(rows) {
+    return rows.map(r => ({
+      'Pedido #': r.order ?? '',
+      'Cliente': spreadsheetText(r.customer),
+      'Item': spreadsheetText(r.item),
+      'Descripción': spreadsheetText(r.desc),
+      'Origen': spreadsheetText(r.origen),
+      'Fecha pedido': r.orderDate ?? '',
+      'Vendedor': spreadsheetText(r.agent),
+      'Depto.': spreadsheetText(r.estado),
+      'Cant. pedida': numberOrBlank(r.qtyOrdered),
+      'Cant. despachada': numberOrBlank(r.qtyDispatched),
+      'Cant. abierta': numberOrBlank(r.qty),
+      'Fecha entrega': r.due ?? '',
+      'Días': numberOrBlank(r.daysLate),
+      'Stock actual': numberOrBlank(r.stockOnHand),
+      'Stock disp. tentativo': numberOrBlank(r.tentativeAvailable),
+      'Comentarios': spreadsheetText(r.comments)
+    }));
+  }
+
+  function buildItemExportRows(rows) {
+    return rows.map(r => ({
+      'Item': spreadsheetText(r.item),
+      'Descripción': spreadsheetText(r.desc),
+      'Cant. abierta': numberOrBlank(r.qty),
+      'Pedidos': numberOrBlank(r.orders)
+    }));
+  }
+
+  function writeExcelFile(data, sheetName, filenamePrefix) {
+    if (typeof XLSX === 'undefined') {
+      alert('La librería de exportación a Excel no cargó. Revisa la conexión e intenta nuevamente.');
+      return;
+    }
+    if (!data.length) {
+      alert('No hay filas para exportar con los filtros actuales.');
+      return;
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    worksheet['!cols'] = Object.keys(data[0]).map(header => ({
+      wch: Math.max(10, Math.min(40, header.length + 4))
+    }));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+
+    const now = new Date();
+    const pad = value => String(value).padStart(2, '0');
+    const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}`
+      + `_${pad(now.getHours())}${pad(now.getMinutes())}`;
+    XLSX.writeFile(workbook, `${filenamePrefix}_${stamp}.xlsx`);
+  }
+
+  function exportBacklogTableToExcel() {
+    writeExcelFile(
+      buildBacklogExportRows(lastBacklogRows),
+      'Backlog',
+      'Backlog');
+  }
+
+  function exportItemTableToExcel() {
+    writeExcelFile(
+      buildItemExportRows(lastItemRows),
+      'Demanda por Item',
+      'Demanda_Item');
   }
 
   function wireTableToggles() {
@@ -1013,6 +1116,8 @@ const BacklogViz = (() => {
     });
     if ($('backlogSearch')) $('backlogSearch').addEventListener('input', renderBacklogTable);
     if ($('itemSearch')) $('itemSearch').addEventListener('input', renderItemTable);
+    if ($('btnExportBacklog')) $('btnExportBacklog').addEventListener('click', exportBacklogTableToExcel);
+    if ($('btnExportItem')) $('btnExportItem').addEventListener('click', exportItemTableToExcel);
   }
 
   function setRawData(rows) {
@@ -1046,6 +1151,8 @@ const BacklogViz = (() => {
     render,
     applyPalette,
     setDefaultDateRange,
+    exportBacklogTableToExcel,
+    exportItemTableToExcel,
     __test: {
       normalizeFechaToISO,
       formatLocalDateISO,
@@ -1058,7 +1165,12 @@ const BacklogViz = (() => {
       isWithinDateRange,
       lineKey,
       computeTentativeAvailability,
-      computeAll
+      computeAll,
+      matchesBacklogSearch,
+      spreadsheetText,
+      numberOrBlank,
+      buildBacklogExportRows,
+      buildItemExportRows
     }
   };
 })();

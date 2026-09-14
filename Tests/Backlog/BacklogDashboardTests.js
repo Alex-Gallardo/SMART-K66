@@ -76,7 +76,7 @@ const rows = [
         CustomerName: "Cliente visible", ItemCode: "PT-1",
         ItemDescription: "Vaso", FamilyName: "PT VASOS",
         OrderedQty: 50, OpenQty: 50, LineStatus: "O",
-        StockOnHand: 100
+        StockOnHand: 100, OrderComments: "=Entrega urgente"
     },
     {
         OrderDocEntry: 30, OrderNumber: 300, LineNumber: 0,
@@ -134,10 +134,45 @@ const computed = core.computeAll(
 assert.strictEqual(computed.kpi.openLines, 1);
 assert.strictEqual(computed.kpi.openQty, 50);
 assert.strictEqual(computed.backlogTable[0].tentativeAvailable, 40);
+assert.strictEqual(computed.backlogTable[0].comments, "=Entrega urgente",
+    "Los comentarios del encabezado deben llegar al detalle visual.");
 assert.strictEqual(computed.itemTable[0].qty, 50);
 assert.strictEqual(computed.itemTable[0].orders, 1);
 assert.strictEqual(computed.monthly[0].value, 70,
     "La tendencia debe incluir estados abiertos y cerrados del rango.");
 assert.strictEqual(computed.monthly[0].orders, 2);
 
-console.log("OK: fechas, vencimientos, rangos, agregados y FIFO de Backlog verificados.");
+assert(core.matchesBacklogSearch(computed.backlogTable[0], "urgente"),
+    "La búsqueda de la tabla debe incluir comentarios.");
+assert(!core.matchesBacklogSearch(computed.backlogTable[0], "inexistente"));
+
+const backlogExport = core.buildBacklogExportRows(computed.backlogTable);
+assert.strictEqual(Object.keys(backlogExport[0]).length, 16,
+    "La exportación de Backlog debe conservar las 16 columnas visibles.");
+assert.strictEqual(backlogExport[0]["Stock disp. tentativo"], 40,
+    "Excel debe conservar el FIFO calculado antes de los filtros.");
+assert.strictEqual(backlogExport[0].Comentarios, "'=Entrega urgente",
+    "Los comentarios no deben poder interpretarse como fórmulas de Excel.");
+
+const sixHundredRows = Array.from({ length: 600 }, (_, index) => ({
+    order: index,
+    customer: "Cliente",
+    item: "PT-1",
+    desc: "Vaso",
+    qtyOrdered: 1,
+    qtyDispatched: 0,
+    qty: 1
+}));
+assert.strictEqual(core.buildBacklogExportRows(sixHundredRows).length, 600,
+    "La exportación no debe heredar el límite visual de 500 filas.");
+
+const itemExport = core.buildItemExportRows(computed.itemTable);
+assert.strictEqual(Object.keys(itemExport[0]).length, 4,
+    "La exportación de demanda por item debe conservar sus cuatro columnas.");
+assert.strictEqual(itemExport[0]["Cant. abierta"], 50);
+assert.strictEqual(core.numberOrBlank(null), '',
+    "Un stock desconocido debe exportarse vacío, no como cero confirmado.");
+assert.strictEqual(core.numberOrBlank(0), 0,
+    "Un cero conocido debe conservarse como cero.");
+
+console.log("OK: fechas, FIFO, comentarios, búsqueda y exportaciones de Backlog verificados.");

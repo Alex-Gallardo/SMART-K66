@@ -85,19 +85,25 @@ assert(view.includes('~/Scripts/App/produccion-v2-shared.js'),
     "La vista debe cargar la lógica registrada.");
 assert(view.includes('wireFilterControls({ onDateChange: load })'),
     "Cambiar fechas debe consultar nuevamente al servidor.");
-assert.strictEqual((view.match(/<canvas\b/g) || []).length, 8,
-    "La UI entregada contiene ocho gráficas y debe conservarlas.");
+assert.strictEqual((view.match(/<canvas\b/g) || []).length, 11,
+    "La UI debe contener las ocho gráficas existentes, motivos de paro y dos tendencias comparativas.");
 assert.strictEqual((view.match(/<th\b[^>]*data-key=/g) || []).length, 24,
     "La tabla por turnos debe conservar sus 24 columnas ordenables.");
 [
-    "Producto", "Recurso", "Familia", "Categoría", "Estado OT",
+    "Producto", "Recurso", "Familia", "Categoría", "Planta", "Estado OT",
     "Horas Disponible / sin registrar", "Cambios de Molde",
     'data-key="Turno"', 'data-key="Supervisor"',
     'data-key="Motivo de Paro"', 'data-key="Tiempo de Paro"',
     'class="th-group"',
-    "Cantidad producida en el tiempo", "Detalle por OT / Posición / Recurso"
+    "Cantidad producida en el tiempo", "Distribución de Motivos de Paro",
+    "Detalle por OT / Posición / Recurso", "Exportar a Excel", "Descargar PDF",
+    "Comparar por rango de fechas", "Comparar por OT + Posición"
 ].forEach(label => assert(view.includes(label),
     "La UI entregada perdió el elemento: " + label));
+assert(view.includes("xlsx@0.18.5") && view.includes("xlsx.full.min.js"),
+    "La vista debe cargar la dependencia fijada para exportar archivos XLSX.");
+assert(view.includes('role="tab"') && view.includes('aria-selected="true"'),
+    "Las pestañas deben exponer semántica accesible.");
 
 const viewIds = new Set(
     [...view.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]));
@@ -107,8 +113,10 @@ referencedIds.forEach(id => assert(viewIds.has(id),
     "JavaScript referencia un elemento que no existe en la vista: " + id));
 assert(css.includes("thead tr:nth-child(2) th") &&
        css.includes("th.th-group") &&
-       css.includes(".kpi .value.kpi-paro"),
-    "Los estilos deben soportar el encabezado agrupado y el KPI de paro.");
+       css.includes(".kpi .value.kpi-paro") &&
+       css.includes(".cmp-table") &&
+       css.includes("@media print"),
+    "Los estilos deben soportar encabezados, comparación, KPI de paro e impresión.");
 
 const fillStart = javascript.indexOf("function fillTable(rows)");
 const fillEnd = javascript.indexOf("// ---- tabla:", fillStart);
@@ -119,6 +127,8 @@ assert(!fillTable.includes("innerHTML"),
     "La tabla no debe insertar valores SAP mediante innerHTML.");
 assert(fillTable.includes("textContent"),
     "La tabla debe insertar valores SAP como texto.");
+assert(!javascript.includes("innerHTML"),
+    "Los datos SAP y títulos comparativos no deben insertarse mediante innerHTML.");
 assert(javascript.includes("aggregateDailyQuantity"),
     "Las gráficas deben usar el agregador de cantidad diaria.");
 [
@@ -126,7 +136,13 @@ assert(javascript.includes("aggregateDailyQuantity"),
     "apportionPlanPorDia",
     "computeHorasPorTurno",
     "desglosarDiaRecurso",
-    "enumerarDias"
+    "enumerarDias",
+    "plantaFromRecurso",
+    "computeMotivoParoDist",
+    "computeKpisData",
+    "computeTrendSeries",
+    "validateCompareRanges",
+    "buildExportRows"
 ].forEach(name => assert(javascript.includes(name),
     "Falta la lógica requerida para el dashboard por turnos: " + name));
 assert(javascript.includes("const TURNO_HORAS = 12"),

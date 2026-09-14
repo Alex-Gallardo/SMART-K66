@@ -44,7 +44,8 @@ SELECT
     l."ShipDate"      AS "LineShipDate",
     stock."OnHand"    AS "StockOnHand",
     stock_detail."ByWarehouse"
-                        AS "StockByWarehouse"
+                        AS "StockByWarehouse",
+    r."Comments"      AS "OrderComments"
 FROM ORDR r
 JOIN RDR1 l
     ON l."DocEntry" = r."DocEntry"

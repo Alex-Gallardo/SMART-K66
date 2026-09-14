@@ -15,8 +15,18 @@ const view = fs.readFileSync(
     path.join(ui, "Views", "Backlog", "Index.cshtml"), "utf8");
 const javascript = fs.readFileSync(
     path.join(ui, "Scripts", "App", "backlog-viz.js"), "utf8");
+const css = fs.readFileSync(
+    path.join(ui, "Content", "backlog-viz.css"), "utf8");
 const project = fs.readFileSync(
     path.join(ui, "DiamDev.Give.UI.csproj"), "utf8");
+const publishProfiles = fs.readdirSync(
+    path.join(ui, "Properties", "PublishProfiles"))
+    .filter(name => name.endsWith(".pubxml"))
+    .map(name => ({
+        name,
+        content: fs.readFileSync(
+            path.join(ui, "Properties", "PublishProfiles", name), "utf8")
+    }));
 
 assert(controller.includes("[Authorize]"),
     "Backlog debe requerir una sesión autenticada.");
@@ -55,9 +65,12 @@ assert.strictEqual((sqlCode.match(/\?/g) || []).length, 2,
     "CustomerCode", "CustomerName", "Origen", "SalesAgent",
     "CustomerState", "LineNumber", "ItemCode", "ItemDescription",
     "FamilyCode", "FamilyName", "OrderedQty", "OpenQty",
-    "LineStatus", "LineShipDate", "StockOnHand", "StockByWarehouse"
+    "LineStatus", "LineShipDate", "StockOnHand", "StockByWarehouse",
+    "OrderComments"
 ].forEach(alias => assert(sql.includes('AS "' + alias + '"'),
     "Falta el alias HANA citado: " + alias));
+assert(sql.includes('r."Comments"') && sql.includes('AS "OrderComments"'),
+    "Los comentarios deben provenir del encabezado ORDR con alias HANA citado.");
 assert(sql.includes('st."AdresType" = \'S\''),
     "El join de dirección debe limitarse a direcciones de envío.");
 assert(sql.includes('(l."LineStatus" = \'O\' AND l."OpenQty" > 0)') &&
@@ -80,10 +93,13 @@ assert(view.includes("BacklogViz.setDefaultDateRange"),
     "La vista debe inicializar fechas con calendario local.");
 assert(view.includes("latestRequest") && view.includes("requestId !== latestRequest"),
     "Las respuestas antiguas no deben reemplazar datos más recientes.");
+assert(view.includes("xlsx@0.18.5") && view.includes("xlsx.full.min.js"),
+    "La vista debe cargar la versión fijada de SheetJS.");
 [
     "Backlog de Pedidos de Venta", "Solo líneas abiertas",
     "Estado de entrega de pedidos abiertos", "Demanda abierta por item",
-    "Volumen de pedidos — tendencia y estacionalidad"
+    "Volumen de pedidos — tendencia y estacionalidad", "Comentarios",
+    "btnExportBacklog", "btnExportItem"
 ].forEach(label => assert(view.includes(label),
     "La UI entregada perdió el elemento: " + label));
 assert.strictEqual((view.match(/<table\b/g) || []).length, 2,
@@ -93,6 +109,11 @@ assert.strictEqual(
         .filter(id => view.includes('id="' + id + '"')).length,
     4,
     "La UI debe conservar sus cuatro visualizaciones.");
+const backlogTableMarkup = view.substring(
+    view.indexOf('<table id="backlogTable">'),
+    view.indexOf('</table>', view.indexOf('<table id="backlogTable">')));
+assert.strictEqual((backlogTableMarkup.match(/<th\b[^>]*data-key=/g) || []).length, 16,
+    "El detalle de Backlog debe contener sus 15 columnas existentes y Comentarios.");
 
 assert(javascript.includes("computeTentativeAvailability(raw)"),
     "La reserva FIFO debe calcularse antes de filtros visuales.");
@@ -102,6 +123,19 @@ assert(javascript.includes("module.exports = BacklogViz"),
     "La lógica verificable debe exportarse para Node.");
 assert(!javascript.includes("today.toISOString()"),
     "La fecha actual no debe depender de UTC.");
+assert(javascript.includes("comments: r.OrderComments") &&
+       javascript.includes("matchesBacklogSearch") &&
+       javascript.includes("rowTitle: r => r.comments"),
+    "Los comentarios deben mapearse, buscarse y mostrarse como tooltip de fila.");
+assert(javascript.includes("buildBacklogExportRows(lastBacklogRows)") &&
+       javascript.includes("buildItemExportRows(lastItemRows)"),
+    "Excel debe usar todas las filas filtradas y ordenadas de cada tabla.");
+assert(javascript.includes("spreadsheetText") &&
+       javascript.includes("module.exports = BacklogViz"),
+    "La exportación debe neutralizar fórmulas y conservar pruebas Node.");
+assert(css.includes("td:nth-child(16)") && css.includes("tr[title]") &&
+       css.includes("max-width: 100%") && css.includes("@media (max-width: 640px)"),
+    "Comentarios debe conservar truncado/tooltip sin perder estilos responsive.");
 
 [
     'Content Include="App_Data\\backlog.sql"',
@@ -111,5 +145,8 @@ assert(!javascript.includes("today.toISOString()"),
     'Compile Include="Controllers\\BacklogController.cs"'
 ].forEach(entry => assert(project.includes(entry),
     "El archivo no está registrado en el proyecto: " + entry));
+publishProfiles.forEach(profile => assert(
+    !/<ExcludeApp_Data>\s*True\s*<\/ExcludeApp_Data>/i.test(profile.content),
+    profile.name + " no debe excluir App_Data durante la publicación."));
 
 console.log("OK: contrato MVC, SQL, UI, autenticación y publicación de Backlog verificados.");

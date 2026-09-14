@@ -7,7 +7,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Backlog de Pedidos — Grupo K66</title>
-    <link rel="stylesheet" href="@Url.Content("~/Content/backlog-viz.css?v=20260831.1")">
+    <link rel="stylesheet" href="@Url.Content("~/Content/backlog-viz.css?v=20260914.1")">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="viz-root">
@@ -39,7 +40,7 @@
 
         <div class="global-filters">
             <span class="filter-label">Filtros:</span>
-            <input class="search-input" id="globalSearch" placeholder="Pedido, cliente, item o descripción…">
+            <input class="search-input" id="globalSearch" placeholder="Pedido, cliente, item, descripción o comentario…">
             <select class="filter-select" id="filFamilia"><option value="">Todas las familias</option></select>
             <input class="search-input" id="filItemCode" list="itemCodeList" placeholder="Código de item…" style="min-width:150px;">
             <datalist id="itemCodeList"></datalist>
@@ -60,11 +61,12 @@
             <div class="card-head">
                 <h2 class="card-title">Estado de entrega de pedidos abiertos</h2>
             </div>
-            <p class="card-desc">Cada línea de pedido de venta abierta, agrupada según qué tan cerca está (o cuánto pasó) de su fecha de entrega prometida. Usa la fecha de embarque de línea cuando existe, si no la fecha de vencimiento del pedido. La tabla incluye fecha de pedido, vendedor, departamento del cliente (filtrables arriba), cantidad pedida/despachada/abierta, stock actual del item, y stock disponible tentativo — este último reserva el stock primero para los pedidos más viejos de cada item, así que un pedido reciente puede mostrar poco o nada disponible aunque haya stock, si pedidos más antiguos del mismo item ya lo reclaman.</p>
+            <p class="card-desc">Cada línea de pedido de venta abierta, agrupada según qué tan cerca está (o cuánto pasó) de su fecha de entrega prometida. Usa la fecha de embarque de línea cuando existe, si no la fecha de vencimiento del pedido. La tabla incluye fecha de pedido, vendedor, departamento del cliente (filtrables arriba), cantidad pedida/despachada/abierta, stock actual del item, stock disponible tentativo — este último reserva el stock primero para los pedidos más viejos de cada item, así que un pedido reciente puede mostrar poco o nada disponible aunque haya stock, si pedidos más antiguos del mismo item ya lo reclaman — y los comentarios del pedido. Pasa el mouse sobre una fila para leer el comentario completo.</p>
             <div id="bucketChart"></div>
             <div class="toolbar" style="margin-top:18px;">
-                <input class="search-input" id="backlogSearch" placeholder="Filtrar por pedido, cliente o item…">
+                <input class="search-input" id="backlogSearch" placeholder="Filtrar por pedido, cliente, item o comentario…">
                 <div class="chip-row" id="bucketChips"></div>
+                <button type="button" class="table-toggle-btn" id="btnExportBacklog">Exportar a Excel</button>
                 <button class="table-toggle-btn" id="backlogTableToggle">Ocultar tabla</button>
             </div>
             <div id="backlogTableWrap">
@@ -86,6 +88,7 @@
                             <th data-key="daysLate" class="num">Días</th>
                             <th data-key="stockOnHand" class="num">Stock actual</th>
                             <th data-key="tentativeAvailable" class="num">Stock disp. tentativo</th>
+                            <th data-key="comments">Comentarios</th>
                         </tr></thead>
                         <tbody></tbody>
                     </table>
@@ -102,6 +105,7 @@
             <div id="itemChart"></div>
             <div class="toolbar" style="margin-top:18px;">
                 <input class="search-input" id="itemSearch" placeholder="Filtrar por código o descripción de item…">
+                <button type="button" class="table-toggle-btn" id="btnExportItem">Exportar a Excel</button>
                 <button class="table-toggle-btn" id="itemTableToggle">Ocultar tabla</button>
             </div>
             <div id="itemTableWrap">
@@ -152,7 +156,7 @@
     <footer>
         <div><strong>Metodología y notas</strong></div>
         <ul>
-            <li>Fuente: <code>App_Data/backlog.sql</code> (ORDR/RDR1), con Familia (OITM→OITB) y Origen (CL = Local, CE = Extranjero, por prefijo de CardCode).</li>
+            <li>Fuente: <code>App_Data/backlog.sql</code> (ORDR/RDR1), con Familia (OITM→OITB), Origen (CL = Local, CE = Extranjero, por prefijo de CardCode) y comentarios del encabezado del pedido (ORDR.Comments).</li>
             <li>"Líneas abiertas" = cantidad abierta (OpenQty) mayor a cero — desmarca "Solo líneas abiertas" para incluir también las líneas cerradas del rango consultado.</li>
             <li>El stock disponible tentativo aplica una reserva FIFO sobre el backlog abierto completo cargado; es una estimación visual y no una asignación real de SAP.</li>
             <li>Esta versión no compara la demanda contra capacidad de máquina.</li>
@@ -162,7 +166,7 @@
     <div class="tooltip" id="tooltip"></div>
 </div>
 
-<script src="@Url.Content("~/Scripts/App/backlog-viz.js?v=20260831.1")"></script>
+<script src="@Url.Content("~/Scripts/App/backlog-viz.js?v=20260914.1")"></script>
 <script>
     const $ = id => document.getElementById(id);
     let latestRequest = 0;

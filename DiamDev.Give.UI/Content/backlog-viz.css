@@ -236,6 +236,8 @@ table { min-width: 100%; }
 #backlogTable tbody td:nth-child(3), #backlogTable thead th:nth-child(3),
 #itemTable tbody td:nth-child(2), #itemTable thead th:nth-child(2) { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #backlogTable tbody td:nth-child(2), #backlogTable thead th:nth-child(2) { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#backlogTable tbody td:nth-child(16), #backlogTable thead th:nth-child(16) { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#backlogTable tbody tr[title] { cursor: help; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
 .badge-critical { background: rgba(208,59,59,0.14); color: var(--critical); }
 .badge-serious { background: rgba(236,131,90,0.16); color: #b8542c; }

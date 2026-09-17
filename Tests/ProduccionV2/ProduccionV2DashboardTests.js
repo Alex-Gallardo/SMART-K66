@@ -111,13 +111,13 @@ const shiftRows = [
         Fecha: "2026-09-01", OT: 20, PosicionOT: 1, ItemID: "A",
         CodigoRecurso: "R1", DescripcionRecurso: "Formadora",
         Turno: "Dia", "Hora Real Día": 8, "Hora Plan": 20,
-        "Cantidad Real Día": 100
+        "Cantidad Real Día": 100, "Cantidad Real Turno": 60
     },
     {
         Fecha: "2026-09-01", OT: 20, PosicionOT: 1, ItemID: "A",
         CodigoRecurso: "R1", DescripcionRecurso: "Formadora",
         Turno: "Noche", "Hora Real Día": 4, "Hora Plan": 20,
-        "Cantidad Real Día": 100
+        "Cantidad Real Día": 100, "Cantidad Real Turno": 40
     },
     {
         Fecha: "2026-09-02", OT: 20, PosicionOT: 1, ItemID: "B",
@@ -280,18 +280,35 @@ assert.strictEqual(
     4,
     "La selección de OT + posición debe comparar como texto para tolerar tipos del JSON.");
 
-const exported = core.buildExportRows([{
-    Fecha: "14/09/2026",
-    OT: 1,
-    PosicionOT: 2,
-    DescripcionItem: "=CMD()",
-    Turno: "1",
-    "Eficiencia Dia": 80
-}]);
-assert.strictEqual(Object.keys(exported[0]).length, 24,
-    "Excel debe conservar las 24 columnas del detalle.");
+const exported = core.buildExportRows([
+    {
+        Fecha: "14/09/2026",
+        OT: 1,
+        PosicionOT: 2,
+        DescripcionItem: "=CMD()",
+        Turno: "1",
+        "Cantidad Real Turno": 108,
+        "Pieza*turnoPlan": 12.5,
+        "Pieza*turnoReal": 9.82,
+        "Eficiencia Dia": 80
+    },
+    {
+        Fecha: "14/09/2026",
+        OT: 1,
+        PosicionOT: 2,
+        Turno: "2",
+        "Cantidad Real Turno": null
+    }
+]);
+assert.strictEqual(Object.keys(exported[0]).length, 25,
+    "Excel debe conservar las 25 columnas del detalle.");
 assert.strictEqual(exported[0].Fecha, "2026-09-14");
 assert.strictEqual(exported[0].Turno, "Dia");
+assert.strictEqual(exported[0]["Cant.Real Turno"], 108);
+assert.strictEqual(exported[0]["P/Hr Plan"], 12.5);
+assert.strictEqual(exported[0]["P/Hr Real"], 9.82);
+assert.strictEqual(exported[1]["Cant.Real Turno"], "",
+    "Un turno sin confirmación debe exportarse vacío, no como cero.");
 assert.strictEqual(exported[0]["Descripción Item"], "'=CMD()",
     "El texto exportado no debe poder interpretarse como fórmula de Excel.");
 

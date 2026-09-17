@@ -13,9 +13,13 @@
 //   Fecha, OT, PosicionOT, ItemID, DescripcionItem, UnidadMedida,
 //   CodigoRecurso, DescripcionRecurso, Turno, Supervisor, "Motivo de Paro",
 //   "Tiempo de Paro", FamilyCode, FamilyName, TipoItem,
-//   EstadoOT, "Cantidad Planeada", "Cantidad Hecha", "Hora Plan",
+//   EstadoOT, "Cantidad Planeada", "Cantidad Hecha", "Cantidad Real Día",
+//   "Cantidad Real Turno", "Hora Plan",
 //   "Hora Real Día", "Hora Real Rango", "Hora Real OT",
 //   "Pieza*turnoPlan", "Pieza*turnoReal", "Eficiencia Dia", "Eficiencia Rango"
+// "Cantidad Real Día" conserva el total físico de IGN1 para KPI/gráficas;
+// "Cantidad Real Turno" viene de BEAS_ARBZEIT.MENGE_GUT y alimenta el
+// detalle y las tasas por hora de cada turno.
 // =============================================================================
 
 const ProduccionV2Dashboard = (() => {
@@ -163,8 +167,8 @@ const ProduccionV2Dashboard = (() => {
         return totals;
     }
 
-    // Capacidad de horas reloj. Es distinta de las 11 horas productivas que el
-    // SQL utiliza exclusivamente en las fórmulas de rendimiento por turno.
+    // Capacidad nominal de horas reloj para los dos turnos diarios. Las tasas
+    // de producción del SQL usan las horas reales, no esta constante.
     const TURNO_HORAS = 12;
     const TURNOS_VALIDOS = ['Dia', 'Noche'];
 
@@ -1164,6 +1168,7 @@ const ProduccionV2Dashboard = (() => {
             appendCell(tr, r.EstadoOT, estadoCls);
             appendCell(tr, fmt(r["Cantidad Planeada"]), 'num');
             appendCell(tr, fmt(r["Cantidad Hecha"]), 'num');
+            appendCell(tr, fmt(r["Cantidad Real Turno"]), 'num');
             appendCell(tr, fmt(r["Hora Plan"]), 'num');
             appendCell(tr, fmt(r["Pieza*turnoPlan"]), 'num');
             appendCell(tr, fmt(r["Hora Real Día"]), 'num');
@@ -1178,7 +1183,7 @@ const ProduccionV2Dashboard = (() => {
         if (rows.length > 500) {
             const tr = document.createElement('tr');
             const td = document.createElement('td');
-            td.colSpan = 24;
+            td.colSpan = 25;
             td.style.textAlign = 'center';
             td.style.color = '#94a3b8';
             td.textContent = `Mostrando 500 de ${rows.length} filas`;
@@ -1588,10 +1593,15 @@ const ProduccionV2Dashboard = (() => {
             'Estado OT': spreadsheetText(row.EstadoOT),
             'Cant.Plan': Number(row["Cantidad Planeada"]) || 0,
             'Cant.Hecha': Number(row["Cantidad Hecha"]) || 0,
+            'Cant.Real Turno': row["Cantidad Real Turno"] === null ||
+                row["Cantidad Real Turno"] === undefined ||
+                row["Cantidad Real Turno"] === ''
+                ? ''
+                : Number(row["Cantidad Real Turno"]),
             'H.Plan': Number(row["Hora Plan"]) || 0,
-            'P×T Plan': Number(row["Pieza*turnoPlan"]) || 0,
+            'P/Hr Plan': Number(row["Pieza*turnoPlan"]) || 0,
             'H.Real Día': Number(row["Hora Real Día"]) || 0,
-            'P×T Real': Number(row["Pieza*turnoReal"]) || 0,
+            'P/Hr Real': Number(row["Pieza*turnoReal"]) || 0,
             'Efic.Día (%)': Number.isFinite(Number(row["Eficiencia Dia"]))
                 ? Number(row["Eficiencia Dia"])
                 : '',

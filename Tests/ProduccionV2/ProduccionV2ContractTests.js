@@ -63,6 +63,7 @@ assert.strictEqual(
     'AS "Motivo de Paro"',
     'AS "Tiempo de Paro"',
     'AS "Cantidad Real Día"',
+    'AS "Cantidad Real Turno"',
     'AS "Cantidad Real Rango"',
     'AS "Cantidad Hecha"'
 ].forEach(alias => assert(sql.includes(alias),
@@ -70,6 +71,13 @@ assert.strictEqual(
 assert(sql.includes('A."UDF1"') && sql.includes('A."UDF2"') &&
        sql.includes('A."UDF3"') && sql.includes('A."UDF4"'),
     "El SQL debe mapear supervisor, turno y datos de paro desde BEAS_ARBZEIT.");
+assert(sql.includes('SUM(A."MENGE_GUT") AS "CantidadRealTurno"'),
+    "La cantidad del turno debe salir de las confirmaciones BEAS_ARBZEIT.MENGE_GUT.");
+assert(!/11\s+AS\s+"HorasTurno"/.test(sql),
+    "Las tasas por hora no deben conservar la normalización a un turno de 11 horas.");
+assert(sql.includes('D."CantidadPlaneada" / D."HoraPlan"') &&
+       sql.includes('D."CantidadRealTurno" / D."HoraRealDia"'),
+    "Plan y real deben calcularse como tasas directas por hora.");
 assert(sql.includes('A."DocDate",') && sql.includes('A."UDF2"'),
     "Las horas diarias deben agruparse por turno.");
 assert(!sql.includes('UPPER(D."unitMsr") <> \'KG\''),
@@ -87,13 +95,14 @@ assert(view.includes('wireFilterControls({ onDateChange: load })'),
     "Cambiar fechas debe consultar nuevamente al servidor.");
 assert.strictEqual((view.match(/<canvas\b/g) || []).length, 11,
     "La UI debe contener las ocho gráficas existentes, motivos de paro y dos tendencias comparativas.");
-assert.strictEqual((view.match(/<th\b[^>]*data-key=/g) || []).length, 24,
-    "La tabla por turnos debe conservar sus 24 columnas ordenables.");
+assert.strictEqual((view.match(/<th\b[^>]*data-key=/g) || []).length, 25,
+    "La tabla por turnos debe contener sus 25 columnas ordenables.");
 [
     "Producto", "Recurso", "Familia", "Categoría", "Planta", "Estado OT",
     "Horas Disponible / sin registrar", "Cambios de Molde",
     'data-key="Turno"', 'data-key="Supervisor"',
     'data-key="Motivo de Paro"', 'data-key="Tiempo de Paro"',
+    'data-key="Cantidad Real Turno"', "P/Hr Plan", "P/Hr Real",
     'class="th-group"',
     "Cantidad producida en el tiempo", "Distribución de Motivos de Paro",
     "Detalle por OT / Posición / Recurso", "Exportar a Excel", "Descargar PDF",
@@ -127,10 +136,16 @@ assert(!fillTable.includes("innerHTML"),
     "La tabla no debe insertar valores SAP mediante innerHTML.");
 assert(fillTable.includes("textContent"),
     "La tabla debe insertar valores SAP como texto.");
+assert.strictEqual((fillTable.match(/^\s+appendCell\(tr,/gm) || []).length, 25,
+    "El cuerpo de la tabla debe renderizar una celda por cada uno de sus 25 encabezados.");
 assert(!javascript.includes("innerHTML"),
     "Los datos SAP y títulos comparativos no deben insertarse mediante innerHTML.");
 assert(javascript.includes("aggregateDailyQuantity"),
     "Las gráficas deben usar el agregador de cantidad diaria.");
+assert(javascript.includes("'Cant.Real Turno'") &&
+       javascript.includes("'P/Hr Plan'") &&
+       javascript.includes("'P/Hr Real'"),
+    "La exportación debe incluir cantidad por turno y las tasas con su nombre correcto.");
 [
     "computeCambiosDeMolde",
     "apportionPlanPorDia",

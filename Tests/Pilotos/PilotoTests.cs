@@ -5,6 +5,8 @@ using System.Globalization;
 using System.Linq;
 using System.Web.Mvc;
 using DiamDev.Give.Entities;
+using DiamDev.Give.DAL;
+using DiamDev.Give.BLL;
 using DiamDev.Give.UI.Controllers;
 
 internal static class PilotoTests
@@ -27,8 +29,19 @@ internal static class PilotoTests
             new PilotoResultado {RowId=2,Visito=false,Entrega="NO ENTREGADO",Motivo="Destino cerrado"}
         }};
     }
-    public static int Main() {
+    public static int Main(string[] args) {
         try {
+            if(args.Length==1 && args[0]=="consulta-temporal") {
+                Check(PilotoRutaDA.PruebasSoloLectura,"modo de consulta activo");
+                Check(!PilotoRutaDA.Habilitado,"no requiere habilitar el modulo normal");
+                Check(!PilotoRutaDA.CierreHabilitado,"ignora PermitirCierre=true durante pruebas");
+                Check(PilotoRutaBL.PermiteUsuarioPrueba("CONSULTA_DEMO"),"usuario permitido sin rol ni sesion especial");
+                Check(!PilotoRutaBL.PermiteUsuarioPrueba("OTRO"),"no habilita otros usuarios");
+                Check(!PilotoRutaBL.PermiteUsuarioPrueba(null),"no habilita anonimos");
+                Rechaza(()=>new PilotoRutaDA().Cerrar("CONSULTA_DEMO",null),403,"DAL rechaza cierre antes de conectar SQL");
+                Rechaza(()=>new PilotoRutaBL().Cerrar("CONSULTA_DEMO",null),403,"BLL no permite saltar cierre bloqueado");
+                Console.WriteLine("OK: "+comprobaciones+" comprobaciones de consulta temporal; sin conexiones SQL."); return 0;
+            }
             var r=Ruta(); var c=Cierre(r);
             PilotoReglas.ValidarCierre(r,c); Check(c.Documentos[1].Entrega=="NO ENTREGADO","preserva fallo al cerrar");
             c.Documentos[1].Entrega="INCIDENCIA"; PilotoReglas.ValidarCierre(r,c); Check(true,"incidencia permite cierre con motivo");

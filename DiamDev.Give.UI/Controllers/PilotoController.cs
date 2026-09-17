@@ -15,7 +15,16 @@ namespace DiamDev.Give.UI.Controllers
         {
             Response.Cache.SetCacheability(System.Web.HttpCacheability.NoCache);
             Response.Cache.SetNoStore();
-            if (!string.Equals(Convert.ToString(Session["Pilotos.Autenticado"]), User.Identity.Name, StringComparison.Ordinal))
+            if (PilotoRutaBL.PruebasSoloLectura)
+            {
+                ViewBag.PruebasSoloLectura=true;
+                if(!PilotoRutaBL.PermiteUsuarioPrueba(User.Identity.Name))
+                {
+                    context.Result=ErrorPiloto(new PilotoException(403,"La consulta temporal no esta habilitada para tu usuario."));
+                    return;
+                }
+            }
+            else if (!string.Equals(Convert.ToString(Session["Pilotos.Autenticado"]), User.Identity.Name, StringComparison.Ordinal))
             {
                 context.Result = RedirectToAction("Login", "Seguridad", new { returnUrl = Url.Action("Index", "Piloto") });
                 return;

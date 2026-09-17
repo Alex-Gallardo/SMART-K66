@@ -21,6 +21,29 @@ Copy-Item -LiteralPath $MvcDll -Destination $out -Force
 Copy-Item -LiteralPath $WebPagesDll -Destination $out -Force
 & (Join-Path $out 'PilotoTests.exe')
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas.' }
+$testConfig=Join-Path $out 'PilotoTests.exe.config'
+@'
+<configuration>
+  <appSettings>
+    <add key="Pilotos.Habilitado" value="false" />
+    <add key="Pilotos.PruebasSoloLectura" value="true" />
+    <add key="Pilotos.PermitirCierre" value="true" />
+    <add key="Pilotos.UsuarioPrueba" value="consulta_demo" />
+    <add key="Pilotos.PlacaPrueba" value="DEMO" />
+  </appSettings>
+  <connectionStrings>
+    <add name="GiveContext" connectionString="Data Source=invalid.invalid;Initial Catalog=TEST_POS;Integrated Security=true;Connect Timeout=1" />
+    <add name="APK66Context" connectionString="Data Source=invalid.invalid;Initial Catalog=TEST_RUTAS;Integrated Security=true;Connect Timeout=1" />
+  </connectionStrings>
+</configuration>
+'@ | Set-Content -LiteralPath $testConfig -Encoding UTF8
+try {
+    & (Join-Path $out 'PilotoTests.exe') consulta-temporal
+    if($LASTEXITCODE -ne 0) { throw 'Fallo aislamiento del modo de consulta.' }
+} finally {
+    # Solo elimina el archivo de configuracion ficticio creado por este test.
+    Remove-Item -LiteralPath $testConfig -Force
+}
 if(!$RazorDll) {
     $RazorDll=Join-Path $repo 'packages/Microsoft.AspNet.Razor.3.2.9/lib/net45/System.Web.Razor.dll'
     if(!(Test-Path -LiteralPath $RazorDll)) { $RazorDll=Join-Path $env:USERPROFILE '.nuget/packages/microsoft.aspnet.razor/3.2.9/lib/net45/System.Web.Razor.dll' }

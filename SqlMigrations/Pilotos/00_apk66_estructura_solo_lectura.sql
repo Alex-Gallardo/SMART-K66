@@ -1,4 +1,4 @@
-/* PILOTOS - PRIMER DIAGNOSTICO APK66 (SOLO LECTURA)
+/* PILOTOS - PRIMER DIAGNOSTICO APK66 (SOLO LECTURA, REVISION 2)
    En SSMS: abrir una ventana NUEVA conectada a APK66 y ejecutar TODO.
    Solo consulta catalogos del sistema: no lee filas de rutas/usuarios,
    no ejecuta procedimientos, no cambia datos, esquema ni permisos.
@@ -18,7 +18,13 @@ BEGIN
     RETURN;
 END;
 
-DECLARE @LockTimeoutAnterior int = @@LOCK_TIMEOUT;
+-- SET LOCK_TIMEOUT requiere un literal, no acepta una variable.
+-- Exigir el valor inicial permite restaurarlo sin SQL dinamico.
+IF @@LOCK_TIMEOUT <> -1
+BEGIN
+    RAISERROR(N'Abra una ventana nueva con LOCK_TIMEOUT inicial (-1). No se ha cambiado la sesion.', 16, 1);
+    RETURN;
+END;
 BEGIN TRY
     SET LOCK_TIMEOUT 3000;
 
@@ -134,10 +140,10 @@ BEGIN TRY
     WHERE sn.name LIKE N'RT[_]%' OR sn.base_object_name LIKE N'%RT[_]%'
     ORDER BY s.name, sn.name;
 
-    SET LOCK_TIMEOUT @LockTimeoutAnterior;
+    SET LOCK_TIMEOUT -1;
 END TRY
 BEGIN CATCH
-    SET LOCK_TIMEOUT @LockTimeoutAnterior;
+    SET LOCK_TIMEOUT -1;
     SELECT N'ERROR_DIAGNOSTICO' AS SECCION, ERROR_NUMBER() AS NUMERO,
         ERROR_LINE() AS LINEA, ERROR_MESSAGE() AS MENSAJE;
 END CATCH;

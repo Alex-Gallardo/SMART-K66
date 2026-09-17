@@ -29,6 +29,8 @@ namespace DiamDev.Give.UI.Controllers
         [ValidateAntiForgeryToken]
         public ActionResult Login(LoginModel model, string returnUrl)
         {
+            Session.Remove("Pilotos.Autenticado");
+            Session.Remove("Pilotos.Desafio");
             if (ModelState.IsValid)
             {
 
@@ -41,6 +43,8 @@ namespace DiamDev.Give.UI.Controllers
                     if (Mensaje.Equals("OK"))
                     {
                         Usuario UsuarioActual = new UsuarioBL().ObtenerPorLogin(model.Usuario);
+                        if (new RolBL().UsuarioTieneRol(UsuarioActual.Login, "PILOTO"))
+                            return IniciarPiloto(UsuarioActual);
                         FormsAuthentication.SetAuthCookie(model.Usuario, true);
 
                         CustomHelper.getUserName(model.Usuario);
@@ -127,6 +131,89 @@ namespace DiamDev.Give.UI.Controllers
             FormsAuthentication.SignOut();
             Session.Abandon();
             return RedirectToAction("Login", "Seguridad");
+        }
+
+        private ActionResult IniciarPiloto(Usuario usuario)
+        {
+            FormsAuthentication.SignOut();
+            Session.Remove("Pilotos.Autenticado");
+            Session.Remove("Pilotos.Desafio");
+            if (!usuario.Token) return CompletarLoginPiloto(usuario);
+            if (string.IsNullOrWhiteSpace(usuario.Celular))
+            {
+                ModelState.AddModelError("", "No esta configurado el telefono de validacion.");
+                return View("Login");
+            }
+            try
+            {
+                var config = new ConfiguracionBL().ObtenerPorId(20210308001);
+                if (config == null || string.IsNullOrWhiteSpace(config.Valor)) throw new InvalidOperationException();
+                var desafio = new PilotoDesafio(usuario.Login, DateTime.UtcNow);
+                var contenido = Newtonsoft.Json.JsonConvert.SerializeObject(new {
+                    to = "+502" + usuario.Celular.Replace("-", ""),
+                    message = "TOKEN DE K66 ES: " + desafio.Codigo, sender_id = "smsto"
+                });
+                using (var cliente = new WebClient())
+                {
+                    ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+                    cliente.Headers[HttpRequestHeader.Authorization] = "Bearer " + config.Valor;
+                    cliente.Headers[HttpRequestHeader.ContentType] = "application/json";
+                    cliente.Encoding = System.Text.Encoding.UTF8;
+                    var respuesta = Newtonsoft.Json.Linq.JObject.Parse(cliente.UploadString("https://api.sms.to/sms/send", "POST", contenido));
+                    if ((bool?)respuesta["success"] != true) throw new InvalidOperationException();
+                }
+                Session["Pilotos.Desafio"] = desafio;
+                return RedirectToAction("PilotoToken");
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError("", "No se pudo enviar el codigo. Intenta iniciar sesion nuevamente.");
+                return View("Login");
+            }
+        }
+
+        private ActionResult CompletarLoginPiloto(Usuario usuario)
+        {
+            // El contexto del piloto solo se crea despues de validar sus factores.
+            Session.Remove("Nombre"); Session.Remove("Usuario"); Session.Remove("Agencia");
+            CustomHelper.getUserName(usuario.Login);
+            if (usuario.Agencias != null && usuario.Agencias.Count == 1) CustomHelper.setAgencia(usuario.Agencias[0].Agencia);
+            FormsAuthentication.SetAuthCookie(usuario.Login, false);
+            Session["Pilotos.Autenticado"] = usuario.Login;
+            Session.Remove("Pilotos.Desafio");
+            return RedirectToAction("Index", "Piloto");
+        }
+
+        [AllowAnonymous]
+        [HttpGet]
+        public ActionResult PilotoToken()
+        {
+            Response.Cache.SetNoStore();
+            if (Session["Pilotos.Desafio"] == null) return RedirectToAction("Login");
+            return View();
+        }
+
+        [AllowAnonymous]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult PilotoToken(string codigo)
+        {
+            Response.Cache.SetNoStore();
+            var desafio = Session["Pilotos.Desafio"] as PilotoDesafio;
+            if (desafio != null && desafio.Verificar(codigo, DateTime.UtcNow))
+            {
+                var usuario = new UsuarioBL().ObtenerPorLogin(desafio.Login);
+                Session.Remove("Pilotos.Desafio");
+                if (usuario != null && usuario.Activo && usuario.AutenticarSite && new RolBL().UsuarioTieneRol(usuario.Login, "PILOTO"))
+                    return CompletarLoginPiloto(usuario);
+                return RedirectToAction("Login");
+            }
+            if (desafio == null || desafio.Intentos >= 5 || DateTime.UtcNow >= desafio.VenceUtc)
+            {
+                Session.Remove("Pilotos.Desafio"); return RedirectToAction("Login");
+            }
+            ModelState.AddModelError("", "Codigo incorrecto. Revisa el mensaje recibido.");
+            return View();
         }
 
         public ActionResult Menu()

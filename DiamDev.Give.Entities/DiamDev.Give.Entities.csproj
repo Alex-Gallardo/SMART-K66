@@ -379,4 +379,9 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <ItemGroup>
+    <Compile Include="PilotoRuta.cs" />
+    <Compile Include="PilotoReglas.cs" />
+    <Compile Include="PilotoDesafio.cs" />
+  </ItemGroup>
 </Project>

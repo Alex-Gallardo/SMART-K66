@@ -1,0 +1,83 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace DiamDev.Give.Entities
+{
+    public static class PilotoReglas
+    {
+        // Mantiene el formulario completo por debajo del limite de claves de ASP.NET.
+        public const int MaxDocumentos = 200;
+        public static void ValidarCierre(PilotoRuta ruta, PilotoCierre cierre)
+        {
+            if (cierre == null || cierre.Solicitud == Guid.Empty || cierre.RutaId != ruta.Id)
+                throw new PilotoException(400, "La solicitud de cierre no es valida.");
+            if (ruta.Estado != "E")
+                throw new PilotoException(409, "Solo se puede completar una ruta en estado En ruta.");
+            if (string.IsNullOrEmpty(cierre.Version) || cierre.Version != ruta.Version)
+                throw new PilotoException(409, "La ruta cambio. Recarga sus detalles antes de completar.");
+            if (ruta.Documentos.Count == 0 || cierre.Documentos == null ||
+                cierre.Documentos.Count != ruta.Documentos.Count || cierre.Documentos.Count > MaxDocumentos)
+                throw new PilotoException(400, "Debes indicar el resultado de todos los documentos.");
+            var esperados = new HashSet<int>(ruta.Documentos.Select(d => d.RowId));
+            foreach (var d in cierre.Documentos)
+            {
+                if (d == null || !esperados.Remove(d.RowId))
+                    throw new PilotoException(400, "Hay documentos repetidos o ajenos a la ruta.");
+                if (!d.Visito.HasValue || (d.Entrega != "ENTREGADO" && d.Entrega != "NO ENTREGADO" && d.Entrega != "INCIDENCIA"))
+                    throw new PilotoException(400, "Selecciona visita y resultado para cada documento.");
+                if (d.Entrega == "ENTREGADO" && !d.Visito.Value)
+                    throw new PilotoException(400, "Un documento entregado debe estar marcado como visitado.");
+                if ((d.Motivo ?? "").Length > 150 ||
+                    (d.Entrega != "ENTREGADO" && string.IsNullOrWhiteSpace(d.Motivo)))
+                    throw new PilotoException(400, "No entregado e incidencia requieren un motivo de hasta 150 caracteres.");
+            }
+        }
+
+        public static string Version(PilotoRuta ruta)
+        {
+            return Hash(delegate(BinaryWriter w)
+            {
+                Texto(w, ruta.Id); w.Write(ruta.Fecha.Ticks); Texto(w, ruta.Estado);
+                Texto(w, ruta.Placa); Texto(w, ruta.Piloto); Texto(w, ruta.Centro);
+                foreach (var d in ruta.Documentos.OrderBy(d => d.RowId))
+                {
+                    w.Write(d.RowId); Texto(w, d.Tipo); Texto(w, d.Empresa); Texto(w, d.Documento);
+                    Texto(w, d.Cliente); Texto(w, d.Direccion); w.Write(d.Bultos);
+                    w.Write(d.Visito.HasValue); if (d.Visito.HasValue) w.Write(d.Visito.Value);
+                    Texto(w, d.Entrega); Texto(w, d.Motivo); Texto(w, d.Observaciones);
+                    w.Write(d.Entrada.HasValue); if (d.Entrada.HasValue) w.Write(d.Entrada.Value.Ticks);
+                    w.Write(d.Salida.HasValue); if (d.Salida.HasValue) w.Write(d.Salida.Value.Ticks);
+                }
+            });
+        }
+
+        public static string HuellaSolicitud(PilotoCierre cierre)
+        {
+            if (cierre == null || cierre.Documentos == null || cierre.Documentos.Any(d => d == null) || cierre.Documentos.Count > MaxDocumentos)
+                throw new PilotoException(400, "La solicitud de cierre no es valida.");
+            return Hash(delegate(BinaryWriter w)
+            {
+                Texto(w, cierre.RutaId); Texto(w, cierre.Version);
+                foreach (var d in cierre.Documentos.OrderBy(d => d.RowId))
+                {
+                    w.Write(d.RowId); w.Write(d.Visito.HasValue); if (d.Visito.HasValue) w.Write(d.Visito.Value);
+                    Texto(w, d.Entrega); Texto(w, d.Motivo);
+                }
+            });
+        }
+
+        private static void Texto(BinaryWriter w, string value) { w.Write(value != null); if (value != null) w.Write(value); }
+        private static string Hash(Action<BinaryWriter> escribir)
+        {
+            using (var buffer = new MemoryStream())
+            {
+                using (var w = new BinaryWriter(buffer, Encoding.UTF8, true)) escribir(w);
+                using (var hash = SHA256.Create()) return Convert.ToBase64String(hash.ComputeHash(buffer.ToArray()));
+            }
+        }
+    }
+}

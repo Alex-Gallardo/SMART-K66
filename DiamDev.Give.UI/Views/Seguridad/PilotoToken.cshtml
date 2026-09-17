@@ -1,0 +1,10 @@
+@{ Layout = "~/Views/Shared/_PilotoLayout.cshtml"; ViewBag.Title = "Verificar acceso"; }
+<section class="token-panel"><p class="eyebrow">ACCESO DE PILOTOS</p><h1>Verifica tu acceso</h1><p>Ingresa el código enviado a tu teléfono. Vence en 5 minutos.</p>
+@using (Html.BeginForm("PilotoToken", "Seguridad", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+    @Html.ValidationSummary(false)
+    <label for="codigo">Código de verificación</label><input id="codigo" name="codigo" type="text" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required autofocus />
+    <button type="submit">Entrar a mis rutas</button>
+}
+<a href="@Url.Action("Login", "Seguridad")">Volver al inicio de sesión</a></section>

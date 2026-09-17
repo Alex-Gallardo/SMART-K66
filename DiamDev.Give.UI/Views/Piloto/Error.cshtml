@@ -1,0 +1,2 @@
+@{ Layout = "~/Views/Shared/_PilotoLayout.cshtml"; ViewBag.Title = "Revisar ruta"; }
+<section class="empty-state"><h1>No se completó la solicitud</h1><p role="alert">@ViewBag.Mensaje</p><a class="button-link" href="@Url.Action("Index", "Piloto")">Volver a mis rutas</a><p>Si estabas registrando resultados, vuelve al formulario anterior para revisarlos.</p></section>

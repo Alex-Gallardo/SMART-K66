@@ -1,13 +1,14 @@
-/* PILOTOS - ESTRUCTURA DE SEGURIDAD POS (SOLO LECTURA)
-   Abrir una ventana NUEVA de SSMS conectada a POS-SmartK66.
+/* PILOTOS - ESTRUCTURA DE SEGURIDAD POS (SOLO LECTURA, REVISION 2)
+   Abrir una ventana NUEVA de SSMS conectada a POS-SmartK66 o POS-SmartK66_DEV.
+   No cambia de base: BASE_ACTUAL identifica cual se consulto.
    Solo catalogos: no extrae usuarios, contrasenas, datos de clientes ni rutas.
    No crea/actualiza roles, permisos, menus o vinculaciones.
    LOCK_TIMEOUT limita espera por bloqueos, no la duracion total.
    Enviar todas las secciones, incluidas las vacias y cualquier error.
 */
-IF DB_NAME() <> N'POS-SmartK66'
+IF DB_NAME() NOT IN (N'POS-SmartK66', N'POS-SmartK66_DEV')
 BEGIN
-    RAISERROR(N'Seleccione POS-SmartK66 en SSMS antes de ejecutar este diagnostico.', 16, 1);
+    RAISERROR(N'Seleccione POS-SmartK66 o POS-SmartK66_DEV en SSMS antes de ejecutar este diagnostico.', 16, 1);
     RETURN;
 END;
 IF @@TRANCOUNT <> 0 OR (2 & @@OPTIONS) = 2
@@ -16,7 +17,13 @@ BEGIN
     RETURN;
 END;
 
-DECLARE @LockTimeoutAnterior int = @@LOCK_TIMEOUT;
+-- SET LOCK_TIMEOUT requiere un literal, no acepta una variable.
+-- Exigir el valor inicial permite restaurarlo sin SQL dinamico.
+IF @@LOCK_TIMEOUT <> -1
+BEGIN
+    RAISERROR(N'Abra una ventana nueva con LOCK_TIMEOUT inicial (-1). No se ha cambiado la sesion.', 16, 1);
+    RETURN;
+END;
 BEGIN TRY
     SET LOCK_TIMEOUT 3000;
 
@@ -69,10 +76,10 @@ BEGIN TRY
        OR pt.name LIKE N'%Piloto%' OR rt.name LIKE N'%Piloto%'
     ORDER BY ESQUEMA_ORIGEN, pt.name, fk.name, fkc.constraint_column_id;
 
-    SET LOCK_TIMEOUT @LockTimeoutAnterior;
+    SET LOCK_TIMEOUT -1;
 END TRY
 BEGIN CATCH
-    SET LOCK_TIMEOUT @LockTimeoutAnterior;
+    SET LOCK_TIMEOUT -1;
     SELECT N'ERROR_DIAGNOSTICO' AS SECCION, ERROR_NUMBER() AS NUMERO,
         ERROR_LINE() AS LINEA, ERROR_MESSAGE() AS MENSAJE;
 END CATCH;

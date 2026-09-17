@@ -20,7 +20,13 @@
             }
         }
     </header>
-    <main id="contenido" class="pilot-main">@RenderBody()</main>
+    <main id="contenido" class="pilot-main">
+        @if (ViewBag.PruebasSoloLectura == true)
+        {
+            <p class="notice" role="status">Modo de pruebas: consulta de rutas reales. El cierre está desactivado.</p>
+        }
+        @RenderBody()
+    </main>
     <footer class="pilot-footer">Smart K66 · Distribución</footer>
     @RenderSection("scripts", required: false)
 </body>

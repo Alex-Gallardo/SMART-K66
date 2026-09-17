@@ -7,9 +7,35 @@ cada documento al completar una ruta. Solo se admite **E → C**. La anulación
 La implementación está desactivada por defecto. El cierre requiere validación
 integrada en una copia aislada de ambas bases y revisión de la lógica SQL central.
 Los archivos SQL de esta carpeta **no se ejecutan al iniciar la aplicación**.
-Las tres claves nuevas están en `appSettings.example.config`: incorporarlas
+Las claves nuevas están en `appSettings.example.config`: incorporarlas
 localmente sin reemplazar el resto de appSettings. Su ausencia también desactiva
 el módulo. Este cambio no modifica ni publica archivos de conexión del despliegue.
+
+## Consulta temporal sin permisos PILOTO
+
+Para probar las pantallas con rutas reales usando una cuenta POS existente,
+agregar estas claves al `appSettings` local del sitio (sin duplicar claves):
+
+```xml
+<add key="Pilotos.PruebasSoloLectura" value="true" />
+<add key="Pilotos.UsuarioPrueba" value="TU_LOGIN_POS" />
+<add key="Pilotos.PlacaPrueba" value="PLACA_REAL" />
+<add key="Pilotos.PermitirCierre" value="false" />
+```
+
+Iniciar sesión normalmente y abrir `/Piloto/Index`. El login no necesita tener
+una placa vinculada: `PlacaPrueba` define por separado el vehículo consultable.
+Este modo omite el rol, los permisos, el vínculo de empleado y la sesión especial
+PILOTO. No requiere instalar las tablas del portal ni habilitar el módulo normal.
+Conserva autenticación POS, usuario activo/habilitado para web y la lista limitada
+al login configurado. Listado y detalle solo muestran rutas de la placa indicada.
+Las conexiones y permisos SQL de lectura siguen siendo necesarios.
+
+Durante este modo **el cierre se rechaza en el servidor**, incluso si otra clave
+configura `PermitirCierre=true`. La vista indica que son pruebas de consulta.
+Al terminar, cambiar `Pilotos.PruebasSoloLectura=false` y vaciar usuario/placa;
+entonces vuelven los controles normales de piloto. No publicar identificadores
+reales ni conexiones al completar el ejemplo local.
 
 ## Identidad y alcance
 
@@ -110,8 +136,8 @@ Los scripts empiezan en vista previa y requieren completar parámetros y activar
 explícitamente la aplicación del cambio. Detienen una instalación existente para
 revisión. No incluyen credenciales, resultados de producción ni copias de módulos
 recibidos para análisis. Los diagnósticos originales `00`/`01` son históricos;
-la corrección de su LOCK_TIMEOUT se gestiona en el PR #54, independientemente del
-portal. No hace falta volver a ejecutarlos para usar esta implementación.
+la corrección de su LOCK_TIMEOUT se integró en el PR #54. No hace falta volver
+a ejecutarlos para usar esta implementación.
 
 Permisos SQL mínimos a evaluar para la cuenta de servicio: SELECT en las tablas
 de autorización POS y las tres tablas RT consultadas; SELECT/INSERT en auditoría;
@@ -127,7 +153,8 @@ mediante una migración inversa genérica.
 ## Validación
 
 `Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 41 comprobaciones de
-reglas/formulario/desafío, compila las cinco vistas Razor y analiza los cuatro
+reglas/formulario/desafío y ocho del modo temporal (incluido bloqueo del cierre
+antes de conectar SQL), compila las cinco vistas Razor y analiza los cuatro
 scripts nuevos con ScriptDom SQL150, sin conexiones SQL. Las rutas de DLL pueden
 pasarse por parámetros; usa paquetes locales/restaurados, sin descargarlos.
 

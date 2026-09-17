@@ -2,31 +2,50 @@
 
 Estado: análisis inicial y diagnóstico de solo lectura. **La vista y la confirmación
 todavía no están implementadas.** Este cambio no modifica el comportamiento del
-appweb ni ejecuta migraciones. La implementación continuará en la misma rama
-después de recibir el esquema y las reglas operativas de APK66.
+appweb ni ejecuta migraciones. La implementación continuará después de recibir
+el esquema y las reglas operativas de APK66.
 
-Base revisada: `develop`, commit `e98b09d8a3827ded58273dc72e614a97d39ba37c`
-(17 de septiembre de 2026). Rama: `feature/pilotos-rutas-apk66`.
+Base del analisis inicial: `develop`, commit `e98b09d8a3827ded58273dc72e614a97d39ba37c`
+(17 de septiembre de 2026). El PR #53 ya fue integrado. La correccion de los
+diagnosticos parte de `develop` en `a3f947781139706bc2d81e88a2ff613a4b7743ac`,
+rama `fix/pilotos-diagnosticos-lock-timeout`.
+
+Confirmado por el solicitante: **confirmar significa pasar el STATUS de la ruta
+y sus documentos a completado**. **Distribucion asigna los vehiculos**; no suelen
+cambiar con frecuencia. No pedir al piloto que se asigne un vehiculo libremente.
+Todavia falta el codigo exacto de cada estado, los documentos afectados, las
+claves y las transiciones/efectos de la operacion existente.
 
 ## Cómo obtener el contexto que falta
 
 1. Abrir una ventana nueva de SSMS conectada a **APK66** y ejecutar completo
    [00_apk66_estructura_solo_lectura.sql](00_apk66_estructura_solo_lectura.sql).
-2. Abrir otra ventana nueva conectada a **POS-SmartK66** y ejecutar completo
+2. Abrir otra ventana nueva conectada a **POS-SmartK66** o **POS-SmartK66_DEV**
+   (la captura recibida usa DEV) y ejecutar completo
    [01_pos_estructura_solo_lectura.sql](01_pos_estructura_solo_lectura.sql).
 3. Compartir todos los resultados, incluidos los vacíos y los errores.
-   Si la aplicación que se va a probar usa otra base, indicar su nombre antes
-   de adaptar el diagnóstico; no sustituir automáticamente producción por DEV.
-4. Explicar qué significa confirmar: aceptar asignación, confirmar carga/salida,
-   entrega u otro evento. Indicar si el vehículo es fijo o cambia por turno y
-   quién asigna ese vehículo actualmente.
+   `BASE_ACTUAL` identifica la base consultada. El script no cambia de base.
+   Confirmar cual de las dos contiene los usuarios del despliegue objetivo;
+   los resultados de DEV no demuestran que produccion tenga el mismo esquema.
+4. Indicar, si se conocen, los valores exactos de STATUS para completado en
+   ruta y documentos, y donde guarda Distribucion la asignacion piloto/vehiculo.
+   Si no se conocen, primero analizar las salidas de estructura y luego pedir
+   consultas puntuales o el codigo que realiza esa operacion actualmente.
 
 Los scripts solo leen catálogos de estructura. No consultan filas de tablas de
 negocio, ejecutan procedimientos, crean objetos, cambian permisos o escriben
 datos. Verifican la base seleccionada y rechazan sesiones con transacciones
-abiertas o implícitas. Aplican `LOCK_TIMEOUT 3000` y restauran el valor anterior
-en finalización normal o error capturado. No cambian el nivel de aislamiento.
+abiertas o implícitas. Exigen `@@LOCK_TIMEOUT = -1` antes de cualquier ajuste,
+aplican `SET LOCK_TIMEOUT 3000` y restauran `SET LOCK_TIMEOUT -1` en finalizacion
+normal o error capturado. Si la sesion tiene otro valor, salen sin cambiarlo.
+No cambian el nivel de aislamiento.
 Si se cancela desde SSMS, cerrar esa ventana para descartar ajustes de sesión.
+
+La revision 1 tenia un error: `SET LOCK_TIMEOUT @LockTimeoutAnterior` no es
+admitido por SQL Server; causaba los dos errores de sintaxis capturados en cada
+archivo. La revision 2 utiliza literales, sin SQL dinamico. Los errores ocurren
+antes de ejecutar ese lote, por lo que no se obtuvieron resultados del diagnostico.
+Referencia: [SET LOCK_TIMEOUT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-lock-timeout-transact-sql).
 
 Una consulta de metadatos también puede consumir recursos o esperar bloqueos:
 el timeout limita la **espera por un bloqueo**, no el tiempo total. Si falla,
@@ -89,8 +108,9 @@ validación del esquema actual ni de que el usuario RT sea el piloto.
 Falta identificar: clave completa de ruta (posiblemente compuesta), identidad
 real del piloto, relación vigente con vehículo, ámbito de empresa/planta,
 documentos y paradas, estados habilitados para confirmar, campos y efectos de
-confirmación, triggers y procedimientos relacionados. No asumir que confirmar
-equivale a cerrar o liquidar la ruta.
+confirmación, triggers y procedimientos relacionados. El resultado funcional
+confirmado es completar ruta y documentos; no inferir que eso implique liquidar
+o modificar otros datos contables.
 
 ## Propuesta de vinculación (pendiente del esquema)
 
@@ -182,7 +202,19 @@ en POS para suplir el esquema pendiente.
   Probar integración en bases de pruebas antes de habilitar escritura en APK66
   productiva. La lectura y la confirmación deben poder habilitarse por separado.
 
-Validación de esta entrega: revisión estática de los scripts y del alcance del
-diff. **No se ejecutaron los diagnósticos en SQL Server ni se conectó a producción.**
-No hay código ejecutable nuevo que compilar en esta etapa. El PR debe permanecer
-en borrador hasta completar el contrato y la implementación solicitada.
+Validacion de la revision 2: analisis sintactico con Microsoft ScriptDom para
+SQL Server 2008 y 2022 y control adicional de literales/restauracion de
+LOCK_TIMEOUT. ScriptDom acepta la forma con variable; por eso no basta con que
+el parser no reporte errores. `Validar-Diagnosticos.ps1` incluye una comprobacion
+de regresion que debe rechazar esa forma y revisa los dos archivos completos.
+
+Para repetir localmente (PowerShell, sin conexion a SQL Server):
+
+```powershell
+.\SqlMigrations\Pilotos\Validar-Diagnosticos.ps1 -ScriptDomPath 'RUTA\Microsoft.SqlServer.TransactSql.ScriptDom.dll'
+```
+
+**No se ejecutaron los diagnosticos corregidos en SQL Server ni se conecto a
+produccion.** Esta validacion no prueba permisos, existencia de objetos o reglas
+de negocio. El PR de correccion solo repara el diagnostico; la vista y la
+confirmacion siguen pendientes del contrato y de la implementacion solicitada.

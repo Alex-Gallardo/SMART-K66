@@ -119,7 +119,8 @@ HORAS_DIA AS
         MAX(A."UDF1") AS "Supervisor",
         MAX(A."UDF3") AS "MotivoParoCodigo",
         MAX(A."UDF4") AS "TiempoParo",
-        SUM(A."ZEIT") / 60.0 AS "HoraRealDia"
+        SUM(A."ZEIT") / 60.0 AS "HoraRealDia",
+        SUM(A."MENGE_GUT") AS "CantidadRealTurno"
     FROM "BEAS_ARBZEIT" A
     CROSS JOIN PARAMS P
     WHERE A."CANCEL" = 0
@@ -217,10 +218,6 @@ DETALLE AS
         T0."APLATZ_ID" AS "CodigoRecurso",
         R."BEZ"        AS "DescripcionRecurso",
 
-        -- Horas productivas efectivas usadas por las fórmulas de rendimiento.
-        -- La UI usa 12 horas reloj por turno para capacidad/paro/disponible.
-        11 AS "HorasTurno",
-
         HD."TurnoCodigo"             AS "TurnoCodigo",
         MAX(HD."Supervisor")         AS "Supervisor",
         MAX(HD."MotivoParoCodigo")   AS "MotivoParoCodigo",
@@ -231,6 +228,9 @@ DETALLE AS
         -- IGN1 no identifica turno: estas cantidades se repiten en Día/Noche.
         -- La UI usa Cantidad Real Día y desduplica por fecha/OT/posición/item.
         MAX(IDR."CantidadRealDia")   AS "CantidadRealDia",
+        -- MENGE_GUT pertenece a la confirmación de esta operación y turno.
+        -- A diferencia de IGN1, permite separar la cantidad de Día y Noche.
+        MAX(HD."CantidadRealTurno")  AS "CantidadRealTurno",
         MAX(IR."CantidadRealRango")  AS "CantidadRealRango",
         MAX(IT."CantidadRealTotal")  AS "CantidadRealTotal",
 
@@ -354,6 +354,7 @@ SELECT
 
     D."CantidadPlaneada"    AS "Cantidad Planeada",
     D."CantidadRealDia"     AS "Cantidad Real Día",
+    D."CantidadRealTurno"   AS "Cantidad Real Turno",
     D."CantidadRealRango"   AS "Cantidad Real Rango",
     D."CantidadRealTotal"   AS "Cantidad Hecha",
 
@@ -362,49 +363,44 @@ SELECT
     D."HoraRealRango"  AS "Hora Real Rango",
     D."HoraRealOT"     AS "Hora Real OT",
 
-    -- FIX 1: guard HoraPlan = 0  (antes: sin CASE → 50 / (0/11) explotaba)
+    -- Tasa planificada por hora. Se conserva el alias histórico para no
+    -- romper consumidores; la UI lo presenta como P/Hr Plan.
     CASE
         WHEN COALESCE(D."HoraPlan", 0) > 0
-        THEN ROUND(
-                 D."CantidadPlaneada"
-                 / (D."HoraPlan" / D."HorasTurno"),
-             2)
+        THEN ROUND(D."CantidadPlaneada" / D."HoraPlan", 2)
     END AS "Pieza*turnoPlan",
 
-    -- Sin cambio: ya tenía guard HoraRealDia > 0
+    -- Tasa real del turno: cantidad confirmada en MENGE_GUT dividida entre
+    -- las horas confirmadas para la misma operación y turno.
     CASE
         WHEN D."HoraRealDia" > 0
-        THEN ROUND(
-                 D."CantidadRealDia"
-                 / (D."HoraRealDia" / D."HorasTurno"),
-             2)
+        THEN ROUND(D."CantidadRealTurno" / D."HoraRealDia", 2)
     END AS "Pieza*turnoReal",
 
-    -- FIX 2: añadido AND HoraPlan > 0 AND CantidadPlaneada > 0
-    --        (el denominador interno era CantidadPlaneada/(HoraPlan/11) = 0 cuando HoraPlan=0)
+    -- Eficiencia del turno: tasa real por hora contra tasa planificada.
     CASE
         WHEN D."HoraRealDia"  > 0
          AND COALESCE(D."HoraPlan", 0)          > 0
          AND COALESCE(D."CantidadPlaneada", 0)  > 0
         THEN ROUND(
                  (
-                     (D."CantidadRealDia"  / (D."HoraRealDia"  / D."HorasTurno"))
+                     (D."CantidadRealTurno" / D."HoraRealDia")
                      /
-                     (D."CantidadPlaneada" / (D."HoraPlan"      / D."HorasTurno"))
+                     (D."CantidadPlaneada" / D."HoraPlan")
                  ) * 100,
              2)
     END AS "Eficiencia Dia",
 
-    -- FIX 3: mismo patrón para el rango
+    -- Mismo patrón para el rango completo seleccionado.
     CASE
         WHEN D."HoraRealRango" > 0
          AND COALESCE(D."HoraPlan", 0)          > 0
          AND COALESCE(D."CantidadPlaneada", 0)  > 0
         THEN ROUND(
                  (
-                     (D."CantidadRealRango" / (D."HoraRealRango" / D."HorasTurno"))
+                     (D."CantidadRealRango" / D."HoraRealRango")
                      /
-                     (D."CantidadPlaneada"  / (D."HoraPlan"       / D."HorasTurno"))
+                     (D."CantidadPlaneada" / D."HoraPlan")
                  ) * 100,
              2)
     END AS "Eficiencia Rango"

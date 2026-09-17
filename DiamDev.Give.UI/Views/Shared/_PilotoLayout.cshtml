@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>@ViewBag.Title · Smart K66</title>
+    <link rel="stylesheet" href="@Url.Content("~/Content/pilotos.css")" />
+</head>
+<body>
+    <a class="skip-link" href="#contenido">Ir al contenido</a>
+    <header class="pilot-header">
+        <a class="brand" href="@Url.Action("Index", "Piloto")">SMART <strong>K66</strong><span>Portal de pilotos</span></a>
+        @if (User.Identity.IsAuthenticated)
+        {
+            using (Html.BeginForm("LogOff", "Seguridad", FormMethod.Post))
+            {
+                @Html.AntiForgeryToken()
+                <button class="button-quiet" type="submit">Salir</button>
+            }
+        }
+    </header>
+    <main id="contenido" class="pilot-main">@RenderBody()</main>
+    <footer class="pilot-footer">Smart K66 · Distribución</footer>
+    @RenderSection("scripts", required: false)
+</body>
+</html>

@@ -207,4 +207,7 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <ItemGroup>
+    <Compile Include="PilotoRutaBL.cs" />
+  </ItemGroup>
 </Project>

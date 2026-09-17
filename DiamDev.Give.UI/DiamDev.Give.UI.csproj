@@ -1583,4 +1583,14 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <ItemGroup>
+    <Compile Include="Controllers\PilotoController.cs" />
+    <Content Include="Content\pilotos.css" />
+    <Content Include="Scripts\pilotos.js" />
+    <Content Include="Views\Shared\_PilotoLayout.cshtml" />
+    <Content Include="Views\Piloto\Index.cshtml" />
+    <Content Include="Views\Piloto\Detalle.cshtml" />
+    <Content Include="Views\Piloto\Error.cshtml" />
+    <Content Include="Views\Seguridad\PilotoToken.cshtml" />
+  </ItemGroup>
 </Project>

@@ -1,220 +1,153 @@
-# Pilotos: descubrimiento e integración con APK66
+# Portal de pilotos
 
-Estado: análisis inicial y diagnóstico de solo lectura. **La vista y la confirmación
-todavía no están implementadas.** Este cambio no modifica el comportamiento del
-appweb ni ejecuta migraciones. La implementación continuará después de recibir
-el esquema y las reglas operativas de APK66.
+Vista MVC `/Piloto` para consultar las rutas propias y registrar el resultado de
+cada documento al completar una ruta. Solo se admite **E → C**. La anulación
+**X pertenece a Distribución**; el módulo no incluye acción ni permiso de anular.
 
-Base del analisis inicial: `develop`, commit `e98b09d8a3827ded58273dc72e614a97d39ba37c`
-(17 de septiembre de 2026). El PR #53 ya fue integrado. La correccion de los
-diagnosticos parte de `develop` en `a3f947781139706bc2d81e88a2ff613a4b7743ac`,
-rama `fix/pilotos-diagnosticos-lock-timeout`.
+La implementación está desactivada por defecto. El cierre requiere validación
+integrada en una copia aislada de ambas bases y revisión de la lógica SQL central.
+Los archivos SQL de esta carpeta **no se ejecutan al iniciar la aplicación**.
+Las tres claves nuevas están en `appSettings.example.config`: incorporarlas
+localmente sin reemplazar el resto de appSettings. Su ausencia también desactiva
+el módulo. Este cambio no modifica ni publica archivos de conexión del despliegue.
 
-Confirmado por el solicitante: **confirmar significa pasar el STATUS de la ruta
-y sus documentos a completado**. **Distribucion asigna los vehiculos**; no suelen
-cambiar con frecuencia. No pedir al piloto que se asigne un vehiculo libremente.
-Todavia falta el codigo exacto de cada estado, los documentos afectados, las
-claves y las transiciones/efectos de la operacion existente.
+## Identidad y alcance
 
-## Cómo obtener el contexto que falta
+Las cuentas y contraseñas siguen en el sistema de usuarios existente. Se crean
+con rol `PILOTO`, agencia y empresa operativa reales, usando la administración de
+usuarios. El login dirige ese rol al portal y no exige el menú ni la selección
+de agencia de otras pantallas.
 
-1. Abrir una ventana nueva de SSMS conectada a **APK66** y ejecutar completo
-   [00_apk66_estructura_solo_lectura.sql](00_apk66_estructura_solo_lectura.sql).
-2. Abrir otra ventana nueva conectada a **POS-SmartK66** o **POS-SmartK66_DEV**
-   (la captura recibida usa DEV) y ejecutar completo
-   [01_pos_estructura_solo_lectura.sql](01_pos_estructura_solo_lectura.sql).
-3. Compartir todos los resultados, incluidos los vacíos y los errores.
-   `BASE_ACTUAL` identifica la base consultada. El script no cambia de base.
-   Confirmar cual de las dos contiene los usuarios del despliegue objetivo;
-   los resultados de DEV no demuestran que produccion tenga el mismo esquema.
-4. Indicar, si se conocen, los valores exactos de STATUS para completado en
-   ruta y documentos, y donde guarda Distribucion la asignacion piloto/vehiculo.
-   Si no se conocen, primero analizar las salidas de estructura y luego pedir
-   consultas puntuales o el codigo que realiza esa operacion actualmente.
+`PilotoVinculo` relaciona `Usuario.Usuario_Id` con `RT_EMPLEADOS.ROWID`, no con un
+nombre escrito por el navegador. `PilotoCentro` limita los centros consultables.
+El vínculo tiene activación independiente y un código de auditoría de hasta 15
+caracteres, acordado con el responsable de rutas: nunca truncar un login.
 
-Los scripts solo leen catálogos de estructura. No consultan filas de tablas de
-negocio, ejecutan procedimientos, crean objetos, cambian permisos o escriben
-datos. Verifican la base seleccionada y rechazan sesiones con transacciones
-abiertas o implícitas. Exigen `@@LOCK_TIMEOUT = -1` antes de cualquier ajuste,
-aplican `SET LOCK_TIMEOUT 3000` y restauran `SET LOCK_TIMEOUT -1` en finalizacion
-normal o error capturado. Si la sesion tiene otro valor, salen sin cambiarlo.
-No cambian el nivel de aislamiento.
-Si se cancela desde SSMS, cerrar esa ventana para descartar ajustes de sesión.
+El origen conserva una relación heredada por nombre (`RT_RUTAS.PILOTO` con
+`RT_EMPLEADOS.NOMBRE`). Se rechazan nombres ambiguos, incluso si el otro empleado
+está inactivo. Los cambios de nombre deben reconciliarse en el origen. No se
+inventa un vínculo por placa: se muestra el vehículo de cada ruta asignada al
+empleado autorizado, sin mantener otra asignación en POS.
 
-La revision 1 tenia un error: `SET LOCK_TIMEOUT @LockTimeoutAnterior` no es
-admitido por SQL Server; causaba los dos errores de sintaxis capturados en cada
-archivo. La revision 2 utiliza literales, sin SQL dinamico. Los errores ocurren
-antes de ejecutar ese lote, por lo que no se obtuvieron resultados del diagnostico.
-Referencia: [SET LOCK_TIMEOUT](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-lock-timeout-transact-sql).
+Cada operación vuelve a comprobar usuario activo/habilitado para web, rol,
+permiso, vínculo activo, empleado activo y centros. La identidad procede de la
+sesión autenticada. Cambiar un ID en la URL o el formulario no amplía el alcance.
 
-Una consulta de metadatos también puede consumir recursos o esperar bloqueos:
-el timeout limita la **espera por un bloqueo**, no el tiempo total. Si falla,
-compartir el error en lugar de reintentar continuamente. No se necesita usar `sa`;
-la visibilidad depende de los permisos de la cuenta existente. No interpretar
-una sección vacía como prueba de que no existen relaciones o módulos.
+Si la cuenta requiere Token, el piloto usa un desafío de seis dígitos, con cinco
+intentos y cinco minutos de vigencia. El código esperado vive en la sesión del
+servidor. La cookie y el acceso al portal se emiten después de validarlo; no se
+acepta el flujo Token heredado como autenticación del piloto. La rama de login
+de otros roles se conserva. El envío usa el proveedor ya configurado, mediante
+[POST con autenticación en cabecera](https://sms.to/gateway/), y comprueba la
+[aceptación del envío](https://support.sms.to/support/solutions/articles/43000695113-bulk-sms-and-webhooks).
+No se enviaron SMS durante estas pruebas.
 
-La sección de dependencias requiere visibilidad de metadatos y acceso a
-`sys.sql_expression_dependencies`; una definición puede no ser visible por permisos
-o cifrado. Véase [documentación de Microsoft sobre dependencias](https://learn.microsoft.com/en-us/sql/relational-databases/tables/view-the-dependencies-of-a-table).
-El script no concede permisos. Una ausencia de dependencias no descarta SQL
-dinámico, consultas desde otras bases ni lógica en una aplicación externa.
+## Resultados y cierre
 
-Una segunda consulta, después de revisar estas salidas, pedirá únicamente las
-definiciones de los módulos relevantes y ejemplos mínimos anonimizados con
-columnas explícitas e índices conocidos. No se requiere enviar contraseñas,
-cadenas de conexión, copias de la base ni listados completos de usuarios.
-Si las transiciones están implementadas en otro programa, hará falta el código
-de esa operación o su especificación, además del esquema SQL.
+| Dato | Comportamiento |
+| --- | --- |
+| Estado de ruta | A abierta, E en ruta, C cerrada, X anulada. Solo E puede completarse. |
+| Resultado de documento | `ENTREGADO`, `NO ENTREGADO` o `INCIDENCIA`; se conserva el resultado existente al mostrar el formulario. |
+| Visita | Selección explícita; entregado requiere visita afirmativa. |
+| Motivo | Obligatorio para no entregado/incidencia, máximo 150 caracteres. |
+| Datos que no edita el piloto | Vehículo, asignación, cliente, dirección, horas y observaciones existentes. |
 
-## Hallazgos comprobados en develop
+Una ruta cerrada puede conservar documentos fallidos o con incidencia. Completar
+no marca todos los documentos como entregados, no anula la ruta y no liquida ni
+cambia estados financieros de documentos fuente.
 
-| Área | Evidencia | Consecuencia para pilotos |
-| --- | --- | --- |
-| Plataforma | UI ASP.NET MVC 5.2.9, proyectos .NET Framework 4.5, EF 6.4.4 | Integrar en Entities/DAL/BLL/UI y registrar nuevos archivos en los `.csproj` existentes. |
-| Identidad | `Usuario` usa `Usuario_Id` (`long`) y `Login`; `UsuarioBL.ValidarUsuario` comprueba `Activo` y `AutenticarSite` | Mantener cuentas y credenciales en POS; resolver la identidad desde el usuario autenticado. |
-| Roles y permisos | `Rol`, `Usuario_Rol`, `Permiso`, `Rol_Permiso`; `RolBL.UsuarioTieneRol` y `AutorizacionPermisoPorUsuario` | Usar el sistema existente; no crear un segundo login en APK66. |
-| Menú | `MenuBL.ObtenerMenuPorUsuario` filtra por permisos en padres e hijos | Habilitar la entrada de rutas con permisos explícitos; ocultarla no sustituye autorización en el servidor. |
-| Alta de usuarios | `UsuarioController.Crear` exige al menos un rol, agencia y empresa | Decidir la agencia/empresa operativa del piloto; no asignar valores ficticios para satisfacer el formulario. |
-| Sesión | `SeguridadAttribute` exige sesión y agencia | Revisar el acceso móvil y la selección de agencia para evitar redirecciones repetidas al login. |
-| Conexiones | `Web.config` versionado: `GiveContext` y `RecibosContext` → `POS-SmartK66_DEV`; `APK66Context` → `APK66` | Confirmar configuración efectiva en despliegue. No deducir el entorno por comentarios del código. |
-| Clase APK66Context | Su constructor usa `RecibosContext`, aunque conserva `ObtenerPlantaUsuario` sobre `RT_USUARIOS` | No usar esa clase para nuevas consultas de rutas ni cambiar su conexión: afectaría recibos. Un DAL de rutas debe usar explícitamente la conexión SQL `APK66Context`. |
-| Integración actual | No se encontraron consultas a `RT_RUTAS` o `RT_VEHICULOS` en las capas revisadas | No hay un contrato de rutas validado que se pueda reutilizar. |
+El servidor exige el conjunto exacto de documentos y una versión del detalle.
+La revalidación y el guardado usan una sola conexión y transacción serializable
+entre catálogos de la misma instancia. Se bloquean encabezado/detalle y se
+rechaza una reasignación, cambios de resultados o un formulario obsoleto.
+`portal_piloto_guardar_resultado` modifica solamente `MO_VISITO`, `MO_ENTREGA` y
+`MO_MOTIVO`. El cierre invoca la rutina central `rutas_cerrar`; no se usa
+`rutas_confirmar`, que corresponde a otra transición.
 
-Los archivos principales revisados son `SeguridadController.cs`,
-`UsuarioController.cs`, `InicioController.cs`, `CustomHelper.cs`,
-`SeguridadAttribute.cs`, `PermisoAttribute.cs`, `UsuarioBL.cs`, `RolBL.cs`,
-`MenuBL.cs`, `GiveContext.cs`, `APK66Context.cs` y las entidades de seguridad.
+Se verifica el resultado antes de confirmar la transacción y se inserta auditoría
+en POS en la misma transacción. Un reintento con el mismo usuario, identificador
+y contenido no vuelve a modificar datos. Un identificador reutilizado con otro
+contenido se rechaza. Ante timeout o respuesta perdida, recargar para comprobar
+el estado: no interpretar un error HTTP como prueba de que no hubo commit.
 
-Observación para la integración del acceso: el flujo Token actual emite la cookie
-antes de validar el segundo factor y compara valores del modelo recibido. No
-debe tomarse como garantía de segundo factor al habilitar pilotos. Si estas
-cuentas usarán Token, hay que corregir y probar ese flujo antes de habilitarlas.
-Además, `PermisoAttribute` no vuelve a comprobar `Activo`/`AutenticarSite`; el
-módulo de pilotos deberá comprobarlos en cada operación para revocar acceso aun
-cuando exista una cookie vigente. Este PR no modifica todavía la autenticación.
+La lista permite períodos de 31 días y páginas de 25 rutas. El detalle admite
+hasta 200 documentos para mantener el formulario bajo el límite de claves de
+ASP.NET. Rutas mayores se derivan a Distribución, sin guardar parcialmente.
 
-## Qué sabemos de APK66 y qué falta demostrar
+## Instalación manual y habilitación
 
-La captura muestra, entre otras, `RT_RUTAS`, `RT_RUTAS_DET`, `RT_VEHICULOS`,
-`RT_EMPLEADOS`, `RT_USUARIOS`, `RT_ROL`, `RT_CUSTODIOS`, `RT_REMISIONES`,
-`RT_REMISIONES_DET`, `RT_TRASLADOS`, `RT_TRASLADOS_DET`, `RT_DOC_VARIOS_ENC`,
-`RT_DOC_VARIOS_DET`, `RT_RUTAS_DOC_LIQ`, `RT_CONTROL_SERIES` y `RT_SERIES_GEN`.
+1. Revisar la configuración efectiva de `GiveContext` (usuarios/auditoría) y
+   `APK66Context` (catálogo de rutas). Deben identificar catálogos diferentes de
+   la **misma instancia**; el módulo conecta con las credenciales de GiveContext.
+   La cuenta SQL debe tener acceso explícito a ambos y collations compatibles.
+   No se usa la clase heredada `APK66Context`, cuyo constructor tiene otro destino.
+2. Revisar `10_portal_pos.sql`: crea las tablas del portal, rol y dos permisos.
+   No crea cuentas, no vincula personas y no otorga permisos a usuarios existentes.
+   Completar el catálogo destino localmente; la aplicación está desactivada.
+3. Crear la cuenta con rol PILOTO y usar `11_vincular_piloto.sql` para revisar y
+   registrar su vínculo y centro. Un vínculo existente nunca se sobrescribe.
+   Se requiere validar el centro con Distribución. Para revocar acceso, desactivar
+   el vínculo; no borrar su auditoría. Revisar roles adicionales de las cuentas.
+4. Revisar índices y planes con `12_indices_rutas.sql` antes de habilitar consultas.
+   Su creación necesita una ventana acordada por posibles bloqueos y uso del log.
+   No ejecutar índices en producción como si fueran diagnósticos de solo lectura.
+5. Para consulta, configurar `Pilotos.Habilitado=true` y mantener
+   **`Pilotos.PermitirCierre=false`**. La tabla de vínculo vacía no da acceso a nadie.
+6. Solo en una copia aislada, instalar `13_resultado_documento.sql` y revisar el
+   trigger existente de rutas con el responsable de la lógica central. Un cierre
+   no debe modificar documentos de otras rutas ni reabrir documentos terminales.
+   La corrección del trigger y su aprobación son requisitos de habilitación.
+7. Ejecutar los casos integrados de la siguiente sección. Registrar la huella
+   SHA-256 de la **definición revisada y probada** del trigger en
+   `Pilotos.TriggerSha256`. No copiar la huella de una definición sin revisar para
+   sortear la protección. El módulo rechaza triggers habilitados adicionales en
+   encabezado/detalle y definiciones ausentes, deshabilitadas o distintas.
+8. Habilitar cierre únicamente después de esa validación y un despliegue acordado.
+   Mantenerlo apagado si no hay copia aislada. La base de usuarios de pruebas no
+   aísla las rutas si APK66Context sigue apuntando al catálogo operativo.
 
-Sus nombres sugieren encabezados, detalles y documentos, pero la captura no
-demuestra claves, relaciones, tipos, estados ni qué columnas se pueden cambiar.
-La consulta legacy `RT_USUARIOS.ID_USR/PLANTA` es una referencia del código, no una
-validación del esquema actual ni de que el usuario RT sea el piloto.
+Los scripts empiezan en vista previa y requieren completar parámetros y activar
+explícitamente la aplicación del cambio. Detienen una instalación existente para
+revisión. No incluyen credenciales, resultados de producción ni copias de módulos
+recibidos para análisis. Los diagnósticos originales `00`/`01` son históricos;
+la corrección de su LOCK_TIMEOUT se gestiona en el PR #54, independientemente del
+portal. No hace falta volver a ejecutarlos para usar esta implementación.
 
-Falta identificar: clave completa de ruta (posiblemente compuesta), identidad
-real del piloto, relación vigente con vehículo, ámbito de empresa/planta,
-documentos y paradas, estados habilitados para confirmar, campos y efectos de
-confirmación, triggers y procedimientos relacionados. El resultado funcional
-confirmado es completar ruta y documentos; no inferir que eso implique liquidar
-o modificar otros datos contables.
+Permisos SQL mínimos a evaluar para la cuenta de servicio: SELECT en las tablas
+de autorización POS y las tres tablas RT consultadas; SELECT/INSERT en auditoría;
+EXECUTE en las dos rutinas de resultado/cierre y visibilidad de definiciones del
+trigger. La cuenta web no administra vínculos ni cambia permisos/triggers. No
+habilitar TRUSTWORTHY, cross-db ownership chaining global ni permisos `sa` para
+resolver el acceso; usar usuarios/permisos explícitos según la política local.
 
-## Propuesta de vinculación (pendiente del esquema)
+Para detener el módulo: ambos flags en false. Para detener solo escrituras:
+PermitirCierre=false. Conservar tablas y auditoría; no revertir datos comerciales
+mediante una migración inversa genérica.
 
-POS conserva usuarios, credenciales, rol `PILOTO`, permisos y un vínculo
-administrativo explícito hacia la identidad de APK66. APK66 conserva rutas,
-documentos, estados y las reglas de negocio.
+## Validación
 
-```mermaid
-flowchart LR
-    U[Usuario POS autenticado] --> P[Rol y permisos POS]
-    P --> V[Vínculo POS con identidad APK66]
-    V --> A[Asignación vigente de vehículo]
-    A --> R[Rutas y detalles en APK66]
-    R --> C[Confirmación permitida en APK66]
-```
+`Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 41 comprobaciones de
+reglas/formulario/desafío, compila las cinco vistas Razor y analiza los cuatro
+scripts nuevos con ScriptDom SQL150, sin conexiones SQL. Las rutas de DLL pueden
+pasarse por parámetros; usa paquetes locales/restaurados, sin descargarlos.
 
-La tabla propuesta `PilotoVinculo` viviría en POS, con FK a `Usuario.Usuario_Id`,
-identificador externo con tipo y longitud reales, ámbito de empresa/planta si
-forma parte de la clave, vigencia/activo y auditoría de quién creó o cambió el
-vínculo. El nombre es provisional; aún no se genera DDL.
+Estas comprobaciones **no sustituyen un build completo ni pruebas SQL/IIS**.
+Pendientes en copia aislada con dos pilotos y datos ficticios:
 
-- No enlazar por coincidencia de nombre, mayúsculas del login o placa visible.
-  Usar la clave estable y completa de APK66; conservar ceros iniciales si aplica.
-- Elegir entre `RT_EMPLEADOS`, `RT_USUARIOS` u otra entidad según relaciones
-  comprobadas, sin crear usuarios ni copiar contraseñas en APK66.
-- Si APK66 ya asigna piloto a vehículo, consultar esa asignación y mantenerla
-  como fuente de verdad. No duplicarla en POS.
-- Si esa asignación no existe, proponer en POS una asignación administrada con
-  vigencia/turno e historial. Confirmar antes la cardinalidad y quién la gestiona.
-  El piloto no puede adjudicarse cualquier vehículo desde el navegador.
-- Una FK convencional no cubre el vínculo entre bases: validar existencia,
-  estado y unicidad al administrar el vínculo y nuevamente al operar. Una clave
-  externa inexistente, inactiva o ambigua debe denegar acceso.
-- No reutilizar `Usuario_Empresa.Codigo`: el proyecto ya lo emplea para otros
-  operadores e integraciones. La identidad de rutas necesita semántica propia.
+- Listado/detalle solo propios; ID ajeno devuelve 404; vínculos, empleados,
+  centros o permisos revocados bloquean también una sesión ya iniciada.
+- Nombres homónimos y login duplicado rechazan acceso; un piloto no puede anular
+  ni cerrar A/C/X o una ruta liquidada.
+- Reasignación y edición simultánea en origen invalidan el formulario abierto.
+- Cierre mixto entregado/no entregado/incidencia guarda todos los resultados,
+  mantiene horas/observaciones y deja la cabecera C con actor/fecha centrales.
+- Fallo a mitad del guardado revierte detalle, cabecera y auditoría. Dos cierres
+  simultáneos o reenvío tras pérdida de respuesta no duplican la operación.
+- Comparar documentos fuente antes/después: cierre no debe alterar ninguno.
+  Probar también operaciones de Distribución afectadas por el trigger revisado.
+- Login con/sin Token, código incorrecto/expirado/reutilizado, sesión perdida,
+  POST sin antiforgery, navegación móvil y mensajes de error sin datos internos.
 
-## Contrato de acceso y operaciones propuesto
-
-Permisos propuestos: `Pilotos.Rutas.Ver`, `Pilotos.Rutas.Confirmar` y
-`Pilotos.Vinculos.Administrar`. Los dos primeros corresponden a pilotos según
-las reglas acordadas; administrar vínculos requiere un permiso separado.
-
-1. Autenticar con POS y resolver `Usuario_Id` desde `User.Identity.Name`.
-   Revalidar usuario activo, acceso web, permisos y vínculo vigente. No confiar
-   en un identificador de usuario enviado por el cliente ni solo en sesión.
-2. Resolver vehículo y ámbito autorizados en el servidor. Si hay más de un
-   vehículo permitido, presentar únicamente esas opciones y revalidarlas.
-3. Listar rutas con filtros e índices reales, período acotado y paginación.
-   Mostrar vehículo, referencia, fecha y estado; confirmar qué otros datos son
-   necesarios. Un fallo de conexión no equivale a una lista vacía.
-4. Abrir detalles aplicando la misma restricción de vehículo/ámbito/identidad
-   junto con la clave completa de ruta. No buscar por ID y confiar en que llegó
-   desde la lista autorizada.
-5. Confirmar por POST con antiforgery, permiso específico y confirmación visual
-   del usuario. Revalidar la asignación y el estado en la operación transaccional
-   que actualiza APK66, para cubrir cambios ocurridos después de abrir la pantalla.
-6. Si existe un procedimiento de negocio para esa operación, inspeccionar su
-   contrato, autorización, transacción y efectos antes de reutilizarlo. Si se
-   necesita un UPDATE directo, limitarlo a campos acordados, usar parámetros
-   tipados y condición de estado/versión anterior y propiedad autorizada.
-7. Diferenciar éxito, confirmación repetida, ruta reasignada/cambiada, acceso
-   denegado y error. Una actualización de cero filas no significa éxito. Doble
-   clic y reintento deben ser idempotentes, sin repetir efectos secundarios.
-8. Conservar trazabilidad de usuario POS, identidad APK66, clave de ruta, evento
-   y fecha conforme al modelo existente. Definir el límite transaccional antes
-   de agregar una auditoría POS para evitar confirmación y auditoría inconsistentes.
-
-La conexión de rutas debe tener únicamente lectura de los objetos necesarios y
-la capacidad mínima para la operación confirmada (EXECUTE acotado o UPDATE de
-columnas concretas, según contrato). No requiere permisos de crear, borrar o
-recalcular rutas. No agregar migraciones EF ni inicialización automática contra
-APK66. Tampoco crear endpoints de SQL configurable o persistir rutas duplicadas
-en POS para suplir el esquema pendiente.
-
-## Implementación y comprobaciones pendientes
-
-- Revisar resultados y documentar un mapa columna por columna, relaciones y
-  transiciones. Obtener una ruta representativa y su resultado de confirmación
-  en datos anonimizados; comprobar dónde vive la lógica externa si la hay.
-- Crear scripts POS idempotentes para vínculo, rol, permisos y menú, con revisión
-  de esquema y base esperada. Separar diagnóstico de cualquier escritura.
-- Implementar DAL/BLL, autorización, administración de vínculos y vistas móviles
-  de lista/detalle/confirmación; configurar el destino inicial de pilotos.
-- Verificar usuarios sin rol, inactivos y desvinculados; vínculo inválido;
-  acceso por URL a otra ruta/empresa; reasignación entre lectura y confirmación;
-  concurrencia y doble envío; estados no permitidos; error SQL; antiforgery;
-  nombres con ceros iniciales; claves compuestas; permisos de padres del menú.
-- Compilar la solución con dependencias .NET Framework/Crystal del proyecto.
-  Probar integración en bases de pruebas antes de habilitar escritura en APK66
-  productiva. La lectura y la confirmación deben poder habilitarse por separado.
-
-Validacion de la revision 2: analisis sintactico con Microsoft ScriptDom para
-SQL Server 2008 y 2022 y control adicional de literales/restauracion de
-LOCK_TIMEOUT. ScriptDom acepta la forma con variable; por eso no basta con que
-el parser no reporte errores. `Validar-Diagnosticos.ps1` incluye una comprobacion
-de regresion que debe rechazar esa forma y revisa los dos archivos completos.
-
-Para repetir localmente (PowerShell, sin conexion a SQL Server):
-
-```powershell
-.\SqlMigrations\Pilotos\Validar-Diagnosticos.ps1 -ScriptDomPath 'RUTA\Microsoft.SqlServer.TransactSql.ScriptDom.dll'
-```
-
-**No se ejecutaron los diagnosticos corregidos en SQL Server ni se conecto a
-produccion.** Esta validacion no prueba permisos, existencia de objetos o reglas
-de negocio. El PR de correccion solo repara el diagnostico; la vista y la
-confirmacion siguen pendientes del contrato y de la implementacion solicitada.
+La compilación completa requiere el toolchain web de Visual Studio, targeting
+pack .NET Framework y dependencias de la solución (incluido Crystal Reports).
+La aplicación no debe desplegarse basándose únicamente en el compilador aislado.

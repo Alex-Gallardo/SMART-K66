@@ -1,0 +1,67 @@
+@model DiamDev.Give.Entities.PilotoRuta
+@{
+    Layout = "~/Views/Shared/_PilotoLayout.cshtml";
+    ViewBag.Title = "Ruta " + Model.Id;
+}
+<a class="back-link" href="@Url.Action("Index")">← Mis rutas</a>
+<div class="detail-title"><div><p class="eyebrow">DETALLE DE RUTA</p><h1>@Model.Id</h1></div><span class="status status-@Model.Estado">@Model.EstadoNombre</span></div>
+@if (TempData["Piloto.Mensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.Mensaje"]</p> }
+<dl class="route-summary"><div><dt>Fecha</dt><dd>@Model.Fecha.ToString("dd/MM/yyyy")</dd></div><div><dt>Vehículo</dt><dd>@Model.Placa</dd></div><div><dt>Piloto</dt><dd>@Model.Piloto</dd></div><div><dt>Centro</dt><dd>@Model.Centro</dd></div></dl>
+<h2>Documentos <span class="count">@Model.Documentos.Count</span></h2>
+@if (Model.PuedeCerrar)
+{
+    <p class="intro">Indica la visita y el resultado de cada documento. Si hubo un problema, describe el motivo. Los resultados se guardan al completar la ruta.</p>
+}
+else
+{
+    <p class="notice">Esta ruta está disponible para consulta. Si necesitas un cambio, contacta a Distribución.</p>
+}
+@using (Html.BeginForm("Completar", "Piloto", FormMethod.Post, new { id = "complete-route" }))
+{
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="RutaId" value="@Model.Id" />
+    <input type="hidden" name="Version" value="@Model.Version" />
+    <input type="hidden" name="Solicitud" value="@Model.Solicitud" />
+    for (var i = 0; i < Model.Documentos.Count; i++)
+    {
+        var d = Model.Documentos[i];
+        <article class="document-card">
+            <div class="document-heading"><span class="document-number">@(i + 1)</span><div><p class="eyebrow">@d.Tipo · @d.Empresa</p><h3>@(d.Documento ?? "Sin número")</h3></div><span class="bultos">@d.Bultos.ToString("0.###") bultos</span></div>
+            <p class="customer">@d.Cliente</p><p class="address">@d.Direccion</p>
+            @if (!string.IsNullOrWhiteSpace(d.Observaciones)) { <p class="observation">Observaciones: @d.Observaciones</p> }
+            @if (Model.PuedeCerrar)
+            {
+                <input type="hidden" name="Documentos[@i].RowId" value="@d.RowId" />
+                <div class="result-fields">
+                    <div><label for="visita-@i">¿Visitaste el destino?</label>
+                        @Html.DropDownList("Documentos[" + i + "].Visito", new[] {
+                            new SelectListItem { Text = "Seleccionar", Value = "", Selected = !d.Visito.HasValue },
+                            new SelectListItem { Text = "Sí", Value = "true", Selected = d.Visito == true },
+                            new SelectListItem { Text = "No", Value = "false", Selected = d.Visito == false }
+                        }, new { id = "visita-" + i, required = "required" })
+                    </div>
+                    <div><label for="entrega-@i">Resultado</label>
+                        @Html.DropDownList("Documentos[" + i + "].Entrega", new[] {
+                            new SelectListItem { Text = "Seleccionar", Value = "", Selected = d.Entrega != "ENTREGADO" && d.Entrega != "NO ENTREGADO" && d.Entrega != "INCIDENCIA" },
+                            new SelectListItem { Text = "Entregado", Value = "ENTREGADO", Selected = d.Entrega == "ENTREGADO" },
+                            new SelectListItem { Text = "No entregado", Value = "NO ENTREGADO", Selected = d.Entrega == "NO ENTREGADO" },
+                            new SelectListItem { Text = "Incidencia", Value = "INCIDENCIA", Selected = d.Entrega == "INCIDENCIA" }
+                        }, new { id = "entrega-" + i, required = "required", @class = "delivery-result" })
+                    </div>
+                    <div class="reason"><label for="motivo-@i">Motivo <small>(obligatorio si no fue entregado)</small></label><input id="motivo-@i" class="delivery-reason" name="Documentos[@i].Motivo" value="@d.Motivo" maxlength="150" /></div>
+                </div>
+            }
+            else
+            {
+                <dl class="read-results"><div><dt>Visita</dt><dd>@(d.Visito.HasValue ? (d.Visito.Value ? "Sí" : "No") : "Pendiente")</dd></div><div><dt>Resultado</dt><dd>@(d.Entrega ?? "Pendiente")</dd></div></dl>
+                if (!string.IsNullOrWhiteSpace(d.Motivo)) { <p>Motivo: @d.Motivo</p> }
+            }
+        </article>
+    }
+    if (Model.Documentos.Count == 0) { <p class="empty-state">No hay documentos en esta ruta.</p> }
+    if (Model.PuedeCerrar && Model.Documentos.Count > 0)
+    {
+        <div class="complete-panel"><p>Revisa los resultados antes de continuar. Al completar, la ruta quedará cerrada.</p><button type="submit" id="complete-button">Completar ruta</button><p id="submit-status" role="status" aria-live="polite"></p></div>
+    }
+}
+@section scripts { <script src="@Url.Content("~/Scripts/pilotos.js")"></script> }

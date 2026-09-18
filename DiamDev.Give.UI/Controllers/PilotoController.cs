@@ -26,7 +26,9 @@ namespace DiamDev.Give.UI.Controllers
             }
             else if (!string.Equals(Convert.ToString(Session["Pilotos.Autenticado"]), User.Identity.Name, StringComparison.Ordinal))
             {
-                context.Result = RedirectToAction("Login", "Seguridad", new { returnUrl = Url.Action("Index", "Piloto") });
+                ViewBag.ConfigurarPrueba=true;
+                context.Result = ErrorPiloto(new PilotoException(403,
+                    "Tu sesion POS esta iniciada, pero el acceso de piloto no esta habilitado en esta sesion. Para realizar la prueba con tu usuario normal, activa la consulta temporal en el Web.config principal del sitio."));
                 return;
             }
             base.OnActionExecuting(context);

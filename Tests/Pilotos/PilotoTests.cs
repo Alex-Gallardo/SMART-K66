@@ -3,7 +3,11 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
+using System.Security.Principal;
+using System.Web;
 using System.Web.Mvc;
+using System.Web.Routing;
 using DiamDev.Give.Entities;
 using DiamDev.Give.DAL;
 using DiamDev.Give.BLL;
@@ -16,6 +20,52 @@ internal static class PilotoTests
     static void Rechaza(Action test, int status, string name) {
         try { test(); } catch(PilotoException e) { Check(e.StatusCode==status,name); return; }
         throw new Exception("No se rechazo: "+name);
+    }
+    static void ProbarAccesoSesion(bool modoPrueba) {
+        var http=new ContextoPrueba("consulta_demo");
+        var controller=new PilotoController();
+        controller.ControllerContext=new ControllerContext(http,new RouteData(),controller);
+        var routes=new RouteCollection(); routes.MapRoute("Default","{controller}/{action}/{id}",new {action="Index",id=UrlParameter.Optional});
+        controller.Url=new UrlHelper(controller.ControllerContext.RequestContext,routes);
+        var action=new ReflectedActionDescriptor(typeof(PilotoController).GetMethod("Index"),"Index",new ReflectedControllerDescriptor(typeof(PilotoController)));
+        var filter=new ActionExecutingContext(controller.ControllerContext,action,new Dictionary<string,object>());
+        typeof(PilotoController).GetMethod("OnActionExecuting",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(controller,new object[]{filter});
+        Check(!(filter.Result is RedirectToRouteResult),"sesion iniciada no regresa al login");
+        if(modoPrueba) Check(filter.Result==null,"sesion normal entra a consulta temporal sin marcador PILOTO");
+        else {
+            Check(filter.Result is ViewResult && http.Response.StatusCode==403,"sin configuracion informa acceso pendiente");
+            Check(object.Equals(controller.ViewData["ConfigurarPrueba"],true),"muestra instrucciones de configuracion");
+        }
+    }
+    sealed class ContextoPrueba : HttpContextBase {
+        readonly IPrincipal user;
+        readonly HttpResponseBase response=new RespuestaPrueba();
+        readonly HttpSessionStateBase session=new SesionPrueba();
+        readonly HttpRequestBase request=new PeticionPrueba();
+        public ContextoPrueba(string login) {user=new GenericPrincipal(new GenericIdentity(login,"Forms"),new string[0]);}
+        public override IPrincipal User {get{return user;}set{throw new NotSupportedException();}}
+        public override HttpResponseBase Response {get{return response;}}
+        public override HttpSessionStateBase Session {get{return session;}}
+        public override HttpRequestBase Request {get{return request;}}
+    }
+    sealed class PeticionPrueba : HttpRequestBase {
+        public override string ApplicationPath {get{return "/";}}
+        public override string AppRelativeCurrentExecutionFilePath {get{return "~/Piloto/Index";}}
+        public override string PathInfo {get{return "";}}
+    }
+    sealed class RespuestaPrueba : HttpResponseBase {
+        readonly HttpCachePolicyBase cache=new CachePrueba();
+        public override HttpCachePolicyBase Cache {get{return cache;}}
+        public override int StatusCode {get;set;}
+        public override bool TrySkipIisCustomErrors {get;set;}
+        public override string ApplyAppPathModifier(string path) {return path;}
+    }
+    sealed class CachePrueba : HttpCachePolicyBase {
+        public override void SetCacheability(HttpCacheability value) {}
+        public override void SetNoStore() {}
+    }
+    sealed class SesionPrueba : HttpSessionStateBase {
+        public override object this[string name] {get{return null;}set{}}
     }
     static PilotoRuta Ruta() {
         var r=new PilotoRuta { Id="DEMO-1", Estado="E", Placa="DEMO", Piloto="PILOTO DEMO", Centro="DEMO", Fecha=new DateTime(2026,1,1), PuedeCerrar=true };
@@ -32,6 +82,7 @@ internal static class PilotoTests
     public static int Main(string[] args) {
         try {
             if(args.Length==1 && args[0]=="consulta-temporal") {
+                ProbarAccesoSesion(true);
                 Check(PilotoRutaDA.PruebasSoloLectura,"modo de consulta activo");
                 Check(!PilotoRutaDA.Habilitado,"no requiere habilitar el modulo normal");
                 Check(!PilotoRutaDA.CierreHabilitado,"ignora PermitirCierre=true durante pruebas");
@@ -42,6 +93,7 @@ internal static class PilotoTests
                 Rechaza(()=>new PilotoRutaBL().Cerrar("CONSULTA_DEMO",null),403,"BLL no permite saltar cierre bloqueado");
                 Console.WriteLine("OK: "+comprobaciones+" comprobaciones de consulta temporal; sin conexiones SQL."); return 0;
             }
+            ProbarAccesoSesion(false);
             var r=Ruta(); var c=Cierre(r);
             PilotoReglas.ValidarCierre(r,c); Check(c.Documentos[1].Entrega=="NO ENTREGADO","preserva fallo al cerrar");
             c.Documentos[1].Entrega="INCIDENCIA"; PilotoReglas.ValidarCierre(r,c); Check(true,"incidencia permite cierre con motivo");

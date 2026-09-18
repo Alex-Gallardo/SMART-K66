@@ -58,6 +58,7 @@ namespace DiamDev.Give.Entities
 
     public sealed class PilotoLista
     {
+        public bool RutaFija { get; set; }
         public List<PilotoRuta> Rutas { get; set; }
         public DateTime Desde { get; set; }
         public DateTime Hasta { get; set; }

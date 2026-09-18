@@ -30,10 +30,11 @@ $testConfig=Join-Path $out 'PilotoTests.exe.config'
     <add key="Pilotos.PermitirCierre" value="true" />
     <add key="Pilotos.UsuarioPrueba" value="consulta_demo" />
     <add key="Pilotos.PlacaPrueba" value="DEMO" />
+    <add key="Pilotos.CatalogoRutas" value="TEST_RUTAS" />
   </appSettings>
   <connectionStrings>
     <add name="GiveContext" connectionString="Data Source=invalid.invalid;Initial Catalog=TEST_POS;Integrated Security=true;Connect Timeout=1" />
-    <add name="APK66Context" connectionString="Data Source=invalid.invalid;Initial Catalog=TEST_RUTAS;Integrated Security=true;Connect Timeout=1" />
+    <add name="APK66Context" connectionString="Data Source=other.invalid;Initial Catalog=OTHER_RUTAS;Integrated Security=true;Connect Timeout=1" />
   </connectionStrings>
 </configuration>
 '@ | Set-Content -LiteralPath $testConfig -Encoding UTF8

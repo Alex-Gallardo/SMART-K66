@@ -31,6 +31,23 @@ Conserva autenticación POS, usuario activo/habilitado para web y la lista limit
 al login configurado. Listado y detalle solo muestran rutas de la placa indicada.
 Las conexiones y permisos SQL de lectura siguen siendo necesarios.
 
+Si se conoce una ruta pero no su placa, dejar `Pilotos.PlacaPrueba` vacío y usar
+`Pilotos.RutaPrueba` con ese ID. Se debe configurar solo una de las dos opciones.
+La lista muestra únicamente esa ruta, sin filtro por fecha, y el detalle rechaza
+cualquier otro ID. Así no hace falta asignarle un vehículo al usuario de prueba.
+
+Estas claves deben estar en el **Web.config principal del sitio que se ejecuta**;
+el archivo de ejemplo no se carga automáticamente. Sin ellas, una sesión POS
+normal no es una sesión PILOTO. El portal ahora devuelve una explicación 403 con
+los pasos de configuración en vez de reenviar al login a un usuario autenticado.
+
+Si las conexiones identifican el servidor con nombres diferentes, se puede
+declarar `Pilotos.CatalogoRutas` explícitamente. Este catálogo se consulta siempre
+en la instancia de `GiveContext`, usando la misma conexión POS; no es un enlace
+a otro servidor ni requiere modificar las conexiones existentes. Verificar que
+el catálogo de rutas exista en esa instancia. Si la clave está vacía, se conserva
+la validación de servidor idéntico con `APK66Context`.
+
 Durante este modo **el cierre se rechaza en el servidor**, incluso si otra clave
 configura `PermitirCierre=true`. La vista indica que son pruebas de consulta.
 Al terminar, cambiar `Pilotos.PruebasSoloLectura=false` y vaciar usuario/placa;
@@ -103,8 +120,9 @@ ASP.NET. Rutas mayores se derivan a Distribución, sin guardar parcialmente.
 ## Instalación manual y habilitación
 
 1. Revisar la configuración efectiva de `GiveContext` (usuarios/auditoría) y
-   `APK66Context` (catálogo de rutas). Deben identificar catálogos diferentes de
-   la **misma instancia**; el módulo conecta con las credenciales de GiveContext.
+   `Pilotos.CatalogoRutas` (o `APK66Context` si la clave está vacía). Deben
+   identificar catálogos diferentes de la **misma instancia**; el módulo conecta
+   con las credenciales de GiveContext.
    La cuenta SQL debe tener acceso explícito a ambos y collations compatibles.
    No se usa la clase heredada `APK66Context`, cuyo constructor tiene otro destino.
 2. Revisar `10_portal_pos.sql`: crea las tablas del portal, rol y dos permisos.
@@ -152,8 +170,8 @@ mediante una migración inversa genérica.
 
 ## Validación
 
-`Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 41 comprobaciones de
-reglas/formulario/desafío y ocho del modo temporal (incluido bloqueo del cierre
+`Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 44 comprobaciones de
+reglas/formulario/desafío/acceso y diez del modo temporal (incluido bloqueo del cierre
 antes de conectar SQL), compila las cinco vistas Razor y analiza los cuatro
 scripts nuevos con ScriptDom SQL150, sin conexiones SQL. Las rutas de DLL pueden
 pasarse por parámetros; usa paquetes locales/restaurados, sin descargarlos.

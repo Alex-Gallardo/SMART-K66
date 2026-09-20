@@ -14,7 +14,7 @@ namespace DiamDev.Give.DAL
     {
         private readonly string conexion;
         private readonly string apk;
-        private sealed class Acceso { public long Usuario; public string Nombre; public string Operador; public string PlacaPrueba; }
+        private sealed class Acceso { public long Usuario; public string Nombre; public string Operador; public string PlacaPrueba; public string RutaPrueba; }
 
         public static bool Habilitado { get { return EsTrue("Pilotos.Habilitado"); } }
         public static bool PruebasSoloLectura { get { return EsTrue("Pilotos.PruebasSoloLectura"); } }
@@ -32,15 +32,25 @@ namespace DiamDev.Give.DAL
             if (!Habilitado && !PruebasSoloLectura) throw new PilotoException(503, "El acceso a rutas no esta disponible. Contacta a Distribucion.");
             var posConfig = ConfigurationManager.ConnectionStrings["GiveContext"];
             var apkConfig = ConfigurationManager.ConnectionStrings["APK66Context"];
-            if (posConfig == null || apkConfig == null) throw new ConfigurationErrorsException("Faltan conexiones de pilotos.");
+            if (posConfig == null) throw new ConfigurationErrorsException("Falta la conexion POS de pilotos.");
             var pos = new SqlConnectionStringBuilder(posConfig.ConnectionString);
-            var origen = new SqlConnectionStringBuilder(apkConfig.ConnectionString);
-            if (!string.Equals(pos.DataSource, origen.DataSource, StringComparison.OrdinalIgnoreCase) ||
-                string.IsNullOrWhiteSpace(pos.InitialCatalog) || string.IsNullOrWhiteSpace(origen.InitialCatalog) ||
-                string.Equals(pos.InitialCatalog, origen.InitialCatalog, StringComparison.OrdinalIgnoreCase))
+            // El catalogo explicito siempre se consulta en la instancia de GiveContext.
+            // No modifica ni reutiliza credenciales de conexiones de otros modulos.
+            var catalogo = ConfigurationManager.AppSettings["Pilotos.CatalogoRutas"];
+            if (string.IsNullOrWhiteSpace(catalogo))
+            {
+                if (apkConfig == null) throw new ConfigurationErrorsException("Falta el catalogo de rutas.");
+                var origen = new SqlConnectionStringBuilder(apkConfig.ConnectionString);
+                if (!string.Equals(pos.DataSource, origen.DataSource, StringComparison.OrdinalIgnoreCase))
+                    throw new PilotoException(503,"Configura Pilotos.CatalogoRutas con la base de rutas de la misma instancia POS.");
+                catalogo = origen.InitialCatalog;
+            }
+            catalogo = (catalogo ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(pos.InitialCatalog) || string.IsNullOrWhiteSpace(catalogo) || catalogo.Length>128 ||
+                string.Equals(pos.InitialCatalog, catalogo, StringComparison.OrdinalIgnoreCase))
                 throw new ConfigurationErrorsException("Pilotos requiere dos catalogos diferentes en la misma instancia SQL.");
             conexion = pos.ConnectionString;
-            using (var builder = new SqlCommandBuilder()) apk = builder.QuoteIdentifier(origen.InitialCatalog);
+            using (var builder = new SqlCommandBuilder()) apk = builder.QuoteIdentifier(catalogo);
         }
 
         private SqlCommand Command(SqlConnection cn, SqlTransaction tx, string sql)
@@ -89,8 +99,11 @@ AND EXISTS (SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol_Permiso rp ON rp.Rol_I
             if(permiso!="Pilotos.Rutas.Ver" || !PermiteUsuarioPrueba(login))
                 throw new PilotoException(403,"La consulta temporal no esta habilitada para tu usuario.");
             var placa=ConfigurationManager.AppSettings["Pilotos.PlacaPrueba"];
-            if(string.IsNullOrWhiteSpace(placa) || placa.Trim().Length>15)
-                throw new PilotoException(503,"Configura Pilotos.PlacaPrueba con el vehiculo autorizado para consultar.");
+            var ruta=ConfigurationManager.AppSettings["Pilotos.RutaPrueba"];
+            placa=string.IsNullOrWhiteSpace(placa) ? null : placa.Trim();
+            ruta=string.IsNullOrWhiteSpace(ruta) ? null : ruta.Trim();
+            if((placa==null)==(ruta==null) || (placa??ruta).Length>15)
+                throw new PilotoException(503,"Configura solo una opcion: Pilotos.PlacaPrueba o Pilotos.RutaPrueba, con un identificador de hasta 15 caracteres.");
             using(var cmd=Command(cn,tx,@"SELECT u.Usuario_Id FROM dbo.Usuario u
 WHERE u.Login=@login AND u.Activo=1 AND u.Autenticar_Site=1
 AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.Usuario_Id<>u.Usuario_Id);"))
@@ -99,19 +112,20 @@ AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.
                 using(var r=cmd.ExecuteReader())
                 {
                     if(!r.Read()) throw new PilotoException(403,"El usuario de prueba debe estar activo y habilitado para web.");
-                    return new Acceso { Usuario=(long)r["Usuario_Id"], PlacaPrueba=placa.Trim() };
+                    return new Acceso { Usuario=(long)r["Usuario_Id"], PlacaPrueba=placa, RutaPrueba=ruta };
                 }
             }
         }
 
         private static string Alcance(Acceso a)
         {
-            return a.PlacaPrueba!=null ? "r.PLACA=@placa" : @"r.PILOTO=@piloto
+            return a.PlacaPrueba!=null ? "r.PLACA=@placa" : a.RutaPrueba!=null ? "r.ID_RUTA=@rutaPrueba" : @"r.PILOTO=@piloto
 AND EXISTS (SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=@usuario AND c.Centro_Dist=r.CENTRO_DIST)";
         }
         private static void ParametrosAcceso(SqlCommand cmd,Acceso a)
         {
             if(a.PlacaPrueba!=null) Param(cmd,"@placa",SqlDbType.NVarChar,a.PlacaPrueba,15);
+            else if(a.RutaPrueba!=null) Param(cmd,"@rutaPrueba",SqlDbType.NVarChar,a.RutaPrueba,15);
             else { Param(cmd,"@piloto",SqlDbType.NVarChar,a.Nombre,90); Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario); }
         }
 
@@ -134,9 +148,10 @@ AND EXISTS (SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=@usuario AND c.C
                 using (var tx = cn.BeginTransaction(IsolationLevel.Serializable))
                 {
                     var a = Autorizar(cn, tx, login, "Pilotos.Rutas.Ver");
+                    result.RutaFija=a.RutaPrueba!=null;
                     var sql = @"SELECT r.ID_RUTA,r.FECHA_RUTA,r.PLACA,r.PILOTO,r.CENTRO_DIST,r.STATUS
 FROM " + apk + @".dbo.RT_RUTAS r
-WHERE " + Alcance(a) + @" AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin
+WHERE " + Alcance(a) + (result.RutaFija ? "" : " AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin") + @"
 AND r.STATUS IN (N'A',N'E',N'C',N'X')
 ORDER BY r.FECHA_RUTA DESC,r.ID_RUTA DESC OFFSET @offset ROWS FETCH NEXT 26 ROWS ONLY;";
                     using (var cmd = Command(cn, tx, sql))

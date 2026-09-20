@@ -6,12 +6,19 @@
 <p class="eyebrow">MI JORNADA</p>
 <h1>Mis rutas</h1>
 <p class="intro">Consulta tu vehículo, revisa los documentos y completa tus entregas.</p>
-@using (Html.BeginForm("Index", "Piloto", FormMethod.Get, new { @class = "date-filter" }))
+@if (Model.RutaFija)
+{
+    <p class="notice">Consulta de la ruta configurada para pruebas, independientemente de su fecha.</p>
+}
+else
+{
+using (Html.BeginForm("Index", "Piloto", FormMethod.Get, new { @class = "date-filter" }))
 {
     <div><label for="desde">Desde</label><input id="desde" name="desde" type="date" required value="@Model.Desde.ToString("yyyy-MM-dd")" /></div>
     <div><label for="hasta">Hasta</label><input id="hasta" name="hasta" type="date" required value="@Model.Hasta.ToString("yyyy-MM-dd")" /></div>
     <button type="submit">Consultar</button>
     <small>Selecciona un período de hasta 31 días.</small>
+}
 }
 @if (Model.Rutas.Count == 0)
 {

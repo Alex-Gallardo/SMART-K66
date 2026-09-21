@@ -2,47 +2,57 @@
 @{
     Layout = "~/Views/Shared/_PilotoLayout.cshtml";
     ViewBag.Title = "Mis rutas";
+    var desde=Model.Desde.ToString("yyyy-MM-dd");
+    var hasta=Model.Hasta.ToString("yyyy-MM-dd");
 }
-<p class="eyebrow">MI JORNADA</p>
-<h1>Mis rutas</h1>
-<p class="intro">Revisa tus rutas asignadas, el vehículo y los documentos de cada entrega.</p>
-@if (Model.RutaFija)
+<section class="page-heading">
+    <p class="eyebrow">TU JORNADA</p>
+    <h1>@(Model.RutaFija ? "Ruta de prueba" : "Mis rutas")</h1>
+    <p class="intro">@(Model.RutaFija ? "Estás consultando una ruta seleccionada." : "Tu siguiente entrega empieza aquí.")</p>
+</section>
+@if (!Model.RutaFija)
 {
-    <p class="notice">Consulta de la ruta configurada para pruebas, independientemente de su fecha.</p>
+    <nav class="route-tabs" aria-label="Estado de las rutas">
+        <a class="@(Model.Vista=="activas" ? "selected" : "")" aria-current="@(Model.Vista=="activas" ? "page" : null)" href="@Url.Action("Index",new{desde,hasta,vista="activas"})"><svg class="icon" aria-hidden="true"><use href="#i-route" /></svg>Activas</a>
+        <a class="@(Model.Vista=="historial" ? "selected" : "")" aria-current="@(Model.Vista=="historial" ? "page" : null)" href="@Url.Action("Index",new{desde,hasta,vista="historial"})"><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg>Historial</a>
+    </nav>
+    <details class="date-panel">
+        <summary><svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg><span><small>Período consultado</small><strong>@Model.Desde.ToString("dd/MM/yyyy") — @Model.Hasta.ToString("dd/MM/yyyy")</strong></span><span class="change-label">Cambiar</span></summary>
+        @using(Html.BeginForm("Index","Piloto",FormMethod.Get,new{@class="date-filter"})) {
+            <input type="hidden" name="vista" value="@Model.Vista" />
+            <div><label for="desde">Desde</label><input id="desde" name="desde" type="date" required value="@desde" /></div>
+            <div><label for="hasta">Hasta</label><input id="hasta" name="hasta" type="date" required value="@hasta" /></div>
+            <button type="submit">Aplicar fechas<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></button>
+            <small>Hasta 31 días por consulta. Las rutas fuera del período no se muestran.</small>
+        }
+    </details>
 }
-else
-{
-using (Html.BeginForm("Index", "Piloto", FormMethod.Get, new { @class = "date-filter" }))
-{
-    <div><label for="desde">Desde</label><input id="desde" name="desde" type="date" required value="@Model.Desde.ToString("yyyy-MM-dd")" /></div>
-    <div><label for="hasta">Hasta</label><input id="hasta" name="hasta" type="date" required value="@Model.Hasta.ToString("yyyy-MM-dd")" /></div>
-    <button type="submit">Consultar</button>
-    <small>Selecciona un período de hasta 31 días.</small>
-}
-}
-@if (Model.Rutas.Count == 0)
-{
-    <section class="empty-state"><h2>@(Model.RutaFija ? "La ruta configurada no está disponible" : "No hay rutas para mostrar")</h2><p>@(Model.RutaFija ? "Solicita al administrador que revise la ruta habilitada para consulta." : "Prueba con otras fechas. Distribución puede revisar tu vinculación de piloto, placas y centros.")</p></section>
-}
-else
-{
-    <div class="list-heading"><h2>Rutas disponibles</h2><span class="muted">@Model.Rutas.Count en esta página</span></div>
-    <div class="route-grid">
-    @foreach (var ruta in Model.Rutas)
-    {
+<div class="list-heading"><h2>@(Model.RutaFija ? "Ruta seleccionada" : Model.Vista=="activas" ? "Abiertas y en ruta" : "Cerradas y anuladas")</h2><span class="count" aria-label="Rutas en esta página">@Model.Rutas.Count</span></div>
+@if(Model.Rutas.Count==0) {
+    <section class="empty-state"><span class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-route" /></svg></span>
+        <h2>@(Model.RutaFija ? "Ruta no disponible" : "No hay rutas en esta vista")</h2>
+        <p>@(Model.RutaFija ? "Solicita revisar la ruta seleccionada para tu prueba." : "Revisa el período o cambia de vista. Si esperabas una asignación, consulta a Distribución.")</p>
+        @if(!Model.RutaFija) { <a class="button-link button-secondary" href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista=="activas" ? "historial" : "activas"})">@(Model.Vista=="activas" ? "Ver historial" : "Ver rutas activas")</a> }
+    </section>
+} else {
+    <div class="route-grid" data-scroll-key="@(desde + "|" + hasta + "|" + Model.Vista + "|" + Model.Pagina)">
+    @foreach(var ruta in Model.Rutas) {
+        var destino=Url.Action("Detalle",new{id=ruta.Id,desde,hasta,paginaRutas=Model.Pagina,vista=Model.Vista});
+        var icono=ruta.Estado=="E" ? "i-truck" : ruta.Estado=="C" ? "i-check" : ruta.Estado=="X" ? "i-x" : "i-clock";
         <article class="route-card">
-            <div class="card-top"><time datetime="@ruta.Fecha.ToString("yyyy-MM-dd")">@ruta.Fecha.ToString("dd/MM/yyyy")</time><span class="status status-@ruta.Estado">@ruta.EstadoNombre</span></div>
-            <h2><a href="@Url.Action("Detalle", new { id = ruta.Id, desde=Model.Desde.ToString("yyyy-MM-dd"), hasta=Model.Hasta.ToString("yyyy-MM-dd"), paginaRutas=Model.Pagina })">@ruta.Id</a></h2>
-            <dl><div><dt>Vehículo</dt><dd>@ruta.Placa</dd></div><div><dt>Centro</dt><dd>@ruta.Centro</dd></div></dl>
-            <a class="card-link" href="@Url.Action("Detalle", new { id = ruta.Id, desde=Model.Desde.ToString("yyyy-MM-dd"), hasta=Model.Hasta.ToString("yyyy-MM-dd"), paginaRutas=Model.Pagina })">Ver documentos <span aria-hidden="true">→</span></a>
+            <div class="card-top"><span class="status status-@ruta.Estado"><svg class="icon" aria-hidden="true"><use href="#@icono" /></svg>@ruta.EstadoNombre</span><time datetime="@ruta.Fecha.ToString("yyyy-MM-dd")">@ruta.Fecha.ToString("dd/MM/yyyy")</time></div>
+            <p class="eyebrow">RUTA</p><h2>@ruta.Id</h2>
+            <div class="vehicle-row"><span class="vehicle-icon"><svg class="icon" aria-hidden="true"><use href="#i-truck" /></svg></span><div><span class="field-label">Vehículo</span><strong class="vehicle-plate">@ruta.Placa</strong></div></div>
+            <div class="route-meta"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><span><span class="field-label">Centro</span><strong>@ruta.Centro</strong></span></div>
+            <a class="button-link card-link" href="@destino" aria-label="Ver ruta @ruta.Id">Ver ruta<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
         </article>
     }
     </div>
 }
-@if (!Model.RutaFija && (Model.Pagina>1 || Model.HayMas)) {
-<nav class="pagination" aria-label="Páginas de rutas">
-    @if (Model.Pagina > 1) { <a href="@Url.Action("Index", new { desde = Model.Desde.ToString("yyyy-MM-dd"), hasta = Model.Hasta.ToString("yyyy-MM-dd"), pagina = Model.Pagina - 1 })">← Anterior</a> }
-    <span>Página @Model.Pagina</span>
-    @if (Model.HayMas) { <a href="@Url.Action("Index", new { desde = Model.Desde.ToString("yyyy-MM-dd"), hasta = Model.Hasta.ToString("yyyy-MM-dd"), pagina = Model.Pagina + 1 })">Siguiente →</a> }
-</nav>
+@if(!Model.RutaFija && (Model.Pagina>1 || Model.HayMas)) {
+    <nav class="pagination" aria-label="Páginas de rutas">
+        @if(Model.Pagina>1) { <a href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista,pagina=Model.Pagina-1})"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Anterior</a> }
+        <span>Página @Model.Pagina</span>
+        @if(Model.HayMas) { <a href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista,pagina=Model.Pagina+1})">Siguiente<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a> }
+    </nav>
 }

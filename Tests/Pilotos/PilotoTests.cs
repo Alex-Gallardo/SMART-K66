@@ -121,9 +121,16 @@ internal static class PilotoTests
                 Check(!PilotoRutaBL.PermiteUsuarioPrueba(null),"no habilita anonimos");
                 Rechaza(()=>new PilotoRutaDA().Cerrar("CONSULTA_DEMO",null),403,"DAL rechaza cierre antes de conectar SQL");
                 Rechaza(()=>new PilotoRutaBL().Cerrar("CONSULTA_DEMO",null),403,"BLL no permite saltar cierre bloqueado");
+                Rechaza(()=>new PilotoRutaDA().Listar("consulta_demo",DateTime.Today,DateTime.Today,1,"cualquier estado"),400,"vista desconocida rechazada antes de SQL");
+                Rechaza(()=>new PilotoRutaDA().Listar("consulta_demo",DateTime.Today.AddDays(-31),DateTime.Today,1,"activas"),400,"ventana de activas acotada antes de SQL");
                 Console.WriteLine("OK: "+comprobaciones+" comprobaciones de consulta temporal; sin conexiones SQL."); return 0;
             }
             ProbarAccesoSesion(false);
+            Check(PilotoReglas.VistaRutas(null)=="activas","vista inicial prioriza activas");
+            Check(PilotoReglas.VistaRutas("activas")=="activas","vista activa explicita");
+            Check(PilotoReglas.VistaRutas("historial")=="historial","historial separado");
+            Rechaza(()=>PilotoReglas.VistaRutas("todas"),400,"no acepta ampliacion de estados por URL");
+            Rechaza(()=>PilotoReglas.VistaRutas("' OR 1=1 --"),400,"filtro no acepta SQL");
             var grande=new PilotoRuta {TotalDocumentos=201,PuedeCerrar=true};
             PilotoReglas.PrepararConsulta(grande,9);
             Check(!grande.PuedeCerrar && grande.PaginaDocumentos==9 && grande.TamanoPaginaDocumentos==25 && !grande.HayMasDocumentos,"ruta de 201 permite consultar ultima pagina sin habilitar cierre");

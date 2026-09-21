@@ -41,20 +41,20 @@ namespace DiamDev.Give.UI.Controllers
             base.OnActionExecuting(context);
         }
 
-        public ActionResult Index(string desde, string hasta, int pagina = 1)
+        public ActionResult Index(string desde, string hasta, int pagina = 1, string vista = null)
         {
             try
             {
                 var hoy = DateTime.Today;
-                var inicio = PilotoRutaBL.ConsultaRutaFija ? hoy : Fecha(desde, hoy.AddDays(-7));
+                var inicio = PilotoRutaBL.ConsultaRutaFija ? hoy : Fecha(desde, hoy.AddDays(-13));
                 var fin = PilotoRutaBL.ConsultaRutaFija ? hoy : Fecha(hasta, hoy);
                 if(PilotoRutaBL.ConsultaRutaFija) pagina=1;
-                return View(new PilotoRutaBL().Listar(User.Identity.Name, inicio, fin, pagina));
+                return View(new PilotoRutaBL().Listar(User.Identity.Name, inicio, fin, pagina,vista));
             }
             catch (Exception e) { return ErrorPiloto(e); }
         }
 
-        public ActionResult Detalle(string id, int pagina = 1, string desde = null, string hasta = null, int paginaRutas = 1)
+        public ActionResult Detalle(string id, int pagina = 1, string desde = null, string hasta = null, int paginaRutas = 1, string vista = null)
         {
             try
             {
@@ -62,6 +62,7 @@ namespace DiamDev.Give.UI.Controllers
                 ViewBag.Desde=string.IsNullOrEmpty(desde) ? null : Fecha(desde,DateTime.Today).ToString("yyyy-MM-dd");
                 ViewBag.Hasta=string.IsNullOrEmpty(hasta) ? null : Fecha(hasta,DateTime.Today).ToString("yyyy-MM-dd");
                 ViewBag.PaginaRutas=paginaRutas;
+                ViewBag.Vista=PilotoReglas.VistaRutas(vista);
                 return View(new PilotoRutaBL().Detalle(User.Identity.Name, id,pagina));
             }
             catch (Exception e) { return ErrorPiloto(e); }

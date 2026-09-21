@@ -11,6 +11,12 @@ namespace DiamDev.Give.Entities
     {
         // Mantiene el formulario completo por debajo del limite de claves de ASP.NET.
         public const int MaxDocumentos = 200;
+        public static string VistaRutas(string vista)
+        {
+            if (string.IsNullOrWhiteSpace(vista)) return "activas";
+            if (vista == "activas" || vista == "historial") return vista;
+            throw new PilotoException(400,"Selecciona Activas o Historial para consultar tus rutas.");
+        }
         public static void PrepararConsulta(PilotoRuta ruta, int pagina)
         {
             if (pagina < 1 || pagina > 100000) throw new PilotoException(400,"Selecciona una página de documentos válida.");

@@ -49,6 +49,9 @@ try {
         @{Name='config-invalida';Values=@{'Pilotos.PlacaPrueba'=''}},
         @{Name='config-invalida';Values=@{'Pilotos.RutaPrueba'='DEMO-1'}},
         @{Name='config-invalida';Values=@{'Pilotos.PlacaPrueba'='ABCDEFGHIJKLMNOP'}},
+        @{Name='config-invalida';Values=@{'Pilotos.PlacaPrueba'='';'Pilotos.RutaPrueba'='DEMO-1';'Pilotos.PilotoPrueba'='PILOTO DEMO'}},
+        @{Name='config-invalida';Values=@{'Pilotos.PilotoPrueba'=('A'*91)}},
+        @{Name='consulta-temporal';Values=@{'Pilotos.PilotoPrueba'='PILOTO DEMO'}},
         @{Name='ruta-fija';Values=@{'Pilotos.PlacaPrueba'='';'Pilotos.RutaPrueba'='DEMO-1';'Pilotos.PruebasSoloLectura'=' true '}},
         @{Name='sesion-normal';Values=@{'Pilotos.PruebasSoloLectura'='false';'Pilotos.Habilitado'='true'}}
     )
@@ -75,7 +78,7 @@ if(!(Test-Path -LiteralPath $RazorDll)) { throw 'Restaurar Microsoft.AspNet.Razo
 $pagesDir=Split-Path $WebPagesDll
 Get-ChildItem -LiteralPath $pagesDir -Filter '*.dll' | Copy-Item -Destination $out -Force
 Copy-Item -LiteralPath $RazorDll -Destination $out -Force
-& $compiler /nologo /target:exe "/out:$out/RazorCompile.exe" /r:System.Web.dll /r:Microsoft.CSharp.dll "/r:$MvcDll" "/r:$WebPagesDll" "/r:$pagesDir/System.Web.WebPages.Razor.dll" "/r:$RazorDll" (Join-Path $PSScriptRoot 'RazorCompile.cs')
+& $compiler /nologo /target:exe "/out:$out/RazorCompile.exe" /r:System.Web.dll /r:Microsoft.CSharp.dll "/r:$MvcDll" "/r:$WebPagesDll" "/r:$pagesDir/System.Web.WebPages.Razor.dll" "/r:$pagesDir/System.Web.Helpers.dll" "/r:$RazorDll" "/r:$out/PilotoTests.exe" (Join-Path $PSScriptRoot 'RazorCompile.cs') (Join-Path $PSScriptRoot 'RazorPreview.cs')
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador Razor.' }
 & (Join-Path $out 'RazorCompile.exe') $repo
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las vistas Razor.' }
@@ -85,5 +88,6 @@ Copy-Item -LiteralPath $ScriptDomDll -Destination $out -Force
 & $compiler /nologo /target:exe "/out:$out/SqlCompile.exe" "/r:$ScriptDomDll" (Join-Path $PSScriptRoot 'SqlCompile.cs')
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador SQL.' }
 $scripts=Get-ChildItem -LiteralPath (Join-Path $repo 'SqlMigrations/Pilotos') -Filter '1*.sql' | ForEach-Object FullName
+$scripts=@($scripts)+(Join-Path $repo 'SqlMigrations/Pilotos/06_rutas_activas_solo_lectura.sql')
 & (Join-Path $out 'SqlCompile.exe') $scripts
 if($LASTEXITCODE -ne 0) { throw 'Fallo sintaxis SQL.' }

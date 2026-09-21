@@ -20,6 +20,7 @@ foreach($pilotNode in $pilotApp.SelectNodes('add')) {
 $pilotReadOnly=$pilotSettings['Pilotos.PruebasSoloLectura'] -eq 'true'
 $pilotPlate=[string]$pilotSettings['Pilotos.PlacaPrueba']
 $pilotRoute=[string]$pilotSettings['Pilotos.RutaPrueba']
+$pilotName=[string]$pilotSettings['Pilotos.PilotoPrueba']
 $pilotConnection=$pilotXml.SelectSingleNode('/configuration/connectionStrings/add[@name="GiveContext"]')
 [pscustomobject]@{
     ArchivoRevisado=$pilotPath
@@ -28,7 +29,8 @@ $pilotConnection=$pilotXml.SelectSingleNode('/configuration/connectionStrings/ad
     CierreEfectivo=(!$pilotReadOnly -and $pilotSettings['Pilotos.Habilitado'] -eq 'true' -and $pilotSettings['Pilotos.PermitirCierre'] -eq 'true')
     UsuarioPruebaConfigurado=![string]::IsNullOrWhiteSpace($pilotSettings['Pilotos.UsuarioPrueba'])
     UsuarioCoincide=if($Usuario){$Usuario -eq $pilotSettings['Pilotos.UsuarioPrueba']}else{$null}
-    AlcanceTemporalValido=(($pilotPlate.Length -gt 0) -xor ($pilotRoute.Length -gt 0)) -and $pilotPlate.Length -le 15 -and $pilotRoute.Length -le 15
+    AlcanceTemporalValido=(($pilotPlate.Length -gt 0) -xor ($pilotRoute.Length -gt 0)) -and $pilotPlate.Length -le 15 -and $pilotRoute.Length -le 15 -and $pilotName.Length -le 90 -and (!$pilotName -or $pilotPlate.Length -gt 0)
+    PilotoPruebaConfigurado=($pilotName.Length -gt 0)
     CatalogoExplicitoConfigurado=![string]::IsNullOrWhiteSpace($pilotSettings['Pilotos.CatalogoRutas'])
     ConexionPosPresente=($null -ne $pilotConnection)
     Nota='Lectura de archivo; no demuestra que IIS lo haya cargado ni valida acceso SQL.'

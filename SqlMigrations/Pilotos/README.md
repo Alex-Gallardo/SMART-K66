@@ -171,9 +171,9 @@ mediante una migración inversa genérica.
 
 ## Validación
 
-`Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 79 comprobaciones de
+`Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 102 comprobaciones de
 reglas, paginación, desafío, acceso y configuración (incluido bloqueo del cierre
-antes de conectar SQL), compila las cinco vistas Razor y analiza los seis
+antes de conectar SQL), compila las cinco vistas Razor y analiza los siete
 scripts nuevos con ScriptDom SQL150, sin conexiones SQL. Las rutas de DLL pueden
 pasarse por parámetros; usa paquetes locales/restaurados, sin descargarlos.
 
@@ -281,9 +281,9 @@ planes e indices antes de cargas concurrentes; no se crean indices automaticamen
 
 ### Evidencia y pendientes de esta revision
 
-`Tests/Pilotos/run.ps1`: 79 comprobaciones (52 generales, 10 de consulta temporal,
-8 de configuracion invalida, 5 de ruta fija y 4 de sesion normal), cinco vistas
-Razor y seis scripts SQL. Tambien analiza los cuerpos SQL dinamicos de los scripts
+`Tests/Pilotos/run.ps1`: 102 comprobaciones (57 generales, 24 de consulta temporal,
+12 de configuracion invalida, 5 de ruta fija y 4 de sesion normal), cinco vistas
+Razor y siete scripts SQL. Tambien analiza los cuerpos SQL dinamicos de los scripts
 de vinculacion usando un catalogo ficticio. No conecta a SQL, envia SMS ni lee
 credenciales productivas para las pruebas.
 
@@ -306,3 +306,77 @@ Pendientes de integracion, en entorno preparado:
 - Reasignacion concurrente, permisos SQL insuficientes, timeouts y collations distintas.
 - Cierre y efectos de triggers exclusivamente en copia aislada; el trigger de APK66
   sigue requiriendo revision y validacion antes de cualquier cierre productivo.
+
+## Rutas activas y diseño móvil (sin instalar tablas para la prueba)
+
+La consulta temporal funciona sin ejecutar los scripts de instalación 10–15.
+Para cambiar la ruta fija cerrada por una prueba con rutas activas:
+
+1. Abrir una ventana nueva de SSMS en la base de rutas y revisar
+   `06_rutas_activas_solo_lectura.sql`. Completar únicamente `@BaseEsperada` con
+   su nombre exacto. El script devuelve hasta 20 cabeceras A/E de los últimos
+   14 días. No modifica datos ni incluye documentos de clientes. El timeout de
+   bloqueos no limita la duración total; detenerse ante un error o timeout.
+2. Elegir una placa del resultado y, opcionalmente, el nombre exacto del piloto
+   de esa ruta. No publicar esos resultados ni identificadores en el repositorio.
+3. En el Web.config PRINCIPAL del sitio remoto, actualizar las claves existentes
+   sin duplicarlas ni tocar las conexiones:
+
+```xml
+<add key="Pilotos.PruebasSoloLectura" value="true" />
+<add key="Pilotos.UsuarioPrueba" value="LOGIN_POS" />
+<add key="Pilotos.PlacaPrueba" value="PLACA_REAL" />
+<add key="Pilotos.PilotoPrueba" value="" />
+<add key="Pilotos.RutaPrueba" value="" />
+<add key="Pilotos.PermitirCierre" value="false" />
+```
+
+Reemplazar los marcadores localmente. `PilotoPrueba` es opcional y solo se admite
+junto con una placa: si se completa con el nombre exacto del resultado, listado
+Y detalle exigen ambos. El nombre nunca se concatena en SQL; se parametriza.
+Sin ese filtro se ven las rutas del vehículo autorizado, aunque cambie de piloto.
+Esta excepción temporal no sustituye la vinculación formal usuario/empleado/placas.
+
+Para ver solo una ruta A/E, usar su ID en `RutaPrueba` y dejar vacíos tanto
+`PlacaPrueba` como `PilotoPrueba`. Una ruta fija se presenta como «Ruta de prueba»
+y se muestra cualquiera que sea su estado/fecha; no se disfraza como lista de
+rutas activas. Los cambios de configuración reciclan la aplicación: iniciar
+sesión de nuevo y entrar desde el menú habitual. No hay cambios al login.
+
+La vista por vehículo o del piloto normal comienza en **Activas** (A/E), con las
+rutas E primero; **Historial** incluye C/X. Por defecto se consultan los últimos
+14 días incluyendo hoy; se puede ajustar el período hasta 31 días. La fecha
+siempre está visible. Si no aparecen rutas, comprobar período y asignación;
+el portal no amplía automáticamente el alcance ni modifica estados.
+
+El rediseño usa estilos mobile first, tipografía de sistema, iconos SVG locales,
+botones principales de 56 px, encabezado sticky compacto y un solo aviso de
+consulta. Los colores de estado llevan texto e icono. El menú Cuenta contiene
+la salida POST con antiforgery. El detalle conserva filtros/página y el listado
+restaura su desplazamiento usando solo una posición numérica en sessionStorage,
+separada por fechas/vista/página. No almacena clientes ni documentos.
+
+### Comprobación visual reproducible sin SQL
+
+Después de `Tests/Pilotos/run.ps1`, ejecutar desde la raíz del repositorio:
+
+```powershell
+.\Tests\Pilotos\bin\RazorCompile.exe (Get-Location).Path --render
+node .\Tests\Pilotos\preview.cjs
+```
+
+Abrir `http://127.0.0.1:8770`. También existen `/preview/fija`, `/preview/vacia`
+y `/preview/error`. La herramienta renderiza las vistas Razor reales usando
+modelos ficticios, genera HTML solo en `Tests/Pilotos/bin` y sirve únicamente
+archivos permitidos en loopback. No carga Web.config del sitio, no conecta SQL
+ni ejecuta login/cierres; rechaza solicitudes distintas de GET. El formulario
+de salida se puede inspeccionar pero no cerrar una sesión real desde esta vista.
+El compilador también valida el layout original antes de renderizar la vista previa.
+
+Se revisaron anchos de 320, 375, 425, 768, 1280 y 1600 px, sin desbordamiento
+horizontal del listado. Se comprobó detalle móvil, menú Cuenta, salida POST,
+fechas, navegación a Historial, regreso con filtros y desplazamiento. Contraste
+medido en el navegador: botón principal 7.83:1; estados E/A 8.26:1 y 8.11:1;
+aviso de consulta 9.22:1. Estas medidas no simulan condiciones físicas de luz solar.
+El funcionamiento integrado contra el servidor remoto y SQL sigue pendiente de
+la prueba del responsable del entorno; no se declaró validado mediante esta vista.

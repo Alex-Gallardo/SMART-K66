@@ -14,7 +14,7 @@ namespace DiamDev.Give.DAL
     {
         private readonly string conexion;
         private readonly string apk;
-        private sealed class Acceso { public long Usuario; public string Nombre; public string Operador; public string PlacaPrueba; public string RutaPrueba; }
+        private sealed class Acceso { public long Usuario; public string Nombre; public string Operador; public string PlacaPrueba; public string RutaPrueba; public string PilotoPrueba; }
 
         public static bool Habilitado { get { return EsTrue("Pilotos.Habilitado"); } }
         public static bool PruebasSoloLectura { get { return EsTrue("Pilotos.PruebasSoloLectura"); } }
@@ -29,6 +29,9 @@ namespace DiamDev.Give.DAL
                 throw new PilotoException(503, "Falta configurar el usuario de consulta temporal. Contacta al administrador.");
             var placa = (ConfigurationManager.AppSettings["Pilotos.PlacaPrueba"] ?? "").Trim();
             var ruta = (ConfigurationManager.AppSettings["Pilotos.RutaPrueba"] ?? "").Trim();
+            var piloto = (ConfigurationManager.AppSettings["Pilotos.PilotoPrueba"] ?? "").Trim();
+            if (piloto.Length > 90 || (piloto.Length > 0 && placa.Length == 0))
+                throw new PilotoException(503,"El piloto de prueba debe acompañar a una placa válida. Contacta al administrador.");
             if ((placa.Length == 0) == (ruta.Length == 0) || placa.Length > 15 || ruta.Length > 15)
                 throw new PilotoException(503, "La consulta temporal necesita una sola placa o ruta válida. Contacta al administrador.");
         }
@@ -140,21 +143,25 @@ AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.
                 using(var r=cmd.ExecuteReader())
                 {
                     if(!r.Read()) throw new PilotoException(403,"El usuario de prueba debe estar activo y habilitado para web.");
-                    return new Acceso { Usuario=(long)r["Usuario_Id"], PlacaPrueba=placa, RutaPrueba=ruta };
+                    var piloto=(ConfigurationManager.AppSettings["Pilotos.PilotoPrueba"] ?? "").Trim();
+                    return new Acceso { Usuario=(long)r["Usuario_Id"], PlacaPrueba=placa, RutaPrueba=ruta, PilotoPrueba=piloto.Length==0 ? null : piloto };
                 }
             }
         }
 
         private string Alcance(Acceso a)
         {
-            return a.PlacaPrueba!=null ? "r.PLACA=@placa" : a.RutaPrueba!=null ? "r.ID_RUTA=@rutaPrueba" : @"r.PILOTO=@piloto
+            return a.PlacaPrueba!=null ? "r.PLACA=@placa" + (a.PilotoPrueba==null ? "" : " AND r.PILOTO=@pilotoPrueba") : a.RutaPrueba!=null ? "r.ID_RUTA=@rutaPrueba" : @"r.PILOTO=@piloto
 AND EXISTS (SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=@usuario AND c.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)
 AND EXISTS (SELECT 1 FROM dbo.PilotoVehiculo pv WHERE pv.Usuario_Id=@usuario AND pv.Activo=1 AND pv.Placa=r.PLACA COLLATE DATABASE_DEFAULT)
 AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1)";
         }
         private static void ParametrosAcceso(SqlCommand cmd,Acceso a)
         {
-            if(a.PlacaPrueba!=null) Param(cmd,"@placa",SqlDbType.NVarChar,a.PlacaPrueba,15);
+            if(a.PlacaPrueba!=null) {
+                Param(cmd,"@placa",SqlDbType.NVarChar,a.PlacaPrueba,15);
+                if(a.PilotoPrueba!=null) Param(cmd,"@pilotoPrueba",SqlDbType.NVarChar,a.PilotoPrueba,90);
+            }
             else if(a.RutaPrueba!=null) Param(cmd,"@rutaPrueba",SqlDbType.NVarChar,a.RutaPrueba,15);
             else { Param(cmd,"@piloto",SqlDbType.NVarChar,a.Nombre,90); Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario); }
         }
@@ -166,12 +173,13 @@ AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA 
                 Estado = Texto(r, "STATUS"), Solicitud = Guid.NewGuid() };
         }
 
-        public PilotoLista Listar(string login, DateTime desde, DateTime hasta, int pagina)
+        public PilotoLista Listar(string login, DateTime desde, DateTime hasta, int pagina, string vista = null)
         {
+            vista=PilotoReglas.VistaRutas(vista);
             desde = desde.Date; hasta = hasta.Date;
             if (hasta < desde || (hasta-desde).TotalDays >= 31 || hasta == DateTime.MaxValue.Date || pagina < 1 || pagina > 1000)
                 throw new PilotoException(400, "Selecciona un periodo de hasta 31 dias y una pagina valida.");
-            var result = new PilotoLista { Desde=desde, Hasta=hasta, Pagina=pagina, Rutas=new List<PilotoRuta>() };
+            var result = new PilotoLista { Desde=desde, Hasta=hasta, Pagina=pagina, Vista=vista, Rutas=new List<PilotoRuta>() };
             using (var cn = AbrirConexion())
             {
                 using (var tx = cn.BeginTransaction(IsolationLevel.Serializable))
@@ -180,14 +188,15 @@ AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA 
                     result.RutaFija=a.RutaPrueba!=null;
                     var sql = @"SELECT r.ID_RUTA,r.FECHA_RUTA,r.PLACA,r.PILOTO,r.CENTRO_DIST,r.STATUS
 FROM " + apk + @".dbo.RT_RUTAS r
-WHERE " + Alcance(a) + (result.RutaFija ? "" : " AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin") + @"
-AND r.STATUS IN (N'A',N'E',N'C',N'X')
-ORDER BY r.FECHA_RUTA DESC,r.ID_RUTA DESC OFFSET @offset ROWS FETCH NEXT 26 ROWS ONLY;";
+WHERE " + Alcance(a) + (result.RutaFija ? " AND r.STATUS IN (N'A',N'E',N'C',N'X')" : " AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin AND r.STATUS IN (@estado1,@estado2)") + @"
+ORDER BY CASE WHEN r.STATUS=N'E' THEN 0 ELSE 1 END,r.FECHA_RUTA DESC,r.ID_RUTA DESC OFFSET @offset ROWS FETCH NEXT 26 ROWS ONLY;";
                     using (var cmd = Command(cn, tx, sql))
                     {
                         ParametrosAcceso(cmd,a);
                         Param(cmd,"@desde",SqlDbType.Date,desde); Param(cmd,"@fin",SqlDbType.Date,hasta.AddDays(1));
                         Param(cmd,"@offset",SqlDbType.Int,(pagina-1)*25);
+                        Param(cmd,"@estado1",SqlDbType.NVarChar,vista=="activas" ? "A" : "C",1);
+                        Param(cmd,"@estado2",SqlDbType.NVarChar,vista=="activas" ? "E" : "X",1);
                         using (var r=cmd.ExecuteReader()) while(r.Read()) result.Rutas.Add(Cabecera(r));
                     }
                     tx.Commit();

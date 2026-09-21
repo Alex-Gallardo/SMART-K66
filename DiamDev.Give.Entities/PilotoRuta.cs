@@ -41,6 +41,8 @@ namespace DiamDev.Give.Entities
         public string Entrega { get; set; }
         public string Motivo { get; set; }
         public string Observaciones { get; set; }
+        // Valor temporal del formulario; no forma parte del estado persistido ni de la version.
+        public string ObservacionPiloto { get; set; }
         public TimeSpan? Entrada { get; set; }
         public TimeSpan? Salida { get; set; }
     }
@@ -52,6 +54,7 @@ namespace DiamDev.Give.Entities
         public bool? Visito { get; set; }
         public string Entrega { get; set; }
         public string Motivo { get; set; }
+        public string Observaciones { get; set; }
     }
 
     public sealed class PilotoCierre

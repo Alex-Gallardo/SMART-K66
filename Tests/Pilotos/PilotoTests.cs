@@ -77,7 +77,7 @@ internal static class PilotoTests
     static PilotoCierre Cierre(PilotoRuta r) {
         return new PilotoCierre {RutaId=r.Id,Version=r.Version,Solicitud=Guid.NewGuid(),Documentos=new List<PilotoResultado> {
             new PilotoResultado {RowId=1,Visito=true,Entrega="ENTREGADO"},
-            new PilotoResultado {RowId=2,Visito=false,Entrega="NO ENTREGADO",Motivo="Destino cerrado"}
+            new PilotoResultado {RowId=2,Visito=false,Entrega="NO ENTREGADO",Motivo="CLIENTE CERRADO",Observaciones="El local estaba cerrado."}
         }};
     }
     public static int Main(string[] args) {
@@ -158,6 +158,9 @@ internal static class PilotoTests
             c=Cierre(r); c.Documentos[1].RowId=1; Rechaza(()=>PilotoReglas.ValidarCierre(r,c),400,"documento duplicado");
             c=Cierre(r); c.Documentos[1].RowId=999; Rechaza(()=>PilotoReglas.ValidarCierre(r,c),400,"documento ajeno");
             c=Cierre(r); c.Documentos[1].Motivo=" "; Rechaza(()=>PilotoReglas.ValidarCierre(r,c),400,"fallo sin motivo");
+            c=Cierre(r); c.Documentos[1].Motivo="MOTIVO INVENTADO"; Rechaza(()=>PilotoReglas.ValidarCierre(r,c),400,"motivo fuera del catalogo");
+            c=Cierre(r); c.Documentos[1].Observaciones=" "; Rechaza(()=>PilotoReglas.ValidarCierre(r,c),400,"fallo sin observacion");
+            c=Cierre(r); c.Documentos[1].Observaciones=new string('x',501); Rechaza(()=>PilotoReglas.ValidarCierre(r,c),400,"observacion larga");
             c=Cierre(r); c.Documentos[0].Visito=false; Rechaza(()=>PilotoReglas.ValidarCierre(r,c),400,"entregado sin visita");
             c=Cierre(r); c.Documentos[0].Visito=null; Rechaza(()=>PilotoReglas.ValidarCierre(r,c),400,"visita omitida");
             c=Cierre(r); c.Documentos[0].Entrega="X"; Rechaza(()=>PilotoReglas.ValidarCierre(r,c),400,"resultado no permitido");
@@ -168,6 +171,9 @@ internal static class PilotoTests
             r=Ruta(); c=Cierre(r); var huella=PilotoReglas.HuellaSolicitud(c);
             c.Documentos.Reverse(); Check(PilotoReglas.HuellaSolicitud(c)==huella,"reordenar no cambia idempotencia");
             c.Documentos[0].Motivo="Otro"; Check(PilotoReglas.HuellaSolicitud(c)!=huella,"reintento diferente no coincide");
+            c=Cierre(r); huella=PilotoReglas.HuellaSolicitud(c); c.Documentos[1].Observaciones="Otra explicación"; Check(PilotoReglas.HuellaSolicitud(c)!=huella,"observacion participa en idempotencia");
+            c=Cierre(r); c.Documentos[0].Motivo="OTRO"; c.Documentos[0].Observaciones="No debe guardarse"; PilotoReglas.ValidarCierre(r,c);
+            Check(c.Documentos[0].Motivo==null && c.Documentos[0].Observaciones==null,"entregado limpia motivo y observacion nuevos");
             Rechaza(()=>PilotoReglas.HuellaSolicitud(null),400,"null request");
             c.Documentos=Enumerable.Range(1,201).Select(i=>new PilotoResultado { RowId=i }).ToList();
             Rechaza(()=>PilotoReglas.HuellaSolicitud(c),400,"limite de formulario");
@@ -180,7 +186,7 @@ internal static class PilotoTests
             Check(!d.Verificar(d.Codigo,now),"bloqueo tras cinco intentos");
             var posted=new NameValueCollection { {"RutaId","DEMO-1"},{"Solicitud",Guid.NewGuid().ToString()}, {"Version",version},
                 {"Documentos[0].RowId","1"},{"Documentos[0].Visito","true"},{"Documentos[0].Entrega","ENTREGADO"},
-                {"Documentos[1].RowId","2"},{"Documentos[1].Visito","false"},{"Documentos[1].Entrega","NO ENTREGADO"},{"Documentos[1].Motivo","Ausente"},
+                {"Documentos[1].RowId","2"},{"Documentos[1].Visito","false"},{"Documentos[1].Entrega","NO ENTREGADO"},{"Documentos[1].Motivo","CLIENTE CERRADO"},{"Documentos[1].Observaciones","Se encontró el local cerrado."},
                 {"Login","OTRO"},{"Piloto","OTRO"},{"Estado","X"} };
             var binding=new ModelBindingContext {ModelMetadata=ModelMetadataProviders.Current.GetMetadataForType(null,typeof(PilotoCierre)),ModelName="",ValueProvider=new NameValueCollectionValueProvider(posted,CultureInfo.InvariantCulture)};
             var model=(PilotoCierre)new DefaultModelBinder().BindModel(new ControllerContext(),binding);

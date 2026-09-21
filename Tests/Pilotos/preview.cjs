@@ -18,6 +18,7 @@ http.createServer((req, res) => {
     }
     let page = 'index';
     if (url.pathname.startsWith('/Piloto/Detalle/')) page = url.searchParams.get('vista') === 'historial' ? 'detalle-historial' : 'detalle';
+    else if (url.pathname === '/preview/cierre') page = 'detalle-cierre';
     else if (url.pathname === '/preview/fija') page = 'fija';
     else if (url.pathname === '/preview/vacia') page = 'vacia';
     else if (url.pathname === '/preview/error') page = 'error';

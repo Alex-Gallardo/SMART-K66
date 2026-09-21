@@ -328,16 +328,17 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
                     PilotoReglas.ValidarCierre(ruta,cierre);
                     if(!ruta.PuedeCerrar) throw new PilotoException(409,"La ruta no admite cierre desde el portal.");
                     VerificarTrigger(cn,tx);
-                    var antes=new XElement("documentos",ruta.Documentos.Select(d=>EstadoXml(d.RowId,d.Visito,d.Entrega,d.Motivo)));
+                    var antes=new XElement("documentos",ruta.Documentos.Select(d=>EstadoXml(d.RowId,d.Visito,d.Entrega,d.Motivo,d.Observaciones)));
                     foreach(var resultado in cierre.Documentos)
                     {
                         var original=ruta.Documentos.Single(d=>d.RowId==resultado.RowId);
-                        if(original.Visito==resultado.Visito && original.Entrega==resultado.Entrega && original.Motivo==resultado.Motivo) continue;
+                        if(original.Visito==resultado.Visito && original.Entrega==resultado.Entrega && original.Motivo==resultado.Motivo && string.IsNullOrEmpty(resultado.Observaciones)) continue;
                         using(var cmd=Command(cn,tx,apk+".dbo.portal_piloto_guardar_resultado"))
                         {
                             cmd.CommandType=CommandType.StoredProcedure;
                             Param(cmd,"@rowid",SqlDbType.Int,resultado.RowId); Param(cmd,"@idruta",SqlDbType.NVarChar,ruta.Id,15);
                             Param(cmd,"@motivo",SqlDbType.NVarChar,resultado.Motivo,150);
+                            Param(cmd,"@observacion",SqlDbType.NVarChar,resultado.Observaciones,PilotoReglas.MaxObservacion);
                             Param(cmd,"@visito",SqlDbType.Bit,resultado.Visito); Param(cmd,"@entrega",SqlDbType.NVarChar,resultado.Entrega,50);
                             cmd.ExecuteNonQuery();
                         }
@@ -350,10 +351,12 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
                     // Verificar postcondicion; un procedimiento que deja de aplicar los cambios no es exito.
                     var final=LeerRuta(cn,tx,a,ruta.Id,true);
                     if(final.Estado!="C" || final.Documentos.Count!=cierre.Documentos.Count || cierre.Documentos.Any(d=>!final.Documentos.Any(f=>
-                        f.RowId==d.RowId && f.Visito==d.Visito && f.Entrega==d.Entrega && (f.Motivo??"")== (d.Motivo??""))) ||
-                        final.Documentos.Any(f=>!ruta.Documentos.Any(o=>o.RowId==f.RowId && o.Entrada==f.Entrada && o.Salida==f.Salida && o.Observaciones==f.Observaciones)))
+                        f.RowId==d.RowId && f.Visito==d.Visito && f.Entrega==d.Entrega && (f.Motivo??"")== (d.Motivo??"") &&
+                        (f.Observaciones??"")==ObservacionEsperada(ruta.Documentos.Single(o=>o.RowId==d.RowId).Observaciones,d.Observaciones))) ||
+                        final.Documentos.Any(f=>!ruta.Documentos.Any(o=>o.RowId==f.RowId && o.Entrada==f.Entrada && o.Salida==f.Salida)))
                         throw new PilotoException(409,"No se pudo verificar el cierre. No se guardaron los cambios.");
-                    var despues=new XElement("documentos",cierre.Documentos.Select(d=>EstadoXml(d.RowId,d.Visito,d.Entrega,d.Motivo)));
+                    var despues=new XElement("documentos",cierre.Documentos.Select(d=>EstadoXml(d.RowId,d.Visito,d.Entrega,d.Motivo,
+                        ObservacionEsperada(ruta.Documentos.Single(o=>o.RowId==d.RowId).Observaciones,d.Observaciones))));
                     using(var cmd=Command(cn,tx,@"INSERT dbo.PilotoCierre(Usuario_Id,Solicitud,Ruta_Id,Login,Operador,Huella,Antes,Despues)
 VALUES(@u,@s,@ruta,@login,@operador,@huella,@antes,@despues);"))
                     {
@@ -368,7 +371,14 @@ VALUES(@u,@s,@ruta,@login,@operador,@huella,@antes,@despues);"))
             }
         }
 
-        private static XElement EstadoXml(int id,bool? visito,string entrega,string motivo)
-        { return new XElement("documento",new XAttribute("rowid",id),new XElement("visito",visito),new XElement("entrega",entrega),new XElement("motivo",motivo)); }
+        private static string ObservacionEsperada(string anterior,string nueva)
+        {
+            if(string.IsNullOrWhiteSpace(nueva)) return anterior ?? "";
+            if(string.IsNullOrWhiteSpace(anterior)) return nueva;
+            return anterior+"\r\n"+nueva;
+        }
+
+        private static XElement EstadoXml(int id,bool? visito,string entrega,string motivo,string observaciones)
+        { return new XElement("documento",new XAttribute("rowid",id),new XElement("visito",visito),new XElement("entrega",entrega),new XElement("motivo",motivo),new XElement("observaciones",observaciones)); }
     }
 }

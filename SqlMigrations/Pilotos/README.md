@@ -92,8 +92,16 @@ No se enviaron SMS durante estas pruebas.
 | Estado de ruta | A abierta, E en ruta, C cerrada, X anulada. Solo E puede completarse. |
 | Resultado de documento | `ENTREGADO`, `NO ENTREGADO` o `INCIDENCIA`; se conserva el resultado existente al mostrar el formulario. |
 | Visita | Selección explícita; entregado requiere visita afirmativa. |
-| Motivo | Obligatorio para no entregado/incidencia, máximo 150 caracteres. |
-| Datos que no edita el piloto | Vehículo, asignación, cliente, dirección, horas y observaciones existentes. |
+| Motivo | Obligatorio para no entregado/incidencia y limitado al catálogo observado en APK66. |
+| Observación del piloto | Obligatoria para no entregado/incidencia, máximo 500 caracteres; se agrega sin borrar la observación existente. |
+| Datos que no edita el piloto | Vehículo, asignación, cliente, dirección y horas. |
+
+El catálogo inicial usa los motivos recurrentes encontrados en una muestra de
+producción: `TIEMPO CLIENTE`, `TIEMPO RUTA`, `CLIENTE CERRADO`, `FALTA ESPACIO`,
+`PEDIDO INCORRECTO`, `CLIENTE RECHAZO PEDIDO`, `PRODUCTO NO SOLICITADO` y `OTRO`.
+El servidor valida los mismos valores que presenta la interfaz. La pantalla usa
+opciones táctiles grandes y una confirmación final que resume entregas, fallos e
+incidencias; el POST solo se habilita después de marcar que se revisó el resumen.
 
 Una ruta cerrada puede conservar documentos fallidos o con incidencia. Completar
 no marca todos los documentos como entregados, no anula la ruta y no liquida ni
@@ -103,8 +111,9 @@ El servidor exige el conjunto exacto de documentos y una versión del detalle.
 La revalidación y el guardado usan una sola conexión y transacción serializable
 entre catálogos de la misma instancia. Se bloquean encabezado/detalle y se
 rechaza una reasignación, cambios de resultados o un formulario obsoleto.
-`portal_piloto_guardar_resultado` modifica solamente `MO_VISITO`, `MO_ENTREGA` y
-`MO_MOTIVO`. El cierre invoca la rutina central `rutas_cerrar`; no se usa
+`portal_piloto_guardar_resultado` modifica `MO_VISITO`, `MO_ENTREGA`, `MO_MOTIVO`
+y agrega la nueva observación a `MO_OBSER`, conservando texto previo. El cierre
+invoca la rutina central `rutas_cerrar`; no se usa
 `rutas_confirmar`, que corresponde a otra transición.
 
 Se verifica el resultado antes de confirmar la transacción y se inserta auditoría
@@ -126,7 +135,9 @@ deriva a Distribución, sin guardar parcialmente.
    con las credenciales de GiveContext.
    La cuenta SQL debe tener acceso explícito a ambos y collations compatibles.
    No se usa la clase heredada `APK66Context`, cuyo constructor tiene otro destino.
-2. Revisar `10_portal_pos.sql`: crea las tablas del portal, rol y dos permisos.
+2. Ejecutar primero `07_pos_instalacion_solo_lectura.sql` para comprobar si la
+   instalación está ausente, completa o parcial. Revisar después `10_portal_pos.sql`:
+   crea las tablas del portal, rol y dos permisos.
    No crea cuentas, no vincula personas y no otorga permisos a usuarios existentes.
    Completar el catálogo destino localmente; la aplicación está desactivada.
 3. Crear la cuenta con rol PILOTO y usar `11_vincular_piloto.sql` para revisar y
@@ -171,9 +182,9 @@ mediante una migración inversa genérica.
 
 ## Validación
 
-`Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 102 comprobaciones de
+`Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 107 comprobaciones de
 reglas, paginación, desafío, acceso y configuración (incluido bloqueo del cierre
-antes de conectar SQL), compila las cinco vistas Razor y analiza los siete
+antes de conectar SQL), compila las cinco vistas Razor y analiza los ocho
 scripts nuevos con ScriptDom SQL150, sin conexiones SQL. Las rutas de DLL pueden
 pasarse por parámetros; usa paquetes locales/restaurados, sin descargarlos.
 
@@ -281,9 +292,10 @@ planes e indices antes de cargas concurrentes; no se crean indices automaticamen
 
 ### Evidencia y pendientes de esta revision
 
-`Tests/Pilotos/run.ps1`: 102 comprobaciones (57 generales, 24 de consulta temporal,
-12 de configuracion invalida, 5 de ruta fija y 4 de sesion normal), cinco vistas
-Razor y siete scripts SQL. Tambien analiza los cuerpos SQL dinamicos de los scripts
+`Tests/Pilotos/run.ps1`: 107 comprobaciones (62 generales, 24 de consulta temporal,
+12 de configuración inválida, 5 de ruta fija y 4 de sesión normal), cinco vistas
+Razor y ocho scripts SQL.
+También analiza los cuerpos SQL dinámicos de los scripts
 de vinculacion usando un catalogo ficticio. No conecta a SQL, envia SMS ni lee
 credenciales productivas para las pruebas.
 
@@ -365,8 +377,8 @@ Después de `Tests/Pilotos/run.ps1`, ejecutar desde la raíz del repositorio:
 node .\Tests\Pilotos\preview.cjs
 ```
 
-Abrir `http://127.0.0.1:8770`. También existen `/preview/fija`, `/preview/vacia`
-y `/preview/error`. La herramienta renderiza las vistas Razor reales usando
+Abrir `http://127.0.0.1:8770`. También existen `/preview/fija`, `/preview/vacia`,
+`/preview/error` y `/preview/cierre` para probar el formulario y su modal. La herramienta renderiza las vistas Razor reales usando
 modelos ficticios, genera HTML solo en `Tests/Pilotos/bin` y sirve únicamente
 archivos permitidos en loopback. No carga Web.config del sitio, no conecta SQL
 ni ejecuta login/cierres; rechaza solicitudes distintas de GET. El formulario

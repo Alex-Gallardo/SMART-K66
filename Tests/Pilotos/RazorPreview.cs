@@ -24,7 +24,7 @@ internal static class RazorPreview
         public PreviewContext(HttpContext c):base(c){request=new PreviewRequest(c.Request);}
         public override HttpRequestBase Request {get{return request;}}
     }
-    public static string Render(Type type, object model, string body = null, string vista = "activas")
+    public static string Render(Type type, object model, string body = null, string vista = "activas", bool editable = false)
     {
         // Standalone renderer has no IIS header pipeline; production uses its normal antiforgery setup.
         System.Web.Helpers.AntiForgeryConfig.SuppressXFrameOptionsHeader=true;
@@ -38,7 +38,7 @@ internal static class RazorPreview
             controller.ControllerContext=new ControllerContext(http,route,controller);
             var ruta=model as PilotoRuta; if(ruta!=null && vista=="historial") ruta.Estado="C";
             var viewData=new ViewDataDictionary(model);
-            viewData["PruebasSoloLectura"]=true; viewData["PreviewBody"]=body; viewData["PaginaRutas"]=1; viewData["Vista"]=vista;
+            viewData["PruebasSoloLectura"]=!editable; viewData["PreviewBody"]=body; viewData["PaginaRutas"]=1; viewData["Vista"]=vista;
             viewData["Title"]="Pilotos · Demo"; viewData["Desde"]="2026-09-08"; viewData["Hasta"]="2026-09-21";
             viewData["Mensaje"]="La ruta no está disponible. Consulta a Distribución.";
             var page=(WebViewPage)Activator.CreateInstance(type);
@@ -61,6 +61,15 @@ internal static class RazorPreview
         var ruta=Lista().Rutas[0]; ruta.Transporte="Transporte de demostración"; ruta.Vehiculo="Camión · Línea de prueba";
         ruta.TotalDocumentos=26; ruta.TamanoPaginaDocumentos=25; ruta.PaginaDocumentos=1;
         for(int i=1;i<=25;i++) ruta.Documentos.Add(new PilotoDocumento {RowId=i,Documento="DOC-DEMO-00"+i,Tipo="FACTURA",Empresa="DEMO",Cliente="Cliente de demostración "+i,Direccion="Dirección ficticia, zona de distribución. Referencia de acceso para el piloto.",Bultos=12,Visito=i==1?(bool?)true:null,Entrega=i==1?"ENTREGADO":null,Observaciones=i==2?"Ejemplo: verificar acceso antes de descargar.":null});
+        return ruta;
+    }
+    public static PilotoRuta RutaEditable()
+    {
+        var ruta=Ruta(); ruta.Documentos=ruta.Documentos.Take(3).ToList(); ruta.TotalDocumentos=3; ruta.TamanoPaginaDocumentos=200; ruta.PuedeCerrar=true;
+        ruta.Solicitud=Guid.NewGuid();
+        ruta.Documentos[1].Visito=false; ruta.Documentos[1].Entrega="NO ENTREGADO"; ruta.Documentos[1].Motivo="CLIENTE CERRADO";
+        ruta.Documentos[1].ObservacionPiloto="Se encontró el local cerrado al llegar.";
+        ruta.Version=PilotoReglas.Version(ruta);
         return ruta;
     }
 }

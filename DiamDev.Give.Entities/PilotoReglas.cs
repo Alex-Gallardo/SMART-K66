@@ -11,6 +11,12 @@ namespace DiamDev.Give.Entities
     {
         // Mantiene el formulario completo por debajo del limite de claves de ASP.NET.
         public const int MaxDocumentos = 200;
+        public const int MaxObservacion = 500;
+        public static readonly string[] MotivosNoEntrega = new[] {
+            "TIEMPO CLIENTE", "TIEMPO RUTA", "CLIENTE CERRADO", "FALTA ESPACIO",
+            "PEDIDO INCORRECTO", "CLIENTE RECHAZO PEDIDO", "PRODUCTO NO SOLICITADO", "OTRO"
+        };
+        private static readonly HashSet<string> MotivosPermitidos = new HashSet<string>(MotivosNoEntrega, StringComparer.Ordinal);
         public static string VistaRutas(string vista)
         {
             if (string.IsNullOrWhiteSpace(vista)) return "activas";
@@ -28,6 +34,7 @@ namespace DiamDev.Give.Entities
         }
         public static void ValidarCierre(PilotoRuta ruta, PilotoCierre cierre)
         {
+            NormalizarCierre(cierre);
             if (cierre == null || cierre.Solicitud == Guid.Empty || cierre.RutaId != ruta.Id)
                 throw new PilotoException(400, "La solicitud de cierre no es valida.");
             if (ruta.Estado != "E")
@@ -46,9 +53,28 @@ namespace DiamDev.Give.Entities
                     throw new PilotoException(400, "Selecciona visita y resultado para cada documento.");
                 if (d.Entrega == "ENTREGADO" && !d.Visito.Value)
                     throw new PilotoException(400, "Un documento entregado debe estar marcado como visitado.");
-                if ((d.Motivo ?? "").Length > 150 ||
-                    (d.Entrega != "ENTREGADO" && string.IsNullOrWhiteSpace(d.Motivo)))
-                    throw new PilotoException(400, "No entregado e incidencia requieren un motivo de hasta 150 caracteres.");
+                if (d.Entrega != "ENTREGADO" && (!MotivosPermitidos.Contains(d.Motivo ?? "") ||
+                    string.IsNullOrWhiteSpace(d.Observaciones) || d.Observaciones.Length > MaxObservacion))
+                    throw new PilotoException(400, "No entregado e incidencia requieren un motivo válido y una observación de hasta 500 caracteres.");
+            }
+        }
+
+        public static void NormalizarCierre(PilotoCierre cierre)
+        {
+            if (cierre == null || cierre.Documentos == null) return;
+            foreach (var d in cierre.Documentos)
+            {
+                if (d == null) continue;
+                d.Entrega = Limpiar(d.Entrega);
+                if (d.Entrega != null) d.Entrega = d.Entrega.ToUpperInvariant();
+                d.Motivo = Limpiar(d.Motivo);
+                if (d.Motivo != null) d.Motivo = d.Motivo.ToUpperInvariant();
+                d.Observaciones = Limpiar(d.Observaciones);
+                if (d.Entrega == "ENTREGADO")
+                {
+                    d.Motivo = null;
+                    d.Observaciones = null;
+                }
             }
         }
 
@@ -72,6 +98,7 @@ namespace DiamDev.Give.Entities
 
         public static string HuellaSolicitud(PilotoCierre cierre)
         {
+            NormalizarCierre(cierre);
             if (cierre == null || cierre.Documentos == null || cierre.Documentos.Any(d => d == null) || cierre.Documentos.Count > MaxDocumentos)
                 throw new PilotoException(400, "La solicitud de cierre no es valida.");
             return Hash(delegate(BinaryWriter w)
@@ -80,11 +107,12 @@ namespace DiamDev.Give.Entities
                 foreach (var d in cierre.Documentos.OrderBy(d => d.RowId))
                 {
                     w.Write(d.RowId); w.Write(d.Visito.HasValue); if (d.Visito.HasValue) w.Write(d.Visito.Value);
-                    Texto(w, d.Entrega); Texto(w, d.Motivo);
+                    Texto(w, d.Entrega); Texto(w, d.Motivo); Texto(w, d.Observaciones);
                 }
             });
         }
 
+        private static string Limpiar(string value) { return string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
         private static void Texto(BinaryWriter w, string value) { w.Write(value != null); if (value != null) w.Write(value); }
         private static string Hash(Action<BinaryWriter> escribir)
         {

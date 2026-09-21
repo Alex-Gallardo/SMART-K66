@@ -1,5 +1,6 @@
 /* MANUAL. Crear en el catalogo de rutas, despues de revisar/probar el contrato.
-   Solo cambia visita, resultado y motivo. Conserva horas y observaciones.
+   Cambia visita, resultado, motivo y agrega la nueva observacion del piloto.
+   Conserva horas y cualquier observacion existente.
    El caller debe autorizar al piloto y usar una transaccion con el cierre.
    No modifica procedimientos existentes, encabezados ni documentos financieros. */
 DECLARE @BaseEsperada sysname=NULL, @Aplicar bit=0;
@@ -19,17 +20,24 @@ SET XACT_ABORT ON;
 BEGIN TRY
     BEGIN TRANSACTION;
     EXEC sys.sp_executesql N'CREATE PROCEDURE dbo.portal_piloto_guardar_resultado
-        @rowid int, @idruta nvarchar(15), @visito bit, @entrega nvarchar(50), @motivo nvarchar(150)
+        @rowid int, @idruta nvarchar(15), @visito bit, @entrega nvarchar(50), @motivo nvarchar(150), @observacion nvarchar(500)
     AS
     BEGIN
         SET NOCOUNT ON;
         IF @@TRANCOUNT=0 THROW 51000, ''Requiere una transaccion de cierre.'', 1;
+        SET @entrega=UPPER(NULLIF(LTRIM(RTRIM(@entrega)),N''''));
+        SET @motivo=UPPER(NULLIF(LTRIM(RTRIM(@motivo)),N''''));
+        SET @observacion=NULLIF(LTRIM(RTRIM(@observacion)),N'''');
         IF @visito IS NULL OR @entrega IS NULL OR @entrega NOT IN(N''ENTREGADO'',N''NO ENTREGADO'',N''INCIDENCIA'')
             THROW 51000, ''Resultado no valido.'', 1;
         IF @entrega=N''ENTREGADO'' AND @visito<>1 THROW 51000, ''Entrega requiere visita.'', 1;
-        IF @entrega<>N''ENTREGADO'' AND NULLIF(LTRIM(RTRIM(@motivo)),N'''') IS NULL
-            THROW 51000, ''El resultado requiere motivo.'', 1;
-        UPDATE d SET MO_VISITO=@visito,MO_ENTREGA=@entrega,MO_MOTIVO=@motivo
+        IF @entrega<>N''ENTREGADO'' AND (@motivo IS NULL OR @motivo NOT IN(N''TIEMPO CLIENTE'',N''TIEMPO RUTA'',N''CLIENTE CERRADO'',N''FALTA ESPACIO'',N''PEDIDO INCORRECTO'',N''CLIENTE RECHAZO PEDIDO'',N''PRODUCTO NO SOLICITADO'',N''OTRO'') OR @observacion IS NULL)
+            THROW 51000, ''El resultado requiere motivo valido y observacion.'', 1;
+        IF @entrega=N''ENTREGADO'' BEGIN SET @motivo=NULL; SET @observacion=NULL; END;
+        UPDATE d SET MO_VISITO=@visito,MO_ENTREGA=@entrega,MO_MOTIVO=@motivo,
+            MO_OBSER=CASE WHEN @observacion IS NULL THEN MO_OBSER
+                          WHEN NULLIF(LTRIM(RTRIM(MO_OBSER)),N'''') IS NULL THEN @observacion
+                          ELSE MO_OBSER+NCHAR(13)+NCHAR(10)+@observacion END
         FROM dbo.RT_RUTAS_DET d JOIN dbo.RT_RUTAS r ON r.ID_RUTA=d.ID_RUTA
         WHERE d.ROWID=@rowid AND d.ID_RUTA=@idruta AND r.STATUS=N''E'' AND ISNULL(r.LIQUIDADO,0)=0;
         IF @@ROWCOUNT<>1 THROW 51000, ''Documento no disponible para completar.'', 1;

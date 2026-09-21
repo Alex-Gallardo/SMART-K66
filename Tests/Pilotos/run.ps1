@@ -1,6 +1,12 @@
 param([string]$MvcDll, [string]$WebPagesDll, [string]$RazorDll, [string]$ScriptDomDll)
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+$webConfig=New-Object System.Xml.XmlDocument
+$webConfig.Load((Join-Path $repo 'DiamDev.Give.UI/Web.config'))
+$cierreSetting=@($webConfig.SelectNodes("/configuration/appSettings/add[@key='Pilotos.PermitirCierre']"))
+if($cierreSetting.Count -ne 1 -or $cierreSetting[0].GetAttribute('value') -ne 'false') {
+    throw 'El Web.config versionado debe conservar Pilotos.PermitirCierre=false.'
+}
 if(!$MvcDll) {
     $MvcDll=Join-Path $repo 'packages/Microsoft.AspNet.Mvc.5.2.9/lib/net45/System.Web.Mvc.dll'
     if(!(Test-Path -LiteralPath $MvcDll)) { $MvcDll=Join-Path $env:USERPROFILE '.nuget/packages/microsoft.aspnet.mvc/5.2.9/lib/net45/System.Web.Mvc.dll' }
@@ -88,6 +94,6 @@ Copy-Item -LiteralPath $ScriptDomDll -Destination $out -Force
 & $compiler /nologo /target:exe "/out:$out/SqlCompile.exe" "/r:$ScriptDomDll" (Join-Path $PSScriptRoot 'SqlCompile.cs')
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador SQL.' }
 $scripts=Get-ChildItem -LiteralPath (Join-Path $repo 'SqlMigrations/Pilotos') -Filter '1*.sql' | ForEach-Object FullName
-$scripts=@($scripts)+(Join-Path $repo 'SqlMigrations/Pilotos/06_rutas_activas_solo_lectura.sql')
+$scripts=@($scripts)+(Join-Path $repo 'SqlMigrations/Pilotos/06_rutas_activas_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/07_pos_instalacion_solo_lectura.sql')
 & (Join-Path $out 'SqlCompile.exe') $scripts
 if($LASTEXITCODE -ne 0) { throw 'Fallo sintaxis SQL.' }

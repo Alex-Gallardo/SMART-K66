@@ -95,6 +95,7 @@ namespace DiamDev.Give.UI.Controllers
                             {
                                 var recibido=cierre.Documentos.Single(r=>r.RowId==d.RowId);
                                 d.Visito=recibido.Visito; d.Entrega=recibido.Entrega; d.Motivo=recibido.Motivo;
+                                d.ObservacionPiloto=recibido.Observaciones;
                             }
                             ruta.Solicitud=cierre.Solicitud;
                             ModelState.Clear(); ModelState.AddModelError("",validacion.Message);

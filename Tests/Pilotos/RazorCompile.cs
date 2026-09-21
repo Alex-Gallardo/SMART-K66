@@ -45,6 +45,7 @@ internal static class RazorCompile
                         }
                         if(relative=="Piloto/Detalle.cshtml") {
                             previews["detalle"]=RazorPreview.Render(type,RazorPreview.Ruta());
+                            previews["detalle-cierre"]=RazorPreview.Render(type,RazorPreview.RutaEditable(),null,"activas",true);
                             previews["detalle-historial"]=RazorPreview.Render(type,RazorPreview.Ruta(),null,"historial");
                         }
                         if(relative=="Piloto/Error.cshtml") previews["error"]=RazorPreview.Render(type,null);
@@ -52,7 +53,7 @@ internal static class RazorCompile
                 }
                 Console.WriteLine("OK Razor: "+relative);
             }
-            if(args.Length>1) foreach(var preview in previews) File.WriteAllText(Path.Combine(bin,preview.Key+".html"),RazorPreview.Render(layout,null,preview.Value));
+            if(args.Length>1) foreach(var preview in previews) File.WriteAllText(Path.Combine(bin,preview.Key+".html"),RazorPreview.Render(layout,null,preview.Value,"activas",preview.Key=="detalle-cierre"));
             return 0;
         } catch(Exception e) {Console.Error.WriteLine(e); return 1;}
     }

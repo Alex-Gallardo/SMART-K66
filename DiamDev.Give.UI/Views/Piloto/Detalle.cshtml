@@ -18,7 +18,7 @@
 @if(Model.TotalDocumentos>DiamDev.Give.Entities.PilotoReglas.MaxDocumentos) { <p class="notice">Puedes consultar todos los documentos por páginas. El cierre de esta ruta corresponde a Distribución por su cantidad de documentos.</p> }
 @if (Model.PuedeCerrar)
 {
-    <p class="intro">Indica la visita y el resultado de cada documento. Si hubo un problema, describe el motivo. Los resultados se guardan al completar la ruta.</p>
+    <p class="intro">Marca el resultado de cada factura. Si no se entregó o hubo una incidencia, selecciona el motivo y explica lo ocurrido.</p>
 }
 else if (ViewBag.PruebasSoloLectura != true)
 {
@@ -33,7 +33,8 @@ else if (ViewBag.PruebasSoloLectura != true)
     for (var i = 0; i < Model.Documentos.Count; i++)
     {
         var d = Model.Documentos[i];
-        <article class="document-card">
+        var requiereDetalle = d.Entrega == "NO ENTREGADO" || d.Entrega == "INCIDENCIA";
+        <article class="document-card" data-document="@(d.Documento ?? "Sin número")">
             <div class="document-heading"><span class="document-number">@((Model.PaginaDocumentos-1)*Model.TamanoPaginaDocumentos+i+1)</span><div><p class="eyebrow">@d.Tipo · @d.Empresa</p><h3>@(d.Documento ?? "Sin número")</h3></div><span class="bultos"><svg class="icon" aria-hidden="true"><use href="#i-box" /></svg>@d.Bultos.ToString("0.###") bultos</span></div>
             <p class="customer">@d.Cliente</p><p class="address"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><span>@(string.IsNullOrWhiteSpace(d.Direccion) ? "Dirección no registrada" : d.Direccion)</span></p>
             @if (!string.IsNullOrWhiteSpace(d.Observaciones)) { <p class="observation">Observaciones: @d.Observaciones</p> }
@@ -41,22 +42,45 @@ else if (ViewBag.PruebasSoloLectura != true)
             {
                 <input type="hidden" name="Documentos[@i].RowId" value="@d.RowId" />
                 <div class="result-fields">
-                    <div><label for="visita-@i">¿Visitaste el destino?</label>
-                        @Html.DropDownList("Documentos[" + i + "].Visito", new[] {
-                            new SelectListItem { Text = "Seleccionar", Value = "", Selected = !d.Visito.HasValue },
-                            new SelectListItem { Text = "Sí", Value = "true", Selected = d.Visito == true },
-                            new SelectListItem { Text = "No", Value = "false", Selected = d.Visito == false }
-                        }, new { id = "visita-" + i, required = "required" })
+                    <fieldset class="outcome-fieldset">
+                        <legend>Resultado de la factura</legend>
+                        <div class="outcome-options">
+                            <label class="outcome-choice outcome-delivered" for="entrega-ok-@i">
+                                @Html.RadioButton("Documentos[" + i + "].Entrega", "ENTREGADO", d.Entrega == "ENTREGADO", new { id = "entrega-ok-" + i, required = "required", @class = "delivery-result" })
+                                <span><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg><strong>Entregado</strong><small>Pedido recibido correctamente</small></span>
+                            </label>
+                            <label class="outcome-choice outcome-failed" for="entrega-no-@i">
+                                @Html.RadioButton("Documentos[" + i + "].Entrega", "NO ENTREGADO", d.Entrega == "NO ENTREGADO", new { id = "entrega-no-" + i, required = "required", @class = "delivery-result" })
+                                <span><svg class="icon" aria-hidden="true"><use href="#i-x" /></svg><strong>No entregado</strong><small>El pedido no pudo entregarse</small></span>
+                            </label>
+                            <label class="outcome-choice outcome-incident" for="entrega-inc-@i">
+                                @Html.RadioButton("Documentos[" + i + "].Entrega", "INCIDENCIA", d.Entrega == "INCIDENCIA", new { id = "entrega-inc-" + i, required = "required", @class = "delivery-result" })
+                                <span><svg class="icon" aria-hidden="true"><use href="#i-info" /></svg><strong>Incidencia</strong><small>Requiere seguimiento</small></span>
+                            </label>
+                        </div>
+                    </fieldset>
+                    <fieldset class="visit-fieldset">
+                        <legend>¿Llegaste al destino?</legend>
+                        <div class="visit-options">
+                            <label for="visita-si-@i">@Html.RadioButton("Documentos[" + i + "].Visito", "true", d.Visito == true, new { id = "visita-si-" + i, required = "required", @class = "visit-result" })<span>Sí</span></label>
+                            <label for="visita-no-@i">@Html.RadioButton("Documentos[" + i + "].Visito", "false", d.Visito == false, new { id = "visita-no-" + i, required = "required", @class = "visit-result" })<span>No</span></label>
+                        </div>
+                    </fieldset>
+                    <div class="exception-fields @(requiereDetalle ? "is-visible" : "")" aria-hidden="@(requiereDetalle ? "false" : "true")">
+                        <div class="reason"><label for="motivo-@i">Motivo <small>Obligatorio</small></label>
+                            <select id="motivo-@i" class="delivery-reason" name="Documentos[@i].Motivo">
+                                <option value="">Selecciona un motivo</option>
+                                @foreach (var motivo in DiamDev.Give.Entities.PilotoReglas.MotivosNoEntrega)
+                                {
+                                    <option value="@motivo" selected="@(d.Motivo == motivo ? "selected" : null)">@motivo</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="pilot-observation"><label for="observacion-@i">¿Qué ocurrió? <small>Obligatorio · máximo 500 caracteres</small></label>
+                            <textarea id="observacion-@i" class="delivery-observation" name="Documentos[@i].Observaciones" maxlength="500" rows="4" placeholder="Describe brevemente lo ocurrido en el punto de entrega.">@d.ObservacionPiloto</textarea>
+                            <span class="character-count" aria-live="polite">0 / 500</span>
+                        </div>
                     </div>
-                    <div><label for="entrega-@i">Resultado</label>
-                        @Html.DropDownList("Documentos[" + i + "].Entrega", new[] {
-                            new SelectListItem { Text = "Seleccionar", Value = "", Selected = d.Entrega != "ENTREGADO" && d.Entrega != "NO ENTREGADO" && d.Entrega != "INCIDENCIA" },
-                            new SelectListItem { Text = "Entregado", Value = "ENTREGADO", Selected = d.Entrega == "ENTREGADO" },
-                            new SelectListItem { Text = "No entregado", Value = "NO ENTREGADO", Selected = d.Entrega == "NO ENTREGADO" },
-                            new SelectListItem { Text = "Incidencia", Value = "INCIDENCIA", Selected = d.Entrega == "INCIDENCIA" }
-                        }, new { id = "entrega-" + i, required = "required", @class = "delivery-result" })
-                    </div>
-                    <div class="reason"><label for="motivo-@i">Motivo <small>(obligatorio si no fue entregado)</small></label><input id="motivo-@i" class="delivery-reason" name="Documentos[@i].Motivo" value="@d.Motivo" maxlength="150" /></div>
                 </div>
             }
             else
@@ -72,7 +96,24 @@ else if (ViewBag.PruebasSoloLectura != true)
     if (Model.Documentos.Count == 0) { <p class="empty-state">No hay documentos en esta ruta.</p> }
     if (Model.PuedeCerrar && Model.Documentos.Count > 0)
     {
-        <div class="complete-panel"><p>Revisa los resultados antes de continuar. Al completar, la ruta quedará cerrada.</p><button type="submit" id="complete-button">Completar ruta</button><p id="submit-status" role="status" aria-live="polite"></p></div>
+        <div class="complete-panel"><p><strong>¿Terminaste todas las entregas?</strong><br />Revisa el resumen antes de cerrar la ruta.</p><button type="button" id="review-button"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Revisar y completar ruta</button><p id="submit-status" role="status" aria-live="polite"></p></div>
+        <div id="complete-modal" class="confirm-modal" hidden>
+            <button type="button" class="modal-backdrop" data-close-modal aria-label="Cerrar confirmación"></button>
+            <section class="confirm-sheet" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-help" tabindex="-1">
+                <div class="confirm-handle" aria-hidden="true"></div>
+                <p class="eyebrow">CONFIRMACIÓN FINAL</p>
+                <h2 id="confirm-title">Revisa antes de cerrar</h2>
+                <p id="confirm-help">La ruta <strong>@Model.Id</strong> cambiará de En ruta a Cerrada.</p>
+                <div class="confirm-counts" aria-live="polite">
+                    <div class="delivered"><strong id="summary-delivered">0</strong><span>Entregadas</span></div>
+                    <div class="failed"><strong id="summary-failed">0</strong><span>No entregadas</span></div>
+                    <div class="incident"><strong id="summary-incidents">0</strong><span>Incidencias</span></div>
+                </div>
+                <div id="exception-summary" class="exception-summary" hidden><h3>Casos que requieren atención</h3><ul></ul></div>
+                <label class="confirm-check" for="confirm-reviewed"><input id="confirm-reviewed" type="checkbox" /><span>Confirmo que revisé los resultados de todas las facturas.</span></label>
+                <div class="modal-actions"><button type="button" class="button-secondary" data-close-modal>Volver a revisar</button><button type="submit" id="complete-button" disabled><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Confirmar y cerrar ruta</button></div>
+            </section>
+        </div>
     }
 }
 @if(Model.PaginaDocumentos>1 || Model.HayMasDocumentos) {

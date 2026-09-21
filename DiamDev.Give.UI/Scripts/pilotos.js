@@ -1,7 +1,7 @@
 (function () {
     "use strict";
     var form = document.getElementById("complete-route");
-    if (!form) return;
+    if (!form || !document.getElementById("complete-button")) return;
     var results = form.querySelectorAll(".delivery-result");
     function updateReason(select) {
         var reason = select.closest(".result-fields").querySelector(".delivery-reason");

@@ -9,7 +9,10 @@ internal static class SqlCompile {
             IList<ParseError> errors;
             var parser=new TSql150Parser(true);
             TSqlFragment tree;
-            using(var reader=File.OpenText(file)) tree=parser.Parse(reader,out errors);
+            // Sustituir solo el catalogo parametrizado por un identificador ficticio
+            // permite analizar tambien el cuerpo SQL dinamico de vinculaciones.
+            var source=File.ReadAllText(file).Replace("'+QUOTENAME(@BaseRutas)+N'","[TEST_RUTAS]");
+            using(var reader=new StringReader(source)) tree=parser.Parse(reader,out errors);
             foreach(var error in errors) Console.Error.WriteLine(Path.GetFileName(file)+":"+error.Line+" "+error.Message);
             if(errors.Count>0) return 1;
             // Valida tambien CREATE PROCEDURE anidado en sp_executesql.
@@ -26,7 +29,8 @@ internal static class SqlCompile {
     sealed class ProcedureLiteral : TSqlFragmentVisitor {
         public List<string> Values=new List<string>();
         public override void ExplicitVisit(StringLiteral node) {
-            if(node.Value.TrimStart().StartsWith("CREATE PROCEDURE",StringComparison.OrdinalIgnoreCase)) Values.Add(node.Value);
+            var text=node.Value.TrimStart();
+            if(text.StartsWith("CREATE PROCEDURE",StringComparison.OrdinalIgnoreCase) || text.StartsWith("IF NOT EXISTS(SELECT",StringComparison.OrdinalIgnoreCase) || text.StartsWith("IF @activar=1",StringComparison.OrdinalIgnoreCase)) Values.Add(node.Value);
         }
     }
 }

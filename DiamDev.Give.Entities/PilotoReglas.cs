@@ -11,6 +11,15 @@ namespace DiamDev.Give.Entities
     {
         // Mantiene el formulario completo por debajo del limite de claves de ASP.NET.
         public const int MaxDocumentos = 200;
+        public static void PrepararConsulta(PilotoRuta ruta, int pagina)
+        {
+            if (pagina < 1 || pagina > 100000) throw new PilotoException(400,"Selecciona una página de documentos válida.");
+            ruta.PuedeCerrar = ruta.PuedeCerrar && ruta.TotalDocumentos <= MaxDocumentos;
+            ruta.TamanoPaginaDocumentos = ruta.PuedeCerrar ? MaxDocumentos : 25;
+            ruta.PaginaDocumentos = ruta.PuedeCerrar ? 1 : pagina;
+            if (ruta.PaginaDocumentos > 1 && (long)(ruta.PaginaDocumentos-1)*ruta.TamanoPaginaDocumentos >= ruta.TotalDocumentos)
+                throw new PilotoException(404,"La página de documentos no está disponible. Vuelve al inicio de la ruta.");
+        }
         public static void ValidarCierre(PilotoRuta ruta, PilotoCierre cierre)
         {
             if (cierre == null || cierre.Solicitud == Guid.Empty || cierre.RutaId != ruta.Id)

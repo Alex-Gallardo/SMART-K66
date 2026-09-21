@@ -5,7 +5,7 @@
 }
 <p class="eyebrow">MI JORNADA</p>
 <h1>Mis rutas</h1>
-<p class="intro">Consulta tu vehículo, revisa los documentos y completa tus entregas.</p>
+<p class="intro">Revisa tus rutas asignadas, el vehículo y los documentos de cada entrega.</p>
 @if (Model.RutaFija)
 {
     <p class="notice">Consulta de la ruta configurada para pruebas, independientemente de su fecha.</p>
@@ -22,24 +22,27 @@ using (Html.BeginForm("Index", "Piloto", FormMethod.Get, new { @class = "date-fi
 }
 @if (Model.Rutas.Count == 0)
 {
-    <section class="empty-state"><h2>No tienes rutas en este período</h2><p>Prueba con otras fechas. Si falta una asignación, consulta a Distribución.</p></section>
+    <section class="empty-state"><h2>@(Model.RutaFija ? "La ruta configurada no está disponible" : "No hay rutas para mostrar")</h2><p>@(Model.RutaFija ? "Solicita al administrador que revise la ruta habilitada para consulta." : "Prueba con otras fechas. Distribución puede revisar tu vinculación de piloto, placas y centros.")</p></section>
 }
 else
 {
+    <div class="list-heading"><h2>Rutas disponibles</h2><span class="muted">@Model.Rutas.Count en esta página</span></div>
     <div class="route-grid">
     @foreach (var ruta in Model.Rutas)
     {
         <article class="route-card">
             <div class="card-top"><time datetime="@ruta.Fecha.ToString("yyyy-MM-dd")">@ruta.Fecha.ToString("dd/MM/yyyy")</time><span class="status status-@ruta.Estado">@ruta.EstadoNombre</span></div>
-            <h2><a href="@Url.Action("Detalle", new { id = ruta.Id })">@ruta.Id</a></h2>
+            <h2><a href="@Url.Action("Detalle", new { id = ruta.Id, desde=Model.Desde.ToString("yyyy-MM-dd"), hasta=Model.Hasta.ToString("yyyy-MM-dd"), paginaRutas=Model.Pagina })">@ruta.Id</a></h2>
             <dl><div><dt>Vehículo</dt><dd>@ruta.Placa</dd></div><div><dt>Centro</dt><dd>@ruta.Centro</dd></div></dl>
-            <a class="card-link" href="@Url.Action("Detalle", new { id = ruta.Id })">Ver documentos <span aria-hidden="true">→</span></a>
+            <a class="card-link" href="@Url.Action("Detalle", new { id = ruta.Id, desde=Model.Desde.ToString("yyyy-MM-dd"), hasta=Model.Hasta.ToString("yyyy-MM-dd"), paginaRutas=Model.Pagina })">Ver documentos <span aria-hidden="true">→</span></a>
         </article>
     }
     </div>
 }
+@if (!Model.RutaFija && (Model.Pagina>1 || Model.HayMas)) {
 <nav class="pagination" aria-label="Páginas de rutas">
     @if (Model.Pagina > 1) { <a href="@Url.Action("Index", new { desde = Model.Desde.ToString("yyyy-MM-dd"), hasta = Model.Hasta.ToString("yyyy-MM-dd"), pagina = Model.Pagina - 1 })">← Anterior</a> }
     <span>Página @Model.Pagina</span>
     @if (Model.HayMas) { <a href="@Url.Action("Index", new { desde = Model.Desde.ToString("yyyy-MM-dd"), hasta = Model.Hasta.ToString("yyyy-MM-dd"), pagina = Model.Pagina + 1 })">Siguiente →</a> }
 </nav>
+}

@@ -1,11 +1,19 @@
-@{ Layout = "~/Views/Shared/_PilotoLayout.cshtml"; ViewBag.Title = "Revisar ruta"; }
-<section class="empty-state"><h1>No se completó la solicitud</h1><p role="alert">@ViewBag.Mensaje</p><a class="button-link" href="@Url.Action("Index", "Piloto")">Volver a mis rutas</a><p>Si estabas registrando resultados, vuelve al formulario anterior para revisarlos.</p></section>
-@if (ViewBag.ConfigurarPrueba == true)
-{
-    <section class="notice">
-        <h2>Acceso temporal de consulta</h2>
-        <p>Sesión actual: <strong>@User.Identity.Name</strong>.</p>
-        <p>En el <code>appSettings</code> del Web.config principal del sitio, activa <code>Pilotos.PruebasSoloLectura=true</code>, indica este login en <code>Pilotos.UsuarioPrueba</code> y una placa real en <code>Pilotos.PlacaPrueba</code> o una ruta conocida en <code>Pilotos.RutaPrueba</code> (solo una de las dos). Conserva <code>Pilotos.PermitirCierre=false</code>.</p>
-        <p>El archivo de ejemplo y el Web.config dentro de Views no activan estas opciones. Después de guardar la configuración, inicia sesión de nuevo y abre esta página.</p>
-    </section>
-}
+@{ Layout = "~/Views/Shared/_PilotoLayout.cshtml"; ViewBag.Title = "Revisar acceso"; }
+<section class="empty-state error-state">
+    <p class="eyebrow">PORTAL DE PILOTOS</p>
+    <h1>No pudimos completar la solicitud</h1>
+    <p role="alert">@ViewBag.Mensaje</p>
+    <div class="error-actions">
+        @if (ViewBag.SesionVencida == true) {
+            <a class="button-link" href="@Url.Action("Login", "Seguridad")">Iniciar sesión</a>
+        } else if (ViewBag.ConfigurarPrueba != true) {
+            <a class="button-link" href="@Url.Action("Index", "Piloto")">Consultar mis rutas</a>
+        }
+        <a class="button-link button-secondary" href="@Url.Action("Dashboard", "Inicio")">Volver al dashboard</a>
+    </div>
+    @if (ViewBag.ConfigurarPrueba == true) {
+        <p>Tu cuenta está conectada como <strong>@User.Identity.Name</strong>. Distribución o el administrador deben habilitar tu acceso antes de continuar.</p>
+    }
+    @if (ViewBag.Referencia != null) { <p class="support-reference">Referencia para soporte: <code>@ViewBag.Referencia</code></p> }
+    <p class="muted">Si el mensaje apareció al completar una ruta, consulta su estado antes de intentar guardarla nuevamente.</p>
+</section>

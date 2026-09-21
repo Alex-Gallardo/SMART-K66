@@ -27,8 +27,8 @@ internal static class PilotoTests
         controller.ControllerContext=new ControllerContext(http,new RouteData(),controller);
         var routes=new RouteCollection(); routes.MapRoute("Default","{controller}/{action}/{id}",new {action="Index",id=UrlParameter.Optional});
         controller.Url=new UrlHelper(controller.ControllerContext.RequestContext,routes);
-        var action=new ReflectedActionDescriptor(typeof(PilotoController).GetMethod("Index"),"Index",new ReflectedControllerDescriptor(typeof(PilotoController)));
-        var filter=new ActionExecutingContext(controller.ControllerContext,action,new Dictionary<string,object>());
+        var indexAction=new ReflectedActionDescriptor(typeof(PilotoController).GetMethod("Index"),"Index",new ReflectedControllerDescriptor(typeof(PilotoController)));
+        var filter=new ActionExecutingContext(controller.ControllerContext,indexAction,new Dictionary<string,object>());
         typeof(PilotoController).GetMethod("OnActionExecuting",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(controller,new object[]{filter});
         Check(!(filter.Result is RedirectToRouteResult),"sesion iniciada no regresa al login");
         if(modoPrueba) Check(filter.Result==null,"sesion normal entra a consulta temporal sin marcador PILOTO");
@@ -65,7 +65,8 @@ internal static class PilotoTests
         public override void SetNoStore() {}
     }
     sealed class SesionPrueba : HttpSessionStateBase {
-        public override object this[string name] {get{return null;}set{}}
+        readonly Dictionary<string,object> values=new Dictionary<string,object>();
+        public override object this[string name] {get{object value; return values.TryGetValue(name,out value)?value:null;}set{values[name]=value;}}
     }
     static PilotoRuta Ruta() {
         var r=new PilotoRuta { Id="DEMO-1", Estado="E", Placa="DEMO", Piloto="PILOTO DEMO", Centro="DEMO", Fecha=new DateTime(2026,1,1), PuedeCerrar=true };
@@ -81,6 +82,35 @@ internal static class PilotoTests
     }
     public static int Main(string[] args) {
         try {
+            if(args.Length==1 && args[0]=="config-invalida") {
+                Rechaza(()=>PilotoRutaBL.ValidarConfiguracionPrueba(),503,"configuracion incompleta se rechaza antes de SQL");
+                Rechaza(()=>new PilotoRutaDA(),503,"constructor no abre SQL con configuracion incompleta");
+                Console.WriteLine("OK: configuracion invalida rechazada sin SQL."); return 0;
+            }
+            if(args.Length==1 && args[0]=="ruta-fija") {
+                PilotoRutaBL.ValidarConfiguracionPrueba();
+                Check(PilotoRutaBL.ConsultaRutaFija,"alcance por ruta sin placa");
+                Check(PilotoRutaDA.PruebasSoloLectura,"normaliza espacios de flags");
+                ProbarAccesoSesion(true);
+                Rechaza(()=>new PilotoRutaDA().Cerrar("consulta_demo",null),403,"ruta fija tambien bloquea cierres");
+                Console.WriteLine("OK: "+comprobaciones+" comprobaciones de ruta fija."); return 0;
+            }
+            if(args.Length==1 && args[0]=="sesion-normal") {
+                var http=new ContextoPrueba("consulta_demo");
+                var controller=new PilotoController();
+                controller.ControllerContext=new ControllerContext(http,new RouteData(),controller);
+                var indexAction=new ReflectedActionDescriptor(typeof(PilotoController).GetMethod("Index"),"Index",new ReflectedControllerDescriptor(typeof(PilotoController)));
+                var filter=new ActionExecutingContext(controller.ControllerContext,indexAction,new Dictionary<string,object>());
+                typeof(PilotoController).GetMethod("OnActionExecuting",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(controller,new object[]{filter});
+                Check(http.Response.StatusCode==403 && !(filter.Result is RedirectToRouteResult),"sesion normal sin marcador no entra ni genera bucle");
+                Check(object.Equals(controller.ViewData["SesionVencida"],true),"sesion vencida diferenciada de instalacion");
+                Check(object.Equals(controller.ViewData["ConfigurarPrueba"],false),"sesion vencida no aconseja activar pruebas");
+                http.Session["Pilotos.Autenticado"]="consulta_demo";
+                filter.Result=null;
+                typeof(PilotoController).GetMethod("OnActionExecuting",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(controller,new object[]{filter});
+                Check(filter.Result==null,"sesion piloto validada puede continuar");
+                Console.WriteLine("OK: "+comprobaciones+" comprobaciones de sesion normal."); return 0;
+            }
             if(args.Length==1 && args[0]=="consulta-temporal") {
                 ProbarAccesoSesion(true);
                 Check(PilotoRutaDA.PruebasSoloLectura,"modo de consulta activo");
@@ -94,6 +124,20 @@ internal static class PilotoTests
                 Console.WriteLine("OK: "+comprobaciones+" comprobaciones de consulta temporal; sin conexiones SQL."); return 0;
             }
             ProbarAccesoSesion(false);
+            var grande=new PilotoRuta {TotalDocumentos=201,PuedeCerrar=true};
+            PilotoReglas.PrepararConsulta(grande,9);
+            Check(!grande.PuedeCerrar && grande.PaginaDocumentos==9 && grande.TamanoPaginaDocumentos==25 && !grande.HayMasDocumentos,"ruta de 201 permite consultar ultima pagina sin habilitar cierre");
+            Rechaza(()=>PilotoReglas.PrepararConsulta(grande,10),404,"pagina posterior al ultimo documento");
+            Rechaza(()=>PilotoReglas.PrepararConsulta(grande,0),400,"pagina cero");
+            Rechaza(()=>PilotoReglas.PrepararConsulta(grande,int.MaxValue),400,"pagina excesiva no desborda offset");
+            var editable=new PilotoRuta {TotalDocumentos=200,PuedeCerrar=true};
+            PilotoReglas.PrepararConsulta(editable,2);
+            Check(editable.PuedeCerrar && editable.PaginaDocumentos==1 && editable.TamanoPaginaDocumentos==200 && !editable.HayMasDocumentos,"formulario siempre contiene todos los documentos");
+            var consulta=new PilotoRuta {TotalDocumentos=26,PuedeCerrar=false};
+            PilotoReglas.PrepararConsulta(consulta,1); Check(consulta.HayMasDocumentos && !consulta.PuedeCerrar,"lectura paginada nunca activa cierre");
+            PilotoReglas.PrepararConsulta(consulta,2); Check(!consulta.HayMasDocumentos,"ultima pagina parcial");
+            var vacia=new PilotoRuta {TotalDocumentos=0};
+            PilotoReglas.PrepararConsulta(vacia,1); Check(!vacia.HayMasDocumentos,"ruta sin documentos consultable");
             var r=Ruta(); var c=Cierre(r);
             PilotoReglas.ValidarCierre(r,c); Check(c.Documentos[1].Entrega=="NO ENTREGADO","preserva fallo al cerrar");
             c.Documentos[1].Entrega="INCIDENCIA"; PilotoReglas.ValidarCierre(r,c); Check(true,"incidencia permite cierre con motivo");
@@ -140,7 +184,7 @@ internal static class PilotoTests
             Check(action.IsDefined(typeof(HttpPostAttribute),true) && action.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"cierre POST y CSRF");
             Check(typeof(PilotoController).IsDefined(typeof(AuthorizeAttribute),true),"controlador autenticado");
             Check(typeof(PilotoController).GetMethod("Anular")==null,"sin accion anular");
-            Console.WriteLine("OK: "+comprobaciones+" comprobaciones de reglas, concurrencia, formulario y desafio."); return 0;
+            Console.WriteLine("OK: "+comprobaciones+" comprobaciones de reglas, paginacion, formulario y desafio."); return 0;
         } catch(Exception e) { Console.Error.WriteLine(e); return 1; }
     }
 }

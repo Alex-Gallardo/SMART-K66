@@ -13,11 +13,16 @@
         <a class="brand" href="@Url.Action("Index", "Piloto")">SMART <strong>K66</strong><span>Portal de pilotos</span></a>
         @if (User.Identity.IsAuthenticated)
         {
+            <nav class="pilot-nav" aria-label="Navegación principal">
+                <a href="@Url.Action("Dashboard", "Inicio")">Dashboard</a>
+                <a href="@Url.Action("Index", "Piloto")" aria-current="@(ViewContext.RouteData.Values["action"].ToString() == "Index" ? "page" : null)">Mis rutas</a>
+                <span class="session-name" title="Usuario conectado">@User.Identity.Name</span>
             using (Html.BeginForm("LogOff", "Seguridad", FormMethod.Post))
             {
                 @Html.AntiForgeryToken()
                 <button class="button-quiet" type="submit">Salir</button>
             }
+            </nav>
         }
     </header>
     <main id="contenido" class="pilot-main">

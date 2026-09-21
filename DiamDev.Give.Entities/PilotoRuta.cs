@@ -8,6 +8,12 @@ namespace DiamDev.Give.Entities
         public string Id { get; set; }
         public DateTime Fecha { get; set; }
         public string Placa { get; set; }
+        public string Transporte { get; set; }
+        public string Vehiculo { get; set; }
+        public int TotalDocumentos { get; set; }
+        public int PaginaDocumentos { get; set; }
+        public int TamanoPaginaDocumentos { get; set; }
+        public bool HayMasDocumentos { get { return (long)PaginaDocumentos * TamanoPaginaDocumentos < TotalDocumentos; } }
         public string Piloto { get; set; }
         public string Centro { get; set; }
         public string Estado { get; set; }

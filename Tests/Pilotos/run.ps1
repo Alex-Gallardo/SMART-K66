@@ -41,6 +41,28 @@ $testConfig=Join-Path $out 'PilotoTests.exe.config'
 try {
     & (Join-Path $out 'PilotoTests.exe') consulta-temporal
     if($LASTEXITCODE -ne 0) { throw 'Fallo aislamiento del modo de consulta.' }
+    $fixture=New-Object System.Xml.XmlDocument
+    $fixture.Load($testConfig)
+    $baseFixture=$fixture.OuterXml
+    $cases=@(
+        @{Name='config-invalida';Values=@{'Pilotos.UsuarioPrueba'=''}},
+        @{Name='config-invalida';Values=@{'Pilotos.PlacaPrueba'=''}},
+        @{Name='config-invalida';Values=@{'Pilotos.RutaPrueba'='DEMO-1'}},
+        @{Name='config-invalida';Values=@{'Pilotos.PlacaPrueba'='ABCDEFGHIJKLMNOP'}},
+        @{Name='ruta-fija';Values=@{'Pilotos.PlacaPrueba'='';'Pilotos.RutaPrueba'='DEMO-1';'Pilotos.PruebasSoloLectura'=' true '}},
+        @{Name='sesion-normal';Values=@{'Pilotos.PruebasSoloLectura'='false';'Pilotos.Habilitado'='true'}}
+    )
+    foreach($case in $cases) {
+        $fixture.LoadXml($baseFixture)
+        foreach($key in $case.Values.Keys) {
+            $setting=$fixture.SelectSingleNode("/configuration/appSettings/add[@key='$key']")
+            if(!$setting) { $setting=$fixture.CreateElement('add');$setting.SetAttribute('key',$key);$fixture.configuration.appSettings.AppendChild($setting) | Out-Null }
+            $setting.SetAttribute('value',$case.Values[$key])
+        }
+        $fixture.Save($testConfig)
+        & (Join-Path $out 'PilotoTests.exe') $case.Name
+        if($LASTEXITCODE -ne 0) { throw ('Fallo escenario: '+$case.Name) }
+    }
 } finally {
     # Solo elimina el archivo de configuracion ficticio creado por este test.
     Remove-Item -LiteralPath $testConfig -Force

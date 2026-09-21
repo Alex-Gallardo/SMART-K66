@@ -19,7 +19,19 @@ namespace DiamDev.Give.DAL
         public static bool Habilitado { get { return EsTrue("Pilotos.Habilitado"); } }
         public static bool PruebasSoloLectura { get { return EsTrue("Pilotos.PruebasSoloLectura"); } }
         public static bool CierreHabilitado { get { return !PruebasSoloLectura && EsTrue("Pilotos.PermitirCierre"); } }
-        private static bool EsTrue(string key) { return string.Equals(ConfigurationManager.AppSettings[key], "true", StringComparison.OrdinalIgnoreCase); }
+        private static bool EsTrue(string key) { return string.Equals((ConfigurationManager.AppSettings[key] ?? "").Trim(), "true", StringComparison.OrdinalIgnoreCase); }
+        public static bool ConsultaRutaFija { get { return PruebasSoloLectura && !string.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["Pilotos.RutaPrueba"]); } }
+
+        public static void ValidarConfiguracionPrueba()
+        {
+            if (!PruebasSoloLectura) return;
+            if (string.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["Pilotos.UsuarioPrueba"]))
+                throw new PilotoException(503, "Falta configurar el usuario de consulta temporal. Contacta al administrador.");
+            var placa = (ConfigurationManager.AppSettings["Pilotos.PlacaPrueba"] ?? "").Trim();
+            var ruta = (ConfigurationManager.AppSettings["Pilotos.RutaPrueba"] ?? "").Trim();
+            if ((placa.Length == 0) == (ruta.Length == 0) || placa.Length > 15 || ruta.Length > 15)
+                throw new PilotoException(503, "La consulta temporal necesita una sola placa o ruta válida. Contacta al administrador.");
+        }
         public static bool PermiteUsuarioPrueba(string login)
         {
             var permitido=ConfigurationManager.AppSettings["Pilotos.UsuarioPrueba"];
@@ -29,6 +41,7 @@ namespace DiamDev.Give.DAL
 
         public PilotoRutaDA()
         {
+            ValidarConfiguracionPrueba();
             if (!Habilitado && !PruebasSoloLectura) throw new PilotoException(503, "El acceso a rutas no esta disponible. Contacta a Distribucion.");
             var posConfig = ConfigurationManager.ConnectionStrings["GiveContext"];
             var apkConfig = ConfigurationManager.ConnectionStrings["APK66Context"];
@@ -53,6 +66,19 @@ namespace DiamDev.Give.DAL
             using (var builder = new SqlCommandBuilder()) apk = builder.QuoteIdentifier(catalogo);
         }
 
+        private SqlConnection AbrirConexion()
+        {
+            var cn = new SqlConnection(conexion);
+            try
+            {
+                cn.Open();
+                // Se limita la espera por bloqueos sin leer datos sin confirmar.
+                using (var cmd = Command(cn, null, "SET LOCK_TIMEOUT 3000;")) cmd.ExecuteNonQuery();
+                return cn;
+            }
+            catch { cn.Dispose(); throw; }
+        }
+
         private SqlCommand Command(SqlConnection cn, SqlTransaction tx, string sql)
         { return new SqlCommand(sql, cn, tx) { CommandTimeout = 15 }; }
         private static void Param(SqlCommand cmd, string name, SqlDbType type, object value, int size = 0)
@@ -66,6 +92,8 @@ namespace DiamDev.Give.DAL
         {
             if (string.IsNullOrWhiteSpace(login) || login.Length > 50) throw new PilotoException(403, "Acceso no autorizado.");
             if (PruebasSoloLectura) return AutorizarPrueba(cn,tx,login,permiso);
+            using (var readiness = Command(cn, tx, "SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoVinculo',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoCentro',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVehiculo',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
+                if ((int)readiness.ExecuteScalar() != 1) throw new PilotoException(503, "Falta preparar los vínculos de pilotos y vehículos. Contacta al administrador.");
             var sql = @"SELECT TOP (2) u.Usuario_Id, e.NOMBRE, p.Codigo_Operador
 FROM dbo.Usuario u JOIN dbo.PilotoVinculo p ON p.Usuario_Id=u.Usuario_Id
 JOIN " + apk + @".dbo.RT_EMPLEADOS e ON e.ROWID=p.Empleado_RowId
@@ -117,10 +145,12 @@ AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.
             }
         }
 
-        private static string Alcance(Acceso a)
+        private string Alcance(Acceso a)
         {
             return a.PlacaPrueba!=null ? "r.PLACA=@placa" : a.RutaPrueba!=null ? "r.ID_RUTA=@rutaPrueba" : @"r.PILOTO=@piloto
-AND EXISTS (SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=@usuario AND c.Centro_Dist=r.CENTRO_DIST)";
+AND EXISTS (SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=@usuario AND c.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)
+AND EXISTS (SELECT 1 FROM dbo.PilotoVehiculo pv WHERE pv.Usuario_Id=@usuario AND pv.Activo=1 AND pv.Placa=r.PLACA COLLATE DATABASE_DEFAULT)
+AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1)";
         }
         private static void ParametrosAcceso(SqlCommand cmd,Acceso a)
         {
@@ -142,9 +172,8 @@ AND EXISTS (SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=@usuario AND c.C
             if (hasta < desde || (hasta-desde).TotalDays >= 31 || hasta == DateTime.MaxValue.Date || pagina < 1 || pagina > 1000)
                 throw new PilotoException(400, "Selecciona un periodo de hasta 31 dias y una pagina valida.");
             var result = new PilotoLista { Desde=desde, Hasta=hasta, Pagina=pagina, Rutas=new List<PilotoRuta>() };
-            using (var cn = new SqlConnection(conexion))
+            using (var cn = AbrirConexion())
             {
-                cn.Open();
                 using (var tx = cn.BeginTransaction(IsolationLevel.Serializable))
                 {
                     var a = Autorizar(cn, tx, login, "Pilotos.Rutas.Ver");
@@ -169,8 +198,9 @@ ORDER BY r.FECHA_RUTA DESC,r.ID_RUTA DESC OFFSET @offset ROWS FETCH NEXT 26 ROWS
             return result;
         }
 
-        private PilotoRuta LeerRuta(SqlConnection cn, SqlTransaction tx, Acceso a, string id, bool bloquear)
+        private PilotoRuta LeerRuta(SqlConnection cn, SqlTransaction tx, Acceso a, string id, bool bloquear, int pagina = 1, bool consulta = false)
         {
+            if (pagina < 1 || pagina > 100000) throw new PilotoException(400, "Selecciona una página de documentos válida.");
             if(string.IsNullOrWhiteSpace(id) || id.Length>15) throw new PilotoException(404,"Ruta no disponible.");
             PilotoRuta ruta;
             var hint = bloquear ? " WITH (UPDLOCK,HOLDLOCK) " : " ";
@@ -186,13 +216,32 @@ FROM " + apk + ".dbo.RT_RUTAS r" + hint + "WHERE r.ID_RUTA=@id AND " + Alcance(a
                     ruta.PuedeCerrar=CierreHabilitado && ruta.Estado=="E" && (r["LIQUIDADO"]==DBNull.Value || !(bool)r["LIQUIDADO"]);
                 }
             }
-            sql=@"SELECT TOP (@limite) ROWID,TIPO,ID_EMPRESA,ID_DOCUMENTO,CLIENTE,DIR_DESPACHO,NO_BULTOS,
+            using (var cmd = Command(cn, tx, "SELECT COUNT(*) FROM " + apk + ".dbo.RT_RUTAS_DET WHERE ID_RUTA=@id;"))
+            {
+                Param(cmd,"@id",SqlDbType.NVarChar,id,15); ruta.TotalDocumentos=(int)cmd.ExecuteScalar();
+            }
+            if (!consulta && ruta.TotalDocumentos > PilotoReglas.MaxDocumentos)
+                throw new PilotoException(409,"Esta ruta supera el límite de documentos para cierre. Puedes consultarla; solicita el cierre a Distribución.");
+            if (consulta) PilotoReglas.PrepararConsulta(ruta,pagina);
+            var paginada = consulta && !ruta.PuedeCerrar;
+            if (!consulta) { ruta.TamanoPaginaDocumentos=PilotoReglas.MaxDocumentos; ruta.PaginaDocumentos=1; }
+            using (var cmd = Command(cn, tx, "SELECT MARCA,TIPO,LINEA,EMPRESA FROM " + apk + ".dbo.RT_VEHICULOS WHERE PLACA=@placa;"))
+            {
+                Param(cmd,"@placa",SqlDbType.NVarChar,ruta.Placa,15);
+                using (var r = cmd.ExecuteReader()) if(r.Read())
+                {
+                    ruta.Transporte=Texto(r,"EMPRESA");
+                    ruta.Vehiculo=string.Join(" · ",new[]{Texto(r,"MARCA"),Texto(r,"LINEA"),Texto(r,"TIPO")}.Where(v=>!string.IsNullOrWhiteSpace(v)));
+                }
+            }
+            sql=@"SELECT ROWID,TIPO,ID_EMPRESA,ID_DOCUMENTO,CLIENTE,DIR_DESPACHO,NO_BULTOS,
 MO_VISITO,MO_ENTREGA,MO_MOTIVO,MO_OBSER,MO_HR_ENTRADA,MO_HR_SALIDA
-FROM " + apk + ".dbo.RT_RUTAS_DET" + hint + "WHERE ID_RUTA=@id ORDER BY ROWID;";
+FROM " + apk + ".dbo.RT_RUTAS_DET" + hint + "WHERE ID_RUTA=@id ORDER BY ROWID OFFSET @offset ROWS FETCH NEXT @limite ROWS ONLY;";
             using(var cmd=Command(cn,tx,sql))
             {
                 Param(cmd,"@id",SqlDbType.NVarChar,id,15);
-                Param(cmd,"@limite",SqlDbType.Int,PilotoReglas.MaxDocumentos+1);
+                Param(cmd,"@limite",SqlDbType.Int,ruta.TamanoPaginaDocumentos);
+                Param(cmd,"@offset",SqlDbType.Int,(ruta.PaginaDocumentos-1)*ruta.TamanoPaginaDocumentos);
                 using(var r=cmd.ExecuteReader()) while(r.Read())
                 {
                     ruta.Documentos.Add(new PilotoDocumento { RowId=(int)r["ROWID"], Tipo=Texto(r,"TIPO"), Empresa=Texto(r,"ID_EMPRESA"),
@@ -202,18 +251,18 @@ FROM " + apk + ".dbo.RT_RUTAS_DET" + hint + "WHERE ID_RUTA=@id ORDER BY ROWID;";
                         Salida=r["MO_HR_SALIDA"]==DBNull.Value ? (TimeSpan?)null : (TimeSpan)r["MO_HR_SALIDA"] });
                 }
             }
-            if(ruta.Documentos.Count>PilotoReglas.MaxDocumentos) throw new PilotoException(409,"Esta ruta supera el limite de documentos del portal. Contacta a Distribucion.");
-            ruta.Version=PilotoReglas.Version(ruta);
+            if (paginada && pagina > 1 && ruta.Documentos.Count == 0) throw new PilotoException(404,"La página de documentos no está disponible. Vuelve al inicio de la ruta.");
+            ruta.Version=paginada ? null : PilotoReglas.Version(ruta);
             return ruta;
         }
 
-        public PilotoRuta Detalle(string login,string id)
+        public PilotoRuta Detalle(string login,string id,int pagina = 1)
         {
-            using(var cn=new SqlConnection(conexion))
+            using(var cn=AbrirConexion())
             {
-                cn.Open(); using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
+                using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
                 {
-                    var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Ver"); var ruta=LeerRuta(cn,tx,a,id,false); tx.Commit(); return ruta;
+                    var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Ver"); var ruta=LeerRuta(cn,tx,a,id,false,pagina,true); tx.Commit(); return ruta;
                 }
             }
         }
@@ -250,9 +299,9 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
             var huella=PilotoReglas.HuellaSolicitud(cierre);
             if(cierre.Solicitud==Guid.Empty || string.IsNullOrWhiteSpace(cierre.RutaId) || cierre.RutaId.Length>15)
                 throw new PilotoException(400,"La solicitud de cierre no es valida.");
-            using(var cn=new SqlConnection(conexion))
+            using(var cn=AbrirConexion())
             {
-                cn.Open(); using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
+                using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
                 {
                     var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Confirmar");
                     // Serializa duplicados por usuario/solicitud incluso antes de que exista auditoria.

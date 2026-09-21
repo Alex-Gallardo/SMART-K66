@@ -68,9 +68,9 @@ caracteres, acordado con el responsable de rutas: nunca truncar un login.
 
 El origen conserva una relación heredada por nombre (`RT_RUTAS.PILOTO` con
 `RT_EMPLEADOS.NOMBRE`). Se rechazan nombres ambiguos, incluso si el otro empleado
-está inactivo. Los cambios de nombre deben reconciliarse en el origen. No se
-inventa un vínculo por placa: se muestra el vehículo de cada ruta asignada al
-empleado autorizado, sin mantener otra asignación en POS.
+está inactivo. Los cambios de nombre deben reconciliarse en el origen. La placa
+no sustituye al vínculo de empleado: PilotoVehiculo agrega una restricción de
+acceso por vehículo, sin reasignar rutas en APK66.
 
 Cada operación vuelve a comprobar usuario activo/habilitado para web, rol,
 permiso, vínculo activo, empleado activo y centros. La identidad procede de la
@@ -114,8 +114,9 @@ contenido se rechaza. Ante timeout o respuesta perdida, recargar para comprobar
 el estado: no interpretar un error HTTP como prueba de que no hubo commit.
 
 La lista permite períodos de 31 días y páginas de 25 rutas. El detalle admite
-hasta 200 documentos para mantener el formulario bajo el límite de claves de
-ASP.NET. Rutas mayores se derivan a Distribución, sin guardar parcialmente.
+25 documentos por página de consulta. El formulario de cierre admite hasta 200
+documentos completos; rutas mayores se consultan por páginas y su cierre se
+deriva a Distribución, sin guardar parcialmente.
 
 ## Instalación manual y habilitación
 
@@ -158,7 +159,7 @@ la corrección de su LOCK_TIMEOUT se integró en el PR #54. No hace falta volver
 a ejecutarlos para usar esta implementación.
 
 Permisos SQL mínimos a evaluar para la cuenta de servicio: SELECT en las tablas
-de autorización POS y las tres tablas RT consultadas; SELECT/INSERT en auditoría;
+de autorización POS y las cuatro tablas RT consultadas; SELECT/INSERT en auditoría;
 EXECUTE en las dos rutinas de resultado/cierre y visibilidad de definiciones del
 trigger. La cuenta web no administra vínculos ni cambia permisos/triggers. No
 habilitar TRUSTWORTHY, cross-db ownership chaining global ni permisos `sa` para
@@ -170,9 +171,9 @@ mediante una migración inversa genérica.
 
 ## Validación
 
-`Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 44 comprobaciones de
-reglas/formulario/desafío/acceso y diez del modo temporal (incluido bloqueo del cierre
-antes de conectar SQL), compila las cinco vistas Razor y analiza los cuatro
+`Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 79 comprobaciones de
+reglas, paginación, desafío, acceso y configuración (incluido bloqueo del cierre
+antes de conectar SQL), compila las cinco vistas Razor y analiza los seis
 scripts nuevos con ScriptDom SQL150, sin conexiones SQL. Las rutas de DLL pueden
 pasarse por parámetros; usa paquetes locales/restaurados, sin descargarlos.
 
@@ -196,3 +197,112 @@ Pendientes en copia aislada con dos pilotos y datos ficticios:
 La compilación completa requiere el toolchain web de Visual Studio, targeting
 pack .NET Framework y dependencias de la solución (incluido Crystal Reports).
 La aplicación no debe desplegarse basándose únicamente en el compilador aislado.
+
+## Actualizacion: usuario, transporte y placas
+
+No se crea otra tabla de credenciales ni se modifica `dbo.Usuario`. La cuenta POS
+sigue siendo la identidad autenticada y el login habitual sigue llevando al
+Dashboard; el usuario entra al portal desde el menu existente.
+
+El modelo de acceso normal queda asi:
+
+- `Usuario.Usuario_Id` → `PilotoVinculo` → `RT_EMPLEADOS.ROWID`: identidad del piloto.
+- `Usuario.Usuario_Id` → `PilotoCentro`: centros autorizados.
+- `Usuario.Usuario_Id` → `PilotoVehiculo.Placa`: una o varias placas autorizadas.
+- `RT_VEHICULOS.PLACA`: marca, linea, tipo y empresa de transporte del catalogo de rutas.
+
+Las cuatro condiciones son acumulativas: piloto de la ruta, centro permitido,
+placa vinculada y vehiculo activo en APK66. Compartir una placa no da acceso a
+rutas asignadas a otra persona. El piloto no elige una placa libremente desde
+la URL. Distribucion conserva las asignaciones reales en APK66; la tabla POS
+limita el acceso web y NO replica ni cambia la asignacion de las rutas.
+La consulta temporal conserva su alcance limitado por login y ruta/placa, sin
+requerir estas tablas; todos los cierres siguen bloqueados en ese modo.
+
+### Instalacion o actualizacion manual
+
+1. Confirmar el catalogo POS de destino con el responsable del sitio. No inferir
+   si es pruebas o produccion por el sufijo del nombre.
+2. Si no existe el esquema anterior, revisar e instalar `10_portal_pos.sql` y
+   vincular el usuario con `11_vincular_piloto.sql`. Una instalacion anterior NO
+   debe volver a ejecutar el script 10: continuar con el paso 3.
+3. Revisar `14_vehiculos_pos.sql`. Crea `PilotoVehiculo` y
+   `PilotoVehiculoHistorial`, inicialmente sin asignaciones. Requiere el esquema
+   previo y se detiene si ya existen objetos, sin sobrescribirlos.
+4. Revisar `15_vincular_vehiculo.sql`. Completar usuario por ID, placa, catalogos,
+   motivo y `@Activar`. Revisar primero con `@Aplicar=0`; solo despues aplicar
+   explicitamente. `@Activar=0` revoca el vinculo y `@Activar=1` lo activa.
+   Guarda antes/despues y actor SQL en historial dentro de la misma transaccion.
+   Repetir el mismo estado no duplica el historial. La cuenta web no necesita
+   permiso de escritura en estas tablas. No borrar asignaciones con historial.
+5. Otorgar a la cuenta web SELECT en `PilotoVehiculo` y `RT_VEHICULOS`, ademas
+   de los permisos de lectura ya documentados. Si el esquema falta, el portal
+   informa instalacion pendiente; no omite los controles de acceso.
+6. Validar lectura y revocaciones. Mantener `Pilotos.PermitirCierre=false`.
+
+No hay FK entre bases: el script comprueba la placa en APK66 al activarla y la
+web vuelve a comprobar que el vehiculo este activo en cada consulta. La empresa
+se muestra desde `RT_VEHICULOS.EMPRESA`; no se crea un catalogo paralelo de
+transportistas ni se concede acceso a todos los vehiculos de una empresa.
+
+### Diagnostico local de configuracion
+
+Ejecutar en PowerShell, con la ruta del Web.config PRINCIPAL del sitio que
+realmente ejecuta Visual Studio/IIS (el archivo no se envia a ningun servicio):
+
+```powershell
+.\SqlMigrations\Pilotos\Diagnosticar-Configuracion.ps1 `
+  -WebConfig 'C:\ruta-del-sitio\Web.config' -Usuario 'LOGIN_DE_PRUEBA'
+```
+
+El resultado muestra la ruta revisada y verificaciones booleanas. No imprime
+conexiones, passwords, login configurado ni identificadores de rutas/placas.
+Detecta claves duplicadas y deriva archivos externos a revision manual.
+Este diagnostico NO prueba que IIS use ese archivo ni realiza conexiones SQL.
+Tras modificar configuracion, reiniciar la sesion y probar desde el menu.
+Los detalles tecnicos de instalacion ya no aparecen en las pantallas del piloto.
+
+### Consulta y experiencia de uso
+
+Navbar sticky con Dashboard, Mis rutas, usuario conectado y salida. Los enlaces
+del detalle conservan fechas y pagina del listado. La consulta muestra hasta
+25 documentos por pagina, con total, numeracion continua y horas existentes.
+Las rutas mayores a 200 documentos son consultables; solo su cierre se deriva a
+Distribucion. El formulario editable conserva el conjunto completo de documentos,
+por lo que nunca guarda una pagina parcial. Ante un error de validacion, recupera
+los campos solo si puede volver a autorizar la ruta y su version sigue vigente.
+
+Los errores distinguen sesion de piloto no disponible, configuracion incompleta,
+instalacion pendiente, permisos/conexion y espera/bloqueo. Los errores tecnicos
+incluyen una referencia correlacionada con Trace, sin registrar SQL, parametros,
+contraseñas ni datos comerciales. La aplicacion fija LOCK_TIMEOUT=3000 en su
+conexion; conserva lecturas confirmadas y transacciones de autorizacion. Revisar
+planes e indices antes de cargas concurrentes; no se crean indices automaticamente.
+
+### Evidencia y pendientes de esta revision
+
+`Tests/Pilotos/run.ps1`: 79 comprobaciones (52 generales, 10 de consulta temporal,
+8 de configuracion invalida, 5 de ruta fija y 4 de sesion normal), cinco vistas
+Razor y seis scripts SQL. Tambien analiza los cuerpos SQL dinamicos de los scripts
+de vinculacion usando un catalogo ficticio. No conecta a SQL, envia SMS ni lee
+credenciales productivas para las pruebas.
+
+Se reviso una vista previa visual con datos ficticios, estilos del modulo y
+ancho movil: sin desbordamiento horizontal y navbar fijo al desplazarse. Esa
+vista previa no ejecuta MVC ni sustituye la verificacion del sitio real.
+
+La compilacion completa no fue posible en el equipo de revision: no hay SDK .NET
+ni herramientas web de Visual Studio; MSBuild Framework antiguo rechaza sintaxis
+preexistente de otros modulos. Usar Visual Studio con el toolchain del proyecto,
+paquetes, targeting pack y Crystal Reports para completar esa verificacion.
+
+Pendientes de integracion, en entorno preparado:
+
+- Login normal → Dashboard → menu Pilotos; salida, sesion vencida y usuario sin acceso.
+- Dos usuarios/pilotos, distintas placas y centros: listado y detalle no cruzan datos.
+- Revocar placa o inactivar vehiculo bloquea nuevas lecturas de una sesion iniciada.
+- Activar/desactivar un vinculo registra historial; repetirlo no duplica registros.
+- Rutas con 0, 25, 26, 200 y 201 documentos: todas consultables sin omisiones.
+- Reasignacion concurrente, permisos SQL insuficientes, timeouts y collations distintas.
+- Cierre y efectos de triggers exclusivamente en copia aislada; el trigger de APK66
+  sigue requiriendo revision y validacion antes de cualquier cierre productivo.

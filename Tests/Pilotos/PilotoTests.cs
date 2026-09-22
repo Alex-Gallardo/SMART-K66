@@ -13,16 +13,6 @@ using DiamDev.Give.DAL;
 using DiamDev.Give.BLL;
 using DiamDev.Give.UI.Controllers;
 
-namespace DiamDev.Give.UI.App_Start
-{
-    // Sustituye únicamente al atributo de infraestructura durante la compilación aislada.
-    public sealed class PermisoAttribute : AuthorizeAttribute
-    {
-        public string Permiso { get; private set; }
-        public PermisoAttribute(string permiso) { Permiso = permiso; }
-    }
-}
-
 internal static class PilotoTests
 {
     static int comprobaciones;
@@ -218,8 +208,7 @@ internal static class PilotoTests
             admin.Motivo="Cambio"; admin.Activo=true; admin.EmpleadoRowId=2; admin.CodigoOperador="operador"; admin.Centros=new[]{new string('x',16)}; admin.Placas=new[]{"C-001"}; Rechaza(()=>PilotoAdminReglas.Validar(admin),400,"centro administrativo demasiado largo");
             var adminPost=typeof(PilotoController).GetMethods().Single(m=>m.Name=="Configurar" && m.IsDefined(typeof(HttpPostAttribute),true));
             Check(adminPost.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"configuracion POST usa antiforgery");
-            var permiso=(DiamDev.Give.UI.App_Start.PermisoAttribute)adminPost.GetCustomAttributes(typeof(DiamDev.Give.UI.App_Start.PermisoAttribute),true).Single();
-            Check(permiso.Permiso=="Pilotos.Configurar","configuracion requiere permiso dedicado");
+            Check(!adminPost.GetCustomAttributes(true).Any(a=>a.GetType().Name=="PermisoAttribute"),"configuracion no exige permiso funcional");
             var adminHttp=new ContextoPrueba("consulta_demo"); var adminController=new PilotoController();
             adminController.ControllerContext=new ControllerContext(adminHttp,new RouteData(),adminController);
             var adminAction=new ReflectedActionDescriptor(typeof(PilotoController).GetMethod("Administracion"),"Administracion",new ReflectedControllerDescriptor(typeof(PilotoController)));

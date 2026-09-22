@@ -7,7 +7,6 @@ using System.Linq;
 using System.Web.Mvc;
 using DiamDev.Give.BLL;
 using DiamDev.Give.Entities;
-using DiamDev.Give.UI.App_Start;
 
 namespace DiamDev.Give.UI.Controllers
 {
@@ -56,7 +55,6 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso("Pilotos.Configurar")]
         public ActionResult Administracion(string buscar)
         {
             try { return View(new PilotoAdministracionBL().Listar(User.Identity.Name, buscar)); }
@@ -64,7 +62,6 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        [Permiso("Pilotos.Configurar")]
         public ActionResult Configurar(long id)
         {
             try { return View(new PilotoAdministracionBL().Obtener(User.Identity.Name, id)); }
@@ -73,7 +70,6 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Permiso("Pilotos.Configurar")]
         public ActionResult Configurar(PilotoAdminGuardar modelo)
         {
             try

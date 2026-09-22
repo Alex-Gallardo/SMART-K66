@@ -7,6 +7,7 @@ using System.Linq;
 using System.Web.Mvc;
 using DiamDev.Give.BLL;
 using DiamDev.Give.Entities;
+using DiamDev.Give.UI.App_Start;
 
 namespace DiamDev.Give.UI.Controllers
 {
@@ -17,6 +18,12 @@ namespace DiamDev.Give.UI.Controllers
         {
             Response.Cache.SetCacheability(System.Web.HttpCacheability.NoCache);
             Response.Cache.SetNoStore();
+            if (EsAdministracion(context))
+            {
+                ViewBag.EsAdministracion = true;
+                base.OnActionExecuting(context);
+                return;
+            }
             if (PilotoRutaBL.PruebasSoloLectura)
             {
                 try { PilotoRutaBL.ValidarConfiguracionPrueba(); }
@@ -39,6 +46,73 @@ namespace DiamDev.Give.UI.Controllers
                 return;
             }
             base.OnActionExecuting(context);
+        }
+
+        private static bool EsAdministracion(ActionExecutingContext context)
+        {
+            var accion = context.ActionDescriptor.ActionName;
+            return string.Equals(accion, "Administracion", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(accion, "Configurar", StringComparison.OrdinalIgnoreCase);
+        }
+
+        [HttpGet]
+        [Permiso("Pilotos.Configurar")]
+        public ActionResult Administracion(string buscar)
+        {
+            try { return View(new PilotoAdministracionBL().Listar(User.Identity.Name, buscar)); }
+            catch (Exception e) { return ErrorPiloto(e); }
+        }
+
+        [HttpGet]
+        [Permiso("Pilotos.Configurar")]
+        public ActionResult Configurar(long id)
+        {
+            try { return View(new PilotoAdministracionBL().Obtener(User.Identity.Name, id)); }
+            catch (Exception e) { return ErrorPiloto(e); }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Permiso("Pilotos.Configurar")]
+        public ActionResult Configurar(PilotoAdminGuardar modelo)
+        {
+            try
+            {
+                if (!ModelState.IsValid) throw new PilotoException(400, "Revisa los datos de la configuración.");
+                new PilotoAdministracionBL().Guardar(User.Identity.Name, modelo);
+                TempData["Piloto.AdminMensaje"] = modelo.Activo
+                    ? "Configuración guardada. El piloto ya puede consultar las rutas que coincidan con su empleado, centros y vehículos."
+                    : "Vínculo desactivado. El usuario ya no puede consultar ni completar rutas.";
+                return RedirectToAction("Configurar", new { id = modelo.UsuarioId });
+            }
+            catch (Exception e)
+            {
+                var esperado = e as PilotoException;
+                if (esperado != null && (esperado.StatusCode == 400 || esperado.StatusCode == 409) && modelo != null && modelo.UsuarioId > 0)
+                {
+                    try
+                    {
+                        var vista = new PilotoAdministracionBL().Obtener(User.Identity.Name, modelo.UsuarioId);
+                        PilotoAdminReglas.Normalizar(modelo);
+                        vista.Formulario = modelo;
+                        AplicarSeleccion(vista);
+                        ModelState.Clear(); ModelState.AddModelError("", esperado.Message);
+                        Response.StatusCode = esperado.StatusCode; Response.TrySkipIisCustomErrors = true;
+                        return View(vista);
+                    }
+                    catch { /* Si ya no se puede leer el usuario, se usa la respuesta segura común. */ }
+                }
+                return ErrorPiloto(e);
+            }
+        }
+
+        private static void AplicarSeleccion(PilotoAdminEdicion vista)
+        {
+            var centros = vista.Formulario.Centros ?? new string[0];
+            var placas = vista.Formulario.Placas ?? new string[0];
+            foreach (var e in vista.Empleados) e.Seleccionado = vista.Formulario.EmpleadoRowId == e.RowId;
+            foreach (var c in vista.Centros) c.Seleccionado = centros.Contains(c.Codigo, StringComparer.OrdinalIgnoreCase);
+            foreach (var v in vista.Vehiculos) v.Seleccionado = placas.Contains(v.Codigo, StringComparer.OrdinalIgnoreCase);
         }
 
         public ActionResult Index(string desde, string hasta, int pagina = 1, string vista = null)

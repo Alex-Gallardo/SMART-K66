@@ -22,6 +22,8 @@ http.createServer((req, res) => {
     else if (url.pathname === '/preview/fija') page = 'fija';
     else if (url.pathname === '/preview/vacia') page = 'vacia';
     else if (url.pathname === '/preview/error') page = 'error';
+    else if (url.pathname === '/Piloto/Administracion' || url.pathname === '/preview/administracion') page = 'administracion';
+    else if (url.pathname === '/preview/configurar' || url.pathname.startsWith('/Piloto/Configurar')) page = 'configurar';
     else if (url.searchParams.get('vista') === 'historial') page = 'historial';
     else if (url.pathname !== '/' && url.pathname !== '/Piloto/Index' && url.pathname !== '/Piloto') { res.writeHead(404); res.end(); return; }
     res.setHeader('Content-Type', 'text/html; charset=utf-8');

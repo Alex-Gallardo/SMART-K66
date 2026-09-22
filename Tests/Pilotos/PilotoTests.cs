@@ -13,6 +13,16 @@ using DiamDev.Give.DAL;
 using DiamDev.Give.BLL;
 using DiamDev.Give.UI.Controllers;
 
+namespace DiamDev.Give.UI.App_Start
+{
+    // Sustituye únicamente al atributo de infraestructura durante la compilación aislada.
+    public sealed class PermisoAttribute : AuthorizeAttribute
+    {
+        public string Permiso { get; private set; }
+        public PermisoAttribute(string permiso) { Permiso = permiso; }
+    }
+}
+
 internal static class PilotoTests
 {
     static int comprobaciones;
@@ -197,6 +207,25 @@ internal static class PilotoTests
             Check(action.IsDefined(typeof(HttpPostAttribute),true) && action.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"cierre POST y CSRF");
             Check(typeof(PilotoController).IsDefined(typeof(AuthorizeAttribute),true),"controlador autenticado");
             Check(typeof(PilotoController).GetMethod("Anular")==null,"sin accion anular");
+            var admin=new PilotoAdminGuardar {UsuarioId=1,EmpleadoRowId=2,CodigoOperador=" operador ",Activo=true,
+                Centros=new[]{" PC ","pc",""},Placas=new[]{" C-001 ","c-001"},Motivo=" Alta inicial "};
+            PilotoAdminReglas.Validar(admin);
+            Check(admin.CodigoOperador=="operador" && admin.Centros.Length==1 && admin.Placas.Length==1,"administracion normaliza seleccion sin duplicados");
+            admin.Centros=new string[0]; Rechaza(()=>PilotoAdminReglas.Validar(admin),400,"vinculo activo exige centro");
+            admin.Centros=new[]{"PC"}; admin.Placas=new string[0]; Rechaza(()=>PilotoAdminReglas.Validar(admin),400,"vinculo activo exige vehiculo");
+            admin.Activo=false; admin.EmpleadoRowId=null; admin.CodigoOperador=null; PilotoAdminReglas.Validar(admin); Check(true,"desactivacion no depende de catalogos obsoletos");
+            admin.Motivo=" "; Rechaza(()=>PilotoAdminReglas.Validar(admin),400,"cambio administrativo exige motivo");
+            admin.Motivo="Cambio"; admin.Activo=true; admin.EmpleadoRowId=2; admin.CodigoOperador="operador"; admin.Centros=new[]{new string('x',16)}; admin.Placas=new[]{"C-001"}; Rechaza(()=>PilotoAdminReglas.Validar(admin),400,"centro administrativo demasiado largo");
+            var adminPost=typeof(PilotoController).GetMethods().Single(m=>m.Name=="Configurar" && m.IsDefined(typeof(HttpPostAttribute),true));
+            Check(adminPost.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"configuracion POST usa antiforgery");
+            var permiso=(DiamDev.Give.UI.App_Start.PermisoAttribute)adminPost.GetCustomAttributes(typeof(DiamDev.Give.UI.App_Start.PermisoAttribute),true).Single();
+            Check(permiso.Permiso=="Pilotos.Configurar","configuracion requiere permiso dedicado");
+            var adminHttp=new ContextoPrueba("consulta_demo"); var adminController=new PilotoController();
+            adminController.ControllerContext=new ControllerContext(adminHttp,new RouteData(),adminController);
+            var adminAction=new ReflectedActionDescriptor(typeof(PilotoController).GetMethod("Administracion"),"Administracion",new ReflectedControllerDescriptor(typeof(PilotoController)));
+            var adminFilter=new ActionExecutingContext(adminController.ControllerContext,adminAction,new Dictionary<string,object>());
+            typeof(PilotoController).GetMethod("OnActionExecuting",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(adminController,new object[]{adminFilter});
+            Check(adminFilter.Result==null && object.Equals(adminController.ViewData["EsAdministracion"],true),"administracion no exige sesion especial de piloto");
             Console.WriteLine("OK: "+comprobaciones+" comprobaciones de reglas, paginacion, formulario y desafio."); return 0;
         } catch(Exception e) { Console.Error.WriteLine(e); return 1; }
     }

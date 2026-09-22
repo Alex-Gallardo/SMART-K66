@@ -209,5 +209,6 @@
   -->
   <ItemGroup>
     <Compile Include="PilotoRutaBL.cs" />
+    <Compile Include="PilotoAdministracionBL.cs" />
   </ItemGroup>
 </Project>

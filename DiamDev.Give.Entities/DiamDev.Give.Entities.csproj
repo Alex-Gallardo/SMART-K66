@@ -382,6 +382,7 @@
   <ItemGroup>
     <Compile Include="PilotoRuta.cs" />
     <Compile Include="PilotoReglas.cs" />
+    <Compile Include="PilotoAdministracion.cs" />
     <Compile Include="PilotoDesafio.cs" />
   </ItemGroup>
 </Project>

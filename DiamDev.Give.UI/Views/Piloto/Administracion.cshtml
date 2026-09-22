@@ -1,0 +1,42 @@
+@model DiamDev.Give.Entities.PilotoAdminLista
+@{
+    Layout = "~/Views/Shared/_PilotoLayout.cshtml";
+    ViewBag.Title = "Administrar pilotos";
+}
+<section class="page-heading admin-heading">
+    <p class="eyebrow">DISTRIBUCIÓN</p>
+    <h1>Administrar pilotos</h1>
+    <p class="intro">Vincula cada cuenta POS con su empleado, centros y vehículos autorizados. Las rutas en APK66 no se reasignan desde aquí.</p>
+</section>
+
+@if (TempData["Piloto.AdminMensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.AdminMensaje"]</p> }
+
+@using (Html.BeginForm("Administracion", "Piloto", FormMethod.Get, new { @class = "admin-search", role = "search" }))
+{
+    <div><label for="buscar">Buscar usuario piloto</label><input id="buscar" name="buscar" value="@Model.Buscar" maxlength="80" placeholder="Login o nombre" /></div>
+    <button type="submit"><svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>Buscar</button>
+}
+
+<div class="list-heading"><h2>Usuarios con rol o vínculo de piloto</h2><span class="count">@Model.Usuarios.Count</span></div>
+@if (Model.Usuarios.Count == 0)
+{
+    <section class="empty-state"><span class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-user" /></svg></span>
+        <h2>No se encontraron usuarios</h2><p>Primero crea o habilita la cuenta en Usuarios y asígnale el rol PILOTO.</p>
+    </section>
+}
+else
+{
+    <div class="admin-user-grid">
+    @foreach (var usuario in Model.Usuarios)
+    {
+        <article class="admin-user-card">
+            <div class="admin-card-top"><div><span class="field-label">@usuario.Login</span><h3>@usuario.Nombre</h3></div>
+                <span class="status-pill @(usuario.Listo ? "status-ready" : usuario.VinculoActivo == false ? "status-off" : "status-pending")">@(usuario.Listo ? "Listo" : usuario.VinculoActivo == false ? "Desactivado" : "Pendiente")</span>
+            </div>
+            <dl class="admin-stats"><div><dt>Piloto APK66</dt><dd>@(string.IsNullOrWhiteSpace(usuario.Piloto) ? "Sin vincular" : usuario.Piloto)</dd></div><div><dt>Centros</dt><dd>@usuario.Centros</dd></div><div><dt>Vehículos</dt><dd>@usuario.Vehiculos</dd></div></dl>
+            @if (!usuario.UsuarioActivo || !usuario.AutenticarSite || !usuario.TieneRolPiloto) { <p class="admin-warning">Requiere @(usuario.TieneRolPiloto ? "cuenta activa y acceso web" : "rol PILOTO").</p> }
+            <a class="button-link" href="@Url.Action("Configurar", new { id = usuario.UsuarioId })">Configurar acceso<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+        </article>
+    }
+    </div>
+}

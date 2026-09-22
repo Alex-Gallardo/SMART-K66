@@ -18,27 +18,36 @@ BEGIN TRY
     SELECT N'OBJETOS_POS' AS Seccion,v.Nombre,
         CASE WHEN OBJECT_ID(N'dbo.'+v.Nombre,N'U') IS NULL THEN N'NO EXISTE' ELSE N'EXISTE' END AS Estado
     FROM (VALUES(N'PilotoVinculo'),(N'PilotoCentro'),(N'PilotoCierre'),
-                (N'PilotoVehiculo'),(N'PilotoVehiculoHistorial')) v(Nombre)
+                (N'PilotoVehiculo'),(N'PilotoVehiculoHistorial'),
+                (N'PilotoVinculoHistorial'),(N'PilotoCentroHistorial')) v(Nombre)
     ORDER BY v.Nombre;
 
     SELECT N'ROL_Y_PERMISOS' AS Seccion,r.Rol_Id,r.Nombre AS Rol,
         rp.Permiso_Id,p.Descripcion,p.Modulo
     FROM dbo.Rol r
     LEFT JOIN dbo.Rol_Permiso rp ON rp.Rol_Id=r.Rol_Id
-        AND rp.Permiso_Id IN(N'Pilotos.Rutas.Ver',N'Pilotos.Rutas.Confirmar')
+        AND rp.Permiso_Id IN(N'Pilotos.Rutas.Ver',N'Pilotos.Rutas.Confirmar',N'Pilotos.Configurar')
     LEFT JOIN dbo.Permiso p ON p.Nombre=rp.Permiso_Id
     WHERE r.Nombre=N'PILOTO'
     ORDER BY rp.Permiso_Id;
 
+    SELECT N'ADMINISTRADORES_PILOTO' AS Seccion,r.Rol_Id,r.Nombre AS Rol,
+        rp.Permiso_Id,p.Descripcion,p.Modulo
+    FROM dbo.Rol_Permiso rp
+    JOIN dbo.Rol r ON r.Rol_Id=rp.Rol_Id
+    JOIN dbo.Permiso p ON p.Nombre=rp.Permiso_Id
+    WHERE rp.Permiso_Id=N'Pilotos.Configurar'
+    ORDER BY r.Nombre;
+
     SELECT N'PERMISOS_SIN_ROL' AS Seccion,p.Nombre,p.Descripcion,p.Modulo
     FROM dbo.Permiso p
-    WHERE p.Nombre IN(N'Pilotos.Rutas.Ver',N'Pilotos.Rutas.Confirmar')
+    WHERE p.Nombre IN(N'Pilotos.Rutas.Ver',N'Pilotos.Rutas.Confirmar',N'Pilotos.Configurar')
       AND NOT EXISTS(SELECT 1 FROM dbo.Rol_Permiso rp WHERE rp.Permiso_Id=p.Nombre);
 
     SELECT N'INDICES_POS' AS Seccion,OBJECT_NAME(i.object_id) AS Tabla,i.name AS Indice,
         i.is_unique AS EsUnico,i.has_filter AS TieneFiltro,i.filter_definition AS Filtro
     FROM sys.indexes i
-    WHERE OBJECT_NAME(i.object_id) IN(N'PilotoVinculo',N'PilotoCentro',N'PilotoCierre',N'PilotoVehiculo',N'PilotoVehiculoHistorial')
+    WHERE OBJECT_NAME(i.object_id) IN(N'PilotoVinculo',N'PilotoCentro',N'PilotoCierre',N'PilotoVehiculo',N'PilotoVehiculoHistorial',N'PilotoVinculoHistorial',N'PilotoCentroHistorial')
       AND i.name IS NOT NULL
     ORDER BY Tabla,Indice;
 

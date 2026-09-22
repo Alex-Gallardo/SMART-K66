@@ -249,6 +249,16 @@ small,.field-label {
   margin:0
 }
 
+.account-link {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:-4px 0 14px;
+  padding:10px 0;
+  border-bottom:1px solid var(--line);
+  font-weight:750
+}
+
 .pilot-main {
   max-width:1160px;
   margin:auto;
@@ -1267,6 +1277,171 @@ body.modal-open {
   color:var(--muted)
 }
 
+/* Administración de accesos: el formulario conserva objetivos táctiles grandes. */
+.admin-heading {
+  max-width:780px
+}
+
+.admin-search {
+  display:grid;
+  gap:12px;
+  max-width:760px;
+  margin:0 0 28px;
+  padding:16px;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  background:var(--paper)
+}
+
+.admin-search label {
+  margin-bottom:5px
+}
+
+.admin-user-grid {
+  display:grid;
+  gap:16px
+}
+
+.admin-user-card,.admin-section {
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  background:var(--paper);
+  box-shadow:0 5px 18px #10283f0c
+}
+
+.admin-card-top {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px
+}
+
+.status-pill {
+  flex-shrink:0;
+  border-radius:999px;
+  padding:6px 10px;
+  font-size:12px;
+  font-weight:850
+}
+
+.status-ready { background:#d7f3e1;color:#0c512e }
+.status-pending { background:#fff0bd;color:#5a3f00 }
+.status-off { background:#e4e8ed;color:#3f4b59 }
+
+.admin-stats {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  margin:18px 0
+}
+
+.admin-stats div:first-child { grid-column:1/-1 }
+.admin-stats dt { color:var(--muted);font-size:13px }
+.admin-stats dd { margin:2px 0 0;font-weight:800;overflow-wrap:anywhere }
+.admin-user-card .button-link { width:100% }
+.admin-warning { padding:10px 12px;border-left:4px solid #a75500;background:#fff1d5;font-size:14px }
+
+.admin-form {
+  display:grid;
+  gap:18px
+}
+
+.admin-section {
+  position:relative
+}
+
+.step-number {
+  display:grid;
+  place-items:center;
+  width:38px;
+  height:38px;
+  margin-bottom:10px;
+  border-radius:11px;
+  background:var(--navy);
+  color:#fff;
+  font-weight:900
+}
+
+.section-title p {
+  margin:-5px 0 18px;
+  color:var(--muted);
+  font-size:15px
+}
+
+.admin-fields,.option-grid {
+  display:grid;
+  gap:12px
+}
+
+.check-card,.switch-card {
+  display:grid;
+  grid-template-columns:28px minmax(0,1fr);
+  align-items:start;
+  gap:11px;
+  min-height:58px;
+  margin:0;
+  padding:13px;
+  border:2px solid var(--line);
+  border-radius:12px;
+  background:#f8fafc;
+  cursor:pointer
+}
+
+.check-card:has(input:checked),.switch-card:has(input:checked) {
+  border-color:var(--blue);
+  background:#e9f3fd
+}
+
+.check-card input,.switch-card input {
+  width:24px;
+  min-height:24px;
+  height:24px;
+  margin:1px 0 0;
+  accent-color:var(--blue)
+}
+
+.check-card small,.switch-card small {
+  display:block;
+  margin-top:2px
+}
+
+.check-card[hidden] { display:none }
+.check-card:has(input:disabled) { opacity:.62;cursor:not-allowed }
+
+.decision-section button {
+  width:100%;
+  margin-top:18px
+}
+
+.switch-card {
+  margin-bottom:18px;
+  border-color:#7d8fa2
+}
+
+.route-preview {
+  margin-top:22px
+}
+
+.preview-routes {
+  display:grid;
+  gap:10px
+}
+
+.preview-routes article {
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-items:center;
+  gap:4px 10px;
+  padding:13px;
+  border:1px solid var(--line);
+  border-radius:12px
+}
+
+.preview-routes strong { overflow-wrap:anywhere }
+.preview-routes small { grid-column:1/-1 }
+.admin-empty { margin:0;padding:18px;border-radius:12px;background:#f0f4f8;color:var(--muted) }
+
 .skip-link {
   position:absolute;
   left:12px;
@@ -1411,6 +1586,33 @@ body.modal-open {
     min-width:280px
   }
 
+  .admin-search {
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:end
+  }
+
+  .admin-user-grid {
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:20px
+  }
+
+  .admin-fields {
+    grid-template-columns:repeat(2,minmax(0,1fr))
+  }
+
+  .compact-options,.vehicle-options {
+    grid-template-columns:repeat(2,minmax(0,1fr))
+  }
+
+  .admin-section {
+    padding:24px
+  }
+
+  .decision-section button {
+    width:auto;
+    min-width:300px
+  }
+
 }
 
 @media(min-width:1100px) {
@@ -1424,6 +1626,14 @@ body.modal-open {
 
   .page-heading {
     margin-top:28px
+  }
+
+  .admin-user-grid {
+    grid-template-columns:repeat(3,minmax(0,1fr))
+  }
+
+  .vehicle-options {
+    grid-template-columns:repeat(3,minmax(0,1fr))
   }
 
 }

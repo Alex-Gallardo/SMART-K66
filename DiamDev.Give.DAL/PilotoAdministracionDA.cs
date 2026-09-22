@@ -71,13 +71,11 @@ namespace DiamDev.Give.DAL
             if (string.IsNullOrWhiteSpace(login) || login.Length > 50) throw new PilotoException(403, "Acceso no autorizado.");
             const string sql = @"SELECT COUNT(*) FROM dbo.Usuario u
 WHERE u.Login=@login AND u.Activo=1 AND u.Autenticar_Site=1
-AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.Usuario_Id<>u.Usuario_Id)
-AND EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol_Permiso rp ON rp.Rol_Id=ur.Rol_Id
-           WHERE ur.Usuario_Id=u.Usuario_Id AND rp.Permiso_Id=N'Pilotos.Configurar');";
+AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.Usuario_Id<>u.Usuario_Id);";
             using (var cmd = Comando(cn, tx, sql))
             {
                 Param(cmd, "@login", SqlDbType.NVarChar, login, 50);
-                if ((int)cmd.ExecuteScalar() != 1) throw new PilotoException(403, "No tienes permiso para administrar pilotos.");
+                if ((int)cmd.ExecuteScalar() != 1) throw new PilotoException(403, "La cuenta debe estar activa y habilitada para ingresar al sitio.");
             }
         }
 

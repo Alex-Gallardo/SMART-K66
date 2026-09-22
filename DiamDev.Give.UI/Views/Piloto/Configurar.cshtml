@@ -1,0 +1,57 @@
+@model DiamDev.Give.Entities.PilotoAdminEdicion
+@{
+    Layout = "~/Views/Shared/_PilotoLayout.cshtml";
+    ViewBag.Title = "Configurar piloto";
+}
+<a class="back-link" href="@Url.Action("Administracion")"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver a pilotos</a>
+<section class="page-heading admin-heading">
+    <p class="eyebrow">CONFIGURACIÓN OPERATIVA</p>
+    <h1>@Model.Usuario.Nombre</h1>
+    <p class="intro"><strong>@Model.Usuario.Login</strong> · Usuario POS @Model.Usuario.UsuarioId</p>
+</section>
+
+@if (TempData["Piloto.AdminMensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.AdminMensaje"]</p> }
+@Html.ValidationSummary(false)
+
+@using (Html.BeginForm("Configurar", "Piloto", FormMethod.Post, new { @class = "admin-form", id = "pilot-admin-form" }))
+{
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="UsuarioId" value="@Model.Usuario.UsuarioId" />
+    <section class="admin-section">
+        <div class="step-number">1</div><div class="section-title"><h2>Identidad en rutas</h2><p>Selecciona el registro exacto de RT_EMPLEADOS y el código que usará la auditoría del cierre.</p></div>
+        <div class="admin-fields">
+            <div><label for="EmpleadoRowId">Empleado piloto</label><select id="EmpleadoRowId" name="EmpleadoRowId" required><option value="">Seleccionar piloto</option>
+                @foreach (var e in Model.Empleados) { <option value="@e.RowId" selected="@(e.Seleccionado ? "selected" : null)">@e.Nombre · #@e.RowId@(e.Activo ? "" : " · INACTIVO")</option> }
+            </select><small>Los nombres duplicados se excluyen porque la lógica actual de APK66 los vuelve ambiguos.</small></div>
+            <div><label for="CodigoOperador">Código de operador</label><input id="CodigoOperador" name="CodigoOperador" maxlength="15" required value="@Model.Formulario.CodigoOperador" placeholder="Código usado por Distribución" /></div>
+        </div>
+    </section>
+
+    <section class="admin-section">
+        <div class="step-number">2</div><div class="section-title"><h2>Centros autorizados</h2><p>El piloto solo verá rutas cuyo centro esté marcado.</p></div>
+        <div class="option-grid compact-options">
+        @foreach (var c in Model.Centros) { <label class="check-card"><input type="checkbox" name="Centros" value="@c.Codigo" checked="@(c.Seleccionado ? "checked" : null)" /><span><strong>@c.Codigo</strong></span></label> }
+        </div>
+    </section>
+
+    <section class="admin-section">
+        <div class="step-number">3</div><div class="section-title"><h2>Vehículos autorizados</h2><p>Puede seleccionar más de una placa para cubrir cambios de turno.</p></div>
+        <label for="vehicle-filter">Filtrar vehículos</label><input id="vehicle-filter" type="search" placeholder="Escribe placa, marca o transporte" autocomplete="off" />
+        <div class="option-grid vehicle-options" id="vehicle-options">
+        @foreach (var v in Model.Vehiculos) { <label class="check-card" data-option="@((v.Codigo + " " + v.Nombre).ToLowerInvariant())"><input type="checkbox" name="Placas" value="@v.Codigo" checked="@(v.Seleccionado ? "checked" : null)" disabled="@(!v.Activo && !v.Seleccionado ? "disabled" : null)" /><span><strong>@v.Codigo</strong><small>@v.Nombre@(!v.Activo ? " · INACTIVO" : "")</small></span></label> }
+        </div>
+    </section>
+
+    <section class="admin-section decision-section">
+        <div class="step-number">4</div><div class="section-title"><h2>Activación y auditoría</h2><p>Desactivar revoca el acceso y conserva el historial. No elimina la cuenta POS.</p></div>
+        <label class="switch-card"><input type="checkbox" name="Activo" value="true" checked="@(Model.Formulario.Activo ? "checked" : null)" /><input type="hidden" name="Activo" value="false" /><span><strong>Vínculo activo</strong><small>Permitir consultar y completar las rutas coincidentes</small></span></label>
+        <div><label for="Motivo">Motivo del cambio</label><textarea id="Motivo" name="Motivo" maxlength="250" required rows="3" placeholder="Ej.: Alta inicial, cambio de turno o revocación">@Model.Formulario.Motivo</textarea></div>
+        <button type="submit" data-confirm-admin="true"><svg class="icon" aria-hidden="true"><use href="#i-save" /></svg>Guardar configuración</button>
+    </section>
+}
+
+<section class="admin-section route-preview">
+    <div class="section-title"><h2>Vista previa de rutas activas</h2><p>Resultado efectivo de la configuración guardada. No asigna ni modifica rutas en APK66.</p></div>
+    @if (Model.Rutas.Count == 0) { <p class="admin-empty">No hay rutas A/E que coincidan con el vínculo actual.</p> }
+    else { <div class="preview-routes">@foreach (var ruta in Model.Rutas) { <article><span class="route-status status-@ruta.Estado.ToLowerInvariant()">@ruta.EstadoNombre</span><strong>@ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small></article> }</div> }
+</section>

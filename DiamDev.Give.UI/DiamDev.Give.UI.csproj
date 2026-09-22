@@ -1591,6 +1591,8 @@
     <Content Include="Views\Piloto\Index.cshtml" />
     <Content Include="Views\Piloto\Detalle.cshtml" />
     <Content Include="Views\Piloto\Error.cshtml" />
+    <Content Include="Views\Piloto\Administracion.cshtml" />
+    <Content Include="Views\Piloto\Configurar.cshtml" />
     <Content Include="Views\Seguridad\PilotoToken.cshtml" />
   </ItemGroup>
 </Project>

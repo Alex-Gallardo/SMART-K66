@@ -1,11 +1,13 @@
 @{ Layout = "~/Views/Shared/_PilotoLayout.cshtml"; ViewBag.Title = "Revisar acceso"; }
 <section class="empty-state error-state">
-    <p class="eyebrow">PORTAL DE PILOTOS</p>
+    <p class="eyebrow">@(ViewBag.EsAdministracion == true ? "ADMINISTRACIÓN DE PILOTOS" : "PORTAL DE PILOTOS")</p>
     <h1>No pudimos completar la solicitud</h1>
     <p role="alert">@ViewBag.Mensaje</p>
     <div class="error-actions">
         @if (ViewBag.SesionVencida == true) {
             <a class="button-link" href="@Url.Action("Login", "Seguridad")">Iniciar sesión</a>
+        } else if (ViewBag.EsAdministracion == true) {
+            <a class="button-link" href="@Url.Action("Administracion", "Piloto")">Volver a administrar</a>
         } else if (ViewBag.ConfigurarPrueba != true) {
             <a class="button-link" href="@Url.Action("Index", "Piloto")">Consultar mis rutas</a>
         }
@@ -15,5 +17,5 @@
         <p>Tu cuenta está conectada como <strong>@User.Identity.Name</strong>. Distribución o el administrador deben habilitar tu acceso antes de continuar.</p>
     }
     @if (ViewBag.Referencia != null) { <p class="support-reference">Referencia para soporte: <code>@ViewBag.Referencia</code></p> }
-    <p class="muted">Si el mensaje apareció al completar una ruta, consulta su estado antes de intentar guardarla nuevamente.</p>
+    <p class="muted">@(ViewBag.EsAdministracion == true ? "Revisa que la instalación, permisos y catálogos estén disponibles antes de volver a guardar." : "Si el mensaje apareció al completar una ruta, consulta su estado antes de intentar guardarla nuevamente.")</p>
 </section>

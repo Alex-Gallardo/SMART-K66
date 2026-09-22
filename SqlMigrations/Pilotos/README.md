@@ -187,10 +187,11 @@ mediante una migración inversa genérica.
 
 ## Validación
 
-`Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 107 comprobaciones de
-reglas, paginación, desafío, acceso y configuración (incluido bloqueo del cierre
-antes de conectar SQL), compila las cinco vistas Razor y analiza los ocho
-scripts nuevos con ScriptDom SQL150, sin conexiones SQL. Las rutas de DLL pueden
+`Tests/Pilotos/run.ps1` compila el módulo aislado, ejecuta 71 comprobaciones
+centrales más los escenarios de configuración temporal, sesión y acceso
+administrativo (incluido bloqueo del cierre antes de conectar SQL), compila las
+siete vistas Razor y analiza los once scripts del módulo con ScriptDom SQL150,
+sin conexiones SQL. Las rutas de DLL pueden
 pasarse por parámetros; usa paquetes locales/restaurados, sin descargarlos.
 
 Estas comprobaciones **no sustituyen un build completo ni pruebas SQL/IIS**.
@@ -251,15 +252,42 @@ requerir estas tablas; todos los cierres siguen bloqueados en ese modo.
    Guarda antes/despues y actor SQL en historial dentro de la misma transaccion.
    Repetir el mismo estado no duplica el historial. La cuenta web no necesita
    permiso de escritura en estas tablas. No borrar asignaciones con historial.
-5. Otorgar a la cuenta web SELECT en `PilotoVehiculo` y `RT_VEHICULOS`, ademas
-   de los permisos de lectura ya documentados. Si el esquema falta, el portal
-   informa instalacion pendiente; no omite los controles de acceso.
-6. Validar lectura y revocaciones. Mantener `Pilotos.PermitirCierre=false`.
+5. Revisar `18_administracion_pilotos_pos.sql`. En vista previa muestra los roles
+   existentes. Indicar el rol de Distribucion o administracion que recibira
+   `Pilotos.Configurar`; no asignar este permiso al rol PILOTO. Al aplicar crea
+   los historiales de identidad y centros. Es idempotente para una instalacion
+   completa y se detiene ante tablas incompatibles.
+6. Otorgar a la cuenta web los permisos SQL minimos para esta interfaz: lectura
+   en seguridad POS y catalogos RT; SELECT/INSERT/UPDATE en `PilotoVinculo` y
+   `PilotoVehiculo`; SELECT/INSERT/DELETE en `PilotoCentro`; e INSERT/SELECT en
+   los tres historiales. Usar el usuario de base configurado en `GiveContext` y
+   la politica local; el script no infiere ni concede permisos a principals SQL.
+7. Volver a ejecutar `07_pos_instalacion_solo_lectura.sql`. Debe mostrar los
+   siete objetos, `Pilotos.Configurar` asignado solo al rol administrativo y
+   los indices de auditoria. Validar despues `/Piloto/Administracion`.
+8. Validar alta, cambio de vehiculo y revocacion con datos de prueba. Confirmar
+   que la vista previa muestra solo las rutas A/E coincidentes y mantener
+   `Pilotos.PermitirCierre=false` hasta completar las pruebas de cierre.
 
 No hay FK entre bases: el script comprueba la placa en APK66 al activarla y la
 web vuelve a comprobar que el vehiculo este activo en cada consulta. La empresa
 se muestra desde `RT_VEHICULOS.EMPRESA`; no se crea un catalogo paralelo de
 transportistas ni se concede acceso a todos los vehiculos de una empresa.
+
+### Interfaz de administracion
+
+`/Piloto/Administracion` reemplaza la repeticion de los scripts 11 y 15 para la
+operacion diaria. Solo admite usuarios POS existentes con rol PILOTO. En una
+transaccion serializable valida nuevamente el permiso del actor, la cuenta web,
+el empleado unico/activo, centros y vehiculos de APK66; despues actualiza el
+vinculo POS y registra actor, motivo y estado anterior/nuevo. Desactivar conserva
+la cuenta y el historial, y revoca todas las placas activas.
+
+La pantalla no crea usuarios, roles, empleados, vehiculos ni rutas. Tampoco
+escribe en APK66. La asignacion operativa de piloto/vehiculo/ruta permanece en
+Distribucion; la vista previa solo explica que rutas A/E resultan visibles con
+el alcance guardado. Los scripts 11 y 15 se conservan para instalacion inicial,
+recuperacion controlada y diagnostico fuera del sitio.
 
 ### Diagnostico local de configuracion
 

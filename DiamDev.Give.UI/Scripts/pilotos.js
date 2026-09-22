@@ -40,6 +40,28 @@
             }
         });
     }
+    var vehicleFilter = document.getElementById("vehicle-filter");
+    if (vehicleFilter) {
+        vehicleFilter.addEventListener("input", function () {
+            var query = vehicleFilter.value.toLocaleLowerCase().trim();
+            Array.prototype.forEach.call(document.querySelectorAll("#vehicle-options [data-option]"), function (option) {
+                option.hidden = query.length > 0 && option.getAttribute("data-option").indexOf(query) < 0;
+            });
+        });
+    }
+    var adminForm = document.getElementById("pilot-admin-form");
+    if (adminForm) {
+        adminForm.addEventListener("submit", function (event) {
+            if (!adminForm.checkValidity()) return;
+            var active = adminForm.querySelector("input[name=Activo][type=checkbox]").checked;
+            var message = active
+                ? "¿Confirmas este vínculo, sus centros y vehículos autorizados?"
+                : "¿Confirmas que deseas desactivar el acceso de este piloto?";
+            if (!window.confirm(message)) { event.preventDefault(); return; }
+            var button = adminForm.querySelector("button[type=submit]");
+            button.disabled = true; button.textContent = "Guardando…";
+        });
+    }
     var form = document.getElementById("complete-route");
     var reviewButton = document.getElementById("review-button");
     var completeButton = document.getElementById("complete-button");

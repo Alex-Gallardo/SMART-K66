@@ -39,6 +39,7 @@ internal static class RazorPreview
             var ruta=model as PilotoRuta; if(ruta!=null && vista=="historial") ruta.Estado="C";
             var viewData=new ViewDataDictionary(model);
             viewData["PruebasSoloLectura"]=!editable; viewData["PreviewBody"]=body; viewData["PaginaRutas"]=1; viewData["Vista"]=vista;
+            viewData["EsAdministracion"]=model is PilotoAdminLista || model is PilotoAdminEdicion;
             viewData["Title"]="Pilotos · Demo"; viewData["Desde"]="2026-09-08"; viewData["Hasta"]="2026-09-21";
             viewData["Mensaje"]="La ruta no está disponible. Consulta a Distribución.";
             var page=(WebViewPage)Activator.CreateInstance(type);
@@ -71,5 +72,25 @@ internal static class RazorPreview
         ruta.Documentos[1].ObservacionPiloto="Se encontró el local cerrado al llegar.";
         ruta.Version=PilotoReglas.Version(ruta);
         return ruta;
+    }
+    public static PilotoAdminLista AdminLista()
+    {
+        var lista=new PilotoAdminLista();
+        lista.Usuarios.Add(new PilotoAdminUsuario {UsuarioId=1,Login="piloto.uno",Nombre="Piloto de demostración",UsuarioActivo=true,AutenticarSite=true,TieneRolPiloto=true,VinculoActivo=true,Piloto="EMPLEADO DEMO",Centros=2,Vehiculos=1});
+        lista.Usuarios.Add(new PilotoAdminUsuario {UsuarioId=2,Login="piloto.pendiente",Nombre="Usuario pendiente",UsuarioActivo=true,AutenticarSite=true,TieneRolPiloto=true,Centros=0,Vehiculos=0});
+        lista.Usuarios.Add(new PilotoAdminUsuario {UsuarioId=3,Login="piloto.inactivo",Nombre="Usuario inactivo",UsuarioActivo=false,AutenticarSite=true,TieneRolPiloto=true,VinculoActivo=false,Piloto="OTRO PILOTO",Centros=1,Vehiculos=0});
+        return lista;
+    }
+    public static PilotoAdminEdicion AdminEdicion()
+    {
+        var modelo=new PilotoAdminEdicion {Usuario=AdminLista().Usuarios[0],Formulario=new PilotoAdminGuardar {UsuarioId=1,EmpleadoRowId=101,CodigoOperador="PILOTO01",Activo=true,Centros=new[]{"CENTRO-1"},Placas=new[]{"C-001"}}};
+        modelo.Empleados.Add(new PilotoAdminEmpleado {RowId=101,Nombre="EMPLEADO DEMO",Activo=true,Seleccionado=true});
+        modelo.Empleados.Add(new PilotoAdminEmpleado {RowId=102,Nombre="EMPLEADO DISPONIBLE",Activo=true});
+        modelo.Centros.Add(new PilotoAdminOpcion {Codigo="CENTRO-1",Nombre="CENTRO-1",Activo=true,Seleccionado=true});
+        modelo.Centros.Add(new PilotoAdminOpcion {Codigo="CENTRO-2",Nombre="CENTRO-2",Activo=true});
+        modelo.Vehiculos.Add(new PilotoAdminOpcion {Codigo="C-001",Nombre="Marca · Línea · Camión · K66",Activo=true,Seleccionado=true});
+        modelo.Vehiculos.Add(new PilotoAdminOpcion {Codigo="C-002",Nombre="Marca · Panel · K66",Activo=true});
+        modelo.Rutas.Add(new PilotoRuta {Id="DEMO-2026-001",Fecha=new DateTime(2026,9,22),Estado="E",Centro="CENTRO-1",Placa="C-001"});
+        return modelo;
     }
 }

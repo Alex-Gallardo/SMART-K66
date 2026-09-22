@@ -317,7 +317,8 @@ h3 {
 .intro {
   color:var(--muted);
   margin:0;
-  font-size:16px
+  font-size:16px;
+  margin-bottom: 16px;
 }
 
 .route-tabs {
@@ -628,7 +629,7 @@ h3 {
 .detail-title {
   display:flex;
   gap:12px;
-  align-items:flex-start;
+  align-items:center;
   justify-content:space-between;
   flex-wrap:wrap;
   margin-bottom:18px
@@ -640,14 +641,16 @@ h3 {
 }
 
 .route-summary {
-  display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
-  gap:18px 12px;
-  margin:0 0 18px;
-  padding:20px;
-  border:1px solid var(--line);
-  background:#fff;
-  border-radius:var(--radius)
+    display: grid;
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+    gap: 18px 12px;
+    margin: 0 0 18px;
+    padding: 20px;
+    border: 1px solid #8292a4;
+    background: #fff;
+    border-radius: var(--radius);
+    /* COMENTADO TEMPORALMENTE - POR REQUERIMIENTO */
+    display: none;
 }
 
 dt {
@@ -668,14 +671,18 @@ dd {
 
 .vehicle-panel {
   padding:18px 20px;
-  border-left:4px solid var(--blue);
   background:#e7eff9;
   border-radius:12px;
-  margin-bottom:20px
+  margin-bottom:20px;
+  border: 1px solid var(--blue);
+  border-left:4px solid var(--blue);
+
+  /* COMENTADO TEMPORALMENTE POR REQUERIMIENTO */
+  display: none;
 }
 
 .vehicle-panel>strong {
-  overflow-wrap:anywhere
+  overflow-wrap:anywhere;
 }
 
 .vehicle-panel p:last-child {
@@ -699,7 +706,7 @@ dd {
 
 .document-heading {
   display:flex;
-  align-items:flex-start;
+  align-items:center;
   gap:10px;
   flex-wrap:wrap
 }
@@ -1154,7 +1161,7 @@ body.modal-open {
 .notice {
   padding:14px 16px;
   background:#e6eef8;
-  border-left:4px solid var(--blue);
+  border: 2px solid var(--blue);
   border-radius:10px;
   color:var(--ink);
   font-size:16px;
@@ -1339,7 +1346,7 @@ body.modal-open {
 
   .route-summary {
     grid-template-columns:repeat(4,minmax(0,1fr));
-    gap:20px
+    gap:20px;
   }
 
   .route-summary .wide {

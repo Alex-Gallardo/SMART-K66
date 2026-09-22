@@ -8,7 +8,7 @@
 <div class="detail-title"><div><p class="eyebrow">DETALLE DE RUTA</p><h1>@Model.Id</h1></div><span class="status status-@Model.Estado"><svg class="icon" aria-hidden="true"><use href="#@estadoIcon" /></svg>@Model.EstadoNombre</span></div>
 @Html.ValidationSummary(false, "Revisa los resultados antes de continuar.", new { role="alert" })
 @if (TempData["Piloto.Mensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.Mensaje"]</p> }
-<dl class="route-summary"><div><dt>Fecha</dt><dd>@Model.Fecha.ToString("dd/MM/yyyy")</dd></div><div><dt>Vehículo</dt><dd>@Model.Placa</dd></div><div class="wide"><dt>Piloto</dt><dd>@Model.Piloto</dd></div><div class="wide"><dt>Centro</dt><dd>@Model.Centro</dd></div></dl>
+<dl class="route-summary"><div><dt>Fecha</dt><dd>@Model.Fecha.ToString("dd/MM/yyyy")</dd></div><div><dt>Vehículo</dt><dd>@Model.Placa</dd></div><div><dt>Piloto</dt><dd>@Model.Piloto</dd></div><div><dt>Centro</dt><dd>@Model.Centro</dd></div></dl>
 @if (!string.IsNullOrWhiteSpace(Model.Transporte) || !string.IsNullOrWhiteSpace(Model.Vehiculo)) {
     <div class="vehicle-panel"><p class="eyebrow">TRANSPORTE ASIGNADO</p><strong>@(Model.Transporte ?? "Vehículo de la ruta")</strong><p class="muted">@Model.Vehiculo <span class="plate">@Model.Placa</span></p></div>
 }

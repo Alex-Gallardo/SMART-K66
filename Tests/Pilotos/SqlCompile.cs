@@ -30,7 +30,7 @@ internal static class SqlCompile {
         public List<string> Values=new List<string>();
         public override void ExplicitVisit(StringLiteral node) {
             var text=node.Value.TrimStart();
-            if(text.StartsWith("CREATE PROCEDURE",StringComparison.OrdinalIgnoreCase) || text.StartsWith("IF NOT EXISTS(SELECT",StringComparison.OrdinalIgnoreCase) || text.StartsWith("IF @activar=1",StringComparison.OrdinalIgnoreCase)) Values.Add(node.Value);
+            if(text.StartsWith("CREATE PROCEDURE",StringComparison.OrdinalIgnoreCase) || text.StartsWith("CREATE OR ALTER TRIGGER",StringComparison.OrdinalIgnoreCase) || text.StartsWith("IF NOT EXISTS(SELECT",StringComparison.OrdinalIgnoreCase) || text.StartsWith("IF @activar=1",StringComparison.OrdinalIgnoreCase)) Values.Add(node.Value);
         }
     }
 }

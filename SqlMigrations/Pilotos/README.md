@@ -149,16 +149,21 @@ deriva a Distribución, sin guardar parcialmente.
    No ejecutar índices en producción como si fueran diagnósticos de solo lectura.
 5. Para consulta, configurar `Pilotos.Habilitado=true` y mantener
    **`Pilotos.PermitirCierre=false`**. La tabla de vínculo vacía no da acceso a nadie.
-6. Solo en una copia aislada, instalar `13_resultado_documento.sql` y revisar el
-   trigger existente de rutas con el responsable de la lógica central. Un cierre
-   no debe modificar documentos de otras rutas ni reabrir documentos terminales.
-   La corrección del trigger y su aprobación son requisitos de habilitación.
-7. Ejecutar los casos integrados de la siguiente sección. Registrar la huella
+6. Solo en una copia aislada, instalar `13_resultado_documento.sql`. Revisar
+   `16_trigger_rutas_seguro.sql` con el responsable de la lógica central y
+   ejecutarlo primero en vista previa. La migración exige la huella original,
+   respalda la definición y reemplaza la selección global por procesamiento
+   set-based limitado a `inserted`. Rechaza documentos fuente ambiguos.
+7. En esa copia ejecutar `17_trigger_rutas_prueba_rollback.sql`. Requiere una
+   confirmación explícita de copia aislada, prueba un `CAMBIO` o `ENVIO` real y
+   revierte tanto la cabecera como el documento fuente. Un cierre no debe
+   modificar documentos de otras rutas ni reabrir documentos terminales.
+8. Ejecutar los casos integrados de la siguiente sección. Registrar la huella
    SHA-256 de la **definición revisada y probada** del trigger en
    `Pilotos.TriggerSha256`. No copiar la huella de una definición sin revisar para
    sortear la protección. El módulo rechaza triggers habilitados adicionales en
    encabezado/detalle y definiciones ausentes, deshabilitadas o distintas.
-8. Habilitar cierre únicamente después de esa validación y un despliegue acordado.
+9. Habilitar cierre únicamente después de esa validación y un despliegue acordado.
    Mantenerlo apagado si no hay copia aislada. La base de usuarios de pruebas no
    aísla las rutas si APK66Context sigue apuntando al catálogo operativo.
 
@@ -294,7 +299,7 @@ planes e indices antes de cargas concurrentes; no se crean indices automaticamen
 
 `Tests/Pilotos/run.ps1`: 107 comprobaciones (62 generales, 24 de consulta temporal,
 12 de configuración inválida, 5 de ruta fija y 4 de sesión normal), cinco vistas
-Razor y ocho scripts SQL.
+Razor y diez scripts SQL.
 También analiza los cuerpos SQL dinámicos de los scripts
 de vinculacion usando un catalogo ficticio. No conecta a SQL, envia SMS ni lee
 credenciales productivas para las pruebas.
@@ -316,8 +321,10 @@ Pendientes de integracion, en entorno preparado:
 - Activar/desactivar un vinculo registra historial; repetirlo no duplica registros.
 - Rutas con 0, 25, 26, 200 y 201 documentos: todas consultables sin omisiones.
 - Reasignacion concurrente, permisos SQL insuficientes, timeouts y collations distintas.
-- Cierre y efectos de triggers exclusivamente en copia aislada; el trigger de APK66
-  sigue requiriendo revision y validacion antes de cualquier cierre productivo.
+- En una copia aislada se validaron cierres entregados y mixtos, auditoria,
+  rollback del cierre y la asignacion de un `ENVIO` por el trigger corregido,
+  tambien con rollback. La promocion del trigger y del cierre a produccion sigue
+  requiriendo revision de Distribucion, respaldo y ventana de mantenimiento.
 
 ## Rutas activas y diseño móvil (sin instalar tablas para la prueba)
 

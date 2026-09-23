@@ -3,7 +3,9 @@ using System.Configuration;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Web;
 using System.Web.Mvc;
 using DiamDev.Give.BLL;
 using DiamDev.Give.Entities;
@@ -136,6 +138,51 @@ namespace DiamDev.Give.UI.Controllers
                 return View(new PilotoRutaBL().Detalle(User.Identity.Name, id,pagina));
             }
             catch (Exception e) { return ErrorPiloto(e); }
+        }
+
+        [HttpGet]
+        public ActionResult Imagen(string id, int rowId)
+        {
+            try
+            {
+                var imagen=new PilotoRutaBL().ObtenerImagen(User.Identity.Name,id,rowId);
+                Response.AddHeader("X-Content-Type-Options","nosniff");
+                return File(imagen.Contenido,imagen.ContentType);
+            }
+            catch(Exception e) { return ErrorPiloto(e); }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult SubirImagen(string rutaId, int rowId, HttpPostedFileBase archivo)
+        {
+            try
+            {
+                if(archivo==null || archivo.ContentLength<=0 || archivo.ContentLength>PilotoReglas.MaxImagenBytes)
+                    throw new PilotoException(400,"Selecciona una imagen de hasta 10 MB.");
+                var nombre=Path.GetFileName(archivo.FileName ?? "");
+                byte[] contenido;
+                using(var memoria=new MemoryStream())
+                {
+                    var bloque=new byte[81920];
+                    int leidos;
+                    while((leidos=archivo.InputStream.Read(bloque,0,bloque.Length))>0)
+                    {
+                        if(memoria.Length+leidos>PilotoReglas.MaxImagenBytes)
+                            throw new PilotoException(400,"La imagen supera el límite de 10 MB.");
+                        memoria.Write(bloque,0,leidos);
+                    }
+                    contenido=memoria.ToArray();
+                }
+                var imagen=new PilotoImagen { RutaId=rutaId,RowId=rowId,Nombre=nombre,Contenido=contenido };
+                new PilotoRutaBL().GuardarImagen(User.Identity.Name,imagen);
+                return Json(new { ok=true, nombre=imagen.Nombre, url=Url.Action("Imagen","Piloto",new { id=rutaId,rowId=rowId }) });
+            }
+            catch(Exception e)
+            {
+                ErrorPiloto(e);
+                return Json(new { ok=false, mensaje=(string)ViewBag.Mensaje });
+            }
         }
 
         [HttpPost]

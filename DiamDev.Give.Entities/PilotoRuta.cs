@@ -20,6 +20,8 @@ namespace DiamDev.Give.Entities
         public string Version { get; set; }
         public Guid Solicitud { get; set; }
         public bool PuedeCerrar { get; set; }
+        public bool ImagenesDisponibles { get; set; }
+        public bool PuedeAdjuntarImagen { get; set; }
         public List<PilotoDocumento> Documentos { get; set; }
         public PilotoRuta() { Documentos = new List<PilotoDocumento>(); }
         public string EstadoNombre
@@ -45,6 +47,18 @@ namespace DiamDev.Give.Entities
         public string ObservacionPiloto { get; set; }
         public TimeSpan? Entrada { get; set; }
         public TimeSpan? Salida { get; set; }
+        public bool TieneImagen { get; set; }
+        public string ImagenNombre { get; set; }
+        public DateTime? ImagenFechaUtc { get; set; }
+    }
+
+    public sealed class PilotoImagen
+    {
+        public string RutaId { get; set; }
+        public int RowId { get; set; }
+        public string Nombre { get; set; }
+        public string ContentType { get; set; }
+        public byte[] Contenido { get; set; }
     }
 
     // Solo se aceptan resultados; identidad, vehiculo y datos comerciales salen del servidor.

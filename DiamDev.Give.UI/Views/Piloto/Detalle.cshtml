@@ -1,8 +1,11 @@
 @model DiamDev.Give.Entities.PilotoRuta
+@using System.Linq
 @{
     Layout = "~/Views/Shared/_PilotoLayout.cshtml";
     ViewBag.Title = "Ruta " + Model.Id;
     var estadoIcon=Model.Estado=="E" ? "i-truck" : Model.Estado=="C" ? "i-check" : Model.Estado=="X" ? "i-x" : "i-clock";
+    var grupos=Model.Documentos.Select((documento,indice)=>new { Documento=documento, Indice=indice })
+        .GroupBy(x=>new { Cliente=(x.Documento.Cliente??"").Trim().ToUpperInvariant(), Direccion=(x.Documento.Direccion??"").Trim().ToUpperInvariant() }).ToList();
 }
 <a class="back-link" href="@Url.Action("Index",new { desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,pagina=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista })"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Mis rutas</a>
 <div class="detail-title"><div><p class="eyebrow">DETALLE DE RUTA</p><h1>@Model.Id</h1></div><span class="status status-@Model.Estado"><svg class="icon" aria-hidden="true"><use href="#@estadoIcon" /></svg>@Model.EstadoNombre</span></div>
@@ -20,24 +23,42 @@
 {
     <p class="intro">Marca el resultado de cada factura. Si no se entregó o hubo una incidencia, selecciona el motivo y explica lo ocurrido.</p>
 }
+else if (Model.PuedeAdjuntarImagen)
+{
+    <p class="notice">Puedes adjuntar una imagen a cada documento. El cierre de esta ruta no está disponible desde el portal.</p>
+}
 else if (ViewBag.PruebasSoloLectura != true)
 {
     <p class="notice">Ruta disponible para consulta. Para cambios, contacta a Distribución.</p>
 }
+@if(Model.Estado=="E" && !Model.ImagenesDisponibles && ViewBag.PruebasSoloLectura != true) { <p class="notice">La carga de imágenes estará disponible cuando se instale la tabla de imágenes en POS.</p> }
 @using (Html.BeginForm("Completar", "Piloto", FormMethod.Post, new { id = "complete-route" }))
 {
     @Html.AntiForgeryToken()
     <input type="hidden" name="RutaId" value="@Model.Id" />
     <input type="hidden" name="Version" value="@Model.Version" />
     <input type="hidden" name="Solicitud" value="@Model.Solicitud" />
-    for (var i = 0; i < Model.Documentos.Count; i++)
+    foreach (var grupo in grupos)
     {
-        var d = Model.Documentos[i];
+        var primero = grupo.First().Documento;
+        <section class="customer-group" aria-label="Documentos de @(primero.Cliente ?? "Cliente sin nombre")">
+            <div class="customer-group-heading">
+                <div><p class="eyebrow">CLIENTE · @grupo.Count() @(grupo.Count()==1 ? "documento" : "documentos")</p>
+                    <h3>@(string.IsNullOrWhiteSpace(primero.Cliente) ? "Cliente sin nombre" : primero.Cliente)</h3>
+                    <p class="address"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><span>@(string.IsNullOrWhiteSpace(primero.Direccion) ? "Dirección no registrada" : primero.Direccion)</span></p>
+                </div>
+                @if(Model.PuedeCerrar) { <div class="customer-group-action"><button type="button" class="bulk-delivered button-secondary"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Marcar todos como entregados</button><p class="group-status" role="status" aria-live="polite"></p></div> }
+            </div>
+        @foreach (var item in grupo)
+        {
+        var i = item.Indice;
+        var d = item.Documento;
         var requiereDetalle = d.Entrega == "NO ENTREGADO" || d.Entrega == "INCIDENCIA";
         <article class="document-card" data-document="@(d.Documento ?? "Sin número")">
             <div class="document-heading"><span class="document-number">@((Model.PaginaDocumentos-1)*Model.TamanoPaginaDocumentos+i+1)</span><div><p class="eyebrow">@d.Tipo · @d.Empresa</p><h3>@(d.Documento ?? "Sin número")</h3></div><span class="bultos"><svg class="icon" aria-hidden="true"><use href="#i-box" /></svg>@d.Bultos.ToString("0.###") bultos</span></div>
-            <p class="customer">@d.Cliente</p><p class="address"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><span>@(string.IsNullOrWhiteSpace(d.Direccion) ? "Dirección no registrada" : d.Direccion)</span></p>
             @if (!string.IsNullOrWhiteSpace(d.Observaciones)) { <p class="observation">Observaciones: @d.Observaciones</p> }
+            @if(d.TieneImagen) { <p class="document-image-link"><a href="@Url.Action("Imagen",new { id=Model.Id,rowId=d.RowId })" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-eye" /></svg>Ver imagen adjunta</a></p> }
+            @if(Model.PuedeAdjuntarImagen) { <button type="button" class="image-upload-trigger button-secondary" data-row-id="@d.RowId" data-document="@(d.Documento ?? "Sin número")" data-replace="@(d.TieneImagen ? "true" : "false")"><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg>@(d.TieneImagen ? "Reemplazar imagen" : "Subir imagen")</button> }
             @if (Model.PuedeCerrar)
             {
                 <input type="hidden" name="Documentos[@i].RowId" value="@d.RowId" />
@@ -92,6 +113,8 @@ else if (ViewBag.PruebasSoloLectura != true)
                 if (!string.IsNullOrWhiteSpace(d.Motivo)) { <p class="document-reason"><strong>Motivo:</strong> @d.Motivo</p> }
             }
         </article>
+        }
+        </section>
     }
     if (Model.Documentos.Count == 0) { <p class="empty-state">No hay documentos en esta ruta.</p> }
     if (Model.PuedeCerrar && Model.Documentos.Count > 0)
@@ -115,6 +138,27 @@ else if (ViewBag.PruebasSoloLectura != true)
             </section>
         </div>
     }
+}
+@if(Model.PuedeAdjuntarImagen) {
+    <div id="image-modal" class="confirm-modal" hidden>
+        <button type="button" class="modal-backdrop" data-close-image aria-label="Cerrar carga de imagen"></button>
+        <section class="confirm-sheet image-sheet" role="dialog" aria-modal="true" aria-labelledby="image-title" tabindex="-1">
+            <div class="confirm-handle" aria-hidden="true"></div>
+            <p class="eyebrow">FOTO DEL DOCUMENTO</p>
+            <h2 id="image-title">Subir imagen</h2>
+            <p id="image-document" class="muted"></p>
+            @using (Html.BeginForm("SubirImagen", "Piloto", FormMethod.Post, new { id="image-upload-form", enctype="multipart/form-data" })) {
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="rutaId" value="@Model.Id" />
+                <input type="hidden" name="rowId" value="" />
+                <label for="image-file">Selecciona o toma una foto <small>JPG, PNG o WebP · máximo 10 MB</small></label>
+                <input id="image-file" type="file" name="archivo" accept="image/jpeg,image/png,image/webp" required />
+                <img id="image-preview" class="image-preview" alt="Vista previa de la imagen seleccionada" hidden />
+                <p id="image-status" role="status" aria-live="polite"></p>
+                <div class="modal-actions"><button type="button" class="button-secondary" data-close-image>Cancelar</button><button id="image-submit" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg><span id="image-submit-label">Guardar imagen</span></button></div>
+            }
+        </section>
+    </div>
 }
 @if(Model.PaginaDocumentos>1 || Model.HayMasDocumentos) {
     <nav class="pagination" aria-label="Páginas de documentos">

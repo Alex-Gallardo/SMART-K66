@@ -428,3 +428,27 @@ medido en el navegador: botón principal 7.83:1; estados E/A 8.26:1 y 8.11:1;
 aviso de consulta 9.22:1. Estas medidas no simulan condiciones físicas de luz solar.
 El funcionamiento integrado contra el servidor remoto y SQL sigue pendiente de
 la prueba del responsable del entorno; no se declaró validado mediante esta vista.
+
+## Imágenes por documento (migración 19)
+
+`19_documento_imagen_pos.sql` crea **solo en POS** una imagen vigente por
+`ID_RUTA` + `RT_RUTAS_DET.ROWID` y un registro de altas/reemplazos con usuario,
+fecha y huellas SHA-256. No modifica APK66 ni APP_TEST. El botón de carga y
+reemplazo aparece únicamente en rutas **E** para pilotos autenticados con
+vínculo vigente; `Pilotos.PruebasSoloLectura=true` impide escribir. Las imágenes
+ya cargadas siguen consultables al cerrar la ruta. La selección masiva por cliente
+solo prepara resultados del formulario: se guardan con la confirmación de cierre.
+
+Para instalar, abrir una ventana nueva de SSMS y seleccionar la base POS exacta
+(`POS-SmartK66_DEV` en el entorno descrito; confirmar antes de aplicar). Primero
+ejecutar el script sin cambios: `@Aplicar=0` devuelve la vista previa. Revisar
+el nombre de la base y que las tablas no existan. Después indicar el nombre
+exacto en `@BaseEsperada`, cambiar `@Aplicar=1` y ejecutar en esa misma base.
+El script requiere `dbo.Usuario` y `dbo.PilotoVinculo`, rechaza transacciones
+abiertas y revierte la instalación si falla. No volver a ejecutarlo en otra base.
+Tras instalarlo, consultar una ruta E con una cuenta PILOTO real; subir una
+imagen JPG/PNG/WebP de hasta 10 MB, verla y reemplazarla. Confirmar que solo
+queda una imagen vigente y que la tabla de eventos contiene `AGREGADA` y
+`REEMPLAZADA`. Intentar cargar en una ruta C y en modo temporal debe ser
+rechazado. La prueba local de sintaxis no ejecuta SQL ni sustituye esta
+validación integrada.

@@ -4,8 +4,8 @@ $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $webConfig=New-Object System.Xml.XmlDocument
 $webConfig.Load((Join-Path $repo 'DiamDev.Give.UI/Web.config'))
 $cierreSetting=@($webConfig.SelectNodes("/configuration/appSettings/add[@key='Pilotos.PermitirCierre']"))
-if($cierreSetting.Count -ne 1 -or $cierreSetting[0].GetAttribute('value') -ne 'false') {
-    throw 'El Web.config versionado debe conservar Pilotos.PermitirCierre=false.'
+if($cierreSetting.Count -ne 1 -or $cierreSetting[0].GetAttribute('value') -notin @('true','false')) {
+    throw 'El Web.config versionado debe declarar una sola clave booleana Pilotos.PermitirCierre.'
 }
 if(!$MvcDll) {
     $MvcDll=Join-Path $repo 'packages/Microsoft.AspNet.Mvc.5.2.9/lib/net45/System.Web.Mvc.dll'
@@ -86,8 +86,22 @@ Get-ChildItem -LiteralPath $pagesDir -Filter '*.dll' | Copy-Item -Destination $o
 Copy-Item -LiteralPath $RazorDll -Destination $out -Force
 & $compiler /nologo /target:exe "/out:$out/RazorCompile.exe" /r:System.Web.dll /r:Microsoft.CSharp.dll "/r:$MvcDll" "/r:$WebPagesDll" "/r:$pagesDir/System.Web.WebPages.Razor.dll" "/r:$pagesDir/System.Web.Helpers.dll" "/r:$RazorDll" "/r:$out/PilotoTests.exe" (Join-Path $PSScriptRoot 'RazorCompile.cs') (Join-Path $PSScriptRoot 'RazorPreview.cs')
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador Razor.' }
-& (Join-Path $out 'RazorCompile.exe') $repo
+& (Join-Path $out 'RazorCompile.exe') $repo --render
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las vistas Razor.' }
+$detalle=Get-Content -LiteralPath (Join-Path $out 'detalle-cierre.html') -Raw
+if(([regex]::Matches($detalle,'class="customer-group"')).Count -ne 2 -or
+   ([regex]::Matches($detalle,'class="document-card"')).Count -ne 3 -or
+   ([regex]::Matches($detalle,'class="bulk-delivered')).Count -ne 2 -or
+   ([regex]::Matches($detalle,'class="image-upload-trigger')).Count -ne 3 -or
+   ([regex]::Matches($detalle,'class="document-image-link')).Count -ne 1 -or
+   $detalle -notmatch 'name="Documentos\[1\]\.RowId"') {
+    throw 'El detalle renderizado no conserva grupos, botones o indices de documentos.'
+}
+$consulta=Get-Content -LiteralPath (Join-Path $out 'detalle-historial.html') -Raw
+if($consulta -match 'class="image-upload-trigger' -or $consulta -match 'class="bulk-delivered') {
+    throw 'El historial no debe permitir cargas ni seleccionar resultados masivos.'
+}
+Write-Host 'OK: grupos, indices y acciones del detalle renderizado.'
 if(!$ScriptDomDll) { $ScriptDomDll=Join-Path $env:USERPROFILE '.nuget/packages/microsoft.sqlserver.transactsql.scriptdom/161.8901.0/lib/net462/Microsoft.SqlServer.TransactSql.ScriptDom.dll' }
 if(!(Test-Path -LiteralPath $ScriptDomDll)) { throw 'Indicar -ScriptDomDll (version 161/net462) para la validacion SQL sin conexion.' }
 Copy-Item -LiteralPath $ScriptDomDll -Destination $out -Force

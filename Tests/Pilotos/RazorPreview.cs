@@ -67,6 +67,10 @@ internal static class RazorPreview
     public static PilotoRuta RutaEditable()
     {
         var ruta=Ruta(); ruta.Documentos=ruta.Documentos.Take(3).ToList(); ruta.TotalDocumentos=3; ruta.TamanoPaginaDocumentos=200; ruta.PuedeCerrar=true;
+        ruta.ImagenesDisponibles=true; ruta.PuedeAdjuntarImagen=true;
+        ruta.Documentos[0].TieneImagen=true; ruta.Documentos[0].ImagenNombre="entrega-demo.jpg";
+        ruta.Documentos[1].Cliente=ruta.Documentos[0].Cliente;
+        ruta.Documentos[1].Direccion=ruta.Documentos[0].Direccion;
         ruta.Solicitud=Guid.NewGuid();
         ruta.Documentos[1].Visito=false; ruta.Documentos[1].Entrega="NO ENTREGADO"; ruta.Documentos[1].Motivo="CLIENTE CERRADO";
         ruta.Documentos[1].ObservacionPiloto="Se encontró el local cerrado al llegar.";

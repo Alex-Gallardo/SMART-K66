@@ -121,6 +121,7 @@ internal static class PilotoTests
                 Check(!PilotoRutaBL.PermiteUsuarioPrueba(null),"no habilita anonimos");
                 Rechaza(()=>new PilotoRutaDA().Cerrar("CONSULTA_DEMO",null),403,"DAL rechaza cierre antes de conectar SQL");
                 Rechaza(()=>new PilotoRutaBL().Cerrar("CONSULTA_DEMO",null),403,"BLL no permite saltar cierre bloqueado");
+                Rechaza(()=>new PilotoRutaDA().GuardarImagen("CONSULTA_DEMO",null),403,"consulta temporal bloquea cargas antes de SQL");
                 Rechaza(()=>new PilotoRutaDA().Listar("consulta_demo",DateTime.Today,DateTime.Today,1,"cualquier estado"),400,"vista desconocida rechazada antes de SQL");
                 Rechaza(()=>new PilotoRutaDA().Listar("consulta_demo",DateTime.Today.AddDays(-31),DateTime.Today,1,"activas"),400,"ventana de activas acotada antes de SQL");
                 Console.WriteLine("OK: "+comprobaciones+" comprobaciones de consulta temporal; sin conexiones SQL."); return 0;
@@ -197,6 +198,13 @@ internal static class PilotoTests
             Check(action.IsDefined(typeof(HttpPostAttribute),true) && action.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"cierre POST y CSRF");
             Check(typeof(PilotoController).IsDefined(typeof(AuthorizeAttribute),true),"controlador autenticado");
             Check(typeof(PilotoController).GetMethod("Anular")==null,"sin accion anular");
+            var jpeg=new byte[]{0xFF,0xD8,0xFF,0xE0};
+            Check(PilotoReglas.ValidarImagen("entrega.jpg",jpeg)=="image/jpeg","imagen JPG valida por firma");
+            Rechaza(()=>PilotoReglas.ValidarImagen("falsa.png",jpeg),400,"extension y firma deben coincidir");
+            Rechaza(()=>PilotoReglas.ValidarImagen("vacia.jpg",new byte[0]),400,"imagen vacia rechazada");
+            Rechaza(()=>PilotoReglas.ValidarImagen("enorme.jpg",new byte[PilotoReglas.MaxImagenBytes+1]),400,"imagen excesiva rechazada");
+            var upload=typeof(PilotoController).GetMethod("SubirImagen");
+            Check(upload.IsDefined(typeof(HttpPostAttribute),true) && upload.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"carga de imagen POST con CSRF");
             var admin=new PilotoAdminGuardar {UsuarioId=1,EmpleadoRowId=2,CodigoOperador=" operador ",Activo=true,
                 Centros=new[]{" PC ","pc",""},Placas=new[]{" C-001 ","c-001"},Motivo=" Alta inicial "};
             PilotoAdminReglas.Validar(admin);

@@ -12,8 +12,8 @@
 
    Garantias
    ---------
-   - No elimina ni actualiza filas existentes.
-   - Inserta exclusivamente filas faltantes y valida las ya existentes.
+   - Solo actualiza la descripción anterior de Control.BorradorNC.Anular.
+   - Inserta filas faltantes y valida las ya existentes.
    - Calcula Menu_Id y Orden bajo bloqueo exclusivo para evitar colisiones.
    - Usa una transaccion y revierte todo ante cualquier error.
    - Es reejecutable; se detiene ante configuraciones incompatibles.
@@ -99,9 +99,15 @@ BEGIN TRY
         (N'Control.BorradorNC.Autorizar',
          N'Autorizar o rechazar borradores', N'Borradores NC'),
         (N'Control.BorradorNC.Anular',
-         N'Anular un borrador ya autorizado', N'Borradores NC'),
+         N'Anular borradores pendientes, autorizados o rechazados', N'Borradores NC'),
         (N'Control.BorradorNC.VerTodos',
          N'Ver borradores de todos los usuarios', N'Borradores NC');
+
+    UPDATE dbo.Permiso
+       SET Descripcion = N'Anular borradores pendientes, autorizados o rechazados'
+     WHERE Nombre = N'Control.BorradorNC.Anular'
+       AND Modulo = N'Borradores NC'
+       AND Descripcion = N'Anular un borrador ya autorizado';
 
     IF EXISTS
     (

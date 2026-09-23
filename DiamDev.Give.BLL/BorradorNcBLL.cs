@@ -553,9 +553,7 @@ namespace DiamDev.Give.BLL
         }
 
         /// <summary>
-        /// Anula un borrador YA AUTORIZADO. Funcionalidad nueva: el desktop
-        /// solo podía rechazar lo pendiente, así que un borrador autorizado por
-        /// error se quedaba comprometiendo el saldo de la factura para siempre.
+        /// Anula un borrador pendiente, autorizado o rechazado.
         /// Requiere el permiso Control.BorradorNC.Anular.
         /// </summary>
         public ResultadoBorradorNc Anular(
@@ -566,6 +564,8 @@ namespace DiamDev.Give.BLL
                 return ResultadoBorradorNc.Error(
                     "El usuario no tiene permiso para anular borradores.");
 
+            if (string.IsNullOrWhiteSpace(empresa) || string.IsNullOrWhiteSpace(idBorrador))
+                return ResultadoBorradorNc.Error("Falta identificar el borrador.");
             if (string.IsNullOrWhiteSpace(motivo))
                 return ResultadoBorradorNc.Error("Debe indicar el motivo de la anulación.");
             if (Longitud(motivo) > 1000)
@@ -580,7 +580,7 @@ namespace DiamDev.Give.BLL
                     return ResultadoBorradorNc.Error("El borrador no existe.");
 
                 return ResultadoBorradorNc.Error(string.Format(
-                    "Solo se pueden anular borradores autorizados. Este está {0}.",
+                    "Solo se pueden anular borradores pendientes, autorizados o rechazados. Este está {0}.",
                     actual.Estado.ToLower()));
             }
 

@@ -977,7 +977,7 @@
         $.each(filas, function (_, x) {
             if (x.Estado === "PENDIENTE") p++;
             else if (x.Estado === "AUTORIZADO") a++;
-            else r++;
+            else if (x.Estado === "RECHAZADO") r++;
         });
         $("#bncKpiPendientes").text(p);
         $("#bncKpiAutorizados").text(a);
@@ -1006,6 +1006,10 @@
         });
     }
 
+    function estadoAnulable(estado) {
+        return estado === "PENDIENTE" || estado === "AUTORIZADO" || estado === "RECHAZADO";
+    }
+
     function renderDetalle(x) {
         var lineas = "";
         $.each(x.Detalles || [], function (_, d) {
@@ -1023,7 +1027,7 @@
         });
         var motivo = x.MotivoResolucion
             ? '<div class="bnc-detail-note is-visible"><strong>Motivo:</strong> ' + escapeHtml(x.MotivoResolucion) + "</div>" : "";
-        var anular = state.puedeAnular && x.Estado === "AUTORIZADO"
+        var anular = state.puedeAnular && estadoAnulable(x.Estado)
             ? '<button class="bnc-btn bnc-btn-danger" type="button" id="bncAnularSeleccionado"><i class="icon-ban-circle"></i> Anular</button>' : "";
 
         $("#bncFollowDetail").html(

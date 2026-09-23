@@ -540,30 +540,33 @@ namespace DiamDev.Give.DAL
         }
 
         /// <summary>
-        /// Anula un borrador YA AUTORIZADO. Funcionalidad nueva: el desktop
-        /// solo podía rechazar lo pendiente, así que un borrador autorizado por
-        /// error se quedaba comprometiendo el saldo de la factura para siempre.
-        /// Anular lo libera (ver VW_BORR_NC_ACUMULADO).
+        /// Anula un borrador pendiente, autorizado o rechazado. El estado
+        /// anterior se conserva en la bitácora dentro de la misma transacción.
+        /// Los estados activos liberan su monto en VW_BORR_NC_ACUMULADO.
         /// </summary>
         public int Anular(string empresa, string idBorrador, string usuario, string motivo)
         {
             const string sql = @"
+                DECLARE @estadosAnteriores TABLE (ESTADO varchar(20) NOT NULL);
+
                 UPDATE dbo.BORR_NC_ENC
                    SET ESTADO            = 'ANULADO',
                        RESUELTO_POR      = @usuario,
                        FECHA_RESOLUCION  = SYSDATETIME(),
                        MOTIVO_RESOLUCION = @motivo
+                OUTPUT deleted.ESTADO INTO @estadosAnteriores (ESTADO)
                  WHERE ID_EMPRESA  = @empresa
                    AND ID_BORRADOR = @idBorr
-                   AND ESTADO      = 'AUTORIZADO';
+                   AND ESTADO IN ('PENDIENTE', 'AUTORIZADO', 'RECHAZADO');
 
                 DECLARE @filas int = @@ROWCOUNT;
                 IF @filas = 1
                     INSERT dbo.BORR_NC_BITACORA
                         (ID_EMPRESA, ID_BORRADOR, EVENTO, ESTADO_ANTERIOR,
                          ESTADO_NUEVO, USUARIO, DETALLE)
-                    VALUES (@empresa, @idBorr, 'ANULADO', 'AUTORIZADO',
-                            'ANULADO', @usuario, @motivo);
+                    SELECT @empresa, @idBorr, 'ANULADO', E.ESTADO,
+                           'ANULADO', @usuario, @motivo
+                    FROM @estadosAnteriores E;
 
                 SELECT @filas;";
 

@@ -620,6 +620,11 @@ namespace DiamDev.Give.UI.Controllers
                 if (request == null)
                     return Json(new { ok = false, msg = "No se recibió la anulación." });
                 ValidarEmpresa(request.Empresa);
+                var enc = _bll.ObtenerPorId(request.Empresa, request.IdBorrador);
+                if (enc == null)
+                    return Json(new { ok = false, msg = "El borrador no existe." });
+                if (!PuedeConsultarSeguimiento(enc))
+                    throw new UnauthorizedAccessException("No tiene acceso a este borrador.");
                 var resultado = _bll.Anular(request.Empresa, request.IdBorrador,
                                             User.Identity.Name, request.Motivo);
                 return Json(new { ok = resultado.Exito, msg = resultado.Mensaje });

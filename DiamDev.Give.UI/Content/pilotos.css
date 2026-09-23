@@ -714,6 +714,85 @@ dd {
   margin-bottom:16px
 }
 
+.customer-group {
+  margin:0 0 24px;
+  padding:12px;
+  border:2px solid #7b94ac;
+  border-radius:20px;
+  background:#e7eff9
+}
+
+.customer-group-heading {
+  padding:8px 8px 2px;
+  margin-bottom:12px
+}
+
+.customer-group-heading h3 {
+  margin:2px 0 8px;
+  font-size:24px;
+  line-height:1.2;
+  overflow-wrap:anywhere
+}
+
+.customer-group-heading .address {
+  margin:0 0 14px;
+  font-size:16px
+}
+
+.customer-group-action .bulk-delivered {
+  width:100%;
+  border-color:#07529a;
+  color:#07529a;
+  text-align:center
+}
+
+.group-status,.image-card-status {
+  color:#174e2f;
+  font-size:15px;
+  font-weight:700;
+  margin:8px 0 0
+}
+
+.group-status:empty,.image-card-status:empty { display:none }
+
+.customer-group .document-card:last-child { margin-bottom:0 }
+
+.document-image-link { margin:14px 0 8px }
+
+.document-image-link a {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:44px;
+  font-weight:750
+}
+
+.document-image-link .icon { width:20px }
+
+.image-upload-trigger {
+  width:100%;
+  margin:12px 0;
+  border-color:var(--blue);
+  color:var(--blue)
+}
+
+.image-preview {
+  display:block;
+  width:100%;
+  max-height:38vh;
+  object-fit:contain;
+  margin:14px 0;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:#f0f3f7
+}
+
+.image-preview[hidden] { display:none }
+
+.image-sheet { max-width:620px }
+
+#image-status { min-height:1.5em; color:var(--ink); font-weight:650 }
+
 .document-heading {
   display:flex;
   align-items:center;
@@ -1481,6 +1560,10 @@ body.modal-open {
 }
 
 @media(min-width:720px) {
+  .customer-group { padding:18px }
+  .customer-group-heading { display:flex; align-items:center; justify-content:space-between; gap:20px }
+  .customer-group-action { width:320px; flex:0 0 auto }
+  .image-upload-trigger { width:auto }
   .header-inner {
     padding:12px 24px
   }
@@ -1646,7 +1729,7 @@ body.modal-open {
 }
 
 @media print {
-  .pilot-header,.mode-bar,.pilot-footer,.detail-footer,.pagination,.back-link,.complete-panel,.confirm-modal {
+  .pilot-header,.mode-bar,.pilot-footer,.detail-footer,.pagination,.back-link,.complete-panel,.confirm-modal,.bulk-delivered,.image-upload-trigger {
     display:none
   }
 

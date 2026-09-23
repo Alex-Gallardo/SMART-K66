@@ -12,11 +12,32 @@ namespace DiamDev.Give.Entities
         // Mantiene el formulario completo por debajo del limite de claves de ASP.NET.
         public const int MaxDocumentos = 200;
         public const int MaxObservacion = 500;
+        public const int MaxImagenBytes = 10 * 1024 * 1024;
         public static readonly string[] MotivosNoEntrega = new[] {
             "TIEMPO CLIENTE", "TIEMPO RUTA", "CLIENTE CERRADO", "FALTA ESPACIO",
             "PEDIDO INCORRECTO", "CLIENTE RECHAZO PEDIDO", "PRODUCTO NO SOLICITADO", "OTRO"
         };
         private static readonly HashSet<string> MotivosPermitidos = new HashSet<string>(MotivosNoEntrega, StringComparer.Ordinal);
+        public static string ValidarImagen(string nombre, byte[] contenido)
+        {
+            if (string.IsNullOrWhiteSpace(nombre) || nombre.Length > 255 || nombre.Any(char.IsControl))
+                throw new PilotoException(400, "El nombre de la imagen no es válido.");
+            if (contenido == null || contenido.Length == 0 || contenido.Length > MaxImagenBytes)
+                throw new PilotoException(400, "La imagen debe pesar entre 1 byte y 10 MB.");
+            var extension = Path.GetExtension(nombre).ToLowerInvariant();
+            if ((extension == ".jpg" || extension == ".jpeg") && EmpiezaCon(contenido, 0xFF, 0xD8, 0xFF)) return "image/jpeg";
+            if (extension == ".png" && EmpiezaCon(contenido, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)) return "image/png";
+            if (extension == ".webp" && contenido.Length >= 12 && Encoding.ASCII.GetString(contenido, 0, 4) == "RIFF" &&
+                Encoding.ASCII.GetString(contenido, 8, 4) == "WEBP") return "image/webp";
+            throw new PilotoException(400, "Usa una imagen JPG, PNG o WebP válida.");
+        }
+
+        private static bool EmpiezaCon(byte[] contenido, params byte[] firma)
+        {
+            if (contenido.Length < firma.Length) return false;
+            for (var i = 0; i < firma.Length; i++) if (contenido[i] != firma[i]) return false;
+            return true;
+        }
         public static string VistaRutas(string vista)
         {
             if (string.IsNullOrWhiteSpace(vista)) return "activas";

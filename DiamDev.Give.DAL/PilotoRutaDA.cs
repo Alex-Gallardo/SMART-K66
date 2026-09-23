@@ -5,6 +5,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Xml.Linq;
 using DiamDev.Give.Entities;
 
@@ -260,6 +261,26 @@ FROM " + apk + ".dbo.RT_RUTAS_DET" + hint + "WHERE ID_RUTA=@id ORDER BY ROWID OF
                         Salida=r["MO_HR_SALIDA"]==DBNull.Value ? (TimeSpan?)null : (TimeSpan)r["MO_HR_SALIDA"] });
                 }
             }
+            using (var cmd = Command(cn, tx, "SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoDocumentoImagen',N'U') IS NULL OR OBJECT_ID(N'dbo.PilotoDocumentoImagenEvento',N'U') IS NULL THEN 0 ELSE 1 END;"))
+                ruta.ImagenesDisponibles = (int)cmd.ExecuteScalar() == 1;
+            ruta.PuedeAdjuntarImagen = ruta.ImagenesDisponibles && !PruebasSoloLectura && ruta.Estado == "E";
+            if (ruta.ImagenesDisponibles && ruta.Documentos.Count > 0)
+            {
+                var documentos = ruta.Documentos.ToDictionary(d => d.RowId);
+                using (var cmd = Command(cn, tx, @"SELECT Detalle_RowId, Nombre, FechaUtc
+FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@id;"))
+                {
+                    Param(cmd,"@id",SqlDbType.NVarChar,id,15);
+                    using (var r=cmd.ExecuteReader()) while(r.Read())
+                    {
+                        PilotoDocumento d;
+                        if (!documentos.TryGetValue((int)r["Detalle_RowId"], out d)) continue;
+                        d.TieneImagen=true;
+                        d.ImagenNombre=Texto(r,"Nombre");
+                        d.ImagenFechaUtc=(DateTime)r["FechaUtc"];
+                    }
+                }
+            }
             if (paginada && pagina > 1 && ruta.Documentos.Count == 0) throw new PilotoException(404,"La página de documentos no está disponible. Vuelve al inicio de la ruta.");
             ruta.Version=paginada ? null : PilotoReglas.Version(ruta);
             return ruta;
@@ -273,6 +294,115 @@ FROM " + apk + ".dbo.RT_RUTAS_DET" + hint + "WHERE ID_RUTA=@id ORDER BY ROWID OF
                 {
                     var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Ver"); var ruta=LeerRuta(cn,tx,a,id,false,pagina,true); tx.Commit(); return ruta;
                 }
+            }
+        }
+
+        private static void ValidarImagenId(string rutaId, int rowId)
+        {
+            if (string.IsNullOrWhiteSpace(rutaId) || rutaId.Length > 15 || rowId <= 0)
+                throw new PilotoException(404,"Documento no disponible.");
+        }
+
+        private void VerificarTablaImagen(SqlConnection cn, SqlTransaction tx)
+        {
+            using (var cmd=Command(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoDocumentoImagen',N'U') IS NULL OR OBJECT_ID(N'dbo.PilotoDocumentoImagenEvento',N'U') IS NULL THEN 0 ELSE 1 END;"))
+                if ((int)cmd.ExecuteScalar()!=1)
+                    throw new PilotoException(503,"Falta instalar las imágenes de documentos en POS.");
+        }
+
+        public PilotoImagen ObtenerImagen(string login, string rutaId, int rowId)
+        {
+            ValidarImagenId(rutaId,rowId);
+            using(var cn=AbrirConexion()) using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted))
+            {
+                var acceso=Autorizar(cn,tx,login,"Pilotos.Rutas.Ver");
+                VerificarTablaImagen(cn,tx);
+                var sql=@"SELECT i.Nombre,i.ContentType,i.Contenido
+FROM " + apk + @".dbo.RT_RUTAS r
+JOIN " + apk + @".dbo.RT_RUTAS_DET d ON d.ID_RUTA=r.ID_RUTA
+JOIN dbo.PilotoDocumentoImagen i ON i.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT AND i.Detalle_RowId=d.ROWID
+WHERE r.ID_RUTA=@id AND d.ROWID=@row AND " + Alcance(acceso) + ";";
+                using(var cmd=Command(cn,tx,sql))
+                {
+                    Param(cmd,"@id",SqlDbType.NVarChar,rutaId,15);
+                    Param(cmd,"@row",SqlDbType.Int,rowId);
+                    ParametrosAcceso(cmd,acceso);
+                    using(var r=cmd.ExecuteReader())
+                    {
+                        if(!r.Read()) throw new PilotoException(404,"Imagen no disponible.");
+                        var imagen=new PilotoImagen { RutaId=rutaId,RowId=rowId,Nombre=Texto(r,"Nombre"),
+                            ContentType=Texto(r,"ContentType"),Contenido=(byte[])r["Contenido"] };
+                        r.Close(); tx.Commit(); return imagen;
+                    }
+                }
+            }
+        }
+
+        public void GuardarImagen(string login, PilotoImagen imagen)
+        {
+            if (PruebasSoloLectura) throw new PilotoException(403,"El modo de solo consulta no permite subir imágenes.");
+            if (imagen==null) throw new PilotoException(400,"Selecciona una imagen.");
+            ValidarImagenId(imagen.RutaId,imagen.RowId);
+            imagen.ContentType=PilotoReglas.ValidarImagen(imagen.Nombre,imagen.Contenido);
+            byte[] huella;
+            using(var sha=SHA256.Create()) huella=sha.ComputeHash(imagen.Contenido);
+            using(var cn=AbrirConexion()) using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
+            {
+                var acceso=Autorizar(cn,tx,login,"Pilotos.Rutas.Ver");
+                VerificarTablaImagen(cn,tx);
+                var sql=@"SELECT TOP (1) r.STATUS
+FROM " + apk + @".dbo.RT_RUTAS r WITH(UPDLOCK,HOLDLOCK)
+JOIN " + apk + @".dbo.RT_RUTAS_DET d ON d.ID_RUTA=r.ID_RUTA
+WHERE r.ID_RUTA=@id AND d.ROWID=@row AND " + Alcance(acceso) + ";";
+                string estado;
+                using(var cmd=Command(cn,tx,sql))
+                {
+                    Param(cmd,"@id",SqlDbType.NVarChar,imagen.RutaId,15);
+                    Param(cmd,"@row",SqlDbType.Int,imagen.RowId);
+                    ParametrosAcceso(cmd,acceso);
+                    estado=cmd.ExecuteScalar() as string;
+                }
+                if(estado==null) throw new PilotoException(404,"Documento no disponible o reasignado.");
+                if(estado!="E") throw new PilotoException(409,"Solo puedes subir imágenes mientras la ruta está En ruta.");
+                byte[] anterior=null;
+                using(var cmd=Command(cn,tx,@"SELECT HashSha256 FROM dbo.PilotoDocumentoImagen WITH(UPDLOCK,HOLDLOCK)
+WHERE Ruta_Id=@id AND Detalle_RowId=@row;"))
+                {
+                    Param(cmd,"@id",SqlDbType.NVarChar,imagen.RutaId,15);
+                    Param(cmd,"@row",SqlDbType.Int,imagen.RowId);
+                    anterior=cmd.ExecuteScalar() as byte[];
+                }
+                sql=anterior==null
+                    ? @"INSERT dbo.PilotoDocumentoImagen(Ruta_Id,Detalle_RowId,Usuario_Id,Nombre,ContentType,Tamano,Contenido,HashSha256)
+VALUES(@id,@row,@usuario,@nombre,@tipo,@tamano,@contenido,@huella);"
+                    : @"UPDATE dbo.PilotoDocumentoImagen
+SET Usuario_Id=@usuario,Nombre=@nombre,ContentType=@tipo,Tamano=@tamano,Contenido=@contenido,HashSha256=@huella,FechaUtc=SYSUTCDATETIME()
+WHERE Ruta_Id=@id AND Detalle_RowId=@row;";
+                using(var cmd=Command(cn,tx,sql))
+                {
+                    Param(cmd,"@id",SqlDbType.NVarChar,imagen.RutaId,15);
+                    Param(cmd,"@row",SqlDbType.Int,imagen.RowId);
+                    Param(cmd,"@usuario",SqlDbType.BigInt,acceso.Usuario);
+                    Param(cmd,"@nombre",SqlDbType.NVarChar,imagen.Nombre,255);
+                    Param(cmd,"@tipo",SqlDbType.NVarChar,imagen.ContentType,50);
+                    Param(cmd,"@tamano",SqlDbType.Int,imagen.Contenido.Length);
+                    Param(cmd,"@contenido",SqlDbType.VarBinary,imagen.Contenido,-1);
+                    Param(cmd,"@huella",SqlDbType.Binary,huella,32);
+                    cmd.ExecuteNonQuery();
+                }
+                using(var cmd=Command(cn,tx,@"INSERT dbo.PilotoDocumentoImagenEvento
+(Ruta_Id,Detalle_RowId,Usuario_Id,Accion,HashAnterior,HashNueva)
+VALUES(@id,@row,@usuario,@accion,@anterior,@nueva);"))
+                {
+                    Param(cmd,"@id",SqlDbType.NVarChar,imagen.RutaId,15);
+                    Param(cmd,"@row",SqlDbType.Int,imagen.RowId);
+                    Param(cmd,"@usuario",SqlDbType.BigInt,acceso.Usuario);
+                    Param(cmd,"@accion",SqlDbType.NVarChar,anterior==null ? "AGREGADA" : "REEMPLAZADA",12);
+                    Param(cmd,"@anterior",SqlDbType.Binary,anterior,32);
+                    Param(cmd,"@nueva",SqlDbType.Binary,huella,32);
+                    cmd.ExecuteNonQuery();
+                }
+                tx.Commit();
             }
         }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Configuration;
+using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.Globalization;
@@ -152,6 +153,18 @@ namespace DiamDev.Give.UI.Controllers
             catch(Exception e) { return ErrorPiloto(e); }
         }
 
+        [HttpGet]
+        public ActionResult ImagenCliente(string id,int primerRowId)
+        {
+            try
+            {
+                var imagen=new PilotoRutaBL().ObtenerImagenCliente(User.Identity.Name,id,primerRowId);
+                Response.AddHeader("X-Content-Type-Options","nosniff");
+                return File(imagen.Contenido,imagen.ContentType);
+            }
+            catch(Exception e) { return ErrorPiloto(e); }
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public ActionResult GuardarCliente(PilotoBorradorCliente borrador)
@@ -160,7 +173,7 @@ namespace DiamDev.Give.UI.Controllers
             {
                 if(!ModelState.IsValid) throw new PilotoException(400,"Revisa los resultados del cliente.");
                 new PilotoRutaBL().GuardarBorrador(User.Identity.Name,borrador);
-                return Json(new { ok=true, mensaje="Cliente guardado en POS." });
+                return Json(new { ok=true, mensaje="Cliente completado y bloqueado.",documentos=borrador.Documentos });
             }
             catch(Exception e)
             {
@@ -171,7 +184,7 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult SubirImagen(string rutaId, int rowId, HttpPostedFileBase archivo)
+        public ActionResult SubirImagen(string rutaId, int rowId, string entrega, HttpPostedFileBase archivo)
         {
             try
             {
@@ -191,7 +204,7 @@ namespace DiamDev.Give.UI.Controllers
                     }
                     contenido=memoria.ToArray();
                 }
-                var imagen=new PilotoImagen { RutaId=rutaId,RowId=rowId,Nombre=nombre,Contenido=contenido };
+                var imagen=new PilotoImagen { RutaId=rutaId,RowId=rowId,Nombre=nombre,Contenido=contenido,Entrega=entrega };
                 new PilotoRutaBL().GuardarImagen(User.Identity.Name,imagen);
                 return Json(new { ok=true, nombre=imagen.Nombre, url=Url.Action("Imagen","Piloto",new { id=rutaId,rowId=rowId }) });
             }
@@ -199,6 +212,38 @@ namespace DiamDev.Give.UI.Controllers
             {
                 ErrorPiloto(e);
                 return Json(new { ok=false, mensaje=(string)ViewBag.Mensaje });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult SubirImagenCliente(string rutaId,int primerRowId,string version,List<PilotoResultado> documentos,HttpPostedFileBase archivo)
+        {
+            try
+            {
+                if(archivo==null || archivo.ContentLength<=0 || archivo.ContentLength>PilotoReglas.MaxImagenBytes)
+                    throw new PilotoException(400,"Selecciona una imagen de hasta 10 MB.");
+                var nombre=Path.GetFileName(archivo.FileName ?? "");
+                byte[] contenido;
+                using(var memoria=new MemoryStream())
+                {
+                    var bloque=new byte[81920]; int leidos;
+                    while((leidos=archivo.InputStream.Read(bloque,0,bloque.Length))>0)
+                    {
+                        if(memoria.Length+leidos>PilotoReglas.MaxImagenBytes) throw new PilotoException(400,"La imagen supera el límite de 10 MB.");
+                        memoria.Write(bloque,0,leidos);
+                    }
+                    contenido=memoria.ToArray();
+                }
+                var imagen=new PilotoClienteImagen { RutaId=rutaId,PrimerRowId=primerRowId,Version=version,
+                    Documentos=documentos,Nombre=nombre,Contenido=contenido };
+                new PilotoRutaBL().GuardarImagenCliente(User.Identity.Name,imagen);
+                return Json(new { ok=true,url=Url.Action("ImagenCliente","Piloto",new { id=rutaId,primerRowId=primerRowId }) });
+            }
+            catch(Exception e)
+            {
+                ErrorPiloto(e);
+                return Json(new { ok=false,mensaje=(string)ViewBag.Mensaje });
             }
         }
 

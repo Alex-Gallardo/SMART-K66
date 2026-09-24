@@ -87,7 +87,7 @@ internal static class RazorPreview
             Visito=true, Entrega="ENTREGADO" };
         segundo.Visito=true; segundo.Entrega="ENTREGADO"; segundo.Motivo=null; segundo.ObservacionPiloto=null;
         ruta.Borradores.Add(new PilotoBorradorCliente { RutaId=ruta.Id, Version=ruta.Version,
-            PrimerRowId=ruta.Documentos[0].RowId, MasivoActivo=true });
+            PrimerRowId=ruta.Documentos[0].RowId, MasivoActivo=true,Completado=true,TieneImagenCliente=true });
         return ruta;
     }
     public static PilotoAdminLista AdminLista()

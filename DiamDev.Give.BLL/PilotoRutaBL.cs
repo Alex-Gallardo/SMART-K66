@@ -23,5 +23,9 @@ namespace DiamDev.Give.BLL
         { return new PilotoRutaDA().ObtenerImagen(login, rutaId, rowId); }
         public void GuardarImagen(string login, PilotoImagen imagen)
         { new PilotoRutaDA().GuardarImagen(login, imagen); }
+        public PilotoClienteImagen ObtenerImagenCliente(string login,string rutaId,int primero)
+        { return new PilotoRutaDA().ObtenerImagenCliente(login,rutaId,primero); }
+        public void GuardarImagenCliente(string login,PilotoClienteImagen imagen)
+        { new PilotoRutaDA().GuardarImagenCliente(login,imagen); }
     }
 }

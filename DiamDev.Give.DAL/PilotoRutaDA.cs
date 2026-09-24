@@ -285,6 +285,17 @@ FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@id;"))
             ruta.Version=paginada ? null : PilotoReglas.Version(ruta);
             using (var cmd=Command(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoBorradorCliente',N'U') IS NULL THEN 0 ELSE 1 END;"))
                 ruta.BorradoresDisponibles=(int)cmd.ExecuteScalar()==1;
+            using (var cmd=Command(cn,tx,"SELECT CASE WHEN COL_LENGTH(N'dbo.PilotoBorradorCliente',N'Completado') IS NULL OR OBJECT_ID(N'dbo.PilotoClienteImagen',N'U') IS NULL OR OBJECT_ID(N'dbo.PilotoClienteImagenEvento',N'U') IS NULL THEN 0 ELSE 1 END;"))
+                ruta.ClientesCompletadosDisponibles=(int)cmd.ExecuteScalar()==1;
+            if(ruta.ClientesCompletadosDisponibles)
+            {
+                using(var cmd=Command(cn,tx,"SELECT Primer_RowId FROM dbo.PilotoClienteImagen WHERE Ruta_Id=@ruta;"))
+                {
+                    Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15);
+                    using(var r=cmd.ExecuteReader()) while(r.Read()) ruta.ClientesConImagen.Add((int)r["Primer_RowId"]);
+                }
+            }
+            ruta.PuedeAdjuntarImagen = ruta.PuedeAdjuntarImagen && ruta.ClientesCompletadosDisponibles;
             return ruta;
         }
 
@@ -295,8 +306,8 @@ FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@id;"))
                 using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
                 {
                     var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Ver"); var ruta=LeerRuta(cn,tx,a,id,false,pagina,true);
-                    if(ruta.PuedeCerrar && ruta.BorradoresDisponibles) CargarBorradores(cn,tx,a,ruta);
-                    if(ruta.PuedeCerrar && !ruta.BorradoresDisponibles) ruta.PuedeCerrar=false;
+                    if(ruta.PuedeCerrar && ruta.ClientesCompletadosDisponibles) CargarBorradores(cn,tx,a,ruta);
+                    if(ruta.PuedeCerrar && !ruta.ClientesCompletadosDisponibles) ruta.PuedeCerrar=false;
                     tx.Commit(); return ruta;
                 }
             }
@@ -336,8 +347,11 @@ FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@id;"))
 
         private void CargarBorradores(SqlConnection cn,SqlTransaction tx,Acceso a,PilotoRuta ruta,bool aplicar=true)
         {
-            using(var cmd=Command(cn,tx,@"SELECT Primer_RowId,Version,MasivoActivo,Resultados,Anteriores
-FROM dbo.PilotoBorradorCliente WHERE Usuario_Id=@usuario AND Ruta_Id=@ruta;"))
+            using(var cmd=Command(cn,tx,@"SELECT b.Primer_RowId,b.Version,b.MasivoActivo,b.Resultados,b.Anteriores,b.Completado,
+CASE WHEN i.Ruta_Id IS NULL THEN 0 ELSE 1 END AS TieneImagenCliente
+FROM dbo.PilotoBorradorCliente b LEFT JOIN dbo.PilotoClienteImagen i
+ON i.Ruta_Id=b.Ruta_Id AND i.Primer_RowId=b.Primer_RowId
+WHERE b.Usuario_Id=@usuario AND b.Ruta_Id=@ruta;"))
             {
                 Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario); Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15);
                 using(var r=cmd.ExecuteReader()) while(r.Read())
@@ -345,6 +359,7 @@ FROM dbo.PilotoBorradorCliente WHERE Usuario_Id=@usuario AND Ruta_Id=@ruta;"))
                     if(Texto(r,"Version")!=ruta.Version) continue;
                     var b=new PilotoBorradorCliente { RutaId=ruta.Id,Version=ruta.Version,
                         PrimerRowId=(int)r["Primer_RowId"],MasivoActivo=(bool)r["MasivoActivo"],
+                        Completado=(bool)r["Completado"],TieneImagenCliente=(int)r["TieneImagenCliente"]==1,
                         Documentos=LeerResultados(Texto(r,"Resultados")),Anteriores=LeerResultados(Texto(r,"Anteriores")) };
                     var grupo=DocumentosGrupo(ruta,b.PrimerRowId);
                     if(b.Documentos.Count!=grupo.Count || !b.Documentos.Select(d=>d.RowId).OrderBy(x=>x).SequenceEqual(grupo.Select(d=>d.RowId)))
@@ -370,9 +385,18 @@ FROM dbo.PilotoBorradorCliente WHERE Usuario_Id=@usuario AND Ruta_Id=@ruta;"))
             {
                 var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Confirmar");
                 var ruta=LeerRuta(cn,tx,a,borrador.RutaId,true);
-                if(!ruta.PuedeCerrar || !ruta.BorradoresDisponibles || ruta.Version!=borrador.Version)
+                if(!ruta.PuedeCerrar || !ruta.ClientesCompletadosDisponibles || ruta.Version!=borrador.Version)
                     throw new PilotoException(409,"La ruta cambió o el guardado no está instalado. Recarga los detalles.");
                 var grupo=DocumentosGrupo(ruta,borrador.PrimerRowId);
+                using(var lockCmd=Command(cn,tx,@"SELECT Completado FROM dbo.PilotoBorradorCliente WITH(UPDLOCK,HOLDLOCK)
+WHERE Usuario_Id=@usuario AND Ruta_Id=@ruta AND Primer_RowId=@primero;"))
+                {
+                    Param(lockCmd,"@usuario",SqlDbType.BigInt,a.Usuario); Param(lockCmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15);
+                    Param(lockCmd,"@primero",SqlDbType.Int,borrador.PrimerRowId);
+                    var completado=lockCmd.ExecuteScalar();
+                    if(completado is bool && (bool)completado)
+                        throw new PilotoException(409,"Este cliente ya está completado y no admite cambios.");
+                }
                 if(borrador.Documentos==null || borrador.Documentos.Count!=grupo.Count ||
                     !borrador.Documentos.Select(d=>d.RowId).OrderBy(x=>x).SequenceEqual(grupo.Select(d=>d.RowId)))
                     throw new PilotoException(400,"Guarda todos los documentos de este cliente.");
@@ -392,10 +416,10 @@ FROM dbo.PilotoBorradorCliente WHERE Usuario_Id=@usuario AND Ruta_Id=@ruta;"))
                 var resultados=ResultadosXml(borrador.Documentos).ToString(SaveOptions.DisableFormatting);
                 var anteriores=borrador.MasivoActivo ? ResultadosXml(borrador.Anteriores).ToString(SaveOptions.DisableFormatting) : null;
                 using(var cmd=Command(cn,tx,@"UPDATE dbo.PilotoBorradorCliente WITH(UPDLOCK,HOLDLOCK)
-SET Version=@version,MasivoActivo=@masivo,Resultados=@resultados,Anteriores=@anteriores,FechaUtc=SYSUTCDATETIME()
+SET Version=@version,MasivoActivo=@masivo,Resultados=@resultados,Anteriores=@anteriores,Completado=1,FechaUtc=SYSUTCDATETIME()
 WHERE Usuario_Id=@usuario AND Ruta_Id=@ruta AND Primer_RowId=@primero;
-IF @@ROWCOUNT=0 INSERT dbo.PilotoBorradorCliente(Usuario_Id,Ruta_Id,Primer_RowId,Version,MasivoActivo,Resultados,Anteriores)
-VALUES(@usuario,@ruta,@primero,@version,@masivo,@resultados,@anteriores);"))
+IF @@ROWCOUNT=0 INSERT dbo.PilotoBorradorCliente(Usuario_Id,Ruta_Id,Primer_RowId,Version,MasivoActivo,Resultados,Anteriores,Completado)
+VALUES(@usuario,@ruta,@primero,@version,@masivo,@resultados,@anteriores,1);"))
                 {
                     Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario); Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15);
                     Param(cmd,"@primero",SqlDbType.Int,borrador.PrimerRowId); Param(cmd,"@version",SqlDbType.VarChar,borrador.Version,44);
@@ -473,6 +497,21 @@ WHERE r.ID_RUTA=@id AND d.ROWID=@row AND " + Alcance(acceso) + ";";
                 }
                 if(estado==null) throw new PilotoException(404,"Documento no disponible o reasignado.");
                 if(estado!="E") throw new PilotoException(409,"Solo puedes subir imágenes mientras la ruta está En ruta.");
+                if(imagen.Entrega!="NO ENTREGADO" && imagen.Entrega!="INCIDENCIA")
+                    throw new PilotoException(400,"Selecciona No entregado o Incidencia antes de subir la imagen.");
+                var ruta=LeerRuta(cn,tx,acceso,imagen.RutaId,true);
+                if(!ruta.ClientesCompletadosDisponibles) throw new PilotoException(503,"Falta instalar la finalización de clientes en POS.");
+                var documento=ruta.Documentos.SingleOrDefault(d=>d.RowId==imagen.RowId);
+                if(documento==null) throw new PilotoException(404,"Documento no disponible.");
+                var primero=DocumentosGrupo(ruta,ruta.Documentos.Where(d=>Grupo(d)==Grupo(documento)).Min(d=>d.RowId))[0].RowId;
+                using(var cmd=Command(cn,tx,@"SELECT Completado FROM dbo.PilotoBorradorCliente WITH(UPDLOCK,HOLDLOCK)
+WHERE Usuario_Id=@usuario AND Ruta_Id=@ruta AND Primer_RowId=@primero;"))
+                {
+                    Param(cmd,"@usuario",SqlDbType.BigInt,acceso.Usuario); Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15);
+                    Param(cmd,"@primero",SqlDbType.Int,primero);
+                    var completado=cmd.ExecuteScalar();
+                    if(completado is bool && (bool)completado) throw new PilotoException(409,"Este cliente ya está completado y no admite cambios.");
+                }
                 byte[] anterior=null;
                 using(var cmd=Command(cn,tx,@"SELECT HashSha256 FROM dbo.PilotoDocumentoImagen WITH(UPDLOCK,HOLDLOCK)
 WHERE Ruta_Id=@id AND Detalle_RowId=@row;"))
@@ -509,6 +548,89 @@ VALUES(@id,@row,@usuario,@accion,@anterior,@nueva);"))
                     Param(cmd,"@accion",SqlDbType.NVarChar,anterior==null ? "AGREGADA" : "REEMPLAZADA",12);
                     Param(cmd,"@anterior",SqlDbType.Binary,anterior,32);
                     Param(cmd,"@nueva",SqlDbType.Binary,huella,32);
+                    cmd.ExecuteNonQuery();
+                }
+                tx.Commit();
+            }
+        }
+
+        public PilotoClienteImagen ObtenerImagenCliente(string login,string rutaId,int primero)
+        {
+            ValidarImagenId(rutaId,primero);
+            using(var cn=AbrirConexion()) using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted))
+            {
+                var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Ver");
+                var ruta=LeerRuta(cn,tx,a,rutaId,false);
+                if(!ruta.ClientesCompletadosDisponibles) throw new PilotoException(503,"Falta instalar las imágenes de clientes en POS.");
+                DocumentosGrupo(ruta,primero);
+                using(var cmd=Command(cn,tx,@"SELECT Nombre,ContentType,Contenido FROM dbo.PilotoClienteImagen
+WHERE Ruta_Id=@ruta AND Primer_RowId=@primero;"))
+                {
+                    Param(cmd,"@ruta",SqlDbType.NVarChar,rutaId,15); Param(cmd,"@primero",SqlDbType.Int,primero);
+                    using(var r=cmd.ExecuteReader())
+                    {
+                        if(!r.Read()) throw new PilotoException(404,"Foto final no disponible.");
+                        var imagen=new PilotoClienteImagen { RutaId=rutaId,PrimerRowId=primero,Nombre=Texto(r,"Nombre"),
+                            ContentType=Texto(r,"ContentType"),Contenido=(byte[])r["Contenido"] };
+                        r.Close(); tx.Commit(); return imagen;
+                    }
+                }
+            }
+        }
+
+        public void GuardarImagenCliente(string login,PilotoClienteImagen imagen)
+        {
+            if(PruebasSoloLectura || !CierreHabilitado) throw new PilotoException(403,"La carga de imágenes no está habilitada.");
+            if(imagen==null) throw new PilotoException(400,"Selecciona una foto final.");
+            ValidarImagenId(imagen.RutaId,imagen.PrimerRowId);
+            imagen.ContentType=PilotoReglas.ValidarImagen(imagen.Nombre,imagen.Contenido);
+            byte[] huella;
+            using(var sha=SHA256.Create()) huella=sha.ComputeHash(imagen.Contenido);
+            using(var cn=AbrirConexion()) using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
+            {
+                var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Confirmar");
+                var ruta=LeerRuta(cn,tx,a,imagen.RutaId,true);
+                if(!ruta.PuedeCerrar || !ruta.ClientesCompletadosDisponibles || ruta.Version!=imagen.Version)
+                    throw new PilotoException(409,"La ruta cambió o la foto final no está instalada. Recarga los detalles.");
+                var grupo=DocumentosGrupo(ruta,imagen.PrimerRowId);
+                if(imagen.Documentos==null || imagen.Documentos.Count!=grupo.Count ||
+                    !imagen.Documentos.Select(d=>d.RowId).OrderBy(x=>x).SequenceEqual(grupo.Select(d=>d.RowId)))
+                    throw new PilotoException(400,"Resuelve todos los documentos del cliente antes de subir la foto final.");
+                PilotoReglas.NormalizarCierre(new PilotoCierre { Documentos=imagen.Documentos });
+                foreach(var resultado in imagen.Documentos) PilotoReglas.ValidarResultado(resultado);
+                using(var cmd=Command(cn,tx,@"SELECT Completado FROM dbo.PilotoBorradorCliente WITH(UPDLOCK,HOLDLOCK)
+WHERE Usuario_Id=@usuario AND Ruta_Id=@ruta AND Primer_RowId=@primero;"))
+                {
+                    Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario); Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15);
+                    Param(cmd,"@primero",SqlDbType.Int,imagen.PrimerRowId);
+                    var completado=cmd.ExecuteScalar();
+                    if(completado is bool && (bool)completado) throw new PilotoException(409,"Este cliente ya está completado y no admite cambios.");
+                }
+                byte[] anterior;
+                using(var cmd=Command(cn,tx,@"SELECT HashSha256 FROM dbo.PilotoClienteImagen WITH(UPDLOCK,HOLDLOCK)
+WHERE Ruta_Id=@ruta AND Primer_RowId=@primero;"))
+                {
+                    Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15); Param(cmd,"@primero",SqlDbType.Int,imagen.PrimerRowId);
+                    anterior=cmd.ExecuteScalar() as byte[];
+                }
+                using(var cmd=Command(cn,tx,anterior==null
+                    ? @"INSERT dbo.PilotoClienteImagen(Ruta_Id,Primer_RowId,Usuario_Id,Nombre,ContentType,Tamano,Contenido,HashSha256)
+VALUES(@ruta,@primero,@usuario,@nombre,@tipo,@tamano,@contenido,@huella);"
+                    : @"UPDATE dbo.PilotoClienteImagen SET Usuario_Id=@usuario,Nombre=@nombre,ContentType=@tipo,Tamano=@tamano,
+Contenido=@contenido,HashSha256=@huella,FechaUtc=SYSUTCDATETIME() WHERE Ruta_Id=@ruta AND Primer_RowId=@primero;"))
+                {
+                    Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15); Param(cmd,"@primero",SqlDbType.Int,imagen.PrimerRowId);
+                    Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario); Param(cmd,"@nombre",SqlDbType.NVarChar,imagen.Nombre,255);
+                    Param(cmd,"@tipo",SqlDbType.NVarChar,imagen.ContentType,50); Param(cmd,"@tamano",SqlDbType.Int,imagen.Contenido.Length);
+                    Param(cmd,"@contenido",SqlDbType.VarBinary,imagen.Contenido,-1); Param(cmd,"@huella",SqlDbType.Binary,huella,32);
+                    cmd.ExecuteNonQuery();
+                }
+                using(var cmd=Command(cn,tx,@"INSERT dbo.PilotoClienteImagenEvento(Ruta_Id,Primer_RowId,Usuario_Id,Accion,HashAnterior,HashNueva)
+VALUES(@ruta,@primero,@usuario,@accion,@anterior,@nueva);"))
+                {
+                    Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15); Param(cmd,"@primero",SqlDbType.Int,imagen.PrimerRowId);
+                    Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario); Param(cmd,"@accion",SqlDbType.NVarChar,anterior==null?"AGREGADA":"REEMPLAZADA",12);
+                    Param(cmd,"@anterior",SqlDbType.Binary,anterior,32); Param(cmd,"@nueva",SqlDbType.Binary,huella,32);
                     cmd.ExecuteNonQuery();
                 }
                 tx.Commit();
@@ -566,7 +688,7 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
                     var ruta=LeerRuta(cn,tx,a,cierre.RutaId,true);
                     PilotoReglas.ValidarCierre(ruta,cierre);
                     if(!ruta.PuedeCerrar) throw new PilotoException(409,"La ruta no admite cierre desde el portal.");
-                    if(!ruta.BorradoresDisponibles) throw new PilotoException(503,"Falta instalar los borradores de clientes en POS.");
+                    if(!ruta.ClientesCompletadosDisponibles) throw new PilotoException(503,"Falta instalar la finalización de clientes en POS.");
                     CargarBorradores(cn,tx,a,ruta,false);
                     var grupos=ruta.Documentos.GroupBy(Grupo).ToList();
                     if(ruta.Borradores.Count!=grupos.Count)
@@ -575,7 +697,7 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
                     {
                         var ids=grupo.Select(d=>d.RowId).OrderBy(x=>x).ToArray();
                         var guardado=ruta.Borradores.SingleOrDefault(b=>b.PrimerRowId==ids[0]);
-                        if(guardado==null || guardado.Documentos.Count!=ids.Length ||
+                        if(guardado==null || !guardado.Completado || guardado.Documentos.Count!=ids.Length ||
                            !guardado.Documentos.Select(d=>d.RowId).OrderBy(x=>x).SequenceEqual(ids))
                             throw new PilotoException(409,"Guarda cada cliente antes de cerrar la ruta.");
                         var esperado=guardado.Documentos.OrderBy(d=>d.RowId).ToArray();

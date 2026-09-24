@@ -113,10 +113,12 @@ if($borrador -notmatch 'data-saved="true"' -or
    ([regex]::Matches($borrador,'class="customer-documents" hidden')).Count -ne 1 -or
    $borrador -notmatch 'class="client-toggle button-secondary" aria-expanded="true"' -or
    $borrador -notmatch 'class="client-complete-badge"' -or
-   $borrador -notmatch 'class="bulk-delivered" checked' -or
-   $borrador -notmatch 'data-before-delivery="NO ENTREGADO"' -or
-   $borrador -notmatch 'data-before-observation="Se encontr') {
-    throw 'El borrador guardado no conserva el cliente completo y las respuestas anteriores.'
+   $borrador -notmatch 'class="client-compact-summary"' -or
+   $borrador -notmatch 'Ver foto final del cliente' -or
+   $borrador -notmatch 'name="Documentos\[1\]\.Entrega" value="ENTREGADO"' -or
+   ([regex]::Matches($borrador,'class="bulk-delivered"')).Count -ne 1 -or
+   ([regex]::Matches($borrador,'class="save-client"')).Count -ne 1) {
+    throw 'El cliente completado debe quedar resumido, bloqueado y conservar sus resultados para el cierre.'
 }
 Write-Host 'OK: grupos, indices y acciones del detalle renderizado.'
 if(!$ScriptDomDll) { $ScriptDomDll=Join-Path $env:USERPROFILE '.nuget/packages/microsoft.sqlserver.transactsql.scriptdom/161.8901.0/lib/net462/Microsoft.SqlServer.TransactSql.ScriptDom.dll' }
@@ -125,6 +127,6 @@ Copy-Item -LiteralPath $ScriptDomDll -Destination $out -Force
 & $compiler /nologo /target:exe "/out:$out/SqlCompile.exe" "/r:$ScriptDomDll" (Join-Path $PSScriptRoot 'SqlCompile.cs')
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador SQL.' }
 $scripts=Get-ChildItem -LiteralPath (Join-Path $repo 'SqlMigrations/Pilotos') -Filter '1*.sql' | ForEach-Object FullName
-$scripts=@($scripts)+(Join-Path $repo 'SqlMigrations/Pilotos/06_rutas_activas_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/07_pos_instalacion_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/20_borrador_cliente_pos.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/21_app_test_dos_rutas_dos_clientes.sql')
+$scripts=@($scripts)+(Join-Path $repo 'SqlMigrations/Pilotos/06_rutas_activas_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/07_pos_instalacion_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/20_borrador_cliente_pos.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/21_app_test_dos_rutas_dos_clientes.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/22_cliente_completado_foto_pos.sql')
 & (Join-Path $out 'SqlCompile.exe') $scripts
 if($LASTEXITCODE -ne 0) { throw 'Fallo sintaxis SQL.' }

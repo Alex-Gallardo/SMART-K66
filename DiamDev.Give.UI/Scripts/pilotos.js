@@ -128,6 +128,7 @@
             imageSubmit.disabled = true;
             imageSubmitLabel.textContent = "Guardando…";
             imageStatus.textContent = "Subiendo imagen…";
+            var uploadPersisted = false;
             window.fetch(imageForm.action, { method:"POST", body:new FormData(imageForm), credentials:"same-origin", headers:{"Accept":"application/json"} })
                 .then(function (response) {
                     if (!/application\/json/i.test(response.headers.get("Content-Type") || ""))
@@ -136,35 +137,25 @@
                 })
                 .then(function (result) {
                     if (!result.ok) throw new Error(result.mensaje || "No se pudo guardar la imagen.");
+                    uploadPersisted = true;
                     var card = imageTrigger.closest(".document-card");
-                    var holder = card.querySelector(".document-image-link");
-                    if (!holder) {
-                        holder = document.createElement("p");
-                        holder.className = "document-image-link";
-                        var link = document.createElement("a");
-                        link.target = "_blank";
-                        link.rel = "noopener";
-                        link.textContent = "Ver imagen adjunta";
-                        holder.appendChild(link);
-                        card.insertBefore(holder, imageTrigger);
-                    }
+                    var holder = card && card.querySelector(".document-image-link");
+                    var notice = card && card.querySelector(".image-card-status");
+                    var label = imageTrigger.querySelector(".image-upload-label");
+                    if (!holder || !notice || !label || !result.url) throw new Error("La imagen se guardó, pero no se pudo actualizar la vista.");
                     holder.querySelector("a").href = result.url + (result.url.indexOf("?") < 0 ? "?" : "&") + "v=" + Date.now();
+                    holder.hidden = false;
                     imageTrigger.setAttribute("data-replace", "true");
-                    imageTrigger.lastChild.nodeValue = "Reemplazar imagen";
+                    label.textContent = "Reemplazar imagen";
+                    notice.textContent = "Imagen guardada. El resultado de entrega se aplica al cerrar la ruta.";
                     imageSubmit.disabled = false;
                     imageSubmitLabel.textContent = "Guardar imagen";
                     closeImage();
-                    var notice = card.querySelector(".image-card-status");
-                    if (!notice) {
-                        notice = document.createElement("p");
-                        notice.className = "image-card-status";
-                        notice.setAttribute("role", "status");
-                        card.insertBefore(notice, imageTrigger.nextSibling);
-                    }
-                    notice.textContent = "Imagen guardada. Los resultados de entrega siguen pendientes hasta cerrar la ruta.";
                 })
                 .catch(function (error) {
-                    imageStatus.textContent = error.message || "No se pudo guardar la imagen. Revisa tu conexión e inténtalo de nuevo.";
+                    imageStatus.textContent = uploadPersisted
+                        ? "La imagen se guardó, pero no se pudo actualizar la vista. Recarga la ruta antes de volver a subirla."
+                        : (error.message || "No se pudo guardar la imagen. Revisa tu conexión e inténtalo de nuevo.");
                     imageSubmit.disabled = false;
                     imageSubmitLabel.textContent = "Guardar imagen";
                 });
@@ -181,6 +172,17 @@
         });
     }
     var form = document.getElementById("complete-route");
+    var groups = form ? form.querySelectorAll(".customer-group") : [];
+    function setGroupOpen(group, open) {
+        var details = group.querySelector(".customer-documents");
+        var toggle = group.querySelector(".client-toggle");
+        details.hidden = !open;
+        if (toggle) { toggle.setAttribute("aria-expanded", open ? "true" : "false"); toggle.textContent = open ? "Ocultar cliente" : "Ver documentos"; }
+    }
+    Array.prototype.forEach.call(groups, function (group) {
+        var toggle = group.querySelector(".client-toggle");
+        if (toggle) toggle.addEventListener("click", function () { setGroupOpen(group, group.querySelector(".customer-documents").hidden); });
+    });
     var reviewButton = document.getElementById("review-button");
     var completeButton = document.getElementById("complete-button");
     var modal = document.getElementById("complete-modal");
@@ -218,13 +220,6 @@
         var toggle = card.querySelector(".document-toggle");
         if (toggle) toggle.textContent = card.querySelector(".document-edit").hidden ?
             (selected ? "Editar resultado" : "Registrar resultado") : "Ocultar detalle";
-    }
-    var groups = form.querySelectorAll(".customer-group");
-    function setGroupOpen(group, open) {
-        var details = group.querySelector(".customer-documents");
-        var toggle = group.querySelector(".client-toggle");
-        details.hidden = !open;
-        if (toggle) { toggle.setAttribute("aria-expanded", open ? "true" : "false"); toggle.textContent = open ? "Ocultar cliente" : "Revisar o editar"; }
     }
     function setDocumentOpen(card, open) {
         var details = card.querySelector(".document-edit");
@@ -283,8 +278,6 @@
         });
     });
     Array.prototype.forEach.call(groups, function (group) {
-        var groupToggle = group.querySelector(".client-toggle");
-        if (groupToggle) groupToggle.addEventListener("click", function () { setGroupOpen(group, group.querySelector(".customer-documents").hidden); });
         var check = group.querySelector(".bulk-delivered");
         if (!check) return;
         if (check.checked) group._beforeBulk = Array.prototype.map.call(group.querySelectorAll(".document-card"), function (card) {
@@ -348,7 +341,7 @@
                     group.classList.add("is-complete");
                     group.querySelector(".client-complete-badge").hidden = false;
                     group.querySelector(".group-status").textContent = "Cliente guardado en POS.";
-                    setGroupOpen(group, false);
+                    setGroupOpen(group, true);
                 }).catch(function (error) { group.querySelector(".group-status").textContent = error.message || "No se pudo guardar. Inténtalo de nuevo."; })
                 .then(function () { save.disabled = false; });
         });

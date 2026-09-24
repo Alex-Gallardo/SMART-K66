@@ -50,9 +50,12 @@ else if (ViewBag.PruebasSoloLectura != true)
                     <h3>@(string.IsNullOrWhiteSpace(primero.Cliente) ? "Cliente sin nombre" : primero.Cliente)</h3>
                     <p class="address"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><span>@(string.IsNullOrWhiteSpace(primero.Direccion) ? "Dirección no registrada" : primero.Direccion)</span></p>
                 </div>
-                @if(Model.PuedeCerrar) { <div class="customer-group-action"><span class="client-complete-badge" @(borrador==null ? "hidden" : "")>✓ Cliente guardado</span><button type="button" class="client-toggle button-secondary" aria-expanded="@(borrador==null ? "true" : "false")" aria-controls="cliente-@primerRowId">@(borrador==null ? "Ocultar cliente" : "Revisar o editar")</button></div> }
+                <div class="customer-group-action">
+                    @if(Model.PuedeCerrar) { <span class="client-complete-badge" @(borrador==null ? "hidden" : "")>✓ Cliente guardado</span> }
+                    <button type="button" class="client-toggle button-secondary" aria-expanded="@(borrador!=null ? "true" : "false")" aria-controls="cliente-@primerRowId">@(borrador!=null ? "Ocultar cliente" : "Ver documentos")</button>
+                </div>
             </div>
-        <div id="cliente-@primerRowId" class="customer-documents" @(borrador!=null && Model.PuedeCerrar ? "hidden" : "")>
+        <div id="cliente-@primerRowId" class="customer-documents" @(borrador==null ? "hidden" : "")>
         @if(Model.PuedeCerrar) { <label class="bulk-delivered-label"><input type="checkbox" class="bulk-delivered" @(borrador!=null && borrador.MasivoActivo ? "checked" : "") /><span>Todos los documentos entregados</span></label> }
         @foreach (var item in grupo)
         {
@@ -62,10 +65,10 @@ else if (ViewBag.PruebasSoloLectura != true)
         <article class="document-card" data-document="@(d.Documento ?? "Sin número")" data-before-visit="@(d.AnteriorMasivo==null || !d.AnteriorMasivo.Visito.HasValue ? "" : d.AnteriorMasivo.Visito.Value ? "true" : "false")" data-before-delivery="@(d.AnteriorMasivo==null ? "" : d.AnteriorMasivo.Entrega)" data-before-reason="@(d.AnteriorMasivo==null ? "" : d.AnteriorMasivo.Motivo)" data-before-observation="@(d.AnteriorMasivo==null ? "" : d.AnteriorMasivo.Observaciones)">
             <div class="document-heading"><span class="document-number">@((Model.PaginaDocumentos-1)*Model.TamanoPaginaDocumentos+i+1)</span><div><p class="eyebrow">@d.Tipo · @d.Empresa</p><h3>@(d.Documento ?? "Sin número")</h3></div><span class="bultos"><svg class="icon" aria-hidden="true"><use href="#i-box" /></svg>@d.Bultos.ToString("0.###") bultos</span></div>
             @if (!string.IsNullOrWhiteSpace(d.Observaciones)) { <p class="observation">Observaciones: @d.Observaciones</p> }
-            @if(d.TieneImagen) { <p class="document-image-link"><a href="@Url.Action("Imagen",new { id=Model.Id,rowId=d.RowId })" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-eye" /></svg>Ver imagen adjunta</a></p> }
+            @if(d.TieneImagen || Model.PuedeAdjuntarImagen) { <p class="document-image-link" @(!d.TieneImagen ? "hidden" : "")><a href="@Url.Action("Imagen",new { id=Model.Id,rowId=d.RowId })" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-eye" /></svg>Ver imagen adjunta</a></p> }
             @if(Model.PuedeCerrar) { <div class="document-actions"><span class="document-result-label">@(string.IsNullOrWhiteSpace(d.Entrega) ? "Pendiente" : d.Entrega)</span><button type="button" class="document-toggle button-secondary" aria-expanded="false" aria-controls="documento-@d.RowId">@(string.IsNullOrWhiteSpace(d.Entrega) ? "Registrar resultado" : "Editar resultado")</button></div> }
             <div id="documento-@d.RowId" class="document-edit" @(Model.PuedeCerrar ? "hidden" : "")>
-            @if(Model.PuedeAdjuntarImagen) { <button type="button" class="image-upload-trigger button-secondary" data-row-id="@d.RowId" data-document="@(d.Documento ?? "Sin número")" data-replace="@(d.TieneImagen ? "true" : "false")"><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg>@(d.TieneImagen ? "Reemplazar imagen" : "Subir imagen")</button> }
+            @if(Model.PuedeAdjuntarImagen) { <button type="button" class="image-upload-trigger button-secondary" data-row-id="@d.RowId" data-document="@(d.Documento ?? "Sin número")" data-replace="@(d.TieneImagen ? "true" : "false")"><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg><span class="image-upload-label">@(d.TieneImagen ? "Reemplazar imagen" : "Subir imagen")</span></button><p class="image-card-status" role="status" aria-live="polite"></p> }
             @if (Model.PuedeCerrar)
             {
                 <input type="hidden" name="Documentos[@i].RowId" value="@d.RowId" />

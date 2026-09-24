@@ -485,3 +485,12 @@ siguen su almacenamiento separado en POS. Ningún borrador modifica APK66/APP_TE
 La validación automática `Tests/Pilotos/run.ps1` compila C#, Razor y la sintaxis
 SQL sin conectarse ni ejecutar los scripts. El flujo integrado de guardado y
 cierre requiere las pruebas manuales anteriores en el entorno preparado.
+
+En el detalle, los clientes sin borrador se muestran inicialmente contraídos;
+los clientes con borrador guardado aparecen expandidos. Cada factura conserva
+su formulario compacto hasta pulsar «Registrar resultado» o «Editar resultado».
+La carga de imágenes no cambia los resultados que aún se estén editando. Para
+probar el comportamiento de la interfaz sin SQL, ejecutar primero
+`Tests/Pilotos/run.ps1` y luego `Tests/Pilotos/image-browser-smoke.ps1` en un
+equipo con Chrome; esta segunda prueba simula respuestas de carga y comprueba
+primera imagen, reemplazo, error del servidor y expansión de clientes.

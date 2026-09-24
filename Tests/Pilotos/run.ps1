@@ -95,16 +95,23 @@ if(([regex]::Matches($detalle,'class="customer-group(?:\s|\")')).Count -ne 2 -or
    ([regex]::Matches($detalle,'class="save-client"')).Count -ne 2 -or
    ([regex]::Matches($detalle,'class="document-toggle')).Count -ne 3 -or
    ([regex]::Matches($detalle,'class="image-upload-trigger')).Count -ne 3 -or
-   ([regex]::Matches($detalle,'class="document-image-link')).Count -ne 1 -or
+   ([regex]::Matches($detalle,'class="document-image-link')).Count -ne 3 -or
+   ([regex]::Matches($detalle,'class="image-card-status')).Count -ne 3 -or
+   ([regex]::Matches($detalle,'class="customer-documents" hidden')).Count -ne 2 -or
+   ([regex]::Matches($detalle,'class="client-toggle button-secondary" aria-expanded="false"')).Count -ne 2 -or
    $detalle -notmatch 'name="Documentos\[1\]\.RowId"') {
     throw 'El detalle renderizado no conserva grupos, botones o indices de documentos.'
 }
 $consulta=Get-Content -LiteralPath (Join-Path $out 'detalle-historial.html') -Raw
-if($consulta -match 'class="image-upload-trigger' -or $consulta -match 'class="bulk-delivered') {
+if($consulta -match 'class="image-upload-trigger' -or $consulta -match 'class="bulk-delivered' -or
+   ([regex]::Matches($consulta,'class="customer-documents" hidden')).Count -ne 25 -or
+   ([regex]::Matches($consulta,'class="client-toggle button-secondary"')).Count -ne 25) {
     throw 'El historial no debe permitir cargas ni seleccionar resultados masivos.'
 }
 $borrador=Get-Content -LiteralPath (Join-Path $out 'detalle-borrador.html') -Raw
 if($borrador -notmatch 'data-saved="true"' -or
+   ([regex]::Matches($borrador,'class="customer-documents" hidden')).Count -ne 1 -or
+   $borrador -notmatch 'class="client-toggle button-secondary" aria-expanded="true"' -or
    $borrador -notmatch 'class="client-complete-badge"' -or
    $borrador -notmatch 'class="bulk-delivered" checked' -or
    $borrador -notmatch 'data-before-delivery="NO ENTREGADO"' -or

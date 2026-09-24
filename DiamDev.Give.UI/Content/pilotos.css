@@ -770,6 +770,7 @@ dd {
 .customer-group .document-card:last-child { margin-bottom:0 }
 
 .document-image-link { margin:14px 0 8px }
+.document-image-link[hidden] { display:none }
 
 .document-image-link a {
   display:inline-flex;

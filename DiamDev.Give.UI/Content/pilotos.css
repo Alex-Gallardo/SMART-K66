@@ -740,10 +740,10 @@ dd {
 }
 
 .customer-group-action .bulk-delivered {
-  width:100%;
-  border-color:#07529a;
-  color:#07529a;
-  text-align:center
+    width: 100%;
+    border-color: #12613c;
+    color: #12613c;
+    text-align: center
 }
 
 .group-status,.image-card-status {
@@ -770,10 +770,10 @@ dd {
 .document-image-link .icon { width:20px }
 
 .image-upload-trigger {
-  width:100%;
-  margin:12px 0;
-  border-color:var(--blue);
-  color:var(--blue)
+    width: 100%;
+    margin: 12px 0;
+    /*border-color:var(--blue);*/
+    color: var(--blue)
 }
 
 .image-preview {

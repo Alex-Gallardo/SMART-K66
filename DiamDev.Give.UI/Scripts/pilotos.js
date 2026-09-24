@@ -177,7 +177,7 @@
         var details = group.querySelector(".customer-documents");
         var toggle = group.querySelector(".client-toggle");
         details.hidden = !open;
-        if (toggle) { toggle.setAttribute("aria-expanded", open ? "true" : "false"); toggle.textContent = open ? "Ocultar cliente" : "Ver documentos"; }
+        if (toggle) { toggle.setAttribute("aria-expanded", open ? "true" : "false"); toggle.textContent = open ? "Ocultar documentos" : "Ver documentos"; }
     }
     Array.prototype.forEach.call(groups, function (group) {
         var toggle = group.querySelector(".client-toggle");

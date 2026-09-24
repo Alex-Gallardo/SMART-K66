@@ -52,7 +52,7 @@ else if (ViewBag.PruebasSoloLectura != true)
                 </div>
                 <div class="customer-group-action">
                     @if(Model.PuedeCerrar) { <span class="client-complete-badge" @(borrador==null ? "hidden" : "")>✓ Cliente guardado</span> }
-                    <button type="button" class="client-toggle button-secondary" aria-expanded="@(borrador!=null ? "true" : "false")" aria-controls="cliente-@primerRowId">@(borrador!=null ? "Ocultar cliente" : "Ver documentos")</button>
+                    <button type="button" class="client-toggle button-secondary" aria-expanded="@(borrador!=null ? "true" : "false")" aria-controls="cliente-@primerRowId">@(borrador!=null ? "Ocultar documentos" : "Ver documentos")</button>
                 </div>
             </div>
         <div id="cliente-@primerRowId" class="customer-documents" @(borrador==null ? "hidden" : "")>

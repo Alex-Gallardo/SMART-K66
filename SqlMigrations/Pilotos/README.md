@@ -436,8 +436,9 @@ la prueba del responsable del entorno; no se declaró validado mediante esta vis
 fecha y huellas SHA-256. No modifica APK66 ni APP_TEST. El botón de carga y
 reemplazo aparece únicamente en rutas **E** para pilotos autenticados con
 vínculo vigente; `Pilotos.PruebasSoloLectura=true` impide escribir. Las imágenes
-ya cargadas siguen consultables al cerrar la ruta. La selección masiva por cliente
-solo prepara resultados del formulario: se guardan con la confirmación de cierre.
+ya cargadas siguen consultables al cerrar la ruta. Los resultados por cliente
+se guardan como borrador en POS con la migración 20 descrita abajo; el cierre
+final es la única operación que escribe resultados en APP_TEST/APK66.
 
 Para instalar, abrir una ventana nueva de SSMS y seleccionar la base POS exacta
 (`POS-SmartK66_DEV` en el entorno descrito; confirmar antes de aplicar). Primero
@@ -452,3 +453,35 @@ queda una imagen vigente y que la tabla de eventos contiene `AGREGADA` y
 `REEMPLAZADA`. Intentar cargar en una ruta C y en modo temporal debe ser
 rechazado. La prueba local de sintaxis no ejecuta SQL ni sustituye esta
 validación integrada.
+
+## Borradores por cliente y rutas demo (migraciones 20 y 21)
+
+`20_borrador_cliente_pos.sql` instala en **POS-SmartK66_DEV** los borradores por
+usuario, ruta y cliente. El portal exige esta tabla para guardar clientes y cerrar
+rutas E. Un cliente guardado se muestra compacto y puede reabrirse para editar.
+El checkbox de entregas masivas conserva las respuestas anteriores, incluso
+después de recargar o iniciar sesión de nuevo, hasta desmarcarlo. Las imágenes
+siguen su almacenamiento separado en POS. Ningún borrador modifica APK66/APP_TEST.
+
+1. En una ventana **nueva** de SSMS, seleccionar `POS-SmartK66_DEV` y ejecutar
+   `20_borrador_cliente_pos.sql` con `@Aplicar=0`. Verificar que la base indicada
+   es la correcta y `TablaBorradores` es `NULL`. No pegar datos sensibles.
+2. En esa base, cambiar `@Aplicar=1` y ejecutar el script completo. Debe indicar
+   `INSTALADO`. Si la tabla ya existe, no la sobrescribe; revisar el resultado.
+3. `21_app_test_dos_rutas_dos_clientes.sql` se ejecuta **solo en APP_TEST**.
+   Primero correrlo con `@Aplicar=0`: debe mostrar exactamente dos rutas
+   `QA26-000004` y `QA26-000005`, cada una con seis facturas ficticias repartidas
+   entre dos clientes. Verificar que la plantilla y la huella del trigger pasan.
+   Después, en ventana nueva de APP_TEST, cambiar `@Aplicar=1` y ejecutar el
+   script completo. El script rechaza otra base, IDs ya existentes o resultados
+   inesperados y revierte la transacción si falla. No ejecutarlo en APK66.
+4. Para probar desde la web, la conexión de rutas del sitio de prueba debe
+   apuntar a `APP_TEST`, `Pilotos.PermitirCierre=true` y
+   `Pilotos.PruebasSoloLectura=false`. Usar un login PILOTO vinculado al piloto,
+   centro y placa de la vista previa. Seleccionar un período que incluya la
+   fecha del script. Guardar un cliente, recargar, desmarcar el checkbox y
+   comprobar la restauración; luego guardar ambos clientes y revisar el cierre.
+
+La validación automática `Tests/Pilotos/run.ps1` compila C#, Razor y la sintaxis
+SQL sin conectarse ni ejecutar los scripts. El flujo integrado de guardado y
+cierre requiere las pruebas manuales anteriores en el entorno preparado.

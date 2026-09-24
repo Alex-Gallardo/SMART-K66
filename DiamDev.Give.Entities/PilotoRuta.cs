@@ -20,10 +20,12 @@ namespace DiamDev.Give.Entities
         public string Version { get; set; }
         public Guid Solicitud { get; set; }
         public bool PuedeCerrar { get; set; }
+        public bool BorradoresDisponibles { get; set; }
         public bool ImagenesDisponibles { get; set; }
         public bool PuedeAdjuntarImagen { get; set; }
         public List<PilotoDocumento> Documentos { get; set; }
-        public PilotoRuta() { Documentos = new List<PilotoDocumento>(); }
+        public List<PilotoBorradorCliente> Borradores { get; set; }
+        public PilotoRuta() { Documentos = new List<PilotoDocumento>(); Borradores = new List<PilotoBorradorCliente>(); }
         public string EstadoNombre
         {
             get { return Estado == "A" ? "Abierta" : Estado == "E" ? "En ruta" : Estado == "C" ? "Cerrada" : Estado == "X" ? "Anulada" : "Sin clasificar"; }
@@ -50,6 +52,7 @@ namespace DiamDev.Give.Entities
         public bool TieneImagen { get; set; }
         public string ImagenNombre { get; set; }
         public DateTime? ImagenFechaUtc { get; set; }
+        public PilotoResultado AnteriorMasivo { get; set; }
     }
 
     public sealed class PilotoImagen
@@ -77,6 +80,16 @@ namespace DiamDev.Give.Entities
         public string Version { get; set; }
         public Guid Solicitud { get; set; }
         public List<PilotoResultado> Documentos { get; set; }
+    }
+
+    public sealed class PilotoBorradorCliente
+    {
+        public string RutaId { get; set; }
+        public string Version { get; set; }
+        public int PrimerRowId { get; set; }
+        public bool MasivoActivo { get; set; }
+        public List<PilotoResultado> Documentos { get; set; }
+        public List<PilotoResultado> Anteriores { get; set; }
     }
 
     public sealed class PilotoLista

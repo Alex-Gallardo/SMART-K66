@@ -70,14 +70,19 @@ namespace DiamDev.Give.Entities
             {
                 if (d == null || !esperados.Remove(d.RowId))
                     throw new PilotoException(400, "Hay documentos repetidos o ajenos a la ruta.");
-                if (!d.Visito.HasValue || (d.Entrega != "ENTREGADO" && d.Entrega != "NO ENTREGADO" && d.Entrega != "INCIDENCIA"))
-                    throw new PilotoException(400, "Selecciona visita y resultado para cada documento.");
-                if (d.Entrega == "ENTREGADO" && !d.Visito.Value)
-                    throw new PilotoException(400, "Un documento entregado debe estar marcado como visitado.");
-                if (d.Entrega != "ENTREGADO" && (!MotivosPermitidos.Contains(d.Motivo ?? "") ||
-                    string.IsNullOrWhiteSpace(d.Observaciones) || d.Observaciones.Length > MaxObservacion))
-                    throw new PilotoException(400, "No entregado e incidencia requieren un motivo válido y una observación de hasta 500 caracteres.");
+                ValidarResultado(d);
             }
+        }
+
+        public static void ValidarResultado(PilotoResultado d)
+        {
+            if (d == null || !d.Visito.HasValue || (d.Entrega != "ENTREGADO" && d.Entrega != "NO ENTREGADO" && d.Entrega != "INCIDENCIA"))
+                throw new PilotoException(400, "Selecciona visita y resultado para cada documento.");
+            if (d.Entrega == "ENTREGADO" && !d.Visito.Value)
+                throw new PilotoException(400, "Un documento entregado debe estar marcado como visitado.");
+            if (d.Entrega != "ENTREGADO" && (!MotivosPermitidos.Contains(d.Motivo ?? "") ||
+                string.IsNullOrWhiteSpace(d.Observaciones) || d.Observaciones.Length > MaxObservacion))
+                throw new PilotoException(400, "No entregado e incidencia requieren un motivo válido y una observación de hasta 500 caracteres.");
         }
 
         public static void NormalizarCierre(PilotoCierre cierre)

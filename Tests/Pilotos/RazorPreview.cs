@@ -77,6 +77,19 @@ internal static class RazorPreview
         ruta.Version=PilotoReglas.Version(ruta);
         return ruta;
     }
+    public static PilotoRuta RutaConBorrador()
+    {
+        var ruta=RutaEditable();
+        var segundo=ruta.Documentos[1];
+        segundo.AnteriorMasivo=new PilotoResultado { RowId=segundo.RowId, Visito=false,
+            Entrega="NO ENTREGADO", Motivo="CLIENTE CERRADO", Observaciones="Se encontró el local cerrado al llegar." };
+        ruta.Documentos[0].AnteriorMasivo=new PilotoResultado { RowId=ruta.Documentos[0].RowId,
+            Visito=true, Entrega="ENTREGADO" };
+        segundo.Visito=true; segundo.Entrega="ENTREGADO"; segundo.Motivo=null; segundo.ObservacionPiloto=null;
+        ruta.Borradores.Add(new PilotoBorradorCliente { RutaId=ruta.Id, Version=ruta.Version,
+            PrimerRowId=ruta.Documentos[0].RowId, MasivoActivo=true });
+        return ruta;
+    }
     public static PilotoAdminLista AdminLista()
     {
         var lista=new PilotoAdminLista();

@@ -17,6 +17,8 @@ namespace DiamDev.Give.BLL
         { return new PilotoRutaDA().Detalle(login, id, pagina); }
         public void Cerrar(string login, PilotoCierre cierre)
         { new PilotoRutaDA().Cerrar(login, cierre); }
+        public void GuardarBorrador(string login, PilotoBorradorCliente borrador)
+        { new PilotoRutaDA().GuardarBorrador(login, borrador); }
         public PilotoImagen ObtenerImagen(string login, string rutaId, int rowId)
         { return new PilotoRutaDA().ObtenerImagen(login, rutaId, rowId); }
         public void GuardarImagen(string login, PilotoImagen imagen)

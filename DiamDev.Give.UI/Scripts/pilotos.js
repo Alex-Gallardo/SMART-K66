@@ -194,7 +194,7 @@
         var counter = textarea.parentNode.querySelector(".character-count");
         if (counter) counter.textContent = textarea.value.length + " / 500";
     }
-    function updateCard(input) {
+    function updateCard(input, clearDelivered) {
         var card = input.closest(".document-card");
         var selected = selectedResult(card);
         var fields = card.querySelector(".exception-fields");
@@ -207,43 +207,150 @@
         observation.required = !!hasProblem;
         card.classList.toggle("has-delivered", !!selected && selected.value === "ENTREGADO");
         card.classList.toggle("has-problem", !!hasProblem);
-        if (selected && selected.value === "ENTREGADO") {
+        if (selected && selected.value === "ENTREGADO" && clearDelivered) {
             reason.value = "";
             observation.value = "";
             card.querySelector("input.visit-result[value=true]").checked = true;
             updateCount(observation);
         }
+        var label = card.querySelector(".document-result-label");
+        if (label) label.textContent = selected ? selected.value : "Pendiente";
+        var toggle = card.querySelector(".document-toggle");
+        if (toggle) toggle.textContent = card.querySelector(".document-edit").hidden ?
+            (selected ? "Editar resultado" : "Registrar resultado") : "Ocultar detalle";
+    }
+    var groups = form.querySelectorAll(".customer-group");
+    function setGroupOpen(group, open) {
+        var details = group.querySelector(".customer-documents");
+        var toggle = group.querySelector(".client-toggle");
+        details.hidden = !open;
+        if (toggle) { toggle.setAttribute("aria-expanded", open ? "true" : "false"); toggle.textContent = open ? "Ocultar cliente" : "Revisar o editar"; }
+    }
+    function setDocumentOpen(card, open) {
+        var details = card.querySelector(".document-edit");
+        var toggle = card.querySelector(".document-toggle");
+        if (!toggle || !details) return;
+        details.hidden = !open;
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        var selected = selectedResult(card);
+        toggle.textContent = open ? "Ocultar detalle" : (selected ? "Editar resultado" : "Registrar resultado");
+    }
+    function markDirty(group) {
+        group.setAttribute("data-saved", "false");
+        group.classList.remove("is-complete");
+        group.querySelector(".client-complete-badge").hidden = true;
+        group.querySelector(".group-status").textContent = "Cambios sin guardar. Guarda este cliente antes de cerrar la ruta.";
+        group._revision = (group._revision || 0) + 1;
+        var check = group.querySelector(".bulk-delivered");
+        if (check && check.checked) check.indeterminate = Array.prototype.some.call(group.querySelectorAll(".document-card"), function (card) {
+            var result = selectedResult(card);
+            return !result || result.value !== "ENTREGADO";
+        });
+    }
+    function snapshot(card) {
+        var visit = card.querySelector(".visit-result:checked");
+        var delivery = selectedResult(card);
+        return { rowId: Number(card.querySelector("input[name$='.RowId']").value), visit: visit ? visit.value : "",
+            delivery: delivery ? delivery.value : "", reason: card.querySelector(".delivery-reason").value,
+            observation: card.querySelector(".delivery-observation").value };
+    }
+    function restore(card, value) {
+        Array.prototype.forEach.call(card.querySelectorAll(".visit-result,.delivery-result"), function (radio) {
+            radio.checked = radio.value === (radio.classList.contains("visit-result") ? value.visit : value.delivery);
+        });
+        card.querySelector(".delivery-reason").value = value.reason;
+        var observation = card.querySelector(".delivery-observation");
+        observation.value = value.observation;
+        updateCount(observation);
+        updateCard(card.querySelector(".delivery-result"), false);
     }
     Array.prototype.forEach.call(results, function (input) {
         input.addEventListener("change", function () {
-            updateCard(input);
-            var status = input.closest(".customer-group").querySelector(".group-status");
-            if (status) status.textContent = "";
+            updateCard(input, true);
+            markDirty(input.closest(".customer-group"));
         });
     });
     Array.prototype.forEach.call(form.querySelectorAll(".document-card"), function (card) {
         var result = selectedResult(card) || card.querySelector(".delivery-result");
-        updateCard(result);
+        updateCard(result, false);
         var observation = card.querySelector(".delivery-observation");
-        observation.addEventListener("input", function () { updateCount(observation); });
+        observation.addEventListener("input", function () { updateCount(observation); markDirty(card.closest(".customer-group")); });
         updateCount(observation);
+        var toggle = card.querySelector(".document-toggle");
+        if (toggle) toggle.addEventListener("click", function () { setDocumentOpen(card, card.querySelector(".document-edit").hidden); });
+        Array.prototype.forEach.call(card.querySelectorAll(".visit-result,.delivery-reason"), function (input) {
+            input.addEventListener("change", function () { markDirty(card.closest(".customer-group")); });
+        });
     });
-    Array.prototype.forEach.call(form.querySelectorAll(".bulk-delivered"), function (button) {
-        button.addEventListener("click", function () {
-            var group = button.closest(".customer-group");
+    Array.prototype.forEach.call(groups, function (group) {
+        var groupToggle = group.querySelector(".client-toggle");
+        if (groupToggle) groupToggle.addEventListener("click", function () { setGroupOpen(group, group.querySelector(".customer-documents").hidden); });
+        var check = group.querySelector(".bulk-delivered");
+        if (!check) return;
+        if (check.checked) group._beforeBulk = Array.prototype.map.call(group.querySelectorAll(".document-card"), function (card) {
+            return {rowId:Number(card.querySelector("input[name$='.RowId']").value), visit:card.getAttribute("data-before-visit") || "",
+                delivery:card.getAttribute("data-before-delivery") || "", reason:card.getAttribute("data-before-reason") || "",
+                observation:card.getAttribute("data-before-observation") || ""};
+        });
+        check.addEventListener("change", function () {
             var cards = group.querySelectorAll(".document-card");
-            var overwrites = Array.prototype.some.call(cards, function (card) {
-                var result = selectedResult(card);
-                return result && (result.value === "NO ENTREGADO" || result.value === "INCIDENCIA");
+            if (check.checked) {
+                group._beforeBulk = Array.prototype.map.call(cards, snapshot);
+                Array.prototype.forEach.call(cards, function (card) {
+                    var delivered = card.querySelector(".delivery-result[value='ENTREGADO']");
+                    delivered.checked = true;
+                    updateCard(delivered, true);
+                });
+            } else {
+                Array.prototype.forEach.call(cards, function (card, i) { restore(card, group._beforeBulk[i]); });
+                group._beforeBulk = null;
+                check.indeterminate = false;
+            }
+            markDirty(group);
+        });
+        var save = group.querySelector(".save-client");
+        save.addEventListener("click", function () {
+            var invalid = group.querySelector(":invalid");
+            if (invalid) { setGroupOpen(group, true); setDocumentOpen(invalid.closest(".document-card"), true); invalid.reportValidity(); invalid.focus(); return; }
+            var endpoint = document.getElementById("draft-endpoint");
+            var data = new FormData();
+            data.append("__RequestVerificationToken", form.querySelector("input[name='__RequestVerificationToken']").value);
+            data.append("RutaId", form.elements.RutaId.value);
+            data.append("Version", form.elements.Version.value);
+            data.append("PrimerRowId", group.getAttribute("data-first-row-id"));
+            data.append("MasivoActivo", check.checked ? "true" : "false");
+            Array.prototype.forEach.call(group.querySelectorAll(".document-card"), function (card, i) {
+                var value = snapshot(card);
+                data.append("Documentos[" + i + "].RowId", value.rowId);
+                data.append("Documentos[" + i + "].Visito", value.visit);
+                data.append("Documentos[" + i + "].Entrega", value.delivery);
+                data.append("Documentos[" + i + "].Motivo", value.reason);
+                data.append("Documentos[" + i + "].Observaciones", value.observation);
             });
-            if (overwrites && !window.confirm("Esta acción borrará los motivos y observaciones de las facturas con problemas de este cliente. ¿Continuar?")) return;
-            Array.prototype.forEach.call(cards, function (card) {
-                var delivered = card.querySelector(".delivery-result[value='ENTREGADO']");
-                delivered.checked = true;
-                updateCard(delivered);
+            if (check.checked) Array.prototype.forEach.call(group._beforeBulk || [], function (value, i) {
+                data.append("Anteriores[" + i + "].RowId", value.rowId);
+                data.append("Anteriores[" + i + "].Visito", value.visit);
+                data.append("Anteriores[" + i + "].Entrega", value.delivery);
+                data.append("Anteriores[" + i + "].Motivo", value.reason);
+                data.append("Anteriores[" + i + "].Observaciones", value.observation);
             });
-            group.querySelector(".group-status").textContent = cards.length +
-                (cards.length === 1 ? " documento marcado" : " documentos marcados") + ". Se guardarán al cerrar la ruta.";
+            var revision = group._revision || 0;
+            save.disabled = true;
+            group.querySelector(".group-status").textContent = "Guardando en POS…";
+            window.fetch(endpoint.getAttribute("data-url"), {method:"POST",body:data,credentials:"same-origin",headers:{"Accept":"application/json"}})
+                .then(function (response) {
+                    if (!/application\/json/i.test(response.headers.get("Content-Type") || "")) throw new Error("La sesión cambió. Inicia sesión y vuelve a guardar.");
+                    return response.json();
+                }).then(function (response) {
+                    if (!response.ok) throw new Error(response.mensaje || "No se pudo guardar el cliente.");
+                    if ((group._revision || 0) !== revision) { group.querySelector(".group-status").textContent = "Se guardó una versión anterior. Vuelve a guardar tus cambios."; return; }
+                    group.setAttribute("data-saved", "true");
+                    group.classList.add("is-complete");
+                    group.querySelector(".client-complete-badge").hidden = false;
+                    group.querySelector(".group-status").textContent = "Cliente guardado en POS.";
+                    setGroupOpen(group, false);
+                }).catch(function (error) { group.querySelector(".group-status").textContent = error.message || "No se pudo guardar. Inténtalo de nuevo."; })
+                .then(function () { save.disabled = false; });
         });
     });
     function buildSummary() {
@@ -267,10 +374,20 @@
         document.getElementById("exception-summary").hidden = list.children.length === 0;
     }
     function openModal() {
+        var pending = Array.prototype.filter.call(groups, function (group) { return group.getAttribute("data-saved") !== "true"; });
+        if (pending.length) {
+            setGroupOpen(pending[0], true);
+            pending[0].querySelector(".group-status").textContent = "Guarda este cliente antes de revisar el cierre.";
+            pending[0].scrollIntoView({behavior:"smooth",block:"start"});
+            return;
+        }
         if (!form.checkValidity()) {
-            if (form.reportValidity) form.reportValidity();
             var invalid = form.querySelector(":invalid");
-            if (invalid) invalid.focus();
+            if (invalid) {
+                setGroupOpen(invalid.closest(".customer-group"), true);
+                setDocumentOpen(invalid.closest(".document-card"), true);
+                invalid.reportValidity(); invalid.focus();
+            }
             return;
         }
         buildSummary();
@@ -287,7 +404,13 @@
         if (previousFocus) previousFocus.focus();
     }
     reviewButton.addEventListener("click", openModal);
-    Array.prototype.forEach.call(modal.querySelectorAll("[data-close-modal]"), function (button) { button.addEventListener("click", closeModal); });
+    Array.prototype.forEach.call(modal.querySelectorAll("[data-close-modal]"), function (button) { button.addEventListener("click", function () {
+        closeModal();
+        if (button.textContent.indexOf("Volver a revisar") >= 0) Array.prototype.forEach.call(groups, function (group) {
+            setGroupOpen(group, true);
+            Array.prototype.forEach.call(group.querySelectorAll(".document-card"), function (card) { setDocumentOpen(card, true); });
+        });
+    }); });
     document.getElementById("confirm-reviewed").addEventListener("change", function (event) { completeButton.disabled = !event.target.checked; });
     document.addEventListener("keydown", function (event) {
         if (modal.hidden) return;

@@ -283,6 +283,8 @@ FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@id;"))
             }
             if (paginada && pagina > 1 && ruta.Documentos.Count == 0) throw new PilotoException(404,"La página de documentos no está disponible. Vuelve al inicio de la ruta.");
             ruta.Version=paginada ? null : PilotoReglas.Version(ruta);
+            using (var cmd=Command(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoBorradorCliente',N'U') IS NULL THEN 0 ELSE 1 END;"))
+                ruta.BorradoresDisponibles=(int)cmd.ExecuteScalar()==1;
             return ruta;
         }
 
@@ -292,8 +294,115 @@ FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@id;"))
             {
                 using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
                 {
-                    var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Ver"); var ruta=LeerRuta(cn,tx,a,id,false,pagina,true); tx.Commit(); return ruta;
+                    var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Ver"); var ruta=LeerRuta(cn,tx,a,id,false,pagina,true);
+                    if(ruta.PuedeCerrar && ruta.BorradoresDisponibles) CargarBorradores(cn,tx,a,ruta);
+                    if(ruta.PuedeCerrar && !ruta.BorradoresDisponibles) ruta.PuedeCerrar=false;
+                    tx.Commit(); return ruta;
                 }
+            }
+        }
+
+        private static string Grupo(PilotoDocumento d)
+        { return (d.Cliente??"").Trim().ToUpperInvariant()+"\u001f"+(d.Direccion??"").Trim().ToUpperInvariant(); }
+
+        private static List<PilotoDocumento> DocumentosGrupo(PilotoRuta ruta,int primero)
+        {
+            var principal=ruta.Documentos.SingleOrDefault(d=>d.RowId==primero);
+            if(principal==null) throw new PilotoException(409,"El cliente ya no pertenece a la ruta. Recarga los detalles.");
+            var clave=Grupo(principal);
+            var docs=ruta.Documentos.Where(d=>Grupo(d)==clave).OrderBy(d=>d.RowId).ToList();
+            if(docs[0].RowId!=primero) throw new PilotoException(409,"El grupo de cliente cambió. Recarga los detalles.");
+            return docs;
+        }
+
+        private static XElement ResultadosXml(IEnumerable<PilotoResultado> resultados)
+        {
+            return new XElement("documentos",resultados.Select(d=>new XElement("d",new XAttribute("id",d.RowId),
+                new XElement("visito",d.Visito),new XElement("entrega",d.Entrega),
+                new XElement("motivo",d.Motivo),new XElement("observaciones",d.Observaciones))));
+        }
+
+        private static List<PilotoResultado> LeerResultados(string xml)
+        {
+            if(string.IsNullOrEmpty(xml)) return new List<PilotoResultado>();
+            var root=XElement.Parse(xml);
+            if(root.Name!="documentos") throw new PilotoException(503,"El borrador guardado no tiene el formato esperado.");
+            return root.Elements("d").Select(x=>new PilotoResultado {
+                RowId=int.Parse((string)x.Attribute("id"),CultureInfo.InvariantCulture),
+                Visito=string.IsNullOrEmpty((string)x.Element("visito")) ? (bool?)null : bool.Parse((string)x.Element("visito")),
+                Entrega=(string)x.Element("entrega"),Motivo=(string)x.Element("motivo"),Observaciones=(string)x.Element("observaciones")
+            }).ToList();
+        }
+
+        private void CargarBorradores(SqlConnection cn,SqlTransaction tx,Acceso a,PilotoRuta ruta,bool aplicar=true)
+        {
+            using(var cmd=Command(cn,tx,@"SELECT Primer_RowId,Version,MasivoActivo,Resultados,Anteriores
+FROM dbo.PilotoBorradorCliente WHERE Usuario_Id=@usuario AND Ruta_Id=@ruta;"))
+            {
+                Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario); Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15);
+                using(var r=cmd.ExecuteReader()) while(r.Read())
+                {
+                    if(Texto(r,"Version")!=ruta.Version) continue;
+                    var b=new PilotoBorradorCliente { RutaId=ruta.Id,Version=ruta.Version,
+                        PrimerRowId=(int)r["Primer_RowId"],MasivoActivo=(bool)r["MasivoActivo"],
+                        Documentos=LeerResultados(Texto(r,"Resultados")),Anteriores=LeerResultados(Texto(r,"Anteriores")) };
+                    var grupo=DocumentosGrupo(ruta,b.PrimerRowId);
+                    if(b.Documentos.Count!=grupo.Count || !b.Documentos.Select(d=>d.RowId).OrderBy(x=>x).SequenceEqual(grupo.Select(d=>d.RowId)))
+                        throw new PilotoException(409,"El borrador no coincide con los documentos actuales. Contacta a Distribución.");
+                    if(aplicar) foreach(var d in grupo)
+                    {
+                        var guardado=b.Documentos.Single(x=>x.RowId==d.RowId);
+                        d.Visito=guardado.Visito; d.Entrega=guardado.Entrega; d.Motivo=guardado.Motivo;
+                        d.ObservacionPiloto=guardado.Observaciones;
+                        d.AnteriorMasivo=b.Anteriores.SingleOrDefault(x=>x.RowId==d.RowId);
+                    }
+                    ruta.Borradores.Add(b);
+                }
+            }
+        }
+
+        public void GuardarBorrador(string login,PilotoBorradorCliente borrador)
+        {
+            if(PruebasSoloLectura || !CierreHabilitado) throw new PilotoException(403,"El guardado de resultados no está habilitado.");
+            if(borrador==null || borrador.PrimerRowId<=0 || string.IsNullOrWhiteSpace(borrador.RutaId) || borrador.RutaId.Length>15)
+                throw new PilotoException(400,"El borrador no es válido.");
+            using(var cn=AbrirConexion()) using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
+            {
+                var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Confirmar");
+                var ruta=LeerRuta(cn,tx,a,borrador.RutaId,true);
+                if(!ruta.PuedeCerrar || !ruta.BorradoresDisponibles || ruta.Version!=borrador.Version)
+                    throw new PilotoException(409,"La ruta cambió o el guardado no está instalado. Recarga los detalles.");
+                var grupo=DocumentosGrupo(ruta,borrador.PrimerRowId);
+                if(borrador.Documentos==null || borrador.Documentos.Count!=grupo.Count ||
+                    !borrador.Documentos.Select(d=>d.RowId).OrderBy(x=>x).SequenceEqual(grupo.Select(d=>d.RowId)))
+                    throw new PilotoException(400,"Guarda todos los documentos de este cliente.");
+                PilotoReglas.NormalizarCierre(new PilotoCierre { Documentos=borrador.Documentos });
+                foreach(var d in borrador.Documentos) PilotoReglas.ValidarResultado(d);
+                if(borrador.MasivoActivo)
+                {
+                    if(borrador.Anteriores==null || borrador.Anteriores.Count!=grupo.Count ||
+                       !borrador.Anteriores.Select(d=>d.RowId).OrderBy(x=>x).SequenceEqual(grupo.Select(d=>d.RowId)))
+                        throw new PilotoException(400,"Faltan las respuestas anteriores del marcado masivo.");
+                    foreach(var d in borrador.Anteriores)
+                        if(d==null || (d.Entrega??"").Length>50 || (d.Motivo??"").Length>150 || (d.Observaciones??"").Length>PilotoReglas.MaxObservacion)
+                            throw new PilotoException(400,"Las respuestas anteriores no son válidas.");
+                }
+                else if(borrador.Anteriores!=null && borrador.Anteriores.Count>0)
+                    throw new PilotoException(400,"El marcado masivo no coincide con las respuestas anteriores.");
+                var resultados=ResultadosXml(borrador.Documentos).ToString(SaveOptions.DisableFormatting);
+                var anteriores=borrador.MasivoActivo ? ResultadosXml(borrador.Anteriores).ToString(SaveOptions.DisableFormatting) : null;
+                using(var cmd=Command(cn,tx,@"UPDATE dbo.PilotoBorradorCliente WITH(UPDLOCK,HOLDLOCK)
+SET Version=@version,MasivoActivo=@masivo,Resultados=@resultados,Anteriores=@anteriores,FechaUtc=SYSUTCDATETIME()
+WHERE Usuario_Id=@usuario AND Ruta_Id=@ruta AND Primer_RowId=@primero;
+IF @@ROWCOUNT=0 INSERT dbo.PilotoBorradorCliente(Usuario_Id,Ruta_Id,Primer_RowId,Version,MasivoActivo,Resultados,Anteriores)
+VALUES(@usuario,@ruta,@primero,@version,@masivo,@resultados,@anteriores);"))
+                {
+                    Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario); Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15);
+                    Param(cmd,"@primero",SqlDbType.Int,borrador.PrimerRowId); Param(cmd,"@version",SqlDbType.VarChar,borrador.Version,44);
+                    Param(cmd,"@masivo",SqlDbType.Bit,borrador.MasivoActivo); Param(cmd,"@resultados",SqlDbType.NVarChar,resultados,-1);
+                    Param(cmd,"@anteriores",SqlDbType.NVarChar,anteriores,-1); cmd.ExecuteNonQuery();
+                }
+                tx.Commit();
             }
         }
 
@@ -457,6 +566,25 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
                     var ruta=LeerRuta(cn,tx,a,cierre.RutaId,true);
                     PilotoReglas.ValidarCierre(ruta,cierre);
                     if(!ruta.PuedeCerrar) throw new PilotoException(409,"La ruta no admite cierre desde el portal.");
+                    if(!ruta.BorradoresDisponibles) throw new PilotoException(503,"Falta instalar los borradores de clientes en POS.");
+                    CargarBorradores(cn,tx,a,ruta,false);
+                    var grupos=ruta.Documentos.GroupBy(Grupo).ToList();
+                    if(ruta.Borradores.Count!=grupos.Count)
+                        throw new PilotoException(409,"Guarda cada cliente antes de cerrar la ruta.");
+                    foreach(var grupo in grupos)
+                    {
+                        var ids=grupo.Select(d=>d.RowId).OrderBy(x=>x).ToArray();
+                        var guardado=ruta.Borradores.SingleOrDefault(b=>b.PrimerRowId==ids[0]);
+                        if(guardado==null || guardado.Documentos.Count!=ids.Length ||
+                           !guardado.Documentos.Select(d=>d.RowId).OrderBy(x=>x).SequenceEqual(ids))
+                            throw new PilotoException(409,"Guarda cada cliente antes de cerrar la ruta.");
+                        var esperado=guardado.Documentos.OrderBy(d=>d.RowId).ToArray();
+                        var recibido=cierre.Documentos.Where(d=>ids.Contains(d.RowId)).OrderBy(d=>d.RowId).ToArray();
+                        if(recibido.Length!=esperado.Length || recibido.Where((d,i)=>d.RowId!=esperado[i].RowId ||
+                           d.Visito!=esperado[i].Visito || d.Entrega!=esperado[i].Entrega ||
+                           (d.Motivo??"")!=(esperado[i].Motivo??"") || (d.Observaciones??"")!=(esperado[i].Observaciones??"")).Any())
+                            throw new PilotoException(409,"Hay cambios sin guardar en un cliente. Guarda el cliente y vuelve a revisar.");
+                    }
                     VerificarTrigger(cn,tx);
                     var antes=new XElement("documentos",ruta.Documentos.Select(d=>EstadoXml(d.RowId,d.Visito,d.Entrega,d.Motivo,d.Observaciones)));
                     foreach(var resultado in cierre.Documentos)
@@ -495,6 +623,11 @@ VALUES(@u,@s,@ruta,@login,@operador,@huella,@antes,@despues);"))
                         Param(cmd,"@operador",SqlDbType.NVarChar,a.Operador,15); Param(cmd,"@huella",SqlDbType.VarChar,huella,44);
                         Param(cmd,"@antes",SqlDbType.Xml,antes.ToString(SaveOptions.DisableFormatting));
                         Param(cmd,"@despues",SqlDbType.Xml,despues.ToString(SaveOptions.DisableFormatting)); cmd.ExecuteNonQuery();
+                    }
+                    using(var cmd=Command(cn,tx,"DELETE dbo.PilotoBorradorCliente WHERE Usuario_Id=@u AND Ruta_Id=@ruta;"))
+                    {
+                        Param(cmd,"@u",SqlDbType.BigInt,a.Usuario); Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15);
+                        cmd.ExecuteNonQuery();
                     }
                     tx.Commit();
                 }

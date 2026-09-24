@@ -21,7 +21,7 @@
 @if(Model.TotalDocumentos>DiamDev.Give.Entities.PilotoReglas.MaxDocumentos) { <p class="notice">Puedes consultar todos los documentos por páginas. El cierre de esta ruta corresponde a Distribución por su cantidad de documentos.</p> }
 @if (Model.PuedeCerrar)
 {
-    <p class="intro">Marca el resultado de cada factura. Si no se entregó o hubo una incidencia, selecciona el motivo y explica lo ocurrido.</p>
+    <p class="intro">Abre cada factura, registra su resultado y guarda el cliente. Los resultados se aplicarán a la ruta al confirmar el cierre.</p>
 }
 else if (Model.PuedeAdjuntarImagen)
 {
@@ -31,6 +31,7 @@ else if (ViewBag.PruebasSoloLectura != true)
 {
     <p class="notice">Ruta disponible para consulta. Para cambios, contacta a Distribución.</p>
 }
+@if(Model.Estado=="E" && !Model.BorradoresDisponibles && ViewBag.PruebasSoloLectura != true) { <p class="notice">El guardado por cliente estará disponible cuando se instale la tabla de borradores en POS.</p> }
 @if(Model.Estado=="E" && !Model.ImagenesDisponibles && ViewBag.PruebasSoloLectura != true) { <p class="notice">La carga de imágenes estará disponible cuando se instale la tabla de imágenes en POS.</p> }
 @using (Html.BeginForm("Completar", "Piloto", FormMethod.Post, new { id = "complete-route" }))
 {
@@ -41,23 +42,29 @@ else if (ViewBag.PruebasSoloLectura != true)
     foreach (var grupo in grupos)
     {
         var primero = grupo.First().Documento;
-        <section class="customer-group" aria-label="Documentos de @(primero.Cliente ?? "Cliente sin nombre")">
+        var primerRowId=grupo.Min(x=>x.Documento.RowId);
+        var borrador=Model.Borradores.FirstOrDefault(x=>x.PrimerRowId==primerRowId);
+        <section class="customer-group @(borrador!=null ? "is-complete" : "")" data-first-row-id="@primerRowId" data-saved="@(borrador!=null ? "true" : "false")" data-bulk-active="@(borrador!=null && borrador.MasivoActivo ? "true" : "false")" aria-label="Documentos de @(primero.Cliente ?? "Cliente sin nombre")">
             <div class="customer-group-heading">
                 <div><p class="eyebrow">CLIENTE · @grupo.Count() @(grupo.Count()==1 ? "documento" : "documentos")</p>
                     <h3>@(string.IsNullOrWhiteSpace(primero.Cliente) ? "Cliente sin nombre" : primero.Cliente)</h3>
                     <p class="address"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><span>@(string.IsNullOrWhiteSpace(primero.Direccion) ? "Dirección no registrada" : primero.Direccion)</span></p>
                 </div>
-                @if(Model.PuedeCerrar) { <div class="customer-group-action"><button type="button" class="bulk-delivered button-secondary"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Marcar todos como entregados</button><p class="group-status" role="status" aria-live="polite"></p></div> }
+                @if(Model.PuedeCerrar) { <div class="customer-group-action"><span class="client-complete-badge" @(borrador==null ? "hidden" : "")>✓ Cliente guardado</span><button type="button" class="client-toggle button-secondary" aria-expanded="@(borrador==null ? "true" : "false")" aria-controls="cliente-@primerRowId">@(borrador==null ? "Ocultar cliente" : "Revisar o editar")</button></div> }
             </div>
+        <div id="cliente-@primerRowId" class="customer-documents" @(borrador!=null && Model.PuedeCerrar ? "hidden" : "")>
+        @if(Model.PuedeCerrar) { <label class="bulk-delivered-label"><input type="checkbox" class="bulk-delivered" @(borrador!=null && borrador.MasivoActivo ? "checked" : "") /><span>Todos los documentos entregados</span></label> }
         @foreach (var item in grupo)
         {
         var i = item.Indice;
         var d = item.Documento;
         var requiereDetalle = d.Entrega == "NO ENTREGADO" || d.Entrega == "INCIDENCIA";
-        <article class="document-card" data-document="@(d.Documento ?? "Sin número")">
+        <article class="document-card" data-document="@(d.Documento ?? "Sin número")" data-before-visit="@(d.AnteriorMasivo==null || !d.AnteriorMasivo.Visito.HasValue ? "" : d.AnteriorMasivo.Visito.Value ? "true" : "false")" data-before-delivery="@(d.AnteriorMasivo==null ? "" : d.AnteriorMasivo.Entrega)" data-before-reason="@(d.AnteriorMasivo==null ? "" : d.AnteriorMasivo.Motivo)" data-before-observation="@(d.AnteriorMasivo==null ? "" : d.AnteriorMasivo.Observaciones)">
             <div class="document-heading"><span class="document-number">@((Model.PaginaDocumentos-1)*Model.TamanoPaginaDocumentos+i+1)</span><div><p class="eyebrow">@d.Tipo · @d.Empresa</p><h3>@(d.Documento ?? "Sin número")</h3></div><span class="bultos"><svg class="icon" aria-hidden="true"><use href="#i-box" /></svg>@d.Bultos.ToString("0.###") bultos</span></div>
             @if (!string.IsNullOrWhiteSpace(d.Observaciones)) { <p class="observation">Observaciones: @d.Observaciones</p> }
             @if(d.TieneImagen) { <p class="document-image-link"><a href="@Url.Action("Imagen",new { id=Model.Id,rowId=d.RowId })" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-eye" /></svg>Ver imagen adjunta</a></p> }
+            @if(Model.PuedeCerrar) { <div class="document-actions"><span class="document-result-label">@(string.IsNullOrWhiteSpace(d.Entrega) ? "Pendiente" : d.Entrega)</span><button type="button" class="document-toggle button-secondary" aria-expanded="false" aria-controls="documento-@d.RowId">@(string.IsNullOrWhiteSpace(d.Entrega) ? "Registrar resultado" : "Editar resultado")</button></div> }
+            <div id="documento-@d.RowId" class="document-edit" @(Model.PuedeCerrar ? "hidden" : "")>
             @if(Model.PuedeAdjuntarImagen) { <button type="button" class="image-upload-trigger button-secondary" data-row-id="@d.RowId" data-document="@(d.Documento ?? "Sin número")" data-replace="@(d.TieneImagen ? "true" : "false")"><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg>@(d.TieneImagen ? "Reemplazar imagen" : "Subir imagen")</button> }
             @if (Model.PuedeCerrar)
             {
@@ -112,14 +119,18 @@ else if (ViewBag.PruebasSoloLectura != true)
                 </dl>
                 if (!string.IsNullOrWhiteSpace(d.Motivo)) { <p class="document-reason"><strong>Motivo:</strong> @d.Motivo</p> }
             }
+            </div>
         </article>
         }
+        @if(Model.PuedeCerrar) { <div class="client-save-bar"><button type="button" class="save-client"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Guardar cliente</button><p class="group-status" role="status" aria-live="polite">@(borrador!=null ? "Guardado en POS. Puedes revisar o editar antes de cerrar la ruta." : "Pendiente de guardar")</p></div> }
+        </div>
         </section>
     }
     if (Model.Documentos.Count == 0) { <p class="empty-state">No hay documentos en esta ruta.</p> }
     if (Model.PuedeCerrar && Model.Documentos.Count > 0)
     {
         <div class="complete-panel"><p><strong>¿Terminaste todas las entregas?</strong><br />Revisa el resumen antes de cerrar la ruta.</p><button type="button" id="review-button"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Revisar y completar ruta</button><p id="submit-status" role="status" aria-live="polite"></p></div>
+        <div id="draft-endpoint" data-url="@Url.Action("GuardarCliente","Piloto")" hidden></div>
         <div id="complete-modal" class="confirm-modal" hidden>
             <button type="button" class="modal-backdrop" data-close-modal aria-label="Cerrar confirmación"></button>
             <section class="confirm-sheet" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-help" tabindex="-1">

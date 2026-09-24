@@ -154,6 +154,23 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public ActionResult GuardarCliente(PilotoBorradorCliente borrador)
+        {
+            try
+            {
+                if(!ModelState.IsValid) throw new PilotoException(400,"Revisa los resultados del cliente.");
+                new PilotoRutaBL().GuardarBorrador(User.Identity.Name,borrador);
+                return Json(new { ok=true, mensaje="Cliente guardado en POS." });
+            }
+            catch(Exception e)
+            {
+                ErrorPiloto(e);
+                return Json(new { ok=false, mensaje=(string)ViewBag.Mensaje });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public ActionResult SubirImagen(string rutaId, int rowId, HttpPostedFileBase archivo)
         {
             try

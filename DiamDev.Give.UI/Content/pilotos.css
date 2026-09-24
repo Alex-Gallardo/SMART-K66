@@ -739,12 +739,24 @@ dd {
   font-size:16px
 }
 
-.customer-group-action .bulk-delivered {
-    width: 100%;
-    border-color: #12613c;
-    color: #12613c;
-    text-align: center
-}
+.customer-group.is-complete { border-color:#137348; background:#eefaf3 }
+.customer-group-action { display:grid; gap:8px }
+.client-complete-badge { display:inline-flex; color:#075b36; font-size:15px; font-weight:850 }
+.client-complete-badge[hidden],.customer-documents[hidden],.document-edit[hidden] { display:none }
+.bulk-delivered-label { display:flex; align-items:center; gap:12px; min-height:58px; margin:8px 0 16px; padding:12px 16px; background:#fff; border:2px solid #326b55; border-radius:14px; color:#0c4230; font-size:17px; font-weight:800; cursor:pointer }
+.bulk-delivered-label input { width:25px; height:25px; flex:0 0 auto; accent-color:#08643c }
+.document-actions { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-top:16px }
+.document-result-label { font-size:15px; font-weight:850; color:#0b4f7b; background:#e7f2fc; border-radius:999px; padding:5px 10px }
+.document-card.has-delivered .document-result-label { background:#d8f3e4; color:#075b36 }
+.document-card.has-problem .document-result-label { background:#fff0d5; color:#734000 }
+.document-edit { margin-top:16px; padding-top:16px; border-top:1px solid #cad9e7 }
+.client-save-bar { display:grid; gap:8px; margin-top:16px; padding:16px; background:#fff; border:1px solid #bed6ca; border-radius:14px }
+.client-save-bar button { min-height:54px }
+.client-save-bar .group-status { margin:0 }
+.client-toggle,.document-toggle { min-height:48px }
+.customer-group-action .client-toggle,.document-edit .image-upload-trigger { width:100% }
+.bulk-delivered-label:focus-within,.client-toggle:focus-visible,.document-toggle:focus-visible { outline:3px solid #e1a800; outline-offset:2px }
+@media (min-width:720px) { .client-save-bar { grid-template-columns:max-content 1fr; align-items:center } }
 
 .group-status,.image-card-status {
   color:#174e2f;

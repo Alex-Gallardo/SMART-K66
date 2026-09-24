@@ -89,9 +89,11 @@ if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador Razor.' }
 & (Join-Path $out 'RazorCompile.exe') $repo --render
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las vistas Razor.' }
 $detalle=Get-Content -LiteralPath (Join-Path $out 'detalle-cierre.html') -Raw
-if(([regex]::Matches($detalle,'class="customer-group"')).Count -ne 2 -or
+if(([regex]::Matches($detalle,'class="customer-group(?:\s|\")')).Count -ne 2 -or
    ([regex]::Matches($detalle,'class="document-card"')).Count -ne 3 -or
-   ([regex]::Matches($detalle,'class="bulk-delivered')).Count -ne 2 -or
+   ([regex]::Matches($detalle,'class="bulk-delivered"')).Count -ne 2 -or
+   ([regex]::Matches($detalle,'class="save-client"')).Count -ne 2 -or
+   ([regex]::Matches($detalle,'class="document-toggle')).Count -ne 3 -or
    ([regex]::Matches($detalle,'class="image-upload-trigger')).Count -ne 3 -or
    ([regex]::Matches($detalle,'class="document-image-link')).Count -ne 1 -or
    $detalle -notmatch 'name="Documentos\[1\]\.RowId"') {
@@ -101,6 +103,14 @@ $consulta=Get-Content -LiteralPath (Join-Path $out 'detalle-historial.html') -Ra
 if($consulta -match 'class="image-upload-trigger' -or $consulta -match 'class="bulk-delivered') {
     throw 'El historial no debe permitir cargas ni seleccionar resultados masivos.'
 }
+$borrador=Get-Content -LiteralPath (Join-Path $out 'detalle-borrador.html') -Raw
+if($borrador -notmatch 'data-saved="true"' -or
+   $borrador -notmatch 'class="client-complete-badge"' -or
+   $borrador -notmatch 'class="bulk-delivered" checked' -or
+   $borrador -notmatch 'data-before-delivery="NO ENTREGADO"' -or
+   $borrador -notmatch 'data-before-observation="Se encontr') {
+    throw 'El borrador guardado no conserva el cliente completo y las respuestas anteriores.'
+}
 Write-Host 'OK: grupos, indices y acciones del detalle renderizado.'
 if(!$ScriptDomDll) { $ScriptDomDll=Join-Path $env:USERPROFILE '.nuget/packages/microsoft.sqlserver.transactsql.scriptdom/161.8901.0/lib/net462/Microsoft.SqlServer.TransactSql.ScriptDom.dll' }
 if(!(Test-Path -LiteralPath $ScriptDomDll)) { throw 'Indicar -ScriptDomDll (version 161/net462) para la validacion SQL sin conexion.' }
@@ -108,6 +118,6 @@ Copy-Item -LiteralPath $ScriptDomDll -Destination $out -Force
 & $compiler /nologo /target:exe "/out:$out/SqlCompile.exe" "/r:$ScriptDomDll" (Join-Path $PSScriptRoot 'SqlCompile.cs')
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador SQL.' }
 $scripts=Get-ChildItem -LiteralPath (Join-Path $repo 'SqlMigrations/Pilotos') -Filter '1*.sql' | ForEach-Object FullName
-$scripts=@($scripts)+(Join-Path $repo 'SqlMigrations/Pilotos/06_rutas_activas_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/07_pos_instalacion_solo_lectura.sql')
+$scripts=@($scripts)+(Join-Path $repo 'SqlMigrations/Pilotos/06_rutas_activas_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/07_pos_instalacion_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/20_borrador_cliente_pos.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/21_app_test_dos_rutas_dos_clientes.sql')
 & (Join-Path $out 'SqlCompile.exe') $scripts
 if($LASTEXITCODE -ne 0) { throw 'Fallo sintaxis SQL.' }

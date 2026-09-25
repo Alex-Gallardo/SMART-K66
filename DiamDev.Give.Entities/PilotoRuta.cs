@@ -22,10 +22,12 @@ namespace DiamDev.Give.Entities
         public bool PuedeCerrar { get; set; }
         public bool BorradoresDisponibles { get; set; }
         public bool ImagenesDisponibles { get; set; }
+        public bool ClientesCompletadosDisponibles { get; set; }
         public bool PuedeAdjuntarImagen { get; set; }
         public List<PilotoDocumento> Documentos { get; set; }
         public List<PilotoBorradorCliente> Borradores { get; set; }
-        public PilotoRuta() { Documentos = new List<PilotoDocumento>(); Borradores = new List<PilotoBorradorCliente>(); }
+        public HashSet<int> ClientesConImagen { get; set; }
+        public PilotoRuta() { Documentos = new List<PilotoDocumento>(); Borradores = new List<PilotoBorradorCliente>(); ClientesConImagen = new HashSet<int>(); }
         public string EstadoNombre
         {
             get { return Estado == "A" ? "Abierta" : Estado == "E" ? "En ruta" : Estado == "C" ? "Cerrada" : Estado == "X" ? "Anulada" : "Sin clasificar"; }
@@ -62,6 +64,18 @@ namespace DiamDev.Give.Entities
         public string Nombre { get; set; }
         public string ContentType { get; set; }
         public byte[] Contenido { get; set; }
+        public string Entrega { get; set; }
+    }
+
+    public sealed class PilotoClienteImagen
+    {
+        public string RutaId { get; set; }
+        public int PrimerRowId { get; set; }
+        public string Version { get; set; }
+        public List<PilotoResultado> Documentos { get; set; }
+        public string Nombre { get; set; }
+        public string ContentType { get; set; }
+        public byte[] Contenido { get; set; }
     }
 
     // Solo se aceptan resultados; identidad, vehiculo y datos comerciales salen del servidor.
@@ -88,6 +102,8 @@ namespace DiamDev.Give.Entities
         public string Version { get; set; }
         public int PrimerRowId { get; set; }
         public bool MasivoActivo { get; set; }
+        public bool Completado { get; set; }
+        public bool TieneImagenCliente { get; set; }
         public List<PilotoResultado> Documentos { get; set; }
         public List<PilotoResultado> Anteriores { get; set; }
     }

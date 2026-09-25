@@ -434,8 +434,9 @@ la prueba del responsable del entorno; no se declaró validado mediante esta vis
 `19_documento_imagen_pos.sql` crea **solo en POS** una imagen vigente por
 `ID_RUTA` + `RT_RUTAS_DET.ROWID` y un registro de altas/reemplazos con usuario,
 fecha y huellas SHA-256. No modifica APK66 ni APP_TEST. El botón de carga y
-reemplazo aparece únicamente en rutas **E** para pilotos autenticados con
-vínculo vigente; `Pilotos.PruebasSoloLectura=true` impide escribir. Las imágenes
+reemplazo aparece únicamente en rutas **E**, documentos con resultado
+**No entregado** o **Incidencia**, y clientes aún sin completar para pilotos
+autenticados con vínculo vigente; `Pilotos.PruebasSoloLectura=true` impide escribir. Las imágenes
 ya cargadas siguen consultables al cerrar la ruta. Los resultados por cliente
 se guardan como borrador en POS con la migración 20 descrita abajo; el cierre
 final es la única operación que escribe resultados en APP_TEST/APK66.
@@ -458,7 +459,8 @@ validación integrada.
 
 `20_borrador_cliente_pos.sql` instala en **POS-SmartK66_DEV** los borradores por
 usuario, ruta y cliente. El portal exige esta tabla para guardar clientes y cerrar
-rutas E. Un cliente guardado se muestra compacto y puede reabrirse para editar.
+rutas E. Los borradores existentes siguen editables hasta que el piloto complete
+el cliente con la migración 22.
 El checkbox de entregas masivas conserva las respuestas anteriores, incluso
 después de recargar o iniciar sesión de nuevo, hasta desmarcarlo. Las imágenes
 siguen su almacenamiento separado en POS. Ningún borrador modifica APK66/APP_TEST.
@@ -479,8 +481,8 @@ siguen su almacenamiento separado en POS. Ningún borrador modifica APK66/APP_TE
    apuntar a `APP_TEST`, `Pilotos.PermitirCierre=true` y
    `Pilotos.PruebasSoloLectura=false`. Usar un login PILOTO vinculado al piloto,
    centro y placa de la vista previa. Seleccionar un período que incluya la
-   fecha del script. Guardar un cliente, recargar, desmarcar el checkbox y
-   comprobar la restauración; luego guardar ambos clientes y revisar el cierre.
+   fecha del script. Desmarcar el checkbox antes de completar el cliente y
+   comprobar la restauración; luego completar ambos clientes y revisar el cierre.
 
 La validación automática `Tests/Pilotos/run.ps1` compila C#, Razor y la sintaxis
 SQL sin conectarse ni ejecutar los scripts. El flujo integrado de guardado y
@@ -494,3 +496,25 @@ probar el comportamiento de la interfaz sin SQL, ejecutar primero
 `Tests/Pilotos/run.ps1` y luego `Tests/Pilotos/image-browser-smoke.ps1` en un
 equipo con Chrome; esta segunda prueba simula respuestas de carga y comprueba
 primera imagen, reemplazo, error del servidor y expansión de clientes.
+
+## Finalización de cliente y foto final (migración 22)
+
+`22_cliente_completado_foto_pos.sql` se instala **solo en POS-SmartK66_DEV**,
+después de la migración 20. Agrega `Completado` a los borradores existentes con
+valor inicial `0` (siguen editables), una foto final vigente por ruta y cliente,
+y eventos auditados de alta y reemplazo. No modifica APK66 ni APP_TEST.
+
+En una ventana nueva de SSMS, seleccionar `POS-SmartK66_DEV` y ejecutar con
+`@Aplicar=0`. Revisar `BaseSeleccionada` y el estado de columna y tablas.
+Después cambiar a `@Aplicar=1` y ejecutar completo. Confirmar `INSTALADO`.
+Hasta instalar esta migración, el portal mantiene la consulta de rutas pero
+no permite completar clientes ni subir fotos; evita un bloqueo parcial.
+
+En una ruta E de prueba, resolver todas las facturas de un cliente. La foto final
+se habilita entonces, es opcional y puede reemplazarse antes de pulsar
+«Guardar cliente». Ese botón confirma el cliente definitivamente: el piloto ya
+no puede editar resultados ni fotos. Al expandirlo ve únicamente un resumen
+breve y enlaces a las fotos. Tras recargar o iniciar sesión de nuevo, debe
+persistir el bloqueo. Un intento directo de volver a guardar o subir fotos
+debe ser rechazado por el servidor. El cierre exige todos los clientes
+completados; solo al confirmar la ruta se escriben resultados en APK66/APP_TEST.

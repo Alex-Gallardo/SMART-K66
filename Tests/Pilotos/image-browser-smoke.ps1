@@ -79,6 +79,68 @@ try {
             throw ('Chrome no devolvió el resultado de la interacción en '+$size+'.')
         }
     }
+    $workflowProbe=@'
+<script>
+window.confirm=function(){return true;};
+window.fetch=function(url){return Promise.resolve({headers:{get:function(){return 'application/json';}},json:function(){
+    return Promise.resolve({ok:true,url:String(url).indexOf('SubirImagenCliente')>=0?'/Piloto/ImagenCliente/DEMO-2026-001?primerRowId=1':null});
+}});};
+</script>
+<script src="__SCRIPT_URI__"></script>
+<script>
+(async function(){try {
+    function check(ok,message){if(!ok) throw new Error(message);}
+    var group=document.querySelector('.customer-group'), cards=group.querySelectorAll('.document-card');
+    check(cards[0].querySelector('.image-upload-trigger').hidden,'Entregado permite subir foto de documento');
+    check(!cards[1].querySelector('.image-upload-trigger').hidden,'No entregado oculta foto de documento');
+    var photo=group.querySelector('.client-image-upload-trigger');
+    check(!photo.disabled,'Foto final debe habilitarse con todos los documentos resueltos');
+    cards[1].querySelector(".delivery-result[value='ENTREGADO']").click();
+    check(cards[1].querySelector('.image-upload-trigger').hidden,'Entregado mantiene boton de documento');
+    cards[1].querySelector(".delivery-result[value='NO ENTREGADO']").click();
+    cards[1].querySelector('.delivery-reason').value='CLIENTE CERRADO';
+    cards[1].querySelector('.delivery-observation').value='Local cerrado';
+    cards[1].querySelector('.delivery-observation').dispatchEvent(new Event('input',{bubbles:true}));
+    check(!photo.disabled,'Foto final no se rehabilitó');
+    photo.click();
+    var transfer=new DataTransfer();transfer.items.add(new File(['imagen'],'cliente.jpg',{type:'image/jpeg'}));
+    var input=document.getElementById('image-file');input.files=transfer.files;
+    document.getElementById('image-upload-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+    await new Promise(function(resolve){setTimeout(resolve,30);});
+    check(group.querySelector('.client-image-link').hidden===false,'No aparece foto final');
+    group.querySelector('.save-client').click();
+    await new Promise(function(resolve){setTimeout(resolve,30);});
+    check(group.getAttribute('data-saved')==='true','Cliente no se bloqueó');
+    check(group.querySelectorAll('.document-card').length===0,'Formulario editable quedó visible');
+    check(group.querySelectorAll('.completed-document').length===2,'Falta resumen compacto');
+    check(group.querySelectorAll("input[name$='.RowId']").length===2,'Faltan datos canónicos para cierre');
+    check(!!group.querySelector('.client-photo-link'),'No se conservó foto final');
+    group.querySelector('.client-toggle').click();
+    check(!group.querySelector('.customer-documents').hidden,'Cliente completado no expande resumen');
+    var second=document.querySelectorAll('.customer-group')[1], last=second.querySelector('.document-card');
+    last.querySelector(".delivery-result[value='ENTREGADO']").click();
+    check(second.querySelector('.save-client')!==null,'Falta acción del segundo cliente');
+    second.querySelector('.save-client').click();
+    await new Promise(function(resolve){setTimeout(resolve,30);});
+    check(second.getAttribute('data-saved')==='true','Segundo cliente no se bloqueó');
+    document.getElementById('review-button').click();
+    check(!document.getElementById('complete-modal').hidden,'No abrió resumen final');
+    check(document.getElementById('summary-delivered').textContent==='2','Resumen perdió entregas');
+    check(document.getElementById('summary-failed').textContent==='1','Resumen perdió no entregados');
+    document.documentElement.setAttribute('data-workflow-smoke','PASS');
+}catch(error){document.documentElement.setAttribute('data-workflow-smoke','FAIL: '+error.message);}})();
+</script>
+'@
+    $workflowProbe=$workflowProbe.Replace('__SCRIPT_URI__',$scriptUri)
+    $workflowHtml=(Get-Content -LiteralPath $fixture -Raw).Replace($marker,$workflowProbe)
+    Set-Content -LiteralPath $smokeFile -Value $workflowHtml -Encoding UTF8
+    foreach($size in @('425,900','1280,900')) {
+        $output=& $ChromePath '--headless=new' '--disable-gpu' '--no-first-run' '--no-default-browser-check' "--window-size=$size" '--virtual-time-budget=3000' '--dump-dom' $uri 2>&1 | Out-String
+        if($output -notmatch 'data-workflow-smoke="PASS"') {
+            $failure=[regex]::Match($output,'data-workflow-smoke="([^"]+)"')
+            throw ('Falló el flujo completo en '+$size+': '+$(if($failure.Success){$failure.Groups[1].Value}else{'sin resultado'}))
+        }
+    }
     $groupProbe=@'
 <script src="__SCRIPT_URI__"></script>
 <script>
@@ -107,7 +169,7 @@ try {
             throw ('Falló el estado de '+$fixtureName+': '+$(if($failure.Success){$failure.Groups[1].Value}else{'sin resultado'}))
         }
     }
-    Write-Host 'OK Chrome móvil/escritorio: carga, reemplazo, error y expansión de clientes nuevos, guardados e historial.'
+    Write-Host 'OK Chrome móvil/escritorio: fotos por resultado, foto final, bloqueo, resumen y expansión.'
 } finally {
     Remove-Item -LiteralPath $smokeFile -Force -ErrorAction SilentlyContinue
 }

@@ -71,6 +71,8 @@
         var imageSubmit = document.getElementById("image-submit");
         var imageSubmitLabel = document.getElementById("image-submit-label");
         var imageTrigger, imageFocus, previewUrl;
+        var documentImageAction = imageForm.action;
+        var customerImageAction = imageForm.getAttribute("data-customer-action");
         function clearPreview() {
             if (previewUrl) window.URL.revokeObjectURL(previewUrl);
             previewUrl = null;
@@ -85,17 +87,23 @@
             clearPreview();
             if (imageFocus) imageFocus.focus();
         }
-        Array.prototype.forEach.call(document.querySelectorAll(".image-upload-trigger"), function (trigger) {
+        Array.prototype.forEach.call(document.querySelectorAll(".image-upload-trigger,.client-image-upload-trigger"), function (trigger) {
             trigger.addEventListener("click", function () {
+                if (trigger.disabled || trigger.hidden) return;
                 imageTrigger = trigger;
                 imageFocus = document.activeElement;
                 imageForm.reset();
                 clearPreview();
                 imageStatus.textContent = "";
-                imageForm.elements.rowId.value = trigger.getAttribute("data-row-id");
+                var customer = trigger.classList.contains("client-image-upload-trigger");
+                imageForm.action = customer ? customerImageAction : documentImageAction;
+                imageForm.elements.rowId.value = customer ? "" : trigger.getAttribute("data-row-id");
+                imageForm.elements.primerRowId.value = customer ? trigger.getAttribute("data-first-row-id") : "";
+                imageForm.elements.entrega.value = customer ? "" : trigger.closest(".document-card").querySelector(".delivery-result:checked").value;
                 var replacing = trigger.getAttribute("data-replace") === "true";
-                document.getElementById("image-title").textContent = replacing ? "Reemplazar imagen" : "Subir imagen";
-                document.getElementById("image-document").textContent = "Documento " + trigger.getAttribute("data-document");
+                document.getElementById("image-kind").textContent = customer ? "FOTO FINAL DEL CLIENTE" : "FOTO DEL DOCUMENTO";
+                document.getElementById("image-title").textContent = customer ? (replacing ? "Reemplazar foto final" : "Subir foto final") : (replacing ? "Reemplazar imagen" : "Subir imagen");
+                document.getElementById("image-document").textContent = customer ? "Foto opcional del cliente" : "Documento " + trigger.getAttribute("data-document");
                 imageModal.hidden = false;
                 document.body.classList.add("modal-open");
                 imageFile.focus();
@@ -123,13 +131,23 @@
         imageForm.addEventListener("submit", function (event) {
             event.preventDefault();
             if (!imageForm.checkValidity()) { imageForm.reportValidity(); return; }
+            var customer = imageTrigger.classList.contains("client-image-upload-trigger");
             if (imageTrigger.getAttribute("data-replace") === "true" &&
-                !window.confirm("¿Reemplazar la imagen actual de este documento?")) return;
+                !window.confirm(customer ? "¿Reemplazar la foto final de este cliente?" : "¿Reemplazar la imagen actual de este documento?")) return;
             imageSubmit.disabled = true;
             imageSubmitLabel.textContent = "Guardando…";
             imageStatus.textContent = "Subiendo imagen…";
             var uploadPersisted = false;
-            window.fetch(imageForm.action, { method:"POST", body:new FormData(imageForm), credentials:"same-origin", headers:{"Accept":"application/json"} })
+            var imageData = new FormData(imageForm);
+            if (customer) Array.prototype.forEach.call(imageTrigger.closest(".customer-group").querySelectorAll(".document-card"), function (card, i) {
+                var value = snapshot(card);
+                imageData.append("documentos[" + i + "].RowId", value.rowId);
+                imageData.append("documentos[" + i + "].Visito", value.visit);
+                imageData.append("documentos[" + i + "].Entrega", value.delivery);
+                imageData.append("documentos[" + i + "].Motivo", value.reason);
+                imageData.append("documentos[" + i + "].Observaciones", value.observation);
+            });
+            window.fetch(imageForm.action, { method:"POST", body:imageData, credentials:"same-origin", headers:{"Accept":"application/json"} })
                 .then(function (response) {
                     if (!/application\/json/i.test(response.headers.get("Content-Type") || ""))
                         throw new Error("La sesión cambió o el servidor no respondió correctamente. Inicia sesión y vuelve a intentarlo.");
@@ -138,16 +156,16 @@
                 .then(function (result) {
                     if (!result.ok) throw new Error(result.mensaje || "No se pudo guardar la imagen.");
                     uploadPersisted = true;
-                    var card = imageTrigger.closest(".document-card");
-                    var holder = card && card.querySelector(".document-image-link");
-                    var notice = card && card.querySelector(".image-card-status");
-                    var label = imageTrigger.querySelector(".image-upload-label");
+                    var card = imageTrigger.closest(customer ? ".customer-group" : ".document-card");
+                    var holder = card && card.querySelector(customer ? ".client-image-link" : ".document-image-link");
+                    var notice = card && card.querySelector(customer ? ".group-status" : ".image-card-status");
+                    var label = imageTrigger.querySelector(customer ? ".client-image-label" : ".image-upload-label");
                     if (!holder || !notice || !label || !result.url) throw new Error("La imagen se guardó, pero no se pudo actualizar la vista.");
                     holder.querySelector("a").href = result.url + (result.url.indexOf("?") < 0 ? "?" : "&") + "v=" + Date.now();
                     holder.hidden = false;
                     imageTrigger.setAttribute("data-replace", "true");
-                    label.textContent = "Reemplazar imagen";
-                    notice.textContent = "Imagen guardada. El resultado de entrega se aplica al cerrar la ruta.";
+                    label.textContent = customer ? "Reemplazar foto final" : "Reemplazar imagen";
+                    notice.textContent = customer ? "Foto final guardada. Completa el cliente cuando termines." : "Imagen guardada. El resultado de entrega se aplica al cerrar la ruta.";
                     imageSubmit.disabled = false;
                     imageSubmitLabel.textContent = "Guardar imagen";
                     closeImage();
@@ -177,7 +195,7 @@
         var details = group.querySelector(".customer-documents");
         var toggle = group.querySelector(".client-toggle");
         details.hidden = !open;
-        if (toggle) { toggle.setAttribute("aria-expanded", open ? "true" : "false"); toggle.textContent = open ? "Ocultar documentos" : "Ver documentos"; }
+        if (toggle) { toggle.setAttribute("aria-expanded", open ? "true" : "false"); toggle.textContent = group.getAttribute("data-saved") === "true" ? (open ? "Ocultar resumen" : "Ver resumen") : (open ? "Ocultar documentos" : "Ver documentos"); }
     }
     Array.prototype.forEach.call(groups, function (group) {
         var toggle = group.querySelector(".client-toggle");
@@ -203,6 +221,8 @@
         var reason = card.querySelector(".delivery-reason");
         var observation = card.querySelector(".delivery-observation");
         var hasProblem = selected && (selected.value === "NO ENTREGADO" || selected.value === "INCIDENCIA");
+        var upload = card.querySelector(".image-upload-trigger");
+        if (upload) upload.hidden = !hasProblem;
         fields.classList.toggle("is-visible", !!hasProblem);
         fields.setAttribute("aria-hidden", hasProblem ? "false" : "true");
         reason.required = !!hasProblem;
@@ -220,6 +240,22 @@
         var toggle = card.querySelector(".document-toggle");
         if (toggle) toggle.textContent = card.querySelector(".document-edit").hidden ?
             (selected ? "Editar resultado" : "Registrar resultado") : "Ocultar detalle";
+        updateClientPhoto(card.closest(".customer-group"));
+    }
+    function clientReady(group) {
+        var cards=group.querySelectorAll(".document-card");
+        return cards.length > 0 && Array.prototype.every.call(cards, function (card) {
+            var result=selectedResult(card), visit=card.querySelector(".visit-result:checked");
+            if (!result || !visit) return false;
+            return (result.value === "ENTREGADO" && visit.value === "true") ||
+                ((result.value === "NO ENTREGADO" || result.value === "INCIDENCIA") &&
+                 !!card.querySelector(".delivery-reason").value && !!card.querySelector(".delivery-observation").value.trim());
+        });
+    }
+    function updateClientPhoto(group) {
+        if (!group) return;
+        var button=group.querySelector(".client-image-upload-trigger");
+        if (button) button.disabled = !clientReady(group);
     }
     function setDocumentOpen(card, open) {
         var details = card.querySelector(".document-edit");
@@ -231,10 +267,12 @@
         toggle.textContent = open ? "Ocultar detalle" : (selected ? "Editar resultado" : "Registrar resultado");
     }
     function markDirty(group) {
+        if (group.getAttribute("data-saved") === "true") return;
         group.setAttribute("data-saved", "false");
         group.classList.remove("is-complete");
         group.querySelector(".client-complete-badge").hidden = true;
         group.querySelector(".group-status").textContent = "Cambios sin guardar. Guarda este cliente antes de cerrar la ruta.";
+        updateClientPhoto(group);
         group._revision = (group._revision || 0) + 1;
         var check = group.querySelector(".bulk-delivered");
         if (check && check.checked) check.indeterminate = Array.prototype.some.call(group.querySelectorAll(".document-card"), function (card) {
@@ -258,6 +296,59 @@
         observation.value = value.observation;
         updateCount(observation);
         updateCard(card.querySelector(".delivery-result"), false);
+    }
+    function completeGroup(group,serverResults) {
+        var details=group.querySelector(".customer-documents");
+        var cards=group.querySelectorAll(".document-card");
+        var photo=group.querySelector(".client-image-link a");
+        var photoUrl=photo && !photo.parentNode.hidden ? photo.href : null;
+        var summary=document.createElement("div"); summary.className="client-compact-summary";
+        var canonical=[];
+        var heading=document.createElement("p"), strong=document.createElement("strong");
+        strong.textContent="Cliente completado. "; heading.appendChild(strong);
+        heading.appendChild(document.createTextNode("Los resultados están bloqueados.")); summary.appendChild(heading);
+        var list=document.createElement("ul");
+        Array.prototype.forEach.call(cards,function(card) {
+            var current=snapshot(card);
+            var saved=serverResults && serverResults.filter(function(d){return d.RowId===current.rowId;})[0];
+            var result=saved ? {rowId:saved.RowId,visit:String(saved.Visito).toLowerCase(),delivery:saved.Entrega,
+                reason:saved.Motivo || "",observation:saved.Observaciones || ""} : current;
+            var item=document.createElement("li");
+            item.className="completed-document";
+            item.setAttribute("data-document",card.getAttribute("data-document"));
+            item.setAttribute("data-result",result.delivery);
+            item.setAttribute("data-reason",result.reason);
+            item.setAttribute("data-observation",result.observation);
+            var name=document.createElement("span"), status=document.createElement("strong");
+            name.textContent=card.getAttribute("data-document"); status.textContent=result.delivery;
+            item.appendChild(name); item.appendChild(status);
+            var imageLink=card.querySelector(".document-image-link a");
+            if (imageLink && !imageLink.parentNode.hidden) {
+                var link=imageLink.cloneNode(true); link.textContent="Ver foto"; item.appendChild(link);
+            }
+            list.appendChild(item);
+            var inputName=card.querySelector("input[name$='.RowId']").name;
+            var prefix=inputName.substring(0,inputName.length-"RowId".length);
+            canonical.push([prefix+"RowId",result.rowId],[prefix+"Visito",result.visit],
+                [prefix+"Entrega",result.delivery],[prefix+"Motivo",result.reason],
+                [prefix+"Observaciones",result.observation]);
+        });
+        summary.appendChild(list);
+        if (photoUrl) {
+            var finalLink=document.createElement("a"); finalLink.className="client-photo-link";
+            finalLink.href=photoUrl; finalLink.target="_blank"; finalLink.rel="noopener";
+            finalLink.textContent="Ver foto final del cliente"; summary.appendChild(finalLink);
+        }
+        Array.prototype.forEach.call(details.querySelectorAll("input,select,textarea,button"),function(control) { control.disabled=true; });
+        details.textContent="";
+        details.appendChild(summary);
+        canonical.forEach(function(pair) {
+            var hidden=document.createElement("input"); hidden.type="hidden"; hidden.name=pair[0];
+            hidden.value=pair[1]; details.appendChild(hidden);
+        });
+        group.setAttribute("data-saved","true"); group.classList.add("is-complete");
+        group.querySelector(".client-complete-badge").hidden=false;
+        setGroupOpen(group,false);
     }
     Array.prototype.forEach.call(results, function (input) {
         input.addEventListener("change", function () {
@@ -305,6 +396,8 @@
         save.addEventListener("click", function () {
             var invalid = group.querySelector(":invalid");
             if (invalid) { setGroupOpen(group, true); setDocumentOpen(invalid.closest(".document-card"), true); invalid.reportValidity(); invalid.focus(); return; }
+            if (!clientReady(group)) { group.querySelector(".group-status").textContent="Resuelve todos los documentos antes de completar el cliente."; return; }
+            if (!window.confirm("¿Completar este cliente? Después de guardar no podrás editar sus documentos ni reemplazar su foto final.")) return;
             var endpoint = document.getElementById("draft-endpoint");
             var data = new FormData();
             data.append("__RequestVerificationToken", form.querySelector("input[name='__RequestVerificationToken']").value);
@@ -327,8 +420,8 @@
                 data.append("Anteriores[" + i + "].Motivo", value.reason);
                 data.append("Anteriores[" + i + "].Observaciones", value.observation);
             });
-            var revision = group._revision || 0;
-            save.disabled = true;
+            var controls=group.querySelectorAll(".customer-documents input,.customer-documents select,.customer-documents textarea,.customer-documents button");
+            Array.prototype.forEach.call(controls,function(control) { control.disabled=true; });
             group.querySelector(".group-status").textContent = "Guardando en POS…";
             window.fetch(endpoint.getAttribute("data-url"), {method:"POST",body:data,credentials:"same-origin",headers:{"Accept":"application/json"}})
                 .then(function (response) {
@@ -336,29 +429,29 @@
                     return response.json();
                 }).then(function (response) {
                     if (!response.ok) throw new Error(response.mensaje || "No se pudo guardar el cliente.");
-                    if ((group._revision || 0) !== revision) { group.querySelector(".group-status").textContent = "Se guardó una versión anterior. Vuelve a guardar tus cambios."; return; }
-                    group.setAttribute("data-saved", "true");
-                    group.classList.add("is-complete");
-                    group.querySelector(".client-complete-badge").hidden = false;
-                    group.querySelector(".group-status").textContent = "Cliente guardado en POS.";
-                    setGroupOpen(group, true);
+                    completeGroup(group,response.documentos);
                 }).catch(function (error) { group.querySelector(".group-status").textContent = error.message || "No se pudo guardar. Inténtalo de nuevo."; })
-                .then(function () { save.disabled = false; });
+                .then(function () { if(group.getAttribute("data-saved")!=="true") {
+                    Array.prototype.forEach.call(controls,function(control) { control.disabled=false; }); updateClientPhoto(group);
+                } });
         });
     });
     function buildSummary() {
         var counts = { "ENTREGADO": 0, "NO ENTREGADO": 0, "INCIDENCIA": 0 };
         var list = document.querySelector("#exception-summary ul");
         list.textContent = "";
-        Array.prototype.forEach.call(form.querySelectorAll(".document-card"), function (card) {
-            var result = selectedResult(card);
-            counts[result.value]++;
-            if (result.value === "ENTREGADO") return;
+        Array.prototype.forEach.call(form.querySelectorAll(".document-card,.completed-document"), function (card) {
+            var completed=card.classList.contains("completed-document");
+            var result=completed ? card.getAttribute("data-result") : selectedResult(card).value;
+            counts[result]++;
+            if (result === "ENTREGADO") return;
             var item = document.createElement("li");
             var title = document.createElement("strong");
-            title.textContent = card.getAttribute("data-document") + " · " + (result.value === "INCIDENCIA" ? "Incidencia" : "No entregado");
+            title.textContent = card.getAttribute("data-document") + " · " + (result === "INCIDENCIA" ? "Incidencia" : "No entregado");
             var detail = document.createElement("span");
-            detail.textContent = card.querySelector(".delivery-reason").value + ": " + card.querySelector(".delivery-observation").value;
+            detail.textContent = completed ?
+                (card.getAttribute("data-reason") || "") + ": " + (card.getAttribute("data-observation") || "") :
+                card.querySelector(".delivery-reason").value + ": " + card.querySelector(".delivery-observation").value;
             item.appendChild(title); item.appendChild(detail); list.appendChild(item);
         });
         document.getElementById("summary-delivered").textContent = counts["ENTREGADO"];

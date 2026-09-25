@@ -740,6 +740,10 @@ dd {
 }
 
 .customer-group.is-complete { border-color:#137348; background:#eefaf3 }
+.document-card.has-validation-error { border:2px solid #ad3024 }
+.client-warning,.document-warning { margin:12px 0; padding:12px 14px; border:2px solid #ad3024; border-radius:12px; background:#fff1ed; color:#702016; font-size:15px; font-weight:750; line-height:1.45 }
+.client-warning[hidden],.document-warning[hidden] { display:none }
+.customer-group [aria-invalid="true"]:focus-visible { outline:3px solid #ad3024; outline-offset:2px }
 .client-compact-summary { padding:12px 0 2px; color:#123048 }
 .client-compact-summary p { margin:0 0 10px; font-size:15px }
 .client-compact-summary ul { list-style:none; margin:0; padding:0; display:grid; gap:6px }
@@ -1149,6 +1153,11 @@ body.modal-open {
   color:var(--muted);
   font-size:16px
 }
+.client-save-sheet { max-width:560px }
+.client-save-sheet>p.client-modal-name { margin:0 0 10px; color:#122f49; font-size:20px; font-weight:850; overflow-wrap:anywhere }
+.client-save-sheet>p.client-modal-count { padding:12px 14px; border-radius:12px; background:#eaf3fb; color:#103c63; font-weight:750 }
+#client-save-status:not([hidden]) { padding:12px 14px; border-radius:12px; background:#fff1ed; color:#702016; font-weight:750 }
+@media (max-height:480px) { .client-save-sheet { max-height:100dvh; border-radius:14px 14px 0 0 } }
 
 .confirm-counts {
   display:grid;

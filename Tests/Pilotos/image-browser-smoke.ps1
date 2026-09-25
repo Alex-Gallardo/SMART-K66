@@ -82,8 +82,10 @@ try {
     $workflowProbe=@'
 <script>
 window.confirm=function(){return true;};
-window.fetch=function(url){return Promise.resolve({headers:{get:function(){return 'application/json';}},json:function(){
-    return Promise.resolve({ok:true,url:String(url).indexOf('SubirImagenCliente')>=0?'/Piloto/ImagenCliente/DEMO-2026-001?primerRowId=1':null});
+window.__clientPosts=0;
+window.__failNextClient=false;
+window.fetch=function(url){var client=String(url).indexOf('GuardarCliente')>=0;if(client) window.__clientPosts++;var fail=client && window.__failNextClient;if(fail) window.__failNextClient=false;return Promise.resolve({headers:{get:function(){return 'application/json';}},json:function(){
+    return Promise.resolve(fail?{ok:false,mensaje:'Error de prueba'}:{ok:true,url:String(url).indexOf('SubirImagenCliente')>=0?'/Piloto/ImagenCliente/DEMO-2026-001?primerRowId=1':null});
 }});};
 </script>
 <script src="__SCRIPT_URI__"></script>
@@ -109,8 +111,18 @@ window.fetch=function(url){return Promise.resolve({headers:{get:function(){retur
     await new Promise(function(resolve){setTimeout(resolve,30);});
     check(group.querySelector('.client-image-link').hidden===false,'No aparece foto final');
     group.querySelector('.save-client').click();
+    check(!document.getElementById('client-save-modal').hidden,'No abrió confirmación del cliente');
+    var sheet=document.querySelector('#client-save-modal .client-save-sheet'), bounds=sheet.getBoundingClientRect();
+    check(bounds.left>=0 && bounds.right<=innerWidth && bounds.top>=0 && bounds.bottom<=innerHeight,'Modal fuera de pantalla');
+    check(sheet.contains(document.activeElement),'El foco no ingresó al modal');
+    check(window.__clientPosts===0,'Guardó el cliente antes de confirmar');
+    document.querySelector('#client-save-modal .modal-actions [data-close-client]').click();
+    check(document.getElementById('client-save-modal').hidden && window.__clientPosts===0,'Cancelar modificó el cliente');
+    group.querySelector('.save-client').click();
+    document.getElementById('client-save-confirm').click();
     await new Promise(function(resolve){setTimeout(resolve,30);});
     check(group.getAttribute('data-saved')==='true','Cliente no se bloqueó');
+    check(document.getElementById('client-save-modal').hidden && window.__clientPosts===1,'No cerró modal tras guardar');
     check(group.querySelectorAll('.document-card').length===0,'Formulario editable quedó visible');
     check(group.querySelectorAll('.completed-document').length===2,'Falta resumen compacto');
     check(group.querySelectorAll("input[name$='.RowId']").length===2,'Faltan datos canónicos para cierre');
@@ -118,11 +130,26 @@ window.fetch=function(url){return Promise.resolve({headers:{get:function(){retur
     group.querySelector('.client-toggle').click();
     check(!group.querySelector('.customer-documents').hidden,'Cliente completado no expande resumen');
     var second=document.querySelectorAll('.customer-group')[1], last=second.querySelector('.document-card');
+    document.getElementById('review-button').click();
+    check(document.getElementById('complete-modal').hidden && !second.querySelector('.client-warning').hidden,'Cierre no señaló el cliente pendiente');
+    second.querySelector('.save-client').click();
+    check(document.getElementById('client-save-modal').hidden,'Abrió modal con factura incompleta');
+    check(!second.querySelector('.client-warning').hidden && !last.querySelector('.document-warning').hidden,'Faltan advertencias del formulario');
+    check(!last.querySelector('.document-edit').hidden && last.querySelector('.delivery-result').getAttribute('aria-invalid')==='true','No mostró ni enfocó la factura pendiente');
     last.querySelector(".delivery-result[value='ENTREGADO']").click();
+    check(last.querySelector('.document-warning').hidden && second.querySelector('.client-warning').hidden,'Advertencias no se limpiaron al corregir');
     check(second.querySelector('.save-client')!==null,'Falta acción del segundo cliente');
     second.querySelector('.save-client').click();
+    check(!document.getElementById('client-save-modal').hidden,'No abrió modal tras corregir');
+    window.__failNextClient=true;
+    document.getElementById('client-save-confirm').click();
+    await new Promise(function(resolve){setTimeout(resolve,30);});
+    check(second.getAttribute('data-saved')==='false' && !document.getElementById('client-save-modal').hidden,'Error del servidor bloqueó cliente o cerró modal');
+    check(document.getElementById('client-save-status').textContent==='Error de prueba' && !last.querySelector('.delivery-result:checked').disabled,'Falta advertencia o recuperación tras error');
+    document.getElementById('client-save-confirm').click();
     await new Promise(function(resolve){setTimeout(resolve,30);});
     check(second.getAttribute('data-saved')==='true','Segundo cliente no se bloqueó');
+    check(window.__clientPosts===3,'El reintento no llegó al servidor');
     document.getElementById('review-button').click();
     check(!document.getElementById('complete-modal').hidden,'No abrió resumen final');
     check(document.getElementById('summary-delivered').textContent==='2','Resumen perdió entregas');

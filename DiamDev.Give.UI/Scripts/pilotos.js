@@ -205,6 +205,9 @@
     var completeButton = document.getElementById("complete-button");
     var modal = document.getElementById("complete-modal");
     if (!form || !reviewButton || !completeButton || !modal) return;
+    var clientModal=document.getElementById("client-save-modal");
+    var clientConfirm=document.getElementById("client-save-confirm");
+    var activeClient=null, clientPreviousFocus=null, clientSaving=false;
     var results = form.querySelectorAll(".delivery-result");
     var previousFocus;
     function selectedResult(card) {
@@ -244,13 +247,61 @@
     }
     function clientReady(group) {
         var cards=group.querySelectorAll(".document-card");
-        return cards.length > 0 && Array.prototype.every.call(cards, function (card) {
-            var result=selectedResult(card), visit=card.querySelector(".visit-result:checked");
-            if (!result || !visit) return false;
-            return (result.value === "ENTREGADO" && visit.value === "true") ||
-                ((result.value === "NO ENTREGADO" || result.value === "INCIDENCIA") &&
-                 !!card.querySelector(".delivery-reason").value && !!card.querySelector(".delivery-observation").value.trim());
+        return cards.length > 0 && Array.prototype.every.call(cards, function (card) { return validateCard(card, false).valid; });
+    }
+    function validateCard(card, reveal) {
+        if (reveal) card.setAttribute("data-validation-touched", "true");
+        var visible=card.getAttribute("data-validation-touched")==="true";
+        var warning=card.querySelector(".document-warning");
+        var delivery=selectedResult(card), visit=card.querySelector(".visit-result:checked");
+        var reason=card.querySelector(".delivery-reason"), observation=card.querySelector(".delivery-observation");
+        var errors=[], first=null;
+        Array.prototype.forEach.call(card.querySelectorAll(".delivery-result,.visit-result,.delivery-reason,.delivery-observation"), function (field) {
+            field.removeAttribute("aria-invalid"); field.removeAttribute("aria-describedby");
         });
+        function problem(message, fields, focus) {
+            errors.push(message); if (!first) first=focus;
+            if (visible) Array.prototype.forEach.call(fields,function(field) {
+                field.setAttribute("aria-invalid","true"); field.setAttribute("aria-describedby",warning.id);
+            });
+        }
+        if (!delivery) problem("Selecciona el resultado de la factura.",card.querySelectorAll(".delivery-result"),card.querySelector(".delivery-result"));
+        if (!visit) problem("Indica si llegaste al destino.",card.querySelectorAll(".visit-result"),card.querySelector(".visit-result"));
+        if (delivery && delivery.value==="ENTREGADO" && visit && visit.value!=="true")
+            problem("Una factura entregada requiere que marques Sí en la visita.",card.querySelectorAll(".visit-result"),card.querySelector(".visit-result[value=true]"));
+        if (delivery && delivery.value!=="ENTREGADO") {
+            if (!reason.value) problem("Selecciona un motivo.",[reason],reason);
+            if (!observation.value.trim()) problem("Describe qué ocurrió.",[observation],observation);
+            else if (observation.value.trim().length>500) problem("La observación no puede superar 500 caracteres.",[observation],observation);
+        }
+        warning.textContent=errors.join(" ");
+        warning.hidden=!visible || errors.length===0;
+        card.classList.toggle("has-validation-error",visible && errors.length>0);
+        return {valid:errors.length===0,first:first,card:card};
+    }
+    function validateGroup(group,reveal) {
+        if (reveal) group.setAttribute("data-validation-attempted","true");
+        var first=null, invalid=0;
+        Array.prototype.forEach.call(group.querySelectorAll(".document-card"),function(card) {
+            var result=validateCard(card,reveal);
+            if (!result.valid) { invalid++; if (!first) first=result; }
+        });
+        var warning=group.querySelector(".client-warning");
+        if (warning) {
+            warning.textContent=invalid ? "Hay "+invalid+(invalid===1 ? " factura por corregir" : " facturas por corregir")+" antes de completar este cliente." : "";
+            warning.hidden=invalid===0 || group.getAttribute("data-validation-attempted")!=="true";
+        }
+        return {valid:invalid===0,first:first};
+    }
+    function showGroupError(group) {
+        var result=validateGroup(group,true);
+        setGroupOpen(group,true);
+        if (result.first) {
+            setDocumentOpen(result.first.card,true);
+            result.first.card.scrollIntoView({behavior:"smooth",block:"center"});
+            if (result.first.first) result.first.first.focus();
+        }
+        return result.valid;
     }
     function updateClientPhoto(group) {
         if (!group) return;
@@ -272,6 +323,7 @@
         group.classList.remove("is-complete");
         group.querySelector(".client-complete-badge").hidden = true;
         group.querySelector(".group-status").textContent = "Cambios sin guardar. Guarda este cliente antes de cerrar la ruta.";
+        validateGroup(group,false);
         updateClientPhoto(group);
         group._revision = (group._revision || 0) + 1;
         var check = group.querySelector(".bulk-delivered");
@@ -353,6 +405,7 @@
     Array.prototype.forEach.call(results, function (input) {
         input.addEventListener("change", function () {
             updateCard(input, true);
+            validateCard(input.closest(".document-card"),true);
             markDirty(input.closest(".customer-group"));
         });
     });
@@ -360,12 +413,12 @@
         var result = selectedResult(card) || card.querySelector(".delivery-result");
         updateCard(result, false);
         var observation = card.querySelector(".delivery-observation");
-        observation.addEventListener("input", function () { updateCount(observation); markDirty(card.closest(".customer-group")); });
+        observation.addEventListener("input", function () { updateCount(observation); validateCard(card,true); markDirty(card.closest(".customer-group")); });
         updateCount(observation);
         var toggle = card.querySelector(".document-toggle");
         if (toggle) toggle.addEventListener("click", function () { setDocumentOpen(card, card.querySelector(".document-edit").hidden); });
         Array.prototype.forEach.call(card.querySelectorAll(".visit-result,.delivery-reason"), function (input) {
-            input.addEventListener("change", function () { markDirty(card.closest(".customer-group")); });
+            input.addEventListener("change", function () { validateCard(card,true); markDirty(card.closest(".customer-group")); });
         });
     });
     Array.prototype.forEach.call(groups, function (group) {
@@ -390,52 +443,109 @@
                 group._beforeBulk = null;
                 check.indeterminate = false;
             }
+            validateGroup(group,true);
             markDirty(group);
         });
         var save = group.querySelector(".save-client");
         save.addEventListener("click", function () {
-            var invalid = group.querySelector(":invalid");
-            if (invalid) { setGroupOpen(group, true); setDocumentOpen(invalid.closest(".document-card"), true); invalid.reportValidity(); invalid.focus(); return; }
-            if (!clientReady(group)) { group.querySelector(".group-status").textContent="Resuelve todos los documentos antes de completar el cliente."; return; }
-            if (!window.confirm("¿Completar este cliente? Después de guardar no podrás editar sus documentos ni reemplazar su foto final.")) return;
-            var endpoint = document.getElementById("draft-endpoint");
-            var data = new FormData();
-            data.append("__RequestVerificationToken", form.querySelector("input[name='__RequestVerificationToken']").value);
-            data.append("RutaId", form.elements.RutaId.value);
-            data.append("Version", form.elements.Version.value);
-            data.append("PrimerRowId", group.getAttribute("data-first-row-id"));
-            data.append("MasivoActivo", check.checked ? "true" : "false");
-            Array.prototype.forEach.call(group.querySelectorAll(".document-card"), function (card, i) {
-                var value = snapshot(card);
-                data.append("Documentos[" + i + "].RowId", value.rowId);
-                data.append("Documentos[" + i + "].Visito", value.visit);
-                data.append("Documentos[" + i + "].Entrega", value.delivery);
-                data.append("Documentos[" + i + "].Motivo", value.reason);
-                data.append("Documentos[" + i + "].Observaciones", value.observation);
-            });
-            if (check.checked) Array.prototype.forEach.call(group._beforeBulk || [], function (value, i) {
-                data.append("Anteriores[" + i + "].RowId", value.rowId);
-                data.append("Anteriores[" + i + "].Visito", value.visit);
-                data.append("Anteriores[" + i + "].Entrega", value.delivery);
-                data.append("Anteriores[" + i + "].Motivo", value.reason);
-                data.append("Anteriores[" + i + "].Observaciones", value.observation);
-            });
-            var controls=group.querySelectorAll(".customer-documents input,.customer-documents select,.customer-documents textarea,.customer-documents button");
-            Array.prototype.forEach.call(controls,function(control) { control.disabled=true; });
-            group.querySelector(".group-status").textContent = "Guardando en POS…";
-            window.fetch(endpoint.getAttribute("data-url"), {method:"POST",body:data,credentials:"same-origin",headers:{"Accept":"application/json"}})
-                .then(function (response) {
-                    if (!/application\/json/i.test(response.headers.get("Content-Type") || "")) throw new Error("La sesión cambió. Inicia sesión y vuelve a guardar.");
-                    return response.json();
-                }).then(function (response) {
-                    if (!response.ok) throw new Error(response.mensaje || "No se pudo guardar el cliente.");
-                    completeGroup(group,response.documentos);
-                }).catch(function (error) { group.querySelector(".group-status").textContent = error.message || "No se pudo guardar. Inténtalo de nuevo."; })
-                .then(function () { if(group.getAttribute("data-saved")!=="true") {
-                    Array.prototype.forEach.call(controls,function(control) { control.disabled=false; }); updateClientPhoto(group);
-                } });
+            if (!showGroupError(group)) return;
+            openClientModal(group);
         });
     });
+    function closeClientModal(saved) {
+        if (!clientModal || clientSaving) return;
+        clientModal.hidden=true;
+        document.body.classList.remove("modal-open");
+        var target=saved && activeClient ? activeClient.querySelector(".client-toggle") : clientPreviousFocus;
+        activeClient=null;
+        clientPreviousFocus=null;
+        if (target && target.isConnected) target.focus();
+    }
+    function openClientModal(group) {
+        if (!clientModal || !clientConfirm || clientSaving) return;
+        activeClient=group;
+        clientPreviousFocus=document.activeElement;
+        var cards=group.querySelectorAll(".document-card"), counts={"ENTREGADO":0,"NO ENTREGADO":0,"INCIDENCIA":0};
+        Array.prototype.forEach.call(cards,function(card) { counts[selectedResult(card).value]++; });
+        document.getElementById("client-save-name").textContent=group.getAttribute("data-client-name") || "Cliente";
+        document.getElementById("client-save-count").textContent=cards.length+" facturas · "+counts["ENTREGADO"]+" entregadas · "+counts["NO ENTREGADO"]+" no entregadas · "+counts["INCIDENCIA"]+" incidencias";
+        var status=document.getElementById("client-save-status"); status.textContent=""; status.hidden=true;
+        clientModal.hidden=false;
+        document.body.classList.add("modal-open");
+        clientModal.querySelector(".modal-actions [data-close-client]").focus();
+    }
+    function submitClient() {
+        var group=activeClient;
+        if (!group || clientSaving) return;
+        if (!validateGroup(group,true).valid) { closeClientModal(false); showGroupError(group); return; }
+        var check=group.querySelector(".bulk-delivered");
+        var data=new FormData();
+        data.append("__RequestVerificationToken",form.querySelector("input[name='__RequestVerificationToken']").value);
+        data.append("RutaId",form.elements.RutaId.value);
+        data.append("Version",form.elements.Version.value);
+        data.append("PrimerRowId",group.getAttribute("data-first-row-id"));
+        data.append("MasivoActivo",check.checked ? "true" : "false");
+        Array.prototype.forEach.call(group.querySelectorAll(".document-card"),function(card,i) {
+            var value=snapshot(card);
+            data.append("Documentos["+i+"].RowId",value.rowId);
+            data.append("Documentos["+i+"].Visito",value.visit);
+            data.append("Documentos["+i+"].Entrega",value.delivery);
+            data.append("Documentos["+i+"].Motivo",value.reason);
+            data.append("Documentos["+i+"].Observaciones",value.observation);
+        });
+        if (check.checked) Array.prototype.forEach.call(group._beforeBulk || [],function(value,i) {
+            data.append("Anteriores["+i+"].RowId",value.rowId);
+            data.append("Anteriores["+i+"].Visito",value.visit);
+            data.append("Anteriores["+i+"].Entrega",value.delivery);
+            data.append("Anteriores["+i+"].Motivo",value.reason);
+            data.append("Anteriores["+i+"].Observaciones",value.observation);
+        });
+        var controls=group.querySelectorAll(".customer-documents input,.customer-documents select,.customer-documents textarea,.customer-documents button");
+        Array.prototype.forEach.call(controls,function(control) { control.disabled=true; });
+        var status=document.getElementById("client-save-status");
+        clientSaving=true;
+        clientConfirm.disabled=true;
+        clientModal.querySelector(".confirm-sheet").setAttribute("aria-busy","true");
+        group.querySelector(".group-status").textContent="Guardando en POS…";
+        window.fetch(document.getElementById("draft-endpoint").getAttribute("data-url"),
+            {method:"POST",body:data,credentials:"same-origin",headers:{"Accept":"application/json"}})
+            .then(function(response) {
+                if (!/application\/json/i.test(response.headers.get("Content-Type") || "")) throw new Error("La sesión cambió. Inicia sesión y vuelve a guardar.");
+                return response.json();
+            }).then(function(response) {
+                if (!response.ok) throw new Error(response.mensaje || "No se pudo guardar el cliente.");
+                completeGroup(group,response.documentos);
+                clientSaving=false;
+                closeClientModal(true);
+            }).catch(function(error) {
+                var message=error.message || "No se pudo guardar. Inténtalo de nuevo.";
+                status.textContent=message; status.hidden=false;
+                group.querySelector(".group-status").textContent=message;
+                Array.prototype.forEach.call(controls,function(control) { control.disabled=false; });
+                updateClientPhoto(group);
+                clientSaving=false;
+                clientConfirm.focus();
+            }).then(function() {
+                clientConfirm.disabled=false;
+                clientModal.querySelector(".confirm-sheet").removeAttribute("aria-busy");
+            });
+    }
+    if (clientModal && clientConfirm) {
+        clientConfirm.addEventListener("click",submitClient);
+        Array.prototype.forEach.call(clientModal.querySelectorAll("[data-close-client]"),function(button) {
+            button.addEventListener("click",function() { closeClientModal(false); });
+        });
+        document.addEventListener("keydown",function(event) {
+            if (clientModal.hidden) return;
+            if (event.key==="Escape") { event.preventDefault(); closeClientModal(false); return; }
+            if (event.key!=="Tab" || clientSaving) return;
+            var focusable=clientModal.querySelectorAll(".modal-actions button:not([disabled])");
+            if (!focusable.length) return;
+            var first=focusable[0],last=focusable[focusable.length-1];
+            if (event.shiftKey && document.activeElement===first) { event.preventDefault(); last.focus(); }
+            else if (!event.shiftKey && document.activeElement===last) { event.preventDefault(); first.focus(); }
+        });
+    }
     function buildSummary() {
         var counts = { "ENTREGADO": 0, "NO ENTREGADO": 0, "INCIDENCIA": 0 };
         var list = document.querySelector("#exception-summary ul");
@@ -462,9 +572,10 @@
     function openModal() {
         var pending = Array.prototype.filter.call(groups, function (group) { return group.getAttribute("data-saved") !== "true"; });
         if (pending.length) {
-            setGroupOpen(pending[0], true);
-            pending[0].querySelector(".group-status").textContent = "Guarda este cliente antes de revisar el cierre.";
-            pending[0].scrollIntoView({behavior:"smooth",block:"start"});
+            if (showGroupError(pending[0])) {
+                pending[0].querySelector(".group-status").textContent = "Cliente listo. Pulsa Guardar cliente para continuar.";
+                pending[0].querySelector(".save-client").focus();
+            }
             return;
         }
         if (!form.checkValidity()) {

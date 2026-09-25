@@ -45,7 +45,7 @@ else if (ViewBag.PruebasSoloLectura != true)
         var primero = grupo.First().Documento;
         var primerRowId=grupo.Min(x=>x.Documento.RowId);
         var borrador=Model.Borradores.FirstOrDefault(x=>x.PrimerRowId==primerRowId);
-        <section class="customer-group @(borrador!=null && borrador.Completado ? "is-complete" : "")" data-first-row-id="@primerRowId" data-saved="@(borrador!=null && borrador.Completado ? "true" : "false")" data-bulk-active="@(borrador!=null && borrador.MasivoActivo ? "true" : "false")" aria-label="Documentos de @(primero.Cliente ?? "Cliente sin nombre")">
+        <section class="customer-group @(borrador!=null && borrador.Completado ? "is-complete" : "")" data-first-row-id="@primerRowId" data-client-name="@(string.IsNullOrWhiteSpace(primero.Cliente) ? "Cliente sin nombre" : primero.Cliente)" data-saved="@(borrador!=null && borrador.Completado ? "true" : "false")" data-bulk-active="@(borrador!=null && borrador.MasivoActivo ? "true" : "false")" aria-label="Documentos de @(primero.Cliente ?? "Cliente sin nombre")">
             <div class="customer-group-heading">
                 <div><p class="eyebrow">CLIENTE · @grupo.Count() @(grupo.Count()==1 ? "documento" : "documentos")</p>
                     <h3>@(string.IsNullOrWhiteSpace(primero.Cliente) ? "Cliente sin nombre" : primero.Cliente)</h3>
@@ -79,6 +79,7 @@ else if (ViewBag.PruebasSoloLectura != true)
                 @if(Model.ClientesConImagen.Contains(primerRowId) || borrador.TieneImagenCliente) { <a class="client-photo-link" href="@Url.Action("ImagenCliente",new { id=Model.Id,primerRowId=primerRowId })" target="_blank" rel="noopener">Ver foto final del cliente</a> }
             </div>
         } else {
+        if(Model.PuedeCerrar) { <p class="client-warning" role="status" aria-live="polite" hidden></p> }
         if(Model.PuedeCerrar) { <label class="bulk-delivered-label"><input type="checkbox" class="bulk-delivered" @(borrador!=null && borrador.MasivoActivo ? "checked" : "") /><span>Todos los documentos entregados</span></label> }
         foreach (var item in grupo)
         {
@@ -90,6 +91,7 @@ else if (ViewBag.PruebasSoloLectura != true)
             @if (!string.IsNullOrWhiteSpace(d.Observaciones)) { <p class="observation">Observaciones: @d.Observaciones</p> }
             @if(d.TieneImagen || Model.PuedeAdjuntarImagen) { <p class="document-image-link" @(!d.TieneImagen ? "hidden" : "")><a href="@Url.Action("Imagen",new { id=Model.Id,rowId=d.RowId })" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-eye" /></svg>Ver imagen adjunta</a></p> }
             @if(Model.PuedeCerrar) { <div class="document-actions"><span class="document-result-label">@(string.IsNullOrWhiteSpace(d.Entrega) ? "Pendiente" : d.Entrega)</span><button type="button" class="document-toggle button-secondary" aria-expanded="false" aria-controls="documento-@d.RowId">@(string.IsNullOrWhiteSpace(d.Entrega) ? "Registrar resultado" : "Editar resultado")</button></div> }
+            @if(Model.PuedeCerrar) { <p id="documento-aviso-@d.RowId" class="document-warning" role="status" aria-live="polite" hidden></p> }
             <div id="documento-@d.RowId" class="document-edit" @(Model.PuedeCerrar ? "hidden" : "")>
             @if(Model.PuedeAdjuntarImagen && Model.PuedeCerrar) { <button type="button" class="image-upload-trigger button-secondary" data-row-id="@d.RowId" data-document="@(d.Documento ?? "Sin número")" data-replace="@(d.TieneImagen ? "true" : "false")" @(requiereDetalle ? "" : "hidden")><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg><span class="image-upload-label">@(d.TieneImagen ? "Reemplazar imagen" : "Subir imagen")</span></button><p class="image-card-status" role="status" aria-live="polite"></p> }
             @if (Model.PuedeCerrar)
@@ -178,6 +180,21 @@ else if (ViewBag.PruebasSoloLectura != true)
             </section>
         </div>
     }
+}
+@if(Model.PuedeCerrar && Model.Documentos.Count>0) {
+    <div id="client-save-modal" class="confirm-modal" hidden>
+        <button type="button" class="modal-backdrop" data-close-client aria-label="Cancelar confirmación de cliente"></button>
+        <section class="confirm-sheet client-save-sheet" role="dialog" aria-modal="true" aria-labelledby="client-save-title" aria-describedby="client-save-help" tabindex="-1">
+            <div class="confirm-handle" aria-hidden="true"></div>
+            <p class="eyebrow">CONFIRMAR CLIENTE</p>
+            <h2 id="client-save-title">¿Completar este cliente?</h2>
+            <p id="client-save-name" class="client-modal-name"></p>
+            <p id="client-save-help">Revisa las respuestas antes de guardar. Después de confirmar, no podrás editar las facturas ni reemplazar la foto final de este cliente.</p>
+            <p id="client-save-count" class="client-modal-count"></p>
+            <p id="client-save-status" role="alert" aria-live="assertive" hidden></p>
+            <div class="modal-actions"><button type="button" class="button-secondary" data-close-client>Volver a revisar</button><button type="button" id="client-save-confirm"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Confirmar y guardar</button></div>
+        </section>
+    </div>
 }
 @if(Model.PuedeAdjuntarImagen) {
     <div id="image-modal" class="confirm-modal" hidden>

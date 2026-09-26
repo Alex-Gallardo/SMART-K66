@@ -36,6 +36,15 @@ BEGIN TRY
     WHERE p.Nombre IN(N'Pilotos.Rutas.Ver',N'Pilotos.Rutas.Confirmar')
       AND NOT EXISTS(SELECT 1 FROM dbo.Rol_Permiso rp WHERE rp.Permiso_Id=p.Nombre);
 
+    SELECT N'ADMINISTRACION' AS Seccion,esperado.Nombre,
+        CASE WHEN p.Nombre IS NULL THEN N'NO EXISTE' ELSE N'EXISTE' END AS Estado,
+        r.Rol_Id,r.Nombre AS Rol
+    FROM (VALUES(N'Pilotos.Administrar')) esperado(Nombre)
+    LEFT JOIN dbo.Permiso p ON p.Nombre=esperado.Nombre
+    LEFT JOIN dbo.Rol_Permiso rp ON rp.Permiso_Id=p.Nombre
+    LEFT JOIN dbo.Rol r ON r.Rol_Id=rp.Rol_Id
+    ORDER BY r.Rol_Id;
+
     SELECT N'INDICES_POS' AS Seccion,OBJECT_NAME(i.object_id) AS Tabla,i.name AS Indice,
         i.is_unique AS EsUnico,i.has_filter AS TieneFiltro,i.filter_definition AS Filtro
     FROM sys.indexes i

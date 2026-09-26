@@ -82,6 +82,17 @@ internal static class PilotoTests
     }
     public static int Main(string[] args) {
         try {
+            if(args.Length==1 && args[0]=="sql-admin") {
+                Console.WriteLine(PilotoAdministracionDA.SqlAutorizacion); return 0;
+            }
+            if(args.Length==1 && args[0]=="escrituras-bloqueadas") {
+                var da=new PilotoRutaDA();
+                Rechaza(()=>da.GuardarImagen("consulta_demo",null),403,"cierre apagado bloquea foto de documento antes de SQL");
+                Rechaza(()=>da.GuardarImagenCliente("consulta_demo",null),403,"cierre apagado bloquea foto final antes de SQL");
+                Rechaza(()=>da.GuardarBorrador("consulta_demo",null),403,"cierre apagado bloquea cliente antes de SQL");
+                Rechaza(()=>da.Cerrar("consulta_demo",null),503,"cierre apagado bloquea cierre antes de SQL");
+                Console.WriteLine("OK: "+comprobaciones+" escrituras bloqueadas sin SQL."); return 0;
+            }
             if(args.Length==1 && args[0]=="config-invalida") {
                 Rechaza(()=>PilotoRutaBL.ValidarConfiguracionPrueba(),503,"configuracion incompleta se rechaza antes de SQL");
                 Rechaza(()=>new PilotoRutaDA(),503,"constructor no abre SQL con configuracion incompleta");
@@ -216,7 +227,10 @@ internal static class PilotoTests
             admin.Motivo="Cambio"; admin.Activo=true; admin.EmpleadoRowId=2; admin.CodigoOperador="operador"; admin.Centros=new[]{new string('x',16)}; admin.Placas=new[]{"C-001"}; Rechaza(()=>PilotoAdminReglas.Validar(admin),400,"centro administrativo demasiado largo");
             var adminPost=typeof(PilotoController).GetMethods().Single(m=>m.Name=="Configurar" && m.IsDefined(typeof(HttpPostAttribute),true));
             Check(adminPost.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"configuracion POST usa antiforgery");
-            Check(!adminPost.GetCustomAttributes(true).Any(a=>a.GetType().Name=="PermisoAttribute"),"configuracion no exige permiso funcional");
+            PilotoAdminReglas.ValidarAcceso(true,true); Check(true,"cuenta disponible con permiso puede administrar");
+            Rechaza(()=>PilotoAdminReglas.ValidarAcceso(true,false),403,"cuenta sin Pilotos.Administrar rechazada");
+            Rechaza(()=>PilotoAdminReglas.ValidarAcceso(false,true),403,"cuenta inexistente, duplicada o inactiva rechazada aunque tenga permiso");
+            Rechaza(()=>PilotoAdminReglas.ValidarAcceso(true,false),403,"revocacion de permiso no conserva autorizacion previa");
             var adminHttp=new ContextoPrueba("consulta_demo"); var adminController=new PilotoController();
             adminController.ControllerContext=new ControllerContext(adminHttp,new RouteData(),adminController);
             var adminAction=new ReflectedActionDescriptor(typeof(PilotoController).GetMethod("Administracion"),"Administracion",new ReflectedControllerDescriptor(typeof(PilotoController)));

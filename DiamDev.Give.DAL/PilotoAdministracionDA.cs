@@ -13,6 +13,15 @@ namespace DiamDev.Give.DAL
     {
         private readonly string conexion;
         private readonly string apk;
+        internal const string SqlAutorizacion = @"SELECT TOP (2)
+CAST(CASE WHEN u.Activo=1 AND u.Autenticar_Site=1 THEN 1 ELSE 0 END AS bit) AS Disponible,
+CAST(CASE WHEN EXISTS(
+    SELECT 1 FROM dbo.Usuario_Rol ur
+    JOIN dbo.Rol_Permiso rp ON rp.Rol_Id=ur.Rol_Id
+    JOIN dbo.Permiso p ON p.Nombre=rp.Permiso_Id
+    WHERE ur.Usuario_Id=u.Usuario_Id AND p.Nombre=@permiso
+) THEN 1 ELSE 0 END AS bit) AS TienePermiso
+FROM dbo.Usuario u WHERE u.Login=@login;";
 
         public PilotoAdministracionDA()
         {
@@ -69,13 +78,18 @@ namespace DiamDev.Give.DAL
         private static void Autorizar(SqlConnection cn, SqlTransaction tx, string login)
         {
             if (string.IsNullOrWhiteSpace(login) || login.Length > 50) throw new PilotoException(403, "Acceso no autorizado.");
-            const string sql = @"SELECT COUNT(*) FROM dbo.Usuario u
-WHERE u.Login=@login AND u.Activo=1 AND u.Autenticar_Site=1
-AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.Usuario_Id<>u.Usuario_Id);";
-            using (var cmd = Comando(cn, tx, sql))
+            using (var cmd = Comando(cn, tx, SqlAutorizacion))
             {
                 Param(cmd, "@login", SqlDbType.NVarChar, login, 50);
-                if ((int)cmd.ExecuteScalar() != 1) throw new PilotoException(403, "La cuenta debe estar activa y habilitada para ingresar al sitio.");
+                Param(cmd, "@permiso", SqlDbType.NVarChar, PilotoAdminReglas.PermisoAdministrar, 100);
+                using(var r=cmd.ExecuteReader())
+                {
+                    if(!r.Read()) { PilotoAdminReglas.ValidarAcceso(false,false); return; }
+                    var disponible=(bool)r["Disponible"];
+                    var permiso=(bool)r["TienePermiso"];
+                    if(r.Read()) disponible=false;
+                    PilotoAdminReglas.ValidarAcceso(disponible,permiso);
+                }
             }
         }
 
@@ -87,7 +101,7 @@ AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.
             using (var cn = Abrir())
             using (var tx = cn.BeginTransaction(IsolationLevel.ReadCommitted))
             {
-                ExigirInstalacion(cn, tx); Autorizar(cn, tx, actor);
+                Autorizar(cn, tx, actor); ExigirInstalacion(cn, tx);
                 const string sql = @"SELECT TOP (100) u.Usuario_Id,u.Login,u.Nombre,u.Activo,u.Autenticar_Site,
  CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol r ON r.Rol_Id=ur.Rol_Id
   WHERE ur.Usuario_Id=u.Usuario_Id AND r.Nombre=N'PILOTO') THEN 1 ELSE 0 END AS bit) TieneRolPiloto,
@@ -118,7 +132,7 @@ ORDER BY CASE WHEN p.Activo=1 THEN 0 WHEN p.Usuario_Id IS NULL THEN 1 ELSE 2 END
             using (var cn = Abrir())
             using (var tx = cn.BeginTransaction(IsolationLevel.ReadCommitted))
             {
-                ExigirInstalacion(cn, tx); Autorizar(cn, tx, actor);
+                Autorizar(cn, tx, actor); ExigirInstalacion(cn, tx);
                 resultado.Usuario = LeerUsuario(cn, tx, usuarioId);
                 if (resultado.Usuario == null) throw new PilotoException(404, "Usuario no disponible.");
                 resultado.Formulario = new PilotoAdminGuardar {
@@ -232,7 +246,7 @@ ORDER BY CASE WHEN r.STATUS=N'E' THEN 0 ELSE 1 END,r.FECHA_RUTA DESC,r.ID_RUTA D
             {
                 try
                 {
-                    ExigirInstalacion(cn, tx); Autorizar(cn, tx, actor);
+                    Autorizar(cn, tx, actor); ExigirInstalacion(cn, tx);
                     if (!modelo.Activo) PrepararDesactivacion(cn, tx, modelo);
                     ValidarDestino(cn, tx, modelo);
                     GuardarVinculo(cn, tx, actor, modelo);

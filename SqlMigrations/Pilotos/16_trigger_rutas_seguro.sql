@@ -96,7 +96,8 @@ BEGIN
     WHERE afectada.STATUS<>N''X''
       AND detalle.TIPO IN(N''CAMBIO'',N''ENVIO'')
       AND detalle.F_DOCTO>=CONVERT(date,N''20250701'',112)
-      AND fuente.ID_FACTURA IS NOT NULL;
+      AND fuente.ID_FACTURA IS NOT NULL
+      AND fuente.RUTA_ASIGNADA IS NULL AND fuente.STATUS=N''A'';
 
     IF EXISTS
     (
@@ -125,7 +126,8 @@ BEGIN
       ON asignacion.ID_EMPRESA=fuente.ID_EMPRESA
      AND asignacion.TIPO_DOC=fuente.TIPO_DOC
      AND asignacion.ID_DOCUMENTO=fuente.ID_DOCUMENTO
-     AND asignacion.ID_FACTURA=fuente.ID_FACTURA;
+     AND asignacion.ID_FACTURA=fuente.ID_FACTURA
+    WHERE fuente.RUTA_ASIGNADA IS NULL AND fuente.STATUS=N''A'';
 END;';
 
     IF EXISTS

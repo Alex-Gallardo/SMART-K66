@@ -72,8 +72,15 @@ namespace DiamDev.Give.Entities
 
     public static class PilotoAdminReglas
     {
+        public const string PermisoAdministrar = "Pilotos.Administrar";
         public const int MaxCentros = 20;
         public const int MaxVehiculos = 50;
+
+        public static void ValidarAcceso(bool cuentaDisponible, bool tienePermiso)
+        {
+            if(!cuentaDisponible) throw new PilotoException(403,"La cuenta debe ser única, estar activa y habilitada para ingresar al sitio.");
+            if(!tienePermiso) throw new PilotoException(403,"No tienes permiso para administrar pilotos. Solicita el acceso al administrador.");
+        }
 
         public static void Normalizar(PilotoAdminGuardar modelo)
         {

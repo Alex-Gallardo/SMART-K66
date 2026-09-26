@@ -275,14 +275,71 @@ transportistas ni se concede acceso a todos los vehiculos de una empresa.
 ### Interfaz de administracion
 
 `/Piloto/Administracion` reemplaza la repeticion de los scripts 11 y 15 para la
-operacion diaria. Cualquier usuario POS autenticado, activo y habilitado para el
-sitio puede abrirla y guardar cambios; no requiere rol ni permiso funcional
-adicional. El usuario que se vincula sí debe tener rol PILOTO para activar su
+operacion diaria. Requiere una cuenta POS unica, activa y habilitada para el
+sitio con el permiso vigente `Pilotos.Administrar` en cualquiera de sus roles.
+El servidor lo consulta en POS al listar, abrir una configuracion y guardar;
+no depende de un nombre de rol ni de una autorizacion almacenada en la sesion.
+El usuario que se vincula sí debe tener rol PILOTO para activar su
 acceso a rutas. En una transaccion serializable se valida nuevamente la cuenta
 del actor, la cuenta objetivo, el empleado unico/activo, centros y vehiculos de
 APK66; despues se actualiza el vinculo POS y se registra actor, motivo y estado
 anterior/nuevo. Desactivar conserva la cuenta y el historial, y revoca todas las
 placas activas.
+
+`23_permiso_administrar_pos.sql` crea solo `dbo.Permiso.Nombre=Pilotos.Administrar`
+si falta; no crea roles, usuarios ni asignaciones. Empieza en vista previa y es
+idempotente. Si el permiso ya fue creado, asignarlo a los roles autorizados desde
+el panel POS existente. Antes de desplegar, comprobar con una cuenta autorizada
+y otra sin permiso: lista, GET de Configurar y POST directo. Revocar el permiso
+de todos los roles que lo concedan debe bloquear tambien una sesion ya iniciada.
+El diagnostico 07 muestra el permiso y sus roles; que exista sin asignaciones no
+autoriza a ningun usuario. La administracion no exige sesion especial de piloto.
+
+El codigo de operador identifica al responsable del cierre: se envia como `@usr`
+a `rutas_cerrar`, que en el entorno revisado lo guarda en `RT_RUTAS.USR_MON`, y
+se registra en `PilotoCierre.Operador`. Usar el login POS del piloto si tiene hasta
+15 caracteres, por ejemplo `mlopez`; para logins mayores acordar un codigo unico
+con Distribucion, sin truncar. No es el ROWID del empleado, la placa ni una clave.
+No determina el alcance de rutas. Los codigos de vinculos activos deben ser unicos.
+
+### Preparacion del cierre en APK66
+
+No se copian rutas, clientes, documentos ni resultados de APP_TEST a APK66.
+El script 13 en vista previa (`@Aplicar=0`) no instala el procedimiento. Para
+instalarlo despues de revision, usar una ventana nueva en el catalogo de rutas
+exacto, completar `@BaseEsperada` y aplicar explicitamente. Si ya existe,
+comparar la definicion; el script no lo sobrescribe.
+
+El script 16 actualizado procesa solo `inserted`, conserva la fecha minima y
+los tipos CAMBIO/ENVIO, y asigna exclusivamente fuentes `STATUS=A` sin ruta
+asignada. Los documentos con otros estados o asignaciones se conservan, tanto
+en la seleccion como en el UPDATE. Las fuentes elegibles ambiguas se rechazan.
+Revisar el cambio con Distribucion porque el trigger tambien interviene en sus
+operaciones. El respaldo automatico de su definicion no sustituye un respaldo
+de bases ni la ventana de mantenimiento.
+
+Primero aplicar el 16 actualizado en APP_TEST indicando la huella del trigger
+que exista alli (puede ser distinta de la huella original de APK66). El resultado
+devuelve una NUEVA huella: actualizar localmente la configuracion y los parametros
+de QA que deban verificarla. No reutilizar la huella anterior ni copiar una huella
+sin verificar la definicion. El 17 acepta solo APP_TEST y exige dos rutas
+independientes CAMBIO/ENVIO, sin usuarios ni integraciones concurrentes. Prueba pendientes,
+fuentes protegidas, procesamiento multirruta y fuentes ajenas; termina en rollback.
+Si no hay dos rutas adecuadas, prepararlas solo en la copia antes de probar.
+
+Despues de esas pruebas y revision, promover los scripts necesarios en APK66 con
+su huella original real. Los scripts QA 17 y 21 nunca se ejecutan en produccion.
+Mantener el cierre apagado hasta verificar la instalacion, los vinculos reales y
+la huella corregida configurada. El merge del codigo no ejecuta migraciones ni
+cambia el catalogo de rutas automaticamente. `Pilotos.PermitirCierre=false`
+bloquea borradores, fotos de documentos, foto final y cierre; la consulta de las
+imagenes existentes sigue disponible para usuarios autorizados. Este flag no
+bloquea la administracion de vinculos, protegida por su propio permiso.
+
+La validacion local comprueba reglas, vistas y sintaxis SQL, incluida la consulta
+real de autorizacion. No sustituye ejecutar el 17 en APP_TEST ni las pruebas
+SQL/IIS de permisos y cierre. Tras aprobarlas, supervisar una entrega real y
+reconciliar cabecera, detalle y auditoria antes de ampliar el uso a los 12 pilotos.
 
 La pantalla no crea usuarios, roles, empleados, vehiculos ni rutas. Tampoco
 escribe en APK66. La asignacion operativa de piloto/vehiculo/ruta permanece en

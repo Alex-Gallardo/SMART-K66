@@ -263,7 +263,7 @@ FROM " + apk + ".dbo.RT_RUTAS_DET" + hint + "WHERE ID_RUTA=@id ORDER BY ROWID OF
             }
             using (var cmd = Command(cn, tx, "SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoDocumentoImagen',N'U') IS NULL OR OBJECT_ID(N'dbo.PilotoDocumentoImagenEvento',N'U') IS NULL THEN 0 ELSE 1 END;"))
                 ruta.ImagenesDisponibles = (int)cmd.ExecuteScalar() == 1;
-            ruta.PuedeAdjuntarImagen = ruta.ImagenesDisponibles && !PruebasSoloLectura && ruta.Estado == "E";
+            ruta.PuedeAdjuntarImagen = ruta.ImagenesDisponibles && CierreHabilitado && ruta.Estado == "E";
             if (ruta.ImagenesDisponibles && ruta.Documentos.Count > 0)
             {
                 var documentos = ruta.Documentos.ToDictionary(d => d.RowId);
@@ -473,7 +473,7 @@ WHERE r.ID_RUTA=@id AND d.ROWID=@row AND " + Alcance(acceso) + ";";
 
         public void GuardarImagen(string login, PilotoImagen imagen)
         {
-            if (PruebasSoloLectura) throw new PilotoException(403,"El modo de solo consulta no permite subir imágenes.");
+            if (!CierreHabilitado) throw new PilotoException(403,"La carga de imágenes no está habilitada.");
             if (imagen==null) throw new PilotoException(400,"Selecciona una imagen.");
             ValidarImagenId(imagen.RutaId,imagen.RowId);
             imagen.ContentType=PilotoReglas.ValidarImagen(imagen.Nombre,imagen.Contenido);

@@ -59,7 +59,8 @@ try {
         @{Name='config-invalida';Values=@{'Pilotos.PilotoPrueba'=('A'*91)}},
         @{Name='consulta-temporal';Values=@{'Pilotos.PilotoPrueba'='PILOTO DEMO'}},
         @{Name='ruta-fija';Values=@{'Pilotos.PlacaPrueba'='';'Pilotos.RutaPrueba'='DEMO-1';'Pilotos.PruebasSoloLectura'=' true '}},
-        @{Name='sesion-normal';Values=@{'Pilotos.PruebasSoloLectura'='false';'Pilotos.Habilitado'='true'}}
+        @{Name='sesion-normal';Values=@{'Pilotos.PruebasSoloLectura'='false';'Pilotos.Habilitado'='true'}},
+        @{Name='escrituras-bloqueadas';Values=@{'Pilotos.PruebasSoloLectura'='false';'Pilotos.Habilitado'='true';'Pilotos.PermitirCierre'='false'}}
     )
     foreach($case in $cases) {
         $fixture.LoadXml($baseFixture)
@@ -128,5 +129,10 @@ Copy-Item -LiteralPath $ScriptDomDll -Destination $out -Force
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador SQL.' }
 $scripts=Get-ChildItem -LiteralPath (Join-Path $repo 'SqlMigrations/Pilotos') -Filter '1*.sql' | ForEach-Object FullName
 $scripts=@($scripts)+(Join-Path $repo 'SqlMigrations/Pilotos/06_rutas_activas_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/07_pos_instalacion_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/20_borrador_cliente_pos.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/21_app_test_dos_rutas_dos_clientes.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/22_cliente_completado_foto_pos.sql')
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/23_permiso_administrar_pos.sql'
+$adminSql=Join-Path $out 'autorizacion-admin.sql'
+& (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
+if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }
+$scripts+=$adminSql
 & (Join-Path $out 'SqlCompile.exe') $scripts
 if($LASTEXITCODE -ne 0) { throw 'Fallo sintaxis SQL.' }

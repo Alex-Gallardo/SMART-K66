@@ -23,7 +23,7 @@
             <div><label for="EmpleadoRowId">Empleado piloto</label><select id="EmpleadoRowId" name="EmpleadoRowId" required><option value="">Seleccionar piloto</option>
                 @foreach (var e in Model.Empleados) { <option value="@e.RowId" selected="@(e.Seleccionado ? "selected" : null)">@e.Nombre · #@e.RowId@(e.Activo ? "" : " · INACTIVO")</option> }
             </select><small>Los nombres duplicados se excluyen porque la lógica actual de APK66 los vuelve ambiguos.</small></div>
-            <div><label for="CodigoOperador">Código de operador</label><input id="CodigoOperador" name="CodigoOperador" maxlength="15" required value="@Model.Formulario.CodigoOperador" placeholder="Código usado por Distribución" /></div>
+            <div><label for="CodigoOperador">Código de operador</label><input id="CodigoOperador" name="CodigoOperador" maxlength="15" required value="@Model.Formulario.CodigoOperador" placeholder="Login POS del piloto" aria-describedby="operador-ayuda" /><small id="operador-ayuda">Identifica quién cerró la ruta. Usa el login POS de este piloto (@Model.Usuario.Login) si tiene hasta 15 caracteres, o un código único acordado con Distribución. No lo recortes: este texto se registra en USR_MON y en la auditoría; no determina qué rutas puede ver.</small></div>
         </div>
     </section>
 

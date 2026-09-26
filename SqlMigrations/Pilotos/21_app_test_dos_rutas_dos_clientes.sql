@@ -11,7 +11,7 @@ DECLARE @Centro nvarchar(15)=N'PC';
 DECLARE @Placa nvarchar(15)=N'C-951BRX';
 DECLARE @Operador nvarchar(15)=N'mlopez';
 DECLARE @Aplicar bit=0; -- Revisar primero; cambiar a 1 en una ventana nueva.
-DECLARE @HuellaTriggerEsperada varchar(64)=N'FBA876E099138CB1F2D369EBB3446D99388FF52F1BF6060B70BEA5826E4A6CB1';
+DECLARE @HuellaTriggerEsperada varchar(64)=NULL; -- Completar con la huella revisada devuelta por el script 16 actualizado.
 DECLARE @HuellaTriggerActual varchar(64);
 
 IF DB_NAME()<>@BaseEsperada
@@ -20,6 +20,8 @@ IF @@TRANCOUNT<>0 OR (2 & @@OPTIONS)=2 OR @@LOCK_TIMEOUT<>-1 OR (16384 & @@OPTIO
     THROW 51000,'Usa una ventana nueva sin transacciones ni opciones modificadas.',1;
 IF OBJECT_ID(N'dbo.RT_RUTAS',N'U') IS NULL OR OBJECT_ID(N'dbo.RT_RUTAS_DET',N'U') IS NULL
     THROW 51000,'Falta la estructura esperada de rutas.',1;
+IF @HuellaTriggerEsperada IS NULL OR LEN(@HuellaTriggerEsperada)<>64
+    THROW 51000,'Completar la huella del trigger revisado y probado en APP_TEST.',1;
 
 SELECT @HuellaTriggerActual=CONVERT(varchar(64),HASHBYTES('SHA2_256',m.definition),2)
 FROM sys.triggers t JOIN sys.sql_modules m ON m.object_id=t.object_id

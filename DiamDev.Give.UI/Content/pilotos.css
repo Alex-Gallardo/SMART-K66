@@ -470,6 +470,13 @@ h3 {
   box-shadow:0 3px 0 #10283f06
 }
 
+.route-card-pending {
+  border-style: dashed;
+}
+.route-card-pending .card-link:disabled {
+  background: var(--surface-soft, #eef2f6);
+  color: var(--muted, #526579);
+}
 .route-card {
   display:flex;
   flex-direction:column

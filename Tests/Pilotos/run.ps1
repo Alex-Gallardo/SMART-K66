@@ -89,6 +89,15 @@ Copy-Item -LiteralPath $RazorDll -Destination $out -Force
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador Razor.' }
 & (Join-Path $out 'RazorCompile.exe') $repo --render
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las vistas Razor.' }
+$index=Get-Content -LiteralPath (Join-Path $out 'index.html') -Raw
+$abiertas=@([regex]::Matches($index,'(?s)<article class="route-card route-card-pending">.*?</article>'))
+if($abiertas.Count -ne 2 -or ($abiertas | Where-Object { $_.Value -match '<a\b' -or $_.Value -notmatch '<button[^>]*disabled>Ruta pendiente de salida</button>' }) -or
+   ([regex]::Matches($index,'class="button-link card-link"')).Count -ne 2) {
+    throw 'Las abiertas deben quedar deshabilitadas y las dos rutas E conservar el enlace.'
+}
+$historial=Get-Content -LiteralPath (Join-Path $out 'historial.html') -Raw
+if(([regex]::Matches($historial,'class="button-link card-link"')).Count -ne 4) { throw 'El historial sin liquidar debe conservar sus enlaces de consulta.' }
+Write-Host 'OK: rutas abiertas deshabilitadas; E e historial consultables.'
 $detalle=Get-Content -LiteralPath (Join-Path $out 'detalle-cierre.html') -Raw
 if(([regex]::Matches($detalle,'class="customer-group(?:\s|\")')).Count -ne 2 -or
    ([regex]::Matches($detalle,'class="document-card"')).Count -ne 3 -or
@@ -134,5 +143,9 @@ $adminSql=Join-Path $out 'autorizacion-admin.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }
 $scripts+=$adminSql
+$rutasSql=Join-Path $out 'alcance-rutas.sql'
+& (Join-Path $out 'PilotoTests.exe') sql-rutas | Set-Content -LiteralPath $rutasSql -Encoding UTF8
+if($LASTEXITCODE -ne 0) { throw 'Fallo proteccion de rutas abiertas/liquidadas en los alcances reales.' }
+$scripts+=$rutasSql
 & (Join-Path $out 'SqlCompile.exe') $scripts
 if($LASTEXITCODE -ne 0) { throw 'Fallo sintaxis SQL.' }

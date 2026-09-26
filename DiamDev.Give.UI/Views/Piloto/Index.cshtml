@@ -39,12 +39,17 @@
     @foreach(var ruta in Model.Rutas) {
         var destino=Url.Action("Detalle",new{id=ruta.Id,desde,hasta,paginaRutas=Model.Pagina,vista=Model.Vista});
         var icono=ruta.Estado=="E" ? "i-truck" : ruta.Estado=="C" ? "i-check" : ruta.Estado=="X" ? "i-x" : "i-clock";
-        <article class="route-card">
+        <article class="route-card @(ruta.Estado=="A" ? "route-card-pending" : "")">
             <div class="card-top"><span class="status status-@ruta.Estado"><svg class="icon" aria-hidden="true"><use href="#@icono" /></svg>@ruta.EstadoNombre</span><time datetime="@ruta.Fecha.ToString("yyyy-MM-dd")">@ruta.Fecha.ToString("dd/MM/yyyy")</time></div>
             <p class="eyebrow">RUTA</p><h2>@ruta.Id</h2>
             <div class="vehicle-row"><span class="vehicle-icon"><svg class="icon" aria-hidden="true"><use href="#i-truck" /></svg></span><div><span class="field-label">Vehículo</span><strong class="vehicle-plate">@ruta.Placa</strong></div></div>
             <div class="route-meta"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><span><span class="field-label">Centro</span><strong>@ruta.Centro</strong></span></div>
-            <a class="button-link card-link" href="@destino" aria-label="Ver ruta @ruta.Id">Ver ruta<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+            @if(ruta.Estado=="A") {
+                <p class="muted">Disponible cuando Distribución la ponga en ruta.</p>
+                <button type="button" class="card-link" disabled>Ruta pendiente de salida</button>
+            } else {
+                <a class="button-link card-link" href="@destino" aria-label="Ver ruta @ruta.Id">Ver ruta<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+            }
         </article>
     }
     </div>

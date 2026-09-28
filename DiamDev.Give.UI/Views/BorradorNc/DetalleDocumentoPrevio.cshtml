@@ -16,8 +16,8 @@
         : (Model.FechaDocumento ?? "—");
     var fel = string.Join(" ", new[] { Model.SerieFel, Model.NumeroFel }
         .Where(x => !string.IsNullOrWhiteSpace(x)));
-    var accionRegreso = Model.DesdeAutorizaciones ? "Autorizaciones" : "Index";
-    var textoRegreso = Model.DesdeAutorizaciones
+    var accionRegreso = Model.DesdeDashboard ? "DashboardBNC" : Model.DesdeAutorizaciones ? "Autorizaciones" : "Index";
+    var textoRegreso = Model.DesdeDashboard ? "Volver al Dashboard" : Model.DesdeAutorizaciones
         ? "Volver a autorizaciones"
         : "Volver a Borradores NC";
     var totalLineas = Model.Productos.Sum(x => x.Total);

@@ -176,6 +176,8 @@ namespace DiamDev.Give.UI.Controllers
                 TienePermiso(PERMISO_AUTORIZAR);
             var modelo = ProyectarDetalleDocumentoPrevio(
                 enc, detalle, desdeAutorizaciones);
+            modelo.DesdeDashboard = string.Equals(origen, "dashboard", StringComparison.OrdinalIgnoreCase) &&
+                TienePermiso(PERMISO_DASHBOARD);
 
             CustomHelper.setTitle(
                 modelo.ClaseTexto + " " + modelo.Documento,
@@ -666,6 +668,74 @@ namespace DiamDev.Give.UI.Controllers
                 filtro ?? new BorradorNcDashboardFiltro(), CrearAlcanceDashboard()));
         }
 
+        /// <summary>Estado actual de NC por factura, no una conciliación NC/borrador.</summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult ObtenerIndicadoresSap(string[] claves, string origen)
+        {
+            string permiso = origen == "seguimiento" ? PERMISO_VER :
+                origen == "autorizaciones" ? PERMISO_AUTORIZAR :
+                origen == "dashboard" ? PERMISO_DASHBOARD : null;
+            if (permiso == null || !TienePermiso(permiso)) return new HttpUnauthorizedResult();
+            var unicas = (claves ?? new string[0]).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (unicas.Count == 0 || unicas.Count > 100)
+                return new HttpStatusCodeResult(400, "Seleccione entre 1 y 100 borradores.");
+            foreach (var clave in unicas)
+            {
+                var partes = (clave ?? "").Split('|');
+                if (partes.Length != 2 || string.IsNullOrWhiteSpace(partes[0]) ||
+                    string.IsNullOrWhiteSpace(partes[1]) || partes[0].Length > 15 || partes[1].Length > 20)
+                    return new HttpStatusCodeResult(400, "Selección inválida.");
+            }
+
+            var borradores = _bll.ObtenerParaIndicadores(unicas);
+            if (borradores.Count != unicas.Count) return new HttpUnauthorizedResult();
+            var alcance = CrearAlcanceDashboard();
+            var contextos = origen == "dashboard" ? new List<ContextoConsulta>() : ContextosConsulta(null).ToList();
+            // Toda la selección se autoriza ANTES de consultar SAP, con el alcance de su pantalla.
+            foreach (var enc in borradores)
+            {
+                bool propio = string.Equals(enc.IdUsr, User.Identity.Name, StringComparison.OrdinalIgnoreCase);
+                List<string> agentes;
+                bool permitido = origen == "dashboard"
+                    ? alcance.Global || propio || (alcance.AgentesPorEmpresa.TryGetValue(enc.IdEmpresa, out agentes) &&
+                        agentes.Any(a => string.Equals(a, enc.Agente, StringComparison.OrdinalIgnoreCase)))
+                    : contextos.Any(c => string.Equals(c.Empresa, enc.IdEmpresa, StringComparison.OrdinalIgnoreCase) &&
+                        (origen == "autorizaciones" ? enc.EsPendiente : propio ||
+                         c.Agentes.Any(a => string.Equals(a, enc.Agente, StringComparison.OrdinalIgnoreCase))));
+                if (!permitido) return new HttpUnauthorizedResult();
+            }
+
+            var resultados = new List<object>();
+            foreach (var grupo in borradores.GroupBy(x => x.IdEmpresa, StringComparer.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var documentos = _bll.ObtenerDocumentosPrevios(grupo.Key,
+                        grupo.SelectMany(x => x.Detalles).Select(x => x.Documento).Distinct().ToList());
+                    string consultado = DateTime.UtcNow.ToString("o");
+                    foreach (var enc in grupo)
+                    {
+                        var notas = BorradorNcBLL.NotasCreditoDelBorrador(enc, documentos);
+                        var distintas = notas.GroupBy(x => x.DocEntry).Select(x => x.First()).ToList();
+                        resultados.Add(new {
+                            enc.IdEmpresa, enc.IdBorrador, Disponible = true, ActualizadoEn = consultado,
+                            NcVigentes = distintas.Count(x => !x.Cancelado), NcCanceladas = distintas.Count(x => x.Cancelado),
+                            Documentos = ProyectarDocumentosPrevios(notas)
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Trace.TraceError("BNC indicadores SAP {0}: {1}", grupo.Key, ex);
+                    foreach (var enc in grupo)
+                        resultados.Add(new { enc.IdEmpresa, enc.IdBorrador, Disponible = false });
+                }
+            }
+            Response.Cache.SetCacheability(System.Web.HttpCacheability.NoCache);
+            return Json(new { ok = true, data = resultados });
+        }
+
         [HttpGet]
         [BorradorNcPermiso(PERMISO_DASHBOARD)]
         public JsonResult ObtenerBitacoraBNC(string empresa, string idBorrador)
@@ -705,7 +775,7 @@ namespace DiamDev.Give.UI.Controllers
                 var borradores = paquete.Workbook.Worksheets.Add("Borradores");
                 string[] encabezados = { "Empresa", "Borrador", "Fecha", "Registro", "Estado",
                     "Cliente", "Nombre", "NIT", "Agente", "Moneda", "Total", "Creado por",
-                    "Resuelto por", "Fecha resolución", "Facturas", "Adjuntos", "Antecedentes SAP" };
+                    "Resuelto por", "Fecha resolución", "Facturas", "Adjuntos", "NC al crear (histórico)" };
                 for (int c = 0; c < encabezados.Length; c++) borradores.Cells[1, c + 1].Value = encabezados[c];
                 int fila = 2;
                 foreach (var item in pagina.Filas)
@@ -978,8 +1048,7 @@ namespace DiamDev.Give.UI.Controllers
                 0m,
                 estado.Acumulado -
                 (borradorComprometeSaldo ? importeDocumento : 0m));
-            decimal disponible = Math.Max(
-                0m, factura.TotalFactura - acumuladoOtros);
+            decimal disponible = Math.Max(0m, factura.TotalFactura);
             string urlPdf = _bll.ObtenerUrlPdfFactura(
                 enc.IdEmpresa, enc.IdCliente, factura.Documento);
             var productos = _bll.ObtenerDetallesFacturas(
@@ -1311,8 +1380,13 @@ namespace DiamDev.Give.UI.Controllers
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            return _bll.ObtenerDocumentosPrevios(enc.IdEmpresa, facturas)
-                .Select(x => new BorradorNcDocumentoPrevioResumenViewModel
+            return ProyectarDocumentosPrevios(_bll.ObtenerDocumentosPrevios(enc.IdEmpresa, facturas));
+        }
+
+        private static List<BorradorNcDocumentoPrevioResumenViewModel> ProyectarDocumentosPrevios(
+            IEnumerable<DocumentoPrevioSap> documentos)
+        {
+            return documentos.Select(x => new BorradorNcDocumentoPrevioResumenViewModel
                 {
                     Clase = x.Clase,
                     ClaseTexto = TextoClaseDocumentoPrevio(x.Clase),

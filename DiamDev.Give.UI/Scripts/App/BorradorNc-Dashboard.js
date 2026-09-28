@@ -11,6 +11,7 @@
     var solicitudActual = null;
     var numeroSolicitud = 0;
     var ultimoFocoModal = null;
+    var sapIndicadores = window.BorradorNcSapIndicadores.crear({ root: $app, origen: "dashboard" });
 
     function filtro() {
         return {
@@ -158,7 +159,7 @@
                     '<td data-label="Estado"><span class="bncd-state ' + esc(item.Estado) + '">' + esc(item.Estado) + '</span></td>' +
                     '<td class="number" data-label="Total"><span class="bncd-main">' + esc(item.Moneda) + ' ' + moneda(item.Total) + '</span></td>' +
                     '<td data-label="Facturas"><span class="bncd-count"><i class="clip-file" aria-hidden="true"></i> ' + Number(item.Facturas || 0) + '</span>' +
-                    (item.TieneAntecedentesSap ? '<span class="bncd-sub bncd-flag">Con antecedentes SAP</span>' : "") + '</td>' +
+                    window.BorradorNcSapIndicadores.plantilla(item, true) + '</td>' +
                     '<td data-label="Adjuntos"><span class="bncd-count"><i class="clip-attachment" aria-hidden="true"></i> ' + Number(item.Adjuntos || 0) + '</span></td>' +
                     '<td data-label="Creado por">' + esc(item.IdUsr) + '</td>' +
                     '<td data-label="Resolución"><span class="bncd-main">' + esc(item.ResueltoPor || "Pendiente") + '</span><span class="bncd-sub">' + fecha(item.FechaResolucion, true) + '</span></td></tr>';
@@ -175,6 +176,7 @@
         $("#paginaSiguiente").prop("disabled", estado.pagina >= estado.paginas);
         refrescarSeleccion();
         anunciar(estado.total + " borradores encontrados.");
+        sapIndicadores.mostrar(filas);
     }
 
     function actualizarKpi(selector, valor) {

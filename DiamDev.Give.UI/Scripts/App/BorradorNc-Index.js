@@ -63,6 +63,10 @@
         detalleUrl: urls.documentoPrevio,
         origen: "seguimiento"
     });
+    var sapIndicadores = window.BorradorNcSapIndicadores.crear({
+        root: $root, origen: "seguimiento",
+        activo: function () { return $("#bncSeguimiento").hasClass("active"); }
+    });
 
     function token() {
         return $root.find('input[name="__RequestVerificationToken"]').val();
@@ -380,7 +384,7 @@
         state.facturas = [];
         $("#bncDocumento,#bncFechaDoc,#bncSerieFel,#bncNumeroFel,#bncImporte,#bncDescripcion").val("");
         $("#bncConcepto").val("");
-        $("#bncSelectedDoc").addClass("is-empty").html('<i class="icon-file-text"></i><span>Seleccione una factura para visualizar su disponible.</span>');
+        $("#bncSelectedDoc").addClass("is-empty").html('<i class="icon-file-text"></i><span>Seleccione una factura para visualizar su total y antecedentes.</span>');
         ocultarAlertaFactura();
     }
 
@@ -390,8 +394,8 @@
         $("#bncSelectedDoc").removeClass("is-empty").html(
             '<div class="bnc-doc-metric"><small>Documento</small><strong>' + escapeHtml(f.DocNum) + " · " + fechaCorta(f.DocDate) + "</strong></div>" +
             '<div class="bnc-doc-metric is-money"><small>Total factura</small><strong>' + dinero(f.DocTotal, f.Moneda) + "</strong></div>" +
-            '<div class="bnc-doc-metric is-money is-warning"><small>Comprometido / NC</small><strong>' + dinero(numero(f.Acumulado) + numero(f.NcPreviaSap), f.Moneda) + "</strong></div>" +
-            '<div class="bnc-doc-metric is-money is-available"><small>Disponible</small><strong>' + dinero(Math.max(0, numero(f.Disponible)), f.Moneda) + "</strong></div>"
+            '<div class="bnc-doc-metric is-money is-warning"><small>En otros borradores (informativo)</small><strong>' + dinero(f.Acumulado, f.Moneda) + "</strong></div>" +
+            '<div class="bnc-doc-metric is-money is-available"><small>Límite por borrador</small><strong>' + dinero(Math.max(0, numero(f.Disponible)), f.Moneda) + "</strong></div>"
         );
         $("#bncDocumento").val(f.DocNum || "");
         $("#bncFechaDoc").val(fechaInput(f.DocDate));
@@ -406,12 +410,12 @@
         var importeActual = numero($("#bncImporte").val());
         if (f.GeneraSaldoAFavor) mensajes.push("La factura está pagada; la NC generará saldo a favor.");
         if (numero(f.NcPreviaSap) > 0) mensajes.push("Existen " + dinero(f.NcPreviaSap, f.Moneda) + " en notas de crédito previas de SAP.");
-        if (numero(f.Acumulado) > 0) mensajes.push("Ya está comprometida en " + escapeHtml(f.BorradoresRelacionados || "otros borradores") + ".");
+        if (numero(f.Acumulado) > 0) mensajes.push("La factura ya está incluida en " + escapeHtml(f.BorradoresRelacionados || "otros borradores") + ". Puede agregarla a este borrador; es un antecedente informativo.");
         if (numero(f.Disponible) <= 0) {
-            mensajes.push("El documento no tiene disponible para otro borrador.");
+            mensajes.push("El documento no tiene un total positivo.");
             clase = "is-danger";
-        } else if (importeActual - numero(f.Disponible) > 0.005) {
-            mensajes.push("El importe ingresado supera el disponible actualizado.");
+        } else if (importeActual > numero(f.DocTotal)) {
+            mensajes.push("El importe ingresado supera el total de la factura.");
             clase = "is-danger";
         }
         if (!mensajes.length) { ocultarAlertaFactura(); return; }
@@ -507,7 +511,8 @@
         $.each(state.facturas, function (i, f) {
             var flags = [];
             if (f.GeneraSaldoAFavor) flags.push('<span class="bnc-paid-flag">Pagada</span>');
-            if (numero(f.NcPreviaSap) > 0) flags.push('<span class="bnc-nc-flag">Con antecedentes SAP</span>');
+            if (numero(f.NcPreviaSap) > 0) flags.push('<span class="bnc-nc-flag">Con NC vigente en SAP</span>');
+            if (numero(f.Acumulado) > 0) flags.push('<span class="bnc-nc-flag" title="' + escapeHtml(f.BorradoresRelacionados || "Otros borradores vigentes") + '">En otros borradores · permitido</span>');
             var detalleUrl = urls.facturaDetalle + "?empresa=" + encodeURIComponent(empresa()) +
                 "&clienteId=" + encodeURIComponent(state.cliente ? state.cliente.CardCode : "") +
                 "&codigoOperador=" + encodeURIComponent(codigoOperador()) +
@@ -544,7 +549,7 @@
             return;
         }
         if (numero(f.Disponible) <= 0) {
-            avisar("warning", "Esta factura ya no tiene monto disponible.");
+            avisar("warning", "Esta factura no tiene un total positivo.");
             return;
         }
         state.factura = $.extend({}, f, { Moneda: monedaDoc });
@@ -560,7 +565,7 @@
         if (!$("#bncDescripcion").val().trim()) return "Escriba la descripción de la línea.";
         var importe = numero($("#bncImporte").val());
         if (importe <= 0) return "El importe debe ser mayor a cero.";
-        if (importe - numero(state.factura.Disponible) > 0.005) return "El importe supera el disponible de la factura.";
+        if (importe > numero(state.factura.DocTotal)) return "El importe supera el total de la factura.";
         var fechaDocumento = fechaInput(state.factura.DocDate);
         if (!fechaDocumento) return "No se pudo interpretar la fecha de la factura seleccionada.";
         if (fechaDocumento > $("#bncFecha").val()) return "La fecha de la factura es posterior a la fecha del borrador.";
@@ -963,12 +968,13 @@
                 "<td>" + fechaCorta(x.Fecha) + "</td>" +
                 '<td class="bnc-main-cell"><strong>' + escapeHtml(x.Nombre) + '</strong><small>' + escapeHtml(x.IdCliente) + "</small></td>" +
                 "<td>" + escapeHtml(x.Agente) + "</td>" +
-                '<td><span class="' + statusClass(x.Estado) + '">' + escapeHtml(x.Estado) + "</span></td>" +
+                '<td><span class="' + statusClass(x.Estado) + '">' + escapeHtml(x.Estado) + "</span>" + window.BorradorNcSapIndicadores.plantilla(x) + "</td>" +
                 '<td class="bnc-money">' + dinero(x.Total, x.Moneda) + "</td></tr>";
         });
         $("#bncFollowBody").html(html);
         $("#bncFollowEmpty").toggle(!filas.length);
         renderKpis();
+        sapIndicadores.mostrar(filas.concat(state.seleccionado && state.seleccionado.documento ? [state.seleccionado.documento] : []));
     }
 
     function renderKpis() {
@@ -1033,6 +1039,7 @@
         $("#bncFollowDetail").html(
             '<div class="bnc-detail-hero"><div class="bnc-detail-hero-top"><div><h4>' + escapeHtml(x.IdBorrador) + "</h4><p>" + escapeHtml(x.IdEmpresa) + " · " + fechaCorta(x.Fecha) +
             '</p></div><span class="' + statusClass(x.Estado) + '">' + escapeHtml(x.Estado) + "</span></div></div>" +
+            '<div class="bnc-sap-detail">' + window.BorradorNcSapIndicadores.plantilla(x, true) + '</div>' +
             '<div class="bnc-detail-meta"><div><small>Cliente</small><strong>' + escapeHtml(x.IdCliente + " · " + x.Nombre) +
             "</strong></div><div><small>Agente</small><strong>" + escapeHtml(x.Agente) +
             "</strong></div><div><small>NIT</small><strong>" + escapeHtml(x.Nit || "—") +
@@ -1047,6 +1054,7 @@
             '<div class="bnc-decision-bar"><button class="bnc-btn bnc-btn-ghost" type="button" id="bncImprimirSeleccionado"><i class="icon-print"></i> Imprimir</button>' + anular + "</div>"
         );
         state.seleccionado.documento = x;
+        sapIndicadores.mostrar(filasFiltradas().concat([x]));
     }
 
     function abrirImpresion(emp, id) {
@@ -1214,7 +1222,10 @@
         $("#bncFiltroEmpresa,#bncFiltroDesde,#bncFiltroHasta").on("change", cargarSeguimiento);
         $("#bncFiltroEstado").on("change", renderSeguimiento);
         $("#bncFiltroTexto").on("input", renderSeguimiento);
-        $("#bncFollowBody").on("click", "tr", function () { cargarDetalle($(this).data("empresa"), $(this).data("id")); });
+        $("#bncFollowBody").on("click", "tr", function (e) {
+            if ($(e.target).closest("[data-sap-refresh], .bnc-sap-documents").length) return;
+            cargarDetalle($(this).data("empresa"), $(this).data("id"));
+        });
         $("#bncFollowDetail").on("click", "#bncImprimirSeleccionado", function () {
             if (state.seleccionado) abrirImpresion(state.seleccionado.empresa, state.seleccionado.id);
         }).on("click", "#bncAnularSeleccionado", function () {

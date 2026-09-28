@@ -26,22 +26,22 @@ namespace DiamDev.Give.Entities
 
         // ── Calculados por el BLL ──
 
-        /// <summary>Comprometido en borradores PENDIENTE o AUTORIZADO.</summary>
+        /// <summary>Solicitado en borradores PENDIENTE o AUTORIZADO; informativo.</summary>
         public decimal Acumulado { get; set; }
 
         /// <summary>IDs de esos borradores, para el tooltip.</summary>
         public string BorradoresRelacionados { get; set; }
 
-        /// <summary>Suma de NC ya emitidas en SAP contra esta factura.</summary>
+        /// <summary>Suma de NC vigentes únicas de SAP contra esta factura.</summary>
         public decimal NcPreviaSap { get; set; }
 
         /// <summary>NC previas en detalle, para mostrárselas al autorizador.</summary>
         public List<NotaCreditoPreviaSap> NotasPrevias { get; set; }
 
-        /// <summary>Tope duro de la regla R4: DocTotal − Acumulado.</summary>
+        /// <summary>Límite individual por borrador: DocTotal, sin restar Acumulado.</summary>
         public decimal Disponible { get; set; }
 
-        /// <summary>Tope si además se descuentan las NC de SAP. Solo advertencia.</summary>
+        /// <summary>Total menos NC vigentes. Referencia informativa, nunca un bloqueo.</summary>
         public decimal DisponibleNeto { get; set; }
 
         /// <summary>Pagada por completo: la NC generará saldo a favor del cliente.</summary>

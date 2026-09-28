@@ -1,13 +1,17 @@
 @model DiamDev.Give.UI.Models.BorradorNcIndexViewModel
+@using DiamDev.Give.BLL
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 @section styles {
     <link href="@Url.Content("~/Content/borrador-nc.css?v=20260908-documentos-previos")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc-sap-indicadores.css?v=20260928")" rel="stylesheet" />
 }
 
 <div class="bnc bnc-shell" id="bncAuthApp"
+     data-url-sap-indicadores="@Url.Action("ObtenerIndicadoresSap", "BorradorNc")"
+     data-sap-intervalo="@BorradorNcBLL.IntervaloConsultaSapSegundos"
      data-url-listar="@Url.Action("ListarPendientes", "BorradorNc")"
      data-url-detalle="@Url.Action("ObtenerDetalleAutorizacion", "BorradorNc")"
      data-url-detalle-facturas="@Url.Action("ObtenerDetallesFacturasAutorizacion", "BorradorNc")"
@@ -39,7 +43,7 @@
     <div class="bnc-summary-grid">
         <div class="bnc-summary is-pending"><span>Pendientes</span><strong id="bncAuthKpiCount">0</strong></div>
         <div class="bnc-summary is-total"><span>Monto pendiente</span><strong id="bncAuthKpiMonto">0.00</strong></div>
-        <div class="bnc-summary"><span>Con antecedentes SAP</span><strong id="bncAuthKpiNc">0</strong></div>
+        <div class="bnc-summary"><span>Con NC vigente en SAP</span><strong id="bncAuthKpiNc">—</strong></div>
         <div class="bnc-summary"><!--<span>Empresas visibles</span><strong>@@Model.Empresas.Count</strong>--></div>
     </div>
 
@@ -173,7 +177,8 @@
 @section scripts {
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Fechas.js?v=20260825")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-FacturasDetalle.js?v=20260907-borrador")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-DocumentosPrevios.js?v=20260908")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-DocumentosPrevios.js?v=20260928")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-SapIndicadores.js?v=20260928")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Adjuntos.js?v=20260831")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Autorizaciones.js?v=20260908-documentos-previos")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Autorizaciones.js?v=20260928")"></script>
 }

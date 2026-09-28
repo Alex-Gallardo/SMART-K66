@@ -39,7 +39,7 @@ assert.match(repositorio, /H\.""CardCode"" = \?/);
 assert.match(repositorio, /Tipo"", ''\)\)\) LIKE 'NC%'/);
 assert.match(repositorio, /Tipo"", ''\)\)\) NOT LIKE 'NC%'/);
 
-// El cálculo financiero legado permanece separado y sin sustituciones.
+// El snapshot usa NC vigentes y se mantiene separado de los indicadores actuales.
 assert.match(bll, /var ncPrevias = _hana\.ObtenerNotasCreditoPrevias\(empresa, docs\)/);
 assert.match(bll, /f\.NcPreviaSap = notas\.Sum\(n => n\.Total\)/);
 assert.match(bll, /ObtenerDocumentosPrevios/);

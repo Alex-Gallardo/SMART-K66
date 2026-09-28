@@ -13,6 +13,7 @@
         public string Tipo { get; set; }             // 'NC', ...
         public string Factura { get; set; }          // DocNum de la factura
         public string Nota { get; set; }             // DocNum de la NC
+        public int DocEntry { get; set; }            // Identidad SAP para deduplicar NC / NC RECON
         public System.DateTime Fecha { get; set; }
         public string CardCode { get; set; }
         public string CardName { get; set; }

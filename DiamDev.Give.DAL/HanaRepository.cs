@@ -1150,11 +1150,11 @@ namespace DiamDev.Give.DAL
 
 
         // ═════════════════════════════════════════════════════════════════════════════
-        // MÉTODO 2 — Notas de crédito y devoluciones ya emitidas en SAP
+        // MÉTODO 2 — Notas de crédito vigentes únicas en SAP
         // ═════════════════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// NC y devoluciones ya emitidas en SAP contra una factura.
+        /// NC vigentes (ORIN.CANCELED=N), deduplicadas, contra una factura.
         ///
         /// El desktop consultaba esta vista solo en FrmAutorizaciones, como una
         /// pestaña informativa para el autorizador. Aquí se usa además para calcular
@@ -1181,11 +1181,13 @@ namespace DiamDev.Give.DAL
                 return lista;
 
             string query = string.Format(
-                "SELECT \"Tipo\", \"Factura\", \"Nota\", \"DocDate\", \"CardCode\", " +
-                "       \"CardName\", \"DocCur\", \"DocTotal\", \"JrnlMemo\", \"Comments\" " +
-                "FROM \"{0}\".\"INF_VRC_FACRNC\" " +
-                "WHERE \"Factura\" = {1} AND \"Nota\" IS NOT NULL " +
-                "ORDER BY \"DocDate\" DESC",
+                "SELECT H.\"DocEntry\", V.\"Tipo\", V.\"Factura\", V.\"Nota\", H.\"DocDate\", H.\"CardCode\", " +
+                " H.\"CardName\", H.\"DocCur\", CASE WHEN H.\"DocCur\" IN ('GTQ','QTZ') " +
+                " THEN H.\"DocTotal\" ELSE H.\"DocTotalFC\" END AS \"DocTotal\", H.\"JrnlMemo\", H.\"Comments\" " +
+                "FROM \"{0}\".\"INF_VRC_FACRNC\" V INNER JOIN \"{0}\".\"ORIN\" H " +
+                " ON H.\"DocNum\" = V.\"Nota\" AND H.\"CardCode\" = V.\"CardCode\" " +
+                "WHERE V.\"Factura\" = {1} AND V.\"Tipo\" LIKE 'NC%' AND H.\"CANCELED\" = 'N' " +
+                "ORDER BY H.\"DocDate\" DESC",
                 schema, docNum);
 
             try
@@ -1199,6 +1201,7 @@ namespace DiamDev.Give.DAL
                         Tipo = LeerCampo(row, "Tipo"),
                         Factura = LeerCampo(row, "Factura"),
                         Nota = LeerCampo(row, "Nota"),
+                        DocEntry = LeerEntero(row, "DocEntry"),
                         Fecha = LeerFecha(row, "DocDate"),
                         CardCode = LeerCampo(row, "CardCode"),
                         CardName = LeerCampo(row, "CardName"),
@@ -1216,7 +1219,7 @@ namespace DiamDev.Give.DAL
                     documento, schema, ex.Message), ex);
             }
 
-            return lista;
+            return lista.GroupBy(x => x.DocEntry).Select(g => g.First()).ToList();
         }
 
 
@@ -1225,7 +1228,7 @@ namespace DiamDev.Give.DAL
         // ═════════════════════════════════════════════════════════════════════════════
 
         /// <summary>
-        /// NC previas de VARIAS facturas en una sola consulta.
+        /// NC vigentes únicas de VARIAS facturas en una sola consulta.
         ///
         /// El modal puede traer decenas de facturas; una consulta por cada una serían
         /// decenas de viajes a HANA, que está en otra máquina de la red interna.
@@ -1253,11 +1256,13 @@ namespace DiamDev.Give.DAL
             if (numeros.Count == 0) return mapa;
 
             string query = string.Format(
-                "SELECT \"Tipo\", \"Factura\", \"Nota\", \"DocDate\", \"CardCode\", " +
-                "       \"CardName\", \"DocCur\", \"DocTotal\", \"JrnlMemo\", \"Comments\" " +
-                "FROM \"{0}\".\"INF_VRC_FACRNC\" " +
-                "WHERE \"Nota\" IS NOT NULL AND \"Factura\" IN ({1}) " +
-                "ORDER BY \"Factura\", \"DocDate\" DESC",
+                "SELECT H.\"DocEntry\", V.\"Tipo\", V.\"Factura\", V.\"Nota\", H.\"DocDate\", H.\"CardCode\", " +
+                " H.\"CardName\", H.\"DocCur\", CASE WHEN H.\"DocCur\" IN ('GTQ','QTZ') " +
+                " THEN H.\"DocTotal\" ELSE H.\"DocTotalFC\" END AS \"DocTotal\", H.\"JrnlMemo\", H.\"Comments\" " +
+                "FROM \"{0}\".\"INF_VRC_FACRNC\" V INNER JOIN \"{0}\".\"ORIN\" H " +
+                " ON H.\"DocNum\" = V.\"Nota\" AND H.\"CardCode\" = V.\"CardCode\" " +
+                "WHERE V.\"Tipo\" LIKE 'NC%' AND H.\"CANCELED\" = 'N' AND V.\"Factura\" IN ({1}) " +
+                "ORDER BY V.\"Factura\", H.\"DocDate\" DESC",
                 schema, string.Join(",", numeros));
 
             try
@@ -1275,6 +1280,7 @@ namespace DiamDev.Give.DAL
                         Tipo = LeerCampo(row, "Tipo"),
                         Factura = factura,
                         Nota = LeerCampo(row, "Nota"),
+                        DocEntry = LeerEntero(row, "DocEntry"),
                         Fecha = LeerFecha(row, "DocDate"),
                         CardCode = LeerCampo(row, "CardCode"),
                         CardName = LeerCampo(row, "CardName"),
@@ -1292,7 +1298,9 @@ namespace DiamDev.Give.DAL
                     schema, ex.Message), ex);
             }
 
-            return mapa;
+            return mapa.ToDictionary(x => x.Key,
+                x => x.Value.GroupBy(n => n.DocEntry).Select(g => g.First()).ToList(),
+                StringComparer.OrdinalIgnoreCase);
         }
 
         /// <summary>
@@ -1414,7 +1422,7 @@ namespace DiamDev.Give.DAL
                             Documento = LeerCampo(row, "Documento"),
                             DocEntry = LeerEntero(row, "DocEntry"),
                             ObjType = LeerCampo(row, "ObjType"),
-                            Cancelado = string.Equals(LeerCampo(row, "CANCELED"), "Y",
+                            Cancelado = !string.Equals(LeerCampo(row, "CANCELED"), "N",
                                                       StringComparison.OrdinalIgnoreCase),
                             Estado = LeerCampo(row, "DocStatus"),
                             TipoDocumento = LeerCampo(row, "DocType"),
@@ -1528,7 +1536,7 @@ namespace DiamDev.Give.DAL
                     Documento = LeerCampo(row, "Documento"),
                     DocEntry = LeerEntero(row, "DocEntry"),
                     ObjType = LeerCampo(row, "ObjType"),
-                    Cancelado = string.Equals(LeerCampo(row, "CANCELED"), "Y",
+                    Cancelado = !string.Equals(LeerCampo(row, "CANCELED"), "N",
                                               StringComparison.OrdinalIgnoreCase),
                     Estado = LeerCampo(row, "DocStatus"),
                     TipoDocumento = LeerCampo(row, "DocType"),

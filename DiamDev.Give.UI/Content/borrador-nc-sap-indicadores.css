@@ -1,0 +1,21 @@
+/* Scoped to BNC: indicators never widen a grid/table container. */
+.bnc-sap-indicator { display:block; min-width:0; max-width:100%; margin-top:8px; white-space:normal; }
+.bnc-sap-badge { display:inline-flex; align-items:center; gap:6px; max-width:100%; padding:5px 9px; border:1px solid #dbe5f3; border-radius:12px; background:#f7f9fc; color:#53657f; font:600 11px/1.4 "Segoe UI",Arial,sans-serif; white-space:normal; text-align:left; cursor:pointer; }
+.bnc-sap-badge i { flex-shrink:0; }
+.bnc-sap-badge:focus-visible { outline:2px solid #2563eb; outline-offset:2px; }
+.bnc-sap-badge.is-current { background:#ecfdf5; color:#047857; border-color:#a7f3d0; }
+.bnc-sap-badge.is-warning { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+.bnc-sap-badge.is-stale { background:#fff7ed; color:#9a3412; border-color:#fed7aa; }
+.bnc-sap-time,.bnc-sap-help,.bnc-sap-error { display:block!important; font:400 10px/1.5 "Segoe UI",Arial,sans-serif; color:#64748b; margin-top:4px; overflow-wrap:anywhere; }
+.bnc-sap-help { font-size:11px; }
+.bnc-sap-error { color:#9a3412; }
+.bnc-sap-documents { margin-top:8px; font:400 12px/1.5 "Segoe UI",Arial,sans-serif; overflow-wrap:anywhere; }
+.bnc-sap-documents summary { color:#1d4ed8; cursor:pointer; font-weight:600; }
+.bnc-sap-documents ul { padding-left:18px; margin:8px 0; }
+.bnc-sap-documents li { margin:5px 0; }
+.bnc-sap-documents a { color:#1d4ed8; text-decoration:underline; }
+.bnc-sap-documents li span { font-size:10px; color:#64748b; }
+.bnc-sap-detail { padding:0 20px 16px; border-bottom:1px solid #dbe5f3; }
+.bnc-prior-updated { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:8px 20px; font-size:11px; color:#64748b; }
+.bnc-prior-updated .bnc-btn { padding:5px 9px; font-size:11px; }
+@media(max-width:600px) { .bnc-sap-detail { padding:0 14px 14px; } }

@@ -49,6 +49,9 @@
             '<small>' + escapeHtml(opciones.subtitulo || "Antecedentes comerciales vinculados con las facturas del borrador.") +
             '</small></span></div><span class="bnc-invoice-overview" data-role="prior-count">' +
             '<i class="icon-refresh icon-spin" aria-hidden="true"></i> Cargando</span></div>' +
+            '<div class="bnc-prior-updated"><span data-role="prior-updated">Consulta pendiente</span>' +
+            '<button type="button" class="bnc-btn bnc-btn-ghost" data-action="retry-prior-documents">' +
+            '<i class="icon-refresh" aria-hidden="true"></i> Actualizar SAP</button></div>' +
             '<div class="bnc-prior-list" data-role="prior-documents"><div class="bnc-loading">' +
             '<span class="bnc-spinner"></span>Consultando antecedentes en SAP...</div></div></section>';
     }
@@ -62,6 +65,8 @@
         var secuencia = 0;
         var actual = null;
         var namespace = ".bncPriorDocuments" + id;
+        var peticion = null;
+        var intervalo = Math.max(30, Math.min(600, Number($("[data-sap-intervalo]").first().attr("data-sap-intervalo")) || 60)) * 1000;
 
         function $seccion() { return $("#" + id); }
         function $contador() { return $seccion().find('[data-role="prior-count"]'); }
@@ -87,6 +92,14 @@
         }
 
         function renderError(mensaje) {
+            var previo = actual && cache[claveDocumento(actual)];
+            if (previo) {
+                previo.error = true;
+                render(actual, previo.data);
+                $seccion().find('[data-role="prior-updated"]').text("Última consulta: " + new Date(previo.fecha).toLocaleString("es-GT") + " · No se pudo actualizar SAP.");
+                $contador().html('<i class="icon-warning-sign" aria-hidden="true"></i> Datos sin actualizar');
+                return;
+            }
             $contador().html('<i class="icon-warning-sign" aria-hidden="true"></i> No disponible');
             $contenido().html('<div class="bnc-invoice-items-state is-error">' +
                 '<span class="bnc-follow-section-icon" aria-hidden="true"><i class="icon-warning-sign"></i></span>' +
@@ -128,24 +141,36 @@
                     '<span>No se encontraron notas de crédito ni devoluciones previas en SAP para estas facturas.</span></div>';
             }
             $contenido().html(html);
+            var ultimo = cache[claveDocumento(documento)];
+            $seccion().find('[data-role="prior-updated"]').text(ultimo ? "Consulta SAP: " + new Date(ultimo.fecha).toLocaleString("es-GT") : "Consulta pendiente");
+            if (ultimo && ultimo.error) {
+                $seccion().find('[data-role="prior-updated"]').append(" · No se pudo actualizar SAP. Últimos datos disponibles.");
+                $contador().html('<i class="icon-warning-sign" aria-hidden="true"></i> Datos sin actualizar');
+            }
         }
 
         function cargar(documento, forzar) {
+            var solicitud = ++secuencia;
+            if (peticion) peticion.abort();
+            peticion = null;
             actual = documento;
             enlazar();
             var clave = claveDocumento(documento);
             if (!forzar && Object.prototype.hasOwnProperty.call(cache, clave)) {
-                render(documento, cache[clave]);
-                return;
+                render(documento, cache[clave].data);
+                if (Date.now() - cache[clave].fecha < intervalo) return;
             }
 
-            var solicitud = ++secuencia;
-            renderCargando();
-            $.ajax({
+            if (cache[clave]) {
+                render(documento, cache[clave].data);
+                $seccion().find('[data-role="prior-updated"]').append(" · Actualizando...");
+            } else renderCargando();
+            peticion = $.ajax({
                 url: url,
                 type: "GET",
                 dataType: "json",
                 cache: false,
+                timeout: 180000,
                 data: { empresa: documento.IdEmpresa, idBorrador: documento.IdBorrador }
             }).done(function (respuesta) {
                 if (!vigente(documento, solicitud)) return;
@@ -155,21 +180,27 @@
                         : "No fue posible consultar los antecedentes en SAP.");
                     return;
                 }
-                cache[clave] = respuesta.data || [];
-                render(documento, cache[clave]);
+                cache[clave] = { data: respuesta.data || [], fecha: Date.now() };
+                render(documento, cache[clave].data);
             }).fail(function (xhr) {
                 if (!vigente(documento, solicitud)) return;
                 var mensaje = xhr && xhr.responseJSON && xhr.responseJSON.msg
                     ? xhr.responseJSON.msg
                     : "No fue posible consultar los antecedentes en SAP.";
                 renderError(mensaje);
-            });
+            }).always(function () { if (solicitud === secuencia) peticion = null; });
         }
+
+        function actualizarVisible() {
+            if (!document.hidden && actual && !peticion && $seccion().is(":visible")) cargar(actual, true);
+        }
+        window.setInterval(actualizarVisible, intervalo);
+        $(document).on("visibilitychange" + namespace, actualizarVisible);
 
         return {
             cargar: cargar,
-            cancelar: function () { secuencia++; actual = null; },
-            invalidar: function () { cache = {}; secuencia++; actual = null; }
+            cancelar: function () { secuencia++; actual = null; if (peticion) peticion.abort(); peticion = null; },
+            invalidar: function () { cache = {}; secuencia++; actual = null; if (peticion) peticion.abort(); peticion = null; }
         };
     }
 

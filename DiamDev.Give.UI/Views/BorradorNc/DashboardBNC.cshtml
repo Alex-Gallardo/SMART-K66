@@ -1,4 +1,5 @@
 @model DiamDev.Give.UI.Models.BorradorNcDashboardViewModel
+@using DiamDev.Give.BLL
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
@@ -6,9 +7,13 @@
 @section styles {
     <link href="@Url.Content("~/Content/borrador-nc-dashboard.css?v=20260909")" rel="stylesheet" />
     <link href="@Url.Content("~/Content/borrador-nc-dashboard-audit.css?v=20260909")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc-sap-indicadores.css?v=20260928")" rel="stylesheet" />
 }
 
 <main class="bncd" id="bncDashboard"
+      data-url-sap-indicadores="@Url.Action("ObtenerIndicadoresSap", "BorradorNc")"
+      data-url-documento-previo="@Url.Action("DetalleDocumentoPrevio", "BorradorNc")"
+      data-sap-intervalo="@BorradorNcBLL.IntervaloConsultaSapSegundos"
       data-url-consultar="@Url.Action("ConsultarDashboardBNC", "BorradorNc")"
       data-url-bitacora="@Url.Action("ObtenerBitacoraBNC", "BorradorNc")"
       data-url-ver="@Url.Action("Imprimir", "BorradorNc")"
@@ -90,7 +95,7 @@
                 <label class="bncd-field span-2">Resuelto por<select id="fResuelto"><option value="">Todos</option></select></label>
                 <label class="bncd-field span-2">Moneda<select id="fMoneda"><option value="">Todas</option></select></label>
                 <label class="bncd-field span-2">Adjuntos<select id="fAdjuntos"><option value="">Todos</option><option value="true">Con adjuntos</option><option value="false">Sin adjuntos</option></select></label>
-                <label class="bncd-field span-2">Antecedentes SAP<select id="fAntecedentes"><option value="">Todos</option><option value="true">Con antecedentes</option><option value="false">Sin antecedentes</option></select></label>
+                <label class="bncd-field span-2">NC al crear (histórico)<select id="fAntecedentes"><option value="">Todos</option><option value="true">Con NC al crear</option><option value="false">Sin NC al crear</option></select></label>
             </div>
         </div>
     </section>
@@ -142,5 +147,6 @@
 </main>
 
 @section scripts {
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Dashboard.js?v=20260909")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-SapIndicadores.js?v=20260928")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Dashboard.js?v=20260928")"></script>
 }

@@ -8,9 +8,12 @@
 
 @section styles {
     <link href="@Url.Content("~/Content/borrador-nc.css?v=20260908-documentos-previos")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc-sap-indicadores.css?v=20260928")" rel="stylesheet" />
 }
 
 <div class="bnc bnc-shell" id="bncApp"
+     data-url-sap-indicadores="@Url.Action("ObtenerIndicadoresSap", "BorradorNc")"
+     data-sap-intervalo="@BorradorNcBLL.IntervaloConsultaSapSegundos"
      data-url-clientes="@Url.Action("BuscarClientes", "BorradorNc")"
      data-url-facturas="@Url.Action("BuscarFacturas", "BorradorNc")"
      data-url-factura-detalle="@Url.Action("DetalleFactura", "BorradorNc")"
@@ -273,7 +276,7 @@
                                 <th>Fecha</th>
                                 <th>FEL</th>
                                 <th class="text-right">Total factura</th>
-                                <th class="text-right">Disponible</th>
+                                <th class="text-right">Límite por borrador</th>
                                 <th>Descripción</th>
                                 <th class="text-right">Importe</th>
                                 <th aria-label="Acciones"></th>
@@ -524,9 +527,9 @@
                                 <th>Fecha</th>
                                 <th>Moneda</th>
                                 <th class="text-right">Total</th>
-                                <th class="text-right">Acumulado</th>
+                                <th class="text-right">Otros borradores</th>
                                 <th class="text-right">NC SAP</th>
-                                <th class="text-right">Disponible</th>
+                                <th class="text-right">Límite por borrador</th>
                                 <th>Alertas</th>
                                 <th class="text-center">Acciones</th>
                             </tr>
@@ -573,7 +576,8 @@
 @section scripts {
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Fechas.js?v=20260825")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-FacturasDetalle.js?v=20260907-borrador")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-DocumentosPrevios.js?v=20260908")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-DocumentosPrevios.js?v=20260928")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-SapIndicadores.js?v=20260928")"></script>
     <script src="@Url.Content("~/Scripts/App/BorradorNc-Adjuntos.js?v=20260831")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260909-respaldo-obligatorio")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Index.js?v=20260928")"></script>
 }

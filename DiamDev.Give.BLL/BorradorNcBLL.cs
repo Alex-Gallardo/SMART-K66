@@ -33,13 +33,6 @@ namespace DiamDev.Give.BLL
         private readonly HanaRepository _hana = new HanaRepository();
         private readonly RolBL _roles = new RolBL();
 
-        /// <summary>
-        /// Tolerancia de comparación monetaria. SAP entrega decimales con 6
-        /// posiciones y nosotros guardamos 3; comparar por igualdad exacta
-        /// produce rechazos por redondeos invisibles para el usuario.
-        /// </summary>
-        private const decimal TOLERANCIA = 0.005m;
-
         public const int MaximoArchivosAdjuntos = 5;
         public const int MaximoEnlacesAdjuntos = 5;
         public const long MaximoBytesPorArchivo = 10L * 1024L * 1024L;
@@ -60,23 +53,16 @@ namespace DiamDev.Give.BLL
                 { ".txt", "text/plain" }
             };
 
-        /// <summary>
-        /// ¿Las NC ya emitidas en SAP BLOQUEAN o solo ADVIERTEN?
-        ///
-        /// Por defecto advierten, y la razón es la incertidumbre sobre el dato:
-        /// la vista INF_VRC_FACRNC no expone si una NC fue anulada en SAP, ni
-        /// sabemos si una misma NC puede aparecer repartida entre varias
-        /// facturas. Bloquear con un dato ambiguo impediría devoluciones
-        /// legítimas en silencio, lo cual es peor que dejar pasar una y que el
-        /// autorizador —que sí ve la lista— la detenga.
-        ///
-        /// Cuando esas dos preguntas se resuelvan con contabilidad, poner
-        /// &lt;add key="BorradorNC.BloquearPorNcPrevia" value="true" /&gt;
-        /// en el Web.config lo convierte en regla dura, sin recompilar.
-        /// </summary>
-        private static bool BloquearPorNcPrevia =>
-            string.Equals(ConfigurationManager.AppSettings["BorradorNC.BloquearPorNcPrevia"],
-                          "true", StringComparison.OrdinalIgnoreCase);
+        // Consulta bajo demanda; no es un sincronizador ni cambia el estado del borrador.
+        public static int IntervaloConsultaSapSegundos
+        {
+            get
+            {
+                int segundos;
+                return int.TryParse(ConfigurationManager.AppSettings["BorradorNC.IntervaloConsultaSapSegundos"],
+                    out segundos) ? Math.Max(30, Math.Min(600, segundos)) : 60;
+            }
+        }
 
         // Temporal para pruebas. Cuando el appSetting cambie a false, el BLL
         // vuelve a exigir los permisos incluso si alguien lo invoca sin MVC.
@@ -99,14 +85,14 @@ namespace DiamDev.Give.BLL
 
         /// <summary>
         /// Facturas del cliente disponibles para NC, enriquecidas con lo ya
-        /// comprometido en borradores locales y con las NC previas de SAP.
+        /// solicitado en otros borradores (informativo) y con las NC vigentes de SAP.
         ///
         /// Es la mejora más visible sobre el desktop: allá el usuario elegía la
         /// factura, llenaba el importe, presionaba Agregar y RECIÉN ahí
         /// descubría —por un MessageBox— que el monto no cabía. Aquí lo ve
         /// antes de elegir.
         ///
-        ///   Disponible      = DocTotal − Acumulado local        (tope duro, R4)
+        ///   Disponible      = DocTotal (tope independiente por borrador)
         ///   DisponibleNeto  = Disponible − NC previas en SAP    (advertencia)
         ///
         /// PaidToDate no reduce el tope. Temporalmente, las facturas pagadas
@@ -144,9 +130,10 @@ namespace DiamDev.Give.BLL
                     f.NcPreviaSap = notas.Sum(n => n.Total);
                 }
 
-                f.Disponible = f.DocTotal - f.Acumulado;
+                // Los otros borradores son antecedentes, no reservas de saldo.
+                f.Disponible = f.DocTotal;
                 f.DisponibleNeto = f.Disponible - f.NcPreviaSap;
-                f.GeneraSaldoAFavor = f.Pagado >= f.DocTotal - TOLERANCIA;
+                f.GeneraSaldoAFavor = f.Pagado >= f.DocTotal;
 
                 if (f.Acumulado > 0)
                     f.BorradoresRelacionados = string.Join(", ",
@@ -184,9 +171,9 @@ namespace DiamDev.Give.BLL
                 NcPreviaSap = notas.Sum(n => n.Total)
             };
 
-            f.Disponible = f.DocTotal - f.Acumulado;
+            f.Disponible = f.DocTotal;
             f.DisponibleNeto = f.Disponible - f.NcPreviaSap;
-            f.GeneraSaldoAFavor = f.Pagado >= f.DocTotal - TOLERANCIA;
+            f.GeneraSaldoAFavor = f.Pagado >= f.DocTotal;
             f.BorradoresRelacionados = f.Acumulado > 0
                 ? string.Join(", ", _da.ObtenerBorradoresConDocumento(empresa, documento))
                 : null;
@@ -390,32 +377,19 @@ namespace DiamDev.Give.BLL
                         "Un borrador no puede mezclar monedas: haga uno por cada una.",
                         doc, monedaLinea, enc.Moneda));
 
-                // ── R3 + R4: el tope duro es el valor de la factura menos lo
-                //    ya comprometido en NUESTROS borradores. Datos propios,
-                //    certeza total, se bloquea sin dudar.
-                decimal acumulado = _da.ObtenerAcumuladoDocumento(enc.IdEmpresa, doc);
-                decimal disponible = d.TotalFactura - acumulado;
-
-                if (d.Importe - disponible > TOLERANCIA)
-                {
-                    var otros = _da.ObtenerBorradoresConDocumento(enc.IdEmpresa, doc);
-
-                    // R3: si el problema viene de otros borradores, decir cuáles.
-                    // El legado solo decía "el documento ya existe en otro
-                    // borrador y/o sobrepasa el valor de la factura", sin
-                    // indicar cuál, dejando al usuario sin forma de resolverlo.
-                    string detalle = otros.Count > 0
-                        ? string.Format(" Ya hay {0:N2} comprometido en: {1}.",
-                                        acumulado, string.Join(", ", otros))
-                        : string.Empty;
-
+                // Tope por borrador, independiente de los importes de otros borradores.
+                if (d.Importe > d.TotalFactura)
                     return ResultadoBorradorNc.Error(string.Format(
-                        "El importe de {0:N2} sobrepasa lo disponible del documento {1} " +
-                        "({2:N2}).{3}", d.Importe, doc,
-                        disponible < 0 ? 0 : disponible, detalle));
-                }
+                        "El importe del documento {0} supera su total ({1:N2}).",
+                        doc, d.TotalFactura));
 
-                // ── NC previas en SAP: advertencia o bloqueo, según config ───
+                var otros = _da.ObtenerBorradoresConDocumento(enc.IdEmpresa, doc);
+                if (otros.Count > 0)
+                    advertencias.Add(string.Format(
+                        "La factura {0} también está incluida en otros borradores vigentes: {1}. " +
+                        "Esto no impide crear este borrador.", doc, string.Join(", ", otros)));
+
+                // Snapshot histórico de NC vigentes de la factura; no vincula NC al borrador.
                 List<NotaCreditoPreviaSap> notasPrevias;
                 if (!notasPreviasSap.TryGetValue(doc, out notasPrevias))
                     notasPrevias = new List<NotaCreditoPreviaSap>();
@@ -423,32 +397,14 @@ namespace DiamDev.Give.BLL
 
                 if (d.NcPreviaSap > 0)
                 {
-                    decimal neto = disponible - d.NcPreviaSap;
-
-                    if (d.Importe - neto > TOLERANCIA)
-                    {
-                        string msg = string.Format(
-                            "El documento {0} ya tiene {1:N2} en notas de crédito emitidas en " +
-                            "SAP ({2}). Considerándolas, lo disponible sería {3:N2}.",
-                            doc, d.NcPreviaSap,
-                            string.Join(", ", notasPrevias.Select(n => "NC " + n.Nota)),
-                            neto < 0 ? 0 : neto);
-
-                        if (BloquearPorNcPrevia)
-                            return ResultadoBorradorNc.Error(msg);
-
-                        advertencias.Add(msg);
-                    }
-                    else
-                    {
-                        advertencias.Add(string.Format(
-                            "El documento {0} ya tiene {1:N2} en NC previas de SAP.",
-                            doc, d.NcPreviaSap));
-                    }
+                    advertencias.Add(string.Format(
+                        "La factura {0} tiene NC vigentes en SAP: {1} ({2:N2}). " +
+                        "Son antecedentes de la factura, no una aplicación a este borrador.",
+                        doc, string.Join(", ", notasPrevias.Select(n => "NC " + n.Nota)), d.NcPreviaSap));
                 }
 
                 // ── Factura ya pagada: no bloquea, pero hay que decirlo ──────
-                if (d.Pagado >= d.TotalFactura - TOLERANCIA)
+                if (d.Pagado >= d.TotalFactura)
                     advertencias.Add(string.Format(
                         "El documento {0} ya está pagado por completo: la nota de crédito " +
                         "generará saldo a favor del cliente.", doc));
@@ -635,6 +591,9 @@ namespace DiamDev.Give.BLL
         public BorradorNcEncabezado ObtenerPorId(string empresa, string idBorrador) =>
             _da.ObtenerPorId(empresa, idBorrador);
 
+        public List<BorradorNcEncabezado> ObtenerParaIndicadores(IList<string> claves) =>
+            _da.ObtenerParaIndicadores(claves);
+
         public BorradorNcAdjunto ObtenerAdjunto(
             string empresa, string idBorrador, long adjuntoId) =>
             _da.ObtenerAdjunto(empresa, idBorrador, adjuntoId);
@@ -685,11 +644,24 @@ namespace DiamDev.Give.BLL
         /// Notas de crédito y devoluciones previas relacionadas con las
         /// facturas del borrador. Este contrato resuelve el documento real de
         /// SAP y elimina las clasificaciones duplicadas NC / NC RECON para su
-        /// presentación, sin alterar el cálculo financiero existente.
+        /// presentación. Los indicadores actuales no reescriben el snapshot del borrador.
         /// </summary>
         public List<DocumentoPrevioSap> ObtenerDocumentosPrevios(
             string empresa, IEnumerable<string> facturas) =>
             _hana.ObtenerDocumentosPrevios(empresa, facturas);
+
+        /// <summary>Relación NC/factura, nunca NC/borrador. Puro: no consulta ni escribe datos.</summary>
+        public static List<DocumentoPrevioSap> NotasCreditoDelBorrador(
+            BorradorNcEncabezado enc, IEnumerable<DocumentoPrevioSap> documentos)
+        {
+            if (enc == null) throw new ArgumentNullException(nameof(enc));
+            var facturas = new HashSet<string>(enc.Detalles.Select(x => x.Documento));
+            return (documentos ?? Enumerable.Empty<DocumentoPrevioSap>())
+                .Where(x => x.Clase == "NOTA_CREDITO" && facturas.Contains(x.Factura) &&
+                    string.Equals(x.CardCode, enc.IdCliente, StringComparison.OrdinalIgnoreCase))
+                .GroupBy(x => new { x.DocEntry, x.Factura })
+                .Select(g => g.First()).ToList();
+        }
 
         public DocumentoPrevioSap ObtenerDetalleDocumentoPrevio(
             string empresa, string clase, int docEntry, string clienteId) =>

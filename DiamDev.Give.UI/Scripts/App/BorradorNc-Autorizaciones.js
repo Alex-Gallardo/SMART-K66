@@ -28,6 +28,18 @@
         detalleUrl: urls.documentoPrevio,
         origen: "autorizaciones"
     });
+    var sapIndicadores = window.BorradorNcSapIndicadores.crear({
+        root: $root, origen: "autorizaciones",
+        cambio: function () {
+            var filas = filtrados(), conocidas = 0, conNc = 0;
+            $.each(filas, function (_, x) {
+                var s = sapIndicadores.obtener(x);
+                if (s && s.data) { conocidas++; if (s.data.NcVigentes > 0) conNc++; }
+            });
+            $("#bncAuthKpiNc").text(conocidas === filas.length ? conNc : "—")
+                .attr("title", conNc + " con NC vigente; " + (filas.length - conocidas) + " por consultar. Datos de la última consulta SAP.");
+        }
+    });
 
     function token() { return $root.find('input[name="__RequestVerificationToken"]').val(); }
     function escapeHtml(value) { return $("<div>").text(value == null ? "" : String(value)).html(); }
@@ -110,13 +122,12 @@
     }
 
     function renderLista() {
-        var filas = filtrados(), html = "", conNc = 0;
+        var filas = filtrados(), html = "";
         $.each(filas, function (_, x) {
-            if (x.TieneNcPrevia) conNc++;
             html += '<tr data-empresa="' + escapeHtml(x.IdEmpresa) + '" data-id="' + escapeHtml(x.IdBorrador) + '">' +
                 '<td class="bnc-main-cell"><strong>' + escapeHtml(x.IdBorrador) + '</strong><small>' + escapeHtml(x.IdEmpresa) + " · " + escapeHtml(x.IdUsr) + "</small></td>" +
                 "<td>" + fecha(x.Fecha) + "</td>" +
-                '<td class="bnc-main-cell"><strong>' + escapeHtml(x.Nombre) + '</strong><small>' + escapeHtml(x.IdCliente) + (x.TieneNcPrevia ? ' · <span style="color:#a16207">Con antecedentes SAP</span>' : "") + "</small></td>" +
+                '<td class="bnc-main-cell"><strong>' + escapeHtml(x.Nombre) + '</strong><small>' + escapeHtml(x.IdCliente) + "</small>" + window.BorradorNcSapIndicadores.plantilla(x) + "</td>" +
                 "<td>" + escapeHtml(x.Agente) + "</td>" +
                 '<td class="bnc-money">' + dinero(x.Total, x.Moneda) + "</td></tr>";
         });
@@ -125,7 +136,7 @@
         $("#bncAuthResultCount").text(filas.length + (filas.length === 1 ? " resultado" : " resultados"));
         $("#bncAuthKpiCount").text(filas.length);
         $("#bncAuthKpiMonto").text(resumenMonedas(filas));
-        $("#bncAuthKpiNc").text(conNc);
+        sapIndicadores.mostrar(filas.concat(state.documento ? [state.documento] : []));
     }
 
     function seleccionar(empresa, id) {
@@ -156,8 +167,8 @@
             var alertas = [];
             var urlFactura = window.BorradorNcFacturasDetalle.urlFacturaBorrador(
                 urls.facturaBorrador, x, d, "autorizaciones");
-            if (numero(d.Pagado) >= numero(d.TotalFactura) - .005) alertas.push('<span class="bnc-paid-flag">Pagada</span>');
-            if (numero(d.NcPreviaSap) > 0) alertas.push('<span class="bnc-nc-flag">Antecedentes SAP ' + dinero(d.NcPreviaSap) + "</span>");
+            if (numero(d.Pagado) >= numero(d.TotalFactura)) alertas.push('<span class="bnc-paid-flag">Pagada al crear</span>');
+            if (numero(d.NcPreviaSap) > 0) alertas.push('<span class="bnc-nc-flag">NC al crear (histórico) ' + dinero(d.NcPreviaSap) + "</span>");
             lineas += '<tr><td class="bnc-linked-invoice-action-cell"><a class="bnc-btn bnc-btn-primary bnc-linked-invoice-action" href="' + escapeHtml(urlFactura) +
                 '" target="_blank" rel="noopener noreferrer" title="Abrir el detalle completo en una pestaña nueva" ' +
                 'aria-label="Ver factura ' + escapeHtml(d.Documento) + ' en una pestaña nueva">' +
@@ -172,6 +183,7 @@
         $("#bncAuthDetail").html(
             '<div class="bnc-detail-hero"><div class="bnc-detail-hero-top"><div><h4>' + escapeHtml(x.IdBorrador) + "</h4><p>" + escapeHtml(x.IdEmpresa) + " · Capturado por " + escapeHtml(x.IdUsr) +
             '</p></div><span class="bnc-status bnc-status-pendiente">Pendiente</span></div></div>' +
+            '<div class="bnc-sap-detail">' + window.BorradorNcSapIndicadores.plantilla(x, true) + '</div>' +
             '<div class="bnc-detail-meta"><div><small>Cliente</small><strong>' + escapeHtml(x.IdCliente + " · " + x.Nombre) +
             "</strong></div><div><small>NIT</small><strong>" + escapeHtml(x.Nit || "—") +
             "</strong></div><div><small>Agente</small><strong>" + escapeHtml(x.Agente) +
@@ -195,6 +207,7 @@
             '<button class="bnc-btn bnc-btn-danger" type="button" id="bncAuthReject"><i class="icon-remove"></i> Rechazar</button>' +
             '<button class="bnc-btn bnc-btn-success" type="button" id="bncAuthApprove"><i class="icon-check"></i> Autorizar</button></div>'
         );
+        sapIndicadores.mostrar(filtrados().concat([x]));
     }
 
     function resolver(accion, motivo, $button) {
@@ -218,7 +231,10 @@
         $("#bncAuthRefresh").on("click", cargar);
         $("#bncAuthEmpresa").on("change", cargar);
         $("#bncAuthSearch").on("input", renderLista);
-        $("#bncAuthBody").on("click", "tr", function () { seleccionar($(this).data("empresa"), $(this).data("id")); });
+        $("#bncAuthBody").on("click", "tr", function (e) {
+            if ($(e.target).closest("[data-sap-refresh], .bnc-sap-documents").length) return;
+            seleccionar($(this).data("empresa"), $(this).data("id"));
+        });
         $("#bncAuthDetail")
             .on("click", "#bncAuthPrint", function () {
                 if (!state.seleccionado) return;

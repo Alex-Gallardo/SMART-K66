@@ -278,6 +278,7 @@ namespace DiamDev.Give.UI.Models
         public string NumeroFel { get; set; }
         public bool PdfDisponible { get; set; }
         public bool DesdeAutorizaciones { get; set; }
+        public bool DesdeDashboard { get; set; }
         public List<BorradorNcProductoFacturaViewModel> Productos { get; set; }
     }
 

@@ -598,6 +598,7 @@
     <Content Include="Content\PagedList.css" />
     <Content Include="Content\Site.css" />
     <Content Include="Content\borrador-nc.css" />
+    <Content Include="Content\borrador-nc-sap-indicadores.css" />
     <Content Include="Content\borrador-nc-dashboard.css" />
     <Content Include="Content\borrador-nc-dashboard-audit.css" />
     <Content Include="Content\cotizaciones.css" />
@@ -660,6 +661,7 @@
     <Content Include="Scripts\App\BorradorNc-Fechas.js" />
     <Content Include="Scripts\App\BorradorNc-FacturasDetalle.js" />
     <Content Include="Scripts\App\BorradorNc-DocumentosPrevios.js" />
+    <Content Include="Scripts\App\BorradorNc-SapIndicadores.js" />
     <Content Include="Scripts\App\BorradorNc-Adjuntos.js" />
     <Content Include="Scripts\App\BorradorNc-Index.js" />
     <Content Include="Scripts\App\BorradorNc-Autorizaciones.js" />

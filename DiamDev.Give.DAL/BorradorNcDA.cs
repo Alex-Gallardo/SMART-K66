@@ -10,9 +10,8 @@ using DiamDev.Give.Entities;
 namespace DiamDev.Give.DAL
 {
     /// <summary>
-    /// El disponible cambió entre la validación de negocio y la escritura. Se
-    /// diferencia de una falla técnica para que la UI pueda pedir al usuario que
-    /// actualice la factura, sin presentar un mensaje de motor de base de datos.
+    /// Un importe incumple el límite individual de la factura. Se diferencia
+    /// de una falla técnica sin presentar mensajes internos del motor SQL.
     /// </summary>
     public sealed class BorradorNcDisponibilidadException : InvalidOperationException
     {
@@ -159,9 +158,9 @@ namespace DiamDev.Give.DAL
         // =====================================================================
 
         /// <summary>
-        /// Importe ya comprometido contra un documento en borradores vigentes
+        /// Importe solicitado para un documento en otros borradores vigentes
         /// (PENDIENTE o AUTORIZADO). RECHAZADO y ANULADO liberan su monto.
-        /// Base de la regla R4.
+        /// Dato informativo: no reserva saldo ni limita nuevos borradores.
         ///
         /// A diferencia del rec_borr_existe legado, NO filtra por cliente: una
         /// factura pertenece a un solo cliente, así que filtrar no cambia el
@@ -334,16 +333,6 @@ namespace DiamDev.Give.DAL
                      @contentType, @tamano, @contenido, @url, @hash,
                      @orden, @idUsr, SYSDATETIME());";
 
-            const string sqlAcumulado = @"
-                SELECT ISNULL(SUM(D.IMPORTE), 0)
-                FROM dbo.BORR_NC_DET D
-                INNER JOIN dbo.BORR_NC_ENC E
-                        ON E.ID_EMPRESA = D.ID_EMPRESA
-                       AND E.ID_BORRADOR = D.ID_BORRADOR
-                WHERE D.ID_EMPRESA = @empresa
-                  AND D.DOCUMENTO = @documento
-                   AND E.ESTADO IN ('PENDIENTE', 'AUTORIZADO');";
-
             const string sqlBitacora = @"
                 INSERT dbo.BORR_NC_BITACORA
                     (ID_EMPRESA, ID_BORRADOR, EVENTO, ESTADO_NUEVO, USUARIO, DETALLE)
@@ -384,27 +373,15 @@ namespace DiamDev.Give.DAL
                                 "No se pudo generar el número de borrador.");
 
                         // ── 2. Revalidación dentro de la transacción ─────────
-                        // El UPDATE de la serie mantiene un candado por empresa hasta
-                        // el COMMIT. Por eso esta segunda lectura ve cualquier borrador
-                        // que haya ganado la carrera después de la validación del BLL y
-                        // serializa también la regla R4, no solo el correlativo.
+                        // Conservamos la transacción y el correlativo, pero no reservamos
+                        // saldo de una factura entre borradores independientes.
                         foreach (var d in enc.Detalles)
                         {
-                            decimal acumulado;
-                            using (var cmd = new SqlCommand(sqlAcumulado, cn, tx))
-                            {
-                                cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = enc.IdEmpresa;
-                                cmd.Parameters.Add("@documento", SqlDbType.NVarChar, 50).Value = d.Documento;
-                                acumulado = Convert.ToDecimal(cmd.ExecuteScalar());
-                            }
-
-                            decimal disponible = d.TotalFactura - acumulado;
-                            if (d.Importe - disponible > 0.005m)
+                            if (d.Importe <= 0 || d.Importe > d.TotalFactura)
                             {
                                 throw new BorradorNcDisponibilidadException(string.Format(
-                                    "El disponible del documento {0} cambió mientras se guardaba. " +
-                                    "Ahora quedan {1:N2}; actualice la factura e inténtelo de nuevo.",
-                                    d.Documento, disponible < 0 ? 0 : disponible));
+                                    "El importe del documento {0} debe ser positivo y no superar " +
+                                    "su total ({1:N2}).", d.Documento, d.TotalFactura));
                             }
                         }
 
@@ -711,6 +688,56 @@ namespace DiamDev.Give.DAL
                     while (r.Read()) lista.Add(LeerEncabezado(r));
             }
             return lista;
+        }
+
+        /// <summary>Datos mínimos por lote; no carga archivos ni contenido binario.</summary>
+        public List<BorradorNcEncabezado> ObtenerParaIndicadores(IList<string> claves)
+        {
+            if (claves == null || claves.Count == 0) return new List<BorradorNcEncabezado>();
+            if (claves.Count > 100) throw new ArgumentException("Máximo 100 borradores por consulta.");
+            var resultados = new Dictionary<string, BorradorNcEncabezado>(StringComparer.OrdinalIgnoreCase);
+            using (var cn = new SqlConnection(_conn))
+            using (var cmd = cn.CreateCommand())
+            {
+                var filtros = new List<string>();
+                for (int i = 0; i < claves.Count; i++)
+                {
+                    var partes = claves[i].Split('|');
+                    if (partes.Length != 2) throw new ArgumentException("Clave inválida.");
+                    filtros.Add("(E.ID_EMPRESA = @empresa" + i + " AND E.ID_BORRADOR = @id" + i + ")");
+                    cmd.Parameters.Add("@empresa" + i, SqlDbType.NVarChar, 15).Value = partes[0];
+                    cmd.Parameters.Add("@id" + i, SqlDbType.NVarChar, 20).Value = partes[1];
+                }
+                cmd.CommandText = @"SELECT E.ID_EMPRESA, E.ID_BORRADOR, E.ID_USR, E.AGENTE,
+                    E.ID_CLIENTE, E.ESTADO, D.DOCUMENTO
+                    FROM dbo.BORR_NC_ENC E
+                    LEFT JOIN dbo.BORR_NC_DET D ON D.ID_EMPRESA = E.ID_EMPRESA
+                         AND D.ID_BORRADOR = E.ID_BORRADOR
+                    WHERE " + string.Join(" OR ", filtros);
+                cn.Open();
+                using (var r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        string empresa = Convert.ToString(r["ID_EMPRESA"]);
+                        string id = Convert.ToString(r["ID_BORRADOR"]);
+                        string clave = empresa + "|" + id;
+                        BorradorNcEncabezado enc;
+                        if (!resultados.TryGetValue(clave, out enc))
+                        {
+                            enc = new BorradorNcEncabezado {
+                                IdEmpresa = empresa, IdBorrador = id,
+                                IdUsr = Convert.ToString(r["ID_USR"]), Agente = Convert.ToString(r["AGENTE"]),
+                                IdCliente = Convert.ToString(r["ID_CLIENTE"]), Estado = Convert.ToString(r["ESTADO"])
+                            };
+                            resultados.Add(clave, enc);
+                        }
+                        if (!r.IsDBNull(r.GetOrdinal("DOCUMENTO")))
+                            enc.Detalles.Add(new BorradorNcDetalle { Documento = Convert.ToString(r["DOCUMENTO"]) });
+                    }
+                }
+            }
+            return resultados.Values.ToList();
         }
 
         /// <summary>Un borrador con su detalle cargado. Null si no existe.</summary>

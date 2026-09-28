@@ -152,10 +152,15 @@ AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.
 
         private string Alcance(Acceso a)
         {
-            return a.PlacaPrueba!=null ? "r.PLACA=@placa" + (a.PilotoPrueba==null ? "" : " AND r.PILOTO=@pilotoPrueba") : a.RutaPrueba!=null ? "r.ID_RUTA=@rutaPrueba" : @"r.PILOTO=@piloto
+            var alcance = a.PlacaPrueba!=null ? "r.PLACA=@placa" + (a.PilotoPrueba==null ? "" : " AND r.PILOTO=@pilotoPrueba") : a.RutaPrueba!=null ? "r.ID_RUTA=@rutaPrueba" : @"r.PILOTO=@piloto
 AND EXISTS (SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=@usuario AND c.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)
 AND EXISTS (SELECT 1 FROM dbo.PilotoVehiculo pv WHERE pv.Usuario_Id=@usuario AND pv.Activo=1 AND pv.Placa=r.PLACA COLLATE DATABASE_DEFAULT)
 AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1)";
+            return "ISNULL(r.LIQUIDADO,0)=0 AND (" + alcance + ")";
+        }
+        private string AlcanceDetalle(Acceso a)
+        {
+            return "r.STATUS IN(N'E',N'C',N'X') AND " + Alcance(a);
         }
         private static void ParametrosAcceso(SqlCommand cmd,Acceso a)
         {
@@ -215,7 +220,7 @@ ORDER BY CASE WHEN r.STATUS=N'E' THEN 0 ELSE 1 END,r.FECHA_RUTA DESC,r.ID_RUTA D
             PilotoRuta ruta;
             var hint = bloquear ? " WITH (UPDLOCK,HOLDLOCK) " : " ";
             var sql = @"SELECT r.ID_RUTA,r.FECHA_RUTA,r.PLACA,r.PILOTO,r.CENTRO_DIST,r.STATUS,r.LIQUIDADO
-FROM " + apk + ".dbo.RT_RUTAS r" + hint + "WHERE r.ID_RUTA=@id AND " + Alcance(a) + ";";
+FROM " + apk + ".dbo.RT_RUTAS r" + hint + "WHERE r.ID_RUTA=@id AND " + AlcanceDetalle(a) + ";";
             using(var cmd=Command(cn,tx,sql))
             {
                 Param(cmd,"@id",SqlDbType.NVarChar,id,15); ParametrosAcceso(cmd,a);
@@ -295,7 +300,7 @@ FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@id;"))
                     using(var r=cmd.ExecuteReader()) while(r.Read()) ruta.ClientesConImagen.Add((int)r["Primer_RowId"]);
                 }
             }
-            ruta.PuedeAdjuntarImagen = ruta.PuedeAdjuntarImagen && ruta.ClientesCompletadosDisponibles;
+            ruta.PuedeAdjuntarImagen = ruta.PuedeAdjuntarImagen && ruta.ClientesCompletadosDisponibles && ruta.PuedeCerrar;
             return ruta;
         }
 
@@ -454,7 +459,7 @@ VALUES(@usuario,@ruta,@primero,@version,@masivo,@resultados,@anteriores,1);"))
 FROM " + apk + @".dbo.RT_RUTAS r
 JOIN " + apk + @".dbo.RT_RUTAS_DET d ON d.ID_RUTA=r.ID_RUTA
 JOIN dbo.PilotoDocumentoImagen i ON i.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT AND i.Detalle_RowId=d.ROWID
-WHERE r.ID_RUTA=@id AND d.ROWID=@row AND " + Alcance(acceso) + ";";
+WHERE r.ID_RUTA=@id AND d.ROWID=@row AND " + AlcanceDetalle(acceso) + ";";
                 using(var cmd=Command(cn,tx,sql))
                 {
                     Param(cmd,"@id",SqlDbType.NVarChar,rutaId,15);

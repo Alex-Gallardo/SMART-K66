@@ -304,6 +304,13 @@ No determina el alcance de rutas. Los codigos de vinculos activos deben ser unic
 
 ### Preparacion del cierre en APK66
 
+El listado y el historial excluyen rutas con `LIQUIDADO=1`; tampoco se pueden
+consultar sus documentos o fotografias mediante una URL guardada. Las rutas
+abiertas (`A`) se muestran como pendientes de salida, sin enlace al detalle.
+Distribucion realiza el cambio a `E`. Las rutas `E` sin liquidar permiten operar
+cuando el cierre esta habilitado; las `C` y `X` sin liquidar siguen disponibles
+para consulta en el historial. Este filtro no altera estados ni liquidaciones.
+
 No se copian rutas, clientes, documentos ni resultados de APP_TEST a APK66.
 El script 13 en vista previa (`@Aplicar=0`) no instala el procedimiento. Para
 instalarlo despues de revision, usar una ventana nueva en el catalogo de rutas

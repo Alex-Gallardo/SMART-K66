@@ -59,7 +59,7 @@
 
     function pintarCargando() {
         $("#dashboardFilas").html(
-            '<tr class="bncd-state-row"><td colspan="13" class="bncd-state-cell">' +
+            '<tr class="bncd-state-row"><td colspan="14" class="bncd-state-cell">' +
             '<div class="bncd-feedback is-loading"><span class="bncd-feedback-icon" aria-hidden="true"><i class="clip-spinner-2"></i></span>' +
             '<strong>Cargando borradores</strong><p>Estamos preparando el resumen y los resultados.</p></div></td></tr>');
     }
@@ -69,7 +69,7 @@
         var icono = esError ? "clip-warning" : "clip-search";
         var accion = esError ? '<button type="button" class="bncd-btn" id="btnReintentar"><i class="clip-refresh" aria-hidden="true"></i> Reintentar</button>' : "";
         $("#dashboardFilas").html(
-            '<tr class="bncd-state-row"><td colspan="13" class="bncd-state-cell">' +
+            '<tr class="bncd-state-row"><td colspan="14" class="bncd-state-cell">' +
             '<div class="bncd-feedback ' + (esError ? "is-error" : "is-empty") + '">' +
             '<span class="bncd-feedback-icon" aria-hidden="true"><i class="' + icono + '"></i></span>' +
             '<strong>' + esc(titulo) + '</strong><p>' + esc(detalle) + '</p>' + accion + '</div></td></tr>');
@@ -157,9 +157,9 @@
                     '<td data-label="Cliente"><span class="bncd-main">' + esc(item.Nombre) + '</span><span class="bncd-sub">' + esc(item.IdCliente) + (item.Nit ? " · " + esc(item.Nit) : "") + '</span></td>' +
                     '<td data-label="Agente">' + esc(item.Agente) + '</td>' +
                     '<td data-label="Estado"><span class="bncd-state ' + esc(item.Estado) + '">' + esc(item.Estado) + '</span></td>' +
+                    '<td class="bnc-sap-column" data-label="NC en SAP">' + window.BorradorNcSapIndicadores.plantilla(item, true) + '</td>' +
                     '<td class="number" data-label="Total"><span class="bncd-main">' + esc(item.Moneda) + ' ' + moneda(item.Total) + '</span></td>' +
-                    '<td data-label="Facturas"><span class="bncd-count"><i class="clip-file" aria-hidden="true"></i> ' + Number(item.Facturas || 0) + '</span>' +
-                    window.BorradorNcSapIndicadores.plantilla(item, true) + '</td>' +
+                    '<td data-label="Facturas"><span class="bncd-count"><i class="clip-file" aria-hidden="true"></i> ' + Number(item.Facturas || 0) + '</span></td>' +
                     '<td data-label="Adjuntos"><span class="bncd-count"><i class="clip-attachment" aria-hidden="true"></i> ' + Number(item.Adjuntos || 0) + '</span></td>' +
                     '<td data-label="Creado por">' + esc(item.IdUsr) + '</td>' +
                     '<td data-label="Resolución"><span class="bncd-main">' + esc(item.ResueltoPor || "Pendiente") + '</span><span class="bncd-sub">' + fecha(item.FechaResolucion, true) + '</span></td></tr>';

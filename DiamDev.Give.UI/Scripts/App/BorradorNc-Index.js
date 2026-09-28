@@ -902,7 +902,7 @@
         var empresaFiltro = $("#bncFiltroEmpresa").val() || "";
         var desde = $("#bncFiltroDesde").val() || "";
         var hasta = $("#bncFiltroHasta").val() || "";
-        $("#bncFollowBody").html('<tr><td colspan="7"><div class="bnc-loading"><span class="bnc-spinner"></span>Actualizando borradores...</div></td></tr>');
+        $("#bncFollowBody").html('<tr><td colspan="8"><div class="bnc-loading"><span class="bnc-spinner"></span>Actualizando borradores...</div></td></tr>');
         $("#bncFollowEmpty").hide();
 
         var pendientes = null, resueltos = null, fallido = false;
@@ -968,7 +968,8 @@
                 "<td>" + fechaCorta(x.Fecha) + "</td>" +
                 '<td class="bnc-main-cell"><strong>' + escapeHtml(x.Nombre) + '</strong><small>' + escapeHtml(x.IdCliente) + "</small></td>" +
                 "<td>" + escapeHtml(x.Agente) + "</td>" +
-                '<td><span class="' + statusClass(x.Estado) + '">' + escapeHtml(x.Estado) + "</span>" + window.BorradorNcSapIndicadores.plantilla(x) + "</td>" +
+                '<td><span class="' + statusClass(x.Estado) + '">' + escapeHtml(x.Estado) + "</span></td>" +
+                '<td class="bnc-sap-column">' + window.BorradorNcSapIndicadores.plantilla(x) + "</td>" +
                 '<td class="bnc-money">' + dinero(x.Total, x.Moneda) + "</td></tr>";
         });
         $("#bncFollowBody").html(html);
@@ -1027,9 +1028,11 @@
                 'aria-label="Ver factura ' + escapeHtml(d.Documento) + ' en una pestaña nueva">' +
                 '<i class="icon-external-link" aria-hidden="true"></i><span>Ver factura</span></a></td>' +
                 '<td class="bnc-main-cell"><strong>' + escapeHtml(d.Documento) + '</strong><small>' + escapeHtml(d.Concepto) + "</small></td>" +
-                "<td>" + fechaCorta(d.FechaDoc) + "</td>" +
-                "<td>" + escapeHtml(d.Descripcion) + "</td>" +
-                '<td class="bnc-money">' + dinero(d.Importe, d.Moneda) + "</td></tr>";
+                '<td class="bnc-document-date">' + fechaCorta(d.FechaDoc) + "</td>" +
+                '<td class="bnc-money">' + dinero(d.Importe, d.Moneda) + "</td></tr>" +
+                '<tr class="bnc-document-description-row"><td colspan="4"><div class="bnc-document-description">' +
+                '<small>Descripción del documento ' + escapeHtml(d.Documento) + '</small><p>' +
+                escapeHtml(d.Descripcion || "Sin descripción") + "</p></div></td></tr>";
         });
         var motivo = x.MotivoResolucion
             ? '<div class="bnc-detail-note is-visible"><strong>Motivo:</strong> ' + escapeHtml(x.MotivoResolucion) + "</div>" : "";
@@ -1047,7 +1050,7 @@
             "</strong></div><div><small>Capturado por</small><strong>" + escapeHtml(x.IdUsr) +
             "</strong></div><div><small>Resolución</small><strong>" + escapeHtml(x.ResueltoPor || "Pendiente") + (x.FechaResolucion ? " · " + fechaHora(x.FechaResolucion) : "") + "</strong></div></div>" +
             motivo +
-            '<div class="bnc-table-wrap bnc-linked-invoice-table-wrap" style="border-width:1px 0 0;border-radius:0;"><table class="table bnc-table bnc-linked-invoice-table"><thead><tr><th class="text-center">Acción</th><th>Documento</th><th>Fecha</th><th>Descripción</th><th class="text-right">Importe</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
+            '<div class="bnc-table-wrap bnc-linked-invoice-table-wrap is-follow-documents" style="border-width:1px 0 0;border-radius:0;"><table class="table bnc-table bnc-linked-invoice-table is-follow-documents"><thead><tr><th class="text-center">Acción</th><th>Documento</th><th>Fecha</th><th class="text-right">Importe</th></tr></thead><tbody>' + lineas + "</tbody></table></div>" +
             window.BorradorNcFacturasDetalle.plantilla("bncFollowInvoices") +
             window.BorradorNcAdjuntos.plantilla(x, { baseUrl: urls.adjunto }) +
             window.BorradorNcDocumentosPrevios.plantilla("bncFollowPriorDocuments") +

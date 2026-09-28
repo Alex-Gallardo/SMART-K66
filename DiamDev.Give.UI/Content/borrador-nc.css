@@ -520,6 +520,10 @@
 .bnc-table .bnc-main-cell strong { color: var(--bnc-ink); font-size: 11.5px; }
 .bnc-table .bnc-main-cell small { color: var(--bnc-muted); font-size: 9.5px; margin-top: 2px; }
 
+/* Solo las columnas SAP de los listados; el indicador del detalle no cambia. */
+.bnc-table .bnc-sap-column { min-width: 210px; width: 210px; }
+.bnc-table .bnc-sap-column .bnc-sap-indicator { margin-top: 0; }
+
 /* Facturas vinculadas: la tabla se adapta al panel y nunca ensancha la vista. */
 .bnc-linked-invoice-table-wrap {
     max-height: none;
@@ -554,6 +558,43 @@
 .bnc-linked-invoice-table.is-authorization > thead > tr > th:nth-child(5) { width: 16%; }
 .bnc-linked-invoice-table.is-authorization > thead > tr > th:nth-child(6) { width: 13%; }
 .bnc-linked-invoice-table .bnc-money { white-space: normal; }
+
+/* Seguimiento: datos principales compactos y descripción a todo el ancho. */
+.bnc-linked-invoice-table-wrap.is-follow-documents { overflow-x: auto; }
+.bnc-linked-invoice-table.is-follow-documents { min-width: 360px !important; }
+.bnc-linked-invoice-table.is-follow-documents > thead > tr > th:nth-child(1),
+.bnc-linked-invoice-table.is-follow-documents > thead > tr > th:nth-child(2) { width: 26%; }
+.bnc-linked-invoice-table.is-follow-documents > thead > tr > th:nth-child(3),
+.bnc-linked-invoice-table.is-follow-documents > thead > tr > th:nth-child(4) { width: 24%; }
+.bnc-linked-invoice-table.is-follow-documents .bnc-document-date { white-space: nowrap; }
+.bnc-linked-invoice-table.is-follow-documents .bnc-document-description-row > td {
+    border-top: 0;
+    border-bottom: 1px solid var(--bnc-border);
+    padding: 0 12px 12px;
+}
+.bnc-document-description {
+    background: #f8fafc;
+    border: 1px solid #edf2f7;
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+.bnc-document-description > small {
+    color: var(--bnc-muted);
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .035em;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+}
+.bnc-document-description > p {
+    color: #334155;
+    font-size: 11px;
+    line-height: 1.65;
+    margin: 0;
+    overflow-wrap: anywhere;
+    white-space: pre-line;
+}
 
 .bnc-linked-invoice-action-cell {
     min-width: 0;
@@ -1343,15 +1384,17 @@
 }
 
 .bnc-auth-list .bnc-table {
-    min-width: 0;
+    min-width: 920px;
     table-layout: fixed;
 }
 
-.bnc-auth-list .bnc-table > thead > tr > th:nth-child(1) { width: 18%; }
-.bnc-auth-list .bnc-table > thead > tr > th:nth-child(2) { width: 15%; }
-.bnc-auth-list .bnc-table > thead > tr > th:nth-child(3) { width: 30%; }
-.bnc-auth-list .bnc-table > thead > tr > th:nth-child(4) { width: 20%; }
-.bnc-auth-list .bnc-table > thead > tr > th:nth-child(5) { width: 17%; }
+.bnc-auth-list .bnc-table > thead > tr > th:nth-child(1) { width: 110px; }
+.bnc-auth-list .bnc-table > thead > tr > th:nth-child(2) { width: 90px; }
+.bnc-auth-list .bnc-table > thead > tr > th:nth-child(3) { width: 180px; }
+.bnc-auth-list .bnc-table > thead > tr > th:nth-child(4) { width: 130px; }
+.bnc-auth-list .bnc-table > thead > tr > th:nth-child(5) { width: 100px; }
+.bnc-auth-list .bnc-table > thead > tr > th:nth-child(6) { width: 210px; }
+.bnc-auth-list .bnc-table > thead > tr > th:nth-child(7) { width: 100px; }
 .bnc-auth-list .bnc-table > tbody > tr > td { overflow-wrap: anywhere; }
 
 .bnc-decision-bar {
@@ -1817,7 +1860,7 @@
     .bnc-tabs > li { flex: 1; }
     .bnc-tabs > li > a { justify-content: center; padding-left: 8px; padding-right: 8px; }
     .bnc-card-head { align-items: flex-start; flex-direction: column; }
-    .bnc-auth-list .bnc-table { min-width: 640px; table-layout: auto; }
+    .bnc-auth-list .bnc-table { min-width: 920px; table-layout: fixed; }
     .bnc-grid { grid-template-columns: 1fr; }
     .bnc-col-2,
     .bnc-col-3,

@@ -142,15 +142,17 @@ assert(/is_nullable/i.test(migracion),
 assert(!/\b(DROP|TRUNCATE|DELETE)\b/i.test(sinComentarios(migracion)),
     "La migración no debe borrar objetos ni datos.");
 
-// No regresión fiscal: este cambio no altera la fuente, edición ni cálculo de IVA.
+// El porcentaje SAP se conserva como referencia, pero el precio manual ya
+// incluye IVA y el servidor no debe sumarlo nuevamente.
 assert(javascript.includes(
     'readonly data-field="ImpuestoPorcentaje"') &&
        validarNavegador.includes("numero(x.ImpuestoPorcentaje) < 0") &&
        validarNavegador.includes("numero(x.ImpuestoPorcentaje) > 100"),
     "IVA debe seguir siendo de solo lectura y conservar su validación de rango.");
 assert(bll.includes("d.ImpuestoPorcentaje = producto.ImpuestoPorcentaje;") &&
-       bll.includes("d.Subtotal * d.ImpuestoPorcentaje / 100m"),
-    "El servidor debe conservar el IVA de SAP y la fórmula fiscal existente.");
+       bll.includes("d.ImpuestoMonto = 0m;") &&
+       !bll.includes("d.Subtotal * d.ImpuestoPorcentaje / 100m"),
+    "El servidor debe conservar la tasa SAP sin calcular IVA adicional.");
 assert(productosHana.includes('LEFT JOIN ""{0}"".""OSTC"" T') &&
        productosHana.includes("COALESCE(C.\"\"VatStatus\"\", 'Y')='N'") &&
        productosHana.includes("THEN 'EXE' ELSE 'IVA' END") &&

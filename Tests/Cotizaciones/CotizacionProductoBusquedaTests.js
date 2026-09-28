@@ -66,6 +66,6 @@ assert(javascript.includes('numero(x.PrecioUnitario) <= 0'),
 assert(javascript.includes("' · precio manual'"),
     "El detalle debe identificar precios capturados manualmente sin referencia SAP.");
 assert(bll.includes('d.PrecioUnitario <= 0m'),
-    "El servidor también debe rechazar precios netos en cero.");
+    "El servidor también debe rechazar precios finales en cero.");
 
 console.log("OK: búsqueda, SellItem, stock cero y precios SAP verificados.");

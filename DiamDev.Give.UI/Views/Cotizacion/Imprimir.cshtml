@@ -13,6 +13,9 @@
         ? empresas[Model.IdEmpresa] : new { Nombre = Model.IdEmpresa, Nit = "", Color = "#2563eb", Logo = "" };
     var detalles = Model.Detalles ?? new List<DiamDev.Give.Entities.CotizacionDetalle>();
     var totalEnLetras = ViewBag.TotalEnLetras as string ?? "";
+    // Los documentos anteriores al cambio guardaron precio neto e IVA separado.
+    // Las cotizaciones nuevas guardan el precio final con IVA e impuesto en cero.
+    var precioFinalConIva = Model.ImpuestoTotal == 0m;
 }
 <!doctype html>
     <html lang="es">
@@ -45,7 +48,7 @@
                     border-bottom: 2px solid @emp.Color;
                     margin-bottom: 24px;
                 }.meta .wide{grid-column:span 2}
-                 .value{display:block;font-size:10.5px;font-weight:600;margin-top:3px;overflow-wrap:anywhere}.section-title{align-items:center;display:flex;font-weight:800;gap:8px;margin:8px 0}.section-title:after{background:#dbe3ec;content:"";flex:1;height:1px}table{border-collapse:collapse;table-layout:fixed;width:100%}th{background:#f1f5f9;color:#475569;font-size:8px;letter-spacing:.04em;padding:7px 6px;text-align:left;text-transform:uppercase}td{border-bottom:1px solid #e5eaf0;font-size:9px;padding:8px 6px;vertical-align:top;word-break:break-word}.num{text-align:right}.muted{color:#64748b;display:block;font-size:8px}.summary{display:flex;justify-content:flex-end;margin-top:15px}.summary-box{border:1px solid #dbe3ec;border-radius:8px;min-width:300px;padding:10px 14px}.sum-row{display:flex;justify-content:space-between;padding:3px 0}.sum-row.grand{border-top:1px solid #cbd5e1;color:@emp.Color;font-size:16px;font-weight:800;margin-top:5px;padding-top:7px}.amount-words{background:#f8fafc;border-left:3px solid @emp.Color;border-radius:6px;margin-top:12px;padding:9px 12px}.amount-words .value{font-size:10px}.terms{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-top:18px;padding:13px}.cancelled{border:4px solid #b91c1c;color:#b91c1c;font-size:54px;font-weight:900;left:50%;opacity:.12;padding:10px 30px;position:absolute;top:48%;transform:translate(-50%,-50%) rotate(-18deg)}.sign{display:grid;gap:70px;grid-template-columns:1fr 1fr;margin-top:70px;text-align:center}.sign div{border-top:1px solid #94a3b8;padding-top:6px}.footer{bottom:25px;color:#94a3b8;display:flex;font-size:8px;justify-content:space-between;left:42px;position:absolute;right:42px}@@page{size:Letter portrait;margin:9mm}@@media print{body{background:#fff;padding:0}.actions{display:none}.sheet{border:0;box-shadow:none;max-width:none;min-height:250mm;padding:9mm 9mm 18mm}.footer{bottom:4mm;left:9mm;right:9mm}}@@media(max-width:700px){body{padding:0}.sheet{border:0;box-shadow:none;min-height:100vh;padding:26px 18px 70px}.header{gap:15px;flex-direction:column}.doc{text-align:left}.meta{grid-template-columns:repeat(2,1fr)}.table-wrap{overflow:auto}table{min-width:700px}.footer{left:18px;right:18px}}
+                .value{display:block;font-size:10.5px;font-weight:600;margin-top:3px;overflow-wrap:anywhere}.section-title{align-items:center;display:flex;font-weight:800;gap:8px;margin:8px 0}.section-title:after{background:#dbe3ec;content:"";flex:1;height:1px}table{border-collapse:collapse;table-layout:fixed;width:100%}th{background:#f1f5f9;color:#475569;font-size:8px;letter-spacing:.04em;padding:7px 6px;text-align:left;text-transform:uppercase}td{border-bottom:1px solid #e5eaf0;font-size:9px;padding:8px 6px;vertical-align:top;word-break:break-word}.num{text-align:right}.muted{color:#64748b;display:block;font-size:8px}.summary{display:flex;justify-content:flex-end;margin-top:15px}.summary-box{border:1px solid #dbe3ec;border-radius:8px;min-width:300px;padding:10px 14px}.sum-note{color:#64748b;font-size:8px;margin-bottom:5px;text-align:right}.sum-row{display:flex;justify-content:space-between;padding:3px 0}.sum-row.grand{border-top:1px solid #cbd5e1;color:@emp.Color;font-size:16px;font-weight:800;margin-top:5px;padding-top:7px}.amount-words{background:#f8fafc;border-left:3px solid @emp.Color;border-radius:6px;margin-top:12px;padding:9px 12px}.amount-words .value{font-size:10px}.terms{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin-top:18px;padding:13px}.cancelled{border:4px solid #b91c1c;color:#b91c1c;font-size:54px;font-weight:900;left:50%;opacity:.12;padding:10px 30px;position:absolute;top:48%;transform:translate(-50%,-50%) rotate(-18deg)}.sign{display:grid;gap:70px;grid-template-columns:1fr 1fr;margin-top:70px;text-align:center}.sign div{border-top:1px solid #94a3b8;padding-top:6px}.footer{bottom:25px;color:#94a3b8;display:flex;font-size:8px;justify-content:space-between;left:42px;position:absolute;right:42px}@@page{size:Letter portrait;margin:9mm}@@media print{body{background:#fff;padding:0}.actions{display:none}.sheet{border:0;box-shadow:none;max-width:none;min-height:250mm;padding:9mm 9mm 18mm}.footer{bottom:4mm;left:9mm;right:9mm}}@@media(max-width:700px){body{padding:0}.sheet{border:0;box-shadow:none;min-height:100vh;padding:26px 18px 70px}.header{gap:15px;flex-direction:column}.doc{text-align:left}.meta{grid-template-columns:repeat(2,1fr)}.table-wrap{overflow:auto}table{min-width:700px}.footer{left:18px;right:18px}}
             </style>
         </head>
 <body>
@@ -117,18 +120,25 @@
                     <th style="width:36%">Descripción</th>
                     <th style="width:9%">Unidad</th>
                     <th class="num" style="width:10%">Cantidad</th>
-                    <th class="num" style="width:11%">Precio</th>
+                    <th class="num" style="width:11%">@(precioFinalConIva ? "Precio c/IVA" : "Precio sin IVA")</th>
                     <th class="num" style="width:14%">Total</th>
                 </tr>
             </thead>
             <tbody>@foreach (var d in detalles) { <tr><td>@d.Linea</td><td><strong>@d.ItemCode</strong><span class="muted">@d.Grupo</span></td><td>@d.Descripcion</td><td>@d.Unidad</td><td class="num">@d.Cantidad.ToString("N2")</td><td class="num">@d.PrecioUnitario.ToString("N2")</td><td class="num">
     <strong>@d.Total.ToString("N2")</strong>
-    <!--<span class="muted">IVA @@ d.ImpuestoPorcentaje.ToString("N2")%</span>-->
 </td></tr> }</tbody></table></div>
 <div class="summary">
     <div class="summary-box">
-        <div class="sum-row"><span>Subtotal</span><strong>@Model.Subtotal.ToString("N2")</strong></div>
-        <!-- <div class="sum-row"><span>IVA</span><strong>@@Model.ImpuestoTotal.ToString("N2")</strong></div> -->
+        @if (precioFinalConIva)
+        {
+            <div class="sum-note">Los precios e importes ya incluyen IVA.</div>
+        }
+        else
+        {
+            <div class="sum-note">Documento histórico con IVA calculado por separado.</div>
+            <div class="sum-row"><span>Subtotal</span><strong>@Model.Subtotal.ToString("N2")</strong></div>
+            <div class="sum-row"><span>IVA</span><strong>@Model.ImpuestoTotal.ToString("N2")</strong></div>
+        }
         <div class="sum-row grand"><span>Total @Model.Moneda</span><strong>@Model.Total.ToString("N2")</strong></div>
     </div>
 </div>

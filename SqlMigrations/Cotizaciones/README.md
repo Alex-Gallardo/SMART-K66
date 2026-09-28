@@ -63,9 +63,12 @@ que realmente no tiene ninguna fuente de precio configurada en SAP.
   comparan todas las fuentes (`EffcAllSrc=N`).
 - Existen precios por cliente, vigencia y cantidad en `OSPP`/`SPP1`/`SPP2`, y
   grupos de descuento en `OEDG`/`EDG1`.
-- Las fuentes SAP están expresadas como precio bruto en las compañías
-  analizadas. Cotizaciones calcula con precio neto y agrega después la tasa
-  correspondiente para evitar duplicar el IVA.
+- Las fuentes SAP están expresadas como precio final con IVA en las compañías
+  analizadas. Cotizaciones conserva ese importe y no retira ni agrega IVA.
+  Los precios manuales siguen la misma regla. Si se captura un descuento
+  adicional, se aplica sobre el precio final y el resultado continúa incluyendo
+  IVA; `IMPUESTO_PORCENTAJE` queda como referencia SAP e `IMPUESTO_MONTO` es
+  cero en las cotizaciones nuevas.
 
 ## Fase 2 — instalación en pruebas
 

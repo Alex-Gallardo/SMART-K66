@@ -3,7 +3,8 @@ namespace DiamDev.Give.Entities
     /// <summary>
     /// Proyección de producto desde SAP HANA para cotizar al cliente elegido.
     /// Precio y moneda corresponden a la fuente efectiva encontrada en SAP.
-    /// Precio es neto de IVA; PrecioBruto conserva el valor de la fuente SAP.
+    /// Precio y PrecioBruto representan el valor comercial final con IVA
+    /// incluido; Cotizaciones no vuelve a calcular ni agregar ese impuesto.
     /// </summary>
     public class ProductoCotizacionHana
     {

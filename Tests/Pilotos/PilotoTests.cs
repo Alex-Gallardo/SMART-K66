@@ -85,6 +85,25 @@ internal static class PilotoTests
             if(args.Length==1 && args[0]=="sql-admin") {
                 Console.WriteLine(PilotoAdministracionDA.SqlAutorizacion); return 0;
             }
+            if(args.Length==1 && args[0]=="sql-rutas") {
+                // Construye los predicados reales sin abrir una conexión ni leer configuración.
+                var tipo=typeof(PilotoRutaDA);
+                var da=(PilotoRutaDA)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(tipo);
+                tipo.GetField("apk",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(da,"[TEST_RUTAS]");
+                var accesoTipo=tipo.GetNestedType("Acceso",BindingFlags.NonPublic);
+                foreach(var modo in new[]{"normal","placa","ruta"}) {
+                    var acceso=Activator.CreateInstance(accesoTipo,true);
+                    if(modo=="placa") accesoTipo.GetField("PlacaPrueba").SetValue(acceso,"DEMO");
+                    if(modo=="ruta") accesoTipo.GetField("RutaPrueba").SetValue(acceso,"DEMO-1");
+                    foreach(var metodo in new[]{"Alcance","AlcanceDetalle"}) {
+                        var filtro=(string)tipo.GetMethod(metodo,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(da,new[]{acceso});
+                        Check(filtro.Contains("ISNULL(r.LIQUIDADO,0)=0"),"liquidadas excluidas en "+modo+" / "+metodo);
+                        if(metodo=="AlcanceDetalle") Check(filtro.StartsWith("r.STATUS IN(N'E',N'C',N'X') AND "),"abiertas sin acceso directo en "+modo);
+                        Console.WriteLine("SELECT r.ID_RUTA FROM [TEST_RUTAS].dbo.RT_RUTAS r WHERE "+filtro+";");
+                    }
+                }
+                return 0;
+            }
             if(args.Length==1 && args[0]=="escrituras-bloqueadas") {
                 var da=new PilotoRutaDA();
                 Rechaza(()=>da.GuardarImagen("consulta_demo",null),403,"cierre apagado bloquea foto de documento antes de SQL");

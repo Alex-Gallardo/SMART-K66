@@ -20,8 +20,9 @@ namespace DiamDev.Give.Entities
         public decimal Existencia { get; set; }
         public decimal Disponible { get; set; }
         public decimal Cantidad { get; set; }
-        /// <summary>Precio devuelto por SAP antes de cualquier ajuste comercial.</summary>
+        /// <summary>Precio final con IVA devuelto por SAP.</summary>
         public decimal PrecioLista { get; set; }
+        /// <summary>Precio final con IVA usado en la cotización.</summary>
         public decimal PrecioUnitario { get; set; }
         public decimal DescuentoPorcentaje { get; set; }
         public string GrupoImpuesto { get; set; }
@@ -29,6 +30,10 @@ namespace DiamDev.Give.Entities
         public decimal ImporteBruto { get; set; }
         public decimal DescuentoMonto { get; set; }
         public decimal Subtotal { get; set; }
+        /// <summary>
+        /// Se conserva por compatibilidad histórica. Para nuevas cotizaciones
+        /// es cero porque PrecioUnitario ya incluye IVA.
+        /// </summary>
         public decimal ImpuestoMonto { get; set; }
         public decimal Total { get; set; }
     }

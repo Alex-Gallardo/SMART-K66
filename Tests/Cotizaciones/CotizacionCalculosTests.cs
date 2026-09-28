@@ -43,8 +43,43 @@ namespace Tests.Cotizaciones
             Igual(200m, normal.ImporteBruto, "bruto");
             Igual(20m, normal.DescuentoMonto, "descuento");
             Igual(180m, normal.Subtotal, "subtotal");
-            Igual(21.60m, normal.ImpuestoMonto, "impuesto");
-            Igual(201.60m, normal.Total, "total");
+            Igual(0m, normal.ImpuestoMonto, "IVA ya incluido");
+            Igual(180m, normal.Total, "total final sin agregar IVA");
+
+            var precioConIva = new CotizacionDetalle
+            {
+                Cantidad = 1m,
+                PrecioUnitario = 112m,
+                DescuentoPorcentaje = 0m,
+                ImpuestoPorcentaje = 12m
+            };
+            CotizacionBLL.CalcularLinea(precioConIva);
+            Igual(112m, precioConIva.Total,
+                "precio ingresado con IVA no debe convertirse en 125.44");
+            Igual(0m, precioConIva.ImpuestoMonto,
+                "no calcular IVA monetario adicional");
+
+            decimal totalCasoReportado = 0m;
+            foreach (decimal precio in new[]
+            {
+                666.285714m, 171.883929m, 475.919643m,
+                400.142857m, 404.758929m
+            })
+            {
+                var linea = new CotizacionDetalle
+                {
+                    Cantidad = 1m,
+                    PrecioUnitario = precio,
+                    DescuentoPorcentaje = 0m,
+                    ImpuestoPorcentaje = 12m
+                };
+                CotizacionBLL.CalcularLinea(linea);
+                totalCasoReportado += linea.Total;
+                Igual(0m, linea.ImpuestoMonto,
+                    "COT-GR-00000007 sin IVA adicional");
+            }
+            Igual(2118.99m, totalCasoReportado,
+                "COT-GR-00000007 debe conservar los precios ingresados");
 
             var midpoint = new CotizacionDetalle
             {
@@ -66,14 +101,6 @@ namespace Tests.Cotizaciones
             CotizacionBLL.CalcularLinea(sinIva);
             Igual(28m, sinIva.Subtotal, "cantidad decimal");
             Igual(28m, sinIva.Total, "línea exenta");
-
-            Igual(100m, CotizacionBLL.PrecioNetoDesdeBruto(112m, 12m),
-                "precio bruto SAP a neto");
-            Igual(112m, CotizacionBLL.PrecioNetoDesdeBruto(112m, 0m),
-                "precio exento conserva bruto");
-            Igual(226.410714m,
-                CotizacionBLL.PrecioNetoDesdeBruto(253.58m, 12m),
-                "precio especial conserva seis decimales");
 
             Igual("UN QUETZAL CON 00/100",
                 CotizacionBLL.TotalEnLetras(1m, "GTQ"),
@@ -104,12 +131,12 @@ namespace Tests.Cotizaciones
                     StringComparison.OrdinalIgnoreCase) < 0)
             {
                 Console.Error.WriteLine(
-                    "FALLA validación: el servidor aceptó un precio neto cero.");
+                    "FALLA validación: el servidor aceptó un precio final cero.");
                 _fallas++;
             }
 
             Console.WriteLine(_fallas == 0
-                ? "OK: cálculos, validación y total en letras verificados."
+                ? "OK: precios con IVA incluido, validación y total en letras verificados."
                 : "FALLAS: " + _fallas);
             return _fallas == 0 ? 0 : 1;
         }

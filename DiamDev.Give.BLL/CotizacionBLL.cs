@@ -34,7 +34,7 @@ namespace DiamDev.Give.BLL
                 ObtenerClienteAsignado(empresa, agente, clienteId);
             var paginaResultado = _hana.BuscarProductosCotizacion(
                 empresa, clienteId, filtro, pagina, tamano);
-            NormalizarPreciosSap(paginaResultado.Items);
+            UsarPreciosFinalesSap(paginaResultado.Items);
             if (esProspecto)
                 PrepararPreciosManuales(paginaResultado.Items);
             return paginaResultado;
@@ -57,7 +57,7 @@ namespace DiamDev.Give.BLL
             cantidades[itemCode.Trim()] = cantidad;
             var productos = _hana.ObtenerProductosCotizacion(
                 empresa, clienteId, cantidades);
-            NormalizarPreciosSap(productos);
+            UsarPreciosFinalesSap(productos);
             if (esProspecto)
                 PrepararPreciosManuales(productos);
             return productos.FirstOrDefault();
@@ -111,7 +111,7 @@ namespace DiamDev.Give.BLL
                                   StringComparer.OrdinalIgnoreCase);
                 var productos = _hana.ObtenerProductosCotizacion(
                     enc.IdEmpresa, enc.IdCliente, cantidades);
-                NormalizarPreciosSap(productos);
+                UsarPreciosFinalesSap(productos);
                 if (esProspecto)
                     PrepararPreciosManuales(productos);
                 var porCodigo = productos
@@ -193,7 +193,11 @@ namespace DiamDev.Give.BLL
             }
         }
 
-        /// <summary>Fórmula oficial, compartida por todos los guardados.</summary>
+        /// <summary>
+        /// Fórmula oficial, compartida por todos los guardados. El precio
+        /// unitario capturado ya incluye IVA; por ello el impuesto se conserva
+        /// sólo como referencia SAP y nunca se suma nuevamente al total.
+        /// </summary>
         public static void CalcularLinea(CotizacionDetalle d)
         {
             if (d == null) throw new ArgumentNullException("d");
@@ -201,25 +205,8 @@ namespace DiamDev.Give.BLL
             d.DescuentoMonto = Redondear(
                 d.ImporteBruto * d.DescuentoPorcentaje / 100m);
             d.Subtotal = Redondear(d.ImporteBruto - d.DescuentoMonto);
-            d.ImpuestoMonto = Redondear(
-                d.Subtotal * d.ImpuestoPorcentaje / 100m);
-            d.Total = Redondear(d.Subtotal + d.ImpuestoMonto);
-        }
-
-        /// <summary>
-        /// HANA_02 confirmó que las fuentes de precio de las tres compañías son
-        /// brutas. La aplicación calcula líneas netas y agrega IVA después, por
-        /// lo que debe retirar el impuesto sin perder la precisión de SAP.
-        /// </summary>
-        public static decimal PrecioNetoDesdeBruto(
-            decimal precioBruto, decimal impuestoPorcentaje)
-        {
-            if (precioBruto <= 0m || impuestoPorcentaje <= 0m)
-                return Math.Round(precioBruto, 6,
-                                  MidpointRounding.AwayFromZero);
-            return Math.Round(
-                precioBruto / (1m + impuestoPorcentaje / 100m), 6,
-                MidpointRounding.AwayFromZero);
+            d.ImpuestoMonto = 0m;
+            d.Total = d.Subtotal;
         }
 
         /// <summary>
@@ -367,7 +354,7 @@ namespace DiamDev.Give.BLL
             if (d.Cantidad <= 0m) return "la cantidad debe ser mayor que cero.";
             if (d.Cantidad > 999999999m) return "la cantidad es demasiado grande.";
             if (d.PrecioUnitario <= 0m)
-                return "el precio neto debe ser mayor que cero.";
+                return "el precio final con IVA debe ser mayor que cero.";
             if (d.PrecioUnitario > 999999999999m) return "el precio es demasiado grande.";
             if (d.DescuentoPorcentaje < 0m || d.DescuentoPorcentaje > 100m)
                 return "el descuento debe estar entre 0 y 100%.";
@@ -387,16 +374,15 @@ namespace DiamDev.Give.BLL
             return app;
         }
 
-        private static void NormalizarPreciosSap(
+        private static void UsarPreciosFinalesSap(
             IEnumerable<ProductoCotizacionHana> productos)
         {
             foreach (var producto in productos ??
                      Enumerable.Empty<ProductoCotizacionHana>())
             {
-                producto.Precio = producto.PrecioEsBruto
-                    ? PrecioNetoDesdeBruto(
-                        producto.PrecioBruto, producto.ImpuestoPorcentaje)
-                    : producto.PrecioBruto;
+                // Las fuentes comerciales de SAP ya expresan el precio final
+                // con IVA. No se retira ni se agrega impuesto en Cotizaciones.
+                producto.Precio = producto.PrecioBruto;
             }
         }
 

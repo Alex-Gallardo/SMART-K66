@@ -5,7 +5,7 @@
 }
 
 @section styles {
-    <link href="@Url.Content("~/Content/borrador-nc-dashboard.css?v=20260909")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc-dashboard.css?v=20260928-columnas-descripciones")" rel="stylesheet" />
     <link href="@Url.Content("~/Content/borrador-nc-dashboard-audit.css?v=20260909")" rel="stylesheet" />
     <link href="@Url.Content("~/Content/borrador-nc-sap-indicadores.css?v=20260928")" rel="stylesheet" />
 }
@@ -122,6 +122,7 @@
                     <th data-sort="CLIENTE" aria-sort="none"><button type="button">Cliente <i aria-hidden="true"></i></button></th>
                     <th data-sort="AGENTE" aria-sort="none"><button type="button">Agente <i aria-hidden="true"></i></button></th>
                     <th data-sort="ESTADO" aria-sort="none"><button type="button">Estado <i aria-hidden="true"></i></button></th>
+                    <th class="bnc-sap-column">NC en SAP</th>
                     <th data-sort="TOTAL" class="number" aria-sort="none"><button type="button">Total <i aria-hidden="true"></i></button></th>
                     <th>Facturas</th><th>Adjuntos</th><th>Creado por</th><th>Resolución</th>
                 </tr></thead>
@@ -148,5 +149,5 @@
 
 @section scripts {
     <script src="@Url.Content("~/Scripts/App/BorradorNc-SapIndicadores.js?v=20260928")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Dashboard.js?v=20260928")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Dashboard.js?v=20260928-columnas-descripciones")"></script>
 }

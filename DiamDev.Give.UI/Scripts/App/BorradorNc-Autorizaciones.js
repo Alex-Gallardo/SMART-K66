@@ -95,7 +95,7 @@
         state.seleccionado = null;
         state.documento = null;
         $("#bncAuthDetail").html('<div class="bnc-empty"><i class="icon-hand-left"></i><strong>Seleccione una solicitud</strong><span>Revise cada línea y sus documentos previos de SAP antes de autorizar.</span></div>');
-        $("#bncAuthBody").html('<tr><td colspan="5"><div class="bnc-loading"><span class="bnc-spinner"></span>Consultando pendientes...</div></td></tr>');
+        $("#bncAuthBody").html('<tr><td colspan="7"><div class="bnc-loading"><span class="bnc-spinner"></span>Consultando pendientes...</div></td></tr>');
         $("#bncAuthEmpty").hide();
         get(urls.listar, { empresa: $("#bncAuthEmpresa").val() || "" }).done(function (r) {
             if (secuencia !== cargaSecuencia) return;
@@ -127,8 +127,10 @@
             html += '<tr data-empresa="' + escapeHtml(x.IdEmpresa) + '" data-id="' + escapeHtml(x.IdBorrador) + '">' +
                 '<td class="bnc-main-cell"><strong>' + escapeHtml(x.IdBorrador) + '</strong><small>' + escapeHtml(x.IdEmpresa) + " · " + escapeHtml(x.IdUsr) + "</small></td>" +
                 "<td>" + fecha(x.Fecha) + "</td>" +
-                '<td class="bnc-main-cell"><strong>' + escapeHtml(x.Nombre) + '</strong><small>' + escapeHtml(x.IdCliente) + "</small>" + window.BorradorNcSapIndicadores.plantilla(x) + "</td>" +
+                '<td class="bnc-main-cell"><strong>' + escapeHtml(x.Nombre) + '</strong><small>' + escapeHtml(x.IdCliente) + "</small></td>" +
                 "<td>" + escapeHtml(x.Agente) + "</td>" +
+                '<td><span class="bnc-status bnc-status-pendiente">PENDIENTE</span></td>' +
+                '<td class="bnc-sap-column">' + window.BorradorNcSapIndicadores.plantilla(x) + "</td>" +
                 '<td class="bnc-money">' + dinero(x.Total, x.Moneda) + "</td></tr>";
         });
         $("#bncAuthBody").html(html);

@@ -16,6 +16,6 @@
 .bnc-sap-documents a { color:#1d4ed8; text-decoration:underline; }
 .bnc-sap-documents li span { font-size:10px; color:#64748b; }
 .bnc-sap-detail { padding:0 20px 16px; border-bottom:1px solid #dbe5f3; }
-.bnc-prior-updated { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:8px 20px; font-size:11px; color:#64748b; }
+.bnc-prior-updated { display:flex; flex-wrap:wrap; justify-content: flex-end; align-items:center; gap:8px; padding:8px 0px 8px 20px; font-size:11px; color:#64748b; }
 .bnc-prior-updated .bnc-btn { padding:5px 9px; font-size:11px; }
 @media(max-width:600px) { .bnc-sap-detail { padding:0 14px 14px; } }

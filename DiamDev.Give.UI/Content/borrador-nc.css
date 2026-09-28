@@ -1744,8 +1744,11 @@
 }
 
 .bnc-invoice-detail-meta div { min-width: 0; }
+.bnc-invoice-detail-meta > div > small { font-weight: 600}
 .bnc-invoice-detail-meta small,
-.bnc-invoice-detail-meta strong { display: block; }
+.bnc-invoice-detail-meta strong {
+    display: block;
+}
 .bnc-invoice-detail-meta small {
     color: var(--bnc-muted);
     font-size: 8.5px;

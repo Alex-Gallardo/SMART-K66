@@ -7,8 +7,9 @@
     <meta name="robots" content="noindex,nofollow" />
     <title>@ViewBag.Title · Smart K66</title>
     <link rel="stylesheet" href="@Url.Content("~/Content/pilotos.css")" />
+    @if(ViewBag.EsPanel==true){<link rel="stylesheet" href="@Url.Content("~/Content/pilotos-panel.css")" />}
 </head>
-<body>
+<body class="@(ViewBag.EsPanel==true?"panel-shell":"")">
     <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
         <symbol id="i-route" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="19" r="2"/><path d="M6 7v8a4 4 0 0 0 4 4h6M8 5h8a4 4 0 0 1 0 8h-5"/></symbol>
         <symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 5h11v12H3zM14 9h4l3 4v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="18" cy="18" r="2"/></symbol>
@@ -32,16 +33,17 @@
     <a class="skip-link" href="#contenido">Ir al contenido</a>
     <header class="pilot-header">
         <div class="header-inner">
-            <a class="brand" href="@(ViewBag.EsAdministracion == true ? Url.Action("Administracion", "Piloto") : Url.Action("Index", "Piloto"))" aria-label="Smart K66"><span class="brand-mark">K66</span><span class="brand-copy">SMART K66<small>@(ViewBag.EsAdministracion == true ? "Administración de pilotos" : "Pilotos")</small></span></a>
+            <a class="brand" href="@(ViewBag.EsPanel==true ? Url.Action("Panel","Piloto") : ViewBag.EsAdministracion == true ? Url.Action("Administracion", "Piloto") : Url.Action("Index", "Piloto"))" aria-label="Smart K66"><span class="brand-mark">K66</span><span class="brand-copy">SMART K66<small>@(ViewBag.EsPanel==true?"Panel de distribución":ViewBag.EsAdministracion == true ? "Administración de pilotos" : "Pilotos")</small></span></a>
             @if (User.Identity.IsAuthenticated)
             {
                 <details class="account-menu">
                     <summary><svg class="icon" aria-hidden="true"><use href="#i-user" /></svg><span>Cuenta</span></summary>
                     <div class="account-panel"><span class="eyebrow">SESIÓN INICIADA</span><strong>@User.Identity.Name</strong>
-                        @if (ViewBag.EsAdministracion == true) {
+                        @if (ViewBag.EsAdministracion == true && ViewBag.EsPanel!=true) {
                             <a class="account-link" href="@Url.Action("Administracion", "Piloto")"><svg class="icon" aria-hidden="true"><use href="#i-settings" /></svg>Administrar pilotos</a>
                             <a class="account-link" href="@Url.Action("Dashboard", "Inicio")"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver al dashboard</a>
                         }
+                        @if(ViewBag.EsPanel==true){<a class="account-link" href="@Url.Action("Panel","Piloto")">Panel de distribución</a><a class="account-link" href="@Url.Action("Dashboard","Inicio")">Volver al inicio</a>}
                         @using (Html.BeginForm("LogOff", "Seguridad", FormMethod.Post)) {
                             @Html.AntiForgeryToken()
                             <button class="button-secondary" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-exit" /></svg>Cerrar sesión</button>

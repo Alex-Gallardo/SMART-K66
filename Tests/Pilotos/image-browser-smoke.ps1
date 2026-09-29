@@ -188,7 +188,8 @@ window.fetch=function(url){var client=String(url).indexOf('GuardarCliente')>=0;i
     $groupProbe=$groupProbe.Replace('__SCRIPT_URI__',$scriptUri)
     foreach($fixtureName in @('detalle-borrador','detalle-historial')) {
         $groupHtml=Get-Content -LiteralPath (Join-Path $PSScriptRoot ('bin/'+$fixtureName+'.html')) -Raw
-        $groupHtml=$groupHtml.Replace($marker,$groupProbe).Replace('<body>','<body data-saved-fixture="'+($fixtureName -eq 'detalle-borrador').ToString().ToLowerInvariant()+'">')
+        $groupHtml=$groupHtml.Replace($marker,$groupProbe)
+        $groupHtml=([regex]::new('<body(?=\s|>)')).Replace($groupHtml,'<body data-saved-fixture="'+($fixtureName -eq 'detalle-borrador').ToString().ToLowerInvariant()+'"',1)
         Set-Content -LiteralPath $smokeFile -Value $groupHtml -Encoding UTF8
         $output=& $ChromePath '--headless=new' '--disable-gpu' '--no-first-run' '--no-default-browser-check' '--window-size=425,900' '--virtual-time-budget=3000' '--dump-dom' $uri 2>&1 | Out-String
         if($output -notmatch 'data-group-smoke="PASS"') {

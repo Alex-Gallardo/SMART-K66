@@ -1587,6 +1587,7 @@
   -->
   <ItemGroup>
     <Compile Include="PilotoRutaDA.cs" />
+    <Compile Include="PilotoPanelDA.cs" />
     <Compile Include="PilotoAdministracionDA.cs" />
   </ItemGroup>
 </Project>

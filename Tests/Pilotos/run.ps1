@@ -21,12 +21,15 @@ $out=Join-Path $PSScriptRoot 'bin'
 New-Item -ItemType Directory -Force $out | Out-Null
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 $sources=@('DiamDev.Give.Entities/PilotoRuta.cs','DiamDev.Give.Entities/PilotoReglas.cs','DiamDev.Give.Entities/PilotoDesafio.cs','DiamDev.Give.Entities/PilotoAdministracion.cs','DiamDev.Give.DAL/PilotoRutaDA.cs','DiamDev.Give.DAL/PilotoAdministracionDA.cs','DiamDev.Give.BLL/PilotoRutaBL.cs','DiamDev.Give.BLL/PilotoAdministracionBL.cs','DiamDev.Give.UI/Controllers/PilotoController.cs','Tests/Pilotos/PilotoTests.cs') | ForEach-Object { Join-Path $repo $_ }
+$sources+=@('DiamDev.Give.Entities/PilotoPanel.cs','DiamDev.Give.DAL/PilotoPanelDA.cs','DiamDev.Give.BLL/PilotoPanelBL.cs','Tests/Pilotos/PanelTests.cs') | ForEach-Object { Join-Path $repo $_ }
 & $compiler /nologo /target:exe "/out:$out/PilotoTests.exe" /r:System.Configuration.dll /r:System.Data.dll /r:System.Xml.Linq.dll /r:System.Xml.dll /r:System.Web.dll /r:System.ComponentModel.DataAnnotations.dll "/r:$MvcDll" $sources
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion aislada del modulo.' }
 Copy-Item -LiteralPath $MvcDll -Destination $out -Force
 Copy-Item -LiteralPath $WebPagesDll -Destination $out -Force
 & (Join-Path $out 'PilotoTests.exe')
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas.' }
+& (Join-Path $out 'PilotoTests.exe') panel
+if($LASTEXITCODE -ne 0) { throw 'Fallaron las reglas del panel.' }
 $testConfig=Join-Path $out 'PilotoTests.exe.config'
 @'
 <configuration>
@@ -139,6 +142,8 @@ if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador SQL.' }
 $scripts=Get-ChildItem -LiteralPath (Join-Path $repo 'SqlMigrations/Pilotos') -Filter '1*.sql' | ForEach-Object FullName
 $scripts=@($scripts)+(Join-Path $repo 'SqlMigrations/Pilotos/06_rutas_activas_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/07_pos_instalacion_solo_lectura.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/20_borrador_cliente_pos.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/21_app_test_dos_rutas_dos_clientes.sql')+(Join-Path $repo 'SqlMigrations/Pilotos/22_cliente_completado_foto_pos.sql')
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/23_permiso_administrar_pos.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/24_permiso_monitorear_pos.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/25_eventos_cliente_pos.sql'
 $adminSql=Join-Path $out 'autorizacion-admin.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }
@@ -147,5 +152,9 @@ $rutasSql=Join-Path $out 'alcance-rutas.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-rutas | Set-Content -LiteralPath $rutasSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo proteccion de rutas abiertas/liquidadas en los alcances reales.' }
 $scripts+=$rutasSql
+$panelSql=Join-Path $out 'panel-consultas.sql'
+& (Join-Path $out 'PilotoTests.exe') sql-panel | Set-Content -LiteralPath $panelSql -Encoding UTF8
+if($LASTEXITCODE -ne 0) { throw 'Fallo obtener consultas reales del panel.' }
+$scripts+=$panelSql
 & (Join-Path $out 'SqlCompile.exe') $scripts
 if($LASTEXITCODE -ne 0) { throw 'Fallo sintaxis SQL.' }

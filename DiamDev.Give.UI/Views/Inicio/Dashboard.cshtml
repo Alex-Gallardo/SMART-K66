@@ -2,6 +2,11 @@
     ViewBag.Title = "Dashboard";
 }
 
+@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Pilotos.Monitorear"))
+{
+    <div class="callout callout-info"><h4>Panel de distribución</h4><p>Consulta rutas, pilotos, resultados, fotografías y actividad del módulo.</p><a class="btn btn-primary" href="@Url.Action("Panel","Piloto")">Abrir panel de distribución</a></div>
+}
+
 <style>
     .alert-info, .alert-info > a, .bg-info, .bg-info > a {
         color: #fff !important;

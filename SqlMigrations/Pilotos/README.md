@@ -302,6 +302,14 @@ se registra en `PilotoCierre.Operador`. Usar el login POS del piloto si tiene ha
 con Distribucion, sin truncar. No es el ROWID del empleado, la placa ni una clave.
 No determina el alcance de rutas. Los codigos de vinculos activos deben ser unicos.
 
+### Panel de distribución
+
+La consulta global `/Piloto/Panel` requiere `Pilotos.Monitorear`; la administración
+de vínculos conserva `Pilotos.Administrar`. El permiso se registra mediante el
+script 24 y los nuevos eventos permanentes de cliente mediante el 25, ambos en
+POS. Para instalación, fuentes, límites y validación integrada, consultar
+[PANEL_DISTRIBUCION.md](PANEL_DISTRIBUCION.md).
+
 ### Preparacion del cierre en APK66
 
 El listado y el historial excluyen rutas con `LIQUIDADO=1`; tampoco se pueden

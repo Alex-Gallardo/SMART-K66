@@ -13,6 +13,8 @@ namespace DiamDev.Give.DAL
     {
         private readonly string conexion;
         private readonly string apk;
+        internal string ConexionPanel { get { return conexion; } }
+        internal string CatalogoPanel { get { return apk; } }
         internal const string SqlAutorizacion = @"SELECT TOP (2)
 CAST(CASE WHEN u.Activo=1 AND u.Autenticar_Site=1 THEN 1 ELSE 0 END AS bit) AS Disponible,
 CAST(CASE WHEN EXISTS(

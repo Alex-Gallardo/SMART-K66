@@ -124,10 +124,15 @@
             if (!link || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
             event.preventDefault(); previousFocus = link; dialog.hidden = false; photo.hidden = true; state.textContent = 'Cargando fotografía…';
             document.getElementById('panel-photo-original').href = link.href; document.body.style.overflow = 'hidden';
-            Array.from(document.body.children).forEach(function (node) {
-                if (node.contains(dialog)) Array.from(node.children).filter(function (n) { return n !== dialog; }).forEach(function (n) { isolated.push({ node: n, inert: n.inert }); n.inert = true; });
-                else if (node.tagName !== 'SCRIPT') { isolated.push({ node: node, inert: node.inert }); node.inert = true; }
-            });
+            var current = dialog;
+            while (current.parentElement) {
+                var parent = current.parentElement;
+                Array.from(parent.children).filter(function (node) { return node !== current && node.tagName !== 'SCRIPT'; }).forEach(function (node) {
+                    isolated.push({ node: node, inert: node.inert }); node.inert = true;
+                });
+                if (parent === document.body) break;
+                current = parent;
+            }
             document.getElementById('panel-photo-close').focus();
             photo.onload = function () { photo.hidden = false; state.textContent = 'Fotografía guardada en POS.'; };
             photo.onerror = function () { photo.hidden = true; state.textContent = 'No pudimos cargar la fotografía. Revisa tu permiso, sesión o disponibilidad del archivo.'; };

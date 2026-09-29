@@ -3,9 +3,10 @@
 @using System.Web.Routing
 @using DiamDev.Give.Entities
 @{
-    Layout="~/Views/Shared/_PilotoLayout.cshtml";ViewBag.EsPanel=true;ViewBag.Title="Consulta de ruta";
+    Layout="~/Views/Shared/_Layout.cshtml";ViewBag.EsPanel=true;ViewBag.Title="Consulta de ruta";ViewBag.PilotoBackoffice=true;
     var r=Model.Detalle;var f=Model.Filtro;
 }
+<div class="pilot-admin-surface panel-shell"><div class="pilot-main">
 <a class="back-link" href="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(pagina:f.Pagina)))"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver al panel con mis filtros</a>
 <section class="panel-heading"><div><p class="eyebrow">CONSULTA ADMINISTRATIVA · @Model.Catalogo</p><h1>@r.Datos.Id</h1><p class="intro">@r.Datos.Piloto · @r.Datos.Centro · @r.Datos.Placa</p></div><div><span class="status status-@r.Datos.Estado">@r.Datos.EstadoNombre</span><span class="panel-badge">@(r.Liquidada?"Liquidada":"Sin liquidar")</span></div></section>
 <div class="panel-notice"><svg class="icon" aria-hidden="true"><use href="#i-eye" /></svg><p>Esta vista es de consulta. Los resultados POS pendientes se aplican a @Model.Catalogo únicamente cuando el piloto confirma el cierre.</p></div>
@@ -22,4 +23,5 @@
 <section class="panel-surface"><h2>Actividad de esta ruta en el período seleccionado</h2>@foreach(var a in Model.Actividad.Take(100)){<div class="panel-activity-item"><time>@PilotoPanelReglas.HoraGuatemala(a.FechaUtc).ToString("dd/MM/yyyy HH:mm:ss")</time><strong>@a.Tipo · @a.Actor</strong><p>@a.Descripcion</p><small>@a.Clave</small></div>}@if(Model.Actividad.Count==0){<p class="muted">No hay eventos guardados en este período.</p>}@if(Model.Actividad.Count>100){var valores=new RouteValueDictionary(f.Valores("actividad"));valores["Buscar"]=r.Datos.Id;<a href="@Url.Action("Panel","Piloto",valores)">Ver los @Model.Actividad.Count eventos en el listado paginado</a>}</section>
 @foreach(var aviso in Model.Avisos){<div class="panel-notice"><p>@aviso</p></div>}
 <div id="panel-photo-dialog" class="panel-photo-dialog" role="dialog" aria-modal="true" aria-labelledby="panel-photo-title" hidden><div class="panel-photo-surface"><div class="panel-section-heading"><h2 id="panel-photo-title">Fotografía guardada en POS</h2><button type="button" id="panel-photo-close" class="button-secondary">Cerrar</button></div><p id="panel-photo-state" role="status">Cargando fotografía…</p><img id="panel-photo-image" alt="Fotografía adjunta al documento o cliente" /><a id="panel-photo-original" target="_blank" rel="noopener">Abrir imagen original</a><small>El origen histórico de una imagen POS no incluye el catálogo de rutas.</small></div></div>
+</div></div>
 @section scripts { <script src="@Url.Content("~/Scripts/pilotos-panel.js")"></script> }

@@ -1,8 +1,10 @@
 @model DiamDev.Give.Entities.PilotoAdminLista
 @{
-    Layout = "~/Views/Shared/_PilotoLayout.cshtml";
+    Layout = "~/Views/Shared/_Layout.cshtml";
     ViewBag.Title = "Administrar pilotos";
+    ViewBag.PilotoBackoffice = true;
 }
+<div class="pilot-admin-surface"><div class="pilot-main">
 <section class="page-heading admin-heading">
     <p class="eyebrow">DISTRIBUCIÓN</p>
     <h1>Administrar pilotos</h1>
@@ -40,3 +42,4 @@ else
     }
     </div>
 }
+</div></div>

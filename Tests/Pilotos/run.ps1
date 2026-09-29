@@ -1,6 +1,17 @@
 param([string]$MvcDll, [string]$WebPagesDll, [string]$RazorDll, [string]$ScriptDomDll)
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+$adminViews=@('Administracion','Configurar','AdministracionError','Panel','PanelDetalle','PanelError')
+foreach($name in $adminViews) {
+    $view=Get-Content -LiteralPath (Join-Path $repo ('DiamDev.Give.UI/Views/Piloto/'+$name+'.cshtml')) -Raw
+    if($view -notmatch 'Layout\s*=\s*"~/Views/Shared/_Layout\.cshtml"' -or $view -notmatch 'ViewBag\.PilotoBackoffice\s*=\s*true') {
+        throw ('La vista administrativa debe usar el layout principal: '+$name)
+    }
+}
+foreach($name in @('Index','Detalle','Error')) {
+    $view=Get-Content -LiteralPath (Join-Path $repo ('DiamDev.Give.UI/Views/Piloto/'+$name+'.cshtml')) -Raw
+    if($view -notmatch 'Layout\s*=\s*"~/Views/Shared/_PilotoLayout\.cshtml"') { throw ('El portal piloto debe conservar su layout: '+$name) }
+}
 $webConfig=New-Object System.Xml.XmlDocument
 $webConfig.Load((Join-Path $repo 'DiamDev.Give.UI/Web.config'))
 $cierreSetting=@($webConfig.SelectNodes("/configuration/appSettings/add[@key='Pilotos.PermitirCierre']"))

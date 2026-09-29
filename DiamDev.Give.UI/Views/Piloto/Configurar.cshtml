@@ -1,8 +1,10 @@
 @model DiamDev.Give.Entities.PilotoAdminEdicion
 @{
-    Layout = "~/Views/Shared/_PilotoLayout.cshtml";
+    Layout = "~/Views/Shared/_Layout.cshtml";
     ViewBag.Title = "Configurar piloto";
+    ViewBag.PilotoBackoffice = true;
 }
+<div class="pilot-admin-surface"><div class="pilot-main">
 <a class="back-link" href="@Url.Action("Administracion")"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver a pilotos</a>
 <section class="page-heading admin-heading">
     <p class="eyebrow">CONFIGURACIÓN OPERATIVA</p>
@@ -55,3 +57,5 @@
     @if (Model.Rutas.Count == 0) { <p class="admin-empty">No hay rutas A/E que coincidan con el vínculo actual.</p> }
     else { <div class="preview-routes">@foreach (var ruta in Model.Rutas) { <article><span class="route-status status-@ruta.Estado.ToLowerInvariant()">@ruta.EstadoNombre</span><strong>@ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small></article> }</div> }
 </section>
+</div></div>
+@section scripts { <script src="@Url.Content("~/Scripts/pilotos.js")"></script> }

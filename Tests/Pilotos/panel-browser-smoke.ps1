@@ -25,9 +25,17 @@ check(window.PilotoPanelUI.validDates('2026-09-01','2026-10-01'),'31 días inclu
 var content=document.getElementById('panel-content');
 if(content){
     var antes=content.innerHTML;
+    var filterToggle=document.getElementById('panel-filter-toggle');
+    var filterBody=document.getElementById('panel-filter-body');
+    check(filterBody.hidden && filterToggle.getAttribute('aria-expanded')==='false','Filtros cerrados inicialmente');
+    filterToggle.click();
+    check(!filterBody.hidden && filterToggle.getAttribute('aria-expanded')==='true' && filterToggle.textContent.indexOf('Ocultar filtros')>=0,'Botón abre todos los filtros');
+    filterToggle.click();
+    check(filterBody.hidden && filterToggle.getAttribute('aria-expanded')==='false','Botón cierra los filtros');
     document.getElementById('panel-desde').value='2026-09-30';document.getElementById('panel-hasta').value='2026-09-01';
     var submit=new Event('submit',{bubbles:true,cancelable:true});document.getElementById('panel-filters').dispatchEvent(submit);
     check(submit.defaultPrevented && !document.getElementById('panel-message').hidden,'Validación propia visible');
+    check(!filterBody.hidden && filterToggle.getAttribute('aria-expanded')==='true','La validación abre los filtros');
     await window.PilotoPanelUI.refresh(false);
     check(content.innerHTML===antes,'Error conserva los datos previos');
     check(document.getElementById('panel-message').textContent.indexOf('Error simulado')>=0,'Error integrado');

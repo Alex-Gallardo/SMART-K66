@@ -53,6 +53,7 @@
         {
             <link href="~/Content/pilotos-panel-backoffice.css" rel="stylesheet" />
         }
+        <link href="~/Content/pilotos-backoffice-ux.css?v=20260929" rel="stylesheet" />
     }
     @RenderSection("styles", required: false)
     <style type="text/css">
@@ -70,7 +71,7 @@
 
     <link rel="shortcut icon" href="~/favicon.ico" />
 </head>
-<body class="app-shell">
+<body class="app-shell @(ViewBag.PilotoBackoffice == true ? "app-piloto-backoffice" : "")">
     @if (ViewBag.PilotoBackoffice == true)
     {
         <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" style="position:absolute;width:0;height:0;overflow:hidden">
@@ -234,9 +235,12 @@
                                     @(ViewBag.PilotoBackoffice == true ? ViewBag.Title : Session["Encabezado"])
                                 </li>
                             </ol>
-                            <div class="page-header app-page-header">
-                                <h1>@(ViewBag.PilotoBackoffice == true ? ViewBag.Title : Session["Encabezado"]) <small>@(ViewBag.PilotoBackoffice == true ? null : Session["SubEncabezado"])</small></h1>
-                            </div>
+                            @if (ViewBag.PilotoBackoffice != true)
+                            {
+                                <div class="page-header app-page-header">
+                                    <h1>@Session["Encabezado"] <small>@Session["SubEncabezado"]</small></h1>
+                                </div>
+                            }
                         </div>
                         <!-- end: PAGE TITLE & BREADCRUMB -->
                     </div>

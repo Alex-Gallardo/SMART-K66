@@ -7,11 +7,13 @@
     var f=Model.Filtro;
     var secciones=new[]{"resumen","rutas","pilotos","documentos","actividad","alertas"};
     var titulos=new[]{"Resumen","Rutas","Pilotos","Documentos","Actividad","Alertas"};
+    var filtrosAdicionales=new[]{f.Estado!="todos",f.Liquidacion!="no",!string.IsNullOrWhiteSpace(f.Piloto),f.Usuario.HasValue,!string.IsNullOrWhiteSpace(f.Centro),!string.IsNullOrWhiteSpace(f.Placa),f.Avance!="todos",f.Resultado!="todos",!string.IsNullOrWhiteSpace(f.Buscar),f.Evento!="todos"}.Count(x=>x);
 }
 <div class="pilot-admin-surface panel-shell"><div class="pilot-main">
-<section class="panel-heading"><div><p class="eyebrow">CONTROL DE DISTRIBUCIÓN</p><h1>Panel de distribución</h1><p class="intro">Todos los pilotos y centros. Avance guardado y resultados de @Model.Catalogo.</p></div><div class="panel-heading-actions"><button type="button" class="button-secondary" id="panel-refresh"><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg>Actualizar</button>@if(Model.PuedeAdministrar){<a class="button-link" href="@Url.Action("Administracion","Piloto")">Administrar pilotos<svg class="icon" aria-hidden="true"><use href="#i-settings" /></svg></a>}</div></section>
+<section class="pbo-hero" aria-labelledby="panel-title"><span class="pbo-hero-icon" aria-hidden="true"><svg class="icon"><use href="#i-route" /></svg></span><div class="pbo-hero-copy"><p class="pbo-hero-kicker">CONTROL DE DISTRIBUCIÓN</p><h1 id="panel-title">Panel de distribución</h1><p>Todos los pilotos y centros. Avance guardado y resultados de @Model.Catalogo.</p></div><div class="pbo-hero-actions"><button type="button" class="pbo-hero-button" id="panel-refresh"><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg>Actualizar</button>@if(Model.PuedeAdministrar){<a class="pbo-hero-button" href="@Url.Action("Administracion","Piloto")">Administrar pilotos<svg class="icon" aria-hidden="true"><use href="#i-settings" /></svg></a>}</div></section>
 <div id="panel-message" class="panel-message" role="alert" hidden><span></span><button type="button" aria-label="Cerrar mensaje">×</button></div>
-<details class="panel-filter-details" id="panel-filter-details" open><summary><span>Filtros de rutas y pilotos</span><small>@f.Desde — @f.Hasta · @(f.Liquidacion=="no"?"Sin liquidar":f.Liquidacion=="si"?"Liquidadas":"Todas")</small></summary>
+<section class="pbo-filter-section" aria-label="Filtros de rutas y pilotos"><div class="pbo-filter-bar"><div class="pbo-filter-copy"><strong>Filtros de rutas y pilotos</strong><span>@f.Desde — @f.Hasta · @(f.Liquidacion=="no"?"Sin liquidar":f.Liquidacion=="si"?"Liquidadas":"Todas") · @(filtrosAdicionales==0?"Sin filtros adicionales":filtrosAdicionales+(filtrosAdicionales==1?" filtro adicional":" filtros adicionales"))</span></div><button type="button" class="pbo-filter-toggle" id="panel-filter-toggle" aria-expanded="false" aria-controls="panel-filter-body"><span>Mostrar filtros</span><svg class="icon" aria-hidden="true"><use href="#i-settings" /></svg></button></div>
+<div class="pbo-filter-body" id="panel-filter-body" hidden>
 <form id="panel-filters" class="panel-filters" action="@Url.Action("Panel","Piloto")" method="get" novalidate>
     <input type="hidden" name="Seccion" value="@f.Seccion" />
     <div class="panel-presets" aria-label="Períodos rápidos"><span>Período de las rutas</span><button type="button" data-period="hoy">Hoy</button><button type="button" data-period="ayer">Ayer</button><button type="button" data-period="semana">Últimos 7 días</button></div>
@@ -31,7 +33,7 @@
     </div>
     <div class="panel-filter-actions"><small>Hasta 31 días. Actividad por fecha del evento, hora Guatemala; avance sobre la ruta completa.</small><a class="button-link button-secondary" href="@Url.Action("Panel","Piloto")">Limpiar filtros</a><button type="submit">Aplicar filtros<svg class="icon" aria-hidden="true"><use href="#i-search" /></svg></button></div>
 </form>
-</details>
+</div></section>
 <div class="panel-toolbar"><nav class="panel-tabs" aria-label="Secciones del panel">@for(var i=0;i<secciones.Length;i++){<a href="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(secciones[i])))" aria-current="@(f.Seccion==secciones[i]?"page":null)">@titulos[i]</a>}</nav><label class="panel-auto"><input type="checkbox" id="panel-auto" />Actualizar cada 60 s</label></div>
 <div id="panel-content" data-refresh-url="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(pagina:f.Pagina)))" aria-busy="false">@Html.Partial("_PanelContenido",Model)</div>
 <div id="panel-toast" class="panel-toast" role="status" aria-live="polite" hidden></div>

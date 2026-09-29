@@ -6,10 +6,13 @@
 }
 <div class="pilot-admin-surface"><div class="pilot-main">
 <a class="back-link" href="@Url.Action("Administracion")"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver a pilotos</a>
-<section class="page-heading admin-heading">
-    <p class="eyebrow">CONFIGURACIÓN OPERATIVA</p>
-    <h1>@Model.Usuario.Nombre</h1>
-    <p class="intro"><strong>@Model.Usuario.Login</strong> · Usuario POS @Model.Usuario.UsuarioId</p>
+<section class="pbo-hero" aria-labelledby="config-title">
+    <span class="pbo-hero-icon" aria-hidden="true"><svg class="icon"><use href="#i-settings" /></svg></span>
+    <div class="pbo-hero-copy">
+        <p class="pbo-hero-kicker">CONFIGURACIÓN OPERATIVA</p>
+        <h1 id="config-title">@Model.Usuario.Nombre</h1>
+        <p><strong>@Model.Usuario.Login</strong> · Usuario POS @Model.Usuario.UsuarioId</p>
+    </div>
 </section>
 
 @if (TempData["Piloto.AdminMensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.AdminMensaje"]</p> }

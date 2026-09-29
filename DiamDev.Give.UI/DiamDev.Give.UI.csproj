@@ -1589,6 +1589,7 @@
     <Compile Include="Controllers\PilotoController.cs" />
     <Content Include="Content\pilotos.css" />
     <Content Include="Content\pilotos-backoffice.css" />
+    <Content Include="Content\pilotos-backoffice-ux.css" />
     <Content Include="Content\pilotos-panel.css" />
     <Content Include="Content\pilotos-panel-backoffice.css" />
     <Content Include="Scripts\pilotos-panel.js" />

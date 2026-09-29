@@ -32,7 +32,7 @@ let socket;
         const attached = await call('Target.attachToTarget', { targetId: target.targetId, flatten: true });
         const session = attached.sessionId;
         await call('Page.enable', {}, session);
-        for (const width of [390, 1440]) {
+        for (const width of [320, 390, 768, 1440]) {
             await call('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width === 390 }, session);
             await call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, session);
             for (const name of ['panel-resumen', 'panel-rutas', 'panel-pilotos', 'panel-documentos', 'panel-actividad', 'panel-alertas', 'panel-detalle', 'panel-error', 'administracion', 'configurar', 'administracion-error']) {
@@ -42,10 +42,26 @@ let socket;
                 html = html.replace('<script src="/Scripts/pilotos.js"></script>', '<script src="' + pathToFileURL(path.join(root, 'DiamDev.Give.UI/Scripts', isPanel ? 'pilotos-panel.js' : 'pilotos.js')).href + '"></script>');
                 const file = path.join(bin, 'panel-responsive-preview.html'); fs.writeFileSync(file, html);
                 await call('Page.navigate', { url: pathToFileURL(file).href + '?case=' + name + width }, session);
-                await wait(300);
-                const result = await call('Runtime.evaluate', { expression: 'JSON.stringify({width:innerWidth,scroll:document.documentElement.scrollWidth,motion:getComputedStyle(document.querySelector(".panel-surface,.admin-section,.pilot-main")).transitionDuration,shell:!!document.querySelector(".app-navbar,.app-sidebar"),isolated:!!document.querySelector(".pilot-admin-surface")})', returnByValue: true }, session);
+                let ready = false;
+                for (let attempt = 0; attempt < 50; attempt++) {
+                    const loaded = await call('Runtime.evaluate', { expression: 'document.readyState === "complete" && location.search === "?case=' + name + width + '" && !!document.querySelector(".pilot-admin-surface")', returnByValue: true }, session);
+                    if (loaded.result.value) { ready = true; break; }
+                    await wait(100);
+                }
+                if (!ready) throw new Error('La vista no terminó de cargar: ' + name + ' ' + width);
+                const result = await call('Runtime.evaluate', { expression: 'JSON.stringify({width:innerWidth,scroll:document.documentElement.scrollWidth,motion:getComputedStyle(document.querySelector(".panel-surface,.admin-section,.pilot-main")).transitionDuration,shell:!!document.querySelector(".app-navbar")&&!!document.querySelector(".app-sidebar"),isolated:!!document.querySelector(".pilot-admin-surface"),heroClear:!document.querySelector(".pbo-filter-section")||document.querySelector(".pbo-hero").getBoundingClientRect().bottom<=document.querySelector(".pbo-filter-section").getBoundingClientRect().top+1})', returnByValue: true }, session);
                 const value = JSON.parse(result.result.value);
-                if (value.width !== width || value.scroll > width + 1 || parseFloat(value.motion) > 0.001 || !value.shell || !value.isolated) throw new Error(name + ': ' + JSON.stringify(value));
+                if (value.width !== width || value.scroll > width + 1 || parseFloat(value.motion) > 0.001 || !value.shell || !value.isolated || !value.heroClear) throw new Error(name + ': ' + JSON.stringify(value));
+                if (name === 'panel-resumen') {
+                    const expanded = await call('Runtime.evaluate', { expression: 'document.getElementById("panel-filter-toggle").click();JSON.stringify({open:!document.getElementById("panel-filter-body").hidden,expanded:document.getElementById("panel-filter-toggle").getAttribute("aria-expanded"),scroll:document.documentElement.scrollWidth,clear:document.querySelector(".pbo-filter-section").getBoundingClientRect().bottom<=document.querySelector(".panel-toolbar").getBoundingClientRect().top+1})', returnByValue: true }, session);
+                    const filters = JSON.parse(expanded.result.value);
+                    if (!filters.open || filters.expanded !== 'true' || filters.scroll > width + 1 || !filters.clear) throw new Error('Filtros expandidos ' + width + ': ' + JSON.stringify(filters));
+                    if (width === 390 || width === 1440) {
+                        const metrics = await call('Page.getLayoutMetrics', {}, session);
+                        const shot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height: Math.min(3000, metrics.cssContentSize.height), scale: 1 } }, session);
+                        fs.writeFileSync(path.join(bin, 'panel-filtros-' + width + '.png'), Buffer.from(shot.data, 'base64'));
+                    }
+                }
                 if (['panel-resumen','panel-detalle','administracion','configurar'].includes(name)) {
                     const metrics = await call('Page.getLayoutMetrics', {}, session);
                     const shot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height: Math.min(3500, metrics.cssContentSize.height), scale: 1 } }, session);

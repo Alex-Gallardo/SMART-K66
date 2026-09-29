@@ -2,12 +2,13 @@
 @using System.Linq
 @using System.Web.Routing
 @{
-    Layout="~/Views/Shared/_PilotoLayout.cshtml";
-    ViewBag.Title="Panel de distribución"; ViewBag.EsPanel=true;
+    Layout="~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title="Panel de distribución"; ViewBag.EsPanel=true; ViewBag.PilotoBackoffice=true;
     var f=Model.Filtro;
     var secciones=new[]{"resumen","rutas","pilotos","documentos","actividad","alertas"};
     var titulos=new[]{"Resumen","Rutas","Pilotos","Documentos","Actividad","Alertas"};
 }
+<div class="pilot-admin-surface panel-shell"><div class="pilot-main">
 <section class="panel-heading"><div><p class="eyebrow">CONTROL DE DISTRIBUCIÓN</p><h1>Panel de distribución</h1><p class="intro">Todos los pilotos y centros. Avance guardado y resultados de @Model.Catalogo.</p></div><div class="panel-heading-actions"><button type="button" class="button-secondary" id="panel-refresh"><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg>Actualizar</button>@if(Model.PuedeAdministrar){<a class="button-link" href="@Url.Action("Administracion","Piloto")">Administrar pilotos<svg class="icon" aria-hidden="true"><use href="#i-settings" /></svg></a>}</div></section>
 <div id="panel-message" class="panel-message" role="alert" hidden><span></span><button type="button" aria-label="Cerrar mensaje">×</button></div>
 <details class="panel-filter-details" id="panel-filter-details" open><summary><span>Filtros de rutas y pilotos</span><small>@f.Desde — @f.Hasta · @(f.Liquidacion=="no"?"Sin liquidar":f.Liquidacion=="si"?"Liquidadas":"Todas")</small></summary>
@@ -34,4 +35,5 @@
 <div class="panel-toolbar"><nav class="panel-tabs" aria-label="Secciones del panel">@for(var i=0;i<secciones.Length;i++){<a href="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(secciones[i])))" aria-current="@(f.Seccion==secciones[i]?"page":null)">@titulos[i]</a>}</nav><label class="panel-auto"><input type="checkbox" id="panel-auto" />Actualizar cada 60 s</label></div>
 <div id="panel-content" data-refresh-url="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(pagina:f.Pagina)))" aria-busy="false">@Html.Partial("_PanelContenido",Model)</div>
 <div id="panel-toast" class="panel-toast" role="status" aria-live="polite" hidden></div>
+</div></div>
 @section scripts { <script src="@Url.Content("~/Scripts/pilotos-panel.js")"></script> }

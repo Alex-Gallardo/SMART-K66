@@ -12,6 +12,21 @@ using DiamDev.Give.Entities;
 // Renders compiled Razor with fictitious models. No controller, SQL, login or HTTP server.
 internal static class RazorPreview
 {
+    public static string AssetsRoot;
+    private static string Asset(string relative) { return new Uri(Path.Combine(AssetsRoot,relative.Replace('/',Path.DirectorySeparatorChar))).AbsoluteUri; }
+    public static string Backoffice(string body,bool panel)
+    {
+        return "<!DOCTYPE html><html lang=\"es\"><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />"
+            +"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/assets/plugins/bootstrap/css/bootstrap.min.css")+"\" />"
+            +"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/assets/css/main.css")+"\" />"
+            +"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/ui-shell.css")+"\" />"
+            +"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/pilotos-backoffice.css")+"\" />"
+            +(panel?"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/pilotos-panel-backoffice.css")+"\" />":"")
+            +"</head><body class=\"app-shell\"><div class=\"navbar navbar-inverse navbar-fixed-top app-navbar\"><div class=\"container app-navbar-container\"><span class=\"navbar-brand app-brand\">Smart K66 · APP WEB</span></div></div>"
+            +"<div class=\"main-container app-main-container\"><div class=\"navbar-content\"><div class=\"main-navigation navbar-collapse collapse app-sidebar\" id=\"app-sidebar\"><ul class=\"main-navigation-menu\"><li class=\"app-menu-home\"><a href=\"/Inicio/Dashboard\">Inicio</a></li></ul></div></div>"
+            +"<main class=\"main-content\" id=\"main-content\"><div class=\"container app-content-container\"><div class=\"app-page-heading\"><div class=\"page-header app-page-header\"><h1>"+(panel?"Panel de distribución":"Administración de pilotos")+"</h1></div></div>"
+            +body+"</div></main></div><script src=\"/Scripts/pilotos.js\"></script></body></html>";
+    }
     private sealed class PreviewController : Controller {}
     private sealed class PreviewView : IView { public void Render(ViewContext context, TextWriter writer) {} }
     private sealed class PreviewRequest : HttpRequestWrapper {

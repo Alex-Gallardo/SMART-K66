@@ -383,7 +383,7 @@ namespace DiamDev.Give.UI.Controllers
                 ViewBag.Referencia=referencia;
                 Trace.TraceError("Pilotos: referencia={0}, tipo={1}, numeroSQL={2}", referencia, e.GetType().Name, sql == null ? 0 : sql.Number);
             }
-            return View("Error");
+            return View(ViewBag.EsAdministracion == true ? "AdministracionError" : "Error");
         }
     }
 }

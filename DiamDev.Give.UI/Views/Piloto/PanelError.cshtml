@@ -1,2 +1,4 @@
-@{ Layout="~/Views/Shared/_PilotoLayout.cshtml";ViewBag.Title="Panel de distribución";ViewBag.EsPanel=true; }
+@{ Layout="~/Views/Shared/_Layout.cshtml";ViewBag.Title="Panel de distribución";ViewBag.EsPanel=true;ViewBag.PilotoBackoffice=true; }
+<div class="pilot-admin-surface panel-shell"><div class="pilot-main">
 <section class="panel-surface panel-error"><p class="eyebrow">PANEL DE DISTRIBUCIÓN</p><h1>No pudimos completar la consulta</h1><div class="panel-notice" role="alert"><p>@ViewBag.Mensaje</p></div>@if(ViewBag.Referencia!=null){<p class="muted">Referencia: @ViewBag.Referencia</p>}<a class="button-link" href="@Url.Action("Panel","Piloto")">Volver al panel</a><a class="panel-text-link" href="@Url.Action("Dashboard","Inicio")">Volver al inicio</a></section>
+</div></div>

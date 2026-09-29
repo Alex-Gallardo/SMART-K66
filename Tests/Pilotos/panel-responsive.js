@@ -35,22 +35,23 @@ let socket;
         for (const width of [390, 1440]) {
             await call('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width === 390 }, session);
             await call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, session);
-            for (const name of ['resumen', 'rutas', 'pilotos', 'documentos', 'actividad', 'alertas', 'detalle']) {
-                let html = fs.readFileSync(path.join(bin, 'panel-' + name + '.html'), 'utf8');
+            for (const name of ['panel-resumen', 'panel-rutas', 'panel-pilotos', 'panel-documentos', 'panel-actividad', 'panel-alertas', 'panel-detalle', 'panel-error', 'administracion', 'configurar', 'administracion-error']) {
+                const isPanel = name.startsWith('panel-');
+                let html = fs.readFileSync(path.join(bin, name + '.html'), 'utf8');
                 for (const css of ['pilotos.css', 'pilotos-panel.css']) html = html.replace('/Content/' + css, pathToFileURL(path.join(root, 'DiamDev.Give.UI/Content', css)).href);
-                html = html.replace('<script src="/Scripts/pilotos.js"></script>', '<script src="' + pathToFileURL(path.join(root, 'DiamDev.Give.UI/Scripts/pilotos-panel.js')).href + '"></script>');
+                html = html.replace('<script src="/Scripts/pilotos.js"></script>', '<script src="' + pathToFileURL(path.join(root, 'DiamDev.Give.UI/Scripts', isPanel ? 'pilotos-panel.js' : 'pilotos.js')).href + '"></script>');
                 const file = path.join(bin, 'panel-responsive-preview.html'); fs.writeFileSync(file, html);
                 await call('Page.navigate', { url: pathToFileURL(file).href + '?case=' + name + width }, session);
                 await wait(300);
-                const result = await call('Runtime.evaluate', { expression: 'JSON.stringify({width:innerWidth,scroll:document.documentElement.scrollWidth,motion:getComputedStyle(document.querySelector(".panel-surface")).transitionDuration})', returnByValue: true }, session);
+                const result = await call('Runtime.evaluate', { expression: 'JSON.stringify({width:innerWidth,scroll:document.documentElement.scrollWidth,motion:getComputedStyle(document.querySelector(".panel-surface,.admin-section,.pilot-main")).transitionDuration,shell:!!document.querySelector(".app-navbar,.app-sidebar"),isolated:!!document.querySelector(".pilot-admin-surface")})', returnByValue: true }, session);
                 const value = JSON.parse(result.result.value);
-                if (value.width !== width || value.scroll > width + 1 || value.motion !== '0s') throw new Error(name + ': ' + JSON.stringify(value));
-                if (name === 'resumen' || name === 'detalle') {
+                if (value.width !== width || value.scroll > width + 1 || parseFloat(value.motion) > 0.001 || !value.shell || !value.isolated) throw new Error(name + ': ' + JSON.stringify(value));
+                if (['panel-resumen','panel-detalle','administracion','configurar'].includes(name)) {
                     const metrics = await call('Page.getLayoutMetrics', {}, session);
                     const shot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height: Math.min(3500, metrics.cssContentSize.height), scale: 1 } }, session);
-                    fs.writeFileSync(path.join(bin, 'panel-' + name + '-' + width + '.png'), Buffer.from(shot.data, 'base64'));
+                    fs.writeFileSync(path.join(bin, name + '-' + width + '.png'), Buffer.from(shot.data, 'base64'));
                 }
-                console.log('OK panel ' + name + ': viewport ' + width + ', sin desbordamiento y movimiento reducido.');
+                console.log('OK ' + name + ': viewport ' + width + ', sin desbordamiento y movimiento reducido.');
             }
         }
         await call('Browser.close');

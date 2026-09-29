@@ -1588,7 +1588,9 @@
   <ItemGroup>
     <Compile Include="Controllers\PilotoController.cs" />
     <Content Include="Content\pilotos.css" />
+    <Content Include="Content\pilotos-backoffice.css" />
     <Content Include="Content\pilotos-panel.css" />
+    <Content Include="Content\pilotos-panel-backoffice.css" />
     <Content Include="Scripts\pilotos-panel.js" />
     <Content Include="Views\Piloto\Panel.cshtml" />
     <Content Include="Views\Piloto\_PanelContenido.cshtml" />
@@ -1599,6 +1601,7 @@
     <Content Include="Views\Piloto\Index.cshtml" />
     <Content Include="Views\Piloto\Detalle.cshtml" />
     <Content Include="Views\Piloto\Error.cshtml" />
+    <Content Include="Views\Piloto\AdministracionError.cshtml" />
     <Content Include="Views\Piloto\Administracion.cshtml" />
     <Content Include="Views\Piloto\Configurar.cshtml" />
     <Content Include="Views\Seguridad\PilotoToken.cshtml" />

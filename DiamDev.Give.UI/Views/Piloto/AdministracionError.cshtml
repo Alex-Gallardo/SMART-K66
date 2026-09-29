@@ -1,0 +1,18 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Administración de pilotos";
+    ViewBag.PilotoBackoffice = true;
+}
+<div class="pilot-admin-surface"><div class="pilot-main">
+    <section class="empty-state error-state">
+        <p class="eyebrow">ADMINISTRACIÓN DE PILOTOS</p>
+        <h1>No pudimos completar la solicitud</h1>
+        <p role="alert">@ViewBag.Mensaje</p>
+        <div class="error-actions">
+            <a class="button-link" href="@Url.Action("Administracion", "Piloto")">Volver a administrar</a>
+            <a class="button-link button-secondary" href="@Url.Action("Dashboard", "Inicio")">Volver al inicio</a>
+        </div>
+        @if (ViewBag.Referencia != null) { <p class="support-reference">Referencia para soporte: <code>@ViewBag.Referencia</code></p> }
+        <p class="muted">Revisa que la instalación, permisos y catálogos estén disponibles antes de volver a guardar.</p>
+    </section>
+</div></div>

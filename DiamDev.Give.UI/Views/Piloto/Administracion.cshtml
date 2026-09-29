@@ -5,10 +5,13 @@
     ViewBag.PilotoBackoffice = true;
 }
 <div class="pilot-admin-surface"><div class="pilot-main">
-<section class="page-heading admin-heading">
-    <p class="eyebrow">DISTRIBUCIÓN</p>
-    <h1>Administrar pilotos</h1>
-    <p class="intro">Vincula cada cuenta POS con su empleado, centros y vehículos autorizados. Las rutas en APK66 no se reasignan desde aquí.</p>
+<section class="pbo-hero" aria-labelledby="admin-title">
+    <span class="pbo-hero-icon" aria-hidden="true"><svg class="icon"><use href="#i-user" /></svg></span>
+    <div class="pbo-hero-copy">
+        <p class="pbo-hero-kicker">DISTRIBUCIÓN</p>
+        <h1 id="admin-title">Administrar pilotos</h1>
+        <p>Vincula cada cuenta POS con su empleado, centros y vehículos autorizados. Las rutas en APK66 no se reasignan desde aquí.</p>
+    </div>
 </section>
 
 @if (TempData["Piloto.AdminMensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.AdminMensaje"]</p> }

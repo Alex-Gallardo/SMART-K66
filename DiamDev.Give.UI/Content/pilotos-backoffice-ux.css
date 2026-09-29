@@ -1,0 +1,235 @@
+/* Administración y Panel comparten la estructura visual de Borradores y Cotizaciones.
+   Todas las reglas del contenido se limitan a estas vistas para no alterar el portal piloto. */
+body.app-shell.app-piloto-backoffice .app-page-heading {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin: 0 0 12px;
+  padding: 0;
+}
+
+body.app-shell.app-piloto-backoffice .app-breadcrumb { margin: 0; }
+
+.pilot-admin-surface {
+  --pbo-blue: #2563eb;
+  --pbo-ink: #0f172a;
+  --pbo-muted: #64748b;
+  --pbo-border: #dbe3ec;
+  color: var(--pbo-ink);
+  font-size: 14px;
+  line-height: 1.45;
+  min-width: 0;
+}
+
+.pilot-admin-surface .pilot-main { padding: 0 0 36px; }
+.pilot-admin-surface .back-link { font-size: 13px; margin: 0 0 12px; }
+.pilot-admin-surface .back-link .icon { width: 17px; height: 17px; }
+
+.pilot-admin-surface .pbo-hero {
+  align-items: center;
+  background: linear-gradient(125deg, #0f172a 0%, #1e3a8a 58%, #2563eb 100%);
+  border-radius: 14px;
+  box-shadow: 0 14px 32px rgba(30, 64, 175, .15);
+  color: #fff;
+  display: flex;
+  gap: 16px;
+  margin: 0 0 18px;
+  min-width: 0;
+  overflow: hidden;
+  padding: 20px 22px;
+  position: relative;
+}
+
+.pilot-admin-surface .pbo-hero::after {
+  background: radial-gradient(circle, rgba(255,255,255,.18), transparent 68%);
+  content: "";
+  height: 220px;
+  pointer-events: none;
+  position: absolute;
+  right: -45px;
+  top: -100px;
+  width: 220px;
+}
+
+.pilot-admin-surface .pbo-hero-icon {
+  align-items: center;
+  align-self: flex-start;
+  background: rgba(255,255,255,.13);
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 11px;
+  display: flex;
+  flex: 0 0 44px;
+  height: 44px;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.pilot-admin-surface .pbo-hero-icon .icon { width: 24px; height: 24px; }
+.pilot-admin-surface .pbo-hero-copy { flex: 1 1 auto; min-width: 0; position: relative; z-index: 1; }
+.pilot-admin-surface .pbo-hero-kicker { color: #bfdbfe; font-size: 11px; font-weight: 750; letter-spacing: .08em; margin: 0 0 4px; }
+.pilot-admin-surface .pbo-hero h1 { color: #fff; font-size: clamp(20px, 2.1vw, 25px); font-weight: 750; line-height: 1.2; margin: 0 0 4px; }
+.pilot-admin-surface .pbo-hero-copy > p:last-child { color: #dbeafe; font-size: 13px; line-height: 1.45; margin: 0; }
+.pilot-admin-surface .pbo-hero-copy strong { color: #fff; }
+.pilot-admin-surface .pbo-hero-actions,
+.pilot-admin-surface .pbo-hero-meta { display: flex; flex: 0 0 auto; flex-wrap: wrap; gap: 8px; position: relative; z-index: 1; }
+.pilot-admin-surface .pbo-hero-actions { justify-content: flex-end; }
+.pilot-admin-surface .pbo-hero-button,
+.pilot-admin-surface .pbo-hero-meta span {
+  align-items: center;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.27);
+  border-radius: 9px;
+  color: #fff;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 9px 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.pilot-admin-surface .pbo-hero-button:hover,
+.pilot-admin-surface .pbo-hero-button:focus-visible { background: rgba(255,255,255,.24); color: #fff; text-decoration: none; }
+.pilot-admin-surface .pbo-hero-button:disabled { opacity: .6; cursor: wait; }
+.pilot-admin-surface .pbo-hero-button .icon { width: 17px; height: 17px; }
+.pilot-admin-surface .pbo-hero-meta span { min-height: 32px; padding: 6px 10px; }
+
+/* Búsqueda, fichas y formularios de Administración. */
+.pilot-admin-surface .admin-search {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin: 0 0 18px;
+  max-width: none;
+  padding: 16px;
+  border-color: var(--pbo-border);
+  border-radius: 11px;
+}
+.pilot-admin-surface .admin-search > div { min-width: 0; }
+.pilot-admin-surface .admin-search label { color: #475569; font-size: 12px; font-weight: 700; }
+.pilot-admin-surface .admin-search input { min-height: 42px; }
+.pilot-admin-surface .admin-search button { min-height: 42px; }
+.pilot-admin-surface .list-heading { margin: 18px 0 12px; }
+.pilot-admin-surface .list-heading h2 { font-size: 18px; font-weight: 700; }
+.pilot-admin-surface .admin-user-grid { align-items: start; gap: 14px; }
+.pilot-admin-surface .admin-user-card,
+.pilot-admin-surface .admin-section { border-color: var(--pbo-border); border-radius: 11px; box-shadow: 0 4px 16px rgba(15, 23, 42, .045); padding: 18px; }
+.pilot-admin-surface .admin-user-card { min-width: 0; }
+.pilot-admin-surface .admin-user-card h3 { font-size: 17px; font-weight: 700; line-height: 1.3; }
+.pilot-admin-surface .admin-stats { gap: 8px 12px; margin: 14px 0; }
+.pilot-admin-surface .admin-stats dt { font-size: 11px; }
+.pilot-admin-surface .admin-stats dd { font-size: 13px; }
+.pilot-admin-surface .admin-section h2 { font-size: 18px; }
+.pilot-admin-surface .section-title p { font-size: 13px; }
+.pilot-admin-surface .check-card,
+.pilot-admin-surface .switch-card { border-width: 1px; }
+.pilot-admin-surface .check-card:has(input:checked),
+.pilot-admin-surface .switch-card:has(input:checked) { border-width: 1px; }
+
+/* El formulario completo vive dentro de un panel desplegable explícito. */
+.pilot-admin-surface .pbo-filter-section {
+  background: #fff;
+  border: 1px solid var(--pbo-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, .045);
+  margin: 0 0 16px;
+  min-width: 0;
+  overflow: hidden;
+}
+.pilot-admin-surface .pbo-filter-bar { align-items: center; display: flex; gap: 16px; justify-content: space-between; min-width: 0; padding: 13px 16px; }
+.pilot-admin-surface .pbo-filter-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pilot-admin-surface .pbo-filter-copy strong { font-size: 14px; }
+.pilot-admin-surface .pbo-filter-copy span { color: var(--pbo-muted); font-size: 12px; overflow-wrap: anywhere; }
+.pilot-admin-surface .pbo-filter-toggle {
+  align-items: center;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  color: #1d4ed8;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 8px;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 12px;
+}
+.pilot-admin-surface .pbo-filter-toggle:hover { background: #dbeafe; }
+.pilot-admin-surface .pbo-filter-toggle .icon { width: 16px; height: 16px; }
+.pilot-admin-surface .pbo-filter-body { border-top: 1px solid var(--pbo-border); }
+.pilot-admin-surface .pbo-filter-body[hidden] { display: none !important; }
+.pilot-admin-surface .pbo-filter-body .panel-filters { border: 0; border-radius: 0; box-shadow: none; margin: 0; padding: 16px; }
+.pilot-admin-surface .panel-filter-grid > div { min-width: 0; }
+.pilot-admin-surface .panel-filter-grid label { color: #475569; font-size: 12px; }
+.pilot-admin-surface .panel-filter-grid input,
+.pilot-admin-surface .panel-filter-grid select { min-width: 0; }
+.pilot-admin-surface .panel-filter-actions { border-top: 1px solid #e2e8f0; padding-top: 14px; }
+.pilot-admin-surface .panel-filter-actions small { font-size: 12px; }
+.pilot-admin-surface .panel-toolbar { margin: 0 0 16px; }
+.pilot-admin-surface .panel-tabs { background: #e9eef6; border-radius: 9px; gap: 3px; padding: 4px; }
+.pilot-admin-surface .panel-tabs a { border-radius: 7px; font-size: 13px; padding: 9px 12px; }
+.pilot-admin-surface .panel-tabs a[aria-current=page] { background: #2563eb; color: #fff; }
+.pilot-admin-surface .panel-auto { font-size: 12px; }
+.pilot-admin-surface .panel-surface,
+.pilot-admin-surface .panel-kpi { border-color: var(--pbo-border); border-radius: 11px; }
+.pilot-admin-surface .panel-kpi { padding: 16px; }
+.pilot-admin-surface .panel-kpi strong { font-size: 28px; }
+.pilot-admin-surface .panel-section-heading h2 { font-size: 18px; }
+
+.pilot-admin-surface :is(button, a, input, select, textarea, summary):focus-visible { outline: 3px solid #fbbf24; outline-offset: 2px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .pilot-admin-surface .pbo-hero,
+  .pilot-admin-surface .pbo-filter-section { animation: pbo-enter .26s ease-out both; }
+  .pilot-admin-surface .pbo-filter-section { animation-delay: .05s; }
+}
+@keyframes pbo-enter { from { opacity: .75; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (max-width: 1180px) {
+  .pilot-admin-surface .pbo-hero { align-items: flex-start; flex-wrap: wrap; }
+  .pilot-admin-surface .pbo-hero-actions,
+  .pilot-admin-surface .pbo-hero-meta { flex-basis: 100%; justify-content: flex-start; padding-left: 60px; }
+  .pilot-admin-surface .admin-user-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 700px) {
+  .pilot-admin-surface .pbo-hero { gap: 10px; padding: 16px; }
+  .pilot-admin-surface .pbo-hero-icon { flex-basis: 38px; height: 38px; }
+  .pilot-admin-surface .pbo-hero-icon .icon { width: 21px; height: 21px; }
+  .pilot-admin-surface .pbo-hero h1 { font-size: 20px; }
+  .pilot-admin-surface .pbo-hero-copy > p:last-child { font-size: 12px; }
+  .pilot-admin-surface .pbo-hero-actions,
+  .pilot-admin-surface .pbo-hero-meta { padding-left: 0; }
+  .pilot-admin-surface .pbo-hero-actions > * { flex: 1 1 140px; white-space: normal; }
+  .pilot-admin-surface .admin-user-grid { grid-template-columns: minmax(0, 1fr); }
+  .pilot-admin-surface .pbo-filter-bar { align-items: stretch; flex-direction: column; }
+  .pilot-admin-surface .pbo-filter-toggle { align-self: flex-start; }
+  .pilot-admin-surface .panel-filter-grid { grid-template-columns: minmax(0, 1fr); }
+  .pilot-admin-surface .panel-filter-actions { align-items: stretch; flex-direction: column; }
+  .pilot-admin-surface .panel-filter-actions small { width: 100%; }
+  .pilot-admin-surface .panel-filter-actions > :is(a, button) { width: 100%; }
+  .pilot-admin-surface .panel-toolbar { align-items: stretch; flex-direction: column; }
+  .pilot-admin-surface .panel-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .pilot-admin-surface .panel-tabs a { text-align: center; }
+  .pilot-admin-surface .panel-auto { align-self: flex-start; }
+}
+
+@media (max-width: 480px) {
+  .pilot-admin-surface .pbo-hero-icon { display: none; }
+  .pilot-admin-surface .pbo-hero-actions > * { flex-basis: 100%; }
+  .pilot-admin-surface .admin-search { grid-template-columns: minmax(0, 1fr); }
+  .pilot-admin-surface .admin-search button { width: 100%; }
+  .pilot-admin-surface .admin-user-card,
+  .pilot-admin-surface .admin-section { padding: 15px; }
+  .pilot-admin-surface .panel-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pilot-admin-surface .pbo-hero,
+  .pilot-admin-surface .pbo-filter-section { animation: none !important; transition: none !important; }
+}

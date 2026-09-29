@@ -24,8 +24,15 @@
         return !isNaN(a) && !isNaN(b) && a.toISOString().slice(0, 10) === from && b.toISOString().slice(0, 10) === to && b >= a && b - a < 31 * 86400000;
     }
     if (form) {
-        var filters = document.getElementById('panel-filter-details');
-        if (filters && window.matchMedia('(max-width: 700px)').matches) filters.open = false;
+        var filterToggle = document.getElementById('panel-filter-toggle');
+        var filterBody = document.getElementById('panel-filter-body');
+        function showFilters(open) {
+            if (!filterToggle || !filterBody) return;
+            filterBody.hidden = !open;
+            filterToggle.setAttribute('aria-expanded', String(open));
+            filterToggle.querySelector('span').textContent = open ? 'Ocultar filtros' : 'Mostrar filtros';
+        }
+        if (filterToggle && filterBody) filterToggle.addEventListener('click', function () { showFilters(filterBody.hidden); });
         form.addEventListener('input', function () { dirty = true; });
         form.addEventListener('change', function () { dirty = true; });
         form.addEventListener('submit', function (event) {
@@ -33,7 +40,7 @@
             a.removeAttribute('aria-invalid'); b.removeAttribute('aria-invalid');
             if (!validDates(a.value, b.value)) {
                 event.preventDefault(); a.setAttribute('aria-invalid', 'true'); b.setAttribute('aria-invalid', 'true');
-                if (filters) filters.open = true;
+                showFilters(true);
                 notify('Selecciona fechas válidas, en orden y con un máximo de 31 días.', true); a.focus();
             }
         });

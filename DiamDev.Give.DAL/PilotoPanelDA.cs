@@ -41,15 +41,19 @@ AND OBJECT_ID(N'dbo.PilotoClienteImagen',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.P
 AND OBJECT_ID(N'dbo.PilotoCierre',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVinculoHistorial',N'U') IS NOT NULL
 AND OBJECT_ID(N'dbo.PilotoCentroHistorial',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVehiculoHistorial',N'U') IS NOT NULL
 THEN 1 ELSE 0 END;";
-        internal string SqlRutas { get { return @"SELECT TOP (2001) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.LIQUIDADO,r.USR_MON,r.FECHA_MON,
+        // La tabla temporal debe nacer en el ámbito de la conexión, fuera de la consulta parametrizada.
+        internal string SqlCrearRutas { get { return @"SELECT TOP (0) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.LIQUIDADO,r.USR_MON,r.FECHA_MON,
+CAST(0 AS bit) VehiculoActivo INTO #PanelRutas FROM "+apk+@".dbo.RT_RUTAS r;
+CREATE UNIQUE CLUSTERED INDEX IX_PanelRutas ON #PanelRutas(ID_RUTA);"; } }
+        internal string SqlRutas { get { return @"INSERT #PanelRutas(ID_RUTA,FECHA_RUTA,STATUS,PILOTO,PLACA,CENTRO_DIST,LIQUIDADO,USR_MON,FECHA_MON,VehiculoActivo)
+SELECT TOP (2001) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.LIQUIDADO,r.USR_MON,r.FECHA_MON,
 CAST(CASE WHEN EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1) THEN 1 ELSE 0 END AS bit) VehiculoActivo
-INTO #PanelRutas FROM "+apk+@".dbo.RT_RUTAS r
+FROM "+apk+@".dbo.RT_RUTAS r
 WHERE (@id IS NOT NULL AND r.ID_RUTA=@id) OR (@id IS NULL AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin
 AND (@estado=N'todos' OR r.STATUS=@estado) AND r.STATUS IN(N'A',N'E',N'C',N'X')
 AND (@liquidacion=N'todas' OR @liquidacion=N'si' AND ISNULL(r.LIQUIDADO,0)=1 OR @liquidacion=N'no' AND ISNULL(r.LIQUIDADO,0)=0)
 AND (@piloto=N'' OR r.PILOTO=@piloto) AND (@centro=N'' OR r.CENTRO_DIST=@centro) AND (@placa=N'' OR r.PLACA=@placa))
 ORDER BY r.FECHA_RUTA DESC,r.ID_RUTA DESC;
-CREATE UNIQUE CLUSTERED INDEX IX_PanelRutas ON #PanelRutas(ID_RUTA);
 SELECT * FROM #PanelRutas ORDER BY CASE WHEN STATUS=N'E' THEN 0 ELSE 1 END,FECHA_RUTA DESC,ID_RUTA DESC;"; } }
         internal string SqlDocumentos { get { return @"SELECT TOP (100001) d.ID_RUTA,d.ROWID,d.TIPO,d.ID_EMPRESA,d.ID_DOCUMENTO,d.CLIENTE,d.DIR_DESPACHO,d.NO_BULTOS,
 d.MO_VISITO,d.MO_ENTREGA,d.MO_MOTIVO,d.MO_OBSER,d.MO_HR_ENTRADA,d.MO_HR_SALIDA
@@ -112,6 +116,7 @@ ORDER BY e.FechaUtc DESC,e.Tipo,e.Clave;"; } }
                     using(var c=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoClienteEvento',N'U') IS NULL THEN 0 ELSE 1 END;")) eventosClientes=(int)c.ExecuteScalar()==1;
                     if(!eventosClientes) modelo.Avisos.Add("Falta instalar la migración 25 de eventos de cliente. Los guardados se observan desde el borrador vigente y desaparecerán del historial al cerrar la ruta.");
                     CargarPilotos(cn,tx,modelo);
+                    using(var c=Cmd(cn,tx,SqlCrearRutas)) c.ExecuteNonQuery();
                     using(var c=Cmd(cn,tx,SqlRutas)) {
                         Param(c,"@id",SqlDbType.NVarChar,id,15);Param(c,"@desde",SqlDbType.Date,filtro.Inicio);Param(c,"@fin",SqlDbType.Date,filtro.Fin);
                         Param(c,"@estado",SqlDbType.NVarChar,filtro.Estado,10);Param(c,"@liquidacion",SqlDbType.NVarChar,filtro.Liquidacion,10);

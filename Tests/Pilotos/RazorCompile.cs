@@ -15,9 +15,9 @@ internal static class RazorCompile
     {
         try {
             string root=args[0], bin=Path.GetDirectoryName(typeof(RazorCompile).Assembly.Location);
-            var previews=new Dictionary<string,string>(); Type layout=null;
+            var previews=new Dictionary<string,string>(); Type layout=null;Type panelContenido=null;
             RouteTable.Routes.MapRoute("Default","{controller}/{action}/{id}",new {action="Index",id=UrlParameter.Optional});
-            foreach(var relative in new[]{"Piloto/Index.cshtml","Piloto/Detalle.cshtml","Piloto/Error.cshtml","Piloto/Administracion.cshtml","Piloto/Configurar.cshtml","Seguridad/PilotoToken.cshtml","Shared/_PilotoLayout.cshtml"}) {
+            foreach(var relative in new[]{"Piloto/Index.cshtml","Piloto/Detalle.cshtml","Piloto/Error.cshtml","Piloto/Administracion.cshtml","Piloto/Configurar.cshtml","Seguridad/PilotoToken.cshtml","Piloto/_PanelContenido.cshtml","Piloto/Panel.cshtml","Piloto/PanelDetalle.cshtml","Piloto/PanelError.cshtml","Shared/_PilotoLayout.cshtml"}) {
                 string file=Path.Combine(root,"DiamDev.Give.UI/Views/"+relative);
                 var host=new MvcWebPageRazorHost("~/Views/"+relative,file);
                 host.NamespaceImports.Add("System"); host.NamespaceImports.Add("System.Linq");
@@ -26,6 +26,8 @@ internal static class RazorCompile
                 System.Web.Razor.GeneratorResults code;
                 var source=File.ReadAllText(file);
                 if(args.Length>1 && relative=="Shared/_PilotoLayout.cshtml") source=source.Replace("@RenderBody()","@Html.Raw(ViewBag.PreviewBody)").Replace("@RenderSection(\"scripts\", required: false)","");
+                if(args.Length>1 && relative=="Piloto/Panel.cshtml") source=source.Replace("@Html.Partial(\"_PanelContenido\",Model)","@Html.Raw(ViewBag.PanelBody)");
+                if(args.Length>1 && relative.StartsWith("Piloto/Panel")) source=source.Replace("@section scripts { <script src=\"@Url.Content(\"~/Scripts/pilotos-panel.js\")\"></script> }","");
                 using(var reader=new StringReader(source)) code=engine.GenerateCode(reader);
                 if(!code.Success) { foreach(var e in code.ParserErrors) Console.Error.WriteLine(relative+": "+e); return 1; }
                 using(var compiler=new CSharpCodeProvider()) {
@@ -37,6 +39,13 @@ internal static class RazorCompile
                     if(args.Length>1) {
                         var type=result.CompiledAssembly.GetTypes().First(t=>typeof(WebViewPage).IsAssignableFrom(t));
                         if(relative=="Shared/_PilotoLayout.cshtml") layout=type;
+                        if(relative=="Piloto/_PanelContenido.cshtml") panelContenido=type;
+                        if(relative=="Piloto/Panel.cshtml") foreach(var seccion in new[]{"resumen","rutas","pilotos","documentos","actividad","alertas"}) {
+                            var modelo=RazorPreview.Panel(seccion);previews["panel-"+seccion]=RazorPreview.Render(type,modelo,RazorPreview.Render(panelContenido,modelo));
+                            if(seccion=="pilotos") {var admin=RazorPreview.Panel(seccion,true);previews["panel-admin"]=RazorPreview.Render(type,admin,RazorPreview.Render(panelContenido,admin));}
+                        }
+                        if(relative=="Piloto/PanelDetalle.cshtml") previews["panel-detalle"]=RazorPreview.Render(type,RazorPreview.Panel());
+                        if(relative=="Piloto/PanelError.cshtml") previews["panel-error"]=RazorPreview.Render(type,RazorPreview.Panel());
                         if(relative=="Piloto/Index.cshtml") {
                             previews["index"]=RazorPreview.Render(type,RazorPreview.Lista());
                             previews["fija"]=RazorPreview.Render(type,RazorPreview.Lista(true));
@@ -57,7 +66,7 @@ internal static class RazorCompile
                 Console.WriteLine("OK Razor: "+relative);
             }
             if(args.Length>1) foreach(var preview in previews) {
-                object model=preview.Key=="administracion" ? (object)RazorPreview.AdminLista() : preview.Key=="configurar" ? (object)RazorPreview.AdminEdicion() : null;
+                object model=preview.Key.StartsWith("panel-") ? (object)RazorPreview.Panel() : preview.Key=="administracion" ? (object)RazorPreview.AdminLista() : preview.Key=="configurar" ? (object)RazorPreview.AdminEdicion() : null;
                 File.WriteAllText(Path.Combine(bin,preview.Key+".html"),RazorPreview.Render(layout,model,preview.Value,"activas",preview.Key=="detalle-cierre" || preview.Key=="detalle-borrador"));
             }
             return 0;

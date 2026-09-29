@@ -381,6 +381,7 @@
   -->
   <ItemGroup>
     <Compile Include="PilotoRuta.cs" />
+    <Compile Include="PilotoPanel.cs" />
     <Compile Include="PilotoReglas.cs" />
     <Compile Include="PilotoAdministracion.cs" />
     <Compile Include="PilotoDesafio.cs" />

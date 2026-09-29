@@ -38,8 +38,10 @@ internal static class RazorPreview
             controller.ControllerContext=new ControllerContext(http,route,controller);
             var ruta=model as PilotoRuta; if(ruta!=null && vista=="historial") ruta.Estado="C";
             var viewData=new ViewDataDictionary(model);
-            viewData["PruebasSoloLectura"]=!editable; viewData["PreviewBody"]=body; viewData["PaginaRutas"]=1; viewData["Vista"]=vista;
+            viewData["PruebasSoloLectura"]=!(model is PilotoPanelModelo) && !editable; viewData["PreviewBody"]=body; viewData["PaginaRutas"]=1; viewData["Vista"]=vista;
             viewData["EsAdministracion"]=model is PilotoAdminLista || model is PilotoAdminEdicion;
+            viewData["EsPanel"]=model is PilotoPanelModelo;
+            viewData["PanelBody"]=body;
             viewData["Title"]="Pilotos · Demo"; viewData["Desde"]="2026-09-08"; viewData["Hasta"]="2026-09-21";
             viewData["Mensaje"]="La ruta no está disponible. Consulta a Distribución.";
             var page=(WebViewPage)Activator.CreateInstance(type);
@@ -56,6 +58,22 @@ internal static class RazorPreview
         var lista=new PilotoLista {Desde=new DateTime(2026,9,8),Hasta=new DateTime(2026,9,21),Pagina=1,Vista=vista,RutaFija=fija,Rutas=new List<PilotoRuta>()};
         if(!vacia) for(int i=1;i<=(fija?1:4);i++) lista.Rutas.Add(new PilotoRuta {Id="DEMO-2026-"+i.ToString("000"),Placa="DEMO-001",Fecha=new DateTime(2026,9,21),Estado=fija?"C":vista=="historial"?(i%2==0?"X":"C"):(i%2==0?"A":"E"),Centro="CENTRO DE DISTRIBUCIÓN",Piloto="Piloto de demostración"});
         return lista;
+    }
+    public static PilotoPanelModelo Panel(string seccion="resumen",bool admin=false)
+    {
+        var f=new PilotoPanelFiltro{Desde="2026-09-21",Hasta="2026-09-29",Seccion=seccion};f.Validar(new DateTime(2026,9,29));
+        var m=new PilotoPanelModelo{Filtro=f,Catalogo="APK66 DEMO",PuedeAdministrar=admin,ActualizadoUtc=new DateTime(2026,9,29,16,30,0)};
+        var p=new PilotoPanelPiloto{Id=1,Login="piloto_demo",Nombre="Piloto de demostración",Empleado="PILOTO DEMO",Operador="piloto_demo",CuentaActiva=true,RolPiloto=true,PermisoVer=true,PermisoConfirmar=true,VinculoActivo=true,EmpleadoActivo=true,EmpleadoUnico=true,Rutas=4};p.Centros.Add("PC");p.Placas.Add("DEMO");p.PlacasDisponibles.Add("DEMO");m.Pilotos.Add(p);
+        foreach(var estado in new[]{"E","A","C","X"}) {
+            var datos=RutaEditable();datos.Id="DEMO-"+estado;datos.Estado=estado;datos.Piloto="PILOTO DEMO";datos.Centro="PC";datos.Placa="DEMO";
+            var ruta=new PilotoPanelRuta{Datos=datos,VehiculoActivo=true,ActividadUtc=m.ActualizadoUtc};ruta.Pilotos.Add(p);
+            ruta.Clientes=datos.Documentos.GroupBy(PilotoPanelReglas.Grupo).Select(g=>new PilotoPanelCliente{Primero=g.Min(d=>d.RowId),Nombre=g.First().Cliente,Direccion=g.First().Direccion,Completado=estado=="C",Foto=true,Documentos=g.Select(d=>new PilotoPanelDocumento{Ruta=datos.Id,Datos=d,Foto=true,Fuente=estado=="E"?"POS · pendiente de cierre":"APK66"}).ToList()}).ToList();
+            if(estado=="E") {ruta.Clientes[0].Completado=true;ruta.Alertas.Add("Ejemplo: revisar configuración de distribución.");}
+            m.Rutas.Add(ruta);
+        }
+        m.Detalle=m.Rutas[0];m.Centros.Add("PC");m.Placas.Add("DEMO");m.NombresPiloto.Add("PILOTO DEMO");
+        m.Actividad.Add(new PilotoPanelActividad{Tipo="Cliente",Ruta="DEMO-E",Usuario=1,Actor="piloto_demo",Descripcion="Cliente guardado y bloqueado",FechaUtc=m.ActualizadoUtc,Clave="1"});
+        return m;
     }
     public static PilotoRuta Ruta()
     {

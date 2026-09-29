@@ -53,8 +53,75 @@ namespace DiamDev.Give.UI.Controllers
         private static bool EsAdministracion(ActionExecutingContext context)
         {
             var accion = context.ActionDescriptor.ActionName;
-            return string.Equals(accion, "Administracion", StringComparison.OrdinalIgnoreCase) ||
+            return new[]{"Panel","PanelDetalle","PanelImagen","PanelExportar"}.Contains(accion,StringComparer.OrdinalIgnoreCase) ||
+                   string.Equals(accion, "Administracion", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(accion, "Configurar", StringComparison.OrdinalIgnoreCase);
+        }
+
+        [HttpGet]
+        public ActionResult Panel(PilotoPanelFiltro filtro)
+        {
+            ViewBag.EsPanel=true;
+            try {
+                if(!ModelState.IsValid) throw new PilotoException(400,"Revisa los valores de los filtros.");
+                var modelo=new PilotoPanelBL().Leer(User.Identity.Name,filtro);
+                if(Request.IsAjaxRequest()) return PartialView("_PanelContenido",modelo);
+                return View(modelo);
+            } catch(Exception e) { return ErrorPanel(e); }
+        }
+        [HttpGet]
+        public ActionResult PanelDetalle(string id,PilotoPanelFiltro filtro)
+        {
+            ViewBag.EsPanel=true;
+            try {
+                if(!ModelState.IsValid) throw new PilotoException(400,"Revisa los valores de los filtros.");
+                return View(new PilotoPanelBL().Leer(User.Identity.Name,filtro,id));
+            } catch(Exception e) { return ErrorPanel(e); }
+        }
+        [HttpGet]
+        public ActionResult PanelImagen(string id,int rowId,bool cliente=false)
+        {
+            ViewBag.EsPanel=true;
+            try {
+                if(!ModelState.IsValid) throw new PilotoException(404,"Imagen no disponible.");
+                var imagen=new PilotoPanelBL().Imagen(User.Identity.Name,id,rowId,cliente);
+                Response.AddHeader("X-Content-Type-Options","nosniff");
+                return File(imagen.Contenido,imagen.ContentType);
+            } catch(Exception e) { return ErrorPanel(e); }
+        }
+        [HttpGet]
+        public ActionResult PanelExportar(PilotoPanelFiltro filtro,string tipo="rutas")
+        {
+            ViewBag.EsPanel=true;
+            try {
+                if(!ModelState.IsValid || tipo!="rutas" && tipo!="documentos") throw new PilotoException(400,"Selecciona una exportación válida.");
+                var m=new PilotoPanelBL().Leer(User.Identity.Name,filtro);
+                var lineas=new List<string[]>();
+                if(tipo=="rutas") {
+                    lineas.Add(new[]{"Ruta","Fecha","Estado","Liquidada","Piloto","Usuarios POS","Centro","Placa","Clientes","Completados","Documentos","Actividad UTC"});
+                    foreach(var r in m.Rutas) lineas.Add(new[]{r.Datos.Id,r.Datos.Fecha.ToString("yyyy-MM-dd"),r.Datos.Estado,r.Liquidada?"Sí":"No",r.Datos.Piloto,string.Join(" / ",r.Pilotos.Select(p=>p.Login)),r.Datos.Centro,r.Datos.Placa,r.Clientes.Count.ToString(),r.Completados.ToString(),r.Documentos.Count().ToString(),r.ActividadUtc.HasValue?r.ActividadUtc.Value.ToString("yyyy-MM-dd HH:mm:ss"):""});
+                } else {
+                    lineas.Add(new[]{"Ruta","ROWID","Tipo","Empresa","Documento","Cliente","Dirección","Visitó","Resultado","Motivo","Observación registrada","Observación POS","Fuente","Foto POS"});
+                    var docs=DocumentosPanel(m).ToList();
+                    if(docs.Count>10000) throw new PilotoException(400,"La exportación supera 10.000 documentos. Acota los filtros; no se descargó un archivo parcial.");
+                    foreach(var d in docs) lineas.Add(new[]{d.Ruta,d.Datos.RowId.ToString(),d.Datos.Tipo,d.Datos.Empresa,d.Datos.Documento,d.Datos.Cliente,d.Datos.Direccion,d.Datos.Visito.HasValue?(d.Datos.Visito.Value?"Sí":"No"):"",d.Resultado,d.Datos.Motivo,d.Datos.Observaciones,d.Datos.ObservacionPiloto,d.Fuente,d.Foto?"Sí":"No"});
+                }
+                var csv=string.Join("\r\n",lineas.Select(l=>string.Join(",",l.Select(PilotoPanelReglas.Csv))))+"\r\n";
+                var contenido=new System.Text.UTF8Encoding(true).GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(csv)).ToArray();
+                return File(contenido,"text/csv; charset=utf-8","pilotos-"+tipo+"-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+".csv");
+            } catch(Exception e) { return ErrorPanel(e); }
+        }
+        private static IEnumerable<PilotoPanelDocumento> DocumentosPanel(PilotoPanelModelo m)
+        {
+            return m.Rutas.SelectMany(r=>r.Documentos).Where(d=>(m.Filtro.Resultado=="todos" || d.Resultado==m.Filtro.Resultado) &&
+                (string.IsNullOrEmpty(m.Filtro.Buscar) || PilotoPanelReglas.Contiene(d.Ruta,m.Filtro.Buscar) || PilotoPanelReglas.Contiene(d.Datos.Documento,m.Filtro.Buscar) || PilotoPanelReglas.Contiene(d.Datos.Cliente,m.Filtro.Buscar)));
+        }
+        private ActionResult ErrorPanel(Exception e)
+        {
+            ErrorPiloto(e);
+            ViewBag.EsPanel=true;
+            if(Request.IsAjaxRequest()) return Json(new {mensaje=(string)ViewBag.Mensaje},JsonRequestBehavior.AllowGet);
+            return View("PanelError");
         }
 
         [HttpGet]

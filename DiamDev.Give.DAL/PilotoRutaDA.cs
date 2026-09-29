@@ -431,6 +431,17 @@ VALUES(@usuario,@ruta,@primero,@version,@masivo,@resultados,@anteriores,1);"))
                     Param(cmd,"@masivo",SqlDbType.Bit,borrador.MasivoActivo); Param(cmd,"@resultados",SqlDbType.NVarChar,resultados,-1);
                     Param(cmd,"@anteriores",SqlDbType.NVarChar,anteriores,-1); cmd.ExecuteNonQuery();
                 }
+                // El evento sobrevive al borrador. Instalación opcional para compatibilidad al desplegar.
+                using(var cmd=Command(cn,tx,@"IF OBJECT_ID(N'dbo.PilotoClienteEvento',N'U') IS NOT NULL
+EXEC sys.sp_executesql N'INSERT dbo.PilotoClienteEvento(CatalogoRutas,Ruta_Id,Primer_RowId,Usuario_Id,Version,Actor)
+VALUES(@catalogo,@ruta,@primero,@usuario,@version,@actor);',
+N'@catalogo sysname,@ruta nvarchar(15),@primero int,@usuario bigint,@version varchar(44),@actor nvarchar(50)',
+@catalogo,@ruta,@primero,@usuario,@version,@actor;")) {
+                    Param(cmd,"@catalogo",SqlDbType.NVarChar,apk.Substring(1,apk.Length-2).Replace("]]","]"),128);
+                    Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15);Param(cmd,"@primero",SqlDbType.Int,borrador.PrimerRowId);
+                    Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario);Param(cmd,"@version",SqlDbType.VarChar,borrador.Version,44);
+                    Param(cmd,"@actor",SqlDbType.NVarChar,login,50);cmd.ExecuteNonQuery();
+                }
                 tx.Commit();
             }
         }

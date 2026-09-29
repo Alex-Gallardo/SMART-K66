@@ -30,6 +30,10 @@ internal static class PanelTests
             var action=typeof(PilotoController).GetMethod(metodo);
             Check(action.GetCustomAttributes(typeof(HttpGetAttribute),false).Length==1,"Panel solo consulta: "+metodo);
         }
+        var dao=(PilotoPanelDA)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(typeof(PilotoPanelDA));
+        typeof(PilotoPanelDA).GetField("apk",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(dao,"[TEST_RUTAS]");
+        Check(dao.SqlCrearRutas.Contains("INTO #PanelRutas") && !dao.SqlCrearRutas.Contains("@"),"La tabla temporal se crea fuera del comando parametrizado");
+        Check(dao.SqlRutas.StartsWith("INSERT #PanelRutas") && !dao.SqlRutas.Contains("INTO #PanelRutas"),"La consulta parametrizada solo inserta en la tabla existente");
         var p=new PilotoPanelPiloto{Id=10,Login="piloto",Empleado="JULIO",Operador="piloto",CuentaActiva=true,RolPiloto=true,PermisoVer=true,PermisoConfirmar=true,VinculoActivo=true,EmpleadoActivo=true,EmpleadoUnico=true};p.Centros.Add("PC");p.PlacasDisponibles.Add("ABC");p.Placas.Add("ABC");
         var datos=new PilotoRuta{Id="RUTA",Estado="E",Piloto="JULIO",Centro="PC",Placa="ABC",Fecha=hoy};
         datos.Documentos.Add(new PilotoDocumento{RowId=1,Documento="F1",Cliente="CLIENTE",Direccion="DIR"});
@@ -56,7 +60,7 @@ internal static class PanelTests
     {
         var tipo=typeof(PilotoPanelDA);var da=(PilotoPanelDA)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(tipo);
         tipo.GetField("apk",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(da,"[TEST_RUTAS]");
-        foreach(var nombre in new[]{"SqlRutas","SqlDocumentos","SqlPilotos","SqlAsignaciones"}) Console.WriteLine(tipo.GetProperty(nombre,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null));
+        foreach(var nombre in new[]{"SqlCrearRutas","SqlRutas","SqlDocumentos","SqlPilotos","SqlAsignaciones"}) Console.WriteLine(tipo.GetProperty(nombre,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null));
         Console.WriteLine(PilotoPanelDA.SqlInstalacion);
         Console.WriteLine(tipo.GetProperty("SqlArtefactos",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null));
         Console.WriteLine(tipo.GetProperty("SqlActividad",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null));

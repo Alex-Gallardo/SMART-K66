@@ -1,0 +1,310 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>OTIF — On Time In Full — Grupo K66</title>
+    <link rel="stylesheet" href="@Url.Content("~/Content/otif-viz.css?v=20260930.1")">
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="viz-root">
+
+    <div class="topbar">
+        <div>
+            <h1><span class="brand-badge" id="brandBadge">GP</span> OTIF — On Time In Full</h1>
+            <p class="subtitle">Desempeño de entrega sobre líneas de pedido de venta ya entregadas (vía notas de entrega). Compara un período contra el anterior, o mira la tendencia completa para ver mejora en el tiempo.</p>
+            <div class="asof" id="asOfLine"></div>
+        </div>
+        <div class="topbar-actions">
+            <label class="sub-label" for="empresa">Empresa</label>
+            <select class="filter-select" id="empresa">
+                <option value="GRACO" selected>Graco</option>
+                <option value="BOLIK">Bolik</option>
+                <option value="ESCOCESA">Escocesa</option>
+            </select>
+            <label class="sub-label" for="datePreset">Ventana</label>
+            <select class="filter-select" id="datePreset">
+                <option value="3m" selected>Últimos 3 meses</option>
+                <option value="6m">Últimos 6 meses</option>
+                <option value="12m">Últimos 12 meses</option>
+                <option value="ytd">Año en curso</option>
+                <option value="all">Todo el histórico</option>
+                <option value="custom">Personalizado</option>
+            </select>
+            <label class="filter-label" style="font-size:12.5px;color:var(--text-secondary);">Desde</label>
+            <input type="date" id="from">
+            <label class="filter-label" style="font-size:12.5px;color:var(--text-secondary);">Hasta</label>
+            <input type="date" id="to">
+            <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-secondary);">
+                <input type="checkbox" id="compareToggle"> Comparar vs. período anterior
+            </label>
+            <button class="table-toggle-btn" id="refresh" style="margin-left:0;">Actualizar</button>
+            <button class="theme-toggle" id="themeToggle">Cambiar a claro</button>
+        </div>
+    </div>
+
+    <div class="wrap">
+        <div id="status" class="row-count" style="margin-bottom:12px;">Cargando…</div>
+
+        <div class="global-filters">
+            <span class="filter-label">Filtros:</span>
+            <input class="search-input" id="globalSearch" placeholder="Pedido, cliente, item o descripción…">
+            <input class="search-input" id="filCustomerCode" list="customerCodeList" placeholder="Código de cliente…" style="min-width:170px;">
+            <datalist id="customerCodeList"></datalist>
+            <input class="search-input" id="filItemCode" list="itemCodeList" placeholder="Código de item…" style="min-width:150px;">
+            <datalist id="itemCodeList"></datalist>
+            <select class="filter-select" id="filFamilia"><option value="">Todas las familias</option></select>
+            <select class="filter-select" id="filAgente"><option value="">Todos los vendedores</option></select>
+            <div class="chip-row" id="origenChips"></div>
+            <label class="filter-label" title="Por línea: cada línea de pedido cuenta por separado. Por pedido: el pedido completo solo cuenta como éxito si TODAS sus líneas llegaron a tiempo y completas (perfect order) — así es como muchos clientes evalúan OTIF de verdad.">Medir OTIF por</label>
+            <select class="filter-select" id="otifMode">
+                <option value="line" selected>Línea</option>
+                <option value="order">Pedido (todo-o-nada)</option>
+            </select>
+            <label class="filter-label" title="% de lo ordenado exigido para contar como entrega completa">Umbral completo</label>
+            <input type="number" id="fillThreshold" value="100" min="0" max="100" step="1"> %
+            <label class="filter-label" title="Días de gracia antes de contar una entrega como tarde">Tolerancia</label>
+            <input type="number" id="toleranceDays" value="0" min="0" step="1"> días
+            <button class="clear-filters-btn" id="clearFiltersBtn">Limpiar filtros</button>
+        </div>
+
+        <div class="kpi-row" id="kpiRow"></div>
+
+        <div class="card">
+            <div class="card-head">
+                <h2 class="card-title">% OTIF a través del tiempo</h2>
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);">
+                    Agrupar por
+                    <select class="filter-select" id="trendBucket">
+                        <option value="week">Semana</option>
+                        <option value="month" selected>Mes</option>
+                        <option value="year">Año</option>
+                    </select>
+                </label>
+            </div>
+            <p class="card-desc">Cubre TODO el rango de fechas cargado (no solo el período por defecto de 3 meses) — amplía "Desde" arriba para ver la tendencia de mejora en un horizonte más largo. Cada punto es el % OTIF de las líneas cumplidas en ese intervalo; el punto actual (todavía sin cerrar) aparece hueco.</p>
+            <div id="trendChart"></div>
+        </div>
+
+        <div id="detailPanel" class="card" style="display:none;">
+            <div class="detail-head">
+                <div>
+                    <h2 class="card-title detail-title" id="detailTitle"></h2>
+                    <div class="detail-sub" id="detailSub0" style="font-weight:600;"></div>
+                    <div class="detail-sub" id="detailSub1"></div>
+                    <div class="detail-sub" id="detailSub2"></div>
+                    <div class="detail-sub" id="detailSub3"></div>
+                    <button class="table-toggle-btn no-print" id="btnExportDetailPdf" style="margin-top:10px;">Exportar a PDF</button>
+                </div>
+                <div>
+                    <div class="detail-hero" id="detailHero"></div>
+                    <div class="detail-hero-sub">% OTIF de este cliente</div>
+                </div>
+            </div>
+            <div class="detail-section-title">Con oportunidad de mejora (&lt;100% OTIF) <span class="detail-note" id="detailNotCount"></span></div>
+            <div id="detailOportunidad"></div>
+            <div class="detail-section-title good">Con 100% OTIF <span class="detail-note" id="detailChipsCount"></span></div>
+            <div id="detailChips"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-head">
+                <h2 class="card-title">Resumen por cliente</h2>
+            </div>
+            <p class="card-desc">Clic en una fila para ver el detalle de ese cliente arriba (tabla tipo la que se usa en las diapositivas de revisión). Escribe un código de cliente completo en el filtro de arriba para el mismo efecto.</p>
+            <div class="toolbar">
+                <input class="search-input" id="custSearch" placeholder="Filtrar por código o nombre de cliente…">
+                <button class="table-toggle-btn" id="btnExportCust">Exportar a Excel</button>
+                <button class="table-toggle-btn" id="custTableToggle">Ocultar tabla</button>
+            </div>
+            <div id="custTableWrap">
+                <div class="table-scroll">
+                    <table id="custTable">
+                        <thead><tr>
+                            <th data-key="code">Código</th>
+                            <th data-key="name">Cliente</th>
+                            <th data-key="total" class="num">Líneas/Pedidos</th>
+                            <th data-key="cumplidas" class="num">Cumplidos</th>
+                            <th data-key="onTimePct" class="num">% A Tiempo</th>
+                            <th data-key="completePct" class="num">% Completo</th>
+                            <th data-key="fillRatePct" class="num">Fill Rate</th>
+                            <th data-key="otifPct" class="num">% OTIF</th>
+                            <th data-key="openOverdue" class="num">Abiertas vencidas</th>
+                            <th data-key="closedNoDelivery" class="num">Cerradas sin entrega</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="row-count" id="custRowCount"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-head">
+                <h2 class="card-title">Resumen por item</h2>
+            </div>
+            <p class="card-desc">Mismo cálculo que la tabla de clientes, agregado por item en vez de cliente — siempre a nivel de línea (el toggle "Medir OTIF por" arriba no aplica aquí, un pedido puede tener varios items distintos).</p>
+            <div class="toolbar">
+                <input class="search-input" id="itemSearch" placeholder="Filtrar por código o descripción de item…">
+                <button class="table-toggle-btn" id="btnExportItem">Exportar a Excel</button>
+                <button class="table-toggle-btn" id="itemTableToggle">Ocultar tabla</button>
+            </div>
+            <div id="itemTableWrap">
+                <div class="table-scroll">
+                    <table id="itemTable">
+                        <thead><tr>
+                            <th data-key="code">Código</th>
+                            <th data-key="desc">Descripción</th>
+                            <th data-key="total" class="num">Líneas</th>
+                            <th data-key="cumplidas" class="num">Cumplidas</th>
+                            <th data-key="onTimePct" class="num">% A Tiempo</th>
+                            <th data-key="completePct" class="num">% Completo</th>
+                            <th data-key="fillRatePct" class="num">Fill Rate</th>
+                            <th data-key="otifPct" class="num">% OTIF</th>
+                            <th data-key="openOverdue" class="num">Abiertas vencidas</th>
+                            <th data-key="closedNoDelivery" class="num">Cerradas sin entrega</th>
+                        </tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div class="row-count" id="itemRowCount"></div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div><strong>Metodología y notas</strong></div>
+        <ul>
+            <li>Fuente: <code>otif.sql</code> (ORDR/RDR1 + ODLN/DLN1). Una línea solo entra en el % OTIF una vez que tiene una entrega REAL vinculada ("Cumplida") — no basta con que SAP la marque "Cerrada".</li>
+            <li>El rango de fechas ("Ventana"/Desde/Hasta) filtra por FECHA PROMETIDA (ShipDate de la línea, o DocDueDate del pedido si la línea no tiene override) — no por fecha en que se creó el pedido. Así, un pedido creado hace 6 meses pero prometido para esta semana sí aparece en "últimos 3 meses", y uno creado ayer pero prometido para diciembre no infla el % de este trimestre.</li>
+            <li>Validado 2026-09-23: 50,488 notas de entrega desde el go-live (2024-07-01), 104,584 líneas ligadas correctamente vía BaseType=17. En otras empresas (Bolik/Escocesa) esto no se ha re-validado — ver notas en otif.sql.</li>
+            <li>~8.8% de las líneas "Cerradas" en Graco no tienen ninguna entrega vinculada — se muestran aparte ("Cerradas sin entrega"), nunca se cuentan como éxito ni como fallo.</li>
+            <li>Cantidades en CAJAS (RDR1.Quantity), no piezas. Ordenado vs. entregado se compara en la misma unidad.</li>
+            <li>"Umbral completo" y "Tolerancia" son ajustables arriba — cambian el cálculo de %Completo/%A Tiempo/%OTIF en vivo, para toda la página.</li>
+            <li>OTIF exige que la cantidad configurada por "Umbral completo" se haya entregado antes de la fecha prometida más la tolerancia; una primera entrega puntual seguida de una entrega tardía no basta. En modo "Pedido" se evalúan todas sus líneas, y el período se asigna por la última fecha prometida del pedido. "Resumen por item" siempre es por línea.</li>
+            <li>Fill Rate = unidades entregadas ÷ unidades pedidas (suma total). A diferencia de %Completo (todo-o-nada), da crédito parcial: una entrega del 90% suma 0.9. Cada línea tiene tope de 100% — entregar de más en una línea NO compensa lo entregado de menos en otra (en datos reales, 7.6% de las líneas entregadas traían sobre-entrega y sin tope el Fill Rate salía inflado).</li>
+        </ul>
+    </footer>
+
+    <div class="tooltip" id="tooltip"></div>
+</div>
+
+<script src="@Url.Content("~/Scripts/App/otif-viz.js?v=20260930.1")"></script>
+<script>
+    const $ = id => document.getElementById(id);
+
+    const GOLIVE = '2024-07-01'; // SAP go-live — nada existe antes de esta fecha
+
+    const isoLocal = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    function shiftISO(iso, days) {
+        const d = new Date(iso + 'T00:00:00Z');
+        d.setUTCDate(d.getUTCDate() + days);
+        return d.toISOString().slice(0, 10);
+    }
+
+    function applyPreset(preset) {
+        if (preset === 'custom') return; // deja from/to como estén
+        const today = new Date();
+        let from;
+        const monthsAgo = count => {
+            const first = new Date(today.getFullYear(), today.getMonth() - count, 1);
+            const lastDay = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+            return new Date(first.getFullYear(), first.getMonth(), Math.min(today.getDate(), lastDay));
+        };
+        if (preset === '3m') { from = monthsAgo(3); }
+        else if (preset === '6m') { from = monthsAgo(6); }
+        else if (preset === '12m') { from = monthsAgo(12); }
+        else if (preset === 'ytd') { from = new Date(today.getFullYear(), 0, 1); }
+        else if (preset === 'all') { from = new Date(2024, 6, 1); }
+        else return;
+        $('to').value = isoLocal(today);
+        $('from').value = isoLocal(from);
+    }
+
+    function initDates() {
+        applyPreset('3m');
+    }
+
+    function rangeLengthDays(from, to) {
+        return Math.round((new Date(to) - new Date(from)) / 86400000) + 1;
+    }
+
+    async function fetchRange(from, to, empresa) {
+        var urlGetData = '@Url.Action("GetData", "OTIF")';
+        const url = urlGetData
+            + `?from=${encodeURIComponent(from)}`
+            + `&to=${encodeURIComponent(to)}`
+            + `&empresa=${encodeURIComponent(empresa)}`;
+        const r = await fetch(url, { cache: 'no-store' });
+        if (!r.ok) {
+            throw new Error('Error ' + r.status + ': no fue posible consultar OTIF. Intenta de nuevo o contacta a IT.');
+        }
+        const j = await r.json();
+        return Array.isArray(j.rows) ? j.rows : [];
+    }
+
+    let requestId = 0;
+    async function load() {
+        const thisRequest = ++requestId;
+        const from = $('from').value;
+        const to = $('to').value;
+        const empresa = $('empresa').value;
+
+        if (!from || !to || from > to || from < GOLIVE) {
+            $('status').textContent = 'Selecciona un rango válido posterior al inicio de SAP.';
+            return;
+        }
+
+        $('status').textContent = 'Cargando…';
+
+        try {
+            const comparing = $('compareToggle').checked;
+            if (comparing) {
+                const len = rangeLengthDays(from, to);
+                const cTo = shiftISO(from, -1);
+                const cFrom = shiftISO(cTo, -(len - 1));
+                if (cFrom < GOLIVE) {
+                    $('status').textContent = 'El período de comparación comienza antes del inicio de SAP.';
+                    return;
+                }
+                const [rows, compareRows] = await Promise.all([
+                    fetchRange(from, to, empresa), fetchRange(cFrom, cTo, empresa)
+                ]);
+                if (thisRequest !== requestId) return;
+                OTIFViz.clearCompareRawData();
+                OTIFViz.setDateRange(from, to, cFrom, cTo);
+                OTIFViz.setRawData(rows);
+                OTIFViz.setCompareRawData(compareRows);
+            } else {
+                const rows = await fetchRange(from, to, empresa);
+                if (thisRequest !== requestId) return;
+                OTIFViz.clearCompareRawData();
+                OTIFViz.setDateRange(from, to, null, null);
+                OTIFViz.setRawData(rows);
+            }
+        } catch (err) {
+            if (thisRequest !== requestId) return;
+            console.error(err);
+            $('status').textContent = 'Error: ' + err.message;
+        }
+    }
+
+    document.getElementById('asOfLine').textContent = 'Vista generada ' + new Date().toLocaleString('es-GT');
+
+    $('refresh').addEventListener('click', load);
+    $('compareToggle').addEventListener('change', load);
+    $('datePreset').addEventListener('change', () => { applyPreset($('datePreset').value); load(); });
+    ['from', 'to'].forEach(id => $(id).addEventListener('change', () => { $('datePreset').value = 'custom'; }));
+    $('empresa').addEventListener('change', () => { OTIFViz.applyPalette($('empresa').value); load(); });
+    OTIFViz.init();
+    OTIFViz.applyPalette($('empresa').value);
+
+    initDates();
+    load();
+</script>
+</body>
+</html>

@@ -74,7 +74,8 @@ namespace DiamDev.Give.DAL
             }
         }
 
-        public List<ClienteCrmCliente> ListarClientes(string empresa, string filtro, bool incluirInactivos)
+        public List<ClienteCrmCliente> ListarClientes(string empresa, string filtro,
+            bool incluirInactivos, string usuario = null)
         {
             const string sql = @"SELECT C.ID, E.EMPRESA, E.CODIGO_SAP, E.FICHA_JSON,
                 E.ACTIVO, E.VERSION, E.ACTUALIZADO_EN
@@ -82,6 +83,8 @@ namespace DiamDev.Give.DAL
                 JOIN dbo.CRM_CLIENTE_EMPRESA E ON E.CLIENTE_ID = C.ID
                 WHERE (@empresa IS NULL OR E.EMPRESA = @empresa)
                   AND (@inactivos = 1 OR E.ACTIVO = 1)
+                  AND (@usuario IS NULL OR EXISTS (SELECT 1 FROM dbo.CRM_CLIENTE_USUARIO U
+                      WHERE U.CLIENTE_ID=C.ID AND U.EMPRESA=E.EMPRESA AND U.USUARIO=@usuario))
                   AND (@filtro IS NULL OR C.RAZON_SOCIAL LIKE @filtro
                       OR C.NOMBRE_COMERCIAL LIKE @filtro OR C.NIT_CLAVE LIKE @filtro
                       OR E.CODIGO_SAP LIKE @filtro)
@@ -92,6 +95,7 @@ namespace DiamDev.Give.DAL
             {
                 P(cmd, "@empresa", empresa);
                 P(cmd, "@inactivos", incluirInactivos);
+                P(cmd, "@usuario", usuario);
                 P(cmd, "@filtro", string.IsNullOrWhiteSpace(filtro) ? null : "%" + filtro.Trim() + "%");
                 cn.Open();
                 using (var r = cmd.ExecuteReader()) while (r.Read()) lista.Add(MapCliente(r));
@@ -112,6 +116,19 @@ namespace DiamDev.Give.DAL
                 P(cmd, "@id", id); P(cmd, "@empresa", empresa);
                 cn.Open();
                 using (var r = cmd.ExecuteReader()) return r.Read() ? MapCliente(r) : null;
+            }
+        }
+
+        public bool ClientePropio(long id, string empresa, string usuario)
+        {
+            const string sql = @"SELECT COUNT(*) FROM dbo.CRM_CLIENTE_USUARIO
+                WHERE CLIENTE_ID=@id AND EMPRESA=@empresa AND USUARIO=@usuario;";
+            using (var cn = new SqlConnection(_conexion))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                P(cmd, "@id", id); P(cmd, "@empresa", empresa); P(cmd, "@usuario", usuario);
+                cn.Open();
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
             }
         }
 
@@ -230,6 +247,8 @@ namespace DiamDev.Give.DAL
                         var ficha = Newtonsoft.Json.JsonConvert.DeserializeObject<ClienteCrmFicha>(solicitud.FichaJson);
                         clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, solicitud.FichaJson,
                             null, usuario, null, true, true);
+                        VincularUsuario(cn, tx, clienteId.Value, solicitud.Empresa,
+                            solicitud.CreadoPor, "SOLICITUD");
                         Auditar(cn, tx, "CLIENTE", clienteId, solicitud.Empresa, usuario,
                             "APROBACION_SOLICITUD", "Solicitud #" + id, null, solicitud.FichaJson, ip);
                     }
@@ -261,7 +280,8 @@ namespace DiamDev.Give.DAL
                 using (var tx = cn.BeginTransaction())
                 {
                     string antes = null;
-                    if (cliente.Id == 0)
+                    bool nuevaFicha = cliente.Id == 0;
+                    if (nuevaFicha)
                     {
                         const string duplicado = @"SELECT COUNT(*) FROM dbo.CRM_CLIENTE C
                             JOIN dbo.CRM_CLIENTE_EMPRESA E ON E.CLIENTE_ID=C.ID
@@ -312,6 +332,8 @@ namespace DiamDev.Give.DAL
                     cliente.Id = UpsertCliente(cn, tx, cliente.Empresa, cliente.Ficha,
                         cliente.FichaJson, cliente.CodigoSap, usuario,
                         cliente.Id == 0 ? (long?)null : cliente.Id, cliente.Activo, false);
+                    if (nuevaFicha)
+                        VincularUsuario(cn, tx, cliente.Id, cliente.Empresa, usuario, "DIRECTA");
                     foreach (var archivo in archivos) GuardarArchivo(cn, tx, "CLIENTE_ID", cliente.Id,
                         cliente.Empresa, archivo, usuario, ip);
                     ValidarArchivos(cn, tx, cliente.Id, false, cliente.Empresa, cliente.Ficha);
@@ -411,15 +433,18 @@ namespace DiamDev.Give.DAL
             }
         }
 
-        public List<ClienteCrmEvento> Eventos(string entidad, long id)
+        public List<ClienteCrmEvento> Eventos(string entidad, long id, string empresa = null)
         {
             const string sql = @"SELECT ID,FECHA,USUARIO,ACCION,DETALLE FROM dbo.CRM_AUDITORIA
-                WHERE ENTIDAD=@entidad AND ENTIDAD_ID=@id ORDER BY FECHA DESC,ID DESC;";
+                WHERE ENTIDAD=@entidad AND ENTIDAD_ID=@id
+                  AND (@empresa IS NULL OR EMPRESA=@empresa)
+                ORDER BY FECHA DESC,ID DESC;";
             var lista = new List<ClienteCrmEvento>();
             using (var cn = new SqlConnection(_conexion))
             using (var cmd = new SqlCommand(sql, cn))
             {
-                P(cmd, "@entidad", entidad); P(cmd, "@id", id); cn.Open();
+                P(cmd, "@entidad", entidad); P(cmd, "@id", id);
+                P(cmd, "@empresa", empresa); cn.Open();
                 using (var r = cmd.ExecuteReader()) while (r.Read())
                     lista.Add(new ClienteCrmEvento { Id = Convert.ToInt64(r["ID"]),
                         Fecha = Convert.ToDateTime(r["FECHA"]), Usuario = Convert.ToString(r["USUARIO"]),
@@ -502,6 +527,21 @@ namespace DiamDev.Give.DAL
                 P(cmd, "@usuario", usuario); cmd.ExecuteNonQuery();
             }
             return id.Value;
+        }
+
+        private static void VincularUsuario(SqlConnection cn, SqlTransaction tx, long clienteId,
+            string empresa, string usuario, string origen)
+        {
+            const string sql = @"INSERT dbo.CRM_CLIENTE_USUARIO (CLIENTE_ID,EMPRESA,USUARIO,ORIGEN)
+                SELECT @id,@empresa,@usuario,@origen WHERE NOT EXISTS
+                (SELECT 1 FROM dbo.CRM_CLIENTE_USUARIO WITH (UPDLOCK,HOLDLOCK)
+                 WHERE CLIENTE_ID=@id AND EMPRESA=@empresa AND USUARIO=@usuario);";
+            using (var cmd = new SqlCommand(sql, cn, tx))
+            {
+                P(cmd, "@id", clienteId); P(cmd, "@empresa", empresa);
+                P(cmd, "@usuario", usuario); P(cmd, "@origen", origen);
+                cmd.ExecuteNonQuery();
+            }
         }
 
         private static void GuardarArchivo(SqlConnection cn, SqlTransaction tx, string columna,

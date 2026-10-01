@@ -1,0 +1,26 @@
+﻿/* Variante para POS-SmartK66 (PRUEBAS). No ejecutar el archivo homólogo de la carpeta superior. */
+/* Solo lectura después de 05. */
+USE [POS-SmartK66];
+GO
+SET NOCOUNT ON;
+IF DB_NAME() <> N'POS-SmartK66'
+    THROW 55307, 'Base incorrecta: seleccione POS-SmartK66.', 1;
+SELECT N'CONTRATO' AS SECCION,
+       CASE WHEN OBJECT_ID(N'dbo.CRM_CLIENTE_USUARIO',N'U') IS NOT NULL
+            THEN N'OK' ELSE N'FALTA' END AS TABLA_PROPIETARIOS,
+       CASE WHEN EXISTS (SELECT 1 FROM dbo.Permiso
+                         WHERE Nombre=N'Control.Clientes.CarteraGlobal')
+            THEN N'OK' ELSE N'FALTA' END AS PERMISO_GLOBAL,
+       CASE WHEN EXISTS (SELECT 1 FROM sys.indexes
+                         WHERE object_id=OBJECT_ID(N'dbo.CRM_CLIENTE_USUARIO')
+                           AND name=N'IX_CRM_CU_USUARIO')
+            THEN N'OK' ELSE N'FALTA' END AS INDICE_PROPIETARIOS,
+       (SELECT PermisoId FROM dbo.Menu WHERE Nombre=N'ClientesCartera') AS PERMISO_MENU;
+SELECT N'VINCULOS' AS SECCION, ORIGEN, COUNT(*) AS TOTAL
+FROM dbo.CRM_CLIENTE_USUARIO GROUP BY ORIGEN ORDER BY ORIGEN;
+SELECT N'SIN_PROPIETARIO' AS SECCION,E.CLIENTE_ID,E.EMPRESA
+FROM dbo.CRM_CLIENTE_EMPRESA E
+WHERE NOT EXISTS (SELECT 1 FROM dbo.CRM_CLIENTE_USUARIO U
+                  WHERE U.CLIENTE_ID=E.CLIENTE_ID AND U.EMPRESA=E.EMPRESA)
+ORDER BY E.CLIENTE_ID,E.EMPRESA;
+GO

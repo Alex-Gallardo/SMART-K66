@@ -5,6 +5,7 @@
         ? "U"
         : usuarioNombre.Trim().Substring(0, 1).ToUpperInvariant();
     var agenciaNombre = DiamDev.Give.UI.App_Start.CustomHelper.getAgenciaNombre();
+    var esVistaClientesCrm = string.Equals(Convert.ToString(ViewContext.RouteData.Values["controller"]), "ClientesCrm", StringComparison.OrdinalIgnoreCase);
 }
 <html lang="es" class="no-js">
 <head>
@@ -214,6 +215,8 @@
             <!-- /.modal -->
             <!-- end: SPANEL CONFIGURATION MODAL FORM -->
             <div class="container app-content-container">
+                @if (!esVistaClientesCrm)
+                {
                 <!-- start: PAGE HEADER -->
                 <div class="row">
                     <div class="col-sm-12">
@@ -246,6 +249,7 @@
                     </div>
                 </div>
                 <!-- end: PAGE HEADER -->
+                }
                 <!-- start: PAGE CONTENT -->
                 <noscript>El navegador debe soportar javascript!</noscript>
                 @RenderBody()

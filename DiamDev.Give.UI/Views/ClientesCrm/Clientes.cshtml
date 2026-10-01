@@ -8,8 +8,8 @@
     bool dashboard = ViewBag.PuedeDashboard == true;
     bool global = ViewBag.EsGlobal == true;
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=1")" rel="stylesheet" /> }
-<div class="crm">
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=2")" rel="stylesheet" /> }
+<div class="crm" data-empresa="@empresa">
     <header class="crm-page-head">@if (dashboard) { <a class="crm-back" href="@Url.Action("Dashboard")"><i class="icon-arrow-left"></i> Dashboard</a> }<span class="crm-eyebrow">Clientes · @(global ? "Vista global" : "Mi cartera")</span><div class="crm-head-row"><div><h1>Cartera CRM</h1><p>Fichas administradas en SQL Server y referencias a códigos SAP.</p></div>@if (administrar) { <a class="crm-btn crm-btn-primary" href="@Url.Action("NuevoCliente")"><i class="icon-plus"></i> Nuevo cliente</a> }</div></header>
     <form class="crm-filter" method="get" action="@Url.Action("Clientes")">
         <div class="crm-search"><i class="icon-search"></i><input type="search" name="filtro" value="@filtro" placeholder="Razón social, NIT o código SAP" /></div>
@@ -19,7 +19,7 @@
     </form>
     <div class="crm-card crm-table-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="icon-users"></i></div><div><h2>Clientes</h2><p>@Model.Count fichas encontradas</p></div></div>
         <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Razón social</th><th>Empresa</th><th>NIT o DPI</th><th>Código SAP</th><th>Estado</th><th></th></tr></thead><tbody>
-        @foreach (var c in Model) { <tr><td><strong>@c.Ficha.RazonSocial</strong><small>@c.Ficha.NombreComercial</small></td><td>@(c.Empresa == "FAES" ? "Escocesa" : c.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td>@c.Ficha.NitDpi</td><td>@(string.IsNullOrWhiteSpace(c.CodigoSap) ? "Pendiente" : c.CodigoSap)</td><td><span class="crm-state @(c.Activo ? "crm-state-aprobada" : "crm-state-rechazada")">@(c.Activo ? "Activo" : "Inactivo")</span></td><td><a class="crm-link" href="@Url.Action("Ficha", new { id = c.Id, empresa = c.Empresa })">Ver ficha <i class="icon-arrow-right"></i></a></td></tr> }
+        @foreach (var c in Model) { <tr><td><strong>@c.Ficha.RazonSocial</strong><small>@c.Ficha.NombreComercial</small></td><td><span class="crm-company crm-company-@c.Empresa.ToLowerInvariant()">@(c.Empresa == "FAES" ? "Escocesa" : c.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</span></td><td>@c.Ficha.NitDpi</td><td>@(string.IsNullOrWhiteSpace(c.CodigoSap) ? "Pendiente" : c.CodigoSap)</td><td><span class="crm-state @(c.Activo ? "crm-state-aprobada" : "crm-state-rechazada")">@(c.Activo ? "Activo" : "Inactivo")</span></td><td><a class="crm-link" href="@Url.Action("Ficha", new { id = c.Id, empresa = c.Empresa })">Ver ficha <i class="icon-arrow-right"></i></a></td></tr> }
         </tbody></table></div>
         @if (Model.Count == 0) { <div class="crm-empty"><i class="icon-users"></i><strong>No hay clientes con estos filtros</strong></div> }
     </div>

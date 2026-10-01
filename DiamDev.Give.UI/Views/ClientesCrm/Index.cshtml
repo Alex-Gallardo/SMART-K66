@@ -1,0 +1,40 @@
+@model List<DiamDev.Give.Entities.ClienteCrmSolicitud>
+@using System
+@using System.Collections.Generic
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var empresas = ViewBag.Empresas as List<DiamDev.Give.UI.Models.ClienteCrmEmpresaOpcion> ?? new List<DiamDev.Give.UI.Models.ClienteCrmEmpresaOpcion>();
+    string empresaActual = ViewBag.Empresa as string;
+    string estadoActual = ViewBag.Estado as string;
+    string filtroActual = ViewBag.Filtro as string;
+}
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=1")" rel="stylesheet" /> }
+<div class="crm">
+    <header class="crm-page-head">
+        <span class="crm-eyebrow">Clientes · Grupo K66</span>
+        <div class="crm-head-row"><div><h1>Mis solicitudes de clientes</h1><p>Cree solicitudes y siga su revisión por el equipo de Créditos.</p></div>
+            <a class="crm-btn crm-btn-primary" href="@Url.Action("Nueva")"><i class="icon-plus"></i> Nueva solicitud</a></div>
+    </header>
+    @if (TempData["CrmExito"] != null) { <div class="crm-alert crm-alert-success">@TempData["CrmExito"]</div> }
+    @if (TempData["CrmError"] != null) { <div class="crm-alert crm-alert-error">@TempData["CrmError"]</div> }
+    <form class="crm-filter" method="get" action="@Url.Action("Index")">
+        <div class="crm-search"><i class="icon-search"></i><input type="search" name="filtro" value="@filtroActual" placeholder="Buscar por solicitud, razón social o NIT" aria-label="Buscar solicitudes" /></div>
+        <select name="empresa" aria-label="Filtrar por empresa"><option value="">Todas mis empresas</option>@foreach (var e in empresas) { <option value="@e.Empresa" @(empresaActual == e.Empresa ? "selected" : "")>@e.Etiqueta</option> }</select>
+        <select name="estado" aria-label="Filtrar por estado"><option value="">Todos los estados</option>@foreach (var s in new[] { "BORRADOR", "ENVIADA", "APROBADA", "RECHAZADA" }) { <option value="@s" @(estadoActual == s ? "selected" : "")>@s</option> }</select>
+        <button type="submit" class="crm-btn crm-btn-outline"><i class="icon-filter"></i> Filtrar</button>
+    </form>
+    <div class="crm-card crm-table-card">
+        <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-file-text"></i></div><div><h2>Solicitudes</h2><p>@Model.Count resultado(s) en el alcance seleccionado</p></div></div>
+        <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Solicitud</th><th>Cliente</th><th>Empresa</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
+            @foreach (var s in Model) { <tr>
+                <td><strong>#@s.Id</strong><small>@s.Agente</small></td>
+                <td><strong>@s.Ficha.RazonSocial</strong><small>@s.Ficha.NitDpi</small></td>
+                <td><span class="crm-company crm-company-@s.Empresa.ToLowerInvariant()">@(s.Empresa == "FAES" ? "Escocesa" : s.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</span></td>
+                <td>@s.CreadoEn.ToString("dd/MM/yyyy")</td>
+                <td><span class="crm-state crm-state-@s.Estado.ToLowerInvariant()">@s.Estado</span></td>
+                <td><a class="crm-link" href="@Url.Action("Solicitud", new { id = s.Id })">Ver detalle <i class="icon-arrow-right"></i></a></td>
+            </tr> }
+        </tbody></table></div>
+        @if (Model.Count == 0) { <div class="crm-empty"><i class="icon-file-text"></i><strong>No hay solicitudes con estos filtros</strong><span>Puede crear una nueva solicitud o ajustar la búsqueda.</span></div> }
+    </div>
+</div>

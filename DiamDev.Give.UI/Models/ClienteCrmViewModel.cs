@@ -48,6 +48,7 @@ namespace DiamDev.Give.UI.Models
         public List<ClienteCrmCliente> EmpresasCliente { get; set; }
         public List<ClienteCrmEvento> Eventos { get; set; }
         public bool EsVistaCreditos { get; set; }
+        public bool PuedeAbrirClienteVinculado { get; set; }
         public bool PuedeResolver { get; set; }
         public bool PuedeEditar { get; set; }
     }
@@ -63,6 +64,9 @@ namespace DiamDev.Give.UI.Models
         public string Empresa { get; set; }
         public string Estado { get; set; }
         public string Filtro { get; set; }
+        public bool PuedeAdministrar { get; set; }
+        public bool PuedeVerCartera { get; set; }
+        public bool PuedeVerCarteraGlobal { get; set; }
         public List<ClienteCrmSolicitud> Solicitudes { get; set; }
         public List<ClienteCrmCliente> Clientes { get; set; }
         public int Pendientes { get; set; }

@@ -6,9 +6,9 @@
 }
 @section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=1")" rel="stylesheet" /> }
 <div class="crm crm-dashboard">
-    <header class="crm-page-head"><span class="crm-eyebrow">Clientes · Área de Créditos</span>
+    <header class="crm-page-head"><span class="crm-eyebrow">Clientes · Grupo K66</span>
         <div class="crm-head-row"><div><h1>Dashboard de clientes</h1><p>Revise solicitudes, valide fichas y vincule los códigos creados en SAP.</p></div>
-            <div class="crm-head-actions"><a class="crm-btn crm-btn-outline" href="@Url.Action("Clientes")"><i class="icon-address-book"></i> Cartera CRM</a><a class="crm-btn crm-btn-primary" href="@Url.Action("NuevoCliente")"><i class="icon-plus"></i> Nuevo cliente</a></div></div>
+            <div class="crm-head-actions">@if (Model.PuedeVerCartera) { <a class="crm-btn crm-btn-outline" href="@Url.Action("Clientes")"><i class="icon-address-book"></i> Cartera CRM</a> }@if (Model.PuedeAdministrar) { <a class="crm-btn crm-btn-primary" href="@Url.Action("NuevoCliente")"><i class="icon-plus"></i> Nuevo cliente</a> }</div></div>
     </header>
     @if (TempData["CrmExito"] != null) { <div class="crm-alert crm-alert-success">@TempData["CrmExito"]</div> }
     @if (TempData["CrmError"] != null) { <div class="crm-alert crm-alert-error">@TempData["CrmError"]</div> }
@@ -45,9 +45,9 @@
         </div>
     </form>
     <div class="crm-card crm-table-card">
-        <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-users"></i></div><div><h2>Clientes recientes</h2><p>Fichas SQL vinculadas por empresa</p></div><a class="crm-link" href="@Url.Action("Clientes")">Ver cartera completa <i class="icon-arrow-right"></i></a></div>
+        <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-users"></i></div><div><h2>Clientes recientes</h2><p>Fichas SQL vinculadas por empresa</p></div>@if (Model.PuedeVerCartera) { <a class="crm-link" href="@Url.Action("Clientes")">Ver cartera <i class="icon-arrow-right"></i></a> }</div>
         <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Cliente</th><th>Empresa</th><th>Código SAP</th><th>Potencial anual</th><th>Última edición</th><th></th></tr></thead><tbody>
-            @foreach (var c in Model.Clientes.Take(8)) { <tr><td><strong>@c.Ficha.RazonSocial</strong><small>@c.Ficha.NitDpi</small></td><td>@(c.Empresa == "FAES" ? "Escocesa" : c.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td>@(string.IsNullOrWhiteSpace(c.CodigoSap) ? "Pendiente" : c.CodigoSap)</td><td>@((c.Ficha.PotencialAnual ?? 0).ToString("N2"))</td><td>@c.ActualizadoEn.ToString("dd/MM/yyyy")</td><td><a class="crm-link" href="@Url.Action("Ficha", new { id = c.Id, empresa = c.Empresa })">Ver ficha</a></td></tr> }
+            @foreach (var c in Model.Clientes.Take(8)) { <tr><td><strong>@c.Ficha.RazonSocial</strong><small>@c.Ficha.NitDpi</small></td><td>@(c.Empresa == "FAES" ? "Escocesa" : c.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td>@(string.IsNullOrWhiteSpace(c.CodigoSap) ? "Pendiente" : c.CodigoSap)</td><td>@((c.Ficha.PotencialAnual ?? 0).ToString("N2"))</td><td>@c.ActualizadoEn.ToString("dd/MM/yyyy")</td><td>@if (Model.PuedeVerCarteraGlobal) { <a class="crm-link" href="@Url.Action("Ficha", new { id = c.Id, empresa = c.Empresa })">Ver ficha</a> }</td></tr> }
         </tbody></table></div>
     </div>
 </div>

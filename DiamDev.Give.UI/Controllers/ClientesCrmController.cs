@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Web;
@@ -22,22 +21,22 @@ namespace DiamDev.Give.UI.Controllers
         private const string PermisoCrear = "Control.Clientes.Crear";
         private const string PermisoDashboard = "Control.Clientes.Dashboard";
         private const string PermisoAdministrar = "Control.Clientes.Administrar";
+        private const string PermisoCarteraGlobal = "Control.Clientes.CarteraGlobal";
         private readonly ClienteCrmBLL _crm = new ClienteCrmBLL();
         private readonly UsuarioEmpresaBL _usuarioEmpresa = new UsuarioEmpresaBL();
 
         [Permiso(PermisoVer)]
         public ActionResult Index(string empresa, string estado, string filtro)
         {
+            if (string.IsNullOrWhiteSpace(User.Identity.Name)) return SinAcceso();
             CustomHelper.setTitle("Clientes", "Mis solicitudes");
-            var empresas = EmpresasUsuario();
-            if (!string.IsNullOrWhiteSpace(empresa) && !empresas.Any(x => x.Empresa == empresa))
-                return new HttpUnauthorizedResult();
-            ViewBag.Empresas = empresas;
+            if (!EmpresaValidaOBlanca(empresa)) return SinAcceso();
+            ViewBag.Empresas = TodasEmpresas();
             ViewBag.Empresa = empresa;
             ViewBag.Estado = estado;
             ViewBag.Filtro = filtro;
-            var solicitudes = _crm.ListarSolicitudes(empresa, estado, filtro, User.Identity.Name)
-                .Where(x => empresas.Any(e => e.Empresa == x.Empresa)).ToList();
+            ViewBag.PuedeCrear = TienePermiso(PermisoCrear);
+            var solicitudes = _crm.ListarSolicitudes(empresa, estado, filtro, User.Identity.Name);
             _crm.RegistrarEvento("MODULO", null, empresa, User.Identity.Name, "LISTAR_PROPIAS",
                 string.Format("Estado={0}; Filtro={1}", estado, filtro), Ip());
             return View(solicitudes);
@@ -46,7 +45,6 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso(PermisoCrear)]
         public ActionResult Nueva()
         {
-            if (!EsVendedor()) return new HttpUnauthorizedResult();
             _crm.RegistrarEvento("MODULO", null, null, User.Identity.Name, "ABRIR_SOLICITUD_NUEVA", null, Ip());
             CustomHelper.setTitle("Clientes", "Nueva solicitud");
             return View("Editor", PrepararEditor(new ClienteCrmEditorViewModel()));
@@ -55,12 +53,10 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso(PermisoCrear)]
         public ActionResult EditarSolicitud(long id)
         {
-            if (!EsVendedor()) return new HttpUnauthorizedResult();
             var s = _crm.ObtenerSolicitud(id);
             if (s == null) return HttpNotFound();
-            if (!EsPropietario(s) ||
-                (s.Estado != EstadosSolicitudCliente.Borrador && s.Estado != EstadosSolicitudCliente.Rechazada))
-                return new HttpUnauthorizedResult();
+            if (!PuedeEditarSolicitud(s))
+                return SinAcceso();
             _crm.RegistrarEvento("SOLICITUD", id, s.Empresa, User.Identity.Name, "ABRIR_EDICION", null, Ip());
             CustomHelper.setTitle("Clientes", "Editar solicitud");
             return View("Editor", PrepararEditor(new ClienteCrmEditorViewModel {
@@ -75,7 +71,6 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso(PermisoCrear)]
         public ActionResult GuardarSolicitud(ClienteCrmEditorViewModel modelo, string accion)
         {
-            if (!EsVendedor()) return new HttpUnauthorizedResult();
             bool enviar = string.Equals(accion, "ENVIAR", StringComparison.OrdinalIgnoreCase);
             try
             {
@@ -107,34 +102,37 @@ namespace DiamDev.Give.UI.Controllers
         {
             var s = _crm.ObtenerSolicitud(id);
             if (s == null) return HttpNotFound();
-            bool creditos = EsCreditos() && TienePermiso(PermisoDashboard);
-            if (creditos && s.Estado == EstadosSolicitudCliente.Borrador && !EsPropietario(s))
-                return new HttpUnauthorizedResult();
-            if (!creditos && (!TienePermiso(PermisoVer) || !EsPropietario(s)))
-                return new HttpUnauthorizedResult();
+            bool dashboard = TienePermiso(PermisoDashboard);
+            bool propia = TienePermiso(PermisoVer) && EsPropietario(s);
+            if ((!dashboard && !propia) ||
+                (s.Estado == EstadosSolicitudCliente.Borrador && !propia))
+                return SinAcceso();
             _crm.RegistrarEvento("SOLICITUD", id, s.Empresa, User.Identity.Name, "VER", null, Ip());
             CustomHelper.setTitle("Clientes", "Detalle de solicitud");
             return View("Detalle", new ClienteCrmDetalleViewModel {
                 Solicitud = s, Archivos = s.Archivos,
                 Eventos = _crm.Eventos("SOLICITUD", id),
-                EsVistaCreditos = creditos,
-                PuedeResolver = creditos && s.Estado == EstadosSolicitudCliente.Enviada,
-                PuedeEditar = !creditos && EsPropietario(s) &&
-                    (s.Estado == EstadosSolicitudCliente.Borrador || s.Estado == EstadosSolicitudCliente.Rechazada)
+                EsVistaCreditos = dashboard,
+                PuedeAbrirClienteVinculado = s.ClienteId.HasValue &&
+                    PuedeAbrirCliente(s.ClienteId.Value, s.Empresa),
+                PuedeResolver = dashboard && s.Estado == EstadosSolicitudCliente.Enviada,
+                PuedeEditar = propia && PuedeEditarSolicitud(s)
             });
         }
 
         [Permiso(PermisoDashboard)]
         public ActionResult Dashboard(string empresa, string estado, string filtro)
         {
-            if (!EsCreditos()) return new HttpUnauthorizedResult();
-            if (!EmpresaValidaOBlanca(empresa)) return new HttpUnauthorizedResult();
-            CustomHelper.setTitle("Clientes", "Dashboard de Créditos");
+            if (!EmpresaValidaOBlanca(empresa)) return SinAcceso();
+            CustomHelper.setTitle("Clientes", "Dashboard");
             var todas = _crm.ListarSolicitudes(empresa, null, filtro, null)
                 .Where(x => x.Estado != EstadosSolicitudCliente.Borrador).ToList();
             var clientes = _crm.ListarClientes(empresa, filtro, false);
             var modelo = new ClienteCrmDashboardViewModel {
                 Empresa = empresa, Estado = estado, Filtro = filtro,
+                PuedeAdministrar = TienePermiso(PermisoAdministrar),
+                PuedeVerCartera = PuedeVerCartera(),
+                PuedeVerCarteraGlobal = TienePermiso(PermisoCarteraGlobal),
                 Solicitudes = string.IsNullOrWhiteSpace(estado) ? todas : todas.Where(x => x.Estado == estado).ToList(),
                 Clientes = clientes,
                 Pendientes = todas.Count(x => x.Estado == EstadosSolicitudCliente.Enviada),
@@ -160,7 +158,6 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso(PermisoDashboard)]
         public ActionResult ResolverSolicitud(long id, int version, string decision, string motivo)
         {
-            if (!EsCreditos()) return new HttpUnauthorizedResult();
             try
             {
                 bool aprobar = decision == "APROBAR";
@@ -176,31 +173,28 @@ namespace DiamDev.Give.UI.Controllers
         public ActionResult Ficha(long id, string empresa)
         {
             if (!EmpresaValidaOBlanca(empresa) || string.IsNullOrWhiteSpace(empresa))
-                return new HttpUnauthorizedResult();
+                return SinAcceso();
             var c = _crm.ObtenerCliente(id, empresa);
             if (c == null) return HttpNotFound();
-            bool creditos = EsCreditos() && TienePermiso(PermisoDashboard);
-            var propias = creditos ? new List<ClienteCrmSolicitud>() :
-                _crm.ListarSolicitudes(empresa, EstadosSolicitudCliente.Aprobada, null, User.Identity.Name);
-            if (!creditos && (!TienePermiso(PermisoVer) || !propias.Any(x => x.ClienteId == id)))
-                return new HttpUnauthorizedResult();
+            bool global = TienePermiso(PermisoCarteraGlobal);
+            if (!global && (!PuedeVerCartera() || !_crm.ClientePropio(id, empresa, User.Identity.Name)))
+                return SinAcceso();
             _crm.RegistrarEvento("CLIENTE", id, empresa, User.Identity.Name, "VER_FICHA", null, Ip());
             CustomHelper.setTitle("Clientes", "Ficha de cliente");
             return View("Detalle", new ClienteCrmDetalleViewModel {
                 Cliente = c, Archivos = _crm.Archivos(id, false, empresa),
-                Eventos = _crm.Eventos("CLIENTE", id),
-                EsVistaCreditos = creditos,
-                EmpresasCliente = creditos ? new[] { "BOLIK", "FAES", "GRACO" }
-                    .Select(x => _crm.ObtenerCliente(id, x)).Where(x => x != null).ToList()
-                    : new List<ClienteCrmCliente> { c },
-                PuedeEditar = creditos && TienePermiso(PermisoAdministrar)
+                Eventos = _crm.Eventos("CLIENTE", id, empresa),
+                EsVistaCreditos = TienePermiso(PermisoDashboard),
+                EmpresasCliente = new[] { "BOLIK", "FAES", "GRACO" }
+                    .Where(x => global || _crm.ClientePropio(id, x, User.Identity.Name))
+                    .Select(x => _crm.ObtenerCliente(id, x)).Where(x => x != null).ToList(),
+                PuedeEditar = TienePermiso(PermisoAdministrar)
             });
         }
 
         [Permiso(PermisoAdministrar)]
         public ActionResult NuevoCliente()
         {
-            if (!EsCreditos()) return new HttpUnauthorizedResult();
             _crm.RegistrarEvento("MODULO", null, null, User.Identity.Name, "ABRIR_CLIENTE_NUEVO", null, Ip());
             CustomHelper.setTitle("Clientes", "Nuevo cliente CRM");
             return View("Editor", PrepararEditor(new ClienteCrmEditorViewModel { EsCliente = true, Activo = true }));
@@ -209,7 +203,7 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso(PermisoAdministrar)]
         public ActionResult EditarCliente(long id, string empresa)
         {
-            if (!EsCreditos()) return new HttpUnauthorizedResult();
+            if (!PuedeAbrirCliente(id, empresa)) return SinAcceso();
             var c = _crm.ObtenerCliente(id, empresa);
             if (c == null) return HttpNotFound();
             _crm.RegistrarEvento("CLIENTE", id, empresa, User.Identity.Name, "ABRIR_EDICION", null, Ip());
@@ -226,7 +220,8 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso(PermisoAdministrar)]
         public ActionResult GuardarCliente(ClienteCrmEditorViewModel modelo)
         {
-            if (!EsCreditos()) return new HttpUnauthorizedResult();
+            if (modelo.ClienteId > 0 && !PuedeAbrirCliente(modelo.ClienteId, modelo.Empresa))
+                return SinAcceso();
             try
             {
                 long id = _crm.GuardarCliente(new ClienteCrmCliente {
@@ -250,7 +245,7 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso(PermisoAdministrar)]
         public ActionResult CambiarActivo(long id, string empresa, int version, bool activo)
         {
-            if (!EsCreditos()) return new HttpUnauthorizedResult();
+            if (!PuedeAbrirCliente(id, empresa)) return SinAcceso();
             try
             {
                 _crm.CambiarActivo(id, empresa, version, activo, User.Identity.Name, Ip());
@@ -260,36 +255,40 @@ namespace DiamDev.Give.UI.Controllers
             return RedirectToAction("Ficha", new { id = id, empresa = empresa });
         }
 
-        [Permiso(PermisoDashboard)]
         public ActionResult Clientes(string empresa, string filtro, bool incluirInactivos = false)
         {
-            if (!EsCreditos() || !EmpresaValidaOBlanca(empresa)) return new HttpUnauthorizedResult();
+            if (!PuedeVerCartera() || !EmpresaValidaOBlanca(empresa)) return SinAcceso();
             CustomHelper.setTitle("Clientes", "Cartera CRM");
-            ViewBag.Empresa = empresa; ViewBag.Filtro = filtro; ViewBag.IncluirInactivos = incluirInactivos;
-            var lista = _crm.ListarClientes(empresa, filtro, incluirInactivos);
+            bool global = TienePermiso(PermisoCarteraGlobal);
+            if (!global && string.IsNullOrWhiteSpace(User.Identity.Name)) return SinAcceso();
+            ViewBag.Empresa = empresa; ViewBag.Filtro = filtro;
+            ViewBag.IncluirInactivos = incluirInactivos;
+            ViewBag.PuedeAdministrar = TienePermiso(PermisoAdministrar);
+            ViewBag.PuedeDashboard = TienePermiso(PermisoDashboard);
+            ViewBag.EsGlobal = global;
+            var lista = _crm.ListarClientes(empresa, filtro, incluirInactivos,
+                global ? null : User.Identity.Name);
             _crm.RegistrarEvento("MODULO", null, empresa, User.Identity.Name, "LISTAR_CLIENTES", filtro, Ip());
             return View(lista);
         }
 
         public ActionResult Archivo(long id, long entidadId, bool esSolicitud, string empresa)
         {
-            bool creditos = EsCreditos() && TienePermiso(PermisoDashboard);
             if (!_crm.ArchivoPertenece(id, entidadId, esSolicitud, empresa)) return HttpNotFound();
             if (esSolicitud)
             {
                 var s = _crm.ObtenerSolicitud(entidadId);
-                if (s == null || (s.Estado == EstadosSolicitudCliente.Borrador && !EsPropietario(s)) ||
-                    (!creditos && (!TienePermiso(PermisoVer) || !EsPropietario(s))))
-                    return new HttpUnauthorizedResult();
+                bool propia = s != null && TienePermiso(PermisoVer) && EsPropietario(s);
+                if (s == null || (s.Estado == EstadosSolicitudCliente.Borrador && !propia) ||
+                    (!TienePermiso(PermisoDashboard) && !propia))
+                    return SinAcceso();
                 empresa = s.Empresa;
             }
             else
             {
                 var c = _crm.ObtenerCliente(entidadId, empresa);
                 if (c == null) return HttpNotFound();
-                if (!creditos && (!TienePermiso(PermisoVer) || !_crm.ListarSolicitudes(empresa, EstadosSolicitudCliente.Aprobada,
-                    null, User.Identity.Name).Any(x => x.ClienteId == entidadId)))
-                    return new HttpUnauthorizedResult();
+                if (!PuedeAbrirCliente(entidadId, empresa)) return SinAcceso();
             }
             var archivo = _crm.ObtenerArchivo(id);
             if (archivo == null) return HttpNotFound();
@@ -303,7 +302,6 @@ namespace DiamDev.Give.UI.Controllers
         [Permiso(PermisoDashboard)]
         public ActionResult Exportar(long[] ids)
         {
-            if (!EsCreditos()) return new HttpUnauthorizedResult();
             var seleccion = new HashSet<long>((ids ?? new long[0]).Where(x => x > 0));
             if (seleccion.Count == 0)
             {
@@ -392,26 +390,33 @@ namespace DiamDev.Give.UI.Controllers
 
         private bool EsPropietario(ClienteCrmSolicitud s)
         {
-            return string.Equals(s.CreadoPor, User.Identity.Name, StringComparison.OrdinalIgnoreCase) &&
-                EmpresasUsuario().Any(x => x.Empresa == s.Empresa);
+            return string.Equals(s.CreadoPor, User.Identity.Name, StringComparison.OrdinalIgnoreCase);
         }
 
-        private bool EsVendedor()
+        private bool PuedeEditarSolicitud(ClienteCrmSolicitud s)
         {
-            return new RolBL().UsuarioTieneRol(User.Identity.Name, "VendedorK66");
+            return TienePermiso(PermisoCrear) && EsPropietario(s) &&
+                (s.Estado == EstadosSolicitudCliente.Borrador ||
+                 s.Estado == EstadosSolicitudCliente.Rechazada) &&
+                EmpresasUsuario().Any(x => x.Empresa == s.Empresa &&
+                    x.Agentes.Any(a => a.Codigo == s.CodigoOperador));
         }
 
-        private bool EsCreditos()
+        private bool PuedeVerCartera()
         {
-            string roles = ConfigurationManager.AppSettings["ClientesCrm.RolesCreditos"];
-            if (string.IsNullOrWhiteSpace(roles)) roles = "CREDITOS,CREDITOS GERENCIA";
-            var rolBl = new RolBL();
-            return roles.Split(',').Select(x => x.Trim())
-                .Where(x => x.Length > 0)
-                .Any(x => rolBl.UsuarioTieneRol(User.Identity.Name, x));
+            return TienePermiso(PermisoVer) || TienePermiso(PermisoAdministrar) ||
+                TienePermiso(PermisoCarteraGlobal);
+        }
+
+        private bool PuedeAbrirCliente(long id, string empresa)
+        {
+            return TienePermiso(PermisoCarteraGlobal) ||
+                (PuedeVerCartera() && _crm.ClientePropio(id, empresa, User.Identity.Name));
         }
 
         private static bool TienePermiso(string permiso) { return CustomHelper.Permiso(permiso); }
+
+        private ActionResult SinAcceso() { return RedirectToAction("NoAccess", "Seguridad"); }
 
         private static bool EmpresaValidaOBlanca(string empresa)
         {

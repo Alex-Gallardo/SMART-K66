@@ -4,10 +4,13 @@
     string empresa = ViewBag.Empresa as string;
     string filtro = ViewBag.Filtro as string;
     bool inactivos = ViewBag.IncluirInactivos == true;
+    bool administrar = ViewBag.PuedeAdministrar == true;
+    bool dashboard = ViewBag.PuedeDashboard == true;
+    bool global = ViewBag.EsGlobal == true;
 }
 @section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=1")" rel="stylesheet" /> }
 <div class="crm">
-    <header class="crm-page-head"><a class="crm-back" href="@Url.Action("Dashboard")"><i class="icon-arrow-left"></i> Dashboard</a><span class="crm-eyebrow">Clientes · Área de Créditos</span><div class="crm-head-row"><div><h1>Cartera CRM</h1><p>Fichas administradas en SQL Server y referencias a códigos SAP.</p></div><a class="crm-btn crm-btn-primary" href="@Url.Action("NuevoCliente")"><i class="icon-plus"></i> Nuevo cliente</a></div></header>
+    <header class="crm-page-head">@if (dashboard) { <a class="crm-back" href="@Url.Action("Dashboard")"><i class="icon-arrow-left"></i> Dashboard</a> }<span class="crm-eyebrow">Clientes · @(global ? "Vista global" : "Mi cartera")</span><div class="crm-head-row"><div><h1>Cartera CRM</h1><p>Fichas administradas en SQL Server y referencias a códigos SAP.</p></div>@if (administrar) { <a class="crm-btn crm-btn-primary" href="@Url.Action("NuevoCliente")"><i class="icon-plus"></i> Nuevo cliente</a> }</div></header>
     <form class="crm-filter" method="get" action="@Url.Action("Clientes")">
         <div class="crm-search"><i class="icon-search"></i><input type="search" name="filtro" value="@filtro" placeholder="Razón social, NIT o código SAP" /></div>
         <select name="empresa"><option value="">Todas las empresas</option><option value="BOLIK" @(empresa == "BOLIK" ? "selected" : "")>Bolik</option><option value="FAES" @(empresa == "FAES" ? "selected" : "")>Escocesa</option><option value="GRACO" @(empresa == "GRACO" ? "selected" : "")>Graco Pack</option></select>

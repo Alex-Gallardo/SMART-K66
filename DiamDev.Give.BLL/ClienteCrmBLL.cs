@@ -34,9 +34,10 @@ namespace DiamDev.Give.BLL
         }
 
         public List<ClienteCrmCliente> ListarClientes(string empresa, string filtro,
-            bool incluirInactivos)
+            bool incluirInactivos, string usuario = null)
         {
-            var lista = _da.ListarClientes(Limpio(empresa), Limitar(filtro, 100), incluirInactivos);
+            var lista = _da.ListarClientes(Limpio(empresa), Limitar(filtro, 100),
+                incluirInactivos, Limpio(usuario));
             foreach (var c in lista) c.Ficha = LeerFicha(c.FichaJson);
             return lista;
         }
@@ -46,6 +47,11 @@ namespace DiamDev.Give.BLL
             var c = _da.ObtenerCliente(id, empresa);
             if (c != null) c.Ficha = LeerFicha(c.FichaJson);
             return c;
+        }
+
+        public bool ClientePropio(long id, string empresa, string usuario)
+        {
+            return _da.ClientePropio(id, empresa, usuario);
         }
 
         public long GuardarSolicitud(ClienteCrmSolicitud solicitud,
@@ -119,9 +125,9 @@ namespace DiamDev.Give.BLL
             return _da.ArchivoPertenece(archivoId, entidadId, esSolicitud, empresa);
         }
 
-        public List<ClienteCrmEvento> Eventos(string entidad, long id)
+        public List<ClienteCrmEvento> Eventos(string entidad, long id, string empresa = null)
         {
-            return _da.Eventos(entidad, id);
+            return _da.Eventos(entidad, id, empresa);
         }
 
         public void RegistrarEvento(string entidad, long? id, string empresa, string usuario,
@@ -149,11 +155,13 @@ namespace DiamDev.Give.BLL
                     string.IsNullOrWhiteSpace(f.CondicionPago) ||
                     string.IsNullOrWhiteSpace(f.CorreoFactura))
                     throw new InvalidOperationException("Complete dirección fiscal, condición de pago y correo de facturación.");
-                if (f.Direcciones == null || !f.Direcciones.Any(x => !string.IsNullOrWhiteSpace(x.Direccion)))
+                if (f.Direcciones == null || !f.Direcciones.Any(x => x != null && !string.IsNullOrWhiteSpace(x.Direccion)))
                     throw new InvalidOperationException("Agregue al menos una dirección de entrega.");
             }
             if (!string.IsNullOrWhiteSpace(f.CorreoFactura) && !new EmailAddressAttribute().IsValid(f.CorreoFactura))
                 throw new InvalidOperationException("El correo de facturación no es válido.");
+            if (!string.IsNullOrWhiteSpace(f.CorreoPrincipal) && !new EmailAddressAttribute().IsValid(f.CorreoPrincipal))
+                throw new InvalidOperationException("El correo del contacto principal no es válido.");
             if (f.CondicionPago != null && !new[] { "ANTICIPADO", "CONTADO", "CREDITO", "TEMPORADA" }
                 .Contains(f.CondicionPago, StringComparer.OrdinalIgnoreCase))
                 throw new InvalidOperationException("La condición de pago no es válida.");

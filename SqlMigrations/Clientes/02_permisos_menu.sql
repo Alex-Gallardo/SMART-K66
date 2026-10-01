@@ -68,7 +68,9 @@ BEGIN TRY
     IF EXISTS (SELECT 1 FROM @M E JOIN dbo.Menu M ON M.Nombre=E.Nombre
                WHERE M.Menu_Padre_Id<>@Raiz OR M.Titulo<>E.Titulo
                  OR M.Action<>E.Accion OR M.Controller<>N'ClientesCrm'
-                 OR M.PermisoId<>E.Permiso OR M.IsActive<>1)
+                 OR (M.PermisoId<>E.Permiso AND NOT
+                     (E.Nombre=N'ClientesCartera' AND
+                      M.PermisoId=N'Control.Clientes.Modulo')) OR M.IsActive<>1)
         THROW 55105, 'Una entrada de Clientes CRM existente es incompatible.', 1;
     DECLARE @Nombre nvarchar(60),@Titulo nvarchar(80),@Accion nvarchar(50),
             @Permiso nvarchar(100),@Orden int,@Icono nvarchar(50),@Id int;

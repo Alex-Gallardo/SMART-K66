@@ -6,6 +6,7 @@ Los scripts están destinados a `POS-SmartK66_DEV` en `K66-APPS`, según el diag
 2. Ejecutar `01_estructura_clientes.sql`.
 3. Ejecutar `02_permisos_menu.sql`.
 4. Ejecutar `03_verificacion.sql` y compartir sus cuatro tablas de resultados.
+5. Ejecutar `04_validacion_contrato_solo_lectura.sql` para comprobar que las columnas e índices instalados coinciden con el código.
 
 Los scripts `01` y `02` son transaccionales e idempotentes para una instalación inicial. No se deben ejecutar en otra base sin adaptar primero el nombre en los scripts y en `ClientesCrmContext`.
 

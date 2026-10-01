@@ -1,0 +1,178 @@
+@model DiamDev.Give.UI.Models.ClienteCrmEditorViewModel
+@using System
+@using System.Collections.Generic
+@using System.Web.Mvc
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var contactos = Model.Ficha.Contactos ?? new List<DiamDev.Give.Entities.ClienteCrmContacto>();
+    var direcciones = Model.Ficha.Direcciones ?? new List<DiamDev.Give.Entities.ClienteCrmDireccion>();
+    var empresaOpciones = Model.Empresas.Select(x => new SelectListItem { Value = x.Empresa, Text = x.Etiqueta });
+    var esCredito = Model.EsCliente;
+}
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=1")" rel="stylesheet" /> }
+
+<div class="crm" id="crmApp" data-empresa="@Model.Empresa">
+    <div class="crm-page-head">
+        <a class="crm-back" href="@(esCredito ? Url.Action("Clientes") : Url.Action("Index"))"><i class="icon-arrow-left"></i> Volver al listado</a>
+        <div class="crm-head-row">
+            <div><span class="crm-eyebrow">Clientes · Grupo K66</span>
+                <h1>@(esCredito ? (Model.ClienteId > 0 ? "Editar ficha de cliente" : "Nuevo cliente CRM") : (Model.SolicitudId > 0 ? "Editar solicitud" : "Solicitud de creación de cliente"))</h1>
+                <p>Complete los datos fiscales, los contactos y el perfil comercial de la empresa seleccionada.</p>
+            </div>
+            <span class="crm-badge">@(Model.Estado ?? "Nueva")</span>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Error)) { <div class="crm-alert crm-alert-error" role="alert">@Model.Error</div> }
+    @if (Model.Empresas.Count == 0) { <div class="crm-alert crm-alert-error">No tiene empresas con agente asignado. Contacte a Sistemas.</div> }
+
+    <form method="post" enctype="multipart/form-data" action="@(esCredito ? Url.Action("GuardarCliente") : Url.Action("GuardarSolicitud"))" class="crm-editor">
+        @Html.AntiForgeryToken()
+        @Html.HiddenFor(m => m.SolicitudId)
+        @Html.HiddenFor(m => m.ClienteId)
+        @Html.HiddenFor(m => m.Version)
+        @Html.HiddenFor(m => m.EsCliente)
+        @Html.HiddenFor(m => m.Activo)
+
+        <nav class="crm-step-nav" aria-label="Secciones del formulario">
+            <a href="#crm-identidad"><span>01</span> Identidad</a>
+            <a href="#crm-contactos"><span>02</span> Contactos</a>
+            <a href="#crm-direcciones"><span>03</span> Entregas</a>
+            <a href="#crm-perfil"><span>04</span> Perfil</a>
+            <a href="#crm-desarrollo"><span>05</span> Desarrollo</a>
+            <a href="#crm-documentos"><span>06</span> Documentos</a>
+        </nav>
+
+        <section class="crm-card" id="crm-identidad">
+            <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-user"></i></div><div><h2>Identidad y facturación</h2><p>Datos que utilizará Créditos para validar y crear el cliente.</p></div></div>
+            <div class="crm-grid">
+                <div class="crm-field crm-col-4"><label for="Empresa">Empresa <b>*</b></label>@if ((esCredito && Model.ClienteId > 0) || (!esCredito && Model.SolicitudId > 0)) { @Html.HiddenFor(m => m.Empresa)<div class="crm-readonly-company">@(Model.Empresa == "FAES" ? "Escocesa" : Model.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</div> } else { @Html.DropDownListFor(m => m.Empresa, empresaOpciones, "Seleccione una empresa", new { @class = "form-control", id = "Empresa", required = "required" }) }</div>
+                @if (!esCredito) {
+                    <div class="crm-field crm-col-4"><label for="CodigoOperador">Agente asignado <b>*</b></label><select name="CodigoOperador" id="CodigoOperador" class="form-control" data-selected="@Model.CodigoOperador" required><option value="">Seleccione una empresa</option></select></div>
+                    <div hidden id="crmAgentesCatalogo">@foreach (var empresa in Model.Empresas) { foreach (var agente in empresa.Agentes) { <span data-empresa="@empresa.Empresa" data-codigo="@agente.Codigo" data-nombre="@agente.Nombre"></span> } }</div>
+                } else {
+                    <div class="crm-field crm-col-4"><label for="CodigoSap">Código de cliente SAP</label>@Html.TextBoxFor(m => m.CodigoSap, new { @class = "form-control", maxlength = "50", placeholder = "Ingresado por Créditos después del alta en SAP" })<small>Solo vincula la ficha; no modifica SAP.</small></div>
+                }
+                <div class="crm-field crm-col-4"><label for="Ficha_TipoOperacion">Tipo de operación</label>@Html.DropDownListFor(m => m.Ficha.TipoOperacion, new SelectList(new[] { "Sociedad", "Privada", "Gobierno" }), "Seleccione...", new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-6"><label>Razón social <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.RazonSocial, new { @class = "form-control", maxlength = "200", required = "required" })</div>
+                <div class="crm-field crm-col-6"><label>Nombre comercial</label>@Html.TextBoxFor(m => m.Ficha.NombreComercial, new { @class = "form-control", maxlength = "200" })</div>
+                <div class="crm-field crm-col-4"><label>NIT o DPI <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.NitDpi, new { @class = "form-control", maxlength = "50", required = "required" })</div>
+                <div class="crm-field crm-col-4"><label>Tipo de negocio</label>@Html.TextBoxFor(m => m.Ficha.TipoNegocio, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-8"><label>Dirección fiscal <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.DireccionFiscal, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Correo para factura electrónica <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.CorreoFactura, new { @class = "form-control", type = "email", maxlength = "150" })</div>
+                <div class="crm-field crm-col-4"><label>Condición de pago <b>*</b></label>@Html.DropDownListFor(m => m.Ficha.CondicionPago, new SelectList(new[] { new { Value = "ANTICIPADO", Text = "Anticipado" }, new { Value = "CONTADO", Text = "Contado · pago contra entrega" }, new { Value = "CREDITO", Text = "Crédito" }, new { Value = "TEMPORADA", Text = "Temporada" } }, "Value", "Text"), "Seleccione...", new { @class = "form-control", id = "crmCondicionPago" })</div>
+                <div class="crm-field crm-col-4"><label>Método de pago</label>@Html.DropDownListFor(m => m.Ficha.MetodoPago, new SelectList(new[] { "Transferencia", "Depósito", "Cheque", "Efectivo" }), "Seleccione...", new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Temporada de pago</label>@Html.TextBoxFor(m => m.Ficha.TemporadaPago, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-12"><label>Trámite de contraseña / canal de solicitud</label>@Html.TextAreaFor(m => m.Ficha.TramiteContrasena, 2, 60, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-12 crm-check">@Html.CheckBoxFor(m => m.Ficha.CambioRazonSocial, new { id = "crmCambioRazon" }) <label for="crmCambioRazon">Esta solicitud incluye cambio de razón social</label></div>
+            </div>
+        </section>
+
+        <section class="crm-card" id="crm-contactos">
+            <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-users"></i></div><div><h2>Contactos y unidad de decisión</h2><p>Personas clave para compras, contabilidad, pagos y relación comercial.</p></div><button class="crm-add" type="button" data-add="contacto"><i class="icon-plus"></i> Agregar contacto</button></div>
+            <div class="crm-grid">
+                <div class="crm-field crm-col-3"><label>Contacto principal</label>@Html.TextBoxFor(m => m.Ficha.ContactoPrincipal, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-3"><label>Cargo</label>@Html.TextBoxFor(m => m.Ficha.CargoPrincipal, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-3"><label>Teléfono</label>@Html.TextBoxFor(m => m.Ficha.TelefonoPrincipal, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-3"><label>Correo</label>@Html.TextBoxFor(m => m.Ficha.CorreoPrincipal, new { @class = "form-control", type = "email" })</div>
+                <div class="crm-field crm-col-3"><label>Tomador de decisión</label>@Html.TextBoxFor(m => m.Ficha.TomadorDecision, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-3"><label>Influenciador técnico / usuario</label>@Html.TextBoxFor(m => m.Ficha.InfluenciadorTecnico, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-3"><label>Responsable de compras</label>@Html.TextBoxFor(m => m.Ficha.ResponsableCompras, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-3"><label>Contacto de pagos</label>@Html.TextBoxFor(m => m.Ficha.ContactoPagos, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Canal preferido</label>@Html.TextBoxFor(m => m.Ficha.CanalPreferido, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-8"><label>Observaciones de relación</label>@Html.TextBoxFor(m => m.Ficha.ObservacionesRelacion, new { @class = "form-control" })</div>
+            </div>
+            <div id="crmContactosRows" class="crm-repeat-list">
+                @for (int i = 0; i < contactos.Count; i++) { <div class="crm-repeat-row" data-row="contacto">
+                    <div class="crm-field"><label>Área</label><input name="Ficha.Contactos[@i].Area" class="form-control" value="@contactos[i].Area" placeholder="Compras, Contabilidad, Pagos..." /></div>
+                    <div class="crm-field"><label>Nombre</label><input name="Ficha.Contactos[@i].Nombre" class="form-control" value="@contactos[i].Nombre" /></div>
+                    <div class="crm-field"><label>Puesto</label><input name="Ficha.Contactos[@i].Puesto" class="form-control" value="@contactos[i].Puesto" /></div>
+                    <div class="crm-field"><label>Teléfono</label><input name="Ficha.Contactos[@i].Telefono" class="form-control" value="@contactos[i].Telefono" /></div>
+                    <div class="crm-field"><label>Correo</label><input name="Ficha.Contactos[@i].Correo" class="form-control" type="email" value="@contactos[i].Correo" /></div>
+                    <button type="button" class="crm-remove" aria-label="Quitar contacto"><i class="icon-remove"></i></button>
+                </div> }
+            </div>
+        </section>
+
+        <section class="crm-card" id="crm-direcciones">
+            <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-map-marker"></i></div><div><h2>Direcciones y horarios</h2><p>Registre cada ubicación de despacho o modalidad de entrega.</p></div><button class="crm-add" type="button" data-add="direccion"><i class="icon-plus"></i> Agregar dirección</button></div>
+            <div id="crmDireccionesRows" class="crm-repeat-list">
+                @for (int i = 0; i < direcciones.Count; i++) { <div class="crm-address-row" data-row="direccion">
+                    <div class="crm-repeat-top"><strong>Ubicación @(i + 1)</strong><button type="button" class="crm-remove" aria-label="Quitar dirección"><i class="icon-remove"></i> Quitar</button></div>
+                    <div class="crm-grid">
+                        <div class="crm-field crm-col-4"><label>Nombre</label><input name="Ficha.Direcciones[@i].Nombre" class="form-control" value="@direcciones[i].Nombre" placeholder="Bodega central" /></div>
+                        <div class="crm-field crm-col-4"><label>Modalidad</label><select name="Ficha.Direcciones[@i].Modalidad" class="form-control"><option value="Despacho" @(direcciones[i].Modalidad == "Despacho" ? "selected" : "")>Despacho</option><option value="Cliente recoge" @(direcciones[i].Modalidad == "Cliente recoge" ? "selected" : "")>Cliente recoge</option><option value="Transporte de envío" @(direcciones[i].Modalidad == "Transporte de envío" ? "selected" : "")>Transporte de envío</option></select></div>
+                        <div class="crm-field crm-col-4"><label>Referencia</label><input name="Ficha.Direcciones[@i].Referencia" class="form-control" value="@direcciones[i].Referencia" /></div>
+                        <div class="crm-field crm-col-12"><label>Dirección completa</label><input name="Ficha.Direcciones[@i].Direccion" class="form-control" value="@direcciones[i].Direccion" /></div>
+                        <div class="crm-field crm-col-5"><label>Horario entre semana</label><input name="Ficha.Direcciones[@i].HorarioSemana" class="form-control" value="@direcciones[i].HorarioSemana" placeholder="Lun–Vie 08:00–17:00" /></div>
+                        <div class="crm-field crm-col-5"><label>Horario fin de semana</label><input name="Ficha.Direcciones[@i].HorarioFinSemana" class="form-control" value="@direcciones[i].HorarioFinSemana" placeholder="Sáb 08:00–12:00" /></div>
+                        <div class="crm-field crm-col-2 crm-check"><label><input type="checkbox" name="Ficha.Direcciones[@i].RequiereCita" value="true" @(direcciones[i].RequiereCita ? "checked" : "") /> Requiere cita</label><label><input type="checkbox" name="Ficha.Direcciones[@i].Activa" value="true" @(direcciones[i].Activa ? "checked" : "") /> Activa</label></div>
+                    </div>
+                </div> }
+            </div>
+        </section>
+
+        <section class="crm-card" id="crm-perfil">
+            <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-building"></i></div><div><h2>Perfil e inteligencia comercial</h2><p>Conozca la cobertura, la relación y las necesidades del cliente.</p></div></div>
+            <div class="crm-grid">
+                <div class="crm-field crm-col-4"><label>Cobertura geográfica</label>@Html.TextBoxFor(m => m.Ficha.CoberturaGeografica, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Regiones de mayor venta</label>@Html.TextBoxFor(m => m.Ficha.RegionesMayorVenta, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Sucursales / PDV principales</label>@Html.TextBoxFor(m => m.Ficha.SucursalesMayorVenta, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-3"><label>Vendedores de campo</label>@Html.TextBoxFor(m => m.Ficha.VendedoresCampo, new { @class = "form-control", type = "number", min = "0" })</div>
+                <div class="crm-field crm-col-3"><label>Vendedores de tienda</label>@Html.TextBoxFor(m => m.Ficha.VendedoresTienda, new { @class = "form-control", type = "number", min = "0" })</div>
+                <div class="crm-field crm-col-6 crm-flags"><label>@Html.CheckBoxFor(m => m.Ficha.Televentas) Televentas</label><label>@Html.CheckBoxFor(m => m.Ficha.VentaMostrador) Venta mostrador</label><label>@Html.CheckBoxFor(m => m.Ficha.VentaInstitucional) Venta institucional</label><label>@Html.CheckBoxFor(m => m.Ficha.Ecommerce) Comercio electrónico</label></div>
+                <div class="crm-field crm-col-4"><label>Principales clientes finales</label>@Html.TextBoxFor(m => m.Ficha.ClientesFinales, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Temporadas de mayor demanda</label>@Html.TextBoxFor(m => m.Ficha.TemporadasDemanda, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Proyectos / eventos</label>@Html.TextBoxFor(m => m.Ficha.ProyectosEventos, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Necesidad principal</label>@Html.TextBoxFor(m => m.Ficha.NecesidadPrincipal, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Qué valora al elegir proveedor</label>@Html.TextBoxFor(m => m.Ficha.ValorProveedor, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Motivo de compra</label>@Html.TextBoxFor(m => m.Ficha.MotivoCompra, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Objeción principal</label>@Html.TextBoxFor(m => m.Ficha.ObjecionPrincipal, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Competidor principal</label>@Html.TextBoxFor(m => m.Ficha.CompetidorPrincipal, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Fortaleza del competidor</label>@Html.TextBoxFor(m => m.Ficha.FortalezaCompetidor, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-6"><label>Debilidad u oportunidad frente al competidor</label>@Html.TextBoxFor(m => m.Ficha.DebilidadCompetidor, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-6"><label>Información de mercado aportada</label>@Html.TextBoxFor(m => m.Ficha.InformacionMercado, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-6"><label>Riesgo comercial</label>@Html.TextBoxFor(m => m.Ficha.RiesgoComercial, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-6"><label>Nivel de satisfacción</label>@Html.TextBoxFor(m => m.Ficha.Satisfaccion, new { @class = "form-control" })</div>
+            </div>
+        </section>
+
+        <section class="crm-card" id="crm-desarrollo">
+            <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-bar-chart"></i></div><div><h2>Desarrollo comercial</h2><p>Indicadores de la empresa elegida, expresados en la moneda de gestión de la cuenta.</p></div></div>
+            <div class="crm-grid">
+                <div class="crm-field crm-col-12 crm-check"><label>@Html.CheckBoxFor(m => m.Ficha.CompraActualmente) Compra actualmente a esta empresa</label></div>
+                <div class="crm-field crm-col-4"><label>Moneda de los indicadores</label>@Html.DropDownListFor(m => m.Ficha.MonedaIndicadores, new SelectList(new[] { "GTQ", "USD" }), "Seleccione...", new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label>Venta últimos 12 meses</label>@Html.TextBoxFor(m => m.Ficha.Venta12Meses, new { @class = "form-control", type = "number", min = "0", step = "0.01" })</div>
+                <div class="crm-field crm-col-4"><label>Potencial anual estimado</label>@Html.TextBoxFor(m => m.Ficha.PotencialAnual, new { @class = "form-control", type = "number", min = "0", step = "0.01" })</div>
+                <div class="crm-field crm-col-4"><label>Objetivo próximos 12 meses</label>@Html.TextBoxFor(m => m.Ficha.Objetivo12Meses, new { @class = "form-control", type = "number", min = "0", step = "0.01" })</div>
+                <div class="crm-field crm-col-6"><label>Principal oportunidad de crecimiento</label>@Html.TextBoxFor(m => m.Ficha.OportunidadCrecimiento, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-6"><label>Competidor principal en este negocio</label>@Html.TextBoxFor(m => m.Ficha.CompetidorNegocio, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-6"><label>Forecast / expectativa de compra</label>@Html.TextBoxFor(m => m.Ficha.Forecast, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-6"><label>Próximo paso comercial</label>@Html.TextBoxFor(m => m.Ficha.ProximoPaso, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-12"><label>Observaciones / criterio común</label>@Html.TextAreaFor(m => m.Ficha.ObservacionesComerciales, 3, 60, new { @class = "form-control" })</div>
+            </div>
+        </section>
+
+        <section class="crm-card" id="crm-documentos">
+            <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-file-text"></i></div><div><h2>Documentos de respaldo</h2><p>PDF, PNG o JPG; máximo 5 MB por archivo. Al reemplazar uno se conserva el evento en auditoría.</p></div></div>
+            <p class="crm-document-note">RTU y DPI son obligatorios al enviar o guardar una ficha. Para crédito o cambio de razón social se requieren también el nombramiento y ambas patentes.</p>
+            <div class="crm-grid crm-files">
+                <div class="crm-field crm-col-6"><label for="Rtu">RTU actualizado <b>*</b></label><input id="Rtu" name="Rtu" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" /></div>
+                <div class="crm-field crm-col-6"><label for="Dpi">DPI del representante, ambos lados <b>*</b></label><input id="Dpi" name="Dpi" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" /></div>
+                <div class="crm-field crm-col-4 crm-credit-file"><label for="Nombramiento">Nombramiento representante legal</label><input id="Nombramiento" name="Nombramiento" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" /></div>
+                <div class="crm-field crm-col-4 crm-credit-file"><label for="PatenteComercio">Patente de comercio</label><input id="PatenteComercio" name="PatenteComercio" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" /></div>
+                <div class="crm-field crm-col-4 crm-credit-file"><label for="PatenteSociedad">Patente de sociedad</label><input id="PatenteSociedad" name="PatenteSociedad" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" /></div>
+            </div>
+            @if (Model.Archivos.Count > 0) { <div class="crm-existing-files"><strong>Documentos existentes</strong>@foreach (var a in Model.Archivos) { <a href="@Url.Action("Archivo", new { id = a.Id, entidadId = esCredito ? Model.ClienteId : Model.SolicitudId, esSolicitud = !esCredito, empresa = Model.Empresa })"><i class="icon-paper-clip"></i> @a.Tipo · @a.Nombre</a> }</div> }
+        </section>
+
+        <div class="crm-actions">
+            <span><i class="icon-lock"></i> Cada cambio queda registrado en auditoría.</span>
+            <div>
+                @if (esCredito) { <button class="crm-btn crm-btn-primary" type="submit"><i class="icon-ok"></i> Guardar ficha</button> }
+                else { <button class="crm-btn crm-btn-outline" type="submit" name="accion" value="BORRADOR"><i class="icon-save"></i> Guardar borrador</button><button class="crm-btn crm-btn-primary" type="submit" name="accion" value="ENVIAR"><i class="icon-arrow-right"></i> Enviar a Créditos</button> }
+            </div>
+        </div>
+    </form>
+</div>
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=1")"></script> }

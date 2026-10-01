@@ -66,6 +66,7 @@
     <Compile Include="BorradorNcBLL.cs" />
     <Compile Include="BorradorNcDashboardBLL.cs" />
     <Compile Include="CotizacionBLL.cs" />
+    <Compile Include="ClienteCrmBLL.cs" />
     <Compile Include="PedidoTipok66BL.cs" />
     <Compile Include="Descuentok66BL.cs" />
     <Compile Include="Pedidok66BL.cs" />

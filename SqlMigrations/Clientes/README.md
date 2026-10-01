@@ -2,6 +2,8 @@
 
 Los scripts están destinados a `POS-SmartK66_DEV` en `K66-APPS`, según el diagnóstico compartido el 1 de octubre de 2026. La aplicación solo guarda solicitudes y fichas en SQL Server; el código SAP se captura manualmente en la ficha por Créditos. No hay escritura a SAP.
 
+Para `POS-SmartK66` (pruebas), usar exclusivamente los archivos y el orden de [Pruebas/README.md](Pruebas/README.md). Esa variante instala esquema, permisos y menú sin usuarios, roles ni asignaciones a roles.
+
 1. Ejecutar `00_diagnostico_previo.sql` en la base de destino y revisar sus resultados.
 2. Ejecutar `01_estructura_clientes.sql`.
 3. Ejecutar `02_permisos_menu.sql`.

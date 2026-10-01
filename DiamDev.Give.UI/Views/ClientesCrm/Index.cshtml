@@ -8,8 +8,8 @@
     string estadoActual = ViewBag.Estado as string;
     string filtroActual = ViewBag.Filtro as string;
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=1")" rel="stylesheet" /> }
-<div class="crm">
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=2")" rel="stylesheet" /> }
+<div class="crm" data-empresa="@empresaActual">
     <header class="crm-page-head">
         <span class="crm-eyebrow">Clientes · Grupo K66</span>
         <div class="crm-head-row"><div><h1>Mis solicitudes de clientes</h1><p>Cree solicitudes y siga su revisión por el equipo de Créditos.</p></div>

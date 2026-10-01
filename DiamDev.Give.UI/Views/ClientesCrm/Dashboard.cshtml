@@ -4,8 +4,8 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=1")" rel="stylesheet" /> }
-<div class="crm crm-dashboard">
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=2")" rel="stylesheet" /> }
+<div class="crm crm-dashboard" data-empresa="@Model.Empresa">
     <header class="crm-page-head"><span class="crm-eyebrow">Clientes · Grupo K66</span>
         <div class="crm-head-row"><div><h1>Dashboard de clientes</h1><p>Revise solicitudes, valide fichas y vincule los códigos creados en SAP.</p></div>
             <div class="crm-head-actions">@if (Model.PuedeVerCartera) { <a class="crm-btn crm-btn-outline" href="@Url.Action("Clientes")"><i class="icon-address-book"></i> Cartera CRM</a> }@if (Model.PuedeAdministrar) { <a class="crm-btn crm-btn-primary" href="@Url.Action("NuevoCliente")"><i class="icon-plus"></i> Nuevo cliente</a> }</div></div>
@@ -19,7 +19,7 @@
         <div class="crm-stat"><i class="icon-briefcase"></i><span>Clientes activos</span><strong>@Model.Clientes.Count</strong><small>En la cartera CRM</small></div>
     </div>
     <div class="crm-card crm-table-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="icon-bar-chart"></i></div><div><h2>Desarrollo comercial por negocio</h2><p>Valores capturados en las fichas CRM, agrupados por empresa y moneda; sin consulta a SAP.</p></div></div>
-        <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Negocio</th><th>Moneda</th><th>Clientes</th><th>Compran actualmente</th><th>Venta últimos 12 meses</th><th>Potencial anual</th><th>Objetivo 12 meses</th></tr></thead><tbody>@foreach (var r in Model.Resumenes) { <tr><td><strong>@(r.Empresa == "FAES" ? "Escocesa" : r.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</strong></td><td>@r.Moneda</td><td>@r.Clientes</td><td>@r.CompranActualmente</td><td>@r.Ventas12Meses.ToString("N2")</td><td>@r.PotencialAnual.ToString("N2")</td><td>@r.Objetivo12Meses.ToString("N2")</td></tr> }</tbody></table></div>
+        <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Negocio</th><th>Moneda</th><th>Clientes</th><th>Compran actualmente</th><th>Venta últimos 12 meses</th><th>Potencial anual</th><th>Objetivo 12 meses</th></tr></thead><tbody>@foreach (var r in Model.Resumenes) { <tr><td><span class="crm-company crm-company-@r.Empresa.ToLowerInvariant()">@(r.Empresa == "FAES" ? "Escocesa" : r.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</span></td><td>@r.Moneda</td><td>@r.Clientes</td><td>@r.CompranActualmente</td><td>@r.Ventas12Meses.ToString("N2")</td><td>@r.PotencialAnual.ToString("N2")</td><td>@r.Objetivo12Meses.ToString("N2")</td></tr> }</tbody></table></div>
     </div>
     <form class="crm-filter" method="get" action="@Url.Action("Dashboard")">
         <div class="crm-search"><i class="icon-search"></i><input type="search" name="filtro" value="@Model.Filtro" placeholder="Razón social, NIT o número de solicitud" aria-label="Buscar" /></div>
@@ -47,8 +47,8 @@
     <div class="crm-card crm-table-card">
         <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-users"></i></div><div><h2>Clientes recientes</h2><p>Fichas SQL vinculadas por empresa</p></div>@if (Model.PuedeVerCartera) { <a class="crm-link" href="@Url.Action("Clientes")">Ver cartera <i class="icon-arrow-right"></i></a> }</div>
         <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Cliente</th><th>Empresa</th><th>Código SAP</th><th>Potencial anual</th><th>Última edición</th><th></th></tr></thead><tbody>
-            @foreach (var c in Model.Clientes.Take(8)) { <tr><td><strong>@c.Ficha.RazonSocial</strong><small>@c.Ficha.NitDpi</small></td><td>@(c.Empresa == "FAES" ? "Escocesa" : c.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td>@(string.IsNullOrWhiteSpace(c.CodigoSap) ? "Pendiente" : c.CodigoSap)</td><td>@((c.Ficha.PotencialAnual ?? 0).ToString("N2"))</td><td>@c.ActualizadoEn.ToString("dd/MM/yyyy")</td><td>@if (Model.PuedeVerCarteraGlobal) { <a class="crm-link" href="@Url.Action("Ficha", new { id = c.Id, empresa = c.Empresa })">Ver ficha</a> }</td></tr> }
+            @foreach (var c in Model.Clientes.Take(8)) { <tr><td><strong>@c.Ficha.RazonSocial</strong><small>@c.Ficha.NitDpi</small></td><td><span class="crm-company crm-company-@c.Empresa.ToLowerInvariant()">@(c.Empresa == "FAES" ? "Escocesa" : c.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</span></td><td>@(string.IsNullOrWhiteSpace(c.CodigoSap) ? "Pendiente" : c.CodigoSap)</td><td>@((c.Ficha.PotencialAnual ?? 0).ToString("N2"))</td><td>@c.ActualizadoEn.ToString("dd/MM/yyyy")</td><td>@if (Model.PuedeVerCarteraGlobal) { <a class="crm-link" href="@Url.Action("Ficha", new { id = c.Id, empresa = c.Empresa })">Ver ficha</a> }</td></tr> }
         </tbody></table></div>
     </div>
 </div>
-@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=1")"></script> }
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=2")"></script> }

@@ -1,8 +1,9 @@
-.crm{--crm-ink:#102b4b;--crm-muted:#62758d;--crm-line:#dce6ef;--crm-blue:#0a65b8;--crm-deep:#083d72;--crm-tint:#eef6ff;--crm-metric-start:#0d3f71;--crm-metric-end:#0d5c99;--crm-surface:#fff;color:var(--crm-ink);max-width:1600px;margin:0 auto;padding:14px 12px 42px;font-family:inherit}
+.crm{--crm-ink:#102b4b;--crm-muted:#62758d;--crm-line:#dce6ef;--crm-blue:#0a65b8;--crm-deep:#083d72;--crm-tint:#eef6ff;--crm-metric-start:#0d3f71;--crm-metric-end:#0d5c99;--crm-surface:#fff;color:var(--crm-ink);max-width:1600px;margin:0 auto;padding:0px;font-family:inherit}
 .crm[data-empresa="BOLIK"]{--crm-blue:#185a94;--crm-deep:#123e6c;--crm-tint:#edf4fb;--crm-metric-start:#10365d;--crm-metric-end:#17649d}
 .crm[data-empresa="FAES"]{--crm-blue:#bd2d37;--crm-deep:#84252d;--crm-tint:#fff0f1;--crm-metric-start:#84252d;--crm-metric-end:#c33a45}
 .crm[data-empresa="GRACO"]{--crm-blue:#278a42;--crm-deep:#165b2e;--crm-tint:#edf8f0;--crm-metric-start:#165b2e;--crm-metric-end:#2a9749}
 .crm *{box-sizing:border-box}
+.crm-dashboard{padding:0px}
 .crm-page-head{padding:21px 26px 25px;margin-bottom:16px;background:linear-gradient(110deg,#f3f7fb,#fff 70%);border:1px solid #e6edf4;border-radius:10px;box-shadow:0 9px 28px rgba(15,47,77,.04)}
 .crm-eyebrow{display:block;color:var(--crm-blue);font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;margin-bottom:8px}
 .crm-head-row{display:flex;align-items:center;justify-content:space-between;gap:22px}

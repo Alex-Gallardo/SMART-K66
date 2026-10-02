@@ -47,11 +47,35 @@ namespace DiamDev.Give.UI.Controllers
         {
             _crm.RegistrarEvento("MODULO", null, null, User.Identity.Name, "ABRIR_SOLICITUD_NUEVA", null, Ip());
             CustomHelper.setTitle("Clientes", "Nueva solicitud");
-            return View("Editor", PrepararEditor(new ClienteCrmEditorViewModel()));
+            return View("Editor", PrepararEditor(new ClienteCrmEditorViewModel { PasoActual = 1 }));
+        }
+
+        [HttpGet]
+        [Permiso(PermisoCrear)]
+        public JsonResult BuscarClientesSap(string empresa, string codigoOperador, string filtro)
+        {
+            try
+            {
+                string agente = ValidarOperador(empresa, codigoOperador);
+                var clientes = _crm.BuscarClientesSap(empresa, agente, filtro);
+                _crm.RegistrarEvento("MODULO", null, empresa, User.Identity.Name,
+                    "BUSCAR_CLIENTE_SAP", "Agente=" + codigoOperador, Ip());
+                return Json(new { ok = true, clientes = clientes.Select(c => new {
+                    codigo = c.CardCode, nombre = c.CardName, nit = c.LicTradNum,
+                    direccion = c.Address, correo = c.Email, moneda = c.Currency
+                }) }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, mensaje =
+                    ex is InvalidOperationException || ex is UnauthorizedAccessException
+                        ? ex.Message : "No fue posible consultar clientes en SAP. Contacte a Sistemas." },
+                    JsonRequestBehavior.AllowGet);
+            }
         }
 
         [Permiso(PermisoCrear)]
-        public ActionResult EditarSolicitud(long id)
+        public ActionResult EditarSolicitud(long id, int? paso)
         {
             var s = _crm.ObtenerSolicitud(id);
             if (s == null) return HttpNotFound();
@@ -62,7 +86,9 @@ namespace DiamDev.Give.UI.Controllers
             return View("Editor", PrepararEditor(new ClienteCrmEditorViewModel {
                 SolicitudId = s.Id, Version = s.Version, Empresa = s.Empresa,
                 CodigoOperador = s.CodigoOperador, Estado = s.Estado,
-                Ficha = s.Ficha, Archivos = s.Archivos
+                Ficha = s.Ficha, Archivos = s.Archivos,
+                PasoActual = Math.Max(1, Math.Min(paso ?? (s.Ficha.PasoCompletado + 1),
+                    Math.Min(6, s.Ficha.PasoCompletado + 1)))
             }));
         }
 
@@ -72,28 +98,60 @@ namespace DiamDev.Give.UI.Controllers
         public ActionResult GuardarSolicitud(ClienteCrmEditorViewModel modelo, string accion)
         {
             bool enviar = string.Equals(accion, "ENVIAR", StringComparison.OrdinalIgnoreCase);
+            bool continuar = string.Equals(accion, "CONTINUAR", StringComparison.OrdinalIgnoreCase);
             try
             {
+                ClienteCrmSolicitud existente = null;
                 if (modelo.SolicitudId > 0)
                 {
-                    var existente = _crm.ObtenerSolicitud(modelo.SolicitudId);
+                    existente = _crm.ObtenerSolicitud(modelo.SolicitudId);
                     if (existente == null) return HttpNotFound();
+                    if (!PuedeEditarSolicitud(existente)) return SinAcceso();
                     if (!string.Equals(existente.Empresa, modelo.Empresa,
                         StringComparison.OrdinalIgnoreCase))
                         throw new InvalidOperationException("No se puede cambiar la empresa de una solicitud existente.");
                 }
+                if (modelo.Ficha == null) throw new InvalidOperationException("Complete la ficha de cliente.");
+                int completado = existente == null ? 0 : existente.Ficha.PasoCompletado;
+                if (modelo.PasoActual < 1 || modelo.PasoActual > 6 ||
+                    modelo.PasoActual > Math.Min(6, completado + 1))
+                    throw new InvalidOperationException("Complete los pasos anteriores antes de continuar.");
+                if (enviar && (modelo.PasoActual != 6 || completado < 5))
+                    throw new InvalidOperationException("Complete los seis pasos antes de enviar.");
+                if (continuar && modelo.PasoActual == 6)
+                    throw new InvalidOperationException("Envíe la solicitud desde el último paso.");
+                if (continuar || enviar)
+                    ClienteCrmBLL.ValidarPasos(modelo.Ficha, Math.Min(modelo.PasoActual, 5));
+                modelo.Ficha.PasoCompletado = continuar
+                    ? Math.Max(completado, modelo.PasoActual) : completado;
+                if (existente != null) ConservarDatosLegados(existente.Ficha, modelo.Ficha);
                 var agente = ValidarOperador(modelo.Empresa, modelo.CodigoOperador);
+                string codigoSapOrigen = modelo.Ficha.CodigoSapOrigen;
+                string codigoAnterior = existente == null ? null : existente.Ficha.CodigoSapOrigen;
+                if (!string.IsNullOrWhiteSpace(codigoSapOrigen) &&
+                    !string.Equals(codigoSapOrigen, codigoAnterior, StringComparison.OrdinalIgnoreCase))
+                {
+                    var clienteSap = _crm.BuscarClientesSap(modelo.Empresa, agente, codigoSapOrigen)
+                        .FirstOrDefault(c => string.Equals(c.CardCode, codigoSapOrigen,
+                            StringComparison.OrdinalIgnoreCase));
+                    if (clienteSap == null)
+                        throw new InvalidOperationException("El cliente SAP seleccionado ya no está disponible para este agente.");
+                }
                 long id = _crm.GuardarSolicitud(new ClienteCrmSolicitud {
                     Id = modelo.SolicitudId, Version = modelo.Version, Empresa = modelo.Empresa,
                     CodigoOperador = modelo.CodigoOperador, Agente = agente,
                     Ficha = modelo.Ficha
                 }, LeerArchivos(), enviar, User.Identity.Name, Ip());
+                if (continuar)
+                    return RedirectToAction("EditarSolicitud", new { id = id, paso = modelo.PasoActual + 1 });
                 TempData["CrmExito"] = enviar ? "Solicitud enviada a Créditos." : "Borrador guardado.";
                 return RedirectToAction("Solicitud", new { id = id });
             }
             catch (Exception ex)
             {
                 modelo.Error = Mensaje(ex);
+                if (modelo.SolicitudId > 0)
+                    modelo.Archivos = _crm.Archivos(modelo.SolicitudId, true, modelo.Empresa);
                 return View("Editor", PrepararEditor(modelo));
             }
         }
@@ -224,6 +282,12 @@ namespace DiamDev.Give.UI.Controllers
                 return SinAcceso();
             try
             {
+                if (modelo.ClienteId > 0)
+                {
+                    var anterior = _crm.ObtenerCliente(modelo.ClienteId, modelo.Empresa);
+                    if (anterior == null) return HttpNotFound();
+                    ConservarDatosLegados(anterior.Ficha, modelo.Ficha);
+                }
                 long id = _crm.GuardarCliente(new ClienteCrmCliente {
                     Id = modelo.ClienteId, Empresa = modelo.Empresa, Version = modelo.Version,
                     CodigoSap = modelo.CodigoSap, Activo = modelo.Activo || modelo.ClienteId == 0,
@@ -236,6 +300,8 @@ namespace DiamDev.Give.UI.Controllers
             {
                 modelo.EsCliente = true;
                 modelo.Error = Mensaje(ex);
+                if (modelo.ClienteId > 0)
+                    modelo.Archivos = _crm.Archivos(modelo.ClienteId, false, modelo.Empresa);
                 return View("Editor", PrepararEditor(modelo));
             }
         }
@@ -350,9 +416,65 @@ namespace DiamDev.Give.UI.Controllers
         {
             m = m ?? new ClienteCrmEditorViewModel();
             if (m.Ficha == null) m.Ficha = new ClienteCrmFicha();
+            if (m.Error == null && (m.SolicitudId > 0 || m.ClienteId > 0))
+            {
+                if (m.Ficha.Contactos == null) m.Ficha.Contactos = new List<ClienteCrmContacto>();
+                if (m.Ficha.Contactos.Count == 0 &&
+                    !string.IsNullOrWhiteSpace(m.Ficha.ContactoPrincipal))
+                    m.Ficha.Contactos.Add(new ClienteCrmContacto {
+                        Area = "Principal", Nombre = m.Ficha.ContactoPrincipal,
+                        Puesto = m.Ficha.CargoPrincipal, Telefono = m.Ficha.TelefonoPrincipal,
+                        Correo = m.Ficha.CorreoPrincipal
+                    });
+                var principal = m.Ficha.Contactos.FirstOrDefault();
+                if (principal != null)
+                {
+                    if (string.IsNullOrWhiteSpace(principal.TomadorDecision))
+                        principal.TomadorDecision = m.Ficha.TomadorDecision;
+                    if (string.IsNullOrWhiteSpace(principal.InfluenciadorTecnico))
+                        principal.InfluenciadorTecnico = m.Ficha.InfluenciadorTecnico;
+                }
+                if (m.SolicitudId > 0 && m.Ficha.PasoCompletado == 0)
+                    CompletarRespuestasLegadas(m.Ficha);
+            }
             m.Empresas = m.EsCliente ? TodasEmpresas() : EmpresasUsuario();
             if (m.Archivos == null) m.Archivos = new List<ClienteCrmArchivo>();
             return m;
+        }
+
+        private static void CompletarRespuestasLegadas(ClienteCrmFicha f)
+        {
+            if (f.CambioRazonSocialRespuesta == null)
+                f.CambioRazonSocialRespuesta = f.CambioRazonSocial ? "SI" : "NO";
+            if (f.TeleventasRespuesta == null) f.TeleventasRespuesta = f.Televentas ? "SI" : "NO";
+            if (f.VentaMostradorRespuesta == null)
+                f.VentaMostradorRespuesta = f.VentaMostrador ? "SI" : "NO";
+            if (f.VentaInstitucionalRespuesta == null)
+                f.VentaInstitucionalRespuesta = f.VentaInstitucional ? "SI" : "NO";
+            if (f.EcommerceRespuesta == null) f.EcommerceRespuesta = f.Ecommerce ? "SI" : "NO";
+            if (f.CompraActualmenteRespuesta == null)
+                f.CompraActualmenteRespuesta = f.CompraActualmente ? "SI" : "NO";
+            foreach (var d in f.Direcciones ?? new List<ClienteCrmDireccion>())
+            {
+                if (d.RequiereCitaRespuesta == null)
+                    d.RequiereCitaRespuesta = d.RequiereCita ? "SI" : "NO";
+                if (d.ActivaRespuesta == null) d.ActivaRespuesta = d.Activa ? "SI" : "NO";
+            }
+        }
+
+        private static void ConservarDatosLegados(ClienteCrmFicha anterior, ClienteCrmFicha actual)
+        {
+            if (anterior == null || actual == null) return;
+            actual.ContactoPrincipal = anterior.ContactoPrincipal;
+            actual.CargoPrincipal = anterior.CargoPrincipal;
+            actual.TelefonoPrincipal = anterior.TelefonoPrincipal;
+            actual.CorreoPrincipal = anterior.CorreoPrincipal;
+            actual.TomadorDecision = anterior.TomadorDecision;
+            actual.InfluenciadorTecnico = anterior.InfluenciadorTecnico;
+            actual.ResponsableCompras = anterior.ResponsableCompras;
+            actual.ContactoPagos = anterior.ContactoPagos;
+            actual.CanalPreferido = anterior.CanalPreferido;
+            actual.ObservacionesRelacion = anterior.ObservacionesRelacion;
         }
 
         private List<ClienteCrmEmpresaOpcion> EmpresasUsuario()

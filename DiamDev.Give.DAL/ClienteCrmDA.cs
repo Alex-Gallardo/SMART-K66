@@ -210,6 +210,13 @@ namespace DiamDev.Give.DAL
                     if (enviar) ValidarArchivos(cn, tx, solicitud.Id, true, solicitud.Empresa, solicitud.Ficha);
                     Auditar(cn, tx, "SOLICITUD", solicitud.Id, solicitud.Empresa, usuario,
                         enviar ? "ENVIAR" : "GUARDAR_BORRADOR", null, antes, solicitud.FichaJson, ip);
+                    string codigoSapAnterior = string.IsNullOrWhiteSpace(antes) ? null :
+                        Newtonsoft.Json.JsonConvert.DeserializeObject<ClienteCrmFicha>(antes).CodigoSapOrigen;
+                    if (!string.Equals(codigoSapAnterior, solicitud.Ficha.CodigoSapOrigen,
+                        StringComparison.OrdinalIgnoreCase))
+                        Auditar(cn, tx, "SOLICITUD", solicitud.Id, solicitud.Empresa, usuario,
+                            "CAMBIAR_CLIENTE_SAP", solicitud.Ficha.CodigoSapOrigen,
+                            codigoSapAnterior, solicitud.Ficha.CodigoSapOrigen, ip);
                     tx.Commit();
                     return solicitud.Id;
                 }
@@ -589,10 +596,10 @@ namespace DiamDev.Give.DAL
             }
             if (!tipos.Contains("RTU") || !tipos.Contains("DPI"))
                 throw new InvalidOperationException("Adjunte RTU actualizado y DPI de ambos lados para enviar.");
-            if (ficha.CondicionPago == "CREDITO" || ficha.CambioRazonSocial)
+            if (esSolicitud || ficha.CondicionPago == "CREDITO" || ficha.CambioRazonSocial)
                 if (!tipos.Contains("NOMBRAMIENTO") || !tipos.Contains("PATENTE_COMERCIO") ||
                     !tipos.Contains("PATENTE_SOCIEDAD"))
-                    throw new InvalidOperationException("Para crédito o cambio de razón social adjunte nombramiento y ambas patentes.");
+                    throw new InvalidOperationException("Adjunte nombramiento y ambas patentes.");
         }
 
         private static void ParamsSolicitud(SqlCommand cmd, ClienteCrmSolicitud s, bool enviar, string usuario)

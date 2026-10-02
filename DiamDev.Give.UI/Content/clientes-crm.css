@@ -61,3 +61,7 @@
 @media(prefers-reduced-motion:reduce){.crm-card{animation:none}.crm-btn{transition:none}.crm-btn:hover{transform:none}}
 .crm-editor>section[id^="crm-"]{scroll-margin-top:calc(var(--crm-shell-height,54px) + 70px)}
 @media(max-width:720px){.crm-step-nav{top:var(--crm-shell-height,53px)}}
+.crm-contact-row{grid-template-columns:repeat(4,minmax(0,1fr))}
+.crm-contact-row .crm-remove{justify-self:end}
+@media(max-width:1100px){.crm-contact-row{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:720px){.crm-contact-row{grid-template-columns:1fr}}

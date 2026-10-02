@@ -18,6 +18,8 @@ namespace DiamDev.Give.Entities
         public string Puesto { get; set; }
         public string Telefono { get; set; }
         public string Correo { get; set; }
+        public string TomadorDecision { get; set; }
+        public string InfluenciadorTecnico { get; set; }
     }
 
     public class ClienteCrmDireccion
@@ -30,6 +32,8 @@ namespace DiamDev.Give.Entities
         public string HorarioFinSemana { get; set; }
         public bool RequiereCita { get; set; }
         public bool Activa { get; set; }
+        public string RequiereCitaRespuesta { get; set; }
+        public string ActivaRespuesta { get; set; }
     }
 
     /// <summary>La ficha se conserva completa como fotografía versionada en SQL.</summary>
@@ -54,6 +58,9 @@ namespace DiamDev.Give.Entities
         public string TemporadaPago { get; set; }
         public string TramiteContrasena { get; set; }
         public bool CambioRazonSocial { get; set; }
+        public string CambioRazonSocialRespuesta { get; set; }
+        public string CodigoSapOrigen { get; set; }
+        public int PasoCompletado { get; set; }
         public List<ClienteCrmContacto> Contactos { get; set; }
         public List<ClienteCrmDireccion> Direcciones { get; set; }
 
@@ -79,6 +86,10 @@ namespace DiamDev.Give.Entities
         public bool VentaMostrador { get; set; }
         public bool VentaInstitucional { get; set; }
         public bool Ecommerce { get; set; }
+        public string TeleventasRespuesta { get; set; }
+        public string VentaMostradorRespuesta { get; set; }
+        public string VentaInstitucionalRespuesta { get; set; }
+        public string EcommerceRespuesta { get; set; }
         public string ClientesFinales { get; set; }
         public string TemporadasDemanda { get; set; }
         public string ProyectosEventos { get; set; }
@@ -97,6 +108,7 @@ namespace DiamDev.Give.Entities
 
         // Desarrollo comercial de la empresa elegida.
         public bool CompraActualmente { get; set; }
+        public string CompraActualmenteRespuesta { get; set; }
         public string MonedaIndicadores { get; set; }
         public decimal? Venta12Meses { get; set; }
         public decimal? PotencialAnual { get; set; }

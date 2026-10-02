@@ -12,6 +12,27 @@ namespace DiamDev.Give.BLL
     public class ClienteCrmBLL
     {
         private readonly ClienteCrmDA _da = new ClienteCrmDA();
+        private readonly HanaRepository _hana = new HanaRepository();
+
+        public List<ClienteHana> BuscarClientesSap(string empresa, string agente, string filtro)
+        {
+            ValidarEmpresa(empresa);
+            if (string.IsNullOrWhiteSpace(agente) || string.IsNullOrWhiteSpace(filtro) ||
+                filtro.Trim().Length < 2 || filtro.Length > 100)
+                throw new InvalidOperationException("Escriba al menos dos caracteres para buscar en SAP.");
+            string texto = filtro.Trim();
+            return _hana.BuscarClientes(empresa, agente)
+                .Where(c => c != null && !string.IsNullOrWhiteSpace(c.CardCode) &&
+                    (Contiene(c.CardCode, texto) || Contiene(c.CardName, texto) ||
+                     Contiene(c.LicTradNum, texto)))
+                .Take(30).ToList();
+        }
+
+        private static bool Contiene(string valor, string filtro)
+        {
+            return !string.IsNullOrWhiteSpace(valor) &&
+                valor.IndexOf(filtro, StringComparison.OrdinalIgnoreCase) >= 0;
+        }
 
         public List<ClienteCrmSolicitud> ListarSolicitudes(string empresa, string estado,
             string filtro, string creador)
@@ -60,6 +81,7 @@ namespace DiamDev.Give.BLL
             if (solicitud == null) throw new InvalidOperationException("No se recibió la solicitud.");
             ValidarEmpresa(solicitud.Empresa);
             solicitud.Empresa = solicitud.Empresa.Trim().ToUpperInvariant();
+            if (enviar) ValidarPasos(solicitud.Ficha, 5);
             ValidarFicha(solicitud.Ficha, enviar);
             if (string.IsNullOrWhiteSpace(solicitud.CodigoOperador) ||
                 string.IsNullOrWhiteSpace(solicitud.Agente))
@@ -143,6 +165,7 @@ namespace DiamDev.Give.BLL
             f.NombreComercial = Limitar(f.NombreComercial, 200);
             f.NitDpi = Limitar(f.NitDpi, 50);
             f.CorreoFactura = Limitar(f.CorreoFactura, 150);
+            f.CodigoSapOrigen = Limitar(f.CodigoSapOrigen, 50);
             f.CondicionPago = Limpio(f.CondicionPago);
             if (f.CondicionPago != null) f.CondicionPago = f.CondicionPago.ToUpperInvariant();
             f.MonedaIndicadores = Limpio(f.MonedaIndicadores);
@@ -180,6 +203,119 @@ namespace DiamDev.Give.BLL
                 if (!string.IsNullOrWhiteSpace(contacto.Correo) &&
                     !new EmailAddressAttribute().IsValid(contacto.Correo))
                     throw new InvalidOperationException("Revise el correo de " + contacto.Nombre + ".");
+        }
+
+        public static void ValidarPasos(ClienteCrmFicha f, int hasta)
+        {
+            if (f == null || hasta < 1 || hasta > 5)
+                throw new InvalidOperationException("El paso de la solicitud no es válido.");
+            if (hasta >= 1)
+            {
+                Requerir(f.RazonSocial, "Razón social");
+                Requerir(f.NombreComercial, "Nombre comercial");
+                Requerir(f.NitDpi, "NIT o DPI");
+                Requerir(f.TipoNegocio, "Tipo de negocio");
+                Requerir(f.DireccionFiscal, "Dirección fiscal");
+                Requerir(f.TipoOperacion, "Tipo de operación");
+                Requerir(f.CorreoFactura, "Correo de factura");
+                Requerir(f.CondicionPago, "Condición de pago");
+                Requerir(f.MetodoPago, "Método de pago");
+                Requerir(f.TramiteContrasena, "Trámite de contraseña");
+                if (!new[] { "15", "30", "60", "90" }.Contains(f.TemporadaPago))
+                    throw new InvalidOperationException("Seleccione los días de crédito.");
+                f.CambioRazonSocial = Respuesta(f.CambioRazonSocialRespuesta,
+                    "Cambio de razón social");
+                if (!new EmailAddressAttribute().IsValid(f.CorreoFactura))
+                    throw new InvalidOperationException("El correo de factura no es válido.");
+            }
+            if (hasta >= 2)
+            {
+                if (f.Contactos == null || f.Contactos.Count == 0 || f.Contactos.Count > 30)
+                    throw new InvalidOperationException("Agregue entre uno y treinta contactos.");
+                foreach (var c in f.Contactos)
+                {
+                    if (c == null) throw new InvalidOperationException("Complete cada contacto.");
+                    Requerir(c.Area, "Área del contacto");
+                    Requerir(c.Nombre, "Nombre del contacto");
+                    Requerir(c.Puesto, "Puesto del contacto");
+                    Requerir(c.Telefono, "Teléfono del contacto");
+                    Requerir(c.Correo, "Correo del contacto");
+                    Requerir(c.TomadorDecision, "Tomador de decisiones");
+                    Requerir(c.InfluenciadorTecnico, "Influenciador técnico / usuario");
+                    if (!new EmailAddressAttribute().IsValid(c.Correo))
+                        throw new InvalidOperationException("Revise el correo de " + c.Nombre + ".");
+                }
+            }
+            if (hasta >= 3)
+            {
+                if (f.Direcciones == null || f.Direcciones.Count == 0 || f.Direcciones.Count > 20)
+                    throw new InvalidOperationException("Agregue entre una y veinte direcciones.");
+                foreach (var d in f.Direcciones)
+                {
+                    if (d == null) throw new InvalidOperationException("Complete cada dirección.");
+                    Requerir(d.Nombre, "Nombre de la ubicación");
+                    Requerir(d.Modalidad, "Modalidad de entrega");
+                    Requerir(d.Referencia, "Referencia de la dirección");
+                    Requerir(d.Direccion, "Dirección completa");
+                    Requerir(d.HorarioSemana, "Horario entre semana");
+                    Requerir(d.HorarioFinSemana, "Horario fin de semana");
+                    d.RequiereCita = Respuesta(d.RequiereCitaRespuesta, "Requiere cita");
+                    d.Activa = Respuesta(d.ActivaRespuesta, "Dirección activa");
+                }
+            }
+            if (hasta >= 4)
+            {
+                Requerir(f.CoberturaGeografica, "Cobertura geográfica");
+                Requerir(f.RegionesMayorVenta, "Regiones de mayor venta");
+                Requerir(f.SucursalesMayorVenta, "Sucursales / PDV");
+                if (!f.VendedoresCampo.HasValue || !f.VendedoresTienda.HasValue)
+                    throw new InvalidOperationException("Complete ambos números de vendedores.");
+                f.Televentas = Respuesta(f.TeleventasRespuesta, "Televentas");
+                f.VentaMostrador = Respuesta(f.VentaMostradorRespuesta, "Venta mostrador");
+                f.VentaInstitucional = Respuesta(f.VentaInstitucionalRespuesta, "Venta institucional");
+                f.Ecommerce = Respuesta(f.EcommerceRespuesta, "Comercio electrónico");
+                Requerir(f.ClientesFinales, "Principales clientes finales");
+                Requerir(f.TemporadasDemanda, "Temporadas de mayor demanda");
+                Requerir(f.ProyectosEventos, "Proyectos / eventos");
+                Requerir(f.NecesidadPrincipal, "Necesidad principal");
+                Requerir(f.ValorProveedor, "Qué valora al elegir proveedor");
+                Requerir(f.MotivoCompra, "Motivo de compra");
+                Requerir(f.ObjecionPrincipal, "Objeción principal");
+                Requerir(f.CompetidorPrincipal, "Competidor principal");
+                Requerir(f.FortalezaCompetidor, "Fortaleza del competidor");
+                Requerir(f.DebilidadCompetidor, "Debilidad u oportunidad");
+                Requerir(f.InformacionMercado, "Información de mercado");
+                Requerir(f.RiesgoComercial, "Riesgo comercial");
+                Requerir(f.Satisfaccion, "Nivel de satisfacción");
+            }
+            if (hasta >= 5)
+            {
+                f.CompraActualmente = Respuesta(f.CompraActualmenteRespuesta,
+                    "Compra actualmente");
+                if (!new[] { "GTQ", "USD" }.Contains(f.MonedaIndicadores))
+                    throw new InvalidOperationException("Seleccione la moneda de los indicadores.");
+                if (!f.Venta12Meses.HasValue || !f.PotencialAnual.HasValue ||
+                    !f.Objetivo12Meses.HasValue)
+                    throw new InvalidOperationException("Complete todos los indicadores comerciales.");
+                Requerir(f.OportunidadCrecimiento, "Oportunidad de crecimiento");
+                Requerir(f.CompetidorNegocio, "Competidor en este negocio");
+                Requerir(f.Forecast, "Forecast / expectativa de compra");
+                Requerir(f.ProximoPaso, "Próximo paso comercial");
+                Requerir(f.ObservacionesComerciales, "Observaciones comerciales");
+            }
+        }
+
+        private static void Requerir(string valor, string campo)
+        {
+            if (string.IsNullOrWhiteSpace(valor))
+                throw new InvalidOperationException("Complete " + campo + ".");
+        }
+
+        private static bool Respuesta(string valor, string campo)
+        {
+            if (valor != "SI" && valor != "NO")
+                throw new InvalidOperationException("Seleccione Sí o No en " + campo + ".");
+            return valor == "SI";
         }
 
         private static void ValidarEmpresa(string empresa)

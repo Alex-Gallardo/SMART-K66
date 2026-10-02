@@ -28,76 +28,14 @@
     if (empresa) { empresa.addEventListener('change', actualizarEmpresa); actualizarEmpresa(); }
 
     var stepNav = document.querySelector('.crm-step-nav');
-    if (stepNav) {
-        var stepTrack = stepNav.querySelector('.crm-step-track');
-        var stepLinks = Array.prototype.slice.call(stepTrack.querySelectorAll('a[href^="#crm-"]'));
-        var stepStatus = document.getElementById('crmStepStatus');
-        var stepProgress = stepNav.querySelector('.crm-step-progress span');
-        var activeStep = -1;
-        var scrollScheduled = false;
-
-        function reducedMotion() {
-            return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        }
-
-        function shellHeight() {
+    if (stepNav && app) {
+        function updateStepOffset() {
             var navbar = document.querySelector('.app-navbar');
-            return navbar ? Math.ceil(navbar.getBoundingClientRect().height) : 64;
+            var height = navbar ? Math.ceil(navbar.getBoundingClientRect().height) : 54;
+            app.style.setProperty('--crm-shell-height', height + 'px');
         }
-        function navOffset() {
-            return shellHeight() + stepNav.offsetHeight + 20;
-        }
-        function setActiveStep(index) {
-            if (index === activeStep || index < 0) return;
-            activeStep = index;
-            Array.prototype.forEach.call(stepLinks, function (link, i) {
-                link.classList.toggle('is-active', i === index);
-                link.classList.toggle('is-visited', i < index);
-                if (i === index) link.setAttribute('aria-current', 'step');
-                else link.removeAttribute('aria-current');
-            });
-            if (stepStatus) {
-                var label = stepLinks[index].querySelector('.crm-step-label');
-                stepStatus.textContent = 'Sección ' + (index + 1) + ' de ' + stepLinks.length + ' · ' + label.textContent;
-            }
-            if (stepProgress) stepProgress.style.width = ((index + 1) * 100 / stepLinks.length) + '%';
-            var link = stepLinks[index];
-            if (stepTrack.scrollWidth > stepTrack.clientWidth) {
-                stepTrack.scrollTo({ left: link.offsetLeft - (stepTrack.clientWidth - link.offsetWidth) / 2, behavior: reducedMotion() ? 'auto' : 'smooth' });
-            }
-        }
-        function syncStep() {
-            scrollScheduled = false;
-            stepNav.style.setProperty('--crm-shell-height', shellHeight() + 'px');
-            stepNav.classList.toggle('is-stuck', stepNav.getBoundingClientRect().top <= shellHeight() + 9 && window.pageYOffset > 0);
-            var index = 0;
-            Array.prototype.forEach.call(stepLinks, function (link, i) {
-                var section = document.getElementById(link.hash.substring(1));
-                if (section && section.getBoundingClientRect().top <= navOffset()) index = i;
-            });
-            if (window.innerHeight + window.pageYOffset >= document.documentElement.scrollHeight - 12) {
-                index = stepLinks.length - 1;
-            }
-            setActiveStep(index);
-        }
-        function scheduleStep() {
-            if (scrollScheduled) return;
-            scrollScheduled = true;
-            window.requestAnimationFrame(syncStep);
-        }
-        Array.prototype.forEach.call(stepLinks, function (link, i) {
-            link.addEventListener('click', function (event) {
-                var section = document.getElementById(link.hash.substring(1));
-                if (!section) return;
-                event.preventDefault();
-                setActiveStep(i);
-                window.scrollTo({ top: Math.max(0, section.getBoundingClientRect().top + window.pageYOffset - navOffset()), behavior: reducedMotion() ? 'auto' : 'smooth' });
-                if (window.history && window.history.replaceState) window.history.replaceState(null, '', link.hash);
-            });
-        });
-        window.addEventListener('scroll', scheduleStep, { passive: true });
-        window.addEventListener('resize', scheduleStep);
-        scheduleStep();
+        window.addEventListener('resize', updateStepOffset);
+        updateStepOffset();
     }
 
     function filas(tipo) {

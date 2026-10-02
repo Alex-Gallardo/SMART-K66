@@ -9,7 +9,7 @@
     string nombreEmpresa = empresa == "FAES" ? "Escocesa" : empresa == "GRACO" ? "Graco Pack" : "Bolik";
     long entidadId = esSolicitud ? Model.Solicitud.Id : Model.Cliente.Id;
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=2")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=3")" rel="stylesheet" /> }
 <div class="crm crm-detail" data-empresa="@empresa">
     <header class="crm-page-head">
         <a class="crm-back" href="@Url.Action(esSolicitud ? (Model.EsVistaCreditos ? "Dashboard" : "Index") : "Clientes")"><i class="icon-arrow-left"></i> Volver al listado</a>

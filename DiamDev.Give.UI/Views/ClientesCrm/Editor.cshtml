@@ -9,7 +9,7 @@
     var empresaOpciones = Model.Empresas.Select(x => new SelectListItem { Value = x.Empresa, Text = x.Etiqueta });
     var esCredito = Model.EsCliente;
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=2")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=3")" rel="stylesheet" /> }
 
 <div class="crm" id="crmApp" data-empresa="@Model.Empresa">
     <div class="crm-page-head">
@@ -35,16 +35,12 @@
         @Html.HiddenFor(m => m.Activo)
 
         <nav class="crm-step-nav" aria-label="Secciones del formulario">
-            <div class="crm-step-meta"><strong><i class="icon-list" aria-hidden="true"></i> Avance de la solicitud</strong><span id="crmStepStatus" aria-live="polite">Sección 1 de 6 · Identidad</span></div>
-            <div class="crm-step-track">
-                <a class="is-active" href="#crm-identidad" aria-current="step"><span class="crm-step-number">01</span><i class="icon-user" aria-hidden="true"></i><span class="crm-step-label">Identidad</span></a>
-                <a href="#crm-contactos"><span class="crm-step-number">02</span><i class="icon-users" aria-hidden="true"></i><span class="crm-step-label">Contactos</span></a>
-                <a href="#crm-direcciones"><span class="crm-step-number">03</span><i class="icon-map-marker" aria-hidden="true"></i><span class="crm-step-label">Entregas</span></a>
-                <a href="#crm-perfil"><span class="crm-step-number">04</span><i class="icon-building" aria-hidden="true"></i><span class="crm-step-label">Perfil</span></a>
-                <a href="#crm-desarrollo"><span class="crm-step-number">05</span><i class="icon-bar-chart" aria-hidden="true"></i><span class="crm-step-label">Desarrollo</span></a>
-                <a href="#crm-documentos"><span class="crm-step-number">06</span><i class="icon-file-text" aria-hidden="true"></i><span class="crm-step-label">Documentos</span></a>
-            </div>
-            <div class="crm-step-progress" aria-hidden="true"><span></span></div>
+            <a href="#crm-identidad"><span>01</span> Identidad</a>
+            <a href="#crm-contactos"><span>02</span> Contactos</a>
+            <a href="#crm-direcciones"><span>03</span> Entregas</a>
+            <a href="#crm-perfil"><span>04</span> Perfil</a>
+            <a href="#crm-desarrollo"><span>05</span> Desarrollo</a>
+            <a href="#crm-documentos"><span>06</span> Documentos</a>
         </nav>
 
         <section class="crm-card" id="crm-identidad">
@@ -179,4 +175,4 @@
         </div>
     </form>
 </div>
-@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=2")"></script> }
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=3")"></script> }

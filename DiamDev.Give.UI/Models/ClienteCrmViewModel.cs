@@ -34,6 +34,7 @@ namespace DiamDev.Give.UI.Models
         public bool Activo { get; set; }
         public bool EsCliente { get; set; }
         public string Estado { get; set; }
+        public int PasoActual { get; set; }
         public ClienteCrmFicha Ficha { get; set; }
         public List<ClienteCrmEmpresaOpcion> Empresas { get; set; }
         public List<ClienteCrmArchivo> Archivos { get; set; }

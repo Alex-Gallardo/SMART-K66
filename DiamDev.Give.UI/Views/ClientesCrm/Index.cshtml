@@ -12,7 +12,7 @@
 <div class="crm" data-empresa="@empresaActual">
     <header class="crm-page-head">
         <span class="crm-eyebrow">Clientes · Grupo K66</span>
-        <div class="crm-head-row"><div><h1>Mis solicitudes de clientes</h1><p>Cree solicitudes y siga su revisión por el equipo de Créditos.</p></div>
+        <div class="crm-head-row"><div><h1>Mis solicitudes de clientes</h1><p>Cree solicitudes y siga su revisión a detalle.</p></div>
             @if (ViewBag.PuedeCrear == true) { <a class="crm-btn crm-btn-primary" href="@Url.Action("Nueva")"><i class="icon-plus"></i> Nueva solicitud</a> }</div>
     </header>
     @if (TempData["CrmExito"] != null) { <div class="crm-alert crm-alert-success">@TempData["CrmExito"]</div> }

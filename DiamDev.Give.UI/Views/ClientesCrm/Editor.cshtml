@@ -55,7 +55,7 @@
         </nav>
 
         <section class="crm-card" id="crm-identidad" @(!esCredito && pasoActual != 1 ? "hidden" : "")>
-            <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-user"></i></div><div><h2>Identidad y facturación</h2><p>Datos que utilizará Créditos para validar y crear el cliente.</p></div></div>
+            <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-user"></i></div><div><h2>Identidad y facturación</h2><p>Datos que utilizarán para validar y crear el cliente.</p></div></div>
             <div class="crm-grid">
                 <div class="crm-field crm-col-4"><label for="Empresa">Empresa <b>*</b></label>@if ((esCredito && Model.ClienteId > 0) || (!esCredito && Model.SolicitudId > 0)) { @Html.HiddenFor(m => m.Empresa)<div class="crm-readonly-company">@(Model.Empresa == "FAES" ? "Escocesa" : Model.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</div> } else { @Html.DropDownListFor(m => m.Empresa, empresaOpciones, "Seleccione una empresa", new { @class = "form-control", id = "Empresa", required = "required" }) }</div>
                 @if (!esCredito) {
@@ -83,7 +83,7 @@
                 <div class="crm-field crm-col-4"><label>Condición de pago <b>*</b></label>@Html.DropDownListFor(m => m.Ficha.CondicionPago, new SelectList(new[] { new { Value = "ANTICIPADO", Text = "Anticipado" }, new { Value = "CONTADO", Text = "Contado · pago contra entrega" }, new { Value = "CREDITO", Text = "Crédito" } }, "Value", "Text"), "Seleccione...", new { @class = "form-control", id = "crmCondicionPago" })@if (Model.Ficha.CondicionPago == "TEMPORADA") { <small>Valor anterior: Temporada. Seleccione una condición vigente.</small> }</div>
                 <div class="crm-field crm-col-4"><label>Método de pago</label>@Html.DropDownListFor(m => m.Ficha.MetodoPago, new SelectList(new[] { "Transferencia", "Depósito", "Cheque", "Efectivo" }), "Seleccione...", new { @class = "form-control" })</div>
                 <div class="crm-field crm-col-4"><label>Días de crédito</label>@Html.DropDownListFor(m => m.Ficha.TemporadaPago, diasCredito, "Seleccione...", new { @class = "form-control" })</div>
-                <div class="crm-field crm-col-12"><label>Trámite de contraseña / canal de solicitud</label>@Html.TextAreaFor(m => m.Ficha.TramiteContrasena, 2, 60, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-12"><label>Observaciones / canal de solicitud</label>@Html.TextAreaFor(m => m.Ficha.TramiteContrasena, 2, 60, new { @class = "form-control" })</div>
                 <div class="crm-field crm-col-12 crm-check">@Html.CheckBoxFor(m => m.Ficha.CambioRazonSocial, new { id = "crmCambioRazon" }) <label for="crmCambioRazon">Cambio de razón social</label></div>
             </div>
         </section>

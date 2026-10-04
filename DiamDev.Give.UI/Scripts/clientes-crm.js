@@ -330,18 +330,16 @@
             grid.appendChild(campo);
         });
         if (wizard) {
-            [['RequiereCitaRespuesta', 'Requiere cita'],
-             ['ActivaRespuesta', 'Dirección activa']].forEach(function (dato) {
-                var campo = document.createElement('div'); campo.className = 'crm-field crm-col-4';
-                var label = document.createElement('label'); label.textContent = dato[1];
-                var select = document.createElement('select'); select.className = 'form-control';
-                select.name = 'Ficha.Direcciones[' + i + '].' + dato[0];
-                [['', 'Seleccione...'], ['SI', 'Sí'], ['NO', 'No']].forEach(function (opcion) {
-                    var item = document.createElement('option'); item.value = opcion[0];
-                    item.textContent = opcion[1]; select.appendChild(item);
-                });
-                select.required = pasoActual === 3;
-                campo.appendChild(label); campo.appendChild(select); grid.appendChild(campo);
+            [['RequiereCita', 'Requiere cita', false],
+             ['Activa', 'Dirección activa', true]].forEach(function (dato) {
+                var campo = document.createElement('div'); campo.className = 'crm-field crm-col-4 crm-check';
+                var label = document.createElement('label');
+                var check = document.createElement('input'); check.type = 'checkbox'; check.value = 'true';
+                check.name = 'Ficha.Direcciones[' + i + '].' + dato[0]; check.checked = dato[2];
+                label.appendChild(check); label.appendChild(document.createTextNode(' ' + dato[1]));
+                var hidden = document.createElement('input'); hidden.type = 'hidden'; hidden.value = 'false';
+                hidden.name = check.name;
+                campo.appendChild(label); campo.appendChild(hidden); grid.appendChild(campo);
             });
         } else {
             var opciones = document.createElement('div'); opciones.className = 'crm-field crm-col-2 crm-check';

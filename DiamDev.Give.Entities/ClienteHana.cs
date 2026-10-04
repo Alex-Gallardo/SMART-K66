@@ -14,4 +14,10 @@
         public string Email { get; set; }  // Correo
         public string Currency { get; set; }  // Moneda (GTQ, USD)
     }
+
+    public class ClienteGrupoHana
+    {
+        public int GroupCode { get; set; }
+        public string GroupName { get; set; }
+    }
 }

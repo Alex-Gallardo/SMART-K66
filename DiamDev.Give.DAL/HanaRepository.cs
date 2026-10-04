@@ -60,6 +60,24 @@ namespace DiamDev.Give.DAL
             return lista;
         }
 
+        public List<ClienteGrupoHana> ObtenerGruposClientes(string empresa)
+        {
+            string schema = ResolverSchema(empresa);
+            if (schema == null) return new List<ClienteGrupoHana>();
+
+            string query = string.Format(@"SELECT ""GroupCode"", ""GroupName""
+                FROM ""{0}"".""OCRG"" WHERE ""GroupType"" = 'C'
+                ORDER BY ""GroupName"", ""GroupCode""", schema);
+            DataTable tabla = HanaHelper.EjecutarConsulta(query);
+            return tabla.Rows.Cast<DataRow>()
+                .Select(row => new ClienteGrupoHana {
+                    GroupCode = Convert.ToInt32(row["GroupCode"]),
+                    GroupName = LeerCampo(row, "GroupName").Trim()
+                })
+                .Where(grupo => grupo.GroupName.Length > 0)
+                .ToList();
+        }
+
         /// <summary>
         /// Devuelve, de un lote de IDs de recibo, cuáles ya están operados en SAP
         /// (existen en ORCT con Canceled='N'). Si un ID tiene varias filas activas

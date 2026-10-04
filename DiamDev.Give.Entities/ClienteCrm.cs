@@ -50,6 +50,7 @@ namespace DiamDev.Give.Entities
         public string NombreComercial { get; set; }
         public string NitDpi { get; set; }
         public string TipoNegocio { get; set; }
+        public int? TipoNegocioCodigo { get; set; }
         public string DireccionFiscal { get; set; }
         public string TipoOperacion { get; set; }
         public string CorreoFactura { get; set; }

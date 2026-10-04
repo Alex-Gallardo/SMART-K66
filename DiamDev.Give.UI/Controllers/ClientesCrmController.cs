@@ -42,6 +42,18 @@ namespace DiamDev.Give.UI.Controllers
             return View(solicitudes);
         }
 
+        [HttpGet]
+        public ActionResult Editor()
+        {
+            // Editor.cshtml es una vista compartida; la ruta directa debe pasar por una acción con permisos.
+            if (TienePermiso(PermisoCrear)) return RedirectToAction("Nueva");
+            if (TienePermiso(PermisoAdministrar)) return RedirectToAction("NuevoCliente");
+            if (TienePermiso(PermisoDashboard)) return RedirectToAction("Dashboard");
+            if (TienePermiso(PermisoCarteraGlobal)) return RedirectToAction("Clientes");
+            if (TienePermiso(PermisoVer)) return RedirectToAction("Index");
+            return SinAcceso();
+        }
+
         [Permiso(PermisoCrear)]
         public ActionResult Nueva()
         {

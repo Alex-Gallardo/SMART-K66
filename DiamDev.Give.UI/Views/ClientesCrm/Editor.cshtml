@@ -73,7 +73,7 @@
                 } else {
                     <div class="crm-field crm-col-4"><label for="CodigoSap">Código de cliente SAP</label>@Html.TextBoxFor(m => m.CodigoSap, new { @class = "form-control", maxlength = "50", placeholder = "Ingresado por Créditos después del alta en SAP" })<small>Solo vincula la ficha; no modifica SAP.</small></div>
                 }
-                <div class="crm-field crm-col-4"><label for="Ficha_TipoOperacion">Tipo de operación</label>@Html.DropDownListFor(m => m.Ficha.TipoOperacion, new SelectList(new[] { "Privada", "Gobierno" }), "Seleccione...", new { @class = "form-control" })@if (Model.Ficha.TipoOperacion == "Sociedad") { <small>Valor anterior: Sociedad. Seleccione una opción vigente.</small> }</div>
+                <div class="crm-field crm-col-4"><label for="Ficha_TipoOperacion">Tipo de operación</label>@Html.DropDownListFor(m => m.Ficha.TipoOperacion, new SelectList(new[] { "Privada", "Publica" }), "Seleccione...", new { @class = "form-control" })@if (Model.Ficha.TipoOperacion == "Sociedad") { <small>Valor anterior: Sociedad. Seleccione una opción vigente.</small> }</div>
                 <div class="crm-field crm-col-6"><label>Razón social <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.RazonSocial, new { @class = "form-control", maxlength = "200", required = "required" })</div>
                 <div class="crm-field crm-col-6"><label>Nombre comercial</label>@Html.TextBoxFor(m => m.Ficha.NombreComercial, new { @class = "form-control", maxlength = "200" })</div>
                 <div class="crm-field crm-col-4"><label>NIT o DPI <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.NitDpi, new { @class = "form-control", maxlength = "50", required = "required" })</div>
@@ -119,7 +119,10 @@
                         <div class="crm-field crm-col-5"><label>Horario entre semana</label><input name="Ficha.Direcciones[@i].HorarioSemana" class="form-control" value="@direcciones[i].HorarioSemana" placeholder="Lun–Vie 08:00–17:00" /></div>
                         <div class="crm-field crm-col-5"><label>Horario fin de semana</label><input name="Ficha.Direcciones[@i].HorarioFinSemana" class="form-control" value="@direcciones[i].HorarioFinSemana" placeholder="Sáb 08:00–12:00" /></div>
                         @if (esCredito) { <div class="crm-field crm-col-2 crm-check"><label><input type="checkbox" name="Ficha.Direcciones[@i].RequiereCita" value="true" @(direcciones[i].RequiereCita ? "checked" : "") /> Requiere cita</label><label><input type="checkbox" name="Ficha.Direcciones[@i].Activa" value="true" @(direcciones[i].Activa ? "checked" : "") /> Activa</label></div> }
-                        else { <div class="crm-field crm-col-4"><label>Requiere cita</label><select name="Ficha.Direcciones[@i].RequiereCitaRespuesta" class="form-control"><option value="">Seleccione...</option><option value="SI" @(direcciones[i].RequiereCitaRespuesta == "SI" ? "selected" : "")>Sí</option><option value="NO" @(direcciones[i].RequiereCitaRespuesta == "NO" ? "selected" : "")>No</option></select></div><div class="crm-field crm-col-4"><label>Dirección activa</label><select name="Ficha.Direcciones[@i].ActivaRespuesta" class="form-control"><option value="">Seleccione...</option><option value="SI" @(direcciones[i].ActivaRespuesta == "SI" ? "selected" : "")>Sí</option><option value="NO" @(direcciones[i].ActivaRespuesta == "NO" ? "selected" : "")>No</option></select></div> }
+                        else {
+                            <div class="crm-field crm-col-4 crm-check"><label><input type="checkbox" name="Ficha.Direcciones[@i].RequiereCita" value="true" @(direcciones[i].RequiereCita ? "checked" : "") /> Requiere cita</label><input type="hidden" name="Ficha.Direcciones[@i].RequiereCita" value="false" /></div>
+                            <div class="crm-field crm-col-4 crm-check"><label><input type="checkbox" name="Ficha.Direcciones[@i].Activa" value="true" @(direcciones[i].Activa ? "checked" : "") /> Dirección activa</label><input type="hidden" name="Ficha.Direcciones[@i].Activa" value="false" /></div>
+                        }
                     </div>
                 </div> }
             </div>
@@ -200,4 +203,4 @@
         </div>
     </form>
 </div>
-@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=5")"></script> }
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=6")"></script> }

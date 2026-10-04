@@ -457,6 +457,8 @@ namespace DiamDev.Give.UI.Controllers
         {
             m = m ?? new ClienteCrmEditorViewModel();
             if (m.Ficha == null) m.Ficha = new ClienteCrmFicha();
+            if (string.Equals(m.Ficha.TipoOperacion, "Gobierno", StringComparison.OrdinalIgnoreCase))
+                m.Ficha.TipoOperacion = "Publica";
             if (m.Error == null && (m.SolicitudId > 0 || m.ClienteId > 0))
             {
                 if (m.Ficha.Contactos == null) m.Ficha.Contactos = new List<ClienteCrmContacto>();

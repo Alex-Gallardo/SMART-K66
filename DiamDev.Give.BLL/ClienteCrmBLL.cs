@@ -179,6 +179,8 @@ namespace DiamDev.Give.BLL
         public static void ValidarFicha(ClienteCrmFicha f, bool completa)
         {
             if (f == null) throw new InvalidOperationException("Complete la ficha de cliente.");
+            if (string.Equals(f.TipoOperacion, "Gobierno", StringComparison.OrdinalIgnoreCase))
+                f.TipoOperacion = "Publica";
             f.RazonSocial = Limitar(f.RazonSocial, 200);
             f.NombreComercial = Limitar(f.NombreComercial, 200);
             f.NitDpi = Limitar(f.NitDpi, 50);
@@ -277,8 +279,8 @@ namespace DiamDev.Give.BLL
                     Requerir(d.Direccion, "Dirección completa");
                     Requerir(d.HorarioSemana, "Horario entre semana");
                     Requerir(d.HorarioFinSemana, "Horario fin de semana");
-                    d.RequiereCita = Respuesta(d.RequiereCitaRespuesta, "Requiere cita");
-                    d.Activa = Respuesta(d.ActivaRespuesta, "Dirección activa");
+                    d.RequiereCitaRespuesta = d.RequiereCita ? "SI" : "NO";
+                    d.ActivaRespuesta = d.Activa ? "SI" : "NO";
                 }
             }
             if (hasta >= 4)

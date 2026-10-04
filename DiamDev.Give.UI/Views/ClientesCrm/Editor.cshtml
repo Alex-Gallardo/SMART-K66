@@ -6,6 +6,7 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     var contactos = Model.Ficha.Contactos ?? new List<DiamDev.Give.Entities.ClienteCrmContacto>();
+    if (contactos.Count == 0) { contactos.Add(new DiamDev.Give.Entities.ClienteCrmContacto()); }
     var direcciones = Model.Ficha.Direcciones ?? new List<DiamDev.Give.Entities.ClienteCrmDireccion>();
     var empresaOpciones = Model.Empresas.Select(x => new SelectListItem { Value = x.Empresa, Text = x.Etiqueta });
     var esCredito = Model.EsCliente;
@@ -18,7 +19,7 @@
             Text = Model.Ficha.TemporadaPago + " (valor anterior)" });
     }
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=4")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=5")" rel="stylesheet" /> }
 
 <div class="crm" id="crmApp" data-empresa="@Model.Empresa">
     <div class="crm-page-head">
@@ -60,31 +61,30 @@
                 @if (!esCredito) {
                     <div class="crm-field crm-col-4"><label for="CodigoOperador">Agente asignado <b>*</b></label><select name="CodigoOperador" id="CodigoOperador" class="form-control" data-selected="@Model.CodigoOperador" required><option value="">Seleccione una empresa</option></select></div>
                     <div hidden id="crmAgentesCatalogo">@foreach (var empresa in Model.Empresas) { foreach (var agente in empresa.Agentes) { <span data-empresa="@empresa.Empresa" data-codigo="@agente.Codigo" data-nombre="@agente.Nombre"></span> } }</div>
-                    <div class="crm-field crm-col-12" id="crmSapLookup" data-url="@Url.Action("BuscarClientesSap")">
-                        <label><input id="crmUsarSap" type="checkbox" @(string.IsNullOrWhiteSpace(Model.Ficha.CodigoSapOrigen) ? "" : "checked") /> Buscar cliente existente en SAP</label>
+                    <div class="crm-field crm-col-12 crm-sap-lookup" id="crmSapLookup" data-url="@Url.Action("BuscarClientesSap")">
+                        <label class="crm-sap-toggle" for="crmUsarSap"><input id="crmUsarSap" type="checkbox" @(string.IsNullOrWhiteSpace(Model.Ficha.CodigoSapOrigen) ? "" : "checked") /><span>Buscar cliente existente en SAP</span></label>
                         @Html.HiddenFor(m => m.Ficha.CodigoSapOrigen)
-                        <div id="crmSapControls" @(string.IsNullOrWhiteSpace(Model.Ficha.CodigoSapOrigen) ? "hidden" : "")>
-                            <input id="crmSapFiltro" type="search" class="form-control" placeholder="Código, razón social o NIT en SAP" autocomplete="off" />
-                            <button id="crmSapBuscar" type="button" class="crm-btn crm-btn-outline"><i class="icon-search"></i> Buscar</button>
-                            <div id="crmSapResultados" role="status" aria-live="polite">@if (!string.IsNullOrWhiteSpace(Model.Ficha.CodigoSapOrigen)) { <span>Cliente SAP seleccionado: @Model.Ficha.CodigoSapOrigen</span> }</div>
+                        <div id="crmSapControls" class="crm-sap-controls" @(string.IsNullOrWhiteSpace(Model.Ficha.CodigoSapOrigen) ? "hidden" : "")>
+                            <div class="crm-sap-search-row"><input id="crmSapFiltro" type="search" class="form-control" placeholder="Código, razón social o NIT en SAP" aria-label="Código, razón social o NIT en SAP" autocomplete="off" /><button id="crmSapBuscar" type="button" class="crm-btn crm-btn-outline"><i class="icon-search"></i> Buscar</button></div>
+                            <div id="crmSapStatus" class="crm-sap-status" role="status" aria-live="polite">@if (!string.IsNullOrWhiteSpace(Model.Ficha.CodigoSapOrigen)) { <span>Cliente SAP seleccionado: @Model.Ficha.CodigoSapOrigen</span> }</div>
+                            <div id="crmSapResultados" class="crm-sap-results"></div>
                         </div>
                     </div>
                 } else {
                     <div class="crm-field crm-col-4"><label for="CodigoSap">Código de cliente SAP</label>@Html.TextBoxFor(m => m.CodigoSap, new { @class = "form-control", maxlength = "50", placeholder = "Ingresado por Créditos después del alta en SAP" })<small>Solo vincula la ficha; no modifica SAP.</small></div>
                 }
-                <div class="crm-field crm-col-4"><label for="Ficha_TipoOperacion">Tipo de operación</label>@Html.DropDownListFor(m => m.Ficha.TipoOperacion, new SelectList(new[] { "Sociedad", "Privada", "Gobierno" }), "Seleccione...", new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label for="Ficha_TipoOperacion">Tipo de operación</label>@Html.DropDownListFor(m => m.Ficha.TipoOperacion, new SelectList(new[] { "Privada", "Gobierno" }), "Seleccione...", new { @class = "form-control" })@if (Model.Ficha.TipoOperacion == "Sociedad") { <small>Valor anterior: Sociedad. Seleccione una opción vigente.</small> }</div>
                 <div class="crm-field crm-col-6"><label>Razón social <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.RazonSocial, new { @class = "form-control", maxlength = "200", required = "required" })</div>
                 <div class="crm-field crm-col-6"><label>Nombre comercial</label>@Html.TextBoxFor(m => m.Ficha.NombreComercial, new { @class = "form-control", maxlength = "200" })</div>
                 <div class="crm-field crm-col-4"><label>NIT o DPI <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.NitDpi, new { @class = "form-control", maxlength = "50", required = "required" })</div>
-                <div class="crm-field crm-col-4"><label>Tipo de negocio</label>@Html.TextBoxFor(m => m.Ficha.TipoNegocio, new { @class = "form-control" })</div>
+                <div class="crm-field crm-col-4"><label for="Ficha_TipoNegocioCodigo">Tipo de negocio</label>@Html.HiddenFor(m => m.Ficha.TipoNegocio)<select name="Ficha.TipoNegocioCodigo" id="Ficha_TipoNegocioCodigo" class="form-control" data-url="@Url.Action("TiposNegocioSap")" data-selected="@Model.Ficha.TipoNegocioCodigo"><option value="">Seleccione una empresa...</option>@if (Model.Ficha.TipoNegocioCodigo.HasValue) { <option value="@Model.Ficha.TipoNegocioCodigo" selected>@Model.Ficha.TipoNegocio</option> }</select><small id="crmTipoNegocioStatus" role="status"></small>@if (!Model.Ficha.TipoNegocioCodigo.HasValue && !string.IsNullOrWhiteSpace(Model.Ficha.TipoNegocio)) { <small>Valor anterior: @Model.Ficha.TipoNegocio. Seleccione un grupo de SAP para actualizarlo.</small> }</div>
                 <div class="crm-field crm-col-8"><label>Dirección fiscal <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.DireccionFiscal, new { @class = "form-control" })</div>
                 <div class="crm-field crm-col-4"><label>Correo para factura electrónica <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.CorreoFactura, new { @class = "form-control", type = "email", maxlength = "150" })</div>
-                <div class="crm-field crm-col-4"><label>Condición de pago <b>*</b></label>@Html.DropDownListFor(m => m.Ficha.CondicionPago, new SelectList(new[] { new { Value = "ANTICIPADO", Text = "Anticipado" }, new { Value = "CONTADO", Text = "Contado · pago contra entrega" }, new { Value = "CREDITO", Text = "Crédito" }, new { Value = "TEMPORADA", Text = "Temporada" } }, "Value", "Text"), "Seleccione...", new { @class = "form-control", id = "crmCondicionPago" })</div>
+                <div class="crm-field crm-col-4"><label>Condición de pago <b>*</b></label>@Html.DropDownListFor(m => m.Ficha.CondicionPago, new SelectList(new[] { new { Value = "ANTICIPADO", Text = "Anticipado" }, new { Value = "CONTADO", Text = "Contado · pago contra entrega" }, new { Value = "CREDITO", Text = "Crédito" } }, "Value", "Text"), "Seleccione...", new { @class = "form-control", id = "crmCondicionPago" })@if (Model.Ficha.CondicionPago == "TEMPORADA") { <small>Valor anterior: Temporada. Seleccione una condición vigente.</small> }</div>
                 <div class="crm-field crm-col-4"><label>Método de pago</label>@Html.DropDownListFor(m => m.Ficha.MetodoPago, new SelectList(new[] { "Transferencia", "Depósito", "Cheque", "Efectivo" }), "Seleccione...", new { @class = "form-control" })</div>
                 <div class="crm-field crm-col-4"><label>Días de crédito</label>@Html.DropDownListFor(m => m.Ficha.TemporadaPago, diasCredito, "Seleccione...", new { @class = "form-control" })</div>
                 <div class="crm-field crm-col-12"><label>Trámite de contraseña / canal de solicitud</label>@Html.TextAreaFor(m => m.Ficha.TramiteContrasena, 2, 60, new { @class = "form-control" })</div>
-                @if (esCredito) { <div class="crm-field crm-col-12 crm-check">@Html.CheckBoxFor(m => m.Ficha.CambioRazonSocial, new { id = "crmCambioRazon" }) <label for="crmCambioRazon">Esta solicitud incluye cambio de razón social</label></div> }
-                else { <div class="crm-field crm-col-4"><label>Cambio de razón social</label><select name="Ficha.CambioRazonSocialRespuesta" id="crmCambioRazonRespuesta" class="form-control"><option value="">Seleccione...</option><option value="SI" @(Model.Ficha.CambioRazonSocialRespuesta == "SI" ? "selected" : "")>Sí</option><option value="NO" @(Model.Ficha.CambioRazonSocialRespuesta == "NO" ? "selected" : "")>No</option></select></div> }
+                <div class="crm-field crm-col-12 crm-check">@Html.CheckBoxFor(m => m.Ficha.CambioRazonSocial, new { id = "crmCambioRazon" }) <label for="crmCambioRazon">Cambio de razón social</label></div>
             </div>
         </section>
 
@@ -92,14 +92,16 @@
             <div class="crm-card-head"><div class="crm-section-icon"><i class="clip-users"></i></div><div><h2>Contactos y unidad de decisión</h2><p>Personas clave para compras, contabilidad, pagos y relación comercial.</p></div><button class="crm-add" type="button" data-add="contacto"><i class="icon-plus"></i> Agregar contacto</button></div>
             <div id="crmContactosRows" class="crm-repeat-list">
                 @for (int i = 0; i < contactos.Count; i++) { <div class="crm-repeat-row crm-contact-row" data-row="contacto">
-                    <div class="crm-field"><label>Área</label><input name="Ficha.Contactos[@i].Area" class="form-control" value="@contactos[i].Area" placeholder="Compras, Contabilidad, Pagos..." /></div>
-                    <div class="crm-field"><label>Nombre</label><input name="Ficha.Contactos[@i].Nombre" class="form-control" value="@contactos[i].Nombre" /></div>
-                    <div class="crm-field"><label>Puesto</label><input name="Ficha.Contactos[@i].Puesto" class="form-control" value="@contactos[i].Puesto" /></div>
-                    <div class="crm-field"><label>Teléfono</label><input name="Ficha.Contactos[@i].Telefono" class="form-control" value="@contactos[i].Telefono" /></div>
-                    <div class="crm-field"><label>Correo</label><input name="Ficha.Contactos[@i].Correo" class="form-control" type="email" value="@contactos[i].Correo" /></div>
-                    <div class="crm-field"><label>Tomador de decisiones</label><input name="Ficha.Contactos[@i].TomadorDecision" class="form-control" value="@contactos[i].TomadorDecision" /></div>
-                    <div class="crm-field"><label>Influenciador técnico / usuario</label><input name="Ficha.Contactos[@i].InfluenciadorTecnico" class="form-control" value="@contactos[i].InfluenciadorTecnico" /></div>
-                    <button type="button" class="crm-remove" aria-label="Quitar contacto"><i class="icon-remove"></i></button>
+                    <div class="crm-contact-top"><strong>Contacto @(i + 1)</strong><button type="button" class="crm-remove crm-contact-remove" aria-label="Quitar contacto @(i + 1)"><i class="icon-remove"></i> Quitar contacto</button></div>
+                    <div class="crm-contact-fields">
+                        <div class="crm-field crm-col-3"><label>Área</label><input name="Ficha.Contactos[@i].Area" class="form-control" value="@contactos[i].Area" placeholder="Compras, Contabilidad, Pagos..." /></div>
+                        <div class="crm-field crm-col-3"><label>Nombre</label><input name="Ficha.Contactos[@i].Nombre" class="form-control" value="@contactos[i].Nombre" /></div>
+                        <div class="crm-field crm-col-3"><label>Puesto</label><input name="Ficha.Contactos[@i].Puesto" class="form-control" value="@contactos[i].Puesto" /></div>
+                        <div class="crm-field crm-col-3"><label>Teléfono</label><input name="Ficha.Contactos[@i].Telefono" class="form-control" value="@contactos[i].Telefono" /></div>
+                        <div class="crm-field crm-col-4"><label>Correo</label><input name="Ficha.Contactos[@i].Correo" class="form-control" type="email" value="@contactos[i].Correo" /></div>
+                        <div class="crm-field crm-col-4"><label>Tomador de decisiones</label><input name="Ficha.Contactos[@i].TomadorDecision" class="form-control" value="@contactos[i].TomadorDecision" /></div>
+                        <div class="crm-field crm-col-4"><label>Influenciador técnico / usuario</label><input name="Ficha.Contactos[@i].InfluenciadorTecnico" class="form-control" value="@contactos[i].InfluenciadorTecnico" /></div>
+                    </div>
                 </div> }
             </div>
         </section>
@@ -198,4 +200,4 @@
         </div>
     </form>
 </div>
-@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=4")"></script> }
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=5")"></script> }

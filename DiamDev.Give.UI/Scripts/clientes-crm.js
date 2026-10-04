@@ -78,16 +78,90 @@
         });
     }
 
+    var tipoNegocio = document.getElementById('Ficha_TipoNegocioCodigo');
+    if (tipoNegocio && empresa) {
+        var tipoNombre = document.getElementById('Ficha_TipoNegocio');
+        var tipoStatus = document.getElementById('crmTipoNegocioStatus');
+        var grupoRequest = 0;
+        function cargarTiposNegocio(preservar) {
+            var codigo = preservar ? (tipoNegocio.getAttribute('data-selected') || tipoNegocio.value) : '';
+            var nombreAnterior = tipoNombre.value;
+            function restaurarAnterior() {
+                if (!preservar || !codigo) return;
+                var opcion = document.createElement('option');
+                opcion.value = codigo;
+                opcion.textContent = nombreAnterior || 'Grupo SAP ' + codigo;
+                tipoNegocio.appendChild(opcion);
+                tipoNegocio.value = codigo;
+            }
+            if (!preservar) {
+                tipoNombre.value = '';
+                tipoNegocio.removeAttribute('data-selected');
+            }
+            tipoStatus.textContent = '';
+            var request = ++grupoRequest;
+            tipoNegocio.innerHTML = '';
+            var inicial = document.createElement('option');
+            inicial.value = '';
+            inicial.textContent = empresa.value ? 'Cargando tipos de negocio...' : 'Seleccione una empresa...';
+            tipoNegocio.appendChild(inicial);
+            if (!empresa.value) return;
+            fetch(tipoNegocio.getAttribute('data-url') + '?empresa=' + encodeURIComponent(empresa.value),
+                { credentials: 'same-origin' })
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    if (request !== grupoRequest) return;
+                    tipoNegocio.innerHTML = '';
+                    inicial.textContent = data.ok ? 'Seleccione...' : (data.mensaje || 'No fue posible cargar SAP.');
+                    tipoNegocio.appendChild(inicial);
+                    if (!data.ok) {
+                        tipoStatus.textContent = inicial.textContent;
+                        restaurarAnterior();
+                        return;
+                    }
+                    data.grupos.forEach(function (grupo) {
+                        var opcion = document.createElement('option');
+                        opcion.value = String(grupo.codigo);
+                        opcion.textContent = grupo.nombre;
+                        tipoNegocio.appendChild(opcion);
+                    });
+                    if (codigo && Array.prototype.some.call(tipoNegocio.options,
+                        function (opcion) { return opcion.value === codigo; })) {
+                        tipoNegocio.value = codigo;
+                        tipoNombre.value = tipoNegocio.options[tipoNegocio.selectedIndex].text;
+                    } else if (preservar) {
+                        tipoNombre.value = nombreAnterior;
+                    }
+                })
+                .catch(function () {
+                    if (request !== grupoRequest) return;
+                    inicial.textContent = 'No fue posible cargar tipos de negocio de SAP.';
+                    tipoStatus.textContent = inicial.textContent;
+                    restaurarAnterior();
+                });
+        }
+        tipoNegocio.addEventListener('change', function () {
+            tipoNombre.value = tipoNegocio.value ?
+                tipoNegocio.options[tipoNegocio.selectedIndex].text : '';
+        });
+        empresa.addEventListener('change', function () { cargarTiposNegocio(false); });
+        cargarTiposNegocio(true);
+    }
+
     var sapLookup = document.getElementById('crmSapLookup');
     if (sapLookup) {
         var usarSap = document.getElementById('crmUsarSap');
         var sapControls = document.getElementById('crmSapControls');
         var sapFiltro = document.getElementById('crmSapFiltro');
         var sapResultados = document.getElementById('crmSapResultados');
+        var sapStatus = document.getElementById('crmSapStatus');
         var sapCodigo = document.getElementById('Ficha_CodigoSapOrigen');
+        var sapRequest = 0;
         function descartarSap() {
+            sapRequest++;
             sapCodigo.value = '';
             sapResultados.textContent = '';
+            sapStatus.textContent = '';
         }
         usarSap.addEventListener('change', function () {
             sapControls.hidden = !usarSap.checked;
@@ -95,25 +169,36 @@
         });
         if (empresa) empresa.addEventListener('change', descartarSap);
         if (agente) agente.addEventListener('change', descartarSap);
-        document.getElementById('crmSapBuscar').addEventListener('click', function () {
+        function buscarClienteSap() {
             if (!empresa.value || !agente.value || sapFiltro.value.trim().length < 2) {
-                sapResultados.textContent = 'Seleccione empresa y agente; escriba al menos dos caracteres.';
+                sapStatus.textContent = 'Seleccione empresa y agente; escriba al menos dos caracteres.';
                 return;
             }
-            sapResultados.textContent = 'Buscando clientes en SAP...';
+            var request = ++sapRequest;
+            sapResultados.textContent = '';
+            sapStatus.textContent = 'Buscando clientes en SAP...';
             var query = '?empresa=' + encodeURIComponent(empresa.value) +
                 '&codigoOperador=' + encodeURIComponent(agente.value) +
                 '&filtro=' + encodeURIComponent(sapFiltro.value.trim());
             fetch(sapLookup.getAttribute('data-url') + query, { credentials: 'same-origin' })
                 .then(function (response) { return response.json(); })
                 .then(function (data) {
+                    if (request !== sapRequest) return;
                     sapResultados.textContent = '';
-                    if (!data.ok) { sapResultados.textContent = data.mensaje || 'No fue posible consultar SAP.'; return; }
-                    if (!data.clientes.length) { sapResultados.textContent = 'No se encontraron clientes.'; return; }
+                    if (!data.ok) { sapStatus.textContent = data.mensaje || 'No fue posible consultar SAP.'; return; }
+                    if (!data.clientes.length) { sapStatus.textContent = 'No se encontraron clientes.'; return; }
+                    sapStatus.textContent = data.clientes.length + ' clientes encontrados. Seleccione uno para completar la solicitud.';
                     data.clientes.forEach(function (cliente) {
                         var boton = document.createElement('button');
-                        boton.type = 'button'; boton.className = 'crm-btn crm-btn-outline';
-                        boton.textContent = cliente.codigo + ' · ' + cliente.nombre + (cliente.nit ? ' · ' + cliente.nit : '');
+                        boton.type = 'button'; boton.className = 'crm-sap-result';
+                        var nombre = document.createElement('strong');
+                        nombre.textContent = cliente.codigo + ' · ' + cliente.nombre;
+                        boton.appendChild(nombre);
+                        if (cliente.nit) {
+                            var nit = document.createElement('small');
+                            nit.textContent = 'NIT: ' + cliente.nit;
+                            boton.appendChild(nit);
+                        }
                         boton.addEventListener('click', function () {
                             sapCodigo.value = cliente.codigo;
                             [['Ficha_RazonSocial', cliente.nombre], ['Ficha_NitDpi', cliente.nit],
@@ -122,14 +207,20 @@
                                 var control = document.getElementById(dato[0]);
                                 if (control && dato[1]) control.value = dato[1];
                             });
-                            sapResultados.textContent = 'Cliente SAP seleccionado: ' + cliente.codigo;
+                            sapResultados.textContent = '';
+                            sapStatus.textContent = 'Cliente SAP seleccionado: ' + cliente.codigo + ' · ' + cliente.nombre;
                         });
-                        var filaSap = document.createElement('div');
-                        filaSap.appendChild(boton);
-                        sapResultados.appendChild(filaSap);
+                        sapResultados.appendChild(boton);
                     });
                 })
-                .catch(function () { sapResultados.textContent = 'No fue posible consultar SAP. Intente nuevamente.'; });
+                .catch(function () {
+                    if (request === sapRequest)
+                        sapStatus.textContent = 'No fue posible consultar SAP. Intente nuevamente.';
+                });
+        }
+        document.getElementById('crmSapBuscar').addEventListener('click', buscarClienteSap);
+        sapFiltro.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); buscarClienteSap(); }
         });
     }
 
@@ -144,7 +235,19 @@
             if (tipo === 'direccion') {
                 var titulo = fila.querySelector('.crm-repeat-top strong');
                 if (titulo) titulo.textContent = 'Ubicación ' + (i + 1);
+            } else if (tipo === 'contacto') {
+                var contactoTitulo = fila.querySelector('.crm-contact-top strong');
+                var quitarContacto = fila.querySelector('.crm-contact-remove');
+                if (contactoTitulo) contactoTitulo.textContent = 'Contacto ' + (i + 1);
+                if (quitarContacto) quitarContacto.setAttribute('aria-label', 'Quitar contacto ' + (i + 1));
             }
+        });
+    }
+    function actualizarContactos() {
+        var soloUno = filas('contacto').length <= 1;
+        Array.prototype.forEach.call(document.querySelectorAll('.crm-contact-remove'), function (boton) {
+            boton.disabled = soloUno;
+            boton.title = soloUno ? 'Debe conservar al menos un contacto' : 'Quitar contacto';
         });
     }
     function input(nombre, etiqueta, tipo) {
@@ -167,20 +270,27 @@
         var fila = document.createElement('div');
         fila.className = 'crm-repeat-row crm-contact-row';
         fila.setAttribute('data-row', 'contacto');
+        var cabeza = document.createElement('div'); cabeza.className = 'crm-contact-top';
+        var titulo = document.createElement('strong'); titulo.textContent = 'Contacto ' + (i + 1);
+        cabeza.appendChild(titulo);
+        var quitar = document.createElement('button');
+        quitar.type = 'button'; quitar.className = 'crm-remove crm-contact-remove';
+        quitar.setAttribute('aria-label', 'Quitar contacto ' + (i + 1));
+        quitar.innerHTML = '<i class="icon-remove"></i> Quitar contacto';
+        cabeza.appendChild(quitar); fila.appendChild(cabeza);
+        var campos = document.createElement('div'); campos.className = 'crm-contact-fields';
         [['Area', 'Área'], ['Nombre', 'Nombre'], ['Puesto', 'Puesto'],
          ['Telefono', 'Teléfono'], ['Correo', 'Correo'],
          ['TomadorDecision', 'Tomador de decisiones'],
-         ['InfluenciadorTecnico', 'Influenciador técnico / usuario']].forEach(function (dato) {
+         ['InfluenciadorTecnico', 'Influenciador técnico / usuario']].forEach(function (dato, indice) {
             var campo = input('Ficha.Contactos[' + i + '].' + dato[0], dato[1],
                 dato[0] === 'Correo' ? 'email' : 'text');
+            campo.className += indice < 4 ? ' crm-col-3' : ' crm-col-4';
             if (wizard && pasoActual === 2) campo.querySelector('input').required = true;
-            fila.appendChild(campo);
+            campos.appendChild(campo);
         });
-        var quitar = document.createElement('button');
-        quitar.type = 'button'; quitar.className = 'crm-remove';
-        quitar.setAttribute('aria-label', 'Quitar contacto');
-        quitar.textContent = 'Quitar'; fila.appendChild(quitar);
-        destino.appendChild(fila);
+        fila.appendChild(campos); destino.appendChild(fila);
+        actualizarContactos();
         fila.querySelector('[name$=".Nombre"]').focus();
     }
     function nuevoDireccion() {
@@ -259,9 +369,13 @@
         var fila = boton.closest('[data-row]');
         if (!fila) return;
         var tipo = fila.getAttribute('data-row');
+        if (tipo === 'contacto' && filas('contacto').length <= 1) return;
         fila.parentNode.removeChild(fila);
         renumerar(tipo);
+        if (tipo === 'contacto') actualizarContactos();
     });
+    if (document.getElementById('crmContactosRows') && filas('contacto').length === 0) nuevoContacto();
+    actualizarContactos();
     if (document.getElementById('crmDireccionesRows') && filas('direccion').length === 0) nuevoDireccion();
 
     var condicion = document.getElementById('crmCondicionPago');

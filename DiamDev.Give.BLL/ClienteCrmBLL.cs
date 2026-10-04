@@ -28,6 +28,22 @@ namespace DiamDev.Give.BLL
                 .Take(30).ToList();
         }
 
+        public List<ClienteGrupoHana> TiposNegocioSap(string empresa)
+        {
+            ValidarEmpresa(empresa);
+            return _hana.ObtenerGruposClientes(empresa);
+        }
+
+        private void VincularTipoNegocio(string empresa, ClienteCrmFicha ficha)
+        {
+            if (ficha == null || !ficha.TipoNegocioCodigo.HasValue) return;
+            var grupo = TiposNegocioSap(empresa)
+                .FirstOrDefault(x => x.GroupCode == ficha.TipoNegocioCodigo.Value);
+            if (grupo == null)
+                throw new InvalidOperationException("Seleccione un tipo de negocio vigente en SAP para esta empresa.");
+            ficha.TipoNegocio = grupo.GroupName;
+        }
+
         private static bool Contiene(string valor, string filtro)
         {
             return !string.IsNullOrWhiteSpace(valor) &&
@@ -81,6 +97,7 @@ namespace DiamDev.Give.BLL
             if (solicitud == null) throw new InvalidOperationException("No se recibió la solicitud.");
             ValidarEmpresa(solicitud.Empresa);
             solicitud.Empresa = solicitud.Empresa.Trim().ToUpperInvariant();
+            VincularTipoNegocio(solicitud.Empresa, solicitud.Ficha);
             if (enviar) ValidarPasos(solicitud.Ficha, 5);
             ValidarFicha(solicitud.Ficha, enviar);
             if (string.IsNullOrWhiteSpace(solicitud.CodigoOperador) ||
@@ -111,6 +128,7 @@ namespace DiamDev.Give.BLL
             if (cliente == null) throw new InvalidOperationException("No se recibió la ficha.");
             ValidarEmpresa(cliente.Empresa);
             cliente.Empresa = cliente.Empresa.Trim().ToUpperInvariant();
+            VincularTipoNegocio(cliente.Empresa, cliente.Ficha);
             ValidarFicha(cliente.Ficha, true);
             if (!string.IsNullOrWhiteSpace(cliente.CodigoSap) && cliente.CodigoSap.Trim().Length > 50)
                 throw new InvalidOperationException("El código SAP no puede exceder 50 caracteres.");
@@ -214,7 +232,8 @@ namespace DiamDev.Give.BLL
                 Requerir(f.RazonSocial, "Razón social");
                 Requerir(f.NombreComercial, "Nombre comercial");
                 Requerir(f.NitDpi, "NIT o DPI");
-                Requerir(f.TipoNegocio, "Tipo de negocio");
+                if (!f.TipoNegocioCodigo.HasValue)
+                    throw new InvalidOperationException("Seleccione un tipo de negocio de SAP.");
                 Requerir(f.DireccionFiscal, "Dirección fiscal");
                 Requerir(f.TipoOperacion, "Tipo de operación");
                 Requerir(f.CorreoFactura, "Correo de factura");
@@ -223,8 +242,7 @@ namespace DiamDev.Give.BLL
                 Requerir(f.TramiteContrasena, "Trámite de contraseña");
                 if (!new[] { "15", "30", "60", "90" }.Contains(f.TemporadaPago))
                     throw new InvalidOperationException("Seleccione los días de crédito.");
-                f.CambioRazonSocial = Respuesta(f.CambioRazonSocialRespuesta,
-                    "Cambio de razón social");
+                f.CambioRazonSocialRespuesta = f.CambioRazonSocial ? "SI" : "NO";
                 if (!new EmailAddressAttribute().IsValid(f.CorreoFactura))
                     throw new InvalidOperationException("El correo de factura no es válido.");
             }

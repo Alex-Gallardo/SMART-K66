@@ -74,6 +74,35 @@ namespace DiamDev.Give.UI.Controllers
             }
         }
 
+        [HttpGet]
+        public JsonResult TiposNegocioSap(string empresa)
+        {
+            bool puedeAdministrar = TienePermiso(PermisoAdministrar);
+            bool empresaAsignada = TienePermiso(PermisoCrear) &&
+                EmpresasUsuario().Any(x => x.Empresa == empresa);
+            if (!puedeAdministrar && !empresaAsignada)
+            {
+                Response.StatusCode = 403;
+                return Json(new { ok = false, mensaje = "No tiene acceso a esta empresa." },
+                    JsonRequestBehavior.AllowGet);
+            }
+            try
+            {
+                var grupos = _crm.TiposNegocioSap(empresa);
+                _crm.RegistrarEvento("MODULO", null, empresa, User.Identity.Name,
+                    "LISTAR_TIPOS_NEGOCIO_SAP", null, Ip());
+                return Json(new { ok = true, grupos = grupos.Select(x => new {
+                    codigo = x.GroupCode, nombre = x.GroupName
+                }) }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { ok = false, mensaje = ex is InvalidOperationException
+                    ? ex.Message : "No fue posible cargar los tipos de negocio de SAP." },
+                    JsonRequestBehavior.AllowGet);
+            }
+        }
+
         [Permiso(PermisoCrear)]
         public ActionResult EditarSolicitud(long id, int? paso)
         {

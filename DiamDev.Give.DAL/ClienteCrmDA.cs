@@ -779,7 +779,8 @@ namespace DiamDev.Give.DAL
                 TipoSolicitud = Convert.ToString(r["TIPO_SOLICITUD"]),
                 OrigenClienteId = NLong(r, "ORIGEN_CLIENTE_ID"),
                 OrigenVersion = r["ORIGEN_VERSION"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ORIGEN_VERSION"]),
-                OrigenCodigoSap = Convert.ToString(r["ORIGEN_CODIGO_SAP"]),
+                OrigenCodigoSap = r["ORIGEN_CODIGO_SAP"] == DBNull.Value
+                    ? null : Convert.ToString(r["ORIGEN_CODIGO_SAP"]),
                 Empresa = Convert.ToString(r["EMPRESA"]), CodigoOperador = Convert.ToString(r["CODIGO_OPERADOR"]),
                 Agente = Convert.ToString(r["AGENTE"]), Estado = Convert.ToString(r["ESTADO"]),
                 FichaJson = Convert.ToString(r["FICHA_JSON"]), CreadoPor = Convert.ToString(r["CREADO_POR"]),

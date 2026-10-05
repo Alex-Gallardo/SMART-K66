@@ -242,11 +242,7 @@ namespace DiamDev.Give.UI.Controllers
                     if (!string.Equals(existente.Empresa, modelo.Empresa,
                         StringComparison.OrdinalIgnoreCase))
                         throw new InvalidOperationException("No se puede cambiar la empresa de una solicitud existente.");
-                    if (existente.TipoSolicitud != modelo.TipoSolicitud ||
-                        existente.OrigenClienteId != modelo.OrigenClienteId ||
-                        existente.OrigenVersion != modelo.OrigenVersion ||
-                        !string.Equals(existente.OrigenCodigoSap, modelo.OrigenCodigoSap,
-                            StringComparison.OrdinalIgnoreCase))
+                    if (!TieneMismoOrigen(existente, modelo))
                         throw new InvalidOperationException("No se puede cambiar el cliente de origen de una solicitud.");
                 }
                 bool esActualizacion = modelo.TipoSolicitud == TiposSolicitudCliente.Actualizacion;
@@ -606,6 +602,15 @@ namespace DiamDev.Give.UI.Controllers
                     d.RequiereCitaRespuesta = d.RequiereCita ? "SI" : "NO";
                 if (d.ActivaRespuesta == null) d.ActivaRespuesta = d.Activa ? "SI" : "NO";
             }
+        }
+
+        private static bool TieneMismoOrigen(ClienteCrmSolicitud existente, ClienteCrmEditorViewModel modelo)
+        {
+            return existente.TipoSolicitud == modelo.TipoSolicitud &&
+                existente.OrigenClienteId == modelo.OrigenClienteId &&
+                existente.OrigenVersion == modelo.OrigenVersion &&
+                string.Equals(existente.OrigenCodigoSap ?? string.Empty,
+                    modelo.OrigenCodigoSap ?? string.Empty, StringComparison.OrdinalIgnoreCase);
         }
 
         private static void ConservarDatosLegados(ClienteCrmFicha anterior, ClienteCrmFicha actual)

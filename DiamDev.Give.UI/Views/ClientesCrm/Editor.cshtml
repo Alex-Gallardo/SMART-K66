@@ -98,7 +98,13 @@
                         <div class="crm-field crm-col-4"><label>Correo</label><input name="Ficha.Contactos[@i].Correo" class="form-control" type="email" value="@contactos[i].Correo" /></div>
                         <div class="crm-field crm-col-4"><label>Tomador de decisiones</label><input name="Ficha.Contactos[@i].TomadorDecision" class="form-control" value="@contactos[i].TomadorDecision" /></div>
                         <div class="crm-field crm-col-4"><label>Influenciador técnico / usuario</label><input name="Ficha.Contactos[@i].InfluenciadorTecnico" class="form-control" value="@contactos[i].InfluenciadorTecnico" /></div>
-                        <div class="crm-field crm-col-4"><label>Tipo de contacto</label><select name="Ficha.Contactos[@i].TipoContacto" class="form-control"><option value="">Seleccione...</option>@foreach (var opcion in new[] { new { Valor = "PRINCIPAL", Texto = "Principal" }, new { Valor = "COMPRAS", Texto = "Compras" }, new { Valor = "PAGOS", Texto = "Pagos" }, new { Valor = "LOGISTICA", Texto = "Logística" }, new { Valor = "TECNICO", Texto = "Técnico / usuario" }, new { Valor = "GERENCIA", Texto = "Gerencia" } }) { <option value="@opcion.Valor" @(contactos[i].TipoContacto == opcion.Valor ? "selected" : "")>@opcion.Texto</option> }</select></div>
+                        <div class="crm-field crm-col-4"><label>Tipo de contacto</label>@if (esCredito) {
+                            <select name="Ficha.Contactos[@i].TipoContacto" class="form-control">
+                                <option value="">Seleccione...</option>
+                                @foreach (var opcion in new[] { new { Valor = "PRINCIPAL", Texto = "Principal" }, new { Valor = "COMPRAS", Texto = "Compras" }, new { Valor = "PAGOS", Texto = "Pagos" }, new { Valor = "LOGISTICA", Texto = "Logística" }, new { Valor = "TECNICO", Texto = "Técnico / usuario" }, new { Valor = "GERENCIA", Texto = "Gerencia" } }) { <option value="@opcion.Valor" @(contactos[i].TipoContacto == opcion.Valor ? "selected" : "")>@opcion.Texto</option> }
+                                @if (!string.IsNullOrWhiteSpace(contactos[i].TipoContacto) && !new[] { "PRINCIPAL", "COMPRAS", "PAGOS", "LOGISTICA", "TECNICO", "GERENCIA" }.Contains(contactos[i].TipoContacto)) { <option value="@contactos[i].TipoContacto" selected>@contactos[i].TipoContacto</option> }
+                            </select>
+                        } else { <input name="Ficha.Contactos[@i].TipoContacto" class="form-control" value="@contactos[i].TipoContacto" maxlength="100" /> }</div>
                         <div class="crm-field crm-col-4"><label>Canal de comunicación</label><select name="Ficha.Contactos[@i].CanalComunicacion" class="form-control"><option value="">Seleccione...</option>@foreach (var opcion in new[] { new { Valor = "WHATSAPP", Texto = "WhatsApp" }, new { Valor = "CELULAR", Texto = "Llamada celular" }, new { Valor = "FIJO", Texto = "Teléfono fijo" }, new { Valor = "CORREO", Texto = "Correo electrónico" }, new { Valor = "PRESENCIAL", Texto = "Presencial" } }) { <option value="@opcion.Valor" @(contactos[i].CanalComunicacion == opcion.Valor ? "selected" : "")>@opcion.Texto</option> }</select></div>
                     </div>
                 </div> }
@@ -202,4 +208,4 @@
         </div>
     </form>
 </div>
-@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=8")"></script> }
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=9")"></script> }

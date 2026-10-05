@@ -21,10 +21,10 @@ namespace Tests.ClientesCrm
                 { "Ficha.RazonSocial", "Cliente actualizado" },
                 { "Ficha.CambioRazonSocial", "true" },
                 { "Ficha.Contactos[0].Nombre", "Ana" },
-                { "Ficha.Contactos[0].TipoContacto", "COMPRAS" },
+                { "Ficha.Contactos[0].TipoContacto", "Encargado de compras" },
                 { "Ficha.Contactos[0].CanalComunicacion", "WHATSAPP" },
                 { "Ficha.Contactos[1].Nombre", "Luis" },
-                { "Ficha.Contactos[1].TipoContacto", "PAGOS" },
+                { "Ficha.Contactos[1].TipoContacto", "Responsable de pagos" },
                 { "Ficha.Contactos[1].CanalComunicacion", "CORREO" }
             };
             var contexto = new ModelBindingContext {
@@ -41,16 +41,16 @@ namespace Tests.ClientesCrm
                 modelo.Ficha == null || !modelo.Ficha.CambioRazonSocial ||
                 modelo.Ficha.Contactos == null || modelo.Ficha.Contactos.Count != 2 ||
                 modelo.Ficha.Contactos[0].Nombre != "Ana" ||
-                modelo.Ficha.Contactos[0].TipoContacto != "COMPRAS" ||
+                modelo.Ficha.Contactos[0].TipoContacto != "Encargado de compras" ||
                 modelo.Ficha.Contactos[0].CanalComunicacion != "WHATSAPP" ||
                 modelo.Ficha.Contactos[1].Nombre != "Luis" ||
-                modelo.Ficha.Contactos[1].TipoContacto != "PAGOS" ||
+                modelo.Ficha.Contactos[1].TipoContacto != "Responsable de pagos" ||
                 modelo.Ficha.Contactos[1].CanalComunicacion != "CORREO")
             {
                 Console.Error.WriteLine("FALLA: el formulario no conservó el origen o los contactos de actualización.");
                 return 1;
             }
-            Console.WriteLine("OK: MVC enlaza origen CRM y ambos selectores de cada contacto.");
+            Console.WriteLine("OK: MVC enlaza origen CRM, tipos de contacto libres y canales.");
             return 0;
         }
     }

@@ -305,8 +305,8 @@ namespace DiamDev.Give.BLL
                     Requerir(c.Correo, "Correo del contacto");
                     Requerir(c.TomadorDecision, "Tomador de decisiones");
                     Requerir(c.InfluenciadorTecnico, "Influenciador técnico / usuario");
-                    if (!new[] { "PRINCIPAL", "COMPRAS", "PAGOS", "LOGISTICA", "TECNICO", "GERENCIA" }.Contains(c.TipoContacto))
-                        throw new InvalidOperationException("Seleccione el tipo de cada contacto.");
+                    Requerir(c.TipoContacto, "Tipo de contacto");
+                    c.TipoContacto = Limitar(c.TipoContacto, 100);
                     if (!new[] { "WHATSAPP", "CELULAR", "FIJO", "CORREO", "PRESENCIAL" }.Contains(c.CanalComunicacion))
                         throw new InvalidOperationException("Seleccione el canal de comunicación de cada contacto.");
                     if (!new EmailAddressAttribute().IsValid(c.Correo))

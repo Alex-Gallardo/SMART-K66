@@ -213,12 +213,21 @@
             if (wizard && pasoActual === 2) campo.querySelector('input').required = true;
             campos.appendChild(campo);
         });
-        [['TipoContacto', 'Tipo de contacto', [['PRINCIPAL', 'Principal'], ['COMPRAS', 'Compras'],
-            ['PAGOS', 'Pagos'], ['LOGISTICA', 'Logística'], ['TECNICO', 'Técnico / usuario'],
-            ['GERENCIA', 'Gerencia']]],
-         ['CanalComunicacion', 'Canal de comunicación', [['WHATSAPP', 'WhatsApp'],
+        if (wizard) {
+            var tipoContacto = input('Ficha.Contactos[' + i + '].TipoContacto', 'Tipo de contacto');
+            tipoContacto.className += ' crm-col-4';
+            tipoContacto.querySelector('input').maxLength = 100;
+            if (pasoActual === 2) tipoContacto.querySelector('input').required = true;
+            campos.appendChild(tipoContacto);
+        }
+        var selectores = [['CanalComunicacion', 'Canal de comunicación', [['WHATSAPP', 'WhatsApp'],
             ['CELULAR', 'Llamada celular'], ['FIJO', 'Teléfono fijo'],
-            ['CORREO', 'Correo electrónico'], ['PRESENCIAL', 'Presencial']]]].forEach(function (dato) {
+            ['CORREO', 'Correo electrónico'], ['PRESENCIAL', 'Presencial']]]];
+        if (!wizard) selectores.unshift(['TipoContacto', 'Tipo de contacto',
+            [['PRINCIPAL', 'Principal'], ['COMPRAS', 'Compras'], ['PAGOS', 'Pagos'],
+             ['LOGISTICA', 'Logística'], ['TECNICO', 'Técnico / usuario'],
+             ['GERENCIA', 'Gerencia']]]);
+        selectores.forEach(function (dato) {
             var campo = document.createElement('div'); campo.className = 'crm-field crm-col-4';
             var label = document.createElement('label'); label.textContent = dato[1];
             var select = document.createElement('select'); select.className = 'form-control';

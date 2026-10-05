@@ -34,7 +34,7 @@ namespace DiamDev.Give.DAL
 
         public List<ClienteCrmSolicitud> ListarSolicitudes(string empresa, string estado, string filtro, string creador)
         {
-            const string sql = @"SELECT ID, CLIENTE_ID, EMPRESA, CODIGO_OPERADOR, AGENTE,
+            const string sql = @"SELECT ID, CLIENTE_ID, TIPO_SOLICITUD, ORIGEN_CLIENTE_ID, ORIGEN_VERSION, ORIGEN_CODIGO_SAP, EMPRESA, CODIGO_OPERADOR, AGENTE,
                 ESTADO, FICHA_JSON, CREADO_POR, CREADO_EN, ENVIADO_EN, RESUELTO_EN,
                 RESUELTO_POR, MOTIVO_RECHAZO, VERSION
                 FROM dbo.CRM_SOLICITUD
@@ -61,7 +61,7 @@ namespace DiamDev.Give.DAL
 
         public ClienteCrmSolicitud ObtenerSolicitud(long id)
         {
-            const string sql = @"SELECT ID, CLIENTE_ID, EMPRESA, CODIGO_OPERADOR, AGENTE,
+            const string sql = @"SELECT ID, CLIENTE_ID, TIPO_SOLICITUD, ORIGEN_CLIENTE_ID, ORIGEN_VERSION, ORIGEN_CODIGO_SAP, EMPRESA, CODIGO_OPERADOR, AGENTE,
                 ESTADO, FICHA_JSON, CREADO_POR, CREADO_EN, ENVIADO_EN, RESUELTO_EN,
                 RESUELTO_POR, MOTIVO_RECHAZO, VERSION
                 FROM dbo.CRM_SOLICITUD WHERE ID = @id;";
@@ -119,6 +119,21 @@ namespace DiamDev.Give.DAL
             }
         }
 
+        public ClienteCrmCliente ObtenerClientePorCodigoSap(string empresa, string codigo)
+        {
+            const string sql = @"SELECT C.ID, E.EMPRESA, E.CODIGO_SAP, E.FICHA_JSON,
+                E.ACTIVO, E.VERSION, E.ACTUALIZADO_EN
+                FROM dbo.CRM_CLIENTE C JOIN dbo.CRM_CLIENTE_EMPRESA E ON E.CLIENTE_ID=C.ID
+                WHERE E.EMPRESA=@empresa AND E.CODIGO_SAP=@codigo AND E.ACTIVO=1;";
+            using (var cn = new SqlConnection(_conexion))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                P(cmd, "@empresa", empresa); P(cmd, "@codigo", codigo);
+                cn.Open();
+                using (var r = cmd.ExecuteReader()) return r.Read() ? MapCliente(r) : null;
+            }
+        }
+
         public bool ClientePropio(long id, string empresa, string usuario)
         {
             const string sql = @"SELECT COUNT(*) FROM dbo.CRM_CLIENTE_USUARIO
@@ -143,24 +158,46 @@ namespace DiamDev.Give.DAL
                     string antes = null;
                     if (enviar)
                     {
+                        if (solicitud.TipoSolicitud == TiposSolicitudCliente.Alta)
+                        {
+                            const string existenteCrm = @"SELECT COUNT(*) FROM dbo.CRM_CLIENTE C WITH (UPDLOCK,HOLDLOCK)
+                                JOIN dbo.CRM_CLIENTE_EMPRESA E WITH (UPDLOCK,HOLDLOCK) ON E.CLIENTE_ID=C.ID
+                                WHERE E.EMPRESA=@empresa AND C.NIT_CLAVE=@nit;";
+                            using (var cmd = new SqlCommand(existenteCrm, cn, tx))
+                            {
+                                P(cmd, "@empresa", solicitud.Empresa);
+                                P(cmd, "@nit", NormalizarNit(solicitud.Ficha.NitDpi));
+                                if (Convert.ToInt32(cmd.ExecuteScalar()) > 0)
+                                    throw new InvalidOperationException("Este cliente ya tiene ficha CRM. Use Actualización de Cliente.");
+                            }
+                        }
                         const string pendiente = @"SELECT COUNT(*) FROM dbo.CRM_SOLICITUD WITH (UPDLOCK,HOLDLOCK)
-                            WHERE EMPRESA=@empresa AND NIT_CLAVE=@nit AND ESTADO='ENVIADA' AND ID<>@id;";
+                            WHERE EMPRESA=@empresa AND ESTADO='ENVIADA' AND ID<>@id AND
+                            ((@tipo='ALTA' AND TIPO_SOLICITUD='ALTA' AND NIT_CLAVE=@nit) OR
+                             (@tipo='ACTUALIZACION' AND TIPO_SOLICITUD='ACTUALIZACION' AND
+                              ((@origenId IS NOT NULL AND ORIGEN_CLIENTE_ID=@origenId) OR
+                               (@origenId IS NULL AND ORIGEN_CLIENTE_ID IS NULL AND ORIGEN_CODIGO_SAP=@origenSap))));";
                         using (var cmd = new SqlCommand(pendiente, cn, tx))
                         {
                             P(cmd, "@empresa", solicitud.Empresa);
                             P(cmd, "@nit", NormalizarNit(solicitud.Ficha.NitDpi));
                             P(cmd, "@id", solicitud.Id);
+                            P(cmd, "@tipo", solicitud.TipoSolicitud);
+                            P(cmd, "@origenId", solicitud.OrigenClienteId);
+                            P(cmd, "@origenSap", solicitud.OrigenCodigoSap);
                             if (Convert.ToInt32(cmd.ExecuteScalar()) > 0)
-                                throw new InvalidOperationException("Ya existe una solicitud enviada para este NIT en la empresa.");
+                                throw new InvalidOperationException("Ya existe una solicitud enviada para este cliente en la empresa.");
                         }
                     }
                     if (solicitud.Id == 0)
                     {
                         const string sql = @"INSERT dbo.CRM_SOLICITUD
-                            (EMPRESA,CODIGO_OPERADOR,AGENTE,RAZON_SOCIAL,NIT_CLAVE,ESTADO,FICHA_JSON,
+                            (TIPO_SOLICITUD,ORIGEN_CLIENTE_ID,ORIGEN_VERSION,ORIGEN_CODIGO_SAP,
+                             EMPRESA,CODIGO_OPERADOR,AGENTE,RAZON_SOCIAL,NIT_CLAVE,ESTADO,FICHA_JSON,
                              COMPRA_ACTUAL,MONEDA,VENTA_12M,POTENCIAL_ANUAL,OBJETIVO_12M,CREADO_POR,ENVIADO_EN)
                             OUTPUT INSERTED.ID VALUES
-                            (@empresa,@operador,@agente,@razon,@nit,@estado,@ficha,
+                            (@tipo,@origenId,@origenVersion,@origenSap,
+                             @empresa,@operador,@agente,@razon,@nit,@estado,@ficha,
                              @compra,@moneda,@venta,@potencial,@objetivo,@usuario,
                              CASE WHEN @enviar=1 THEN SYSDATETIME() ELSE NULL END);";
                         using (var cmd = new SqlCommand(sql, cn, tx))
@@ -168,10 +205,14 @@ namespace DiamDev.Give.DAL
                             ParamsSolicitud(cmd, solicitud, enviar, usuario);
                             solicitud.Id = Convert.ToInt64(cmd.ExecuteScalar());
                         }
+                        if (solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion &&
+                            solicitud.OrigenClienteId.HasValue)
+                            CopiarArchivosOrigen(cn, tx, solicitud, usuario, ip);
                     }
                     else
                     {
-                        const string leer = @"SELECT CREADO_POR,ESTADO,VERSION,FICHA_JSON
+                        const string leer = @"SELECT CREADO_POR,ESTADO,VERSION,FICHA_JSON,TIPO_SOLICITUD,
+                            ORIGEN_CLIENTE_ID,ORIGEN_VERSION,ORIGEN_CODIGO_SAP
                             FROM dbo.CRM_SOLICITUD WITH (UPDLOCK,HOLDLOCK) WHERE ID=@id;";
                         using (var cmd = new SqlCommand(leer, cn, tx))
                         {
@@ -187,6 +228,11 @@ namespace DiamDev.Give.DAL
                                     throw new InvalidOperationException("Solo se puede editar un borrador o una solicitud rechazada.");
                                 if (Convert.ToInt32(r["VERSION"]) != solicitud.Version)
                                     throw new InvalidOperationException("La solicitud cambió. Actualice la página.");
+                                if (Convert.ToString(r["TIPO_SOLICITUD"]) != solicitud.TipoSolicitud ||
+                                    NLong(r, "ORIGEN_CLIENTE_ID") != solicitud.OrigenClienteId ||
+                                    (r["ORIGEN_VERSION"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ORIGEN_VERSION"])) != solicitud.OrigenVersion ||
+                                    !string.Equals(Convert.ToString(r["ORIGEN_CODIGO_SAP"]), solicitud.OrigenCodigoSap ?? "", StringComparison.OrdinalIgnoreCase))
+                                    throw new InvalidOperationException("No se puede cambiar el cliente de origen de una solicitud.");
                                 antes = Convert.ToString(r["FICHA_JSON"]);
                             }
                         }
@@ -232,7 +278,7 @@ namespace DiamDev.Give.DAL
                 using (var tx = cn.BeginTransaction())
                 {
                     ClienteCrmSolicitud solicitud;
-                    const string leer = @"SELECT ID,CLIENTE_ID,EMPRESA,CODIGO_OPERADOR,AGENTE,
+                    const string leer = @"SELECT ID,CLIENTE_ID,TIPO_SOLICITUD,ORIGEN_CLIENTE_ID,ORIGEN_VERSION,ORIGEN_CODIGO_SAP,EMPRESA,CODIGO_OPERADOR,AGENTE,
                         ESTADO,FICHA_JSON,CREADO_POR,CREADO_EN,ENVIADO_EN,RESUELTO_EN,
                         RESUELTO_POR,MOTIVO_RECHAZO,VERSION FROM dbo.CRM_SOLICITUD
                         WITH (UPDLOCK,HOLDLOCK) WHERE ID=@id;";
@@ -248,16 +294,74 @@ namespace DiamDev.Give.DAL
                     if (solicitud.Estado != EstadosSolicitudCliente.Enviada || solicitud.Version != version)
                         throw new InvalidOperationException("La solicitud ya fue modificada o resuelta. Actualice la página.");
                     long? clienteId = null;
+                    string fichaAnterior = null;
                     if (aprobar)
                     {
-                        // La ficha JSON se validó al enviar. El código SAP se registra luego por Créditos.
                         var ficha = Newtonsoft.Json.JsonConvert.DeserializeObject<ClienteCrmFicha>(solicitud.FichaJson);
-                        clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, solicitud.FichaJson,
-                            null, usuario, null, true, true);
+                        if (solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion)
+                        {
+                            if (solicitud.OrigenClienteId.HasValue)
+                            {
+                                const string origen = @"SELECT E.VERSION,E.ACTIVO,E.FICHA_JSON,C.NIT_CLAVE,
+                                    (SELECT COUNT(*) FROM dbo.CRM_CLIENTE_EMPRESA X WHERE X.CLIENTE_ID=C.ID) AS EMPRESAS
+                                    FROM dbo.CRM_CLIENTE C WITH (UPDLOCK,HOLDLOCK)
+                                    JOIN dbo.CRM_CLIENTE_EMPRESA E WITH (UPDLOCK,HOLDLOCK) ON E.CLIENTE_ID=C.ID
+                                    WHERE C.ID=@id AND E.EMPRESA=@empresa;";
+                                using (var cmd = new SqlCommand(origen, cn, tx))
+                                {
+                                    P(cmd, "@id", solicitud.OrigenClienteId); P(cmd, "@empresa", solicitud.Empresa);
+                                    using (var r = cmd.ExecuteReader())
+                                    {
+                                        if (!r.Read() || !Convert.ToBoolean(r["ACTIVO"]) ||
+                                            !solicitud.OrigenVersion.HasValue ||
+                                            Convert.ToInt32(r["VERSION"]) != solicitud.OrigenVersion.Value)
+                                            throw new InvalidOperationException("La ficha original cambió. Revise la actualización antes de aprobar.");
+                                        if (Convert.ToInt32(r["EMPRESAS"]) > 1 &&
+                                            !string.Equals(Convert.ToString(r["NIT_CLAVE"]), NormalizarNit(ficha.NitDpi), StringComparison.OrdinalIgnoreCase))
+                                            throw new InvalidOperationException("El NIT está compartido por varias empresas y no puede cambiarse desde esta actualización.");
+                                        fichaAnterior = Convert.ToString(r["FICHA_JSON"]);
+                                    }
+                                }
+                                clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, solicitud.FichaJson,
+                                    null, usuario, solicitud.OrigenClienteId, true, true);
+                            }
+                            else
+                            {
+                                const string duplicado = @"SELECT COUNT(*) FROM dbo.CRM_CLIENTE_EMPRESA E WITH (UPDLOCK,HOLDLOCK)
+                                    JOIN dbo.CRM_CLIENTE C ON C.ID=E.CLIENTE_ID
+                                    WHERE E.EMPRESA=@empresa AND (E.CODIGO_SAP=@codigo OR C.NIT_CLAVE=@nit);";
+                                using (var cmd = new SqlCommand(duplicado, cn, tx))
+                                {
+                                    P(cmd, "@empresa", solicitud.Empresa);
+                                    P(cmd, "@codigo", solicitud.OrigenCodigoSap);
+                                    P(cmd, "@nit", NormalizarNit(ficha.NitDpi));
+                                    if (Convert.ToInt32(cmd.ExecuteScalar()) > 0)
+                                        throw new InvalidOperationException("El cliente SAP ya tiene una ficha CRM. Inicie una actualización desde esa ficha.");
+                                }
+                                clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, solicitud.FichaJson,
+                                    solicitud.OrigenCodigoSap, usuario, null, true, false);
+                            }
+                        }
+                        else
+                        {
+                            const string existenteCrm = @"SELECT COUNT(*) FROM dbo.CRM_CLIENTE C WITH (UPDLOCK,HOLDLOCK)
+                                JOIN dbo.CRM_CLIENTE_EMPRESA E WITH (UPDLOCK,HOLDLOCK) ON E.CLIENTE_ID=C.ID
+                                WHERE E.EMPRESA=@empresa AND C.NIT_CLAVE=@nit;";
+                            using (var cmd = new SqlCommand(existenteCrm, cn, tx))
+                            {
+                                P(cmd, "@empresa", solicitud.Empresa);
+                                P(cmd, "@nit", NormalizarNit(ficha.NitDpi));
+                                if (Convert.ToInt32(cmd.ExecuteScalar()) > 0)
+                                    throw new InvalidOperationException("Este cliente ya tiene ficha CRM. Use Actualización de Cliente.");
+                            }
+                            clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, solicitud.FichaJson,
+                                null, usuario, null, true, true);
+                        }
                         VincularUsuario(cn, tx, clienteId.Value, solicitud.Empresa,
                             solicitud.CreadoPor, "SOLICITUD");
                         Auditar(cn, tx, "CLIENTE", clienteId, solicitud.Empresa, usuario,
-                            "APROBACION_SOLICITUD", "Solicitud #" + id, null, solicitud.FichaJson, ip);
+                            solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion ? "APROBACION_ACTUALIZACION" : "APROBACION_SOLICITUD",
+                            "Solicitud #" + id, fichaAnterior, solicitud.FichaJson, ip);
                     }
                     const string actualizar = @"UPDATE dbo.CRM_SOLICITUD SET
                         ESTADO=@estado,CLIENTE_ID=@cliente,RESUELTO_EN=SYSDATETIME(),
@@ -551,6 +655,37 @@ namespace DiamDev.Give.DAL
             }
         }
 
+        private static void CopiarArchivosOrigen(SqlConnection cn, SqlTransaction tx,
+            ClienteCrmSolicitud solicitud, string usuario, string ip)
+        {
+            const string sql = @"WITH Ultimos AS (
+                SELECT A.TIPO,A.NOMBRE,A.CONTENT_TYPE,A.TAMANO,A.CONTENIDO,
+                    ROW_NUMBER() OVER (PARTITION BY A.TIPO ORDER BY A.CREADO_EN DESC,A.ID DESC) AS FILA
+                FROM dbo.CRM_ARCHIVO A
+                WHERE A.EMPRESA=@empresa AND
+                    (A.CLIENTE_ID=@cliente OR A.SOLICITUD_ID IN
+                        (SELECT S.ID FROM dbo.CRM_SOLICITUD S
+                         WHERE S.CLIENTE_ID=@cliente AND S.EMPRESA=@empresa AND S.ESTADO='APROBADA'))
+            )
+            INSERT dbo.CRM_ARCHIVO
+                (SOLICITUD_ID,EMPRESA,TIPO,NOMBRE,CONTENT_TYPE,TAMANO,CONTENIDO,CREADO_POR)
+            SELECT @solicitud,@empresa,TIPO,NOMBRE,CONTENT_TYPE,TAMANO,CONTENIDO,@usuario
+            FROM Ultimos WHERE FILA=1;";
+            int copiados;
+            using (var cmd = new SqlCommand(sql, cn, tx))
+            {
+                P(cmd, "@empresa", solicitud.Empresa);
+                P(cmd, "@cliente", solicitud.OrigenClienteId);
+                P(cmd, "@solicitud", solicitud.Id);
+                P(cmd, "@usuario", usuario);
+                copiados = cmd.ExecuteNonQuery();
+            }
+            if (copiados > 0)
+                Auditar(cn, tx, "SOLICITUD", solicitud.Id, solicitud.Empresa, usuario,
+                    "COPIAR_DOCUMENTOS_ORIGEN", "Ficha #" + solicitud.OrigenClienteId + "; Archivos=" + copiados,
+                    null, null, ip);
+        }
+
         private static void GuardarArchivo(SqlConnection cn, SqlTransaction tx, string columna,
             long id, string empresa, ClienteCrmArchivo archivo, string usuario, string ip)
         {
@@ -604,6 +739,8 @@ namespace DiamDev.Give.DAL
 
         private static void ParamsSolicitud(SqlCommand cmd, ClienteCrmSolicitud s, bool enviar, string usuario)
         {
+            P(cmd, "@tipo", s.TipoSolicitud); P(cmd, "@origenId", s.OrigenClienteId);
+            P(cmd, "@origenVersion", s.OrigenVersion); P(cmd, "@origenSap", s.OrigenCodigoSap);
             P(cmd, "@empresa", s.Empresa); P(cmd, "@operador", s.CodigoOperador);
             P(cmd, "@agente", s.Agente); P(cmd, "@razon", s.Ficha.RazonSocial);
             P(cmd, "@nit", NormalizarNit(s.Ficha.NitDpi));
@@ -639,6 +776,10 @@ namespace DiamDev.Give.DAL
         {
             return new ClienteCrmSolicitud {
                 Id = Convert.ToInt64(r["ID"]), ClienteId = NLong(r, "CLIENTE_ID"),
+                TipoSolicitud = Convert.ToString(r["TIPO_SOLICITUD"]),
+                OrigenClienteId = NLong(r, "ORIGEN_CLIENTE_ID"),
+                OrigenVersion = r["ORIGEN_VERSION"] == DBNull.Value ? (int?)null : Convert.ToInt32(r["ORIGEN_VERSION"]),
+                OrigenCodigoSap = Convert.ToString(r["ORIGEN_CODIGO_SAP"]),
                 Empresa = Convert.ToString(r["EMPRESA"]), CodigoOperador = Convert.ToString(r["CODIGO_OPERADOR"]),
                 Agente = Convert.ToString(r["AGENTE"]), Estado = Convert.ToString(r["ESTADO"]),
                 FichaJson = Convert.ToString(r["FICHA_JSON"]), CreadoPor = Convert.ToString(r["CREADO_POR"]),

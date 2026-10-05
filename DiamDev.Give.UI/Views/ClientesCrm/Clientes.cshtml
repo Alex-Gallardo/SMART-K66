@@ -1,26 +1,83 @@
-@model List<DiamDev.Give.Entities.ClienteCrmCliente>
+@model DiamDev.Give.UI.Models.ClienteCrmActualizacionViewModel
+@using System.Linq
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    string empresa = ViewBag.Empresa as string;
-    string filtro = ViewBag.Filtro as string;
-    bool inactivos = ViewBag.IncluirInactivos == true;
-    bool administrar = ViewBag.PuedeAdministrar == true;
-    bool dashboard = ViewBag.PuedeDashboard == true;
-    bool global = ViewBag.EsGlobal == true;
 }
 @section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=3")" rel="stylesheet" /> }
-<div class="crm" data-empresa="@empresa">
-    <header class="crm-page-head">@if (dashboard) { <a class="crm-back" href="@Url.Action("Dashboard")"><i class="icon-arrow-left"></i> Dashboard</a> }<span class="crm-eyebrow">Clientes · @(global ? "Vista global" : "Mi cartera")</span><div class="crm-head-row"><div><h1>Cartera CRM</h1><p>Fichas administradas y referencias a códigos SAP.</p></div>@if (administrar) { <a class="crm-btn crm-btn-primary" href="@Url.Action("NuevoCliente")"><i class="icon-plus"></i> Nuevo cliente</a> }</div></header>
-    <form class="crm-filter" method="get" action="@Url.Action("Clientes")">
-        <div class="crm-search"><i class="icon-search"></i><input type="search" name="filtro" value="@filtro" placeholder="Razón social, NIT o código SAP" /></div>
-        <select name="empresa"><option value="">Todas las empresas</option><option value="BOLIK" @(empresa == "BOLIK" ? "selected" : "")>Bolik</option><option value="FAES" @(empresa == "FAES" ? "selected" : "")>Escocesa</option><option value="GRACO" @(empresa == "GRACO" ? "selected" : "")>Graco Pack</option></select>
-        <label class="crm-filter-check"><input type="checkbox" name="incluirInactivos" value="true" @(inactivos ? "checked" : "") /> Incluir inactivos</label>
+<div class="crm" id="crmApp" data-empresa="@Model.Empresa">
+    <header class="crm-page-head"><span class="crm-eyebrow">Clientes · @(Model.EsGlobal ? "Vista global" : "Mis clientes")</span><div class="crm-head-row"><div><h1>Actualización de Cliente</h1><p>Seleccione una ficha CRM o un cliente disponible en SAP para iniciar la actualización.</p></div></div></header>
+    @if (TempData["CrmError"] != null) { <div class="crm-alert crm-alert-error" role="alert">@TempData["CrmError"]</div> }
+    <form class="crm-filter" method="get" action="@Url.Action("Actualizacion")">
+        <div class="crm-search"><i class="icon-search"></i><input type="search" name="filtro" value="@Model.Filtro" placeholder="Razón social, NIT o código SAP" aria-label="Buscar fichas CRM" /></div>
+        <select name="empresa" aria-label="Filtrar por empresa"><option value="">Todas las empresas</option><option value="BOLIK" @(Model.Empresa == "BOLIK" ? "selected" : "")>Bolik</option><option value="FAES" @(Model.Empresa == "FAES" ? "selected" : "")>Escocesa</option><option value="GRACO" @(Model.Empresa == "GRACO" ? "selected" : "")>Graco Pack</option></select>
         <button class="crm-btn crm-btn-outline" type="submit">Filtrar</button>
     </form>
-    <div class="crm-card crm-table-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="clip-users"></i></div><div><h2>Clientes</h2><p>@Model.Count fichas encontradas</p></div></div>
-        <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Razón social</th><th>Empresa</th><th>NIT o DPI</th><th>Código SAP</th><th>Estado</th><th></th></tr></thead><tbody>
-        @foreach (var c in Model) { <tr><td><strong>@c.Ficha.RazonSocial</strong><small>@c.Ficha.NombreComercial</small></td><td>@(c.Empresa == "FAES" ? "Escocesa" : c.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td>@c.Ficha.NitDpi</td><td>@(string.IsNullOrWhiteSpace(c.CodigoSap) ? "Pendiente" : c.CodigoSap)</td><td><span class="crm-state @(c.Activo ? "crm-state-aprobada" : "crm-state-rechazada")">@(c.Activo ? "Activo" : "Inactivo")</span></td><td><a class="crm-link" href="@Url.Action("Ficha", new { id = c.Id, empresa = c.Empresa })">Ver ficha <i class="icon-arrow-right"></i></a></td></tr> }
+    <div class="crm-card crm-table-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="clip-users"></i></div><div><h2>Fichas existentes en CRM</h2><p>@Model.Clientes.Count clientes disponibles</p></div></div>
+        <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Razón social</th><th>Empresa</th><th>NIT o DPI</th><th>Código SAP</th><th>Acción</th></tr></thead><tbody>
+        @foreach (var c in Model.Clientes) { <tr><td><strong>@c.Ficha.RazonSocial</strong><small>@c.Ficha.NombreComercial</small></td><td>@(c.Empresa == "FAES" ? "Escocesa" : c.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td>@c.Ficha.NitDpi</td><td>@(string.IsNullOrWhiteSpace(c.CodigoSap) ? "Pendiente" : c.CodigoSap)</td><td>@if (Model.PuedeActualizar && Model.Empresas.Any(x => x.Empresa == c.Empresa)) { <a class="crm-link" href="@Url.Action("IniciarActualizacion", new { id = c.Id, empresa = c.Empresa })">Actualizar <i class="icon-arrow-right"></i></a> } else { <a class="crm-link" href="@Url.Action("Ficha", new { id = c.Id, empresa = c.Empresa })">Ver ficha</a> }</td></tr> }
         </tbody></table></div>
-        @if (Model.Count == 0) { <div class="crm-empty"><i class="clip-users"></i><strong>No hay clientes con estos filtros</strong></div> }
+        @if (Model.Clientes.Count == 0) { <div class="crm-empty"><i class="clip-users"></i><strong>No hay fichas CRM con estos filtros</strong></div> }
+    </div>
+    @if (Model.PuedeActualizar) {
+    <div class="crm-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="icon-search"></i></div><div><h2>Buscar cliente en SAP</h2><p>Elija su empresa y agente; la consulta solo lee clientes disponibles para ese agente.</p></div></div>
+        <div class="crm-grid">
+            <div class="crm-field crm-col-4"><label for="crmUpdateEmpresa">Empresa</label><select id="crmUpdateEmpresa" class="form-control"><option value="">Seleccione...</option>@foreach (var empresa in Model.Empresas) { <option value="@empresa.Empresa">@empresa.Etiqueta</option> }</select></div>
+            <div class="crm-field crm-col-4"><label for="crmUpdateAgente">Agente asignado</label><select id="crmUpdateAgente" class="form-control"><option value="">Seleccione una empresa</option></select></div>
+            <div class="crm-field crm-col-4"><label for="crmUpdateFiltro">Código, razón social o NIT</label><input id="crmUpdateFiltro" type="search" class="form-control" autocomplete="off" /></div>
+            <div class="crm-field crm-col-12"><button id="crmUpdateBuscar" type="button" class="crm-btn crm-btn-outline"><i class="icon-search"></i> Buscar en SAP</button><div id="crmUpdateStatus" class="crm-sap-status" role="status" aria-live="polite"></div><div id="crmUpdateResultados" class="crm-sap-results"></div></div>
+        </div>
+        <div id="crmUpdateAgentes" hidden>@foreach (var empresa in Model.Empresas) { foreach (var agente in empresa.Agentes) { <span data-empresa="@empresa.Empresa" data-codigo="@agente.Codigo" data-nombre="@agente.Nombre"></span> } }</div>
+    </div>
+    }
+    <div class="crm-card crm-table-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="icon-list"></i></div><div><h2>Mis solicitudes de actualización</h2><p>@Model.Solicitudes.Count solicitudes</p></div></div>
+        <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Solicitud</th><th>Cliente</th><th>Empresa</th><th>Estado</th><th></th></tr></thead><tbody>@foreach (var s in Model.Solicitudes) { <tr><td>#@s.Id</td><td><strong>@s.Ficha.RazonSocial</strong></td><td>@(s.Empresa == "FAES" ? "Escocesa" : s.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td><span class="crm-state crm-state-@s.Estado.ToLowerInvariant()">@s.Estado</span></td><td><a class="crm-link" href="@Url.Action("Solicitud", new { id = s.Id })">Ver solicitud</a></td></tr> }</tbody></table></div>
+        @if (Model.Solicitudes.Count == 0) { <div class="crm-empty"><strong>Aún no hay solicitudes de actualización</strong></div> }
     </div>
 </div>
+@section scripts {
+<script>
+(function () {
+    var empresa = document.getElementById('crmUpdateEmpresa');
+    if (!empresa) return;
+    var agente = document.getElementById('crmUpdateAgente');
+    var filtro = document.getElementById('crmUpdateFiltro');
+    var status = document.getElementById('crmUpdateStatus');
+    var resultados = document.getElementById('crmUpdateResultados');
+    var catalogo = document.getElementById('crmUpdateAgentes');
+    var solicitud = 0;
+    empresa.addEventListener('change', function () {
+        solicitud++;
+        agente.innerHTML = '<option value="">Seleccione un agente</option>';
+        Array.prototype.forEach.call(catalogo.querySelectorAll('[data-empresa]'), function (item) {
+            if (item.getAttribute('data-empresa') !== empresa.value) return;
+            var option = document.createElement('option'); option.value = item.getAttribute('data-codigo');
+            option.textContent = item.getAttribute('data-nombre'); agente.appendChild(option);
+        });
+        resultados.textContent = ''; status.textContent = '';
+    });
+    agente.addEventListener('change', function () { solicitud++; resultados.textContent = ''; status.textContent = ''; });
+    document.getElementById('crmUpdateBuscar').addEventListener('click', function () {
+        if (!empresa.value || !agente.value || filtro.value.trim().length < 2) {
+            status.textContent = 'Seleccione empresa y agente; escriba al menos dos caracteres.'; return;
+        }
+        var actual = ++solicitud;
+        var empresaElegida = empresa.value, agenteElegido = agente.value;
+        resultados.textContent = ''; status.textContent = 'Buscando clientes en SAP...';
+        var query = '?empresa=' + encodeURIComponent(empresaElegida) + '&codigoOperador=' + encodeURIComponent(agenteElegido) + '&filtro=' + encodeURIComponent(filtro.value.trim());
+        fetch('@Url.Action("BuscarClientesSap")' + query, { credentials: 'same-origin' })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (actual !== solicitud) return;
+                if (!data.ok) { status.textContent = data.mensaje || 'No fue posible consultar SAP.'; return; }
+                status.textContent = data.clientes.length + ' clientes encontrados.';
+                data.clientes.forEach(function (cliente) {
+                    var enlace = document.createElement('a'); enlace.className = 'crm-sap-result';
+                    enlace.href = '@Url.Action("IniciarActualizacionSap")' + '?empresa=' + encodeURIComponent(empresaElegida) + '&codigoOperador=' + encodeURIComponent(agenteElegido) + '&codigoSap=' + encodeURIComponent(cliente.codigo);
+                    var nombre = document.createElement('strong'); nombre.textContent = cliente.codigo + ' · ' + cliente.nombre;
+                    enlace.appendChild(nombre); resultados.appendChild(enlace);
+                });
+            }).catch(function () { if (actual === solicitud) status.textContent = 'No fue posible consultar SAP. Intente nuevamente.'; });
+    });
+})();
+</script>
+}

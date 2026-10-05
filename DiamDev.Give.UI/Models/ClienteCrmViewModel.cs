@@ -26,6 +26,10 @@ namespace DiamDev.Give.UI.Models
         }
 
         public long SolicitudId { get; set; }
+        public string TipoSolicitud { get; set; }
+        public long? OrigenClienteId { get; set; }
+        public int? OrigenVersion { get; set; }
+        public string OrigenCodigoSap { get; set; }
         public long ClienteId { get; set; }
         public int Version { get; set; }
         public string Empresa { get; set; }
@@ -74,6 +78,18 @@ namespace DiamDev.Give.UI.Models
         public int Aprobadas { get; set; }
         public int Rechazadas { get; set; }
         public List<ClienteCrmResumenNegocio> Resumenes { get; set; }
+    }
+
+    public class ClienteCrmActualizacionViewModel
+    {
+        public string Empresa { get; set; }
+        public string Filtro { get; set; }
+        public string CodigoOperador { get; set; }
+        public bool EsGlobal { get; set; }
+        public bool PuedeActualizar { get; set; }
+        public List<ClienteCrmEmpresaOpcion> Empresas { get; set; }
+        public List<ClienteCrmCliente> Clientes { get; set; }
+        public List<ClienteCrmSolicitud> Solicitudes { get; set; }
     }
 
     public class ClienteCrmResumenNegocio

@@ -28,6 +28,18 @@ namespace DiamDev.Give.BLL
                 .Take(30).ToList();
         }
 
+        public ClienteHana ObtenerClienteSap(string empresa, string agente, string codigo)
+        {
+            ValidarEmpresa(empresa);
+            if (string.IsNullOrWhiteSpace(agente) || string.IsNullOrWhiteSpace(codigo) ||
+                codigo.Trim().Length > 50)
+                throw new InvalidOperationException("Seleccione un cliente SAP válido.");
+            string exacto = codigo.Trim();
+            return _hana.BuscarClientes(empresa, agente)
+                .FirstOrDefault(c => c != null && string.Equals(c.CardCode,
+                    exacto, StringComparison.OrdinalIgnoreCase));
+        }
+
         public List<ClienteGrupoHana> TiposNegocioSap(string empresa)
         {
             ValidarEmpresa(empresa);
@@ -86,6 +98,15 @@ namespace DiamDev.Give.BLL
             return c;
         }
 
+        public ClienteCrmCliente ObtenerClientePorCodigoSap(string empresa, string codigo)
+        {
+            ValidarEmpresa(empresa);
+            if (string.IsNullOrWhiteSpace(codigo)) return null;
+            var cliente = _da.ObtenerClientePorCodigoSap(empresa, codigo.Trim());
+            if (cliente != null) cliente.Ficha = LeerFicha(cliente.FichaJson);
+            return cliente;
+        }
+
         public bool ClientePropio(long id, string empresa, string usuario)
         {
             return _da.ClientePropio(id, empresa, usuario);
@@ -97,8 +118,28 @@ namespace DiamDev.Give.BLL
             if (solicitud == null) throw new InvalidOperationException("No se recibió la solicitud.");
             ValidarEmpresa(solicitud.Empresa);
             solicitud.Empresa = solicitud.Empresa.Trim().ToUpperInvariant();
+            solicitud.TipoSolicitud = string.IsNullOrWhiteSpace(solicitud.TipoSolicitud)
+                ? TiposSolicitudCliente.Alta : solicitud.TipoSolicitud;
+            if (solicitud.TipoSolicitud != TiposSolicitudCliente.Alta &&
+                solicitud.TipoSolicitud != TiposSolicitudCliente.Actualizacion)
+                throw new InvalidOperationException("El tipo de solicitud no es válido.");
+            if (solicitud.Ficha == null)
+                throw new InvalidOperationException("Complete la ficha de cliente.");
+            if (solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion &&
+                !solicitud.OrigenClienteId.HasValue && string.IsNullOrWhiteSpace(solicitud.OrigenCodigoSap))
+                throw new InvalidOperationException("Seleccione un cliente para actualizar.");
+            if (solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion &&
+                solicitud.OrigenClienteId.HasValue != solicitud.OrigenVersion.HasValue)
+                throw new InvalidOperationException("La ficha de origen perdió su versión. Seleccione nuevamente el cliente.");
+            if (solicitud.TipoSolicitud == TiposSolicitudCliente.Alta)
+            {
+                solicitud.OrigenClienteId = null;
+                solicitud.OrigenVersion = null;
+                solicitud.OrigenCodigoSap = null;
+                solicitud.Ficha.CambioRazonSocial = false;
+            }
             VincularTipoNegocio(solicitud.Empresa, solicitud.Ficha);
-            if (enviar) ValidarPasos(solicitud.Ficha, 5);
+            if (enviar) ValidarPasos(solicitud.Ficha, 5, solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion);
             ValidarFicha(solicitud.Ficha, enviar);
             if (string.IsNullOrWhiteSpace(solicitud.CodigoOperador) ||
                 string.IsNullOrWhiteSpace(solicitud.Agente))
@@ -225,7 +266,7 @@ namespace DiamDev.Give.BLL
                     throw new InvalidOperationException("Revise el correo de " + contacto.Nombre + ".");
         }
 
-        public static void ValidarPasos(ClienteCrmFicha f, int hasta)
+        public static void ValidarPasos(ClienteCrmFicha f, int hasta, bool esActualizacion = false)
         {
             if (f == null || hasta < 1 || hasta > 5)
                 throw new InvalidOperationException("El paso de la solicitud no es válido.");
@@ -244,6 +285,7 @@ namespace DiamDev.Give.BLL
                 Requerir(f.TramiteContrasena, "Trámite de contraseña");
                 if (!new[] { "15", "30", "60", "90" }.Contains(f.TemporadaPago))
                     throw new InvalidOperationException("Seleccione los días de crédito.");
+                if (!esActualizacion) f.CambioRazonSocial = false;
                 f.CambioRazonSocialRespuesta = f.CambioRazonSocial ? "SI" : "NO";
                 if (!new EmailAddressAttribute().IsValid(f.CorreoFactura))
                     throw new InvalidOperationException("El correo de factura no es válido.");
@@ -262,6 +304,10 @@ namespace DiamDev.Give.BLL
                     Requerir(c.Correo, "Correo del contacto");
                     Requerir(c.TomadorDecision, "Tomador de decisiones");
                     Requerir(c.InfluenciadorTecnico, "Influenciador técnico / usuario");
+                    if (!new[] { "PRINCIPAL", "COMPRAS", "PAGOS", "LOGISTICA", "TECNICO", "GERENCIA" }.Contains(c.TipoContacto))
+                        throw new InvalidOperationException("Seleccione el tipo de cada contacto.");
+                    if (!new[] { "WHATSAPP", "CELULAR", "FIJO", "CORREO", "PRESENCIAL" }.Contains(c.CanalComunicacion))
+                        throw new InvalidOperationException("Seleccione el canal de comunicación de cada contacto.");
                     if (!new EmailAddressAttribute().IsValid(c.Correo))
                         throw new InvalidOperationException("Revise el correo de " + c.Nombre + ".");
                 }

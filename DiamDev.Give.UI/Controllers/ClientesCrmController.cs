@@ -19,9 +19,10 @@ namespace DiamDev.Give.UI.Controllers
     {
         private const string PermisoVer = "Control.Clientes.Ver";
         private const string PermisoCrear = "Control.Clientes.Crear";
-        private const string PermisoDashboard = "Control.Clientes.Dashboard";
+        private const string PermisoDashboard = "Control.Clientes.ControlCreditos";
         private const string PermisoAdministrar = "Control.Clientes.Administrar";
-        private const string PermisoCarteraGlobal = "Control.Clientes.CarteraGlobal";
+        private const string PermisoCarteraGlobal = "Control.Clientes.ActualizacionGlobal";
+        private const string PermisoActualizar = "Control.Clientes.Actualizar";
         private readonly ClienteCrmBLL _crm = new ClienteCrmBLL();
         private readonly UsuarioEmpresaBL _usuarioEmpresa = new UsuarioEmpresaBL();
 
@@ -36,7 +37,8 @@ namespace DiamDev.Give.UI.Controllers
             ViewBag.Estado = estado;
             ViewBag.Filtro = filtro;
             ViewBag.PuedeCrear = TienePermiso(PermisoCrear);
-            var solicitudes = _crm.ListarSolicitudes(empresa, estado, filtro, User.Identity.Name);
+            var solicitudes = _crm.ListarSolicitudes(empresa, estado, filtro, User.Identity.Name)
+                .Where(x => x.TipoSolicitud == TiposSolicitudCliente.Alta).ToList();
             _crm.RegistrarEvento("MODULO", null, empresa, User.Identity.Name, "LISTAR_PROPIAS",
                 string.Format("Estado={0}; Filtro={1}", estado, filtro), Ip());
             return View(solicitudes);
@@ -47,9 +49,10 @@ namespace DiamDev.Give.UI.Controllers
         {
             // Editor.cshtml es una vista compartida; la ruta directa debe pasar por una acción con permisos.
             if (TienePermiso(PermisoCrear)) return RedirectToAction("Nueva");
+            if (TienePermiso(PermisoActualizar)) return RedirectToAction("Actualizacion");
             if (TienePermiso(PermisoAdministrar)) return RedirectToAction("NuevoCliente");
-            if (TienePermiso(PermisoDashboard)) return RedirectToAction("Dashboard");
-            if (TienePermiso(PermisoCarteraGlobal)) return RedirectToAction("Clientes");
+            if (TienePermiso(PermisoDashboard)) return RedirectToAction("ControlCreditos");
+            if (TienePermiso(PermisoCarteraGlobal)) return RedirectToAction("Actualizacion");
             if (TienePermiso(PermisoVer)) return RedirectToAction("Index");
             return SinAcceso();
         }
@@ -59,13 +62,101 @@ namespace DiamDev.Give.UI.Controllers
         {
             _crm.RegistrarEvento("MODULO", null, null, User.Identity.Name, "ABRIR_SOLICITUD_NUEVA", null, Ip());
             CustomHelper.setTitle("Clientes", "Nueva solicitud");
-            return View("Editor", PrepararEditor(new ClienteCrmEditorViewModel { PasoActual = 1 }));
+            return View("Editor", PrepararEditor(new ClienteCrmEditorViewModel {
+                PasoActual = 1, TipoSolicitud = TiposSolicitudCliente.Alta }));
+        }
+
+        public ActionResult Actualizacion(string empresa, string filtro)
+        {
+            bool global = TienePermiso(PermisoCarteraGlobal) || TienePermiso(PermisoDashboard);
+            if (!global && !TienePermiso(PermisoActualizar)) return SinAcceso();
+            if (!EmpresaValidaOBlanca(empresa)) return SinAcceso();
+            CustomHelper.setTitle("Clientes", "Actualización de Cliente");
+            var modelo = new ClienteCrmActualizacionViewModel {
+                Empresa = empresa, Filtro = filtro, EsGlobal = global,
+                PuedeActualizar = TienePermiso(PermisoActualizar),
+                Empresas = EmpresasUsuario(),
+                Clientes = _crm.ListarClientes(empresa, filtro, false,
+                    global ? null : User.Identity.Name),
+                Solicitudes = _crm.ListarSolicitudes(empresa, null, filtro, User.Identity.Name)
+                    .Where(x => x.TipoSolicitud == TiposSolicitudCliente.Actualizacion).ToList()
+            };
+            _crm.RegistrarEvento("MODULO", null, empresa, User.Identity.Name,
+                "LISTAR_ACTUALIZACIONES", filtro, Ip());
+            return View("Clientes", modelo);
         }
 
         [HttpGet]
-        [Permiso(PermisoCrear)]
+        public ActionResult Clientes() { return RedirectToAction("Actualizacion"); }
+
+        [HttpGet]
+        [Permiso(PermisoActualizar)]
+        public ActionResult IniciarActualizacion(long id, string empresa)
+        {
+            if (!EmpresaValidaOBlanca(empresa) || string.IsNullOrWhiteSpace(empresa)) return SinAcceso();
+            var cliente = _crm.ObtenerCliente(id, empresa);
+            if (cliente == null || !cliente.Activo) return HttpNotFound();
+            if (!PuedeAbrirCliente(id, empresa) || !EmpresasUsuario().Any(x => x.Empresa == empresa))
+                return SinAcceso();
+            cliente.Ficha.PasoCompletado = 0;
+            cliente.Ficha.CodigoSapOrigen = cliente.CodigoSap;
+            _crm.RegistrarEvento("CLIENTE", id, empresa, User.Identity.Name,
+                "INICIAR_ACTUALIZACION", null, Ip());
+            CustomHelper.setTitle("Clientes", "Actualización de Cliente");
+            return View("Editor", PrepararEditor(new ClienteCrmEditorViewModel {
+                TipoSolicitud = TiposSolicitudCliente.Actualizacion,
+                OrigenClienteId = id, OrigenVersion = cliente.Version,
+                OrigenCodigoSap = cliente.CodigoSap, Empresa = empresa,
+                Ficha = cliente.Ficha, PasoActual = 1
+            }));
+        }
+
+        [HttpGet]
+        [Permiso(PermisoActualizar)]
+        public ActionResult IniciarActualizacionSap(string empresa, string codigoOperador, string codigoSap)
+        {
+            string agente;
+            try { agente = ValidarOperador(empresa, codigoOperador); }
+            catch (UnauthorizedAccessException) { return SinAcceso(); }
+            if (string.IsNullOrWhiteSpace(codigoSap) || codigoSap.Trim().Length < 2) return HttpNotFound();
+            ClienteHana sap;
+            try
+            {
+                sap = _crm.ObtenerClienteSap(empresa, agente, codigoSap);
+            }
+            catch (Exception ex)
+            {
+                TempData["CrmError"] = Mensaje(ex);
+                return RedirectToAction("Actualizacion");
+            }
+            if (sap == null) return HttpNotFound();
+            var existente = _crm.ObtenerClientePorCodigoSap(empresa, sap.CardCode);
+            if (existente != null)
+                return RedirectToAction("IniciarActualizacion", new { id = existente.Id, empresa = empresa });
+            _crm.RegistrarEvento("MODULO", null, empresa, User.Identity.Name,
+                "INICIAR_ACTUALIZACION_SAP", sap.CardCode, Ip());
+            CustomHelper.setTitle("Clientes", "Actualización de Cliente");
+            return View("Editor", PrepararEditor(new ClienteCrmEditorViewModel {
+                TipoSolicitud = TiposSolicitudCliente.Actualizacion,
+                OrigenCodigoSap = sap.CardCode, Empresa = empresa,
+                CodigoOperador = codigoOperador, PasoActual = 1,
+                Ficha = new ClienteCrmFicha {
+                    RazonSocial = sap.CardName, NombreComercial = sap.CardName,
+                    NitDpi = sap.LicTradNum, DireccionFiscal = sap.Address,
+                    CorreoFactura = sap.Email, MonedaIndicadores = sap.Currency,
+                    CodigoSapOrigen = sap.CardCode
+                }
+            }));
+        }
+
+        [HttpGet]
         public JsonResult BuscarClientesSap(string empresa, string codigoOperador, string filtro)
         {
+            if (!TienePermiso(PermisoCrear) && !TienePermiso(PermisoActualizar))
+            {
+                Response.StatusCode = 403;
+                return Json(new { ok = false, mensaje = "No tiene permiso para consultar clientes SAP." }, JsonRequestBehavior.AllowGet);
+            }
             try
             {
                 string agente = ValidarOperador(empresa, codigoOperador);
@@ -90,7 +181,7 @@ namespace DiamDev.Give.UI.Controllers
         public JsonResult TiposNegocioSap(string empresa)
         {
             bool puedeAdministrar = TienePermiso(PermisoAdministrar);
-            bool empresaAsignada = TienePermiso(PermisoCrear) &&
+            bool empresaAsignada = (TienePermiso(PermisoCrear) || TienePermiso(PermisoActualizar)) &&
                 EmpresasUsuario().Any(x => x.Empresa == empresa);
             if (!puedeAdministrar && !empresaAsignada)
             {
@@ -115,7 +206,6 @@ namespace DiamDev.Give.UI.Controllers
             }
         }
 
-        [Permiso(PermisoCrear)]
         public ActionResult EditarSolicitud(long id, int? paso)
         {
             var s = _crm.ObtenerSolicitud(id);
@@ -126,6 +216,8 @@ namespace DiamDev.Give.UI.Controllers
             CustomHelper.setTitle("Clientes", "Editar solicitud");
             return View("Editor", PrepararEditor(new ClienteCrmEditorViewModel {
                 SolicitudId = s.Id, Version = s.Version, Empresa = s.Empresa,
+                TipoSolicitud = s.TipoSolicitud, OrigenClienteId = s.OrigenClienteId,
+                OrigenVersion = s.OrigenVersion, OrigenCodigoSap = s.OrigenCodigoSap,
                 CodigoOperador = s.CodigoOperador, Estado = s.Estado,
                 Ficha = s.Ficha, Archivos = s.Archivos,
                 PasoActual = Math.Max(1, Math.Min(paso ?? (s.Ficha.PasoCompletado + 1),
@@ -135,7 +227,6 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Permiso(PermisoCrear)]
         public ActionResult GuardarSolicitud(ClienteCrmEditorViewModel modelo, string accion)
         {
             bool enviar = string.Equals(accion, "ENVIAR", StringComparison.OrdinalIgnoreCase);
@@ -151,8 +242,37 @@ namespace DiamDev.Give.UI.Controllers
                     if (!string.Equals(existente.Empresa, modelo.Empresa,
                         StringComparison.OrdinalIgnoreCase))
                         throw new InvalidOperationException("No se puede cambiar la empresa de una solicitud existente.");
+                    if (existente.TipoSolicitud != modelo.TipoSolicitud ||
+                        existente.OrigenClienteId != modelo.OrigenClienteId ||
+                        existente.OrigenVersion != modelo.OrigenVersion ||
+                        !string.Equals(existente.OrigenCodigoSap, modelo.OrigenCodigoSap,
+                            StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("No se puede cambiar el cliente de origen de una solicitud.");
                 }
+                bool esActualizacion = modelo.TipoSolicitud == TiposSolicitudCliente.Actualizacion;
+                if (modelo.TipoSolicitud != TiposSolicitudCliente.Alta && !esActualizacion)
+                    throw new InvalidOperationException("Seleccione un tipo de solicitud válido.");
+                if (!TienePermiso(esActualizacion ? PermisoActualizar : PermisoCrear)) return SinAcceso();
                 if (modelo.Ficha == null) throw new InvalidOperationException("Complete la ficha de cliente.");
+                var agente = ValidarOperador(modelo.Empresa, modelo.CodigoOperador);
+                if (esActualizacion && existente == null)
+                {
+                    if (modelo.OrigenClienteId.HasValue)
+                    {
+                        var origen = _crm.ObtenerCliente(modelo.OrigenClienteId.Value, modelo.Empresa);
+                        if (origen == null || !origen.Activo || origen.Version != modelo.OrigenVersion ||
+                            !PuedeAbrirCliente(origen.Id, origen.Empresa)) return SinAcceso();
+                        modelo.OrigenCodigoSap = origen.CodigoSap;
+                    }
+                    else
+                    {
+                        var sap = _crm.ObtenerClienteSap(modelo.Empresa, agente, modelo.OrigenCodigoSap);
+                        if (sap == null || _crm.ObtenerClientePorCodigoSap(modelo.Empresa, sap.CardCode) != null)
+                            throw new InvalidOperationException("El cliente SAP seleccionado ya no está disponible para actualización.");
+                    }
+                }
+                if (esActualizacion) modelo.Ficha.CodigoSapOrigen = modelo.OrigenCodigoSap;
+                else modelo.Ficha.CambioRazonSocial = false;
                 int completado = existente == null ? 0 : existente.Ficha.PasoCompletado;
                 if (modelo.PasoActual < 1 || modelo.PasoActual > 6 ||
                     modelo.PasoActual > Math.Min(6, completado + 1))
@@ -162,24 +282,23 @@ namespace DiamDev.Give.UI.Controllers
                 if (continuar && modelo.PasoActual == 6)
                     throw new InvalidOperationException("Envíe la solicitud desde el último paso.");
                 if (continuar || enviar)
-                    ClienteCrmBLL.ValidarPasos(modelo.Ficha, Math.Min(modelo.PasoActual, 5));
+                    ClienteCrmBLL.ValidarPasos(modelo.Ficha, Math.Min(modelo.PasoActual, 5), esActualizacion);
                 modelo.Ficha.PasoCompletado = continuar
                     ? Math.Max(completado, modelo.PasoActual) : completado;
                 if (existente != null) ConservarDatosLegados(existente.Ficha, modelo.Ficha);
-                var agente = ValidarOperador(modelo.Empresa, modelo.CodigoOperador);
                 string codigoSapOrigen = modelo.Ficha.CodigoSapOrigen;
                 string codigoAnterior = existente == null ? null : existente.Ficha.CodigoSapOrigen;
-                if (!string.IsNullOrWhiteSpace(codigoSapOrigen) &&
+                if (!esActualizacion && !string.IsNullOrWhiteSpace(codigoSapOrigen) &&
                     !string.Equals(codigoSapOrigen, codigoAnterior, StringComparison.OrdinalIgnoreCase))
                 {
-                    var clienteSap = _crm.BuscarClientesSap(modelo.Empresa, agente, codigoSapOrigen)
-                        .FirstOrDefault(c => string.Equals(c.CardCode, codigoSapOrigen,
-                            StringComparison.OrdinalIgnoreCase));
+                    var clienteSap = _crm.ObtenerClienteSap(modelo.Empresa, agente, codigoSapOrigen);
                     if (clienteSap == null)
                         throw new InvalidOperationException("El cliente SAP seleccionado ya no está disponible para este agente.");
                 }
                 long id = _crm.GuardarSolicitud(new ClienteCrmSolicitud {
                     Id = modelo.SolicitudId, Version = modelo.Version, Empresa = modelo.Empresa,
+                    TipoSolicitud = modelo.TipoSolicitud, OrigenClienteId = modelo.OrigenClienteId,
+                    OrigenVersion = modelo.OrigenVersion, OrigenCodigoSap = modelo.OrigenCodigoSap,
                     CodigoOperador = modelo.CodigoOperador, Agente = agente,
                     Ficha = modelo.Ficha
                 }, LeerArchivos(), enviar, User.Identity.Name, Ip());
@@ -202,7 +321,8 @@ namespace DiamDev.Give.UI.Controllers
             var s = _crm.ObtenerSolicitud(id);
             if (s == null) return HttpNotFound();
             bool dashboard = TienePermiso(PermisoDashboard);
-            bool propia = TienePermiso(PermisoVer) && EsPropietario(s);
+            bool propia = TienePermiso(s.TipoSolicitud == TiposSolicitudCliente.Actualizacion
+                ? PermisoActualizar : PermisoVer) && EsPropietario(s);
             if ((!dashboard && !propia) ||
                 (s.Estado == EstadosSolicitudCliente.Borrador && !propia))
                 return SinAcceso();
@@ -219,11 +339,14 @@ namespace DiamDev.Give.UI.Controllers
             });
         }
 
+        [HttpGet]
+        public ActionResult Dashboard() { return RedirectToAction("ControlCreditos"); }
+
         [Permiso(PermisoDashboard)]
-        public ActionResult Dashboard(string empresa, string estado, string filtro)
+        public ActionResult ControlCreditos(string empresa, string estado, string filtro)
         {
             if (!EmpresaValidaOBlanca(empresa)) return SinAcceso();
-            CustomHelper.setTitle("Clientes", "Dashboard");
+            CustomHelper.setTitle("Clientes", "Control Créditos");
             var todas = _crm.ListarSolicitudes(empresa, null, filtro, null)
                 .Where(x => x.Estado != EstadosSolicitudCliente.Borrador).ToList();
             var clientes = _crm.ListarClientes(empresa, filtro, false);
@@ -231,7 +354,7 @@ namespace DiamDev.Give.UI.Controllers
                 Empresa = empresa, Estado = estado, Filtro = filtro,
                 PuedeAdministrar = TienePermiso(PermisoAdministrar),
                 PuedeVerCartera = PuedeVerCartera(),
-                PuedeVerCarteraGlobal = TienePermiso(PermisoCarteraGlobal),
+                PuedeVerCarteraGlobal = TienePermiso(PermisoCarteraGlobal) || TienePermiso(PermisoDashboard),
                 Solicitudes = string.IsNullOrWhiteSpace(estado) ? todas : todas.Where(x => x.Estado == estado).ToList(),
                 Clientes = clientes,
                 Pendientes = todas.Count(x => x.Estado == EstadosSolicitudCliente.Enviada),
@@ -247,9 +370,9 @@ namespace DiamDev.Give.UI.Controllers
                         Objetivo12Meses = g.Sum(x => x.Ficha.Objetivo12Meses ?? 0)
                     }).OrderBy(x => x.Empresa).ThenBy(x => x.Moneda).ToList()
             };
-            _crm.RegistrarEvento("MODULO", null, empresa, User.Identity.Name, "VER_DASHBOARD",
+            _crm.RegistrarEvento("MODULO", null, empresa, User.Identity.Name, "VER_CONTROL_CREDITOS",
                 string.Format("Estado={0}; Filtro={1}", estado, filtro), Ip());
-            return View(modelo);
+            return View("Dashboard", modelo);
         }
 
         [HttpPost]
@@ -263,7 +386,7 @@ namespace DiamDev.Give.UI.Controllers
                 if (!aprobar && decision != "RECHAZAR")
                     throw new InvalidOperationException("Seleccione una decisión válida.");
                 _crm.ResolverSolicitud(id, version, aprobar, motivo, User.Identity.Name, Ip());
-                TempData["CrmExito"] = aprobar ? "Solicitud aprobada y ficha creada en SQL." : "Solicitud rechazada.";
+                TempData["CrmExito"] = aprobar ? "Solicitud aprobada y ficha CRM guardada en SQL." : "Solicitud rechazada.";
             }
             catch (Exception ex) { TempData["CrmError"] = Mensaje(ex); }
             return RedirectToAction("Solicitud", new { id = id });
@@ -275,7 +398,7 @@ namespace DiamDev.Give.UI.Controllers
                 return SinAcceso();
             var c = _crm.ObtenerCliente(id, empresa);
             if (c == null) return HttpNotFound();
-            bool global = TienePermiso(PermisoCarteraGlobal);
+            bool global = TienePermiso(PermisoCarteraGlobal) || TienePermiso(PermisoDashboard);
             if (!global && (!PuedeVerCartera() || !_crm.ClientePropio(id, empresa, User.Identity.Name)))
                 return SinAcceso();
             _crm.RegistrarEvento("CLIENTE", id, empresa, User.Identity.Name, "VER_FICHA", null, Ip());
@@ -362,30 +485,14 @@ namespace DiamDev.Give.UI.Controllers
             return RedirectToAction("Ficha", new { id = id, empresa = empresa });
         }
 
-        public ActionResult Clientes(string empresa, string filtro, bool incluirInactivos = false)
-        {
-            if (!PuedeVerCartera() || !EmpresaValidaOBlanca(empresa)) return SinAcceso();
-            CustomHelper.setTitle("Clientes", "Cartera CRM");
-            bool global = TienePermiso(PermisoCarteraGlobal);
-            if (!global && string.IsNullOrWhiteSpace(User.Identity.Name)) return SinAcceso();
-            ViewBag.Empresa = empresa; ViewBag.Filtro = filtro;
-            ViewBag.IncluirInactivos = incluirInactivos;
-            ViewBag.PuedeAdministrar = TienePermiso(PermisoAdministrar);
-            ViewBag.PuedeDashboard = TienePermiso(PermisoDashboard);
-            ViewBag.EsGlobal = global;
-            var lista = _crm.ListarClientes(empresa, filtro, incluirInactivos,
-                global ? null : User.Identity.Name);
-            _crm.RegistrarEvento("MODULO", null, empresa, User.Identity.Name, "LISTAR_CLIENTES", filtro, Ip());
-            return View(lista);
-        }
-
         public ActionResult Archivo(long id, long entidadId, bool esSolicitud, string empresa)
         {
             if (!_crm.ArchivoPertenece(id, entidadId, esSolicitud, empresa)) return HttpNotFound();
             if (esSolicitud)
             {
                 var s = _crm.ObtenerSolicitud(entidadId);
-                bool propia = s != null && TienePermiso(PermisoVer) && EsPropietario(s);
+                bool propia = s != null && TienePermiso(s.TipoSolicitud == TiposSolicitudCliente.Actualizacion
+                    ? PermisoActualizar : PermisoVer) && EsPropietario(s);
                 if (s == null || (s.Estado == EstadosSolicitudCliente.Borrador && !propia) ||
                     (!TienePermiso(PermisoDashboard) && !propia))
                     return SinAcceso();
@@ -413,14 +520,14 @@ namespace DiamDev.Give.UI.Controllers
             if (seleccion.Count == 0)
             {
                 TempData["CrmError"] = "Seleccione al menos una solicitud para exportar.";
-                return RedirectToAction("Dashboard");
+                return RedirectToAction("ControlCreditos");
             }
             var filas = _crm.ListarSolicitudes(null, null, null, null)
                 .Where(x => x.Estado != EstadosSolicitudCliente.Borrador && seleccion.Contains(x.Id)).ToList();
             using (var paquete = new ExcelPackage())
             {
                 var hoja = paquete.Workbook.Worksheets.Add("Solicitudes");
-                string[] columnas = { "Solicitud", "Empresa", "Estado", "Razón social", "NIT o DPI",
+                string[] columnas = { "Solicitud", "Tipo", "Empresa", "Estado", "Razón social", "NIT o DPI",
                     "Agente", "Condición de pago", "Creada", "Compra actualmente", "Moneda",
                     "Venta últimos 12 meses", "Potencial anual", "Objetivo 12 meses",
                     "Oportunidad", "Forecast", "Próximo paso", "Motivo de rechazo" };
@@ -428,7 +535,8 @@ namespace DiamDev.Give.UI.Controllers
                 for (int i = 0; i < filas.Count; i++)
                 {
                     var s = filas[i]; var f = s.Ficha; int r = i + 2;
-                    object[] valores = { s.Id, EtiquetaEmpresa(s.Empresa), s.Estado, f.RazonSocial,
+                    object[] valores = { s.Id, s.TipoSolicitud == TiposSolicitudCliente.Actualizacion ? "Actualización" : "Alta",
+                        EtiquetaEmpresa(s.Empresa), s.Estado, f.RazonSocial,
                         f.NitDpi, s.Agente, f.CondicionPago, s.CreadoEn, f.CompraActualmente ? "Sí" : "No",
                         f.MonedaIndicadores, f.Venta12Meses, f.PotencialAnual, f.Objetivo12Meses,
                         f.OportunidadCrecimiento, f.Forecast, f.ProximoPaso, s.MotivoRechazo };
@@ -443,8 +551,8 @@ namespace DiamDev.Give.UI.Controllers
                 }
                 hoja.Cells[hoja.Dimension.Address].AutoFitColumns();
                 hoja.View.FreezePanes(2, 1);
-                hoja.Cells[2, 8, Math.Max(2, filas.Count + 1), 8].Style.Numberformat.Format = "yyyy-mm-dd hh:mm";
-                hoja.Cells[2, 11, Math.Max(2, filas.Count + 1), 13].Style.Numberformat.Format = "#,##0.00";
+                hoja.Cells[2, 9, Math.Max(2, filas.Count + 1), 9].Style.Numberformat.Format = "yyyy-mm-dd hh:mm";
+                hoja.Cells[2, 12, Math.Max(2, filas.Count + 1), 14].Style.Numberformat.Format = "#,##0.00";
                 _crm.RegistrarEvento("MODULO", null, null, User.Identity.Name, "EXPORTAR",
                     "Solicitudes: " + string.Join(",", filas.Select(x => x.Id)), Ip());
                 return File(paquete.GetAsByteArray(),
@@ -560,7 +668,8 @@ namespace DiamDev.Give.UI.Controllers
 
         private bool PuedeEditarSolicitud(ClienteCrmSolicitud s)
         {
-            return TienePermiso(PermisoCrear) && EsPropietario(s) &&
+            return TienePermiso(s.TipoSolicitud == TiposSolicitudCliente.Actualizacion
+                ? PermisoActualizar : PermisoCrear) && EsPropietario(s) &&
                 (s.Estado == EstadosSolicitudCliente.Borrador ||
                  s.Estado == EstadosSolicitudCliente.Rechazada) &&
                 EmpresasUsuario().Any(x => x.Empresa == s.Empresa &&
@@ -569,13 +678,14 @@ namespace DiamDev.Give.UI.Controllers
 
         private bool PuedeVerCartera()
         {
-            return TienePermiso(PermisoVer) || TienePermiso(PermisoAdministrar) ||
+            return TienePermiso(PermisoVer) || TienePermiso(PermisoActualizar) ||
+                TienePermiso(PermisoDashboard) || TienePermiso(PermisoAdministrar) ||
                 TienePermiso(PermisoCarteraGlobal);
         }
 
         private bool PuedeAbrirCliente(long id, string empresa)
         {
-            return TienePermiso(PermisoCarteraGlobal) ||
+            return TienePermiso(PermisoCarteraGlobal) || TienePermiso(PermisoDashboard) ||
                 (PuedeVerCartera() && _crm.ClientePropio(id, empresa, User.Identity.Name));
         }
 

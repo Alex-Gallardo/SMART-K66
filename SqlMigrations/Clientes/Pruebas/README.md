@@ -9,3 +9,9 @@ Estos archivos apuntan exclusivamente a `POS-SmartK66`. Los scripts de la carpet
 5. Ejecutar `07_verificar_cartera_por_usuario.sql`. Debe indicar `OK` para tabla, permiso e índice; `PERMISO_MENU` debe ser `Control.Clientes.Modulo`. Si hay fichas existentes, revisar las filas `SIN_PROPIETARIO`.
 
 Para probar la aplicación contra esta base, configurar **solo en el entorno local de pruebas** la conexión `ClientesCrmContext` con `Initial Catalog=POS-SmartK66`. El `Web.config` del repositorio apunta actualmente a `POS-SmartK66_DEV`.
+
+## Actualización de Cliente y Control Créditos
+
+Antes de probar la nueva versión, ejecutar `08_actualizacion_control_creditos.sql` y después `09_verificar_actualizacion_solo_lectura.sql` en `POS-SmartK66`. El contrato debe indicar `COLUMNAS = OK`, `MENU = OK`, `RESTRICCIONES = OK`, `PERMISOS_NUEVOS = 3` y `ORIGEN_INCOMPLETO = 0`.
+
+Esta variante crea las columnas, los tres permisos y actualiza el menú. No crea usuarios ni roles y no inserta ni actualiza asignaciones en `Rol_Permiso`. Los permisos deben asignarse desde el mecanismo habitual del entorno de pruebas antes de probar cada flujo.

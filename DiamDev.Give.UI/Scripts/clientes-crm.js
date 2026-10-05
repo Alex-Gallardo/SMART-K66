@@ -289,6 +289,25 @@
             if (wizard && pasoActual === 2) campo.querySelector('input').required = true;
             campos.appendChild(campo);
         });
+        [['TipoContacto', 'Tipo de contacto', [['PRINCIPAL', 'Principal'], ['COMPRAS', 'Compras'],
+            ['PAGOS', 'Pagos'], ['LOGISTICA', 'Logística'], ['TECNICO', 'Técnico / usuario'],
+            ['GERENCIA', 'Gerencia']]],
+         ['CanalComunicacion', 'Canal de comunicación', [['WHATSAPP', 'WhatsApp'],
+            ['CELULAR', 'Llamada celular'], ['FIJO', 'Teléfono fijo'],
+            ['CORREO', 'Correo electrónico'], ['PRESENCIAL', 'Presencial']]]].forEach(function (dato) {
+            var campo = document.createElement('div'); campo.className = 'crm-field crm-col-4';
+            var label = document.createElement('label'); label.textContent = dato[1];
+            var select = document.createElement('select'); select.className = 'form-control';
+            select.name = 'Ficha.Contactos[' + i + '].' + dato[0];
+            var vacio = document.createElement('option'); vacio.value = ''; vacio.textContent = 'Seleccione...';
+            select.appendChild(vacio);
+            dato[2].forEach(function (opcion) {
+                var item = document.createElement('option'); item.value = opcion[0];
+                item.textContent = opcion[1]; select.appendChild(item);
+            });
+            if (wizard && pasoActual === 2) select.required = true;
+            campo.appendChild(label); campo.appendChild(select); campos.appendChild(campo);
+        });
         fila.appendChild(campos); destino.appendChild(fila);
         actualizarContactos();
         fila.querySelector('[name$=".Nombre"]').focus();

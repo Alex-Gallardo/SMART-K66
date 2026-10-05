@@ -30,3 +30,11 @@ Para conceder la vista global a un rol, editar `@RolNombre` en `06_ejemplo_asign
 6. Con dos usuarios y fichas distintas, comprobar que ambos ven solo su propia Cartera. Asignar `Control.Clientes.CarteraGlobal` a uno y verificar que puede listar y abrir ambas fichas. Confirmar que un usuario autenticado sin permiso llega a **Sin acceso** y no al login.
 
 La comprobación de interfaz y flujo completo requiere que esta rama esté desplegada. Los scripts `03` y `04` verifican la instalación SQL sin datos de prueba.
+
+## Actualización de Cliente y Control Créditos
+
+Antes de publicar esta versión, ejecutar `08_actualizacion_control_creditos.sql` y después `09_verificar_actualizacion_solo_lectura.sql` en `POS-SmartK66_DEV`. La verificación debe mostrar `COLUMNAS = OK`, `MENU = OK`, `RESTRICCIONES = OK`, `PERMISOS_NUEVOS = 3` y `ORIGEN_INCOMPLETO = 0`.
+
+`08` conserva las solicitudes anteriores como altas, incorpora el origen CRM o SAP de cada actualización y cambia las entradas visibles del menú a **Actualización de Cliente** y **Control Créditos**. Crea los permisos `Control.Clientes.Actualizar`, `Control.Clientes.ActualizacionGlobal` y `Control.Clientes.ControlCreditos`, y copia a ellos las asignaciones existentes de Crear, CarteraGlobal y Dashboard respectivamente. El controlador decide el acceso por permiso, sin validar nombres de rol. La aprobación de una actualización guarda los cambios en la ficha SQL; el código SAP continúa siendo una referencia y nunca se escribe en SAP.
+
+Después de ejecutar la migración, comprobar con un usuario con permiso `Actualizar` que puede elegir una ficha propia o un cliente SAP, guardar los seis pasos y enviar. Las actualizaciones iniciadas desde una ficha CRM copian al primer borrador el documento más reciente de cada tipo; un archivo nuevo sustituye la copia. Las iniciadas directamente desde SAP requieren adjuntar los documentos. Con `ControlCreditos`, resolver una solicitud de actualización y comprobar que la ficha SQL cambia sin crear otra ficha para el mismo origen. Verificar también que una solicitud de alta no ofrece «Cambio de razón social» y que los contactos guardan tipo y canal de comunicación.

@@ -9,9 +9,9 @@
     <header class="crm-page-head">
         <span class="crm-eyebrow">Clientes · Grupo K66</span>
         <div class="crm-head-row">
-            <div><h1>Dashboard de clientes</h1><p>Revise solicitudes, valide fichas y vincule los códigos creados en SAP.</p></div>
+            <div><h1>Control Créditos</h1><p>Revise altas y actualizaciones, valide fichas y vincule los códigos creados en SAP.</p></div>
             <div class="crm-head-actions">@if (Model.PuedeVerCartera)
-            {<a class="crm-btn crm-btn-outline" href="@Url.Action("Clientes")"><i class="icon-address-book"></i> Cartera CRM</a>}@if (Model.PuedeAdministrar)
+            {<a class="crm-btn crm-btn-outline" href="@Url.Action("Actualizacion")"><i class="icon-address-book"></i> Actualización de Cliente</a>}@if (Model.PuedeAdministrar)
             {<a class="crm-btn crm-btn-primary" href="@Url.Action("NuevoCliente")"><i class="icon-plus"></i> Nuevo cliente</a>}</div>
         </div>
     </header>
@@ -21,11 +21,11 @@
     {<div class="crm-alert crm-alert-error">@TempData["CrmError"]</div>}
     <div class="crm-stats">
         <div class="crm-stat"><i class="icon-time"></i><span>Pendientes</span><strong>@Model.Pendientes</strong><small>Por validar</small></div>
-        <div class="crm-stat"><i class="icon-ok"></i><span>Aprobadas</span><strong>@Model.Aprobadas</strong><small>Fichas creadas</small></div>
+        <div class="crm-stat"><i class="icon-ok"></i><span>Aprobadas</span><strong>@Model.Aprobadas</strong><small>Fichas guardadas</small></div>
         <div class="crm-stat"><i class="icon-remove"></i><span>Rechazadas</span><strong>@Model.Rechazadas</strong><small>Con motivo registrado</small></div>
-        <div class="crm-stat"><i class="icon-briefcase"></i><span>Clientes activos</span><strong>@Model.Clientes.Count</strong><small>En la cartera CRM</small></div>
+        <div class="crm-stat"><i class="icon-briefcase"></i><span>Clientes activos</span><strong>@Model.Clientes.Count</strong><small>Fichas CRM</small></div>
     </div>
-    <form class="crm-filter" method="get" action="@Url.Action("Dashboard")">
+    <form class="crm-filter" method="get" action="@Url.Action("ControlCreditos")">
         <div class="crm-search"><i class="icon-search"></i><input type="search" name="filtro" value="@Model.Filtro" placeholder="Razón social, NIT o número de solicitud" aria-label="Buscar" /></div>
         <select name="empresa" aria-label="Filtrar por empresa"><option value="">Todas las empresas</option><option value="BOLIK" @(Model.Empresa == "BOLIK" ? "selected" : "")>Bolik</option><option value="FAES" @(Model.Empresa == "FAES" ? "selected" : "")>Escocesa</option><option value="GRACO" @(Model.Empresa == "GRACO" ? "selected" : "")>Graco Pack</option></select>
         <select name="estado" aria-label="Filtrar por estado"><option value="">Todos los estados</option>@foreach (var s in new[] { "ENVIADA", "APROBADA", "RECHAZADA" })
@@ -38,13 +38,14 @@
             <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-list"></i></div><div><h2>Solicitudes recibidas</h2><p>Seleccione registros para exportar o abra uno para resolverlo.</p></div><button class="crm-btn crm-btn-outline" type="submit"><i class="icon-download"></i> Exportar Excel</button></div>
             <div class="crm-table-wrap">
                 <table class="crm-table">
-                    <thead><tr><th><input id="crmSeleccionarTodos" type="checkbox" aria-label="Seleccionar todas" /></th><th>Solicitud</th><th>Cliente</th><th>Empresa</th><th>Agente</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead>
+                    <thead><tr><th><input id="crmSeleccionarTodos" type="checkbox" aria-label="Seleccionar todas" /></th><th>Solicitud</th><th>Tipo</th><th>Cliente</th><th>Empresa</th><th>Agente</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead>
                     <tbody>
                         @foreach (var s in Model.Solicitudes)
                         {
                             <tr>
                                 <td><input type="checkbox" name="ids" value="@s.Id" aria-label="Seleccionar solicitud @s.Id" /></td>
                                 <td><strong>#@s.Id</strong></td>
+                                <td>@(s.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion ? "Actualización" : "Alta")</td>
                                 <td><strong>@s.Ficha.RazonSocial</strong><small>@s.Ficha.NitDpi</small></td>
                                 <td><span class="crm-company crm-company-@s.Empresa.ToLowerInvariant()">@(s.Empresa == "FAES" ? "Escocesa" : s.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</span></td>
                                 <td>@s.Agente</td>
@@ -62,7 +63,7 @@
     </form>
     <div class="crm-card crm-table-card">
         <div class="crm-card-head"><div class="crm-section-icon"><i class="clip-users"></i></div><div><h2>Clientes recientes</h2><p>Fichas SQL vinculadas por empresa</p></div>@if (Model.PuedeVerCartera)
-        {<a class="crm-link" href="@Url.Action("Clientes")">Ver cartera <i class="icon-arrow-right"></i></a>}</div>
+        {<a class="crm-link" href="@Url.Action("Actualizacion")">Actualización de Cliente <i class="icon-arrow-right"></i></a>}</div>
         <div class="crm-table-wrap">
             <table class="crm-table">
                 <thead><tr><th>Cliente</th><th>Empresa</th><th>Código SAP</th><th>Potencial anual</th><th>Última edición</th><th></th></tr></thead>

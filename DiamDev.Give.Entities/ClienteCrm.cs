@@ -11,6 +11,12 @@ namespace DiamDev.Give.Entities
         public const string Rechazada = "RECHAZADA";
     }
 
+    public static class TiposSolicitudCliente
+    {
+        public const string Alta = "ALTA";
+        public const string Actualizacion = "ACTUALIZACION";
+    }
+
     public class ClienteCrmContacto
     {
         public string Area { get; set; }
@@ -20,6 +26,8 @@ namespace DiamDev.Give.Entities
         public string Correo { get; set; }
         public string TomadorDecision { get; set; }
         public string InfluenciadorTecnico { get; set; }
+        public string TipoContacto { get; set; }
+        public string CanalComunicacion { get; set; }
     }
 
     public class ClienteCrmDireccion
@@ -125,6 +133,10 @@ namespace DiamDev.Give.Entities
     {
         public long Id { get; set; }
         public long? ClienteId { get; set; }
+        public string TipoSolicitud { get; set; }
+        public long? OrigenClienteId { get; set; }
+        public int? OrigenVersion { get; set; }
+        public string OrigenCodigoSap { get; set; }
         public string Empresa { get; set; }
         public string CodigoOperador { get; set; }
         public string Agente { get; set; }

@@ -33,7 +33,7 @@
                 if (estado.error) html += '<small class="bnc-sap-error" role="status">' +
                     (data ? "No se pudo actualizar. Se conserva la última consulta." : "No se pudo consultar SAP. Pulse para reintentar.") + '</small>';
                 if (completo) {
-                    html += '<small class="bnc-sap-help">Las NC corresponden a las facturas; no acreditan una aplicación a este borrador.</small>';
+                    // html += '<small class="bnc-sap-help">Las NC corresponden a las facturas; no acreditan una aplicación a este borrador.</small>';
                     if (data && (data.Documentos || []).length) {
                         html += '<details class="bnc-sap-documents"><summary>Ver NC de las facturas</summary><ul>';
                         $.each(data.Documentos, function (_, nc) {

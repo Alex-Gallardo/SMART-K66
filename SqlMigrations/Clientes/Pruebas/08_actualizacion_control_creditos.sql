@@ -35,7 +35,7 @@ BEGIN TRY
              (TIPO_SOLICITUD=N''ACTUALIZACION'' AND
               ((ORIGEN_CLIENTE_ID IS NOT NULL AND ORIGEN_VERSION IS NOT NULL) OR
                (ORIGEN_CLIENTE_ID IS NULL AND ORIGEN_VERSION IS NULL
-                AND NULLIF(ORIGEN_CODIGO_SAP,N'''') IS NOT NULL)))))');
+                AND NULLIF(ORIGEN_CODIGO_SAP,N'''') IS NOT NULL))))');
     IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys
                    WHERE parent_object_id=OBJECT_ID(N'dbo.CRM_SOLICITUD')
                      AND name=N'FK_CRM_SOL_ORIGEN')

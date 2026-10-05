@@ -6,33 +6,85 @@
 @section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=3")" rel="stylesheet" /> }
 <div class="crm" id="crmApp" data-empresa="@Model.Empresa">
     <header class="crm-page-head"><span class="crm-eyebrow">Clientes · @(Model.EsGlobal ? "Vista global" : "Mis clientes")</span><div class="crm-head-row"><div><h1>Actualización de Cliente</h1><p>Seleccione una ficha CRM o un cliente disponible en SAP para iniciar la actualización.</p></div></div></header>
-    @if (TempData["CrmError"] != null) { <div class="crm-alert crm-alert-error" role="alert">@TempData["CrmError"]</div> }
-    <form class="crm-filter" method="get" action="@Url.Action("Actualizacion")">
-        <div class="crm-search"><i class="icon-search"></i><input type="search" name="filtro" value="@Model.Filtro" placeholder="Razón social, NIT o código SAP" aria-label="Buscar fichas CRM" /></div>
-        <select name="empresa" aria-label="Filtrar por empresa"><option value="">Todas las empresas</option><option value="BOLIK" @(Model.Empresa == "BOLIK" ? "selected" : "")>Bolik</option><option value="FAES" @(Model.Empresa == "FAES" ? "selected" : "")>Escocesa</option><option value="GRACO" @(Model.Empresa == "GRACO" ? "selected" : "")>Graco Pack</option></select>
-        <button class="crm-btn crm-btn-outline" type="submit">Filtrar</button>
-    </form>
-    <div class="crm-card crm-table-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="clip-users"></i></div><div><h2>Fichas existentes en CRM</h2><p>@Model.Clientes.Count clientes disponibles</p></div></div>
-        <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Razón social</th><th>Empresa</th><th>NIT o DPI</th><th>Código SAP</th><th>Acción</th></tr></thead><tbody>
-        @foreach (var c in Model.Clientes) { <tr><td><strong>@c.Ficha.RazonSocial</strong><small>@c.Ficha.NombreComercial</small></td><td>@(c.Empresa == "FAES" ? "Escocesa" : c.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td>@c.Ficha.NitDpi</td><td>@(string.IsNullOrWhiteSpace(c.CodigoSap) ? "Pendiente" : c.CodigoSap)</td><td>@if (Model.PuedeActualizar && Model.Empresas.Any(x => x.Empresa == c.Empresa)) { <a class="crm-link" href="@Url.Action("IniciarActualizacion", new { id = c.Id, empresa = c.Empresa })">Actualizar <i class="icon-arrow-right"></i></a> } else { <a class="crm-link" href="@Url.Action("Ficha", new { id = c.Id, empresa = c.Empresa })">Ver ficha</a> }</td></tr> }
-        </tbody></table></div>
-        @if (Model.Clientes.Count == 0) { <div class="crm-empty"><i class="clip-users"></i><strong>No hay fichas CRM con estos filtros</strong></div> }
-    </div>
-    @if (Model.PuedeActualizar) {
-    <div class="crm-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="icon-search"></i></div><div><h2>Buscar cliente en SAP</h2><p>Elija su empresa y agente; la consulta solo lee clientes disponibles para ese agente.</p></div></div>
-        <div class="crm-grid">
-            <div class="crm-field crm-col-4"><label for="crmUpdateEmpresa">Empresa</label><select id="crmUpdateEmpresa" class="form-control"><option value="">Seleccione...</option>@foreach (var empresa in Model.Empresas) { <option value="@empresa.Empresa">@empresa.Etiqueta</option> }</select></div>
-            <div class="crm-field crm-col-4"><label for="crmUpdateAgente">Agente asignado</label><select id="crmUpdateAgente" class="form-control"><option value="">Seleccione una empresa</option></select></div>
-            <div class="crm-field crm-col-4"><label for="crmUpdateFiltro">Código, razón social o NIT</label><input id="crmUpdateFiltro" type="search" class="form-control" autocomplete="off" /></div>
-            <div class="crm-field crm-col-12"><button id="crmUpdateBuscar" type="button" class="crm-btn crm-btn-outline"><i class="icon-search"></i> Buscar en SAP</button><div id="crmUpdateStatus" class="crm-sap-status" role="status" aria-live="polite"></div><div id="crmUpdateResultados" class="crm-sap-results"></div></div>
+    @if (TempData["CrmError"] != null)
+    {<div class="crm-alert crm-alert-error" role="alert">@TempData["CrmError"]</div>}
+
+    @if (Model.PuedeActualizar)
+    {
+        <div class="crm-card">
+            <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-search"></i></div><div><h2>Buscar cliente en SAP</h2><p>Elija su empresa y agente; la consulta solo lee clientes disponibles para ese agente.</p></div></div>
+            <div class="crm-grid">
+                <div class="crm-field crm-col-4">
+                    <label for="crmUpdateEmpresa">Empresa</label><select id="crmUpdateEmpresa" class="form-control">
+                        <option value="">Seleccione...</option>
+                        @foreach (var empresa in Model.Empresas)
+                        {
+                            <option value="@empresa.Empresa">@empresa.Etiqueta</option>
+}
+                    </select>
+                </div>
+                <div class="crm-field crm-col-4"><label for="crmUpdateAgente">Agente asignado</label><select id="crmUpdateAgente" class="form-control"><option value="">Seleccione una empresa</option></select></div>
+                <div class="crm-field crm-col-4"><label for="crmUpdateFiltro">Código, razón social o NIT</label><input id="crmUpdateFiltro" type="search" class="form-control" autocomplete="off" /></div>
+                <div class="crm-field crm-col-12"><button id="crmUpdateBuscar" type="button" class="crm-btn crm-btn-outline"><i class="icon-search"></i> Buscar en SAP</button><div id="crmUpdateStatus" class="crm-sap-status" role="status" aria-live="polite"></div><div id="crmUpdateResultados" class="crm-sap-results"></div></div>
+            </div>
+            <div id="crmUpdateAgentes" hidden>
+                @foreach (var empresa in Model.Empresas)
+                {
+                    foreach (var agente in empresa.Agentes)
+                    {<span data-empresa="@empresa.Empresa" data-codigo="@agente.Codigo" data-nombre="@agente.Nombre"></span>}
+                }
         </div>
-        <div id="crmUpdateAgentes" hidden>@foreach (var empresa in Model.Empresas) { foreach (var agente in empresa.Agentes) { <span data-empresa="@empresa.Empresa" data-codigo="@agente.Codigo" data-nombre="@agente.Nombre"></span> } }</div>
     </div>
-    }
-    <div class="crm-card crm-table-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="icon-list"></i></div><div><h2>Mis solicitudes de actualización</h2><p>@Model.Solicitudes.Count solicitudes</p></div></div>
-        <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Solicitud</th><th>Cliente</th><th>Empresa</th><th>Estado</th><th></th></tr></thead><tbody>@foreach (var s in Model.Solicitudes) { <tr><td>#@s.Id</td><td><strong>@s.Ficha.RazonSocial</strong></td><td>@(s.Empresa == "FAES" ? "Escocesa" : s.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td><span class="crm-state crm-state-@s.Estado.ToLowerInvariant()">@s.Estado</span></td><td><a class="crm-link" href="@Url.Action("Solicitud", new { id = s.Id })">Ver solicitud</a></td></tr> }</tbody></table></div>
-        @if (Model.Solicitudes.Count == 0) { <div class="crm-empty"><strong>Aún no hay solicitudes de actualización</strong></div> }
+}
+    <div class="crm-card crm-table-card">
+        <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-list"></i></div><div><h2>Mis solicitudes de actualización</h2><p>@Model.Solicitudes.Count solicitudes</p></div></div>
+        <div class="crm-table-wrap">
+            <table class="crm-table">
+                <thead><tr><th>Solicitud</th><th>Cliente</th><th>Empresa</th><th>Estado</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var s in Model.Solicitudes)
+                    {
+                        <tr><td>#@s.Id</td><td><strong>@s.Ficha.RazonSocial</strong></td><td>@(s.Empresa == "FAES" ? "Escocesa" : s.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td><span class="crm-state crm-state-@s.Estado.ToLowerInvariant()">@s.Estado</span></td><td><a class="crm-link" href="@Url.Action("Solicitud", new { id = s.Id })">Ver solicitud</a></td></tr>
+}
+            </tbody>
+        </table>
     </div>
+    @if (Model.Solicitudes.Count == 0)
+    {<div class="crm-empty"><strong>Aún no hay solicitudes de actualización</strong></div>}
+</div>
+
+<form style="display:none;" class="crm-filter" method="get" action="@Url.Action("Actualizacion")">
+    <div class="crm-search"><i class="icon-search"></i><input type="search" name="filtro" value="@Model.Filtro" placeholder="Razón social, NIT o código SAP" aria-label="Buscar fichas CRM" /></div>
+    <select name="empresa" aria-label="Filtrar por empresa"><option value="">Todas las empresas</option><option value="BOLIK" @(Model.Empresa == "BOLIK" ? "selected" : "")>Bolik</option><option value="FAES" @(Model.Empresa == "FAES" ? "selected" : "")>Escocesa</option><option value="GRACO" @(Model.Empresa == "GRACO" ? "selected" : "")>Graco Pack</option></select>
+    <button class="crm-btn crm-btn-outline" type="submit">Filtrar</button>
+</form>
+<div style="display:none;" class="crm-card crm-table-card">
+    <div class="crm-card-head"><div class="crm-section-icon"><i class="clip-users"></i></div><div><h2>Fichas existentes en CRM</h2><p>@Model.Clientes.Count clientes disponibles</p></div></div>
+    <div class="crm-table-wrap">
+        <table class="crm-table">
+            <thead><tr><th>Razón social</th><th>Empresa</th><th>NIT o DPI</th><th>Código SAP</th><th>Acción</th></tr></thead>
+            <tbody>
+                @foreach (var c in Model.Clientes)
+                {
+                    <tr>
+                        <td><strong>@c.Ficha.RazonSocial</strong><small>@c.Ficha.NombreComercial</small></td>
+                        <td>@(c.Empresa == "FAES" ? "Escocesa" : c.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td>
+                        <td>@c.Ficha.NitDpi</td>
+                        <td>@(string.IsNullOrWhiteSpace(c.CodigoSap) ? "Pendiente" : c.CodigoSap)</td>
+                        <td>
+                            @if (Model.PuedeActualizar && Model.Empresas.Any(x => x.Empresa == c.Empresa))
+                            {<a class="crm-link" href="@Url.Action("IniciarActualizacion", new { id = c.Id, empresa = c.Empresa })">Actualizar <i class="icon-arrow-right"></i></a> }
+                            else
+                            { <a class="crm-link" href="@Url.Action("Ficha", new { id = c.Id, empresa = c.Empresa })">Ver ficha</a>}
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.Clientes.Count == 0)
+    {<div class="crm-empty"><i class="clip-users"></i><strong>No hay fichas CRM con estos filtros</strong></div>}
+</div>
 </div>
 @section scripts {
 <script>

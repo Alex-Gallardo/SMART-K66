@@ -19,7 +19,7 @@ namespace Tests.ClientesCrm
             ficha.Contactos.Add(new ClienteCrmContacto {
                 Area = "Compras", Nombre = "Ana", Puesto = "Gerente", Telefono = "5555-0101",
                 Correo = "ana@example.com", TomadorDecision = "Ana",
-                InfluenciadorTecnico = "Luis", TipoContacto = "COMPRAS",
+                InfluenciadorTecnico = "Luis", TipoContacto = " Encargado de compras ",
                 CanalComunicacion = "WHATSAPP"
             });
             return ficha;
@@ -30,6 +30,8 @@ namespace Tests.ClientesCrm
             var alta = Ficha();
             ClienteCrmBLL.ValidarPasos(alta, 2, false);
             if (alta.CambioRazonSocial) return Fallar("Un alta conserva cambio de razón social.");
+            if (alta.Contactos[0].TipoContacto != "Encargado de compras")
+                return Fallar("El tipo de contacto escrito no se normalizó correctamente.");
 
             var actualizacion = Ficha();
             ClienteCrmBLL.ValidarPasos(actualizacion, 2, true);
@@ -38,17 +40,33 @@ namespace Tests.ClientesCrm
             var restaurada = JsonConvert.DeserializeObject<ClienteCrmFicha>(
                 JsonConvert.SerializeObject(actualizacion));
             if (restaurada.Contactos.Count != 1 ||
-                restaurada.Contactos[0].TipoContacto != "COMPRAS" ||
+                restaurada.Contactos[0].TipoContacto != "Encargado de compras" ||
                 restaurada.Contactos[0].CanalComunicacion != "WHATSAPP")
                 return Fallar("El JSON de la ficha perdió los nuevos datos del contacto.");
 
-            actualizacion.Contactos[0].CanalComunicacion = null;
-            try { ClienteCrmBLL.ValidarPasos(actualizacion, 2, true); }
-            catch (InvalidOperationException) {
-                Console.WriteLine("OK: contactos requieren tipo/canal y el cambio de razón social solo aplica a actualizaciones.");
-                return 0;
-            }
-            return Fallar("Se aceptó un contacto sin canal de comunicación.");
+            var anterior = Ficha();
+            anterior.Contactos[0].TipoContacto = "COMPRAS";
+            ClienteCrmBLL.ValidarPasos(anterior, 2, true);
+
+            var sinTipo = Ficha();
+            sinTipo.Contactos[0].TipoContacto = "  ";
+            if (!Rechaza(sinTipo)) return Fallar("Se aceptó un tipo de contacto vacío.");
+            var tipoExtenso = Ficha();
+            tipoExtenso.Contactos[0].TipoContacto = new string('X', 101);
+            if (!Rechaza(tipoExtenso)) return Fallar("Se aceptó un tipo de contacto mayor a 100 caracteres.");
+            var sinCanal = Ficha();
+            sinCanal.Contactos[0].CanalComunicacion = null;
+            if (!Rechaza(sinCanal)) return Fallar("Se aceptó un contacto sin canal de comunicación.");
+
+            Console.WriteLine("OK: tipo de contacto libre, valores anteriores y validación de contactos.");
+            return 0;
+        }
+
+        private static bool Rechaza(ClienteCrmFicha ficha)
+        {
+            try { ClienteCrmBLL.ValidarPasos(ficha, 2, true); }
+            catch (InvalidOperationException) { return true; }
+            return false;
         }
 
         private static int Fallar(string detalle)

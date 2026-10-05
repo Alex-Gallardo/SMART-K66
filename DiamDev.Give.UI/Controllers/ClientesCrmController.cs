@@ -152,7 +152,7 @@ namespace DiamDev.Give.UI.Controllers
         [HttpGet]
         public JsonResult BuscarClientesSap(string empresa, string codigoOperador, string filtro)
         {
-            if (!TienePermiso(PermisoCrear) && !TienePermiso(PermisoActualizar))
+            if (!TienePermiso(PermisoActualizar))
             {
                 Response.StatusCode = 403;
                 return Json(new { ok = false, mensaje = "No tiene permiso para consultar clientes SAP." }, JsonRequestBehavior.AllowGet);
@@ -272,7 +272,11 @@ namespace DiamDev.Give.UI.Controllers
                     }
                 }
                 if (esActualizacion) modelo.Ficha.CodigoSapOrigen = modelo.OrigenCodigoSap;
-                else modelo.Ficha.CambioRazonSocial = false;
+                else
+                {
+                    modelo.Ficha.CodigoSapOrigen = null;
+                    modelo.Ficha.CambioRazonSocial = false;
+                }
                 int completado = existente == null ? 0 : existente.Ficha.PasoCompletado;
                 if (modelo.PasoActual < 1 || modelo.PasoActual > 6 ||
                     modelo.PasoActual > Math.Min(6, completado + 1))
@@ -286,15 +290,6 @@ namespace DiamDev.Give.UI.Controllers
                 modelo.Ficha.PasoCompletado = continuar
                     ? Math.Max(completado, modelo.PasoActual) : completado;
                 if (existente != null) ConservarDatosLegados(existente.Ficha, modelo.Ficha);
-                string codigoSapOrigen = modelo.Ficha.CodigoSapOrigen;
-                string codigoAnterior = existente == null ? null : existente.Ficha.CodigoSapOrigen;
-                if (!esActualizacion && !string.IsNullOrWhiteSpace(codigoSapOrigen) &&
-                    !string.Equals(codigoSapOrigen, codigoAnterior, StringComparison.OrdinalIgnoreCase))
-                {
-                    var clienteSap = _crm.ObtenerClienteSap(modelo.Empresa, agente, codigoSapOrigen);
-                    if (clienteSap == null)
-                        throw new InvalidOperationException("El cliente SAP seleccionado ya no está disponible para este agente.");
-                }
                 long id = _crm.GuardarSolicitud(new ClienteCrmSolicitud {
                     Id = modelo.SolicitudId, Version = modelo.Version, Empresa = modelo.Empresa,
                     TipoSolicitud = modelo.TipoSolicitud, OrigenClienteId = modelo.OrigenClienteId,

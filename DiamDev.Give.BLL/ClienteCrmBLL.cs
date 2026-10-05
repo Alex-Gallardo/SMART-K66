@@ -136,6 +136,7 @@ namespace DiamDev.Give.BLL
                 solicitud.OrigenClienteId = null;
                 solicitud.OrigenVersion = null;
                 solicitud.OrigenCodigoSap = null;
+                solicitud.Ficha.CodigoSapOrigen = null;
                 solicitud.Ficha.CambioRazonSocial = false;
             }
             VincularTipoNegocio(solicitud.Empresa, solicitud.Ficha);

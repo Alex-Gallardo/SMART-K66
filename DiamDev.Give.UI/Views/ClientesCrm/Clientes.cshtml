@@ -108,7 +108,7 @@
         resultados.textContent = ''; status.textContent = '';
     });
     agente.addEventListener('change', function () { solicitud++; resultados.textContent = ''; status.textContent = ''; });
-    document.getElementById('crmUpdateBuscar').addEventListener('click', function () {
+    function buscarClienteSap() {
         if (!empresa.value || !agente.value || filtro.value.trim().length < 2) {
             status.textContent = 'Seleccione empresa y agente; escriba al menos dos caracteres.'; return;
         }
@@ -129,6 +129,10 @@
                     enlace.appendChild(nombre); resultados.appendChild(enlace);
                 });
             }).catch(function () { if (actual === solicitud) status.textContent = 'No fue posible consultar SAP. Intente nuevamente.'; });
+    }
+    document.getElementById('crmUpdateBuscar').addEventListener('click', buscarClienteSap);
+    filtro.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); buscarClienteSap(); }
     });
 })();
 </script>

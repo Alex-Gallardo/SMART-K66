@@ -39,7 +39,7 @@
                                     @Html.ValidationSummary(false)
                                 </div>
                             }
-                            <input type="hidden" id="FechaPrometida" name="FechaPrometida" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <input type="hidden" id="FechaPrometida" name="FechaPrometida" value="@(Model == null ? DateTime.Today.ToString("yyyy-MM-dd") : (Model.FechaPrometida.HasValue ? Model.FechaPrometida.Value.ToString("yyyy-MM-dd") : ""))" />
                         </div>                        
                     </div>
                     @Html.Partial("_CreateOrEdit")
@@ -185,6 +185,8 @@
     var clienteIds = "@Html.Raw(ViewBag.ClienteIds)";
     var direccionIds = "@Html.Raw(ViewBag.DireccionIds)";
     var tipoPedidoIds = "@Html.Raw(ViewBag.TipoPedidoIds)";
+    var fechaActual = "@DateTime.Today.ToString("yyyy-MM-dd")";
+    var fechaMinimaNormal = "@DateTime.Today.AddDays(2).ToString("yyyy-MM-dd")";
 
     var unidadPermisoIds = "@Html.Raw(ViewBag.Unidad)";
 
@@ -1152,20 +1154,37 @@
             }
         });
 
-        $("#TipoPedidoId").change(function (evt)
+        function actualizarFechaEntrega()
         {
-            evt.preventDefault();
+            var tipo = $("#TipoPedidoId").val();
+            var esNormal = $.trim($("#TipoPedidoId option:selected").text()).toLowerCase() === "normal";
+            var fechaEntrega = $("#FechaEntrega");
 
-            if ($("#TipoPedidoId").val() !== "")
+            $("#divFechaEntrega").toggle(tipo === "P" || esNormal);
+            fechaEntrega.prop("readonly", esNormal);
+            fechaEntrega.datepicker("setStartDate", esNormal ? fechaMinimaNormal : null);
+
+            if (esNormal)
             {
-                $("#divFechaEntrega").hide();
-
-                var tipo = $("#TipoPedidoId").val();
-                if (tipo == "P") {
-                    $("#divFechaEntrega").show();
+                if (!fechaEntrega.val() || fechaEntrega.val() < fechaMinimaNormal)
+                {
+                    var partes = fechaMinimaNormal.split("-");
+                    fechaEntrega.datepicker("setDate", new Date(+partes[0], +partes[1] - 1, +partes[2]));
                 }
+                $("#FechaPrometida").val(fechaEntrega.val());
             }
-        });
+            else if (tipo !== "P")
+            {
+                $("#FechaPrometida").val(fechaActual);
+            }
+            else
+            {
+                $("#FechaPrometida").val(fechaEntrega.val());
+            }
+        }
+
+        $("#TipoPedidoId").change(actualizarFechaEntrega);
+        actualizarFechaEntrega();
 
         $("#FechaEntrega").change(function (evt)
         {

@@ -20,6 +20,11 @@ namespace DiamDev.Give.UI.Controllers
     {
         #region Metodos Privados
 
+        private static bool FechaEntregaNormalValida(DateTime? fechaPrometida, DateTime fechaPedido)
+        {
+            return fechaPrometida.HasValue && fechaPrometida.Value.Date >= fechaPedido.Date.AddDays(2);
+        }
+
         private void CargaEmpresas()
         {
             var Empresas = new EmpresaBL().ObtenerListadoxUsuario(CustomHelper.getUserId());
@@ -184,6 +189,18 @@ namespace DiamDev.Give.UI.Controllers
         public ActionResult Crear(PedidoK66 modelo, string[] productoIds, string[] nombreProductoIds, string[] unidadIds, decimal[] existenciaIds, decimal[] cantidadIds, decimal[] precioIds, decimal[] precioOriginalIds, bool[] precioCambiadoIds, decimal[] descuentoIds, string [] bodegaIds, HttpPostedFileBase documentoApp)
         {
             modelo.Detalles = new List<PedidoDetalleK66>();
+
+            var tipoPedido = new PedidoTipok66BL().ObtenerListadoxEmpresa(modelo.EmpresaId)
+                .FirstOrDefault(x => x.TipoId == modelo.TipoPedidoId);
+            if (tipoPedido == null)
+            {
+                ModelState.AddModelError("TipoPedidoId", "No se pudo validar el tipo de pedido seleccionado.");
+            }
+            else if (string.Equals(tipoPedido.Nombre?.Trim(), "Normal", StringComparison.OrdinalIgnoreCase) &&
+                     !FechaEntregaNormalValida(modelo.FechaPrometida, DateTime.Today))
+            {
+                ModelState.AddModelError("FechaPrometida", "La fecha de entrega estimada para un pedido Normal debe ser al menos dos días después de hoy.");
+            }
 
             if (productoIds == null || productoIds.Length == 0)
             {

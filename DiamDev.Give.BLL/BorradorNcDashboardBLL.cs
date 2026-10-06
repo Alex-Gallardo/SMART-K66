@@ -49,6 +49,11 @@ namespace DiamDev.Give.BLL
             return _da.ConsultarBitacora(empresa, idBorrador);
         }
 
+        public List<BorradorNcNcVinculo> ConsultarNcVinculadas(string empresa, string idBorrador) =>
+            _da.ConsultarNcVinculadas(empresa, idBorrador);
+
+        public bool VincularNc(BorradorNcNcVinculo vinculo) => _da.VincularNc(vinculo);
+
         private static void Normalizar(BorradorNcDashboardFiltro filtro, int maximoPagina)
         {
             if (filtro == null) throw new ArgumentNullException("filtro");

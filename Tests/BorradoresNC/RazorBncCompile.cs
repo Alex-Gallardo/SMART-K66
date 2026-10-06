@@ -10,7 +10,7 @@ internal static class RazorBncCompile
     public static int Main(string[] args)
     {
         string root = args[0], bin = Path.GetDirectoryName(typeof(RazorBncCompile).Assembly.Location);
-        foreach (var vista in new[] { "Index", "Autorizaciones", "DashboardBNC", "DetalleFactura", "DetalleDocumentoPrevio" })
+        foreach (var vista in new[] { "Index", "Autorizaciones", "DashboardBNC", "DetalleBorradorBNC", "DetalleFactura", "DetalleDocumentoPrevio" })
         {
             string relativa = "BorradorNc/" + vista + ".cshtml";
             string file = Path.Combine(root, "DiamDev.Give.UI/Views/" + relativa);

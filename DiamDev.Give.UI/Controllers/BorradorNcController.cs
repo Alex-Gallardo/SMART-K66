@@ -738,6 +738,119 @@ namespace DiamDev.Give.UI.Controllers
 
         [HttpGet]
         [BorradorNcPermiso(PERMISO_DASHBOARD)]
+        public ActionResult DetalleBorradorBNC(string empresa, string idBorrador,
+                                               string codigoNc = null)
+        {
+            var enc = _bll.ObtenerPorId(empresa, idBorrador);
+            if (enc == null) return HttpNotFound("Borrador no encontrado.");
+            if (!PuedeConsultarDashboard(enc)) return new HttpUnauthorizedResult();
+            var modelo = CrearDetalleDashboard(enc, codigoNc);
+            modelo.Aviso = TempData["BncNcAviso"] as string;
+            CustomHelper.setTitle("Borrador " + enc.IdBorrador,
+                "Detalle y vinculación de NC en SAP");
+            Response.Cache.SetCacheability(HttpCacheability.NoCache);
+            return View("DetalleBorradorBNC", modelo);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [BorradorNcPermiso(PERMISO_DASHBOARD)]
+        public ActionResult VincularNcBNC(string empresa, string idBorrador,
+                                          string codigoNc, int docEntry)
+        {
+            var enc = _bll.ObtenerPorId(empresa, idBorrador);
+            if (enc == null) return HttpNotFound("Borrador no encontrado.");
+            if (!PuedeConsultarDashboard(enc)) return new HttpUnauthorizedResult();
+            if (string.IsNullOrWhiteSpace(codigoNc) || codigoNc.Trim().Length > 40 || docEntry <= 0)
+                return new HttpStatusCodeResult(400, "Indique una NC válida de SAP.");
+
+            var modelo = CrearDetalleDashboard(enc, codigoNc);
+            var nc = modelo.NcPorConfirmar;
+            if (nc == null || nc.DocEntry != docEntry || nc.Cancelado ||
+                !string.IsNullOrWhiteSpace(modelo.ErrorSap) ||
+                !string.IsNullOrWhiteSpace(modelo.ErrorVinculos))
+            {
+                modelo.Aviso = "No se pudo verificar la NC vigente para este borrador. No se guardó ningún vínculo.";
+                Response.StatusCode = 400;
+                return View("DetalleBorradorBNC", modelo);
+            }
+            try
+            {
+                bool creado = _dashboard.VincularNc(new BorradorNcNcVinculo
+                {
+                    IdEmpresa = enc.IdEmpresa, IdBorrador = enc.IdBorrador,
+                    DocEntry = nc.DocEntry, Documento = nc.Documento,
+                    Factura = nc.Factura, Usuario = User.Identity.Name
+                });
+                TempData["BncNcAviso"] = creado
+                    ? "NC " + nc.Documento + " vinculada a este borrador."
+                    : "Esta NC ya estaba vinculada a este borrador.";
+                return RedirectToAction("DetalleBorradorBNC", new
+                {
+                    empresa = enc.IdEmpresa, idBorrador = enc.IdBorrador
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                modelo.Aviso = ex.Message;
+                Response.StatusCode = 409;
+                return View("DetalleBorradorBNC", modelo);
+            }
+            catch (System.Data.SqlClient.SqlException)
+            {
+                modelo.Aviso = "No fue posible guardar el vínculo. Compruebe que la migración esté instalada o que la NC no esté vinculada a otro borrador.";
+                Response.StatusCode = 409;
+                return View("DetalleBorradorBNC", modelo);
+            }
+        }
+
+        private BorradorNcDashboardDetalleViewModel CrearDetalleDashboard(
+            BorradorNcEncabezado enc, string codigoNc)
+        {
+            var modelo = new BorradorNcDashboardDetalleViewModel
+            {
+                Borrador = enc, CodigoBuscado = (codigoNc ?? "").Trim()
+            };
+            try { modelo.Vinculos = _dashboard.ConsultarNcVinculadas(enc.IdEmpresa, enc.IdBorrador); }
+            catch (System.Data.SqlClient.SqlException)
+            {
+                modelo.ErrorVinculos = "La tabla de vinculación de NC aún no está disponible. Ejecute la migración correspondiente.";
+            }
+            try { modelo.Bitacora = _dashboard.ConsultarBitacora(enc.IdEmpresa, enc.IdBorrador); }
+            catch (System.Data.SqlClient.SqlException) { /* El detalle del borrador sigue disponible. */ }
+            try { modelo.Facturas = ProyectarContenidoFacturas(enc); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceError("BNC facturas detalle {0}: {1}", enc.IdBorrador, ex);
+                modelo.ErrorFacturas = "No fue posible consultar las líneas de factura en SAP. Intente actualizar más tarde.";
+            }
+            try
+            {
+                var documentos = _bll.ObtenerDocumentosPrevios(enc.IdEmpresa,
+                    enc.Detalles.Select(x => x.Documento).Distinct().ToList());
+                modelo.DocumentosSap = ProyectarDocumentosPrevios(documentos);
+                if (modelo.CodigoBuscado.Length > 0 && modelo.CodigoBuscado.Length <= 40)
+                {
+                    var candidatas = documentos.Where(x => x.Clase == "NOTA_CREDITO" &&
+                        !x.Cancelado &&
+                        string.Equals(x.Documento, modelo.CodigoBuscado, StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(x.CardCode, enc.IdCliente, StringComparison.OrdinalIgnoreCase) &&
+                        enc.Detalles.Any(d => string.Equals(d.Documento, x.Factura,
+                            StringComparison.OrdinalIgnoreCase)))
+                        .GroupBy(x => x.DocEntry).Select(x => x.First()).ToList();
+                    if (candidatas.Count == 1) modelo.NcPorConfirmar = candidatas[0];
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Trace.TraceError("BNC NC detalle {0}: {1}", enc.IdBorrador, ex);
+                modelo.ErrorSap = "No fue posible consultar las NC en SAP. No se permiten vínculos sin verificación.";
+            }
+            return modelo;
+        }
+
+        [HttpGet]
+        [BorradorNcPermiso(PERMISO_DASHBOARD)]
         public JsonResult ObtenerBitacoraBNC(string empresa, string idBorrador)
         {
             return JsonGet(() =>
@@ -1393,6 +1506,7 @@ namespace DiamDev.Give.UI.Controllers
                     TiposOrigen = x.TiposOrigen,
                     Factura = x.Factura,
                     Documento = x.Documento,
+                    DocEntry = x.DocEntry,
                     Fecha = x.Fecha.ToString("yyyy-MM-dd"),
                     Moneda = x.Moneda,
                     Total = x.Total,

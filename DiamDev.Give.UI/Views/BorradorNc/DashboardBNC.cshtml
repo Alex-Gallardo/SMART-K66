@@ -16,7 +16,7 @@
       data-sap-intervalo="@BorradorNcBLL.IntervaloConsultaSapSegundos"
       data-url-consultar="@Url.Action("ConsultarDashboardBNC", "BorradorNc")"
       data-url-bitacora="@Url.Action("ObtenerBitacoraBNC", "BorradorNc")"
-      data-url-ver="@Url.Action("Imprimir", "BorradorNc")"
+      data-url-ver="@Url.Action("DetalleBorradorBNC", "BorradorNc")"
       data-url-exportar="@Url.Action("ExportarDashboardBNC", "BorradorNc")"
       data-url-imprimir="@Url.Action("ImprimirLoteBNC", "BorradorNc")"
       data-max-imprimir="@Model.MaximoImpresion"
@@ -149,5 +149,5 @@
 
 @section scripts {
     <script src="@Url.Content("~/Scripts/App/BorradorNc-SapIndicadores.js?v=20260928")"></script>
-    <script src="@Url.Content("~/Scripts/App/BorradorNc-Dashboard.js?v=20260928-columnas-descripciones")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-Dashboard.js?v=20261006-detalle-bnc")"></script>
 }

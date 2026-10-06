@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using DiamDev.Give.Entities;
 
 namespace DiamDev.Give.UI.Models
 {
@@ -25,6 +26,29 @@ namespace DiamDev.Give.UI.Models
         public bool AlcanceGlobal { get; set; }
         public int MaximoImpresion { get; set; }
         public string UsuarioActual { get; set; }
+    }
+
+    public class BorradorNcDashboardDetalleViewModel
+    {
+        public BorradorNcDashboardDetalleViewModel()
+        {
+            Facturas = new List<BorradorNcFacturaContenidoViewModel>();
+            DocumentosSap = new List<BorradorNcDocumentoPrevioResumenViewModel>();
+            Vinculos = new List<BorradorNcNcVinculo>();
+            Bitacora = new List<BorradorNcBitacora>();
+        }
+
+        public BorradorNcEncabezado Borrador { get; set; }
+        public List<BorradorNcFacturaContenidoViewModel> Facturas { get; set; }
+        public List<BorradorNcDocumentoPrevioResumenViewModel> DocumentosSap { get; set; }
+        public List<BorradorNcNcVinculo> Vinculos { get; set; }
+        public List<BorradorNcBitacora> Bitacora { get; set; }
+        public DocumentoPrevioSap NcPorConfirmar { get; set; }
+        public string CodigoBuscado { get; set; }
+        public string Aviso { get; set; }
+        public string ErrorSap { get; set; }
+        public string ErrorFacturas { get; set; }
+        public string ErrorVinculos { get; set; }
     }
 
     public class BorradorNcEmpresaViewModel
@@ -240,6 +264,7 @@ namespace DiamDev.Give.UI.Models
         public string TiposOrigen { get; set; }
         public string Factura { get; set; }
         public string Documento { get; set; }
+        public int DocEntry { get; set; }
         public string Fecha { get; set; }
         public string Moneda { get; set; }
         public decimal Total { get; set; }

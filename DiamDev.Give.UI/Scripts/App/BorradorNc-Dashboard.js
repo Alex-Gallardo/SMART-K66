@@ -147,7 +147,7 @@
                     "&idBorrador=" + encodeURIComponent(item.IdBorrador);
                 html += '<tr style="animation-delay:' + Math.min(indice * 18, 180) + 'ms">' +
                     '<td class="action" data-label="Acciones"><span class="bncd-row-actions">' +
-                    '<a class="bncd-view" target="_blank" rel="noopener noreferrer" title="Ver e imprimir borrador" aria-label="Ver borrador ' + esc(item.IdBorrador) + '" href="' + url + '"><i class="clip-eye" aria-hidden="true"></i></a>' +
+                    '<a class="bncd-view" target="_blank" rel="noopener noreferrer" title="Ver detalle del borrador" aria-label="Ver detalle del borrador ' + esc(item.IdBorrador) + '" href="' + url + '"><i class="clip-eye" aria-hidden="true"></i></a>' +
                     '<button type="button" class="bncd-view audit" title="Ver auditoría" aria-label="Ver auditoría de ' + esc(item.IdBorrador) + '" data-empresa="' + esc(item.IdEmpresa) + '" data-borrador="' + esc(item.IdBorrador) + '"><i class="clip-history" aria-hidden="true"></i></button>' +
                     '</span></td>' +
                     '<td class="check" data-label="Seleccionar"><input type="checkbox" class="fila-check" data-clave="' + esc(llave) + '" ' + (seleccion[llave] ? "checked" : "") + ' aria-label="Seleccionar ' + esc(item.IdBorrador) + '"></td>' +

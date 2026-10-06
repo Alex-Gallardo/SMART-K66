@@ -9,6 +9,7 @@ const dal = read("DiamDev.Give.DAL/BorradorNcDashboardDA.cs");
 const view = read("DiamDev.Give.UI/Views/BorradorNc/DetalleBorradorBNC.cshtml");
 const dashboard = read("DiamDev.Give.UI/Views/BorradorNc/DashboardBNC.cshtml");
 const sql = read("SqlMigrations/BorradoresNC/07_vincular_nc_borrador_seguro.sql");
+const sqlDev = read("SqlMigrations/BorradoresNC/07_vincular_nc_borrador_seguro_DEV.sql");
 const project = read("DiamDev.Give.UI/DiamDev.Give.UI.csproj");
 
 assert.match(dashboard, /data-url-ver="@Url\.Action\("DetalleBorradorBNC", "BorradorNc"\)"/);
@@ -31,6 +32,15 @@ assert.match(sql, /IF DB_NAME\(\) <> N'POS-SmartK66'/);
 assert.match(sql, /FOREIGN KEY \(ID_EMPRESA, ID_BORRADOR\)/);
 assert.match(sql, /UNIQUE NONCLUSTERED \(ID_EMPRESA, DOC_ENTRY\)/);
 assert.match(sql, /CHECK \(DOC_ENTRY > 0\)/);
+for (const [script, database] of [[sql, "POS-SmartK66"], [sqlDev, "POS-SmartK66_DEV"]]) {
+    assert.ok(script.includes(`USE [${database}];`));
+    assert.ok(script.includes(`IF DB_NAME() <> N'${database}'`));
+    assert.match(script, /REGISTRO\s+datetime2\(3\) NOT NULL/);
+    assert.match(script, /\(N'REGISTRO',N'datetime2',7\)/);
+    assert.match(script, /esperado\.nombre=N'REGISTRO' AND C\.scale<>3/);
+    assert.match(script, /IF OBJECT_ID\(N'dbo\.BORR_NC_NC_VINCULO', N'U'\) IS NULL\s+SELECT DB_NAME\(\) AS BASE_ACTUAL, N'NO_CREADA' AS RESULTADO;/);
+    assert.match(script, /EXEC sys\.sp_executesql N'SELECT DB_NAME\(\)/);
+}
 assert.match(view, /name="codigoNc"/);
 assert.match(view, /name="docEntry"/);
 assert.match(view, /Confirmar vínculo/);

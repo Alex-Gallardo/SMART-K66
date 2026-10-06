@@ -1,23 +1,23 @@
-/* Relación explícita NC SAP / borrador. Ejecutar en POS-SmartK66 antes de
-   publicar la vista DetalleBorradorBNC. No modifica ninguna tabla existente. */
-USE [POS-SmartK66];
+/* Relacion explicita NC SAP / borrador. Ejecutar solo en POS-SmartK66_DEV.
+   No modifica ninguna tabla existente. */
+USE [POS-SmartK66_DEV];
 GO
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 SET LOCK_TIMEOUT 5000;
 GO
-IF DB_NAME() <> N'POS-SmartK66'
-    THROW 57000, 'SEGURIDAD: este script solo corresponde a POS-SmartK66.', 1;
+IF DB_NAME() <> N'POS-SmartK66_DEV'
+    THROW 57000, 'SEGURIDAD: este script solo corresponde a POS-SmartK66_DEV.', 1;
 IF OBJECT_ID(N'dbo.BORR_NC_ENC', N'U') IS NULL
     THROW 57001, 'Falta dbo.BORR_NC_ENC.', 1;
 IF OBJECT_ID(N'dbo.BORR_NC_NC_VINCULO') IS NOT NULL
    AND OBJECT_ID(N'dbo.BORR_NC_NC_VINCULO', N'U') IS NULL
-    THROW 57002, 'El nombre de la tabla está ocupado por otro objeto.', 1;
+    THROW 57002, 'El nombre de la tabla esta ocupado por otro objeto.', 1;
 GO
 BEGIN TRY
-    -- SSMS puede continuar después de un GO aunque un lote previo falle.
-    IF DB_NAME() <> N'POS-SmartK66'
-        THROW 57000, 'SEGURIDAD: este script solo corresponde a POS-SmartK66.', 1;
+    -- SSMS puede continuar despues de un GO aunque un lote previo falle.
+    IF DB_NAME() <> N'POS-SmartK66_DEV'
+        THROW 57000, 'SEGURIDAD: este script solo corresponde a POS-SmartK66_DEV.', 1;
     IF OBJECT_ID(N'dbo.BORR_NC_ENC', N'U') IS NULL
         THROW 57001, 'Falta dbo.BORR_NC_ENC.', 1;
     BEGIN TRANSACTION;
@@ -25,7 +25,7 @@ BEGIN TRY
     EXEC @Bloqueo = sys.sp_getapplock
         @Resource=N'BorradorNc.NcVinculo', @LockMode=N'Exclusive',
         @LockOwner=N'Transaction', @LockTimeout=5000;
-    IF @Bloqueo < 0 THROW 57003, 'No se obtuvo el bloqueo de migración.', 1;
+    IF @Bloqueo < 0 THROW 57003, 'No se obtuvo el bloqueo de migracion.', 1;
 
     IF OBJECT_ID(N'dbo.BORR_NC_NC_VINCULO', N'U') IS NULL
     BEGIN
@@ -81,8 +81,8 @@ BEGIN CATCH
     THROW;
 END CATCH;
 GO
-IF DB_NAME() <> N'POS-SmartK66'
-    THROW 57000, 'SEGURIDAD: este script solo corresponde a POS-SmartK66.', 1;
+IF DB_NAME() <> N'POS-SmartK66_DEV'
+    THROW 57000, 'SEGURIDAD: este script solo corresponde a POS-SmartK66_DEV.', 1;
 IF OBJECT_ID(N'dbo.BORR_NC_NC_VINCULO', N'U') IS NULL
     SELECT DB_NAME() AS BASE_ACTUAL, N'NO_CREADA' AS RESULTADO;
 ELSE

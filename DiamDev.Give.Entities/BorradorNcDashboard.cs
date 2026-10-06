@@ -133,4 +133,17 @@ namespace DiamDev.Give.Entities
         public string Detalle { get; set; }
         public DateTime Registro { get; set; }
     }
+
+    // Confirmación humana: una NC de SAP pertenece a una factura, pero su
+    // atribución a un borrador concreto debe registrarse explícitamente.
+    public class BorradorNcNcVinculo
+    {
+        public string IdEmpresa { get; set; }
+        public string IdBorrador { get; set; }
+        public int DocEntry { get; set; }
+        public string Documento { get; set; }
+        public string Factura { get; set; }
+        public string Usuario { get; set; }
+        public DateTime Registro { get; set; }
+    }
 }

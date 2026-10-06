@@ -1,0 +1,173 @@
+@model DiamDev.Give.UI.Models.BorradorNcDashboardDetalleViewModel
+@using System
+@using System.Linq
+@using DiamDev.Give.BLL
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var b = Model.Borrador;
+    var facturas = b.Detalles.GroupBy(x => x.Documento).Select(x => x.First()).ToList();
+}
+@section styles {
+    <link href="@Url.Content("~/Content/borrador-nc.css?v=20261006-detalle-bnc")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc-sap-indicadores.css?v=20260928")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/borrador-nc-dashboard-detalle.css?v=20261006")" rel="stylesheet" />
+}
+
+<main class="bnc bnc-shell bncdd" id="bncDetalleDashboard"
+      data-empresa="@b.IdEmpresa" data-borrador="@b.IdBorrador"
+      data-url-sap-indicadores="@Url.Action("ObtenerIndicadoresSap", "BorradorNc")"
+      data-url-documento-previo="@Url.Action("DetalleDocumentoPrevio", "BorradorNc")"
+      data-sap-intervalo="@BorradorNcBLL.IntervaloConsultaSapSegundos">
+    @Html.AntiForgeryToken()
+    <header class="bnc-hero bncdd-hero">
+        <div class="bnc-hero-copy">
+            <span class="bnc-hero-icon" aria-hidden="true"><i class="icon-file-text"></i></span>
+            <div><span class="bncdd-eyebrow">Detalle del borrador</span><h2>@b.IdBorrador</h2>
+                <p>@b.IdEmpresa · @b.Fecha.ToString("dd/MM/yyyy") · @b.IdCliente · @b.Nombre</p></div>
+        </div>
+        <div class="bnc-hero-meta"><span class="bnc-hero-chip">@b.Estado</span>
+            <span class="bnc-hero-chip">@b.Moneda @b.Total.ToString("N2")</span></div>
+    </header>
+    <nav class="bncdd-actions" aria-label="Acciones del borrador">
+        <a class="bnc-btn bnc-btn-ghost" href="@Url.Action("DashboardBNC", "BorradorNc")"><i class="icon-arrow-left"></i> Volver al Dashboard</a>
+        <a class="bnc-btn bnc-btn-primary" href="@Url.Action("Imprimir", "BorradorNc", new { empresa=b.IdEmpresa, idBorrador=b.IdBorrador })"
+           target="_blank" rel="noopener noreferrer"><i class="icon-print"></i> Imprimir borrador</a>
+        <a class="bnc-btn bnc-btn-ghost" href="@Url.Action("DetalleBorradorBNC", "BorradorNc", new { empresa=b.IdEmpresa, idBorrador=b.IdBorrador })"><i class="icon-refresh"></i> Actualizar</a>
+    </nav>
+
+    <section class="bncdd-card bncdd-nc" aria-labelledby="bncddNcTitle">
+        <div class="bncdd-card-head"><div><span class="bncdd-kicker">Validación con SAP</span>
+            <h3 id="bncddNcTitle">NC del borrador</h3>
+            <p>Las NC detectadas en facturas no se vinculan automáticamente a este borrador.</p></div>
+            <span class="bncdd-count">@Model.Vinculos.Count vinculada(s)</span></div>
+        @if (!string.IsNullOrWhiteSpace(Model.Aviso)) { <div class="bncdd-message" role="status">@Model.Aviso</div> }
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorVinculos)) { <div class="bncdd-message is-error" role="alert">@Model.ErrorVinculos</div> }
+        <form class="bncdd-nc-search" method="get" action="@Url.Action("DetalleBorradorBNC", "BorradorNc")">
+            <input type="hidden" name="empresa" value="@b.IdEmpresa" /><input type="hidden" name="idBorrador" value="@b.IdBorrador" />
+            <label for="bncddCodigoNc">Número de NC en SAP (DocNum)</label>
+            <div class="bncdd-nc-controls"><input id="bncddCodigoNc" name="codigoNc" type="text" maxlength="40" value="@Model.CodigoBuscado"
+                placeholder="Ej.: 2000434" autocomplete="off" @(Model.ErrorVinculos != null ? "disabled" : "") />
+                <button class="bnc-btn bnc-btn-primary" type="submit" @(Model.ErrorVinculos != null ? "disabled" : "")><i class="icon-search"></i> Buscar en SAP</button></div>
+            <small>Solo se puede confirmar una NC vigente del mismo cliente y de una factura incluida aquí.</small>
+        </form>
+        @if (Model.CodigoBuscado.Length > 0 && Model.NcPorConfirmar == null && Model.ErrorSap == null)
+        { <div class="bncdd-message is-warning" role="status">No se encontró una NC vigente y unívoca con ese número para las facturas de este borrador.</div> }
+        @if (Model.NcPorConfirmar != null && Model.ErrorVinculos == null)
+        {
+            var nc = Model.NcPorConfirmar;
+            <div class="bncdd-preview">
+                <div><span class="bncdd-kicker">Resultado verificado en SAP</span><strong>NC @nc.Documento</strong>
+                    <span>Factura @nc.Factura · @nc.CardName · @nc.Fecha.ToString("dd/MM/yyyy")</span></div>
+                <div class="bncdd-preview-total"><small>Total de la NC</small><strong>@nc.Moneda @nc.Total.ToString("N2")</strong></div>
+                <form method="post" action="@Url.Action("VincularNcBNC", "BorradorNc")">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="empresa" value="@b.IdEmpresa" />
+                    <input type="hidden" name="idBorrador" value="@b.IdBorrador" />
+                    <input type="hidden" name="codigoNc" value="@nc.Documento" />
+                    <input type="hidden" name="docEntry" value="@nc.DocEntry" />
+                    <button type="submit" class="bnc-btn bnc-btn-primary">Confirmar vínculo</button>
+                </form>
+            </div>
+        }
+        @if (Model.Vinculos.Count == 0) { <div class="bncdd-empty">Aún no hay una NC vinculada expresamente a este borrador.</div> }
+        else
+        {
+            <div class="bncdd-links">
+                @foreach (var v in Model.Vinculos)
+                {
+                    var actual = Model.DocumentosSap.FirstOrDefault(x => x.DocEntry == v.DocEntry && x.Clase == "NOTA_CREDITO");
+                    <div class="bncdd-link" data-doc-entry="@v.DocEntry">
+                        <div><strong>NC @v.Documento</strong><span>Factura @v.Factura · Vinculada por @v.Usuario el @v.Registro.ToString("dd/MM/yyyy HH:mm")</span>
+                            @if (actual != null) { <a href="@Url.Action("DetalleDocumentoPrevio", "BorradorNc", new { empresa=b.IdEmpresa, idBorrador=b.IdBorrador, factura=v.Factura, documento=v.Documento, clase="NOTA_CREDITO", origen="dashboard" })" target="_blank" rel="noopener noreferrer">Ver NC en SAP</a> }
+                        </div>
+                        <span class="bncdd-link-status @(actual == null ? "is-unknown" : actual.Cancelado ? "is-cancelled" : "is-current")">
+                            @(actual == null ? "Sin verificar ahora" : actual.Cancelado ? "Cancelada en SAP" : "Vigente en SAP")</span>
+                    </div>
+                }
+            </div>
+        }
+        <div class="bncdd-live-sap" id="bncddLiveSap" aria-label="Estado actual de NC de las facturas"></div>
+    </section>
+
+    <section class="bncdd-card" aria-labelledby="bncddGeneralTitle">
+        <div class="bncdd-card-head"><div><span class="bncdd-kicker">Datos guardados</span><h3 id="bncddGeneralTitle">Información del borrador</h3></div></div>
+        <dl class="bncdd-facts">
+            <div><dt>Cliente</dt><dd>@b.IdCliente · @b.Nombre</dd></div>
+            <div><dt>NIT</dt><dd>@(string.IsNullOrWhiteSpace(b.Nit) ? "—" : b.Nit)</dd></div>
+            <div><dt>Agente</dt><dd>@b.Agente</dd></div>
+            <div><dt>Departamento</dt><dd>@(string.IsNullOrWhiteSpace(b.Depto) ? "—" : b.Depto)</dd></div>
+            <div><dt>Código operador</dt><dd>@(string.IsNullOrWhiteSpace(b.CodigoOperador) ? "—" : b.CodigoOperador)</dd></div>
+            <div><dt>Creado por</dt><dd>@b.IdUsr</dd></div>
+            <div><dt>Moneda</dt><dd>@b.Moneda</dd></div>
+            <div><dt>Registro</dt><dd>@(b.Registro.HasValue ? b.Registro.Value.ToString("dd/MM/yyyy HH:mm") : "—")</dd></div>
+            <div><dt>Correo</dt><dd>@(string.IsNullOrWhiteSpace(b.Correo) ? "—" : b.Correo)</dd></div>
+            <div><dt>Dirección</dt><dd>@(string.IsNullOrWhiteSpace(b.Direccion) ? "—" : b.Direccion)</dd></div>
+            <div><dt>Resolución</dt><dd>@(string.IsNullOrWhiteSpace(b.ResueltoPor) ? "Pendiente" : b.ResueltoPor)
+                @(b.FechaResolucion.HasValue ? " · " + b.FechaResolucion.Value.ToString("dd/MM/yyyy HH:mm") : "")</dd></div>
+            @if (!string.IsNullOrWhiteSpace(b.MotivoResolucion)) { <div class="bncdd-wide"><dt>Motivo de resolución</dt><dd>@b.MotivoResolucion</dd></div> }
+        </dl>
+    </section>
+
+    <section class="bncdd-card" aria-labelledby="bncddFacturasTitle">
+        <div class="bncdd-card-head"><div><span class="bncdd-kicker">Facturas incluidas</span><h3 id="bncddFacturasTitle">Facturas y productos</h3>
+            <p>Solicitud guardada y renglones originales consultados en SAP.</p></div><span class="bncdd-count">@facturas.Count factura(s)</span></div>
+        @if (Model.ErrorFacturas != null) { <div class="bncdd-message is-warning" role="status">@Model.ErrorFacturas</div> }
+        @foreach (var factura in facturas)
+        {
+            var contenido = Model.Facturas.FirstOrDefault(x => x.Documento == factura.Documento);
+            <article class="bncdd-invoice">
+                <div class="bncdd-invoice-head"><div><span class="bncdd-kicker">Factura SAP</span><h4>@factura.Documento</h4>
+                    <p>@factura.FechaDoc.ToString("dd/MM/yyyy") · @factura.Concepto · FEL @factura.SerieFel @factura.NumeroFel</p></div>
+                    <div class="bncdd-invoice-total"><small>Total factura</small><strong>@factura.Moneda @factura.TotalFactura.ToString("N2")</strong>
+                        <small>Pagado al capturar: @factura.Moneda @factura.Pagado.ToString("N2")</small>
+                        <small>NC previas al capturar: @factura.Moneda @factura.NcPreviaSap.ToString("N2")</small>
+                        <small>Solicitado</small><strong>@factura.Moneda @factura.Importe.ToString("N2")</strong></div>
+                    <a class="bnc-btn bnc-btn-ghost" href="@Url.Action("DetalleFacturaBorrador", "BorradorNc", new { empresa=b.IdEmpresa, idBorrador=b.IdBorrador, documento=factura.Documento, origen="dashboard" })"
+                       target="_blank" rel="noopener noreferrer">Ver factura <i class="icon-external-link"></i></a>
+                </div>
+                <div class="bncdd-invoice-description"><small>Descripción de la solicitud</small><p>@(string.IsNullOrWhiteSpace(factura.Descripcion) ? "Sin descripción" : factura.Descripcion)</p></div>
+                @if (contenido != null && contenido.Productos.Count > 0)
+                {
+                    <details class="bncdd-products"><summary>Ver @contenido.Productos.Count producto(s) o servicio(s) de la factura</summary>
+                        <div class="bncdd-table-wrap"><table class="bncdd-table"><thead><tr><th>Línea</th><th>SKU</th><th>Producto / servicio</th><th>Bodega</th><th class="bncdd-number">Cantidad</th><th class="bncdd-number">Precio unitario</th><th class="bncdd-number">Descuento</th><th class="bncdd-number">Impuesto</th><th class="bncdd-number">Total línea</th></tr></thead>
+                            <tbody>@foreach (var p in contenido.Productos) { <tr><td>@p.NumeroLinea</td><td>@(string.IsNullOrWhiteSpace(p.Sku) ? "Servicio" : p.Sku)</td><td>@p.Descripcion</td><td>@p.Bodega</td><td class="bncdd-number">@p.Cantidad.ToString("N2") @p.UnidadMedida</td><td class="bncdd-number">@p.Moneda @p.PrecioUnitario.ToString("N2")</td><td class="bncdd-number">@p.DescuentoPorcentaje.ToString("N2") %</td><td class="bncdd-number">@p.Moneda @p.Impuesto.ToString("N2")</td><td class="bncdd-number">@p.Moneda @p.Total.ToString("N2")</td></tr> }</tbody></table></div>
+                    </details>
+                }
+                else if (Model.ErrorFacturas == null) { <div class="bncdd-empty">SAP no devolvió renglones para esta factura.</div> }
+            </article>
+        }
+    </section>
+
+    <section class="bncdd-card" aria-labelledby="bncddDocsTitle">
+        <div class="bncdd-card-head"><div><span class="bncdd-kicker">Consulta actual</span><h3 id="bncddDocsTitle">NC y devoluciones de las facturas</h3>
+            <p>Se muestran por su relación con la factura; no todas están vinculadas a este borrador.</p></div><span class="bncdd-count">@Model.DocumentosSap.Count documento(s)</span></div>
+        @if (Model.ErrorSap != null) { <div class="bncdd-message is-error" role="status">@Model.ErrorSap</div> }
+        else if (Model.DocumentosSap.Count == 0) { <div class="bncdd-empty">No se encontraron NC ni devoluciones para estas facturas.</div> }
+        else
+        {
+            <div class="bncdd-table-wrap"><table class="bncdd-table"><thead><tr><th>Tipo</th><th>Documento</th><th>Factura</th><th>Fecha</th><th>Estado</th><th class="bncdd-number">Total</th><th>Detalle</th></tr></thead><tbody>
+                @foreach (var d in Model.DocumentosSap) { <tr><td>@d.ClaseTexto</td><td><strong>@d.Documento</strong></td><td>@d.Factura</td><td>@d.Fecha</td><td>@(d.Cancelado ? "Cancelado" : "Vigente")</td><td class="bncdd-number">@d.Moneda @d.Total.ToString("N2")</td><td><a href="@Url.Action("DetalleDocumentoPrevio", "BorradorNc", new { empresa=b.IdEmpresa, idBorrador=b.IdBorrador, factura=d.Factura, documento=d.Documento, clase=d.Clase, origen="dashboard" })" target="_blank" rel="noopener noreferrer">Ver documento</a></td></tr> }
+            </tbody></table></div>
+        }
+    </section>
+
+    <div class="bncdd-lower">
+        <section class="bncdd-card" aria-labelledby="bncddAdjuntosTitle"><div class="bncdd-card-head"><div><span class="bncdd-kicker">Evidencias</span><h3 id="bncddAdjuntosTitle">Documentación de respaldo</h3></div><span class="bncdd-count">@b.Adjuntos.Count archivo(s)</span></div>
+            @if (b.Adjuntos.Count == 0) { <div class="bncdd-empty">Este borrador no tiene documentación adjunta.</div> }
+            else { <ul class="bncdd-items">@foreach (var a in b.Adjuntos) {
+                var url = a.EsArchivo ? Url.Action("DescargarAdjunto", "BorradorNc", new { empresa=b.IdEmpresa, idBorrador=b.IdBorrador, adjuntoId=a.AdjuntoId }) : a.Url;
+                Uri externa;
+                var enlaceSeguro = a.EsArchivo || (Uri.TryCreate(url, UriKind.Absolute, out externa) && (externa.Scheme == "https" || externa.Scheme == "http"));
+                <li><span><strong>@a.Nombre</strong><small>@a.Tipo · @a.IdUsr · @(a.Registro.HasValue ? a.Registro.Value.ToString("dd/MM/yyyy HH:mm") : "—")</small></span>@if (enlaceSeguro) { <a href="@url" target="_blank" rel="noopener noreferrer">Abrir <i class="icon-external-link"></i></a> }</li>
+            }</ul> }
+        </section>
+        <section class="bncdd-card" aria-labelledby="bncddAuditTitle"><div class="bncdd-card-head"><div><span class="bncdd-kicker">Auditoría</span><h3 id="bncddAuditTitle">Actividad del borrador</h3></div></div>
+            @if (Model.Bitacora.Count == 0) { <div class="bncdd-empty">No hay eventos disponibles en la bitácora.</div> }
+            else { <ol class="bncdd-items">@foreach (var e in Model.Bitacora) { <li><span><strong>@e.Evento</strong><small>@e.Usuario · @e.Registro.ToString("dd/MM/yyyy HH:mm")</small>@if (!string.IsNullOrWhiteSpace(e.Detalle)) { <small>@e.Detalle</small> }</span></li> }</ol> }
+        </section>
+    </div>
+</main>
+@section scripts {
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-SapIndicadores.js?v=20260928")"></script>
+    <script src="@Url.Content("~/Scripts/App/BorradorNc-DashboardDetalle.js?v=20261006")"></script>
+}

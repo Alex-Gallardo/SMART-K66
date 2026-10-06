@@ -141,6 +141,78 @@ namespace DiamDev.Give.DAL
             return lista;
         }
 
+        public List<BorradorNcNcVinculo> ConsultarNcVinculadas(string empresa, string idBorrador)
+        {
+            const string sql = @"SELECT ID_EMPRESA, ID_BORRADOR, DOC_ENTRY, DOCUMENTO,
+                    FACTURA, USUARIO, REGISTRO
+                FROM dbo.BORR_NC_NC_VINCULO
+                WHERE ID_EMPRESA=@empresa AND ID_BORRADOR=@borrador
+                ORDER BY REGISTRO DESC, DOC_ENTRY DESC;";
+            var lista = new List<BorradorNcNcVinculo>();
+            using (var cn = new SqlConnection(_conn))
+            using (var cmd = new SqlCommand(sql, cn))
+            {
+                cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = empresa;
+                cmd.Parameters.Add("@borrador", SqlDbType.NVarChar, 20).Value = idBorrador;
+                cn.Open();
+                using (var r = cmd.ExecuteReader())
+                    while (r.Read()) lista.Add(new BorradorNcNcVinculo
+                    {
+                        IdEmpresa = Texto(r["ID_EMPRESA"]),
+                        IdBorrador = Texto(r["ID_BORRADOR"]),
+                        DocEntry = Convert.ToInt32(r["DOC_ENTRY"]),
+                        Documento = Texto(r["DOCUMENTO"]),
+                        Factura = Texto(r["FACTURA"]),
+                        Usuario = Texto(r["USUARIO"]),
+                        Registro = Convert.ToDateTime(r["REGISTRO"])
+                    });
+            }
+            return lista;
+        }
+
+        public bool VincularNc(BorradorNcNcVinculo vinculo)
+        {
+            const string existe = @"SELECT ID_BORRADOR FROM dbo.BORR_NC_NC_VINCULO
+                WHERE ID_EMPRESA=@empresa AND DOC_ENTRY=@docEntry;";
+            const string insertar = @"INSERT dbo.BORR_NC_NC_VINCULO
+                (ID_EMPRESA, ID_BORRADOR, DOC_ENTRY, DOCUMENTO, FACTURA, USUARIO)
+                VALUES (@empresa, @borrador, @docEntry, @documento, @factura, @usuario);";
+            using (var cn = new SqlConnection(_conn))
+            {
+                cn.Open();
+                using (var tx = cn.BeginTransaction(IsolationLevel.Serializable))
+                {
+                    var asignado = "";
+                    using (var cmd = new SqlCommand(existe, cn, tx))
+                    {
+                        cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = vinculo.IdEmpresa;
+                        cmd.Parameters.Add("@docEntry", SqlDbType.Int).Value = vinculo.DocEntry;
+                        var valor = cmd.ExecuteScalar();
+                        asignado = valor == null ? "" : Convert.ToString(valor);
+                    }
+                    if (asignado.Length > 0)
+                    {
+                        tx.Commit();
+                        if (string.Equals(asignado, vinculo.IdBorrador, StringComparison.OrdinalIgnoreCase))
+                            return false;
+                        throw new InvalidOperationException("Esta NC ya está vinculada a otro borrador.");
+                    }
+                    using (var cmd = new SqlCommand(insertar, cn, tx))
+                    {
+                        cmd.Parameters.Add("@empresa", SqlDbType.NVarChar, 15).Value = vinculo.IdEmpresa;
+                        cmd.Parameters.Add("@borrador", SqlDbType.NVarChar, 20).Value = vinculo.IdBorrador;
+                        cmd.Parameters.Add("@docEntry", SqlDbType.Int).Value = vinculo.DocEntry;
+                        cmd.Parameters.Add("@documento", SqlDbType.NVarChar, 40).Value = vinculo.Documento;
+                        cmd.Parameters.Add("@factura", SqlDbType.NVarChar, 40).Value = vinculo.Factura;
+                        cmd.Parameters.Add("@usuario", SqlDbType.NVarChar, 50).Value = vinculo.Usuario;
+                        cmd.ExecuteNonQuery();
+                    }
+                    tx.Commit();
+                    return true;
+                }
+            }
+        }
+
         private static int Contar(SqlConnection cn, BorradorNcDashboardFiltro filtro,
                                   BorradorNcDashboardAlcance alcance)
         {

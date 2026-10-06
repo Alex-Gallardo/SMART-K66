@@ -29,13 +29,13 @@
                 var html = '<button type="button" class="bnc-sap-badge ' + clase + '" data-sap-refresh="' + esc(k) +
                     '" title="Actualizar NC de las facturas en SAP" aria-label="Actualizar NC de ' + esc(k) + '">' +
                     '<i class="icon-refresh" aria-hidden="true"></i> ' + esc(texto) + '</button>';
-                if (data) html += '<small class="bnc-sap-time">Consulta SAP: ' + esc(hora(data.ActualizadoEn)) + '</small>';
+                // if (data) html += '<small class="bnc-sap-time">Consulta SAP: ' + esc(hora(data.ActualizadoEn)) + '</small>';
                 if (estado.error) html += '<small class="bnc-sap-error" role="status">' +
                     (data ? "No se pudo actualizar. Se conserva la última consulta." : "No se pudo consultar SAP. Pulse para reintentar.") + '</small>';
                 if (completo) {
                     // html += '<small class="bnc-sap-help">Las NC corresponden a las facturas; no acreditan una aplicación a este borrador.</small>';
                     if (data && (data.Documentos || []).length) {
-                        html += '<details class="bnc-sap-documents"><summary>Ver NC de las facturas</summary><ul>';
+                        html += '<details class="bnc-sap-documents"><summary><i class="clip-eye" aria-hidden="true" style="padding-right:.5em;"></i>Ver NC de las facturas</summary><ul>';
                         $.each(data.Documentos, function (_, nc) {
                             var x = borradores[k];
                             var url = $root.attr("data-url-documento-previo") + "?empresa=" + encodeURIComponent(x.IdEmpresa) +

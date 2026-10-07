@@ -20,7 +20,17 @@ namespace DiamDev.Give.UI.Controllers
     {
         #region Metodos Privados
 
-        private static bool FechaEntregaNormalValida(DateTime? fechaPrometida, DateTime fechaPedido)
+        private static bool RequiereFechaEntrega(string tipoId, string nombreTipo)
+        {
+            nombreTipo = (nombreTipo ?? "").Trim();
+            return string.Equals(tipoId, "P", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(nombreTipo, "Temporada", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(nombreTipo, "Normal", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(nombreTipo, "Programacion", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(nombreTipo, "Programación", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool FechaEntregaValida(DateTime? fechaPrometida, DateTime fechaPedido)
         {
             return fechaPrometida.HasValue && fechaPrometida.Value.Date >= fechaPedido.Date;
         }
@@ -192,14 +202,15 @@ namespace DiamDev.Give.UI.Controllers
 
             var tipoPedido = new PedidoTipok66BL().ObtenerListadoxEmpresa(modelo.EmpresaId)
                 .FirstOrDefault(x => x.TipoId == modelo.TipoPedidoId);
+            ViewBag.FechaEntregaElegida = tipoPedido != null && RequiereFechaEntrega(tipoPedido.TipoId, tipoPedido.Nombre);
             if (tipoPedido == null)
             {
                 ModelState.AddModelError("TipoPedidoId", "No se pudo validar el tipo de pedido seleccionado.");
             }
-            else if (string.Equals(tipoPedido.Nombre?.Trim(), "Normal", StringComparison.OrdinalIgnoreCase) &&
-                     !FechaEntregaNormalValida(modelo.FechaPrometida, DateTime.Today))
+            else if (RequiereFechaEntrega(tipoPedido.TipoId, tipoPedido.Nombre) &&
+                     !FechaEntregaValida(modelo.FechaPrometida, DateTime.Today))
             {
-                ModelState.AddModelError("FechaPrometida", "La fecha de entrega estimada para un pedido Normal debe ser hoy o una fecha posterior.");
+                ModelState.AddModelError("FechaPrometida", "La fecha de entrega estimada debe ser hoy o una fecha posterior.");
             }
 
             if (productoIds == null || productoIds.Length == 0)

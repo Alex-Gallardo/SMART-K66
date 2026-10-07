@@ -1,13 +1,27 @@
 $ErrorActionPreference = 'Stop'
 $sourcePath = Join-Path $PSScriptRoot '..\..\DiamDev.Give.UI\Controllers\Pedido_K66Controller.cs'
 $source = Get-Content -LiteralPath $sourcePath -Raw
-$match = [regex]::Match($source, 'private static bool FechaEntregaNormalValida\(DateTime\? fechaPrometida, DateTime fechaPedido\)\s*\{[^}]*\}')
-if (-not $match.Success) { throw 'No se encontró la validación de fecha del controlador.' }
-$method = $match.Value.Replace('private static', 'public static')
-$type = Add-Type -TypeDefinition "using System; public static class FechaEntregaPedidoK66Prueba { $method }" -PassThru
+$matchTipo = [regex]::Match($source, 'private static bool RequiereFechaEntrega\(string tipoId, string nombreTipo\)\s*\{[^}]*\}')
+$matchFecha = [regex]::Match($source, 'private static bool FechaEntregaValida\(DateTime\? fechaPrometida, DateTime fechaPedido\)\s*\{[^}]*\}')
+if (-not $matchTipo.Success -or -not $matchFecha.Success) { throw 'No se encontraron las reglas de fecha del controlador.' }
+$methods = $matchTipo.Value.Replace('private static', 'public static') + $matchFecha.Value.Replace('private static', 'public static')
+$type = Add-Type -TypeDefinition "using System; public static class FechaEntregaPedidoK66Prueba { $methods }" -PassThru
+
+foreach ($caso in @(
+    @('P', 'Otro', $true),
+    @('N1', 'Normal', $true),
+    @('PG', 'Programacion', $true),
+    @('PG', 'Programación', $true),
+    @('T', 'Temporada', $true),
+    @('X', 'Otro', $false)
+)) {
+    if ($type::RequiereFechaEntrega($caso[0], $caso[1]) -ne $caso[2]) {
+        throw "Tipo=$($caso[0]); nombre=$($caso[1]); clasificación incorrecta."
+    }
+}
 
 function Assert-Fecha([Nullable[DateTime]]$fecha, [DateTime]$hoy, [bool]$esperado) {
-    $actual = $type::FechaEntregaNormalValida($fecha, $hoy)
+    $actual = $type::FechaEntregaValida($fecha, $hoy)
     if ($actual -ne $esperado) { throw "Fecha=$fecha; hoy=$hoy; esperado=$esperado; actual=$actual" }
 }
 

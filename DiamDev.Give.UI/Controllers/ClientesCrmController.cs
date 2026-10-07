@@ -119,10 +119,10 @@ namespace DiamDev.Give.UI.Controllers
             try { agente = ValidarOperador(empresa, codigoOperador); }
             catch (UnauthorizedAccessException) { return SinAcceso(); }
             if (string.IsNullOrWhiteSpace(codigoSap) || codigoSap.Trim().Length < 2) return HttpNotFound();
-            ClienteHana sap;
+            ClienteSapDetalle sap;
             try
             {
-                sap = _crm.ObtenerClienteSap(empresa, agente, codigoSap);
+                sap = _crm.ObtenerClienteSapDetalle(empresa, agente, codigoSap);
             }
             catch (Exception ex)
             {
@@ -140,12 +140,7 @@ namespace DiamDev.Give.UI.Controllers
                 TipoSolicitud = TiposSolicitudCliente.Actualizacion,
                 OrigenCodigoSap = sap.CardCode, Empresa = empresa,
                 CodigoOperador = codigoOperador, PasoActual = 1,
-                Ficha = new ClienteCrmFicha {
-                    RazonSocial = sap.CardName, NombreComercial = sap.CardName,
-                    NitDpi = sap.LicTradNum, DireccionFiscal = sap.Address,
-                    CorreoFactura = sap.Email, MonedaIndicadores = sap.Currency,
-                    CodigoSapOrigen = sap.CardCode
-                }
+                Ficha = ClienteCrmBLL.CrearFichaDesdeSap(sap)
             }));
         }
 
@@ -220,8 +215,10 @@ namespace DiamDev.Give.UI.Controllers
                 OrigenVersion = s.OrigenVersion, OrigenCodigoSap = s.OrigenCodigoSap,
                 CodigoOperador = s.CodigoOperador, Estado = s.Estado,
                 Ficha = s.Ficha, Archivos = s.Archivos,
-                PasoActual = Math.Max(1, Math.Min(paso ?? (s.Ficha.PasoCompletado + 1),
-                    Math.Min(6, s.Ficha.PasoCompletado + 1)))
+                PasoActual = Math.Max(1, Math.Min(
+                    s.TipoSolicitud == TiposSolicitudCliente.Alta && paso == 5 ? 6 :
+                        paso ?? SiguientePaso(s.TipoSolicitud, s.Ficha.PasoCompletado),
+                    SiguientePaso(s.TipoSolicitud, s.Ficha.PasoCompletado)))
             }));
         }
 
@@ -275,10 +272,11 @@ namespace DiamDev.Give.UI.Controllers
                 }
                 int completado = existente == null ? 0 : existente.Ficha.PasoCompletado;
                 if (modelo.PasoActual < 1 || modelo.PasoActual > 6 ||
-                    modelo.PasoActual > Math.Min(6, completado + 1))
+                    (!esActualizacion && modelo.PasoActual == 5) ||
+                    modelo.PasoActual > SiguientePaso(modelo.TipoSolicitud, completado))
                     throw new InvalidOperationException("Complete los pasos anteriores antes de continuar.");
-                if (enviar && (modelo.PasoActual != 6 || completado < 5))
-                    throw new InvalidOperationException("Complete los seis pasos antes de enviar.");
+                if (enviar && (modelo.PasoActual != 6 || completado < (esActualizacion ? 5 : 4)))
+                    throw new InvalidOperationException("Complete todos los pasos antes de enviar.");
                 if (continuar && modelo.PasoActual == 6)
                     throw new InvalidOperationException("Envíe la solicitud desde el último paso.");
                 if (continuar || enviar)
@@ -294,7 +292,8 @@ namespace DiamDev.Give.UI.Controllers
                     Ficha = modelo.Ficha
                 }, LeerArchivos(), enviar, User.Identity.Name, Ip());
                 if (continuar)
-                    return RedirectToAction("EditarSolicitud", new { id = id, paso = modelo.PasoActual + 1 });
+                    return RedirectToAction("EditarSolicitud", new {
+                        id = id, paso = SiguientePaso(modelo.TipoSolicitud, modelo.PasoActual) });
                 TempData["CrmExito"] = enviar ? "Solicitud enviada a Créditos." : "Borrador guardado.";
                 return RedirectToAction("Solicitud", new { id = id });
             }
@@ -556,6 +555,8 @@ namespace DiamDev.Give.UI.Controllers
         {
             m = m ?? new ClienteCrmEditorViewModel();
             if (m.Ficha == null) m.Ficha = new ClienteCrmFicha();
+            if (m.TipoSolicitud == TiposSolicitudCliente.Alta && m.PasoActual == 5)
+                m.PasoActual = m.Ficha.PasoCompletado >= 4 ? 6 : 4;
             if (string.Equals(m.Ficha.TipoOperacion, "Gobierno", StringComparison.OrdinalIgnoreCase))
                 m.Ficha.TipoOperacion = "Publica";
             if (m.Error == null && (m.SolicitudId > 0 || m.ClienteId > 0))
@@ -602,6 +603,12 @@ namespace DiamDev.Give.UI.Controllers
                     d.RequiereCitaRespuesta = d.RequiereCita ? "SI" : "NO";
                 if (d.ActivaRespuesta == null) d.ActivaRespuesta = d.Activa ? "SI" : "NO";
             }
+        }
+
+        private static int SiguientePaso(string tipoSolicitud, int completado)
+        {
+            int siguiente = Math.Max(1, Math.Min(6, completado + 1));
+            return tipoSolicitud == TiposSolicitudCliente.Alta && siguiente == 5 ? 6 : siguiente;
         }
 
         private static bool TieneMismoOrigen(ClienteCrmSolicitud existente, ClienteCrmEditorViewModel modelo)

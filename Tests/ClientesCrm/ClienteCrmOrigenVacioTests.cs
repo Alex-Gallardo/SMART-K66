@@ -59,7 +59,15 @@ namespace Tests.ClientesCrm
             if (MismoOrigen(comparar, existente, modelo))
                 return Fallar("Se aceptó cambiar la ficha CRM de origen.");
 
-            Console.WriteLine("OK: el origen vacío permite avanzar y los cambios reales siguen bloqueados.");
+            var siguiente = typeof(ClientesCrmController).GetMethod("SiguientePaso",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            if (siguiente == null ||
+                Paso(siguiente, TiposSolicitudCliente.Alta, 4) != 6 ||
+                Paso(siguiente, TiposSolicitudCliente.Actualizacion, 4) != 5 ||
+                Paso(siguiente, TiposSolicitudCliente.Actualizacion, 5) != 6)
+                return Fallar("La navegación del alta o la actualización usa pasos incorrectos.");
+
+            Console.WriteLine("OK: origen protegido y navegación de cinco/seis pasos.");
             return 0;
         }
 
@@ -67,6 +75,11 @@ namespace Tests.ClientesCrm
             ClienteCrmEditorViewModel modelo)
         {
             return (bool)metodo.Invoke(null, new object[] { existente, modelo });
+        }
+
+        private static int Paso(MethodInfo metodo, string tipo, int completado)
+        {
+            return (int)metodo.Invoke(null, new object[] { tipo, completado });
         }
 
         private static int Fallar(string detalle)

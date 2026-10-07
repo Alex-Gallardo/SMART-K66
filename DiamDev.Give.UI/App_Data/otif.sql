@@ -18,6 +18,7 @@ WITH "CandidateOrders" AS
     JOIN RDR1 r ON r."DocEntry" = o."DocEntry"
     WHERE COALESCE(r."ShipDate", o."DocDueDate")
         BETWEEN TO_DATE(?) AND TO_DATE(?)
+      /* OTIF_SCOPE_FILTER */
 ),
 "ValidDeliveries" AS
 (

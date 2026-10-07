@@ -924,6 +924,8 @@ const OTIFViz = (() => {
       lastComputed = null;
       lastCustRows = [];
       lastItemRows = [];
+      populateGlobalFilterOptions();
+      populateCodeSuggestions();
       renderKpis({ total: 0, cumplidasN: 0, onTimeN: 0, completeN: 0, otifN: 0, closedNoDelivery: 0, openOverdue: 0, onTimePct: null, completePct: null, otifPct: null, fillRatePct: null }, null, 'line');
       if ($('trendChart')) $('trendChart').innerHTML = '';
       ['custTable', 'itemTable'].forEach(id => {

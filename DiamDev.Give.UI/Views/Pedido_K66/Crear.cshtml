@@ -186,7 +186,7 @@
     var direccionIds = "@Html.Raw(ViewBag.DireccionIds)";
     var tipoPedidoIds = "@Html.Raw(ViewBag.TipoPedidoIds)";
     var fechaActual = "@DateTime.Today.ToString("yyyy-MM-dd")";
-    var fechaMinimaNormal = "@DateTime.Today.AddDays(2).ToString("yyyy-MM-dd")";
+    var fechaMinimaNormal = fechaActual;
 
     var unidadPermisoIds = "@Html.Raw(ViewBag.Unidad)";
 

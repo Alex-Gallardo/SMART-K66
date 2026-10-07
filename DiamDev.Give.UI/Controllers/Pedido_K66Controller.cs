@@ -22,7 +22,7 @@ namespace DiamDev.Give.UI.Controllers
 
         private static bool FechaEntregaNormalValida(DateTime? fechaPrometida, DateTime fechaPedido)
         {
-            return fechaPrometida.HasValue && fechaPrometida.Value.Date >= fechaPedido.Date.AddDays(2);
+            return fechaPrometida.HasValue && fechaPrometida.Value.Date >= fechaPedido.Date;
         }
 
         private void CargaEmpresas()
@@ -199,7 +199,7 @@ namespace DiamDev.Give.UI.Controllers
             else if (string.Equals(tipoPedido.Nombre?.Trim(), "Normal", StringComparison.OrdinalIgnoreCase) &&
                      !FechaEntregaNormalValida(modelo.FechaPrometida, DateTime.Today))
             {
-                ModelState.AddModelError("FechaPrometida", "La fecha de entrega estimada para un pedido Normal debe ser al menos dos días después de hoy.");
+                ModelState.AddModelError("FechaPrometida", "La fecha de entrega estimada para un pedido Normal debe ser hoy o una fecha posterior.");
             }
 
             if (productoIds == null || productoIds.Length == 0)

@@ -60,6 +60,85 @@ namespace DiamDev.Give.DAL
             return lista;
         }
 
+        /// <summary>Lectura detallada del cliente seleccionado; nunca modifica SAP.</summary>
+        public ClienteSapDetalle ObtenerClienteDetalle(string empresa, string codigo)
+        {
+            string schema = ResolverSchema(empresa);
+            if (schema == null || string.IsNullOrWhiteSpace(codigo)) return null;
+            // C.* permite leer campos propios de cada sociedad si existen;
+            // LeerCampo devuelve vacío cuando una columna opcional no está instalada.
+            string sql = string.Format(@"SELECT C.*, G.""GroupName"", P.""PymntGroup"",
+                P.""ExtraDays"", P.""ExtraMonth"", P.""PayDuMonth""
+                FROM ""{0}"".""OCRD"" C
+                LEFT JOIN ""{0}"".""OCRG"" G ON G.""GroupCode"" = C.""GroupCode""
+                LEFT JOIN ""{0}"".""OCTG"" P ON P.""GroupNum"" = C.""GroupNum""
+                WHERE C.""CardCode"" = ? AND C.""CardType"" = 'C'", schema);
+            DataTable maestro = HanaHelper.EjecutarConsulta(sql, CodigoCliente(codigo));
+            if (maestro.Rows.Count == 0) return null;
+            DataRow c = maestro.Rows[0];
+            var detalle = new ClienteSapDetalle {
+                CardCode = LeerCampo(c, "CardCode"), CardName = LeerCampo(c, "CardName"),
+                LicTradNum = LeerCampo(c, "LicTradNum"), Address = LeerCampo(c, "Address"),
+                MailAddress = LeerCampo(c, "MailAddres"), Email = LeerCampo(c, "E_Mail"),
+                Phone1 = LeerCampo(c, "Phone1"), Cellular = LeerCampo(c, "Cellular"),
+                ContactPerson = LeerCampo(c, "CntctPrsn"),
+                Currency = NormalizarMoneda(LeerCampo(c, "Currency")),
+                GroupCode = NumeroOpcional(c, "GroupCode"), GroupName = LeerCampo(c, "GroupName"),
+                ForeignName = LeerCampo(c, "CardFName"),
+                SecondaryName = LeerCampo(c, "U_NOMBRESECUNDARIO"),
+                AlternateNit = LeerCampo(c, "U_NIT"),
+                SapPaymentMethod = LeerCampo(c, "U_METODOPAGO"),
+                PaymentTerms = LeerCampo(c, "PymntGroup"),
+                PaymentExtraDays = NumeroOpcional(c, "ExtraDays"),
+                PaymentExtraMonths = NumeroOpcional(c, "ExtraMonth"),
+                PaymentDueMonth = LeerCampo(c, "PayDuMonth")
+            };
+
+            sql = string.Format(@"SELECT ""Name"", ""Position"", ""Profession"",
+                ""Tel1"", ""Cellolar"", ""E_MailL""
+                FROM ""{0}"".""OCPR"" WHERE ""CardCode"" = ?
+                  AND COALESCE(""Active"", 'Y') = 'Y'
+                ORDER BY ""CntctCode""", schema);
+            foreach (DataRow r in HanaHelper.EjecutarConsulta(sql, CodigoCliente(codigo)).Rows)
+            {
+                if (detalle.Contactos.Count == 30) break;
+                detalle.Contactos.Add(new ClienteSapContacto {
+                    Nombre = LeerCampo(r, "Name"), Puesto = LeerCampo(r, "Position"),
+                    Profesion = LeerCampo(r, "Profession"), Telefono = LeerCampo(r, "Tel1"),
+                    Celular = LeerCampo(r, "Cellolar"), Correo = LeerCampo(r, "E_MailL")
+                });
+            }
+
+            sql = string.Format(@"SELECT ""Address"", ""AdresType"", ""Street"",
+                ""StreetNo"", ""Block"", ""City"", ""County"", ""State"",
+                ""Country"", ""ZipCode""
+                FROM ""{0}"".""CRD1"" WHERE ""CardCode"" = ?
+                ORDER BY ""AdresType"", ""LineNum""", schema);
+            foreach (DataRow r in HanaHelper.EjecutarConsulta(sql, CodigoCliente(codigo)).Rows)
+            {
+                if (detalle.Direcciones.Count == 30) break;
+                detalle.Direcciones.Add(new ClienteSapDireccion {
+                    Nombre = LeerCampo(r, "Address"), Tipo = LeerCampo(r, "AdresType"),
+                    Calle = LeerCampo(r, "Street"), Numero = LeerCampo(r, "StreetNo"),
+                    Colonia = LeerCampo(r, "Block"), Ciudad = LeerCampo(r, "City"),
+                    Municipio = LeerCampo(r, "County"), Departamento = LeerCampo(r, "State"),
+                    Pais = LeerCampo(r, "Country"), CodigoPostal = LeerCampo(r, "ZipCode")
+                });
+            }
+            return detalle;
+        }
+
+        private static OdbcParameter[] CodigoCliente(string codigo)
+        {
+            return new[] { new OdbcParameter { OdbcType = OdbcType.NVarChar, Value = codigo.Trim() } };
+        }
+
+        private static int? NumeroOpcional(DataRow row, string columna)
+        {
+            return row.Table.Columns.Contains(columna) && row[columna] != DBNull.Value
+                ? (int?)Convert.ToInt32(row[columna], CultureInfo.InvariantCulture) : null;
+        }
+
         public List<ClienteGrupoHana> ObtenerGruposClientes(string empresa)
         {
             string schema = ResolverSchema(empresa);

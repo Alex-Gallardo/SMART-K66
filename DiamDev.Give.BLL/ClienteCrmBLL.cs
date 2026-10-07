@@ -40,6 +40,107 @@ namespace DiamDev.Give.BLL
                     exacto, StringComparison.OrdinalIgnoreCase));
         }
 
+        public ClienteSapDetalle ObtenerClienteSapDetalle(string empresa, string agente, string codigo)
+        {
+            // El SP limita los clientes visibles para el agente. Solo después se leen
+            // las tablas maestras del código autorizado y del schema de esa empresa.
+            var visible = ObtenerClienteSap(empresa, agente, codigo);
+            return visible == null ? null : _hana.ObtenerClienteDetalle(empresa, visible.CardCode);
+        }
+
+        public static ClienteCrmFicha CrearFichaDesdeSap(ClienteSapDetalle sap)
+        {
+            if (sap == null) throw new ArgumentNullException("sap");
+            var ficha = new ClienteCrmFicha {
+                RazonSocial = sap.CardName,
+                NombreComercial = PrimerDato(sap.SecondaryName, sap.ForeignName, sap.CardName),
+                NitDpi = PrimerDato(sap.LicTradNum, sap.AlternateNit),
+                DireccionFiscal = sap.Address,
+                CorreoFactura = sap.Email, MonedaIndicadores = sap.Currency,
+                TipoNegocioCodigo = sap.GroupCode, TipoNegocio = sap.GroupName,
+                MetodoPago = MetodoPagoCrm(sap.SapPaymentMethod), CodigoSapOrigen = sap.CardCode
+            };
+            var facturacion = (sap.Direcciones ?? new List<ClienteSapDireccion>())
+                .FirstOrDefault(d => d != null && d.Tipo == "B");
+            if (facturacion != null && !string.IsNullOrWhiteSpace(FormatearDireccion(facturacion)))
+                ficha.DireccionFiscal = FormatearDireccion(facturacion);
+
+            foreach (var contacto in (sap.Contactos ?? new List<ClienteSapContacto>())
+                .Where(c => c != null && !string.IsNullOrWhiteSpace(c.Nombre)).Take(30))
+            {
+                ficha.Contactos.Add(new ClienteCrmContacto {
+                    Nombre = contacto.Nombre, Puesto = contacto.Puesto,
+                    Telefono = UnirTelefonos(contacto.Telefono, contacto.Celular),
+                    Correo = contacto.Correo, TipoContacto = contacto.Profesion
+                });
+            }
+            if (ficha.Contactos.Count == 0 && !string.IsNullOrWhiteSpace(sap.ContactPerson))
+                ficha.Contactos.Add(new ClienteCrmContacto {
+                    Nombre = sap.ContactPerson,
+                    Telefono = UnirTelefonos(sap.Phone1, sap.Cellular),
+                    Correo = sap.Email
+                });
+
+            foreach (var direccion in (sap.Direcciones ?? new List<ClienteSapDireccion>())
+                .Where(d => d != null && d.Tipo == "S" &&
+                    !string.IsNullOrWhiteSpace(FormatearDireccion(d))).Take(20))
+            {
+                ficha.Direcciones.Add(new ClienteCrmDireccion {
+                    Nombre = direccion.Nombre, Direccion = FormatearDireccion(direccion),
+                    Modalidad = "Despacho"
+                });
+            }
+            if (ficha.Direcciones.Count == 0 && !string.IsNullOrWhiteSpace(sap.MailAddress))
+                ficha.Direcciones.Add(new ClienteCrmDireccion {
+                    Nombre = "Dirección de entrega SAP", Direccion = sap.MailAddress,
+                    Modalidad = "Despacho"
+                });
+            if (sap.PaymentExtraMonths == 0 &&
+                new[] { 8, 15, 30, 60, 90 }.Contains(sap.PaymentExtraDays.GetValueOrDefault()) &&
+                (string.IsNullOrWhiteSpace(sap.PaymentDueMonth) || sap.PaymentDueMonth == "N"))
+            {
+                ficha.TemporadaPago = sap.PaymentExtraDays.Value.ToString();
+                ficha.CondicionPago = "CREDITO";
+            }
+            return ficha;
+        }
+
+        private static string FormatearDireccion(ClienteSapDireccion d)
+        {
+            // Algunas sociedades guardan la dirección completa en Street.
+            if (!string.IsNullOrWhiteSpace(d.Calle) && d.Calle.Length > 60 &&
+                d.Calle.Contains(",")) return d.Calle.Trim();
+            var partes = new[] { d.Calle, d.Numero, d.Colonia, d.Ciudad,
+                d.Municipio, d.Departamento, d.Pais, d.CodigoPostal }
+                .Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase);
+            return string.Join(", ", partes);
+        }
+
+        private static string PrimerDato(params string[] valores)
+        {
+            return valores.FirstOrDefault(x => !string.IsNullOrWhiteSpace(x));
+        }
+
+        private static string UnirTelefonos(string fijo, string movil)
+        {
+            if (string.IsNullOrWhiteSpace(fijo)) return movil;
+            if (string.IsNullOrWhiteSpace(movil) ||
+                string.Equals(fijo.Trim(), movil.Trim(), StringComparison.OrdinalIgnoreCase))
+                return fijo;
+            return fijo.Trim() + " / " + movil.Trim();
+        }
+
+        private static string MetodoPagoCrm(string metodoSap)
+        {
+            var valor = (metodoSap ?? "").Trim().ToUpperInvariant();
+            if (valor == "TRANSFERENCIA") return "Transferencia";
+            if (valor == "DEPOSITO" || valor == "DEPÓSITO") return "Depósito";
+            if (valor == "CHEQUE") return "Cheque";
+            if (valor == "EFECTIVO") return "Efectivo";
+            return null;
+        }
+
         public List<ClienteGrupoHana> TiposNegocioSap(string empresa)
         {
             ValidarEmpresa(empresa);
@@ -283,8 +384,7 @@ namespace DiamDev.Give.BLL
                 Requerir(f.CorreoFactura, "Correo de factura");
                 Requerir(f.CondicionPago, "Condición de pago");
                 Requerir(f.MetodoPago, "Método de pago");
-                Requerir(f.TramiteContrasena, "Trámite de contraseña");
-                if (!new[] { "15", "30", "60", "90" }.Contains(f.TemporadaPago))
+                if (!new[] { "8", "15", "30", "60", "90" }.Contains(f.TemporadaPago))
                     throw new InvalidOperationException("Seleccione los días de crédito.");
                 if (!esActualizacion) f.CambioRazonSocial = false;
                 f.CambioRazonSocialRespuesta = f.CambioRazonSocial ? "SI" : "NO";
@@ -355,7 +455,7 @@ namespace DiamDev.Give.BLL
                 Requerir(f.RiesgoComercial, "Riesgo comercial");
                 Requerir(f.Satisfaccion, "Nivel de satisfacción");
             }
-            if (hasta >= 5)
+            if (hasta >= 5 && esActualizacion)
             {
                 f.CompraActualmente = Respuesta(f.CompraActualmenteRespuesta,
                     "Compra actualmente");
@@ -368,7 +468,6 @@ namespace DiamDev.Give.BLL
                 Requerir(f.CompetidorNegocio, "Competidor en este negocio");
                 Requerir(f.Forecast, "Forecast / expectativa de compra");
                 Requerir(f.ProximoPaso, "Próximo paso comercial");
-                Requerir(f.ObservacionesComerciales, "Observaciones comerciales");
             }
         }
 

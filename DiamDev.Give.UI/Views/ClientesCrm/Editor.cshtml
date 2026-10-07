@@ -11,8 +11,9 @@
     var empresaOpciones = Model.Empresas.Select(x => new SelectListItem { Value = x.Empresa, Text = x.Etiqueta });
     var esCredito = Model.EsCliente;
     var esActualizacion = !esCredito && Model.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion;
+    var esAlta = !esCredito && !esActualizacion;
     var pasoActual = esCredito ? 0 : Math.Max(1, Math.Min(6, Model.PasoActual));
-    var diasCredito = new List<SelectListItem> { new SelectListItem { Value = "15", Text = "15 días" }, new SelectListItem { Value = "30", Text = "30 días" }, new SelectListItem { Value = "60", Text = "60 días" }, new SelectListItem { Value = "90", Text = "90 días" } };
+    var diasCredito = new List<SelectListItem> { new SelectListItem { Value = "8", Text = "8 días" }, new SelectListItem { Value = "15", Text = "15 días" }, new SelectListItem { Value = "30", Text = "30 días" }, new SelectListItem { Value = "60", Text = "60 días" }, new SelectListItem { Value = "90", Text = "90 días" } };
     if (esCredito && !string.IsNullOrWhiteSpace(Model.Ficha.TemporadaPago) &&
         !diasCredito.Any(x => x.Value == Model.Ficha.TemporadaPago))
     {
@@ -55,8 +56,8 @@
             <a href="#crm-contactos" data-step="2" @(pasoActual == 2 ? "aria-current=step" : "")><span>02</span> Contactos</a>
             <a href="#crm-direcciones" data-step="3" @(pasoActual == 3 ? "aria-current=step" : "")><span>03</span> Entregas</a>
             <a href="#crm-perfil" data-step="4" @(pasoActual == 4 ? "aria-current=step" : "")><span>04</span> Perfil</a>
-            <a href="#crm-desarrollo" data-step="5" @(pasoActual == 5 ? "aria-current=step" : "")><span>05</span> Desarrollo</a>
-            <a href="#crm-documentos" data-step="6" @(pasoActual == 6 ? "aria-current=step" : "")><span>06</span> Documentos</a>
+            @if (!esAlta) { <a href="#crm-desarrollo" data-step="5" @(pasoActual == 5 ? "aria-current=step" : "")><span>05</span> Desarrollo</a> }
+            <a href="#crm-documentos" data-step="6" @(pasoActual == 6 ? "aria-current=step" : "")><span>@(esAlta ? "05" : "06")</span> Documentos</a>
         </nav>
 
         <section class="crm-card" id="crm-identidad" @(!esCredito && pasoActual != 1 ? "hidden" : "")>
@@ -164,7 +165,7 @@
             </div>
         </section>
 
-        <section class="crm-card" id="crm-desarrollo" @(!esCredito && pasoActual != 5 ? "hidden" : "")>
+        @if (!esAlta) { <section class="crm-card" id="crm-desarrollo" @(!esCredito && pasoActual != 5 ? "hidden" : "")>
             <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-bar-chart"></i></div><div><h2>Desarrollo comercial</h2><p>Indicadores de la empresa elegida, expresados en la moneda de gestión de la cuenta.</p></div></div>
             <div class="crm-grid">
                 @if (esCredito) { <div class="crm-field crm-col-12 crm-check"><label>@Html.CheckBoxFor(m => m.Ficha.CompraActualmente) Compra actualmente a esta empresa</label></div> }
@@ -179,7 +180,7 @@
                 <div class="crm-field crm-col-6"><label>Próximo paso comercial</label>@Html.TextBoxFor(m => m.Ficha.ProximoPaso, new { @class = "form-control" })</div>
                 <div class="crm-field crm-col-12"><label>Observaciones / criterio común</label>@Html.TextAreaFor(m => m.Ficha.ObservacionesComerciales, 3, 60, new { @class = "form-control" })</div>
             </div>
-        </section>
+        </section> }
 
         <section class="crm-card" id="crm-documentos" @(!esCredito && pasoActual != 6 ? "hidden" : "")>
             <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-file-text"></i></div><div><h2>Documentos de respaldo</h2><p>PDF, PNG o JPG; máximo 5 MB por archivo. Al reemplazar uno se conserva el evento en auditoría.</p></div></div>
@@ -199,7 +200,7 @@
             <div>
                 @if (esCredito) { <button class="crm-btn crm-btn-primary" type="submit"><i class="icon-ok"></i> Guardar ficha</button> }
                 else {
-                    if (pasoActual > 1 && Model.SolicitudId > 0) { <a class="crm-btn crm-btn-outline" href="@Url.Action("EditarSolicitud", new { id = Model.SolicitudId, paso = pasoActual - 1 })"><i class="icon-arrow-left"></i> Anterior</a> }
+                    if (pasoActual > 1 && Model.SolicitudId > 0) { <a class="crm-btn crm-btn-outline" href="@Url.Action("EditarSolicitud", new { id = Model.SolicitudId, paso = esAlta && pasoActual == 6 ? 4 : pasoActual - 1 })"><i class="icon-arrow-left"></i> Anterior</a> }
                     <button class="crm-btn crm-btn-outline" type="submit" name="accion" value="BORRADOR" formnovalidate><i class="icon-save"></i> Guardar borrador</button>
                     if (pasoActual < 6) { <button class="crm-btn crm-btn-primary" type="submit" name="accion" value="CONTINUAR"><i class="icon-arrow-right"></i> Guardar y continuar</button> }
                     else { <button class="crm-btn crm-btn-primary" type="submit" name="accion" value="ENVIAR"><i class="icon-arrow-right"></i> Enviar a Créditos</button> }
@@ -208,4 +209,4 @@
         </div>
     </form>
 </div>
-@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=9")"></script> }
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=10")"></script> }

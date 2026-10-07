@@ -46,7 +46,9 @@
         Array.prototype.forEach.call(document.querySelectorAll('.crm-editor section[id^="crm-"]'), function (seccion) {
             seccion.hidden = seccion.id !== secciones[pasoActual - 1];
             Array.prototype.forEach.call(seccion.querySelectorAll('.form-control'), function (control) {
-                control.required = !seccion.hidden && control.type !== 'file';
+                control.required = !seccion.hidden && control.type !== 'file' &&
+                    control.name !== 'Ficha.TramiteContrasena' &&
+                    control.name !== 'Ficha.ObservacionesComerciales';
             });
         });
         var documentos = document.getElementById('crm-documentos');

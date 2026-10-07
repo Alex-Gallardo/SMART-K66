@@ -19,30 +19,33 @@ assert(fs.existsSync(chrome), 'Chrome no está disponible para la prueba del cal
 const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'k66-fecha-browser-'));
 const fixture = path.join(testDir, 'fecha.html');
 const html = `<!doctype html><html><body>
-<select id="TipoPedidoId"><option value="">Seleccione</option><option value="N1">Normal</option><option value="P">Temporada</option></select>
+<select id="TipoPedidoId"><option value="">Seleccione</option><option value="N1">Normal</option><option value="P">Temporada</option><option value="PG">Programación</option></select>
 <div id="divFechaEntrega"><input id="FechaEntrega" class="date-picker" data-date-format="yyyy-mm-dd" value="2026-10-04"></div>
 <input id="FechaPrometida" value="2026-10-05">
 <script src="${jquery}"></script><script src="${datepicker}"></script>
 <script>
-var fechaActual = '2026-10-05', fechaMinimaNormal = '2026-10-05';
+var fechaActual = '2026-10-05', fechaEntregaInicial = '2026-10-07', fechaEntregaElegida = false;
 $(function () {
     try {
         $('#FechaEntrega').datepicker({ autoclose: true });
         ${script}
-        $('#TipoPedidoId').val('N1').change();
         var input = $('#FechaEntrega');
         var calendario = input.data('datepicker');
-        if (input.val() !== '2026-10-05' || $('#FechaPrometida').val() !== '2026-10-05') throw Error('Fecha mínima o dato enviado incorrectos.');
-        if (!input.prop('readonly') || !calendario.o.startDate || calendario.o.startDate.getUTCDate() !== 5) throw Error('Restricción del calendario no aplicada.');
-        input.datepicker('show');
-        var dias = calendario.picker.find('td.day:not(.old):not(.new)');
-        function dia(numero) { return dias.filter(function () { return $(this).text() === String(numero); }); }
-        if (!dia(4).hasClass('disabled') || dia(5).hasClass('disabled') || dia(6).hasClass('disabled')) throw Error('El calendario no bloqueó las fechas anteriores.');
-        input.datepicker('hide');
-        $('#TipoPedidoId').val('P').change();
-        if (input.prop('readonly') || calendario.o.startDate !== -Infinity || !$('#divFechaEntrega').is(':visible')) throw Error('Temporada debe quedar sin restricción.');
-        input.datepicker('setDate', new Date(2026, 9, 4));
-        if (input.val() !== '2026-10-04' || $('#FechaPrometida').val() !== '2026-10-04') throw Error('Temporada cambió su comportamiento.');
+        ['N1', 'P', 'PG'].forEach(function (tipo) {
+            fechaEntregaElegida = false;
+            input.datepicker('setDate', new Date(2026, 9, 5));
+            $('#TipoPedidoId').val(tipo).change();
+            if (input.val() !== '2026-10-07' || $('#FechaPrometida').val() !== '2026-10-07') throw Error('Fecha inicial incorrecta para ' + tipo);
+            if (!input.prop('readonly') || !calendario.o.startDate || calendario.o.startDate.getUTCDate() !== 5) throw Error('Restricción del calendario no aplicada a ' + tipo);
+            input.datepicker('show');
+            var dias = calendario.picker.find('td.day:not(.old):not(.new)');
+            function dia(numero) { return dias.filter(function () { return $(this).text() === String(numero); }); }
+            if (!dia(4).hasClass('disabled') || dia(5).hasClass('disabled') || dia(7).hasClass('disabled')) throw Error('Días habilitados incorrectos para ' + tipo);
+            input.datepicker('hide');
+        });
+        input.datepicker('setDate', new Date(2026, 9, 5));
+        $('#TipoPedidoId').val('N1').change();
+        if (input.val() !== '2026-10-05' || $('#FechaPrometida').val() !== '2026-10-05') throw Error('Una fecha válida elegida no se conservó al cambiar de tipo.');
         document.body.setAttribute('data-test', 'OK');
     } catch (error) { document.body.setAttribute('data-test', 'FAIL: ' + error.message); }
 });

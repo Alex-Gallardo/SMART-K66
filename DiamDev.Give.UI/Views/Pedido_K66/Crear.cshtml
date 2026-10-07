@@ -186,7 +186,8 @@
     var direccionIds = "@Html.Raw(ViewBag.DireccionIds)";
     var tipoPedidoIds = "@Html.Raw(ViewBag.TipoPedidoIds)";
     var fechaActual = "@DateTime.Today.ToString("yyyy-MM-dd")";
-    var fechaMinimaNormal = fechaActual;
+    var fechaEntregaInicial = "@DateTime.Today.AddDays(2).ToString("yyyy-MM-dd")";
+    var fechaEntregaElegida = @Html.Raw(Json.Encode(ViewBag.FechaEntregaElegida ?? false));
 
     var unidadPermisoIds = "@Html.Raw(ViewBag.Unidad)";
 
@@ -1157,29 +1158,28 @@
         function actualizarFechaEntrega()
         {
             var tipo = $("#TipoPedidoId").val();
-            var esNormal = $.trim($("#TipoPedidoId option:selected").text()).toLowerCase() === "normal";
+            var nombreTipo = $.trim($("#TipoPedidoId option:selected").text()).toLowerCase();
+            var requiereFecha = tipo === "P" || nombreTipo === "temporada" || nombreTipo === "normal" ||
+                nombreTipo === "programacion" || nombreTipo === "programación";
             var fechaEntrega = $("#FechaEntrega");
 
-            $("#divFechaEntrega").toggle(tipo === "P" || esNormal);
-            fechaEntrega.prop("readonly", esNormal);
-            fechaEntrega.datepicker("setStartDate", esNormal ? fechaMinimaNormal : null);
+            $("#divFechaEntrega").toggle(requiereFecha);
+            fechaEntrega.prop("readonly", requiereFecha);
+            fechaEntrega.datepicker("setStartDate", requiereFecha ? fechaActual : null);
 
-            if (esNormal)
+            if (requiereFecha)
             {
-                if (!fechaEntrega.val() || fechaEntrega.val() < fechaMinimaNormal)
+                if (!fechaEntregaElegida || !fechaEntrega.val() || fechaEntrega.val() < fechaActual)
                 {
-                    var partes = fechaMinimaNormal.split("-");
+                    var partes = fechaEntregaInicial.split("-");
                     fechaEntrega.datepicker("setDate", new Date(+partes[0], +partes[1] - 1, +partes[2]));
                 }
+                fechaEntregaElegida = true;
                 $("#FechaPrometida").val(fechaEntrega.val());
-            }
-            else if (tipo !== "P")
-            {
-                $("#FechaPrometida").val(fechaActual);
             }
             else
             {
-                $("#FechaPrometida").val(fechaEntrega.val());
+                $("#FechaPrometida").val(fechaActual);
             }
         }
 

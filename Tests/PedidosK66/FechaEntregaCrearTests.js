@@ -10,7 +10,7 @@ assert(start !== -1 && end !== -1, 'No se encontró la lógica de Fecha Entrega 
 const script = view.slice(start, end);
 
 const state = {
-    tipo: '', nombreTipo: '--Seleccione--', fecha: '2026-10-04', prometida: '2026-10-05',
+    tipo: '', nombreTipo: '--Seleccione--', fecha: '2026-10-05', prometida: '2026-10-05',
     visible: false, readonly: false, startDate: null, events: {}
 };
 
@@ -40,7 +40,8 @@ function elemento(selector) {
 
 function $(selector) { return elemento(selector); }
 $.trim = text => text.trim();
-vm.runInNewContext(script, { $, fechaActual: '2026-10-05', fechaMinimaNormal: '2026-10-05', Date });
+const context = { $, fechaActual: '2026-10-05', fechaEntregaInicial: '2026-10-07', fechaEntregaElegida: false, Date };
+vm.runInNewContext(script, context);
 
 function seleccionar(tipo, nombre) {
     state.tipo = tipo;
@@ -49,31 +50,35 @@ function seleccionar(tipo, nombre) {
 }
 
 assert.strictEqual(state.visible, false, 'La fecha debe iniciar oculta.');
-seleccionar('N1', ' Normal ');
-assert.strictEqual(state.visible, true, 'Normal debe mostrar la fecha, independientemente del código SAP.');
-assert.strictEqual(state.readonly, true, 'Normal debe impedir escribir una fecha fuera del calendario.');
-assert.strictEqual(state.startDate, '2026-10-05', 'Normal debe bloquear los días anteriores a hoy.');
-assert.strictEqual(state.fecha, '2026-10-05', 'La fecha inicial de Normal debe ser hoy.');
-assert.strictEqual(state.prometida, '2026-10-05', 'El dato enviado debe corresponder al campo visible.');
+for (const [tipo, nombre] of [['N1', ' Normal '], ['P', 'Temporada'], ['PG', 'Programacion'], ['PG', 'Programación']]) {
+    context.fechaEntregaElegida = false;
+    state.fecha = '2026-10-05';
+    seleccionar(tipo, nombre);
+    assert.strictEqual(state.visible, true, `${nombre} debe mostrar la fecha.`);
+    assert.strictEqual(state.readonly, true, `${nombre} debe impedir escribir una fecha pasada.`);
+    assert.strictEqual(state.startDate, '2026-10-05', `${nombre} debe bloquear los días anteriores a hoy.`);
+    assert.strictEqual(state.fecha, '2026-10-07', `${nombre} debe proponer hoy + 2 días.`);
+    assert.strictEqual(state.prometida, '2026-10-07', `${nombre} debe enviar la fecha visible.`);
+}
 
-state.fecha = '2026-10-10';
+state.fecha = '2026-10-05';
 state.events['#FechaEntrega']({ preventDefault() {} });
-assert.strictEqual(state.prometida, '2026-10-10', 'Una fecha posterior debe enviarse correctamente.');
+assert.strictEqual(state.prometida, '2026-10-05', 'Hoy debe poder elegirse y enviarse.');
 
 seleccionar('P', 'Temporada');
-assert.strictEqual(state.visible, true, 'Temporada debe conservar el campo visible.');
-assert.strictEqual(state.startDate, null, 'Temporada no debe conservar el mínimo de Normal.');
-assert.strictEqual(state.readonly, false, 'Temporada debe conservar la edición existente.');
-assert.strictEqual(state.prometida, '2026-10-10');
+assert.strictEqual(state.fecha, '2026-10-05', 'Cambiar de tipo debe conservar una fecha válida elegida.');
+assert.strictEqual(state.startDate, '2026-10-05');
+
 state.fecha = '2026-10-04';
-state.events['#FechaEntrega']({ preventDefault() {} });
-assert.strictEqual(state.prometida, '2026-10-04', 'Temporada debe conservar su comportamiento anterior.');
+seleccionar('PG', 'Programación');
+assert.strictEqual(state.fecha, '2026-10-07', 'Una fecha pasada debe corregirse al cambiar de tipo.');
 
 seleccionar('X', 'Otro');
 assert.strictEqual(state.visible, false, 'Otro tipo debe ocultar la fecha.');
+assert.strictEqual(state.startDate, null, 'Otro tipo no debe tener el mínimo de los tres tipos.');
 assert.strictEqual(state.prometida, '2026-10-05', 'Otro tipo no debe reutilizar una fecha anterior.');
 
 state.fecha = '2026-10-04';
 seleccionar('N1', 'Normal');
-assert.strictEqual(state.fecha, '2026-10-05', 'Al regresar a Normal se debe restablecer la fecha mínima.');
+assert.strictEqual(state.fecha, '2026-10-07', 'Al regresar a Normal se debe corregir una fecha pasada.');
 console.log('FechaEntregaCrearTests: OK');

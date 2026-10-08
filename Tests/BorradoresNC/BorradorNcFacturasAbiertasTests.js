@@ -13,6 +13,9 @@ const vista = fs.readFileSync(
     path.join(raiz, "DiamDev.Give.UI", "Views", "BorradorNc", "Index.cshtml"), "utf8");
 const javascript = fs.readFileSync(
     path.join(raiz, "DiamDev.Give.UI", "Scripts", "App", "BorradorNc-Index.js"), "utf8");
+const migracionHana = fs.readFileSync(
+    path.join(raiz, "SqlMigrations", "BorradoresNC",
+        "09_exportacion_todas_desde_enero_hana.sql"), "utf8");
 
 const inicioBusqueda = bll.indexOf("public List<FacturaBorradorNc> BuscarFacturas(");
 const finBusqueda = bll.indexOf("public FacturaBorradorNc ObtenerEstadoFactura(", inicioBusqueda);
@@ -21,7 +24,14 @@ assert(inicioBusqueda >= 0 && finBusqueda > inicioBusqueda,
 
 const busqueda = bll.substring(inicioBusqueda, finBusqueda);
 assert(busqueda.includes("facturas.Where(EsFacturaAbierta).ToList()"),
-    "El modal debe filtrar las facturas mediante EsFacturaAbierta.");
+    "Los agentes ordinarios deben filtrar las facturas mediante EsFacturaAbierta.");
+assert(busqueda.includes('"EXPORTACION"') &&
+       busqueda.includes("else if (!MostrarFacturasPagadas)"),
+    "EXPORTACION debe omitir el filtro de pagadas sin cambiar a los demás agentes.");
+assert(busqueda.includes("new DateTime(hoy.Year, 1, 1)") &&
+       busqueda.includes("f.DocDate.Date >= desde") &&
+       busqueda.includes("f.DocDate.Date <= hoy"),
+    "EXPORTACION debe limitarse desde enero hasta hoy.");
 assert(busqueda.indexOf("facturas.Where(EsFacturaAbierta).ToList()") <
        busqueda.indexOf("var docs = facturas.Select"),
     "Las pagadas deben excluirse antes de consultar acumulados y NC previas.");
@@ -44,7 +54,15 @@ assert(vista.includes("Facturas abiertas disponibles") &&
     "El modal debe explicar que muestra facturas abiertas.");
 assert(javascript.includes("Sin facturas abiertas disponibles") &&
        javascript.includes("Solo se muestran facturas con saldo pendiente"),
-    "El estado vacío debe explicar el filtro temporal.");
+    "El estado vacío de los demás agentes debe explicar el filtro de saldo.");
+assert(javascript.includes("Facturas de EXPORTACION desde enero") &&
+       javascript.includes("Sin facturas desde enero") &&
+       javascript.includes("facturas desde enero"),
+    "El modal de EXPORTACION debe describir su alcance real.");
+assert((migracionHana.match(/^CREATE OR REPLACE VIEW/gm) || []).length === 3 &&
+       (migracionHana.match(/T1\."SlpName" = 'EXPORTACION' AND T0\."DocCur" <> 'QTZ' THEN T0\."PaidFC"/g) || []).length === 3 &&
+       (migracionHana.match(/T0\."DocDate" < ADD_DAYS\(CURRENT_DATE, 1\)/g) || []).length === 3,
+    "Las tres vistas deben normalizar solo los pagos de EXPORTACION y limitarla hasta hoy.");
 
 const abierta = (pagado, total) => pagado < total;
 assert.strictEqual(abierta(0, 100), true, "sin pagos");
@@ -52,4 +70,4 @@ assert.strictEqual(abierta(99.999999, 100), true, "diferencia mínima");
 assert.strictEqual(abierta(100, 100), false, "pagada exactamente");
 assert.strictEqual(abierta(101, 100), false, "sobrepagada");
 
-console.log("OK: el modal muestra únicamente facturas con saldo pendiente exacto.");
+console.log("OK: EXPORTACION ve facturas desde enero; los demás agentes, solo abiertas.");

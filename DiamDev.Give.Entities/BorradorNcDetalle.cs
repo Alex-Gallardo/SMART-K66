@@ -14,7 +14,8 @@
         public string NumeroFel { get; set; }        // U_NUMERO_DOCUMENTO
         public decimal TotalFactura { get; set; }    // DocTotal
 
-        /// <summary>PaidToDate de SAP al capturar. NO reduce el tope
+        /// <summary>Importe pagado de la vista SAP al capturar (para EXPORTACION,
+        /// en la moneda de la factura). NO reduce el tope
         /// (una factura pagada admite NC por devolución), pero se guarda
         /// porque no se puede reconstruir después.</summary>
         public decimal Pagado { get; set; }

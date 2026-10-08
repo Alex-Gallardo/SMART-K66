@@ -82,7 +82,7 @@ namespace DiamDev.Give.UI.Controllers
 
             if (factura == null)
                 return HttpNotFound(
-                    "La factura no existe, ya no está abierta o no pertenece al cliente y agente seleccionados.");
+                    "La factura no está disponible para el cliente y agente seleccionados.");
 
             string urlPdf = _bll.ObtenerUrlPdfFactura(
                 empresa, factura.CardCode, factura.DocNum);
@@ -198,7 +198,7 @@ namespace DiamDev.Give.UI.Controllers
                 empresa, clienteId, codigoOperador, documento);
             if (factura == null)
                 return HttpNotFound(
-                    "La factura no existe, ya no está abierta o no pertenece al cliente y agente seleccionados.");
+                    "La factura no está disponible para el cliente y agente seleccionados.");
 
             string urlPdf = _bll.ObtenerUrlPdfFactura(
                 empresa, factura.CardCode, factura.DocNum);

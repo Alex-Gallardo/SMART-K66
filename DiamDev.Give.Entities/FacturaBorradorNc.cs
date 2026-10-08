@@ -20,7 +20,7 @@ namespace DiamDev.Give.Entities
         public string SlpName { get; set; }
         public string Moneda { get; set; }
         public decimal DocTotal { get; set; }
-        public decimal Pagado { get; set; }        // PaidToDate
+        public decimal Pagado { get; set; }        // PaidToDate de la vista; EXPORTACION usa la moneda de DocTotal
         public string SerieFel { get; set; }
         public string NumeroFel { get; set; }
 

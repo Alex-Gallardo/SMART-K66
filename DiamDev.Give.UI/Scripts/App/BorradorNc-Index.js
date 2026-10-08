@@ -170,6 +170,7 @@
     function empresa() { return $("#bncEmpresa").val() || ""; }
     function codigoOperador() { return $("#bncAgente").val() || ""; }
     function agente() { return $("#bncAgente option:selected").data("agent") || ""; }
+    function esAgenteExportacion() { return $.trim(String(agente())).toUpperCase() === "EXPORTACION"; }
 
     function cargarCatalogoOperadores() {
         state.operadores = [];
@@ -483,9 +484,15 @@
     function cargarFacturas() {
         if (!empresa()) { avisar("warning", "Seleccione una empresa."); return; }
         if (!state.cliente) { avisar("warning", "Seleccione un cliente."); return; }
+        var exportacion = esAgenteExportacion();
+        var titulo = exportacion ? "Facturas de EXPORTACION desde enero" : "Facturas abiertas disponibles";
+        $("#bncFacturaModalTitle").html('<i class="icon-file-text"></i> ' + titulo);
+        $(".bnc-invoice-table").attr("aria-label", exportacion ?
+            "Facturas de EXPORTACION desde enero" : "Facturas abiertas de SAP");
         var $button = $("#bncCargarFacturas");
         setBusy($button, true, "Buscando");
         $("#bncFacturaBody").empty();
+        $("#bncFacturaCount").text("");
         $("#bncFacturaEmpty").html('<div class="bnc-loading"><span class="bnc-spinner"></span>Consultando SAP y borradores vigentes...</div>').show();
 
         get(urls.facturas, {
@@ -532,11 +539,15 @@
                 '<i class="icon-external-link" aria-hidden="true"></i><span>Ver detalle</span></a></td></tr>';
         });
         $("#bncFacturaBody").html(html);
-        $("#bncFacturaEmpty").toggle(!state.facturas.length).html(
+        var exportacion = esAgenteExportacion();
+        $("#bncFacturaEmpty").toggle(!state.facturas.length).html(exportacion ?
+            '<i class="icon-inbox"></i><strong>Sin facturas desde enero</strong>' +
+            '<span>No se encontraron facturas emitidas para este cliente entre enero y hoy. Confirme el cliente o pruebe otro número.</span>' :
             '<i class="icon-inbox"></i><strong>Sin facturas abiertas disponibles</strong>' +
             '<span>Solo se muestran facturas con saldo pendiente. Pruebe otro número o confirme el cliente.</span>');
         $("#bncFacturaCount").text(state.facturas.length +
-            (state.facturas.length === 1 ? " factura abierta" : " facturas abiertas"));
+            (exportacion ? (state.facturas.length === 1 ? " factura desde enero" : " facturas desde enero") :
+                (state.facturas.length === 1 ? " factura abierta" : " facturas abiertas")));
     }
 
     function seleccionarFactura(index) {

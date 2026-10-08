@@ -95,9 +95,10 @@ namespace DiamDev.Give.BLL
         ///   Disponible      = DocTotal (tope independiente por borrador)
         ///   DisponibleNeto  = Disponible − NC previas en SAP    (advertencia)
         ///
-        /// PaidToDate no reduce el tope. Temporalmente, las facturas pagadas
-        /// por completo se excluyen de este selector mediante configuración.
-        /// Cualquier diferencia, por pequeña que sea, mantiene la factura
+        /// PaidToDate no reduce el tope. EXPORTACION puede consultar todas sus
+        /// facturas emitidas desde el inicio del año hasta hoy, incluidas las
+        /// pagadas. Para los demás agentes, las facturas pagadas se excluyen
+        /// mediante configuración. Cualquier diferencia mantiene la factura
         /// abierta: no se aplica tolerancia a esta comparación.
         /// </summary>
         public List<FacturaBorradorNc> BuscarFacturas(
@@ -105,7 +106,16 @@ namespace DiamDev.Give.BLL
         {
             var facturas = _hana.ObtenerFacturasBorradorNc(empresa, clienteId, agente, filtro);
 
-            if (!MostrarFacturasPagadas)
+            bool esExportacion = string.Equals((agente ?? "").Trim(), "EXPORTACION",
+                                               StringComparison.OrdinalIgnoreCase);
+            if (esExportacion)
+            {
+                DateTime hoy = DateTime.Today;
+                DateTime desde = new DateTime(hoy.Year, 1, 1);
+                facturas = facturas.Where(f => f.DocDate.Date >= desde &&
+                                               f.DocDate.Date <= hoy).ToList();
+            }
+            else if (!MostrarFacturasPagadas)
                 facturas = facturas.Where(EsFacturaAbierta).ToList();
 
             if (facturas.Count == 0) return facturas;

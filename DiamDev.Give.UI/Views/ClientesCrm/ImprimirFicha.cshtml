@@ -1,0 +1,55 @@
+@model DiamDev.Give.UI.Models.ClienteCrmDetalleViewModel
+@using System
+@using System.Linq
+@{
+    Layout = null;
+    var cliente = Model.Cliente;
+    var ficha = cliente.Ficha;
+    string empresa = cliente.Empresa;
+    string nombreEmpresa = empresa == "FAES" ? "Escocesa" : empresa == "GRACO" ? "Graco Pack" : "Bolik";
+    var archivos = Model.Archivos ?? new System.Collections.Generic.List<DiamDev.Give.Entities.ClienteCrmArchivo>();
+}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ficha de cliente #@cliente.Id · @ficha.RazonSocial</title>
+    <link rel="stylesheet" href="@Url.Content("~/Content/clientes-crm-print.css?v=1")" />
+</head>
+<body class="crm-print-body">
+    <div class="crm-print-toolbar" role="toolbar" aria-label="Opciones de impresión">
+        <a href="@Url.Action("Ficha", new { id = cliente.Id, empresa = empresa })">← Volver a la ficha</a>
+        <span>En el diálogo de impresión, seleccione «Guardar como PDF» para descargar.</span>
+        <button id="crmPrintButton" type="button"><span aria-hidden="true">▣</span> Imprimir / guardar PDF</button>
+    </div>
+    <main class="crm-print-sheet" data-empresa="@empresa">
+        <div class="crm-print-page">
+            <header class="crm-print-header">
+                <div class="crm-print-brand"><img src="@Url.Content("~/Content/assets/images/logo.png")" alt="Grupo K66" /><div><strong>SMART K66</strong><span>Clientes · CRM</span></div></div>
+                <div class="crm-print-document"><span>FICHA DE CLIENTE</span><strong>#@cliente.Id</strong></div>
+            </header>
+            <div class="crm-print-hero">
+                <div><span class="crm-print-eyebrow">@nombreEmpresa · Registro CRM</span><h1>@ficha.RazonSocial</h1><p>@(string.IsNullOrWhiteSpace(ficha.NombreComercial) ? ficha.NitDpi : ficha.NombreComercial + " · " + ficha.NitDpi)</p></div>
+                <span class="crm-print-status @(cliente.Activo ? "is-active" : "is-inactive")">@(cliente.Activo ? "Activo" : "Inactivo")</span>
+            </div>
+            <dl class="crm-print-summary">
+                <div><dt>Empresa</dt><dd>@nombreEmpresa</dd></div>
+                <div><dt>Código SAP</dt><dd>@(string.IsNullOrWhiteSpace(cliente.CodigoSap) ? "Pendiente de vincular" : cliente.CodigoSap)</dd></div>
+                <div><dt>Versión de la ficha</dt><dd>@cliente.Version</dd></div>
+                <div><dt>Actualizada</dt><dd>@cliente.ActualizadoEn.ToString("dd/MM/yyyy HH:mm")</dd></div>
+            </dl>
+
+            @Html.Partial("_ContenidoImpresion", ficha)
+
+            <section class="crm-print-section">
+                <div class="crm-print-section-heading"><span>◆</span><div><h2>Documentos registrados</h2><p>Archivos de respaldo asociados a la ficha</p></div></div>
+                @if (archivos.Count == 0) { <p class="crm-print-empty">No hay documentos registrados.</p> }
+                else { <ul class="crm-print-documents">@foreach (var archivo in archivos) { <li><strong>@archivo.Tipo</strong><span>@archivo.Nombre</span></li> }</ul> }
+            </section>
+            <footer class="crm-print-footer"><span>Grupo K66 · Ficha CRM #@cliente.Id</span><span>Vista de impresión · @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span></footer>
+        </div>
+    </main>
+    <script src="@Url.Content("~/Scripts/clientes-crm-print.js?v=1")"></script>
+</body>
+</html>

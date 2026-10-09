@@ -604,6 +604,7 @@
     <Content Include="Content\borrador-nc-dashboard-audit.css" />
     <Content Include="Content\cotizaciones.css" />
     <Content Include="Content\clientes-crm.css" />
+    <Content Include="Content\clientes-crm-print.css" />
     <Content Include="Content\backlog-viz.css" />
     <Content Include="Content\otif-viz.css" />
     <Content Include="Content\produccion-v2-shared.css" />
@@ -673,6 +674,7 @@
     <Content Include="Scripts\App\BorradorNc-DashboardDetalle.js" />
     <Content Include="Scripts\App\Cotizacion-Index.js" />
     <Content Include="Scripts\clientes-crm.js" />
+    <Content Include="Scripts\clientes-crm-print.js" />
     <Content Include="Scripts\App\backlog-viz.js" />
     <Content Include="Scripts\App\otif-viz.js" />
     <Content Include="Scripts\App\produccion-v2-shared.js" />
@@ -1436,6 +1438,9 @@
     <Content Include="Views\ClientesCrm\Index.cshtml" />
     <Content Include="Views\ClientesCrm\Editor.cshtml" />
     <Content Include="Views\ClientesCrm\Detalle.cshtml" />
+    <Content Include="Views\ClientesCrm\ImprimirFicha.cshtml" />
+    <Content Include="Views\ClientesCrm\ImprimirSolicitud.cshtml" />
+    <Content Include="Views\ClientesCrm\_ContenidoImpresion.cshtml" />
     <Content Include="Views\ClientesCrm\Dashboard.cshtml" />
     <Content Include="Views\ClientesCrm\Clientes.cshtml" />
     <Content Include="Views\ReciboCaja\_ReciboImpresion.cshtml" />

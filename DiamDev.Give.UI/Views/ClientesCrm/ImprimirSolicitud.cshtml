@@ -1,0 +1,59 @@
+@model DiamDev.Give.UI.Models.ClienteCrmDetalleViewModel
+@using System
+@using System.Linq
+@{
+    Layout = null;
+    var solicitud = Model.Solicitud;
+    var ficha = solicitud.Ficha;
+    string empresa = solicitud.Empresa;
+    string nombreEmpresa = empresa == "FAES" ? "Escocesa" : empresa == "GRACO" ? "Graco Pack" : "Bolik";
+    bool esActualizacion = solicitud.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion;
+    var archivos = Model.Archivos ?? new System.Collections.Generic.List<DiamDev.Give.Entities.ClienteCrmArchivo>();
+}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Solicitud #@solicitud.Id · @ficha.RazonSocial</title>
+    <link rel="stylesheet" href="@Url.Content("~/Content/clientes-crm-print.css?v=1")" />
+</head>
+<body class="crm-print-body">
+    <div class="crm-print-toolbar" role="toolbar" aria-label="Opciones de impresión">
+        <a href="@Url.Action("Solicitud", new { id = solicitud.Id })">← Volver a la solicitud</a>
+        <span>En el diálogo de impresión, seleccione «Guardar como PDF» para descargar.</span>
+        <button id="crmPrintButton" type="button"><span aria-hidden="true">▣</span> Imprimir / guardar PDF</button>
+    </div>
+    <main class="crm-print-sheet" data-empresa="@empresa">
+        <div class="crm-print-page">
+            <header class="crm-print-header">
+                <div class="crm-print-brand"><img src="@Url.Content("~/Content/assets/images/logo.png")" alt="Grupo K66" /><div><strong>SMART K66</strong><span>Clientes · CRM</span></div></div>
+                <div class="crm-print-document"><span>SOLICITUD DE @(esActualizacion ? "ACTUALIZACIÓN" : "CREACIÓN")</span><strong>#@solicitud.Id</strong></div>
+            </header>
+            <div class="crm-print-hero">
+                <div><span class="crm-print-eyebrow">@nombreEmpresa · @(esActualizacion ? "Actualización de cliente" : "Creación de cliente")</span><h1>@ficha.RazonSocial</h1><p>@(string.IsNullOrWhiteSpace(ficha.NombreComercial) ? ficha.NitDpi : ficha.NombreComercial + " · " + ficha.NitDpi)</p></div>
+                <span class="crm-print-status is-@solicitud.Estado.ToLowerInvariant()">@solicitud.Estado</span>
+            </div>
+            <dl class="crm-print-summary">
+                <div><dt>Empresa</dt><dd>@nombreEmpresa</dd></div>
+                <div><dt>Agente</dt><dd>@(solicitud.Agente ?? "—")</dd></div>
+                <div><dt>Creada por</dt><dd>@(solicitud.CreadoPor ?? "—")</dd></div>
+                <div><dt>Fecha de creación</dt><dd>@solicitud.CreadoEn.ToString("dd/MM/yyyy HH:mm")</dd></div>
+                <div><dt>Enviada a Créditos</dt><dd>@(solicitud.EnviadoEn.HasValue ? solicitud.EnviadoEn.Value.ToString("dd/MM/yyyy HH:mm") : "—")</dd></div>
+                <div><dt>Resolución</dt><dd>@(solicitud.ResueltoEn.HasValue ? solicitud.ResueltoEn.Value.ToString("dd/MM/yyyy HH:mm") : "—")</dd></div>
+            </dl>
+            @if (!string.IsNullOrWhiteSpace(solicitud.MotivoRechazo)) { <div class="crm-print-notice"><strong>Motivo del rechazo</strong><p>@solicitud.MotivoRechazo</p></div> }
+
+            @Html.Partial("_ContenidoImpresion", ficha)
+
+            <section class="crm-print-section">
+                <div class="crm-print-section-heading"><span>◆</span><div><h2>Documentos registrados</h2><p>Archivos de respaldo asociados a la solicitud</p></div></div>
+                @if (archivos.Count == 0) { <p class="crm-print-empty">No hay documentos registrados.</p> }
+                else { <ul class="crm-print-documents">@foreach (var archivo in archivos) { <li><strong>@archivo.Tipo</strong><span>@archivo.Nombre</span></li> }</ul> }
+            </section>
+            <footer class="crm-print-footer"><span>Grupo K66 · Solicitud #@solicitud.Id</span><span>Vista de impresión · @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span></footer>
+        </div>
+    </main>
+    <script src="@Url.Content("~/Scripts/clientes-crm-print.js?v=1")"></script>
+</body>
+</html>

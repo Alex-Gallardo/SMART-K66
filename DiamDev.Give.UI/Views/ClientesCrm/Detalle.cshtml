@@ -9,11 +9,13 @@
     string nombreEmpresa = empresa == "FAES" ? "Escocesa" : empresa == "GRACO" ? "Graco Pack" : "Bolik";
     long entidadId = esSolicitud ? Model.Solicitud.Id : Model.Cliente.Id;
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=3")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=4")" rel="stylesheet" /> }
 <div class="crm crm-detail" data-empresa="@empresa">
     <header class="crm-page-head">
         <a class="crm-back" href="@Url.Action(esSolicitud ? (Model.EsVistaCreditos ? "ControlCreditos" : Model.Solicitud.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion ? "Actualizacion" : "Index") : "Actualizacion")"><i class="icon-arrow-left"></i> Volver al listado</a>
-        <div class="crm-head-row"><div><span class="crm-eyebrow">@(esSolicitud ? (Model.Solicitud.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion ? "Actualización #" : "Solicitud #") + entidadId : "Ficha de cliente #" + entidadId) · @nombreEmpresa</span>
+        <div class="crm-head-row"><div>
+            <div class="crm-record-heading"><span class="crm-record-kind @(esSolicitud ? "crm-record-kind-request" : "crm-record-kind-client")"><i class="@(esSolicitud ? "icon-file-text" : "icon-address-book")" aria-hidden="true"></i> @(esSolicitud ? (Model.Solicitud.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion ? "Solicitud de actualización" : "Solicitud de creación") : "Ficha de cliente")</span><span class="crm-record-number">#@entidadId</span></div>
+            <span class="crm-eyebrow">Clientes · @nombreEmpresa</span>
             <h1>@f.RazonSocial</h1><p>@f.NombreComercial · @f.NitDpi</p></div>
             <div class="crm-head-actions">
                 @if (esSolicitud) { <span class="crm-state crm-state-@Model.Solicitud.Estado.ToLowerInvariant()">@Model.Solicitud.Estado</span> }
@@ -54,7 +56,7 @@
         <aside class="crm-detail-aside">
             <section class="crm-card crm-side-card"><h2>Estado de la ficha</h2>
                 @if (esSolicitud) { <dl><dt>Empresa</dt><dd>@nombreEmpresa</dd><dt>Agente</dt><dd>@Model.Solicitud.Agente</dd><dt>Creada por</dt><dd>@Model.Solicitud.CreadoPor</dd><dt>Fecha</dt><dd>@Model.Solicitud.CreadoEn.ToString("dd/MM/yyyy HH:mm")</dd><dt>Enviada</dt><dd>@(Model.Solicitud.EnviadoEn.HasValue ? Model.Solicitud.EnviadoEn.Value.ToString("dd/MM/yyyy HH:mm") : "—")</dd></dl> }
-                else { <dl><dt>Empresa</dt><dd>@nombreEmpresa</dd><dt>Código SAP</dt><dd><strong>@(string.IsNullOrWhiteSpace(Model.Cliente.CodigoSap) ? "Pendiente de vincular" : Model.Cliente.CodigoSap)</strong></dd><dt>Última actualización</dt><dd>@Model.Cliente.ActualizadoEn.ToString("dd/MM/yyyy HH:mm")</dd></dl> }
+                else { <dl><dt>Empresa</dt><dd>@nombreEmpresa</dd><dt>Código SAP</dt><dd><strong>@(string.IsNullOrWhiteSpace(Model.Cliente.CodigoSap) ? "Pendiente de vincular" : Model.Cliente.CodigoSap)</strong></dd><dt>Última actualización</dt><dd>@Model.Cliente.ActualizadoEn.ToString("dd/MM/yyyy HH:mm")</dd></dl><a class="crm-btn crm-btn-outline crm-btn-full crm-print-entry" href="@Url.Action("ImprimirFicha", new { id = entidadId, empresa = empresa })" aria-label="Abrir vista de impresión y guardar PDF de la ficha de cliente #@entidadId"><i class="icon-print" aria-hidden="true"></i> Imprimir / guardar PDF</a> }
             </section>
             @if (Model.PuedeResolver) { <section class="crm-card crm-side-card"><h2>Resolver solicitud</h2><p>La aprobación guarda la ficha CRM en SQL. No modifica el cliente en SAP.</p>
                 <form method="post" action="@Url.Action("ResolverSolicitud")">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@entidadId" /><input type="hidden" name="version" value="@Model.Solicitud.Version" /><button class="crm-btn crm-btn-primary crm-btn-full" name="decision" value="APROBAR" type="submit"><i class="icon-ok"></i> Aprobar solicitud</button><label for="crmMotivo">Motivo del rechazo</label><textarea id="crmMotivo" name="motivo" class="form-control" maxlength="1000" rows="3" placeholder="Explique al vendedor qué debe corregir"></textarea><button class="crm-btn crm-btn-danger crm-btn-full" name="decision" value="RECHAZAR" type="submit"><i class="icon-remove"></i> Rechazar solicitud</button></form>

@@ -48,7 +48,9 @@
             Array.prototype.forEach.call(seccion.querySelectorAll('.form-control'), function (control) {
                 control.required = !seccion.hidden && control.type !== 'file' &&
                     control.name !== 'Ficha.TramiteContrasena' &&
-                    control.name !== 'Ficha.ObservacionesComerciales';
+                    control.name !== 'Ficha.ObservacionesComerciales' &&
+                    control.name !== 'Ficha.CorreoFactura' &&
+                    !/^Ficha\.Contactos\[\d+\]\.Correo$/.test(control.name);
             });
         });
         var documentos = document.getElementById('crm-documentos');
@@ -212,7 +214,8 @@
             var campo = input('Ficha.Contactos[' + i + '].' + dato[0], dato[1],
                 dato[0] === 'Correo' ? 'email' : 'text');
             campo.className += indice < 4 ? ' crm-col-3' : ' crm-col-4';
-            if (wizard && pasoActual === 2) campo.querySelector('input').required = true;
+            if (wizard && pasoActual === 2 && dato[0] !== 'Correo')
+                campo.querySelector('input').required = true;
             campos.appendChild(campo);
         });
         if (wizard) {

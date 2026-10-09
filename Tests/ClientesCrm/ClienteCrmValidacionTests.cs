@@ -62,13 +62,36 @@ namespace Tests.ClientesCrm
             sinCanal.Contactos[0].CanalComunicacion = null;
             if (!Rechaza(sinCanal)) return Fallar("Se aceptó un contacto sin canal de comunicación.");
 
+            foreach (bool esActualizacion in new[] { false, true })
+            {
+                var sinCorreos = FichaCompleta();
+                sinCorreos.CorreoFactura = null;
+                sinCorreos.Contactos[0].Correo = null;
+                ClienteCrmBLL.ValidarPasos(sinCorreos, 2, esActualizacion);
+                ClienteCrmBLL.ValidarFicha(sinCorreos, true, false);
+
+                var correoInvalido = FichaCompleta();
+                correoInvalido.CorreoFactura = "correo-invalido";
+                if (!Rechaza(correoInvalido, esActualizacion))
+                    return Fallar("Se aceptó un correo de facturación inválido.");
+                var contactoInvalido = FichaCompleta();
+                contactoInvalido.Contactos[0].Correo = "correo-invalido";
+                if (!Rechaza(contactoInvalido, esActualizacion))
+                    return Fallar("Se aceptó un correo de contacto inválido.");
+            }
+
+            var clienteCredito = FichaCompleta();
+            clienteCredito.CorreoFactura = null;
+            if (!RechazaFicha(clienteCredito, true))
+                return Fallar("La ficha creada directamente en Créditos perdió su requisito de correo.");
+
             var altaCompleta = FichaCompleta();
             altaCompleta.ObservacionesComerciales = null;
             ClienteCrmBLL.ValidarPasos(altaCompleta, 5, false);
             if (!RechazaDesarrollo(FichaCompleta()))
                 return Fallar("La actualización aceptó Desarrollo incompleto.");
 
-            Console.WriteLine("OK: contactos, comentarios opcionales, 8 días y Desarrollo exclusivo de actualización.");
+            Console.WriteLine("OK: contactos, correos opcionales en solicitudes, 8 días y Desarrollo exclusivo de actualización.");
             return 0;
         }
 
@@ -114,7 +137,19 @@ namespace Tests.ClientesCrm
 
         private static bool Rechaza(ClienteCrmFicha ficha)
         {
-            try { ClienteCrmBLL.ValidarPasos(ficha, 2, true); }
+            return Rechaza(ficha, true);
+        }
+
+        private static bool Rechaza(ClienteCrmFicha ficha, bool esActualizacion)
+        {
+            try { ClienteCrmBLL.ValidarPasos(ficha, 2, esActualizacion); }
+            catch (InvalidOperationException) { return true; }
+            return false;
+        }
+
+        private static bool RechazaFicha(ClienteCrmFicha ficha, bool correoObligatorio)
+        {
+            try { ClienteCrmBLL.ValidarFicha(ficha, true, correoObligatorio); }
             catch (InvalidOperationException) { return true; }
             return false;
         }

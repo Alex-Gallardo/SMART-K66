@@ -77,7 +77,7 @@
                 <div class="crm-field crm-col-4"><label>NIT o DPI <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.NitDpi, new { @class = "form-control", maxlength = "50", required = "required" })</div>
                 <div class="crm-field crm-col-4"><label for="Ficha_TipoNegocioCodigo">Tipo de negocio</label>@Html.HiddenFor(m => m.Ficha.TipoNegocio)<select name="Ficha.TipoNegocioCodigo" id="Ficha_TipoNegocioCodigo" class="form-control" data-url="@Url.Action("TiposNegocioSap")" data-selected="@Model.Ficha.TipoNegocioCodigo"><option value="">Seleccione una empresa...</option>@if (Model.Ficha.TipoNegocioCodigo.HasValue) { <option value="@Model.Ficha.TipoNegocioCodigo" selected>@Model.Ficha.TipoNegocio</option> }</select><small id="crmTipoNegocioStatus" role="status"></small>@if (!Model.Ficha.TipoNegocioCodigo.HasValue && !string.IsNullOrWhiteSpace(Model.Ficha.TipoNegocio)) { <small>Valor anterior: @Model.Ficha.TipoNegocio. Seleccione un grupo de SAP para actualizarlo.</small> }</div>
                 <div class="crm-field crm-col-8"><label>Dirección fiscal <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.DireccionFiscal, new { @class = "form-control" })</div>
-                <div class="crm-field crm-col-4"><label>Correo para factura electrónica <b>*</b></label>@Html.TextBoxFor(m => m.Ficha.CorreoFactura, new { @class = "form-control", type = "email", maxlength = "150" })</div>
+                <div class="crm-field crm-col-4"><label>Correo para factura electrónica @if (esCredito) { <b>*</b> }</label>@Html.TextBoxFor(m => m.Ficha.CorreoFactura, new { @class = "form-control", type = "email", maxlength = "150" })</div>
                 <div class="crm-field crm-col-4"><label>Condición de pago <b>*</b></label>@Html.DropDownListFor(m => m.Ficha.CondicionPago, new SelectList(new[] { new { Value = "ANTICIPADO", Text = "Anticipado" }, new { Value = "CONTADO", Text = "Contado · pago contra entrega" }, new { Value = "CREDITO", Text = "Crédito" } }, "Value", "Text"), "Seleccione...", new { @class = "form-control", id = "crmCondicionPago" })@if (Model.Ficha.CondicionPago == "TEMPORADA") { <small>Valor anterior: Temporada. Seleccione una condición vigente.</small> }</div>
                 <div class="crm-field crm-col-4"><label>Método de pago</label>@Html.DropDownListFor(m => m.Ficha.MetodoPago, new SelectList(new[] { "Transferencia", "Depósito", "Cheque", "Efectivo" }), "Seleccione...", new { @class = "form-control" })</div>
                 <div class="crm-field crm-col-4"><label>Días de crédito</label>@Html.DropDownListFor(m => m.Ficha.TemporadaPago, diasCredito, "Seleccione...", new { @class = "form-control" })</div>
@@ -209,4 +209,4 @@
         </div>
     </form>
 </div>
-@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=10")"></script> }
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=11")"></script> }

@@ -1,0 +1,113 @@
+@model DiamDev.Give.Entities.ClienteCrmFicha
+@using System
+@using System.Linq
+@{
+    var f = Model ?? new DiamDev.Give.Entities.ClienteCrmFicha();
+    Func<string, string> dato = valor => string.IsNullOrWhiteSpace(valor) ? "—" : valor;
+    var contactos = f.Contactos ?? new System.Collections.Generic.List<DiamDev.Give.Entities.ClienteCrmContacto>();
+    var direcciones = f.Direcciones ?? new System.Collections.Generic.List<DiamDev.Give.Entities.ClienteCrmDireccion>();
+    bool tieneDesarrollo = f.CompraActualmente || f.Venta12Meses.HasValue || f.PotencialAnual.HasValue ||
+        f.Objetivo12Meses.HasValue || !string.IsNullOrWhiteSpace(f.OportunidadCrecimiento) ||
+        !string.IsNullOrWhiteSpace(f.CompetidorNegocio) || !string.IsNullOrWhiteSpace(f.Forecast) ||
+        !string.IsNullOrWhiteSpace(f.ProximoPaso) || !string.IsNullOrWhiteSpace(f.ObservacionesComerciales);
+    string canales = string.Join(", ", new[] { f.Televentas ? "Televentas" : null,
+        f.VentaMostrador ? "Mostrador" : null, f.VentaInstitucional ? "Institucional" : null,
+        f.Ecommerce ? "Comercio electrónico" : null }.Where(x => x != null));
+}
+
+<section class="crm-print-section">
+    <div class="crm-print-section-heading"><span>01</span><div><h2>Identidad y facturación</h2><p>Información fiscal y condiciones comerciales registradas</p></div></div>
+    <dl class="crm-print-facts">
+        <div><dt>Razón social</dt><dd>@dato(f.RazonSocial)</dd></div>
+        <div><dt>Nombre comercial</dt><dd>@dato(f.NombreComercial)</dd></div>
+        <div><dt>NIT o DPI</dt><dd>@dato(f.NitDpi)</dd></div>
+        <div><dt>Tipo de negocio</dt><dd>@dato(f.TipoNegocio)</dd></div>
+        <div class="crm-print-wide"><dt>Dirección fiscal</dt><dd>@dato(f.DireccionFiscal)</dd></div>
+        <div><dt>Tipo de operación</dt><dd>@dato(f.TipoOperacion)</dd></div>
+        <div><dt>Correo para factura</dt><dd>@dato(f.CorreoFactura)</dd></div>
+        <div><dt>Condición de pago</dt><dd>@dato(f.CondicionPago)</dd></div>
+        <div><dt>Método de pago</dt><dd>@dato(f.MetodoPago)</dd></div>
+        <div><dt>Días de crédito</dt><dd>@(string.IsNullOrWhiteSpace(f.TemporadaPago) ? "—" : f.TemporadaPago + " días")</dd></div>
+        @if (!string.IsNullOrWhiteSpace(f.CodigoSapOrigen)) { <div><dt>Cliente SAP de origen</dt><dd>@f.CodigoSapOrigen</dd></div> }
+        @if (!string.IsNullOrWhiteSpace(f.TramiteContrasena)) { <div class="crm-print-wide"><dt>Comentarios / observaciones</dt><dd>@f.TramiteContrasena</dd></div> }
+    </dl>
+</section>
+
+<section class="crm-print-section">
+    <div class="crm-print-section-heading"><span>02</span><div><h2>Contactos y unidad de decisión</h2><p>@contactos.Count @(contactos.Count == 1 ? "contacto registrado" : "contactos registrados")</p></div></div>
+    @if (contactos.Count == 0) { <p class="crm-print-empty">No hay contactos registrados.</p> }
+    else { <div class="crm-print-list">@for (int i = 0; i < contactos.Count; i++) {
+        var c = contactos[i];
+        if (c == null) { continue; }
+        <article class="crm-print-entry">
+            <div class="crm-print-entry-title"><strong>@dato(c.Nombre)</strong><span>Contacto @(i + 1)</span></div>
+            <dl class="crm-print-facts crm-print-facts-compact">
+                <div><dt>Área</dt><dd>@dato(c.Area)</dd></div><div><dt>Puesto</dt><dd>@dato(c.Puesto)</dd></div>
+                <div><dt>Tipo</dt><dd>@dato(c.TipoContacto)</dd></div><div><dt>Canal</dt><dd>@dato(c.CanalComunicacion)</dd></div>
+                <div><dt>Teléfono</dt><dd>@dato(c.Telefono)</dd></div><div><dt>Correo</dt><dd>@dato(c.Correo)</dd></div>
+                <div><dt>Tomador de decisiones</dt><dd>@dato(c.TomadorDecision)</dd></div><div><dt>Influenciador técnico / usuario</dt><dd>@dato(c.InfluenciadorTecnico)</dd></div>
+            </dl>
+        </article>
+    }</div> }
+</section>
+
+<section class="crm-print-section">
+    <div class="crm-print-section-heading"><span>03</span><div><h2>Direcciones y horarios</h2><p>@direcciones.Count @(direcciones.Count == 1 ? "ubicación registrada" : "ubicaciones registradas")</p></div></div>
+    @if (direcciones.Count == 0) { <p class="crm-print-empty">No hay direcciones de entrega registradas.</p> }
+    else { <div class="crm-print-list">@for (int i = 0; i < direcciones.Count; i++) {
+        var d = direcciones[i];
+        if (d == null) { continue; }
+        <article class="crm-print-entry">
+            <div class="crm-print-entry-title"><strong>@dato(d.Nombre)</strong><span>Ubicación @(i + 1)</span></div>
+            <dl class="crm-print-facts crm-print-facts-compact">
+                <div class="crm-print-wide"><dt>Dirección</dt><dd>@dato(d.Direccion)</dd></div>
+                <div><dt>Modalidad</dt><dd>@dato(d.Modalidad)</dd></div><div><dt>Referencia</dt><dd>@dato(d.Referencia)</dd></div>
+                <div><dt>Entre semana</dt><dd>@dato(d.HorarioSemana)</dd></div><div><dt>Fin de semana</dt><dd>@dato(d.HorarioFinSemana)</dd></div>
+                <div><dt>Cita previa</dt><dd>@(d.RequiereCita ? "Sí" : "No")</dd></div><div><dt>Dirección activa</dt><dd>@(d.Activa ? "Sí" : "No")</dd></div>
+            </dl>
+        </article>
+    }</div> }
+</section>
+
+<section class="crm-print-section">
+    <div class="crm-print-section-heading"><span>04</span><div><h2>Perfil e inteligencia comercial</h2><p>Cobertura, canales y contexto del cliente</p></div></div>
+    <dl class="crm-print-facts">
+        <div><dt>Cobertura geográfica</dt><dd>@dato(f.CoberturaGeografica)</dd></div>
+        <div><dt>Regiones de mayor venta</dt><dd>@dato(f.RegionesMayorVenta)</dd></div>
+        <div><dt>Sucursales / PDV</dt><dd>@dato(f.SucursalesMayorVenta)</dd></div>
+        <div><dt>Vendedores de campo / tienda</dt><dd>@(f.VendedoresCampo.HasValue ? f.VendedoresCampo.ToString() : "—") / @(f.VendedoresTienda.HasValue ? f.VendedoresTienda.ToString() : "—")</dd></div>
+        <div class="crm-print-wide"><dt>Canales de venta</dt><dd>@dato(canales)</dd></div>
+        <div><dt>Clientes finales</dt><dd>@dato(f.ClientesFinales)</dd></div>
+        <div><dt>Temporadas de demanda</dt><dd>@dato(f.TemporadasDemanda)</dd></div>
+        <div><dt>Proyectos / eventos</dt><dd>@dato(f.ProyectosEventos)</dd></div>
+        <div><dt>Necesidad principal</dt><dd>@dato(f.NecesidadPrincipal)</dd></div>
+        <div><dt>Valor del proveedor</dt><dd>@dato(f.ValorProveedor)</dd></div>
+        <div><dt>Motivo de compra</dt><dd>@dato(f.MotivoCompra)</dd></div>
+        <div><dt>Objeción principal</dt><dd>@dato(f.ObjecionPrincipal)</dd></div>
+        <div><dt>Competidor principal</dt><dd>@dato(f.CompetidorPrincipal)</dd></div>
+        <div><dt>Fortaleza del competidor</dt><dd>@dato(f.FortalezaCompetidor)</dd></div>
+        <div><dt>Oportunidad frente al competidor</dt><dd>@dato(f.DebilidadCompetidor)</dd></div>
+        <div><dt>Información de mercado</dt><dd>@dato(f.InformacionMercado)</dd></div>
+        <div><dt>Riesgo comercial</dt><dd>@dato(f.RiesgoComercial)</dd></div>
+        <div><dt>Satisfacción</dt><dd>@dato(f.Satisfaccion)</dd></div>
+    </dl>
+</section>
+
+@if (tieneDesarrollo) {
+<section class="crm-print-section">
+    <div class="crm-print-section-heading"><span>05</span><div><h2>Desarrollo comercial</h2><p>Indicadores de la empresa seleccionada</p></div></div>
+    <div class="crm-print-metrics">
+        <div><span>Venta últimos 12 meses</span><strong>@(f.Venta12Meses.HasValue ? f.Venta12Meses.Value.ToString("N2") : "—")</strong><small>@dato(f.MonedaIndicadores)</small></div>
+        <div><span>Potencial anual</span><strong>@(f.PotencialAnual.HasValue ? f.PotencialAnual.Value.ToString("N2") : "—")</strong><small>@dato(f.MonedaIndicadores)</small></div>
+        <div><span>Objetivo 12 meses</span><strong>@(f.Objetivo12Meses.HasValue ? f.Objetivo12Meses.Value.ToString("N2") : "—")</strong><small>@dato(f.MonedaIndicadores)</small></div>
+    </div>
+    <dl class="crm-print-facts">
+        <div><dt>Compra actualmente</dt><dd>@(f.CompraActualmente ? "Sí" : "No")</dd></div>
+        <div><dt>Oportunidad de crecimiento</dt><dd>@dato(f.OportunidadCrecimiento)</dd></div>
+        <div><dt>Competidor en este negocio</dt><dd>@dato(f.CompetidorNegocio)</dd></div>
+        <div><dt>Forecast</dt><dd>@dato(f.Forecast)</dd></div>
+        <div><dt>Próximo paso</dt><dd>@dato(f.ProximoPaso)</dd></div>
+        @if (!string.IsNullOrWhiteSpace(f.ObservacionesComerciales)) { <div class="crm-print-wide"><dt>Observaciones</dt><dd>@f.ObservacionesComerciales</dd></div> }
+    </dl>
+</section>
+}

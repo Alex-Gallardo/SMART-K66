@@ -330,6 +330,24 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
+        public ActionResult ImprimirSolicitud(long id)
+        {
+            var solicitud = _crm.ObtenerSolicitud(id);
+            if (solicitud == null) return HttpNotFound();
+            bool dashboard = TienePermiso(PermisoDashboard);
+            bool propia = TienePermiso(solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion
+                ? PermisoActualizar : PermisoVer) && EsPropietario(solicitud);
+            if ((!dashboard && !propia) ||
+                (solicitud.Estado == EstadosSolicitudCliente.Borrador && !propia))
+                return SinAcceso();
+            _crm.RegistrarEvento("SOLICITUD", id, solicitud.Empresa, User.Identity.Name,
+                "ABRIR_IMPRESION", null, Ip());
+            return View(new ClienteCrmDetalleViewModel {
+                Solicitud = solicitud, Archivos = solicitud.Archivos
+            });
+        }
+
+        [HttpGet]
         public ActionResult Dashboard() { return RedirectToAction("ControlCreditos"); }
 
         [Permiso(PermisoDashboard)]
@@ -401,6 +419,24 @@ namespace DiamDev.Give.UI.Controllers
                     .Where(x => global || _crm.ClientePropio(id, x, User.Identity.Name))
                     .Select(x => _crm.ObtenerCliente(id, x)).Where(x => x != null).ToList(),
                 PuedeEditar = TienePermiso(PermisoAdministrar)
+            });
+        }
+
+        [HttpGet]
+        public ActionResult ImprimirFicha(long id, string empresa)
+        {
+            if (!EmpresaValidaOBlanca(empresa) || string.IsNullOrWhiteSpace(empresa))
+                return SinAcceso();
+            var cliente = _crm.ObtenerCliente(id, empresa);
+            if (cliente == null) return HttpNotFound();
+            bool global = TienePermiso(PermisoCarteraGlobal) || TienePermiso(PermisoDashboard);
+            if (!global && (!PuedeVerCartera() ||
+                !_crm.ClientePropio(id, empresa, User.Identity.Name)))
+                return SinAcceso();
+            _crm.RegistrarEvento("CLIENTE", id, empresa, User.Identity.Name,
+                "ABRIR_IMPRESION", null, Ip());
+            return View(new ClienteCrmDetalleViewModel {
+                Cliente = cliente, Archivos = _crm.Archivos(id, false, empresa)
             });
         }
 

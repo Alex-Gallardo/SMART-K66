@@ -242,7 +242,7 @@ namespace DiamDev.Give.BLL
             }
             VincularTipoNegocio(solicitud.Empresa, solicitud.Ficha);
             if (enviar) ValidarPasos(solicitud.Ficha, 5, solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion);
-            ValidarFicha(solicitud.Ficha, enviar);
+            ValidarFicha(solicitud.Ficha, enviar, false);
             if (string.IsNullOrWhiteSpace(solicitud.CodigoOperador) ||
                 string.IsNullOrWhiteSpace(solicitud.Agente))
                 throw new InvalidOperationException("Seleccione un agente asignado a la empresa.");
@@ -319,7 +319,7 @@ namespace DiamDev.Give.BLL
             _da.RegistrarEvento(entidad, id, empresa, usuario, accion, detalle, ip);
         }
 
-        public static void ValidarFicha(ClienteCrmFicha f, bool completa)
+        public static void ValidarFicha(ClienteCrmFicha f, bool completa, bool correoFacturaObligatorio = true)
         {
             if (f == null) throw new InvalidOperationException("Complete la ficha de cliente.");
             if (string.Equals(f.TipoOperacion, "Gobierno", StringComparison.OrdinalIgnoreCase))
@@ -338,9 +338,10 @@ namespace DiamDev.Give.BLL
             if (completa)
             {
                 if (string.IsNullOrWhiteSpace(f.DireccionFiscal) ||
-                    string.IsNullOrWhiteSpace(f.CondicionPago) ||
-                    string.IsNullOrWhiteSpace(f.CorreoFactura))
-                    throw new InvalidOperationException("Complete dirección fiscal, condición de pago y correo de facturación.");
+                    string.IsNullOrWhiteSpace(f.CondicionPago))
+                    throw new InvalidOperationException("Complete dirección fiscal y condición de pago.");
+                if (correoFacturaObligatorio && string.IsNullOrWhiteSpace(f.CorreoFactura))
+                    throw new InvalidOperationException("Complete el correo de facturación.");
                 if (f.Direcciones == null || !f.Direcciones.Any(x => x != null && !string.IsNullOrWhiteSpace(x.Direccion)))
                     throw new InvalidOperationException("Agregue al menos una dirección de entrega.");
             }
@@ -381,14 +382,14 @@ namespace DiamDev.Give.BLL
                     throw new InvalidOperationException("Seleccione un tipo de negocio de SAP.");
                 Requerir(f.DireccionFiscal, "Dirección fiscal");
                 Requerir(f.TipoOperacion, "Tipo de operación");
-                Requerir(f.CorreoFactura, "Correo de factura");
                 Requerir(f.CondicionPago, "Condición de pago");
                 Requerir(f.MetodoPago, "Método de pago");
                 if (!new[] { "8", "15", "30", "60", "90" }.Contains(f.TemporadaPago))
                     throw new InvalidOperationException("Seleccione los días de crédito.");
                 if (!esActualizacion) f.CambioRazonSocial = false;
                 f.CambioRazonSocialRespuesta = f.CambioRazonSocial ? "SI" : "NO";
-                if (!new EmailAddressAttribute().IsValid(f.CorreoFactura))
+                if (!string.IsNullOrWhiteSpace(f.CorreoFactura) &&
+                    !new EmailAddressAttribute().IsValid(f.CorreoFactura))
                     throw new InvalidOperationException("El correo de factura no es válido.");
             }
             if (hasta >= 2)
@@ -402,14 +403,14 @@ namespace DiamDev.Give.BLL
                     Requerir(c.Nombre, "Nombre del contacto");
                     Requerir(c.Puesto, "Puesto del contacto");
                     Requerir(c.Telefono, "Teléfono del contacto");
-                    Requerir(c.Correo, "Correo del contacto");
                     Requerir(c.TomadorDecision, "Tomador de decisiones");
                     Requerir(c.InfluenciadorTecnico, "Influenciador técnico / usuario");
                     Requerir(c.TipoContacto, "Tipo de contacto");
                     c.TipoContacto = Limitar(c.TipoContacto, 100);
                     if (!new[] { "WHATSAPP", "CELULAR", "FIJO", "CORREO", "PRESENCIAL" }.Contains(c.CanalComunicacion))
                         throw new InvalidOperationException("Seleccione el canal de comunicación de cada contacto.");
-                    if (!new EmailAddressAttribute().IsValid(c.Correo))
+                    if (!string.IsNullOrWhiteSpace(c.Correo) &&
+                        !new EmailAddressAttribute().IsValid(c.Correo))
                         throw new InvalidOperationException("Revise el correo de " + c.Nombre + ".");
                 }
             }

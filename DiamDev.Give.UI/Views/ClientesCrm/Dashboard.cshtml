@@ -4,7 +4,7 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=3")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=4")" rel="stylesheet" /> }
 <div class="crm crm-dashboard" data-empresa="@Model.Empresa">
     <header class="crm-page-head">
         <span class="crm-eyebrow">Clientes · Grupo K66</span>
@@ -38,7 +38,7 @@
             <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-list"></i></div><div><h2>Solicitudes recibidas</h2><p>Seleccione registros para exportar o abra uno para resolverlo.</p></div><button class="crm-btn crm-btn-outline" type="submit"><i class="icon-download"></i> Exportar Excel</button></div>
             <div class="crm-table-wrap">
                 <table class="crm-table">
-                    <thead><tr><th><input id="crmSeleccionarTodos" type="checkbox" aria-label="Seleccionar todas" /></th><th>Solicitud</th><th>Tipo</th><th>Cliente</th><th>Empresa</th><th>Agente</th><th>Fecha</th><th>Estado</th><th>Acción</th></tr></thead>
+                    <thead><tr><th><input id="crmSeleccionarTodos" type="checkbox" aria-label="Seleccionar todas" /></th><th>Solicitud</th><th>Tipo</th><th>Cliente</th><th>Empresa</th><th>Agente</th><th>Fecha</th><th>Estado</th><th>Acción</th><th>PDF</th></tr></thead>
                     <tbody>
                         @foreach (var s in Model.Solicitudes)
                         {
@@ -52,6 +52,7 @@
                                 <td>@s.CreadoEn.ToString("dd/MM/yyyy")</td>
                                 <td><span class="crm-state crm-state-@s.Estado.ToLowerInvariant()">@s.Estado</span></td>
                                 <td><a class="crm-link" href="@Url.Action("Solicitud", new { id = s.Id })">Revisar <i class="icon-arrow-right"></i></a></td>
+                                <td>@if (s.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Alta) { <a class="crm-print-table-link" href="@Url.Action("ImprimirSolicitud", new { id = s.Id })" aria-label="Imprimir o guardar PDF de la solicitud de creación #@s.Id"><i class="icon-print" aria-hidden="true"></i> Imprimir</a> } else { <span class="crm-muted" aria-label="Impresión disponible para solicitudes de creación">—</span> }</td>
                             </tr>
 }
                     </tbody>

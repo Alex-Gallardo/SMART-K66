@@ -63,6 +63,14 @@
 @media(max-width:720px){.crm-step-nav{top:var(--crm-shell-height,53px)}}
 .crm-step-nav[data-wizard="true"] a[aria-current="step"]{background:var(--crm-tint);color:var(--crm-deep);box-shadow:inset 0 0 0 1px var(--crm-blue)}
 .crm-step-nav[data-wizard="true"] a[aria-current="step"] span{display:grid;place-items:center;min-width:22px;height:22px;border-radius:50%;background:var(--crm-blue);color:#fff}
+.crm-record-heading{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.crm-record-kind,.crm-record-number{display:inline-flex;align-items:center;gap:8px;min-height:28px;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:800;letter-spacing:.04em}
+.crm-record-kind-client{color:var(--crm-deep);background:var(--crm-tint);box-shadow:inset 0 0 0 1px var(--crm-line)}
+.crm-record-kind-request{color:#80521b;background:#fff3df;box-shadow:inset 0 0 0 1px #f5dfb6}
+.crm-record-kind i{font-size:13px}.crm-record-number{color:#45617d;background:#edf2f7}
+.crm-print-entry{margin-top:16px!important}
+.crm-print-table-link{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:5px;border:1px solid #bad3e9;background:#f5f9fd;color:var(--crm-deep);font-size:11px;font-weight:700;white-space:nowrap;transition:background-color .18s ease,border-color .18s ease}
+.crm-print-table-link:hover{background:var(--crm-tint);border-color:var(--crm-blue);color:var(--crm-deep);text-decoration:none}
 .crm-sap-lookup{border:1px solid var(--crm-line);border-radius:7px;background:#fbfdff;padding:13px 15px}
 .crm-sap-lookup>.crm-sap-toggle{display:flex;align-items:center;gap:9px;margin:0;cursor:pointer;color:var(--crm-deep)}
 .crm-sap-toggle input{margin:0;accent-color:var(--crm-blue)}

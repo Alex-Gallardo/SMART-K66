@@ -179,7 +179,10 @@
                 "<td>" + fecha(d.FechaDoc) + "</td>" +
                 '<td class="bnc-money">' + dinero(d.TotalFactura, d.Moneda) + "</td>" +
                 '<td class="bnc-money">' + dinero(d.Importe, d.Moneda) + "</td>" +
-                "<td>" + (alertas.join(" ") || '<span class="text-muted">Sin alertas</span>') + "</td></tr>";
+                "<td>" + (alertas.join(" ") || '<span class="text-muted">Sin alertas</span>') + "</td></tr>" +
+                '<tr class="bnc-document-description-row"><td colspan="6"><div class="bnc-document-description">' +
+                '<small>Descripción del documento ' + escapeHtml(d.Documento) + '</small><p>' +
+                escapeHtml(d.Descripcion || "Sin descripción") + "</p></div></td></tr>";
         });
 
         $("#bncAuthDetail").html(

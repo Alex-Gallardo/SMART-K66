@@ -43,7 +43,8 @@ function expose(name, exportCode) {
             '<div id="bncSeguimiento" class="active">' + table("Index", "bncFollowBody", "table bnc-table") + '</div>' +
             '<article id="bncFollowDetail" class="bnc-detail-panel" style="width:520px;max-width:100%;margin-top:16px"></article></section>' +
             '<section id="bncAuthApp" class="bnc" data-url-sap-indicadores="/sap"><div class="bnc-auth-list">' +
-            table("Autorizaciones", "bncAuthBody", "table bnc-table") + '</div></section>' +
+            table("Autorizaciones", "bncAuthBody", "table bnc-table") + '</div>' +
+            '<article id="bncAuthDetail" class="bnc-detail-panel" style="width:520px;max-width:100%;margin-top:16px"></article></section>' +
             '<section id="bncDashboard" class="bncd" data-url-sap-indicadores="/sap">' +
             table("DashboardBNC", "dashboardFilas", "bncd-table") + '</section>' +
             '</main></body></html>');
@@ -76,7 +77,7 @@ function expose(name, exportCode) {
         await page.addScriptTag({ content: expose("Index",
             'window.followTest = { state: state, lista: renderSeguimiento, detalle: renderDetalle };') });
         await page.addScriptTag({ content: expose("Autorizaciones",
-            'window.authTest = { state: state, lista: renderLista };') });
+            'window.authTest = { state: state, lista: renderLista, detalle: renderDetalle };') });
         await page.addScriptTag({ content: expose("Dashboard", 'window.dashboardTest = { lista: pintar };') });
         await page.evaluate(() => {
             window.description = "VALE NO. 085428 TORRE PUERTO SAN JOSE MOTIVO CRUCE DE BARRA CRAYON FABIK CORTO DEVOLUCION.\nNO. DCB26-00082 SOPORTE 264307 <img src=x onerror=window.injected=true>";
@@ -91,7 +92,7 @@ function expose(name, exportCode) {
             followTest.state.seleccionado = { empresa: draft.IdEmpresa, id: draft.IdBorrador };
             followTest.lista(); followTest.detalle(draft);
             authTest.state.pendientes = [Object.assign({}, draft, { Estado: "PENDIENTE" })];
-            authTest.lista();
+            authTest.lista(); authTest.detalle(draft);
             dashboardTest.lista({ Filas: [draft], TotalFilas: 1, TamanoPagina: 25 });
             requests.forEach(r => r.deferred.resolve({ ok: true, data: [Object.assign({}, draft, {
                 Disponible: true, NcVigentes: 0, NcCanceladas: 0, ActualizadoEn: "2026-09-28T16:00:00Z", Documentos: []
@@ -114,14 +115,18 @@ function expose(name, exportCode) {
         await page.locator("#bncFollowBody [data-sap-refresh]").click();
         assert.equal(await page.evaluate(() => requests.length), countBefore + 1, "El botón SAP conserva su actualización");
         assert.equal(await page.locator("#bncFollowDetail .bnc-sap-detail .bnc-sap-indicator").count(), 1);
-        const texts = await page.locator(".bnc-document-description > p").allTextContents();
-        assert.equal(texts[0], await page.evaluate(() => description));
-        assert.equal(texts[1], "Sin descripción");
+        for (const [panel, columns] of [["bncFollowDetail", 4], ["bncAuthDetail", 6]]) {
+            const descriptions = page.locator("#" + panel + " .bnc-document-description");
+            assert.deepEqual(await descriptions.locator("p").allTextContents(),
+                [await page.evaluate(() => description), "Sin descripción"]);
+            assert.deepEqual(await descriptions.locator("small").allTextContents(),
+                ["Descripción del documento 1007388", "Descripción del documento 1007389"]);
+            assert.equal(await page.locator("#" + panel + " .bnc-document-description-row td[colspan='" + columns + "']").count(), 2);
+            assert.equal(await page.locator("#" + panel + " .bnc-linked-invoice-action[target='_blank']").count(), 2);
+            assert.equal(await page.locator("#" + panel + " .bnc-linked-invoice-table thead th").count(), columns);
+        }
         assert.equal(await page.evaluate(() => window.injected), undefined);
         assert.equal(await page.locator(".bnc-document-description img").count(), 0);
-        assert.equal(await page.locator("#bncFollowDetail .bnc-document-description-row td[colspan='4']").count(), 2);
-        assert.equal(await page.locator("#bncFollowDetail .bnc-linked-invoice-action[target='_blank']").count(), 2);
-        assert.equal(await page.locator("#bncFollowDetail .bnc-linked-invoice-table thead th").count(), 4);
 
         // Readability and overflow: local scrolling only, at desktop/tablet/mobile widths.
         for (const width of [1280, 768, 520, 375, 320]) {

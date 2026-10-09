@@ -19,7 +19,7 @@ namespace Tests.ClientesCrm
             ficha.Contactos.Add(new ClienteCrmContacto {
                 Area = "Compras", Nombre = "Ana", Puesto = "Gerente", Telefono = "5555-0101",
                 Correo = "ana@example.com", TomadorDecision = "Ana",
-                InfluenciadorTecnico = "Luis", TipoContacto = " Encargado de compras ",
+                InfluenciadorTecnico = null, TipoContacto = " Comprador ",
                 CanalComunicacion = "WHATSAPP"
             });
             return ficha;
@@ -32,25 +32,29 @@ namespace Tests.ClientesCrm
             alta.TramiteContrasena = null;
             ClienteCrmBLL.ValidarPasos(alta, 2, false);
             if (alta.CambioRazonSocial) return Fallar("Un alta conserva cambio de razón social.");
-            if (alta.Contactos[0].TipoContacto != "Encargado de compras")
-                return Fallar("El tipo de contacto escrito no se normalizó correctamente.");
+            if (alta.Contactos[0].TipoContacto != "Comprador")
+                return Fallar("El tipo de contacto seleccionado no se normalizó correctamente.");
 
             var actualizacion = Ficha();
             actualizacion.TemporadaPago = "8";
             actualizacion.TramiteContrasena = null;
+            actualizacion.Contactos[0].TipoContacto = "Influenciador técnico";
             ClienteCrmBLL.ValidarPasos(actualizacion, 2, true);
             if (!actualizacion.CambioRazonSocial)
                 return Fallar("La actualización perdió cambio de razón social.");
             var restaurada = JsonConvert.DeserializeObject<ClienteCrmFicha>(
                 JsonConvert.SerializeObject(actualizacion));
             if (restaurada.Contactos.Count != 1 ||
-                restaurada.Contactos[0].TipoContacto != "Encargado de compras" ||
+                restaurada.Contactos[0].TipoContacto != "Influenciador técnico" ||
                 restaurada.Contactos[0].CanalComunicacion != "WHATSAPP")
                 return Fallar("El JSON de la ficha perdió los nuevos datos del contacto.");
 
             var anterior = Ficha();
             anterior.Contactos[0].TipoContacto = "COMPRAS";
-            ClienteCrmBLL.ValidarPasos(anterior, 2, true);
+            if (!Rechaza(anterior)) return Fallar("Se aceptó un tipo de contacto anterior fuera del catálogo.");
+            var tomador = Ficha();
+            tomador.Contactos[0].TipoContacto = "Tomador de decisiones";
+            ClienteCrmBLL.ValidarPasos(tomador, 2, true);
 
             var sinTipo = Ficha();
             sinTipo.Contactos[0].TipoContacto = "  ";
@@ -91,7 +95,7 @@ namespace Tests.ClientesCrm
             if (!RechazaDesarrollo(FichaCompleta()))
                 return Fallar("La actualización aceptó Desarrollo incompleto.");
 
-            Console.WriteLine("OK: contactos, correos opcionales en solicitudes, 8 días y Desarrollo exclusivo de actualización.");
+            Console.WriteLine("OK: tipos de contacto, influenciador opcional, correos, 8 días y Desarrollo exclusivo de actualización.");
             return 0;
         }
 

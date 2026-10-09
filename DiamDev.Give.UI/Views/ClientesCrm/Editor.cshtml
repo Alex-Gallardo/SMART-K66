@@ -21,7 +21,7 @@
             Text = Model.Ficha.TemporadaPago + " (valor anterior)" });
     }
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=5")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=6")" rel="stylesheet" /> }
 
 <div class="crm" id="crmApp" data-empresa="@Model.Empresa">
     <div class="crm-page-head">
@@ -98,14 +98,10 @@
                         <div class="crm-field crm-col-3"><label>Teléfono</label><input name="Ficha.Contactos[@i].Telefono" class="form-control" value="@contactos[i].Telefono" /></div>
                         <div class="crm-field crm-col-4"><label>Correo</label><input name="Ficha.Contactos[@i].Correo" class="form-control" type="email" value="@contactos[i].Correo" /></div>
                         <div class="crm-field crm-col-4"><label>Tomador de decisiones</label><input name="Ficha.Contactos[@i].TomadorDecision" class="form-control" value="@contactos[i].TomadorDecision" /></div>
-                        <div class="crm-field crm-col-4"><label>Influenciador técnico / usuario</label><input name="Ficha.Contactos[@i].InfluenciadorTecnico" class="form-control" value="@contactos[i].InfluenciadorTecnico" /></div>
-                        <div class="crm-field crm-col-4"><label>Tipo de contacto</label>@if (esCredito) {
-                            <select name="Ficha.Contactos[@i].TipoContacto" class="form-control">
-                                <option value="">Seleccione...</option>
-                                @foreach (var opcion in new[] { new { Valor = "PRINCIPAL", Texto = "Principal" }, new { Valor = "COMPRAS", Texto = "Compras" }, new { Valor = "PAGOS", Texto = "Pagos" }, new { Valor = "LOGISTICA", Texto = "Logística" }, new { Valor = "TECNICO", Texto = "Técnico / usuario" }, new { Valor = "GERENCIA", Texto = "Gerencia" } }) { <option value="@opcion.Valor" @(contactos[i].TipoContacto == opcion.Valor ? "selected" : "")>@opcion.Texto</option> }
-                                @if (!string.IsNullOrWhiteSpace(contactos[i].TipoContacto) && !new[] { "PRINCIPAL", "COMPRAS", "PAGOS", "LOGISTICA", "TECNICO", "GERENCIA" }.Contains(contactos[i].TipoContacto)) { <option value="@contactos[i].TipoContacto" selected>@contactos[i].TipoContacto</option> }
-                            </select>
-                        } else { <input name="Ficha.Contactos[@i].TipoContacto" class="form-control" value="@contactos[i].TipoContacto" maxlength="100" /> }</div>
+                        <div class="crm-field crm-col-4"><label>Tipo de contacto</label><select name="Ficha.Contactos[@i].TipoContacto" class="form-control" required>
+                            <option value="">Seleccione...</option>
+                            @foreach (var opcion in new[] { "Tomador de decisiones", "Influenciador técnico", "Comprador" }) { <option value="@opcion" @(contactos[i].TipoContacto == opcion ? "selected" : "")>@opcion</option> }
+                        </select></div>
                         <div class="crm-field crm-col-4"><label>Canal de comunicación</label><select name="Ficha.Contactos[@i].CanalComunicacion" class="form-control"><option value="">Seleccione...</option>@foreach (var opcion in new[] { new { Valor = "WHATSAPP", Texto = "WhatsApp" }, new { Valor = "CELULAR", Texto = "Llamada celular" }, new { Valor = "FIJO", Texto = "Teléfono fijo" }, new { Valor = "CORREO", Texto = "Correo electrónico" }, new { Valor = "PRESENCIAL", Texto = "Presencial" } }) { <option value="@opcion.Valor" @(contactos[i].CanalComunicacion == opcion.Valor ? "selected" : "")>@opcion.Texto</option> }</select></div>
                     </div>
                 </div> }
@@ -184,13 +180,13 @@
 
         <section class="crm-card" id="crm-documentos" @(!esCredito && pasoActual != 6 ? "hidden" : "")>
             <div class="crm-card-head"><div class="crm-section-icon"><i class="icon-file-text"></i></div><div><h2>Documentos de respaldo</h2><p>PDF, PNG o JPG; máximo 5 MB por archivo. Al reemplazar uno se conserva el evento en auditoría.</p></div></div>
-            <p class="crm-document-note">@(esCredito ? "RTU y DPI son obligatorios al guardar. Para crédito o cambio de razón social se requieren también el nombramiento y ambas patentes." : "Para enviar la solicitud se requieren RTU, DPI, nombramiento y ambas patentes. Los documentos ya adjuntados cuentan como completos.")</p>
+            <p class="crm-document-note">RTU actualizado y DPI del representante, ambos lados, son obligatorios. Nombramiento y patentes son opcionales. Los documentos ya adjuntados cuentan como completos.</p>
             <div class="crm-grid crm-files">
                 <div class="crm-field crm-col-6"><label for="Rtu">RTU actualizado <b>*</b></label><input id="Rtu" name="Rtu" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" data-existing="@(Model.Archivos.Any(x => x.Tipo == "RTU") ? "true" : "false")" /></div>
                 <div class="crm-field crm-col-6"><label for="Dpi">DPI del representante, ambos lados <b>*</b></label><input id="Dpi" name="Dpi" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" data-existing="@(Model.Archivos.Any(x => x.Tipo == "DPI") ? "true" : "false")" /></div>
-                <div class="crm-field crm-col-4 crm-credit-file"><label for="Nombramiento">Nombramiento representante legal</label><input id="Nombramiento" name="Nombramiento" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" data-existing="@(Model.Archivos.Any(x => x.Tipo == "NOMBRAMIENTO") ? "true" : "false")" /></div>
-                <div class="crm-field crm-col-4 crm-credit-file"><label for="PatenteComercio">Patente de comercio</label><input id="PatenteComercio" name="PatenteComercio" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" data-existing="@(Model.Archivos.Any(x => x.Tipo == "PATENTE_COMERCIO") ? "true" : "false")" /></div>
-                <div class="crm-field crm-col-4 crm-credit-file"><label for="PatenteSociedad">Patente de sociedad</label><input id="PatenteSociedad" name="PatenteSociedad" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" data-existing="@(Model.Archivos.Any(x => x.Tipo == "PATENTE_SOCIEDAD") ? "true" : "false")" /></div>
+                <div class="crm-field crm-col-4"><label for="Nombramiento">Nombramiento representante legal</label><input id="Nombramiento" name="Nombramiento" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" data-existing="@(Model.Archivos.Any(x => x.Tipo == "NOMBRAMIENTO") ? "true" : "false")" /></div>
+                <div class="crm-field crm-col-4"><label for="PatenteComercio">Patente de comercio</label><input id="PatenteComercio" name="PatenteComercio" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" data-existing="@(Model.Archivos.Any(x => x.Tipo == "PATENTE_COMERCIO") ? "true" : "false")" /></div>
+                <div class="crm-field crm-col-4"><label for="PatenteSociedad">Patente de sociedad</label><input id="PatenteSociedad" name="PatenteSociedad" type="file" accept=".pdf,.png,.jpg,.jpeg" class="form-control" data-existing="@(Model.Archivos.Any(x => x.Tipo == "PATENTE_SOCIEDAD") ? "true" : "false")" /></div>
             </div>
             @if (Model.Archivos.Count > 0) { <div class="crm-existing-files"><strong>Documentos existentes</strong>@foreach (var a in Model.Archivos) { <a href="@Url.Action("Archivo", new { id = a.Id, entidadId = esCredito ? Model.ClienteId : Model.SolicitudId, esSolicitud = !esCredito, empresa = Model.Empresa })"><i class="icon-paper-clip"></i> @a.Tipo · @a.Nombre</a> }</div> }
         </section>
@@ -208,5 +204,12 @@
             </div>
         </div>
     </form>
+    @if (!esCredito) { <div id="crmEnviarModal" class="crm-send-modal" role="dialog" aria-modal="true" aria-labelledby="crmEnviarTitulo" aria-hidden="true" tabindex="-1" hidden>
+        <div class="crm-send-modal-card">
+            <span class="crm-send-spinner" aria-hidden="true"></span>
+            <h2 id="crmEnviarTitulo">Enviando a Créditos</h2>
+            <p>Estamos guardando la solicitud y sus documentos. Espere un momento.</p>
+        </div>
+    </div> }
 </div>
-@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=11")"></script> }
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=12")"></script> }

@@ -71,6 +71,15 @@
 .crm-print-entry{margin-top:16px!important}
 .crm-print-table-link{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:5px;border:1px solid #bad3e9;background:#f5f9fd;color:var(--crm-deep);font-size:11px;font-weight:700;white-space:nowrap;transition:background-color .18s ease,border-color .18s ease}
 .crm-print-table-link:hover{background:var(--crm-tint);border-color:var(--crm-blue);color:var(--crm-deep);text-decoration:none}
+.crm-send-modal[hidden]{display:none!important}
+.crm-send-modal{position:fixed;inset:0;z-index:3000;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(11,31,52,.54);backdrop-filter:blur(3px)}
+.crm-send-modal-card{width:min(100%,390px);padding:31px 26px 29px;border-radius:12px;background:#fff;box-shadow:0 24px 70px rgba(6,25,47,.3);text-align:center;border-top:4px solid var(--crm-blue)}
+.crm-send-modal.is-visible .crm-send-modal-card{animation:crm-send-enter .22s ease-out both}
+.crm-send-spinner{display:block;width:42px;height:42px;margin:0 auto 18px;border:4px solid var(--crm-tint);border-top-color:var(--crm-blue);border-radius:50%;animation:crm-send-spin .8s linear infinite}
+.crm-send-modal h2{margin:0 0 8px;color:var(--crm-deep);font-size:20px}.crm-send-modal p{margin:0;color:var(--crm-muted);font-size:13px;line-height:1.5}
+@keyframes crm-send-spin{to{transform:rotate(360deg)}}
+@keyframes crm-send-enter{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.crm-send-spinner,.crm-send-modal.is-visible .crm-send-modal-card{animation:none}}
 .crm-sap-lookup{border:1px solid var(--crm-line);border-radius:7px;background:#fbfdff;padding:13px 15px}
 .crm-sap-lookup>.crm-sap-toggle{display:flex;align-items:center;gap:9px;margin:0;cursor:pointer;color:var(--crm-deep)}
 .crm-sap-toggle input{margin:0;accent-color:var(--crm-blue)}

@@ -364,9 +364,12 @@ namespace DiamDev.Give.BLL
             f.Direcciones = (f.Direcciones ?? new List<ClienteCrmDireccion>())
                 .Where(x => x != null && !string.IsNullOrWhiteSpace(x.Direccion)).Take(20).ToList();
             foreach (var contacto in f.Contactos)
+            {
+                if (completa) ValidarTipoContacto(contacto);
                 if (!string.IsNullOrWhiteSpace(contacto.Correo) &&
                     !new EmailAddressAttribute().IsValid(contacto.Correo))
                     throw new InvalidOperationException("Revise el correo de " + contacto.Nombre + ".");
+            }
         }
 
         public static void ValidarPasos(ClienteCrmFicha f, int hasta, bool esActualizacion = false)
@@ -404,9 +407,7 @@ namespace DiamDev.Give.BLL
                     Requerir(c.Puesto, "Puesto del contacto");
                     Requerir(c.Telefono, "Teléfono del contacto");
                     Requerir(c.TomadorDecision, "Tomador de decisiones");
-                    Requerir(c.InfluenciadorTecnico, "Influenciador técnico / usuario");
-                    Requerir(c.TipoContacto, "Tipo de contacto");
-                    c.TipoContacto = Limitar(c.TipoContacto, 100);
+                    ValidarTipoContacto(c);
                     if (!new[] { "WHATSAPP", "CELULAR", "FIJO", "CORREO", "PRESENCIAL" }.Contains(c.CanalComunicacion))
                         throw new InvalidOperationException("Seleccione el canal de comunicación de cada contacto.");
                     if (!string.IsNullOrWhiteSpace(c.Correo) &&
@@ -490,6 +491,15 @@ namespace DiamDev.Give.BLL
             if (!new[] { "BOLIK", "FAES", "GRACO" }.Contains(empresa,
                 StringComparer.OrdinalIgnoreCase))
                 throw new InvalidOperationException("Seleccione una empresa válida.");
+        }
+
+        private static void ValidarTipoContacto(ClienteCrmContacto contacto)
+        {
+            Requerir(contacto.TipoContacto, "Tipo de contacto");
+            contacto.TipoContacto = Limitar(contacto.TipoContacto, 100);
+            if (!new[] { "Tomador de decisiones", "Influenciador técnico", "Comprador" }
+                .Contains(contacto.TipoContacto, StringComparer.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Seleccione un tipo de contacto válido.");
         }
 
         private static void ValidarArchivos(IList<ClienteCrmArchivo> archivos)

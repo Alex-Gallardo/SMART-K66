@@ -253,7 +253,7 @@ namespace DiamDev.Give.DAL
                     }
                     foreach (var archivo in archivos) GuardarArchivo(cn, tx, "SOLICITUD_ID", solicitud.Id,
                         solicitud.Empresa, archivo, usuario, ip);
-                    if (enviar) ValidarArchivos(cn, tx, solicitud.Id, true, solicitud.Empresa, solicitud.Ficha);
+                    if (enviar) ValidarArchivos(cn, tx, solicitud.Id, true, solicitud.Empresa);
                     Auditar(cn, tx, "SOLICITUD", solicitud.Id, solicitud.Empresa, usuario,
                         enviar ? "ENVIAR" : "GUARDAR_BORRADOR", null, antes, solicitud.FichaJson, ip);
                     string codigoSapAnterior = string.IsNullOrWhiteSpace(antes) ? null :
@@ -447,7 +447,7 @@ namespace DiamDev.Give.DAL
                         VincularUsuario(cn, tx, cliente.Id, cliente.Empresa, usuario, "DIRECTA");
                     foreach (var archivo in archivos) GuardarArchivo(cn, tx, "CLIENTE_ID", cliente.Id,
                         cliente.Empresa, archivo, usuario, ip);
-                    ValidarArchivos(cn, tx, cliente.Id, false, cliente.Empresa, cliente.Ficha);
+                    ValidarArchivos(cn, tx, cliente.Id, false, cliente.Empresa);
                     Auditar(cn, tx, "CLIENTE", cliente.Id, cliente.Empresa, usuario,
                         antes == null ? "CREAR" : "EDITAR", "Código SAP: " + (cliente.CodigoSap ?? "Sin vincular"),
                         antes, Newtonsoft.Json.JsonConvert.SerializeObject(new {
@@ -715,7 +715,7 @@ namespace DiamDev.Give.DAL
         }
 
         private static void ValidarArchivos(SqlConnection cn, SqlTransaction tx, long id,
-            bool esSolicitud, string empresa, ClienteCrmFicha ficha)
+            bool esSolicitud, string empresa)
         {
             var tipos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string sql = esSolicitud
@@ -731,10 +731,6 @@ namespace DiamDev.Give.DAL
             }
             if (!tipos.Contains("RTU") || !tipos.Contains("DPI"))
                 throw new InvalidOperationException("Adjunte RTU actualizado y DPI de ambos lados para enviar.");
-            if (esSolicitud || ficha.CondicionPago == "CREDITO" || ficha.CambioRazonSocial)
-                if (!tipos.Contains("NOMBRAMIENTO") || !tipos.Contains("PATENTE_COMERCIO") ||
-                    !tipos.Contains("PATENTE_SOCIEDAD"))
-                    throw new InvalidOperationException("Adjunte nombramiento y ambas patentes.");
         }
 
         private static void ParamsSolicitud(SqlCommand cmd, ClienteCrmSolicitud s, bool enviar, string usuario)

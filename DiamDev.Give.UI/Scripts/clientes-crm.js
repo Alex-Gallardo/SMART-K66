@@ -53,12 +53,6 @@
                     !/^Ficha\.Contactos\[\d+\]\.Correo$/.test(control.name);
             });
         });
-        var documentos = document.getElementById('crm-documentos');
-        if (pasoActual === 6 && documentos) {
-            Array.prototype.forEach.call(documentos.querySelectorAll('input[type="file"]'), function (control) {
-                control.required = control.getAttribute('data-existing') !== 'true';
-            });
-        }
         Array.prototype.forEach.call(stepNav.querySelectorAll('a[data-step]'), function (link) {
             var paso = parseInt(link.getAttribute('data-step'), 10);
             if (paso > pasoActual) link.setAttribute('aria-disabled', 'true');
@@ -79,6 +73,37 @@
             if (pasoActual === 3 && filas('direccion').length === 0) {
                 e.preventDefault(); window.alert('Agregue al menos una dirección.');
             }
+        });
+    }
+
+    var documentos = document.getElementById('crm-documentos');
+    if (documentos && (!wizard || pasoActual === 6)) {
+        Array.prototype.forEach.call(documentos.querySelectorAll('input[type="file"]'), function (control) {
+            control.required = (control.name === 'Rtu' || control.name === 'Dpi') &&
+                control.getAttribute('data-existing') !== 'true';
+        });
+    }
+
+    var enviarModal = document.getElementById('crmEnviarModal');
+    var formularioEnvio = document.querySelector('.crm-editor');
+    var enviando = false;
+    if (enviarModal && formularioEnvio) {
+        formularioEnvio.addEventListener('submit', function (e) {
+            if (!e.submitter || e.submitter.value !== 'ENVIAR' || e.defaultPrevented) return;
+            if (enviando) { e.preventDefault(); return; }
+            enviando = true;
+            formularioEnvio.setAttribute('aria-busy', 'true');
+            enviarModal.hidden = false;
+            enviarModal.setAttribute('aria-hidden', 'false');
+            enviarModal.classList.add('is-visible');
+            enviarModal.focus();
+        });
+        window.addEventListener('pageshow', function () {
+            enviando = false;
+            formularioEnvio.removeAttribute('aria-busy');
+            enviarModal.classList.remove('is-visible');
+            enviarModal.setAttribute('aria-hidden', 'true');
+            enviarModal.hidden = true;
         });
     }
 
@@ -209,8 +234,7 @@
         var campos = document.createElement('div'); campos.className = 'crm-contact-fields';
         [['Area', 'Área'], ['Nombre', 'Nombre'], ['Puesto', 'Puesto'],
          ['Telefono', 'Teléfono'], ['Correo', 'Correo'],
-         ['TomadorDecision', 'Tomador de decisiones'],
-         ['InfluenciadorTecnico', 'Influenciador técnico / usuario']].forEach(function (dato, indice) {
+         ['TomadorDecision', 'Tomador de decisiones']].forEach(function (dato, indice) {
             var campo = input('Ficha.Contactos[' + i + '].' + dato[0], dato[1],
                 dato[0] === 'Correo' ? 'email' : 'text');
             campo.className += indice < 4 ? ' crm-col-3' : ' crm-col-4';
@@ -218,20 +242,12 @@
                 campo.querySelector('input').required = true;
             campos.appendChild(campo);
         });
-        if (wizard) {
-            var tipoContacto = input('Ficha.Contactos[' + i + '].TipoContacto', 'Tipo de contacto');
-            tipoContacto.className += ' crm-col-4';
-            tipoContacto.querySelector('input').maxLength = 100;
-            if (pasoActual === 2) tipoContacto.querySelector('input').required = true;
-            campos.appendChild(tipoContacto);
-        }
-        var selectores = [['CanalComunicacion', 'Canal de comunicación', [['WHATSAPP', 'WhatsApp'],
+        var selectores = [['TipoContacto', 'Tipo de contacto', [
+            ['Tomador de decisiones', 'Tomador de decisiones'],
+            ['Influenciador técnico', 'Influenciador técnico'], ['Comprador', 'Comprador']]],
+            ['CanalComunicacion', 'Canal de comunicación', [['WHATSAPP', 'WhatsApp'],
             ['CELULAR', 'Llamada celular'], ['FIJO', 'Teléfono fijo'],
             ['CORREO', 'Correo electrónico'], ['PRESENCIAL', 'Presencial']]]];
-        if (!wizard) selectores.unshift(['TipoContacto', 'Tipo de contacto',
-            [['PRINCIPAL', 'Principal'], ['COMPRAS', 'Compras'], ['PAGOS', 'Pagos'],
-             ['LOGISTICA', 'Logística'], ['TECNICO', 'Técnico / usuario'],
-             ['GERENCIA', 'Gerencia']]]);
         selectores.forEach(function (dato) {
             var campo = document.createElement('div'); campo.className = 'crm-field crm-col-4';
             var label = document.createElement('label'); label.textContent = dato[1];
@@ -243,7 +259,8 @@
                 var item = document.createElement('option'); item.value = opcion[0];
                 item.textContent = opcion[1]; select.appendChild(item);
             });
-            if (wizard && pasoActual === 2) select.required = true;
+            if ((wizard && pasoActual === 2) || (!wizard && dato[0] === 'TipoContacto'))
+                select.required = true;
             campo.appendChild(label); campo.appendChild(select); campos.appendChild(campo);
         });
         fila.appendChild(campos); destino.appendChild(fila);
@@ -332,18 +349,6 @@
     if (document.getElementById('crmContactosRows') && filas('contacto').length === 0) nuevoContacto();
     actualizarContactos();
     if (document.getElementById('crmDireccionesRows') && filas('direccion').length === 0) nuevoDireccion();
-
-    var condicion = document.getElementById('crmCondicionPago');
-    var cambio = document.getElementById('crmCambioRazon');
-    function actualizarDocumentos() {
-        var requerido = wizard || (condicion && condicion.value === 'CREDITO') || (cambio && cambio.checked);
-        Array.prototype.forEach.call(document.querySelectorAll('.crm-credit-file'), function (campo) {
-            campo.classList.toggle('crm-file-highlight', !!requerido);
-        });
-    }
-    if (condicion) condicion.addEventListener('change', actualizarDocumentos);
-    if (cambio) cambio.addEventListener('change', actualizarDocumentos);
-    actualizarDocumentos();
 
     var todos = document.getElementById('crmSeleccionarTodos');
     if (todos) todos.addEventListener('change', function () {

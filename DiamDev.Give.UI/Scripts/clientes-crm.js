@@ -76,6 +76,121 @@
         });
     }
 
+    var guia = document.getElementById('crmGuide');
+    var abrirGuia = document.getElementById('crmHelpOpen');
+    if (wizard && guia && abrirGuia) {
+        var cerrarGuia = document.getElementById('crmGuideClose');
+        var anteriorGuia = document.getElementById('crmGuidePrev');
+        var siguienteGuia = document.getElementById('crmGuideNext');
+        var avisoGuia = document.getElementById('crmHelpHint');
+        var cerrarAviso = document.getElementById('crmHelpHintClose');
+        var claveAviso = 'crm-solicitud-guia-v1';
+        var conDesarrollo = !!stepNav.querySelector('[data-step="5"]');
+        var pasosGuia = [
+            ['Antes de comenzar', 'La solicitud avanza por secciones. Guardar un paso o un borrador no la envía a Créditos. Puede retomarla desde Mis solicitudes.'],
+            ['1. Identidad y facturación', 'Seleccione la empresa y el agente, y complete los datos fiscales. Pulse Guardar y continuar para pasar a Contactos. La solicitud seguirá como borrador.'],
+            ['2. Contactos', 'Agregue al menos una persona, indique su tipo de contacto y canal de comunicación. Complete los campos requeridos antes de continuar.'],
+            ['3. Entregas', 'Registre al menos una dirección con modalidad, referencia y horarios. Puede agregar otras ubicaciones si el cliente las utiliza.'],
+            ['4. Perfil comercial', 'Describa la cobertura, los canales y el contexto comercial. Guarde el paso para llegar a Documentos.']
+        ];
+        if (conDesarrollo) pasosGuia.push(['5. Desarrollo comercial',
+            'En una actualización, complete los indicadores y próximos pasos comerciales. Después continúe a Documentos.']);
+        pasosGuia.push(['Último paso: Documentos y envío',
+            'Adjunte RTU actualizado y DPI del representante, ambos lados. Los demás documentos son opcionales. Pulse Enviar a Créditos y compruebe el estado Enviada en el detalle de la solicitud.']);
+        var indiceGuia = 0;
+        var focoAnterior = null;
+        function recordarGuia() {
+            if (avisoGuia) avisoGuia.hidden = true;
+            try { window.localStorage.setItem(claveAviso, '1'); } catch (e) { /* El aviso sigue siendo descartable en esta visita. */ }
+        }
+        function mostrarPasoGuia() {
+            document.getElementById('crmGuideCount').textContent = 'Tema ' + (indiceGuia + 1) + ' de ' + pasosGuia.length;
+            document.getElementById('crmGuideFill').style.width = ((indiceGuia + 1) * 100 / pasosGuia.length) + '%';
+            document.getElementById('crmGuideTitle').textContent = pasosGuia[indiceGuia][0];
+            document.getElementById('crmGuideDescription').textContent = pasosGuia[indiceGuia][1];
+            anteriorGuia.disabled = indiceGuia === 0;
+            siguienteGuia.textContent = indiceGuia === pasosGuia.length - 1 ? 'Cerrar guía' : 'Siguiente';
+        }
+        function cerrarRecorrido() {
+            guia.hidden = true;
+            abrirGuia.setAttribute('aria-expanded', 'false');
+            if (focoAnterior && document.contains(focoAnterior)) focoAnterior.focus();
+        }
+        function iniciarRecorrido() {
+            focoAnterior = document.activeElement;
+            indiceGuia = 0;
+            mostrarPasoGuia();
+            recordarGuia();
+            guia.hidden = false;
+            abrirGuia.setAttribute('aria-expanded', 'true');
+            cerrarGuia.focus();
+        }
+        try { if (window.localStorage.getItem(claveAviso) !== '1' && avisoGuia) avisoGuia.hidden = false; }
+        catch (e) { if (avisoGuia) avisoGuia.hidden = false; }
+        abrirGuia.addEventListener('click', iniciarRecorrido);
+        cerrarGuia.addEventListener('click', cerrarRecorrido);
+        if (cerrarAviso) cerrarAviso.addEventListener('click', function () {
+            recordarGuia();
+            abrirGuia.focus();
+        });
+        anteriorGuia.addEventListener('click', function () { if (indiceGuia > 0) { indiceGuia--; mostrarPasoGuia(); } });
+        siguienteGuia.addEventListener('click', function () {
+            if (indiceGuia === pasosGuia.length - 1) cerrarRecorrido();
+            else { indiceGuia++; mostrarPasoGuia(); }
+        });
+        guia.addEventListener('click', function (e) { if (e.target === guia) cerrarRecorrido(); });
+        guia.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { e.preventDefault(); cerrarRecorrido(); }
+            if (e.key !== 'Tab') return;
+            var elementos = [cerrarGuia, anteriorGuia, siguienteGuia].filter(function (boton) { return !boton.disabled; });
+            if (e.shiftKey && document.activeElement === elementos[0]) { e.preventDefault(); elementos[elementos.length - 1].focus(); }
+            if (!e.shiftKey && document.activeElement === elementos[elementos.length - 1]) { e.preventDefault(); elementos[0].focus(); }
+        });
+    }
+
+    var iconosCampo = {
+        Empresa: 'icon-building', CodigoOperador: 'icon-user', OrigenCodigoSap: 'icon-search',
+        TipoOperacion: 'icon-briefcase', RazonSocial: 'icon-building', NombreComercial: 'icon-tag',
+        NitDpi: 'icon-credit-card', TipoNegocioCodigo: 'icon-tags', DireccionFiscal: 'icon-map-marker',
+        CorreoFactura: 'icon-envelope', CondicionPago: 'icon-money', MetodoPago: 'icon-credit-card',
+        TemporadaPago: 'icon-calendar', TramiteContrasena: 'icon-comment', CambioRazonSocial: 'icon-exchange',
+        Area: 'icon-building', Nombre: 'icon-user', Puesto: 'icon-briefcase', Telefono: 'icon-phone',
+        Correo: 'icon-envelope', TomadorDecision: 'icon-user', TipoContacto: 'icon-tags',
+        CanalComunicacion: 'icon-comments', Modalidad: 'icon-truck', Referencia: 'icon-map-marker',
+        Direccion: 'icon-map-marker', HorarioSemana: 'icon-time', HorarioFinSemana: 'icon-time',
+        RequiereCita: 'icon-calendar', Activa: 'icon-ok-circle', CoberturaGeografica: 'icon-globe',
+        RegionesMayorVenta: 'icon-map-marker', SucursalesMayorVenta: 'icon-building',
+        VendedoresCampo: 'icon-group', VendedoresTienda: 'icon-group', TeleventasRespuesta: 'icon-phone',
+        VentaMostradorRespuesta: 'icon-shopping-cart', VentaInstitucionalRespuesta: 'icon-building',
+        EcommerceRespuesta: 'icon-shopping-cart', ClientesFinales: 'icon-group',
+        TemporadasDemanda: 'icon-calendar', ProyectosEventos: 'icon-calendar',
+        NecesidadPrincipal: 'icon-lightbulb', ValorProveedor: 'icon-star', MotivoCompra: 'icon-shopping-cart',
+        ObjecionPrincipal: 'icon-warning-sign', CompetidorPrincipal: 'icon-flag',
+        FortalezaCompetidor: 'icon-signal', DebilidadCompetidor: 'icon-search',
+        InformacionMercado: 'icon-globe', RiesgoComercial: 'icon-warning-sign',
+        Satisfaccion: 'icon-star', CompraActualmenteRespuesta: 'icon-shopping-cart',
+        MonedaIndicadores: 'icon-money', Venta12Meses: 'icon-bar-chart', PotencialAnual: 'icon-bar-chart',
+        Objetivo12Meses: 'icon-bullseye', OportunidadCrecimiento: 'icon-bar-chart',
+        CompetidorNegocio: 'icon-flag', Forecast: 'icon-bar-chart', ProximoPaso: 'icon-arrow-right',
+        ObservacionesComerciales: 'icon-comment', Rtu: 'icon-file-text', Dpi: 'icon-file-text',
+        Nombramiento: 'icon-file-text', PatenteComercio: 'icon-file-text', PatenteSociedad: 'icon-file-text'
+    };
+    function decorarCampos(contenedor) {
+        if (!wizard || !contenedor) return;
+        Array.prototype.forEach.call(contenedor.querySelectorAll('.crm-field label'), function (label) {
+            if (label.querySelector('.crm-label-icon')) return;
+            var campo = label.closest('.crm-field');
+            var control = label.querySelector('[name]') ||
+                campo.querySelector('input:not([type="hidden"])[name], select[name], textarea[name]') ||
+                campo.querySelector('input[type="hidden"][name]');
+            var clave = control ? control.name.split('.').pop() : '';
+            var icono = document.createElement('i');
+            icono.className = 'crm-label-icon ' + (iconosCampo[clave] || 'icon-info-sign');
+            icono.setAttribute('aria-hidden', 'true');
+            label.insertBefore(icono, label.firstChild);
+        });
+    }
+
     var documentos = document.getElementById('crm-documentos');
     if (documentos && (!wizard || pasoActual === 6)) {
         Array.prototype.forEach.call(documentos.querySelectorAll('input[type="file"]'), function (control) {
@@ -264,6 +379,7 @@
             campo.appendChild(label); campo.appendChild(select); campos.appendChild(campo);
         });
         fila.appendChild(campos); destino.appendChild(fila);
+        decorarCampos(fila);
         actualizarContactos();
         fila.querySelector('[name$=".Nombre"]').focus();
     }
@@ -327,6 +443,7 @@
             grid.appendChild(opciones);
         }
         fila.appendChild(grid); destino.appendChild(fila);
+        decorarCampos(fila);
         fila.querySelector('[name$=".Nombre"]').focus();
     }
     Array.prototype.forEach.call(document.querySelectorAll('[data-add]'), function (boton) {
@@ -349,6 +466,7 @@
     if (document.getElementById('crmContactosRows') && filas('contacto').length === 0) nuevoContacto();
     actualizarContactos();
     if (document.getElementById('crmDireccionesRows') && filas('direccion').length === 0) nuevoDireccion();
+    decorarCampos(document.querySelector('.crm-editor'));
 
     var todos = document.getElementById('crmSeleccionarTodos');
     if (todos) todos.addEventListener('change', function () {

@@ -106,3 +106,23 @@
 .crm-contact-remove:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:1100px){.crm-contact-fields .crm-field{grid-column:span 6}}
 @media(max-width:720px){.crm-sap-search-row{grid-template-columns:1fr}.crm-sap-search-row .crm-btn{width:100%}.crm-contact-fields .crm-field{grid-column:span 12}.crm-contact-top{align-items:flex-start}}
+.crm-editor-head-tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end}
+.crm-badge-draft{background:#fff3dc;color:#80571b;border:1px solid #ead19c}
+.crm-help-area{position:relative;display:flex;align-items:center}
+.crm-help-trigger{width:34px;height:34px;border:1px solid var(--crm-blue);border-radius:50%;background:#fff;color:var(--crm-blue);font-size:18px;font-weight:800;line-height:1;cursor:pointer;transition:background-color .18s ease,transform .18s ease}
+.crm-help-trigger:hover{background:var(--crm-tint);transform:translateY(-2px)}
+.crm-help-hint[hidden],.crm-guide[hidden]{display:none!important}
+.crm-help-hint{position:absolute;z-index:8;right:43px;top:50%;transform:translateY(-50%);width:230px;padding:8px 27px 8px 10px;border:1px solid var(--crm-line);border-radius:6px;background:#fff;box-shadow:0 8px 25px rgba(12,48,80,.14);font-size:11px;line-height:1.4;color:var(--crm-deep)}
+.crm-help-hint button{position:absolute;right:4px;top:3px;border:0;background:none;color:var(--crm-muted);font-size:16px;cursor:pointer}
+.crm-progress-note{display:flex;align-items:center;justify-content:space-between;gap:8px 18px;flex-wrap:wrap;margin:-6px 0 15px;padding:9px 13px;border:1px solid var(--crm-line);border-radius:6px;background:#f7fafd;color:var(--crm-deep);font-size:12px}
+.crm-progress-note i{margin-right:5px}.crm-progress-pending{font-weight:700;color:#80571b}
+.crm-draft-notice{display:flex;align-items:center;gap:13px;margin:0 0 16px;padding:14px 16px;border:1px solid #ead19c;border-radius:7px;background:#fff8ea;color:#654a1d}
+.crm-draft-notice>i{font-size:21px}.crm-draft-notice>div{flex:1;min-width:0}.crm-draft-notice strong{font-size:13px}.crm-draft-notice p{margin:3px 0 0;font-size:12px;line-height:1.5}.crm-draft-notice .crm-btn{flex:none}
+.crm-editor .crm-field .crm-label-icon{display:inline-block;margin-right:6px;color:var(--crm-blue);font-size:12px;vertical-align:baseline}
+.crm-guide{position:fixed;inset:0;z-index:3100;display:flex;align-items:center;justify-content:center;padding:22px;background:rgba(11,31,52,.56);backdrop-filter:blur(3px)}
+.crm-guide-card{width:min(100%,540px);max-height:min(90vh,660px);overflow:auto;padding:24px 27px;border-top:4px solid var(--crm-blue);border-radius:11px;background:#fff;box-shadow:0 24px 70px rgba(6,25,47,.3);animation:crm-send-enter .22s ease-out both}
+.crm-guide-top,.crm-guide-foot{display:flex;align-items:center;justify-content:space-between;gap:12px}.crm-guide-kicker{color:var(--crm-blue);font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}.crm-guide-close{border:0;background:none;color:var(--crm-muted);font-size:26px;line-height:1;cursor:pointer}
+.crm-guide-progress{margin:19px 0 20px;color:var(--crm-muted);font-size:11px;font-weight:700}.crm-guide-track{height:5px;margin-top:7px;border-radius:5px;background:var(--crm-line);overflow:hidden}.crm-guide-track span{display:block;width:0;height:100%;background:var(--crm-blue);transition:width .22s ease}
+.crm-guide h2{margin:0 0 10px;color:var(--crm-deep);font-size:22px}.crm-guide p{margin:0;color:var(--crm-muted);font-size:14px;line-height:1.65}.crm-guide-foot{margin-top:28px;padding-top:18px;border-top:1px solid var(--crm-line)}.crm-guide-foot button:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+@media(max-width:720px){.crm-editor-head-tools{justify-content:flex-start}.crm-help-hint{right:auto;left:42px;width:190px}.crm-progress-note{align-items:flex-start;flex-direction:column}.crm-draft-notice{align-items:flex-start;flex-wrap:wrap}.crm-draft-notice .crm-btn{width:100%}.crm-guide-card{padding:19px}.crm-guide-foot .crm-btn{padding:10px 11px}}
+@media(prefers-reduced-motion:reduce){.crm-help-trigger,.crm-guide-track span{transition:none}.crm-help-trigger:hover{transform:none}.crm-guide-card{animation:none}}

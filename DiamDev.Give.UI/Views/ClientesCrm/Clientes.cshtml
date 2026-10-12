@@ -3,7 +3,7 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=3")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=7")" rel="stylesheet" /> }
 <div class="crm" id="crmApp" data-empresa="@Model.Empresa">
     <header class="crm-page-head"><span class="crm-eyebrow">Clientes · @(Model.EsGlobal ? "Vista global" : "Mis clientes")</span><div class="crm-head-row"><div><h1>Actualización de Cliente</h1><p>Seleccione una ficha CRM o un cliente disponible en SAP para iniciar la actualización.</p></div></div></header>
     @if (TempData["CrmError"] != null)
@@ -44,7 +44,7 @@
                 <tbody>
                     @foreach (var s in Model.Solicitudes)
                     {
-                        <tr><td>#@s.Id</td><td><strong>@s.Ficha.RazonSocial</strong></td><td>@(s.Empresa == "FAES" ? "Escocesa" : s.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td><span class="crm-state crm-state-@s.Estado.ToLowerInvariant()">@s.Estado</span></td><td><a class="crm-link" href="@Url.Action("Solicitud", new { id = s.Id })">Ver solicitud</a></td></tr>
+                        <tr><td>#@s.Id</td><td><strong>@s.Ficha.RazonSocial</strong></td><td>@(s.Empresa == "FAES" ? "Escocesa" : s.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</td><td><span class="crm-state crm-state-@s.Estado.ToLowerInvariant()">@(s.Estado == "BORRADOR" ? "Borrador · sin enviar" : s.Estado)</span></td><td>@if (s.Estado == "BORRADOR" && Model.PuedeActualizar && Model.Empresas.Any(e => e.Empresa == s.Empresa && e.Agentes.Any(a => a.Codigo == s.CodigoOperador))) { <a class="crm-link" href="@Url.Action("EditarSolicitud", new { id = s.Id })">Continuar solicitud <i class="icon-arrow-right" aria-hidden="true"></i></a> } else { <a class="crm-link" href="@Url.Action("Solicitud", new { id = s.Id })">Ver solicitud</a> }</td></tr>
 }
             </tbody>
         </table>

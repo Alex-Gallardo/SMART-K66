@@ -9,7 +9,7 @@
     string nombreEmpresa = empresa == "FAES" ? "Escocesa" : empresa == "GRACO" ? "Graco Pack" : "Bolik";
     long entidadId = esSolicitud ? Model.Solicitud.Id : Model.Cliente.Id;
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=4")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=7")" rel="stylesheet" /> }
 <div class="crm crm-detail" data-empresa="@empresa">
     <header class="crm-page-head">
         <a class="crm-back" href="@Url.Action(esSolicitud ? (Model.EsVistaCreditos ? "ControlCreditos" : Model.Solicitud.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion ? "Actualizacion" : "Index") : "Actualizacion")"><i class="icon-arrow-left"></i> Volver al listado</a>
@@ -18,13 +18,14 @@
             <span class="crm-eyebrow">Clientes · @nombreEmpresa</span>
             <h1>@f.RazonSocial</h1><p>@f.NombreComercial · @f.NitDpi</p></div>
             <div class="crm-head-actions">
-                @if (esSolicitud) { <span class="crm-state crm-state-@Model.Solicitud.Estado.ToLowerInvariant()">@Model.Solicitud.Estado</span> }
+                @if (esSolicitud) { <span class="crm-state crm-state-@Model.Solicitud.Estado.ToLowerInvariant()">@(Model.Solicitud.Estado == "BORRADOR" ? "Borrador · sin enviar" : Model.Solicitud.Estado)</span> }
                 else { <span class="crm-state @(Model.Cliente.Activo ? "crm-state-aprobada" : "crm-state-rechazada")">@(Model.Cliente.Activo ? "Activo" : "Inactivo")</span> }
-                @if (Model.PuedeEditar) { <a class="crm-btn crm-btn-primary" href="@(esSolicitud ? Url.Action("EditarSolicitud", new { id = entidadId }) : Url.Action("EditarCliente", new { id = entidadId, empresa = empresa }))"><i class="icon-pencil"></i> Editar</a> }
+                @if (Model.PuedeEditar) { <a class="crm-btn crm-btn-primary" href="@(esSolicitud ? Url.Action("EditarSolicitud", new { id = entidadId }) : Url.Action("EditarCliente", new { id = entidadId, empresa = empresa }))"><i class="icon-pencil"></i> @(esSolicitud && Model.Solicitud.Estado == "BORRADOR" ? "Continuar solicitud" : "Editar")</a> }
             </div></div>
     </header>
     @if (TempData["CrmExito"] != null) { <div class="crm-alert crm-alert-success">@TempData["CrmExito"]</div> }
     @if (TempData["CrmError"] != null) { <div class="crm-alert crm-alert-error">@TempData["CrmError"]</div> }
+    @if (esSolicitud && Model.Solicitud.Estado == "BORRADOR") { <div class="crm-draft-notice"><i class="icon-time" aria-hidden="true"></i><div><strong>Esta solicitud sigue como borrador.</strong><p>Créditos la recibirá cuando complete Documentos y pulse «Enviar a Créditos».</p></div>@if (Model.PuedeEditar) { <a class="crm-btn crm-btn-primary" href="@Url.Action("EditarSolicitud", new { id = entidadId })">Continuar solicitud <i class="icon-arrow-right" aria-hidden="true"></i></a> }</div> }
     @if (esSolicitud && Model.Solicitud.Estado == "RECHAZADA") { <div class="crm-alert crm-alert-error"><strong>Motivo del rechazo:</strong> @Model.Solicitud.MotivoRechazo</div> }
     @if (esSolicitud && Model.Solicitud.ClienteId.HasValue) { <div class="crm-alert crm-alert-success">@(Model.Solicitud.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion ? "Esta solicitud actualizó la ficha CRM." : "Esta solicitud creó una ficha CRM.") @if (Model.PuedeAbrirClienteVinculado) { <a href="@Url.Action("Ficha", new { id = Model.Solicitud.ClienteId, empresa = empresa })">Abrir ficha de cliente</a> }</div> }
     @if (!esSolicitud && Model.EmpresasCliente != null && Model.EmpresasCliente.Count > 1) { <nav class="crm-company-tabs" aria-label="Empresas del cliente">@foreach (var e in Model.EmpresasCliente) { <a class="@(e.Empresa == empresa ? "is-active" : "")" href="@Url.Action("Ficha", new { id = entidadId, empresa = e.Empresa })">@(e.Empresa == "FAES" ? "Escocesa" : e.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</a> }</nav> }

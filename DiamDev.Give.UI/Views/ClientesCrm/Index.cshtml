@@ -1,14 +1,16 @@
 @model List<DiamDev.Give.Entities.ClienteCrmSolicitud>
 @using System
 @using System.Collections.Generic
+@using System.Linq
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     var empresas = ViewBag.Empresas as List<DiamDev.Give.UI.Models.ClienteCrmEmpresaOpcion> ?? new List<DiamDev.Give.UI.Models.ClienteCrmEmpresaOpcion>();
+    var empresasUsuario = ViewBag.EmpresasUsuario as List<DiamDev.Give.UI.Models.ClienteCrmEmpresaOpcion> ?? new List<DiamDev.Give.UI.Models.ClienteCrmEmpresaOpcion>();
     string empresaActual = ViewBag.Empresa as string;
     string estadoActual = ViewBag.Estado as string;
     string filtroActual = ViewBag.Filtro as string;
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=3")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=7")" rel="stylesheet" /> }
 <div class="crm" data-empresa="@empresaActual">
     <header class="crm-page-head">
         <span class="crm-eyebrow">Clientes · Grupo K66</span>
@@ -31,8 +33,8 @@
                 <td><strong>@s.Ficha.RazonSocial</strong><small>@s.Ficha.NitDpi</small></td>
                 <td><span class="crm-company crm-company-@s.Empresa.ToLowerInvariant()">@(s.Empresa == "FAES" ? "Escocesa" : s.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</span></td>
                 <td>@s.CreadoEn.ToString("dd/MM/yyyy")</td>
-                <td><span class="crm-state crm-state-@s.Estado.ToLowerInvariant()">@s.Estado</span></td>
-                <td><a class="crm-link" href="@Url.Action("Solicitud", new { id = s.Id })">Ver detalle <i class="icon-arrow-right"></i></a></td>
+                <td><span class="crm-state crm-state-@s.Estado.ToLowerInvariant()">@(s.Estado == "BORRADOR" ? "Borrador · sin enviar" : s.Estado)</span></td>
+                <td>@if (s.Estado == "BORRADOR" && ViewBag.PuedeCrear == true && empresasUsuario.Any(e => e.Empresa == s.Empresa && e.Agentes.Any(a => a.Codigo == s.CodigoOperador))) { <a class="crm-link" href="@Url.Action("EditarSolicitud", new { id = s.Id })">Continuar solicitud <i class="icon-arrow-right" aria-hidden="true"></i></a> } else { <a class="crm-link" href="@Url.Action("Solicitud", new { id = s.Id })">Ver detalle <i class="icon-arrow-right" aria-hidden="true"></i></a> }</td>
             </tr> }
         </tbody></table></div>
         @if (Model.Count == 0) { <div class="crm-empty"><i class="icon-file-text"></i><strong>No hay solicitudes con estos filtros</strong><span>Puede crear una nueva solicitud o ajustar la búsqueda.</span></div> }

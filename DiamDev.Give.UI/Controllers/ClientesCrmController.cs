@@ -37,6 +37,7 @@ namespace DiamDev.Give.UI.Controllers
             ViewBag.Estado = estado;
             ViewBag.Filtro = filtro;
             ViewBag.PuedeCrear = TienePermiso(PermisoCrear);
+            ViewBag.EmpresasUsuario = EmpresasUsuario();
             var solicitudes = _crm.ListarSolicitudes(empresa, estado, filtro, User.Identity.Name)
                 .Where(x => x.TipoSolicitud == TiposSolicitudCliente.Alta).ToList();
             _crm.RegistrarEvento("MODULO", null, empresa, User.Identity.Name, "LISTAR_PROPIAS",
@@ -292,9 +293,13 @@ namespace DiamDev.Give.UI.Controllers
                     Ficha = modelo.Ficha
                 }, LeerArchivos(), enviar, User.Identity.Name, Ip());
                 if (continuar)
+                {
+                    TempData["CrmExito"] = "Paso guardado. La solicitud sigue como borrador; complete los pasos restantes y pulse Enviar a Créditos en Documentos.";
                     return RedirectToAction("EditarSolicitud", new {
                         id = id, paso = SiguientePaso(modelo.TipoSolicitud, modelo.PasoActual) });
-                TempData["CrmExito"] = enviar ? "Solicitud enviada a Créditos." : "Borrador guardado.";
+                }
+                TempData["CrmExito"] = enviar ? "Solicitud enviada a Créditos para revisión." :
+                    "Borrador guardado. La solicitud aún no se ha enviado a Créditos.";
                 return RedirectToAction("Solicitud", new { id = id });
             }
             catch (Exception ex)

@@ -84,45 +84,74 @@
         var siguienteGuia = document.getElementById('crmGuideNext');
         var avisoGuia = document.getElementById('crmHelpHint');
         var cerrarAviso = document.getElementById('crmHelpHintClose');
-        var claveAviso = 'crm-solicitud-guia-v1';
-        var conDesarrollo = !!stepNav.querySelector('[data-step="5"]');
+        var claveAviso = 'crm-solicitud-guia-v2';
+        var tarjetaGuia = guia.querySelector('.crm-guide-card');
         var pasosGuia = [
-            ['Antes de comenzar', 'La solicitud avanza por secciones. Guardar un paso o un borrador no la envía a Créditos. Puede retomarla desde Mis solicitudes.'],
-            ['1. Identidad y facturación', 'Seleccione la empresa y el agente, y complete los datos fiscales. Pulse Guardar y continuar para pasar a Contactos. La solicitud seguirá como borrador.'],
-            ['2. Contactos', 'Agregue al menos una persona, indique su tipo de contacto y canal de comunicación. Complete los campos requeridos antes de continuar.'],
-            ['3. Entregas', 'Registre al menos una dirección con modalidad, referencia y horarios. Puede agregar otras ubicaciones si el cliente las utiliza.'],
-            ['4. Perfil comercial', 'Describa la cobertura, los canales y el contexto comercial. Guarde el paso para llegar a Documentos.']
-        ];
-        if (conDesarrollo) pasosGuia.push(['5. Desarrollo comercial',
-            'En una actualización, complete los indicadores y próximos pasos comerciales. Después continúe a Documentos.']);
-        pasosGuia.push(['Último paso: Documentos y envío',
-            'Adjunte RTU actualizado y DPI del representante, ambos lados. Los demás documentos son opcionales. Pulse Enviar a Créditos y compruebe el estado Enviada en el detalle de la solicitud.']);
+            { paso: 1, titulo: 'Identidad y facturación', descripcion: 'Seleccione la empresa y el agente. Complete los datos fiscales y de pago del cliente. «Guardar y continuar» abre Contactos; la solicitud todavía será un borrador.' },
+            { paso: 2, titulo: 'Contactos y unidad de decisión', descripcion: 'Agregue al menos una persona de contacto. Registre su función, teléfono y canal de comunicación para que Créditos sepa con quién hablar.' },
+            { paso: 3, titulo: 'Direcciones y horarios', descripcion: 'Agregue al menos una dirección de entrega e indique la modalidad, referencias y horarios. Puede registrar más ubicaciones si el cliente las utiliza.' },
+            { paso: 4, titulo: 'Perfil comercial', descripcion: 'Describa dónde vende el cliente, sus canales de venta y su contexto comercial. Guarde el paso para continuar.' },
+            { paso: 5, titulo: 'Desarrollo comercial', descripcion: 'En las actualizaciones, registre los indicadores de venta, las oportunidades y el próximo paso comercial antes de continuar.' },
+            { paso: 6, titulo: 'Documentos y envío', descripcion: 'Adjunte el RTU actualizado y el DPI del representante por ambos lados. Al final pulse «Enviar a Créditos»: guardar un borrador no entrega la solicitud. Compruebe que el estado cambie a «Enviada».' }
+        ].filter(function (paso) { return !!stepNav.querySelector('a[data-step="' + paso.paso + '"]'); });
         var indiceGuia = 0;
         var focoAnterior = null;
+        var enlaceGuia = null;
         function recordarGuia() {
             if (avisoGuia) avisoGuia.hidden = true;
             try { window.localStorage.setItem(claveAviso, '1'); } catch (e) { /* El aviso sigue siendo descartable en esta visita. */ }
         }
+        function posicionarGuia() {
+            if (guia.hidden || !enlaceGuia) return;
+            var nav = stepNav.getBoundingClientRect();
+            var enlace = enlaceGuia.getBoundingClientRect();
+            var ancho = Math.min(440, window.innerWidth - 24);
+            var izquierda = Math.max(12, Math.min(window.innerWidth - ancho - 12,
+                enlace.left + enlace.width / 2 - ancho / 2));
+            var arriba = nav.bottom + 13;
+            tarjetaGuia.style.width = ancho + 'px';
+            tarjetaGuia.style.left = izquierda + 'px';
+            tarjetaGuia.style.top = arriba + 'px';
+            tarjetaGuia.style.maxHeight = Math.max(80, window.innerHeight - arriba - 12) + 'px';
+            guia.style.setProperty('--crm-guide-pointer-left', Math.max(izquierda + 22,
+                Math.min(izquierda + ancho - 22, enlace.left + enlace.width / 2)) + 'px');
+            guia.style.setProperty('--crm-guide-pointer-top', arriba - 9 + 'px');
+        }
         function mostrarPasoGuia() {
-            document.getElementById('crmGuideCount').textContent = 'Tema ' + (indiceGuia + 1) + ' de ' + pasosGuia.length;
+            var paso = pasosGuia[indiceGuia];
+            if (enlaceGuia) enlaceGuia.classList.remove('is-guide-target');
+            enlaceGuia = stepNav.querySelector('a[data-step="' + paso.paso + '"]');
+            enlaceGuia.classList.add('is-guide-target');
+            stepNav.scrollLeft = Math.max(0, enlaceGuia.offsetLeft -
+                (stepNav.clientWidth - enlaceGuia.offsetWidth) / 2);
+            document.getElementById('crmGuideCount').textContent = 'Paso ' + (indiceGuia + 1) + ' de ' + pasosGuia.length;
             document.getElementById('crmGuideFill').style.width = ((indiceGuia + 1) * 100 / pasosGuia.length) + '%';
-            document.getElementById('crmGuideTitle').textContent = pasosGuia[indiceGuia][0];
-            document.getElementById('crmGuideDescription').textContent = pasosGuia[indiceGuia][1];
+            document.getElementById('crmGuideTitle').textContent = paso.titulo;
+            document.getElementById('crmGuideDescription').textContent = paso.descripcion;
             anteriorGuia.disabled = indiceGuia === 0;
             siguienteGuia.textContent = indiceGuia === pasosGuia.length - 1 ? 'Cerrar guía' : 'Siguiente';
+            posicionarGuia();
+            window.requestAnimationFrame(posicionarGuia);
         }
         function cerrarRecorrido() {
             guia.hidden = true;
+            stepNav.classList.remove('is-guide-active');
+            if (enlaceGuia) enlaceGuia.classList.remove('is-guide-target');
+            enlaceGuia = null;
             abrirGuia.setAttribute('aria-expanded', 'false');
             if (focoAnterior && document.contains(focoAnterior)) focoAnterior.focus();
         }
         function iniciarRecorrido() {
             focoAnterior = document.activeElement;
             indiceGuia = 0;
-            mostrarPasoGuia();
             recordarGuia();
             guia.hidden = false;
+            stepNav.classList.add('is-guide-active');
             abrirGuia.setAttribute('aria-expanded', 'true');
+            var altoCabecera = parseInt(window.getComputedStyle(app).getPropertyValue('--crm-shell-height'), 10) || 54;
+            var posicionNav = stepNav.getBoundingClientRect().top;
+            window.scrollTo(0, Math.max(0, window.pageYOffset + posicionNav - altoCabecera - 8));
+            mostrarPasoGuia();
             cerrarGuia.focus();
         }
         try { if (window.localStorage.getItem(claveAviso) !== '1' && avisoGuia) avisoGuia.hidden = false; }
@@ -146,6 +175,8 @@
             if (e.shiftKey && document.activeElement === elementos[0]) { e.preventDefault(); elementos[elementos.length - 1].focus(); }
             if (!e.shiftKey && document.activeElement === elementos[elementos.length - 1]) { e.preventDefault(); elementos[0].focus(); }
         });
+        window.addEventListener('resize', posicionarGuia);
+        window.addEventListener('scroll', posicionarGuia);
     }
 
     var iconosCampo = {

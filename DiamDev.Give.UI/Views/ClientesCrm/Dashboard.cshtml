@@ -4,7 +4,7 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=4")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=9")" rel="stylesheet" /> }
 <div class="crm crm-dashboard" data-empresa="@Model.Empresa">
     <header class="crm-page-head">
         <span class="crm-eyebrow">Clientes · Grupo K66</span>
@@ -51,7 +51,7 @@
                                 <td>@s.Agente</td>
                                 <td>@s.CreadoEn.ToString("dd/MM/yyyy")</td>
                                 <td><span class="crm-state crm-state-@s.Estado.ToLowerInvariant()">@s.Estado</span></td>
-                                <td><a class="crm-link" href="@Url.Action("Solicitud", new { id = s.Id })">Revisar <i class="icon-arrow-right"></i></a></td>
+                                <td>@if (s.Estado == DiamDev.Give.Entities.EstadosSolicitudCliente.Aprobada && s.ClienteId.HasValue) { <a class="crm-link" href="@Url.Action("Ficha", new { id = s.ClienteId.Value, empresa = s.Empresa })">Ver ficha <i class="icon-arrow-right" aria-hidden="true"></i></a> } else { <a class="crm-link" href="@Url.Action("Solicitud", new { id = s.Id })">Revisar solicitud <i class="icon-arrow-right" aria-hidden="true"></i></a> }</td>
                                 <td>@if (s.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Alta) { <a class="crm-print-table-link" href="@Url.Action("ImprimirSolicitud", new { id = s.Id })" aria-label="Imprimir o guardar PDF de la solicitud de creación #@s.Id"><i class="icon-print" aria-hidden="true"></i> Imprimir</a> } else { <span class="crm-muted" aria-label="Impresión disponible para solicitudes de creación">—</span> }</td>
                             </tr>
 }

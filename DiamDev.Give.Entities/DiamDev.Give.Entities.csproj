@@ -92,6 +92,7 @@
     <Compile Include="CotizacionDetalle.cs" />
     <Compile Include="CotizacionEncabezado.cs" />
     <Compile Include="ClienteCrm.cs" />
+    <Compile Include="ClienteCrmTextoSap.cs" />
     <Compile Include="PaginaProductosCotizacionHana.cs" />
     <Compile Include="ClienteHana.cs" />
     <Compile Include="ClienteK66.cs" />

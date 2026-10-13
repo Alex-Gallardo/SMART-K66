@@ -271,6 +271,9 @@ namespace DiamDev.Give.UI.Controllers
                     modelo.Ficha.CodigoSapOrigen = null;
                     modelo.Ficha.CambioRazonSocial = false;
                 }
+                // La validación de cada paso debe revisar exactamente el texto que
+                // quedará guardado, incluso cuando se continúa como borrador.
+                ClienteCrmTextoSap.NormalizarFicha(modelo.Ficha);
                 int completado = existente == null ? 0 : existente.Ficha.PasoCompletado;
                 if (modelo.PasoActual < 1 || modelo.PasoActual > 6 ||
                     (!esActualizacion && modelo.PasoActual == 5) ||
@@ -600,6 +603,16 @@ namespace DiamDev.Give.UI.Controllers
                 m.PasoActual = m.Ficha.PasoCompletado >= 4 ? 6 : 4;
             if (string.Equals(m.Ficha.TipoOperacion, "Gobierno", StringComparison.OrdinalIgnoreCase))
                 m.Ficha.TipoOperacion = "Publica";
+            // Los selectores muestran los mismos textos al usuario, pero sus valores
+            // guardados se ajustan al formato de captura requerido por SAP.
+            m.Ficha.TipoOperacion = ClienteCrmTextoSap.Normalizar(m.Ficha.TipoOperacion);
+            m.Ficha.MetodoPago = ClienteCrmTextoSap.Normalizar(m.Ficha.MetodoPago);
+            foreach (var contacto in m.Ficha.Contactos ?? new List<ClienteCrmContacto>())
+                if (contacto != null)
+                    contacto.TipoContacto = ClienteCrmTextoSap.Normalizar(contacto.TipoContacto);
+            foreach (var direccion in m.Ficha.Direcciones ?? new List<ClienteCrmDireccion>())
+                if (direccion != null)
+                    direccion.Modalidad = ClienteCrmTextoSap.Normalizar(direccion.Modalidad);
             if (m.Error == null && (m.SolicitudId > 0 || m.ClienteId > 0))
             {
                 if (m.Ficha.Contactos == null) m.Ficha.Contactos = new List<ClienteCrmContacto>();

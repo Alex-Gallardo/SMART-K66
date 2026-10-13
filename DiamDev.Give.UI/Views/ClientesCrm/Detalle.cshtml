@@ -9,14 +9,14 @@
     string nombreEmpresa = empresa == "FAES" ? "Escocesa" : empresa == "GRACO" ? "Graco Pack" : "Bolik";
     long entidadId = esSolicitud ? Model.Solicitud.Id : Model.Cliente.Id;
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=7")" rel="stylesheet" /> }
-<div class="crm crm-detail" data-empresa="@empresa">
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=8")" rel="stylesheet" /> }
+<div class="crm crm-detail @(!esSolicitud ? "crm-client-ficha" : "")" data-empresa="@empresa">
     <header class="crm-page-head">
         <a class="crm-back" href="@Url.Action(esSolicitud ? (Model.EsVistaCreditos ? "ControlCreditos" : Model.Solicitud.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion ? "Actualizacion" : "Index") : "Actualizacion")"><i class="icon-arrow-left"></i> Volver al listado</a>
         <div class="crm-head-row"><div>
             <div class="crm-record-heading"><span class="crm-record-kind @(esSolicitud ? "crm-record-kind-request" : "crm-record-kind-client")"><i class="@(esSolicitud ? "icon-file-text" : "icon-address-book")" aria-hidden="true"></i> @(esSolicitud ? (Model.Solicitud.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion ? "Solicitud de actualización" : "Solicitud de creación") : "Ficha de cliente")</span><span class="crm-record-number">#@entidadId</span></div>
             <span class="crm-eyebrow">Clientes · @nombreEmpresa</span>
-            <h1>@f.RazonSocial</h1><p>@f.NombreComercial · @f.NitDpi</p></div>
+            <h1>@f.RazonSocial</h1><p><span data-crm-copy-value>@f.NombreComercial</span> · <span data-crm-copy-value>@f.NitDpi</span></p></div>
             <div class="crm-head-actions">
                 @if (esSolicitud) { <span class="crm-state crm-state-@Model.Solicitud.Estado.ToLowerInvariant()">@(Model.Solicitud.Estado == "BORRADOR" ? "Borrador · sin enviar" : Model.Solicitud.Estado)</span> }
                 else { <span class="crm-state @(Model.Cliente.Activo ? "crm-state-aprobada" : "crm-state-rechazada")">@(Model.Cliente.Activo ? "Activo" : "Inactivo")</span> }
@@ -29,6 +29,7 @@
     @if (esSolicitud && Model.Solicitud.Estado == "RECHAZADA") { <div class="crm-alert crm-alert-error"><strong>Motivo del rechazo:</strong> @Model.Solicitud.MotivoRechazo</div> }
     @if (esSolicitud && Model.Solicitud.ClienteId.HasValue) { <div class="crm-alert crm-alert-success">@(Model.Solicitud.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion ? "Esta solicitud actualizó la ficha CRM." : "Esta solicitud creó una ficha CRM.") @if (Model.PuedeAbrirClienteVinculado) { <a href="@Url.Action("Ficha", new { id = Model.Solicitud.ClienteId, empresa = empresa })">Abrir ficha de cliente</a> }</div> }
     @if (!esSolicitud && Model.EmpresasCliente != null && Model.EmpresasCliente.Count > 1) { <nav class="crm-company-tabs" aria-label="Empresas del cliente">@foreach (var e in Model.EmpresasCliente) { <a class="@(e.Empresa == empresa ? "is-active" : "")" href="@Url.Action("Ficha", new { id = entidadId, empresa = e.Empresa })">@(e.Empresa == "FAES" ? "Escocesa" : e.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</a> }</nav> }
+    @if (!esSolicitud) { <p class="crm-copy-hint"><i class="icon-copy" aria-hidden="true"></i> Haga clic o toque un dato de la ficha para copiarlo.</p><div class="crm-copy-status" id="crmCopyStatus" role="status" aria-live="polite" aria-atomic="true"></div> }
 
     <div class="crm-detail-grid">
         <div class="crm-detail-main">
@@ -38,12 +39,12 @@
             </section>
             <section class="crm-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="clip-users"></i></div><div><h2>Contactos</h2><p>Unidad de decisión y comunicación</p></div></div>
                 @if (!string.IsNullOrWhiteSpace(f.ContactoPrincipal) || !string.IsNullOrWhiteSpace(f.TomadorDecision) || !string.IsNullOrWhiteSpace(f.ResponsableCompras) || !string.IsNullOrWhiteSpace(f.ContactoPagos) || !string.IsNullOrWhiteSpace(f.CanalPreferido) || !string.IsNullOrWhiteSpace(f.ObservacionesRelacion)) {
-                <dl class="crm-data-grid"><dt>Contacto principal</dt><dd>@(f.ContactoPrincipal ?? "—") · @(f.CargoPrincipal ?? "—")</dd><dt>Teléfono / correo</dt><dd>@(f.TelefonoPrincipal ?? "—") · @(f.CorreoPrincipal ?? "—")</dd><dt>Tomador de decisión</dt><dd>@(f.TomadorDecision ?? "—")</dd><dt>Responsable de compras</dt><dd>@(f.ResponsableCompras ?? "—")</dd><dt>Contacto de pagos</dt><dd>@(f.ContactoPagos ?? "—")</dd><dt>Canal preferido</dt><dd>@(f.CanalPreferido ?? "—")</dd><dt>Relación</dt><dd>@(f.ObservacionesRelacion ?? "—")</dd></dl>
+                <dl class="crm-data-grid"><dt>Contacto principal</dt><dd><span data-crm-copy-value>@(f.ContactoPrincipal ?? "—")</span> · <span data-crm-copy-value>@(f.CargoPrincipal ?? "—")</span></dd><dt>Teléfono / correo</dt><dd><span data-crm-copy-value>@(f.TelefonoPrincipal ?? "—")</span> · <span data-crm-copy-value>@(f.CorreoPrincipal ?? "—")</span></dd><dt>Tomador de decisión</dt><dd>@(f.TomadorDecision ?? "—")</dd><dt>Responsable de compras</dt><dd>@(f.ResponsableCompras ?? "—")</dd><dt>Contacto de pagos</dt><dd>@(f.ContactoPagos ?? "—")</dd><dt>Canal preferido</dt><dd>@(f.CanalPreferido ?? "—")</dd><dt>Relación</dt><dd>@(f.ObservacionesRelacion ?? "—")</dd></dl>
                 }
                 @if (f.Contactos != null && f.Contactos.Count > 0) { <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>Área</th><th>Nombre</th><th>Tipo</th><th>Canal</th><th>Puesto</th><th>Teléfono</th><th>Correo</th><th>Tomador de decisiones</th></tr></thead><tbody>@foreach (var c in f.Contactos) { <tr><td>@c.Area</td><td><strong>@c.Nombre</strong></td><td>@(c.TipoContacto ?? "—")</td><td>@(c.CanalComunicacion ?? "—")</td><td>@c.Puesto</td><td>@c.Telefono</td><td>@c.Correo</td><td>@c.TomadorDecision</td></tr> }</tbody></table></div> }
             </section>
             <section class="crm-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="icon-map-marker"></i></div><div><h2>Direcciones de entrega</h2><p>Ubicaciones, horarios y modalidades</p></div></div>
-                @if (f.Direcciones != null) { foreach (var d in f.Direcciones) { <div class="crm-address-detail"><div><i class="icon-map-marker"></i></div><div><strong>@(d.Nombre ?? "Dirección de entrega")</strong><p>@d.Direccion</p><small>@d.Modalidad · @d.Referencia</small><small>Semana: @(d.HorarioSemana ?? "—") · Fin de semana: @(d.HorarioFinSemana ?? "—")</small><small>@(d.RequiereCita ? "Requiere cita previa" : "Sin cita previa") · @(d.Activa ? "Activa" : "Inactiva")</small></div></div> } }
+                @if (f.Direcciones != null) { foreach (var d in f.Direcciones) { <div class="crm-address-detail"><div><i class="icon-map-marker"></i></div><div><strong data-crm-copy-value>@(d.Nombre ?? "Dirección de entrega")</strong><p data-crm-copy-value>@d.Direccion</p><small><span data-crm-copy-value>@d.Modalidad</span> · <span data-crm-copy-value>@d.Referencia</span></small><small>Semana: <span data-crm-copy-value>@(d.HorarioSemana ?? "—")</span> · Fin de semana: <span data-crm-copy-value>@(d.HorarioFinSemana ?? "—")</span></small><small><span data-crm-copy-value>@(d.RequiereCita ? "Requiere cita previa" : "Sin cita previa")</span> · <span data-crm-copy-value>@(d.Activa ? "Activa" : "Inactiva")</span></small></div></div> } }
             </section>
             <section class="crm-card"><div class="crm-card-head"><div class="crm-section-icon"><i class="icon-building"></i></div><div><h2>Perfil del negocio</h2><p>Cobertura y contexto comercial</p></div></div>
                 <dl class="crm-data-grid"><dt>Cobertura geográfica</dt><dd>@(f.CoberturaGeografica ?? "—")</dd><dt>Regiones de mayor venta</dt><dd>@(f.RegionesMayorVenta ?? "—")</dd><dt>Sucursales / PDV</dt><dd>@(f.SucursalesMayorVenta ?? "—")</dd><dt>Vendedores de campo</dt><dd>@(f.VendedoresCampo.HasValue ? f.VendedoresCampo.ToString() : "—")</dd><dt>Vendedores de tienda</dt><dd>@(f.VendedoresTienda.HasValue ? f.VendedoresTienda.ToString() : "—")</dd><dt>Canales</dt><dd>@string.Join(", ", new[] { f.Televentas ? "Televentas" : null, f.VentaMostrador ? "Mostrador" : null, f.VentaInstitucional ? "Institucional" : null, f.Ecommerce ? "Comercio electrónico" : null }.Where(x => x != null))</dd><dt>Clientes finales</dt><dd>@(f.ClientesFinales ?? "—")</dd><dt>Temporadas de demanda</dt><dd>@(f.TemporadasDemanda ?? "—")</dd><dt>Proyectos / eventos</dt><dd>@(f.ProyectosEventos ?? "—")</dd></dl>
@@ -68,3 +69,4 @@
         </aside>
     </div>
 </div>
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm-detalle.js?v=1")"></script> }

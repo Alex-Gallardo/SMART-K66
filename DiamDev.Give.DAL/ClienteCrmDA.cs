@@ -298,6 +298,10 @@ namespace DiamDev.Give.DAL
                     if (aprobar)
                     {
                         var ficha = Newtonsoft.Json.JsonConvert.DeserializeObject<ClienteCrmFicha>(solicitud.FichaJson);
+                        ClienteCrmTextoSap.NormalizarFicha(ficha);
+                        // La solicitud conserva el contenido enviado; la ficha aprobada
+                        // se escribe en el formato que acepta la captura de SAP.
+                        var fichaClienteJson = Newtonsoft.Json.JsonConvert.SerializeObject(ficha);
                         if (solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion)
                         {
                             if (solicitud.OrigenClienteId.HasValue)
@@ -322,7 +326,7 @@ namespace DiamDev.Give.DAL
                                         fichaAnterior = Convert.ToString(r["FICHA_JSON"]);
                                     }
                                 }
-                                clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, solicitud.FichaJson,
+                                clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, fichaClienteJson,
                                     null, usuario, solicitud.OrigenClienteId, true, true);
                             }
                             else
@@ -338,7 +342,7 @@ namespace DiamDev.Give.DAL
                                     if (Convert.ToInt32(cmd.ExecuteScalar()) > 0)
                                         throw new InvalidOperationException("El cliente SAP ya tiene una ficha CRM. Inicie una actualización desde esa ficha.");
                                 }
-                                clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, solicitud.FichaJson,
+                                clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, fichaClienteJson,
                                     solicitud.OrigenCodigoSap, usuario, null, true, false);
                             }
                         }
@@ -354,14 +358,14 @@ namespace DiamDev.Give.DAL
                                 if (Convert.ToInt32(cmd.ExecuteScalar()) > 0)
                                     throw new InvalidOperationException("Este cliente ya tiene ficha CRM. Use Actualización de Cliente.");
                             }
-                            clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, solicitud.FichaJson,
+                            clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, fichaClienteJson,
                                 null, usuario, null, true, true);
                         }
                         VincularUsuario(cn, tx, clienteId.Value, solicitud.Empresa,
                             solicitud.CreadoPor, "SOLICITUD");
                         Auditar(cn, tx, "CLIENTE", clienteId, solicitud.Empresa, usuario,
                             solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion ? "APROBACION_ACTUALIZACION" : "APROBACION_SOLICITUD",
-                            "Solicitud #" + id, fichaAnterior, solicitud.FichaJson, ip);
+                            "Solicitud #" + id, fichaAnterior, fichaClienteJson, ip);
                     }
                     const string actualizar = @"UPDATE dbo.CRM_SOLICITUD SET
                         ESTADO=@estado,CLIENTE_ID=@cliente,RESUELTO_EN=SYSDATETIME(),

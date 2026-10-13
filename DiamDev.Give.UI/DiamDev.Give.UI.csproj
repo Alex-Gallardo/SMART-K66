@@ -674,6 +674,7 @@
     <Content Include="Scripts\App\BorradorNc-DashboardDetalle.js" />
     <Content Include="Scripts\App\Cotizacion-Index.js" />
     <Content Include="Scripts\clientes-crm.js" />
+    <Content Include="Scripts\clientes-crm-detalle.js" />
     <Content Include="Scripts\clientes-crm-print.js" />
     <Content Include="Scripts\App\backlog-viz.js" />
     <Content Include="Scripts\App\otif-viz.js" />

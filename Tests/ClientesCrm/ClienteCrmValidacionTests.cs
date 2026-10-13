@@ -32,7 +32,7 @@ namespace Tests.ClientesCrm
             alta.TramiteContrasena = null;
             ClienteCrmBLL.ValidarPasos(alta, 2, false);
             if (alta.CambioRazonSocial) return Fallar("Un alta conserva cambio de razón social.");
-            if (alta.Contactos[0].TipoContacto != "Comprador")
+            if (alta.Contactos[0].TipoContacto != "COMPRADOR")
                 return Fallar("El tipo de contacto seleccionado no se normalizó correctamente.");
 
             var actualizacion = Ficha();
@@ -45,7 +45,7 @@ namespace Tests.ClientesCrm
             var restaurada = JsonConvert.DeserializeObject<ClienteCrmFicha>(
                 JsonConvert.SerializeObject(actualizacion));
             if (restaurada.Contactos.Count != 1 ||
-                restaurada.Contactos[0].TipoContacto != "Influenciador técnico" ||
+                restaurada.Contactos[0].TipoContacto != "INFLUENCIADOR TECNICO" ||
                 restaurada.Contactos[0].CanalComunicacion != "WHATSAPP")
                 return Fallar("El JSON de la ficha perdió los nuevos datos del contacto.");
 

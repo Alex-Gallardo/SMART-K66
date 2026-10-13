@@ -358,8 +358,8 @@
             campos.appendChild(campo);
         });
         var selectores = [['TipoContacto', 'Tipo de contacto', [
-            ['Tomador de decisiones', 'Tomador de decisiones'],
-            ['Influenciador técnico', 'Influenciador técnico'], ['Comprador', 'Comprador']]],
+            ['TOMADOR DE DECISIONES', 'Tomador de decisiones'],
+            ['INFLUENCIADOR TECNICO', 'Influenciador técnico'], ['COMPRADOR', 'Comprador']]],
             ['CanalComunicacion', 'Canal de comunicación', [['WHATSAPP', 'WhatsApp'],
             ['CELULAR', 'Llamada celular'], ['FIJO', 'Teléfono fijo'],
             ['CORREO', 'Correo electrónico'], ['PRESENCIAL', 'Presencial']]]];
@@ -410,8 +410,9 @@
                     vacio.value = ''; vacio.textContent = 'Seleccione...';
                     select.appendChild(vacio);
                 }
-                ['Despacho', 'Cliente recoge', 'Transporte de envío'].forEach(function (valor) {
-                    var o = document.createElement('option'); o.value = valor; o.textContent = valor;
+                [['DESPACHO', 'Despacho'], ['CLIENTE RECOGE', 'Cliente recoge'],
+                 ['TRANSPORTE DE ENVIO', 'Transporte de envío']].forEach(function (valor) {
+                    var o = document.createElement('option'); o.value = valor[0]; o.textContent = valor[1];
                     select.appendChild(o);
                 });
                 campo.replaceChild(select, antiguo);

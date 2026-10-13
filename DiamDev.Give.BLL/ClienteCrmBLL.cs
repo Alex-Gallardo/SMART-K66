@@ -241,6 +241,7 @@ namespace DiamDev.Give.BLL
                 solicitud.Ficha.CambioRazonSocial = false;
             }
             VincularTipoNegocio(solicitud.Empresa, solicitud.Ficha);
+            ClienteCrmTextoSap.NormalizarFicha(solicitud.Ficha);
             if (enviar) ValidarPasos(solicitud.Ficha, 5, solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion);
             ValidarFicha(solicitud.Ficha, enviar, false);
             if (string.IsNullOrWhiteSpace(solicitud.CodigoOperador) ||
@@ -272,6 +273,7 @@ namespace DiamDev.Give.BLL
             ValidarEmpresa(cliente.Empresa);
             cliente.Empresa = cliente.Empresa.Trim().ToUpperInvariant();
             VincularTipoNegocio(cliente.Empresa, cliente.Ficha);
+            ClienteCrmTextoSap.NormalizarFicha(cliente.Ficha);
             ValidarFicha(cliente.Ficha, true);
             if (!string.IsNullOrWhiteSpace(cliente.CodigoSap) && cliente.CodigoSap.Trim().Length > 50)
                 throw new InvalidOperationException("El código SAP no puede exceder 50 caracteres.");
@@ -323,7 +325,7 @@ namespace DiamDev.Give.BLL
         {
             if (f == null) throw new InvalidOperationException("Complete la ficha de cliente.");
             if (string.Equals(f.TipoOperacion, "Gobierno", StringComparison.OrdinalIgnoreCase))
-                f.TipoOperacion = "Publica";
+                f.TipoOperacion = "PUBLICA";
             f.RazonSocial = Limitar(f.RazonSocial, 200);
             f.NombreComercial = Limitar(f.NombreComercial, 200);
             f.NitDpi = Limitar(f.NitDpi, 50);
@@ -497,8 +499,9 @@ namespace DiamDev.Give.BLL
         {
             Requerir(contacto.TipoContacto, "Tipo de contacto");
             contacto.TipoContacto = Limitar(contacto.TipoContacto, 100);
-            if (!new[] { "Tomador de decisiones", "Influenciador técnico", "Comprador" }
-                .Contains(contacto.TipoContacto, StringComparer.OrdinalIgnoreCase))
+            contacto.TipoContacto = ClienteCrmTextoSap.Normalizar(contacto.TipoContacto);
+            if (!new[] { "TOMADOR DE DECISIONES", "INFLUENCIADOR TECNICO", "COMPRADOR" }
+                .Contains(contacto.TipoContacto))
                 throw new InvalidOperationException("Seleccione un tipo de contacto válido.");
         }
 

@@ -30,6 +30,13 @@ namespace Tests.Cotizaciones
             _fallas++;
         }
 
+        private static void Afirmar(bool condicion, string caso)
+        {
+            if (condicion) return;
+            Console.Error.WriteLine("FALLA " + caso);
+            _fallas++;
+        }
+
         public static int Main()
         {
             var normal = new CotizacionDetalle
@@ -73,6 +80,62 @@ namespace Tests.Cotizaciones
                 "144 por 13.12 sin IVA adicional");
             Igual(0m, cantidadPorPrecioVisible.ImpuestoMonto,
                 "sin IVA adicional en el caso reportado");
+
+            var historica = new CotizacionDetalle
+            {
+                Cantidad = 144m,
+                PrecioUnitario = 13.116071m,
+                DescuentoPorcentaje = 0m,
+                ImpuestoPorcentaje = 12m,
+                ImporteBruto = 1888.71m,
+                DescuentoMonto = 0m,
+                Subtotal = 1888.71m,
+                ImpuestoMonto = 226.65m,
+                Total = 2115.36m
+            };
+            var documentoHistorico = new CotizacionEncabezado
+            {
+                ImporteBruto = 1888.71m,
+                DescuentoTotal = 0m,
+                Subtotal = 1888.71m,
+                ImpuestoTotal = 226.65m,
+                Total = 2115.36m
+            };
+            documentoHistorico.Detalles.Add(historica);
+            Afirmar(!CotizacionBLL.TieneImportesConsistentesParaImprimir(
+                documentoHistorico), "no imprimir la cotización histórica inconsistente");
+            Igual(2115.36m, documentoHistorico.Total,
+                "la validación de impresión no debe mutar el documento");
+
+            CotizacionBLL.CalcularLinea(historica);
+            documentoHistorico.ImporteBruto = historica.ImporteBruto;
+            documentoHistorico.Subtotal = historica.Subtotal;
+            documentoHistorico.ImpuestoTotal = 0m;
+            documentoHistorico.Total = historica.Total;
+            Afirmar(CotizacionBLL.TieneImportesConsistentesParaImprimir(
+                documentoHistorico), "imprimir después de conciliar 144 por 13.12");
+            Igual("UN MIL OCHOCIENTOS OCHENTA Y NUEVE QUETZALES CON 28/100",
+                CotizacionBLL.TotalEnLetras(documentoHistorico.Total, "GTQ"),
+                "total conciliado en letras");
+            documentoHistorico.Total = 2115.36m;
+            Afirmar(!CotizacionBLL.TieneImportesConsistentesParaImprimir(
+                documentoHistorico), "no imprimir cabecera distinta de sus líneas");
+            documentoHistorico.Total = historica.Total;
+            historica.Total = 2115.36m;
+            Afirmar(!CotizacionBLL.TieneImportesConsistentesParaImprimir(
+                documentoHistorico), "no imprimir línea distinta de cantidad por precio");
+
+            var conDescuento = new CotizacionEncabezado
+            {
+                ImporteBruto = normal.ImporteBruto,
+                DescuentoTotal = normal.DescuentoMonto,
+                Subtotal = normal.Subtotal,
+                ImpuestoTotal = 0m,
+                Total = normal.Total
+            };
+            conDescuento.Detalles.Add(normal);
+            Afirmar(CotizacionBLL.TieneImportesConsistentesParaImprimir(
+                conDescuento), "descuento adicional explícito mantiene su fórmula");
 
             decimal totalCasoReportado = 0m;
             foreach (decimal precio in new[]

@@ -1,0 +1,50 @@
+@model DiamDev.Give.Entities.CotizacionEncabezado
+@{
+    Layout = null;
+}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Cotización pendiente de conciliación</title>
+    <style>
+        *{box-sizing:border-box}
+        body{background:#edf2f7;color:#1e293b;display:grid;font:14px/1.5 "Segoe UI",Arial,sans-serif;margin:0;min-height:100vh;padding:24px;place-items:center}
+        main{background:#fff;border:1px solid #dbe3ec;border-radius:14px;box-shadow:0 20px 55px rgba(15,23,42,.12);max-width:580px;overflow:hidden;width:100%}
+        .accent{background:#1e3a5f;height:6px}
+        .content{padding:34px}
+        .badge{background:#eaf0f8;border-radius:11px;color:#1e3a5f;display:inline-flex;font-size:12px;font-weight:700;padding:7px 10px}
+        h1{color:#142b49;font-size:23px;line-height:1.25;margin:20px 0 10px}
+        p{color:#526177;margin:0 0 15px}
+        .document{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;margin:22px 0;padding:14px 16px}
+        .document span{color:#64748b;display:block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase}
+        .document strong{display:block;font-size:17px;margin-top:3px;overflow-wrap:anywhere}
+        .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:25px}
+        .actions a,.actions button{border:1px solid #cbd5e1;border-radius:8px;cursor:pointer;font:inherit;font-weight:600;padding:10px 15px;text-decoration:none}
+        .actions a{background:#1e3a5f;border-color:#1e3a5f;color:#fff}
+        .actions button{background:#fff;color:#334155}
+        @@media(max-width:600px){body{padding:16px}.content{padding:24px}.actions a,.actions button{flex:1;text-align:center}}
+    </style>
+</head>
+<body>
+    <main role="alert">
+        <div class="accent"></div>
+        <div class="content">
+            <span class="badge">Impresión detenida</span>
+            <h1>Esta cotización requiere conciliar sus importes</h1>
+            <p>El precio y los totales guardados no coinciden con el formato de impresión actual. Para evitar entregar un documento con cifras contradictorias, la impresión está temporalmente deshabilitada.</p>
+            <p>La cotización original permanece sin cambios. Solicita a Sistemas y Créditos que validen su corrección antes de volver a imprimirla.</p>
+            <div class="document">
+                <span>Cotización</span>
+                <strong>@Model.IdCotizacion</strong>
+                <span>@Model.IdEmpresa · @Model.NombreCliente</span>
+            </div>
+            <div class="actions">
+                <a href="@Url.Action("Index", "Cotizacion")">Volver a cotizaciones</a>
+                <button type="button" onclick="window.close()">Cerrar pestaña</button>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

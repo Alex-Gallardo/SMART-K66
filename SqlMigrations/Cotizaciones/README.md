@@ -111,19 +111,27 @@ sí se aplica a ese precio final.
 Para el documento histórico `BOLIK / COT-BO-00000001`, cuyo PDF muestra
 `144 × 13.12` pero conserva importes anteriores, ejecutar en este orden:
 
-1. `05_auditar_totales_precio_visible.sql` en la base de producción. Es solo
-   lectura; muestra el caso y otras cotizaciones con impuesto monetario legado.
+1. `05_auditar_totales_precio_visible.sql` en la base utilizada por
+   Cotizaciones en el entorno que se quiere corregir. Es solo lectura; muestra
+   el caso y otras cotizaciones con impuesto monetario legado.
 2. Revisar que el caso coincida con el PDF: subtotal `1888.71`, IVA `226.65`,
    total `2115.36`, una línea de cantidad `144`, precio visible `13.12` y sin
    descuento adicional.
-3. `06_corregir_COT_BO_00000001.sql` primero con `@Aplicar = 0`: muestra el
-   resultado `1889.28` y revierte la transacción. El script exige que la base
-   actual se llame `POS-SmartK66_DEV`; si la base real tiene otro nombre, hay
-   que revisar y cambiar esta guarda de seguridad antes de ejecutarlo.
-4. Si la simulación es correcta, cambiar únicamente `@Aplicar` a `1` y volver
-   a ejecutar. Repetir `05` y regenerar el PDF para comprobar el resultado.
+3. Confirmar `@BaseEsperada` en `06_corregir_COT_BO_00000001.sql`. Su valor
+   inicial es `POS-SmartK66_DEV`; debe coincidir exactamente con la base de la
+   aplicación en ese entorno. Ejecutar primero con `@Aplicar = 0`: muestra
+   `1889.28` y revierte la transacción.
+4. Si la simulación es correcta y se autorizó reemplazar el importe histórico,
+   poner `@Aplicar = 1` y
+   `@Confirmacion = N'ACEPTO_TOTAL_1889_28'`. Volver a ejecutar, repetir `05`
+   y regenerar el PDF para comprobar el resultado.
 
 `06` no modifica otros documentos ni las tasas fiscales históricas: pone en
 cero los importes monetarios de IVA de esta cotización y conserva el porcentaje
-SAP de referencia. El script es reejecutable, pero no se debe utilizar para
-otras cotizaciones sin verificar individualmente sus descuentos y precios.
+SAP de referencia. Antes de aplicar, crea dentro de la misma transacción los
+respaldos `dbo.COT_RESPALDO_BO_00000001_ENC` y
+`dbo.COT_RESPALDO_BO_00000001_DET`. Si ya está corregido, devuelve
+`YA_CORREGIDO` sin escribir. No se debe reutilizar para otras cotizaciones sin
+verificar individualmente sus descuentos y precios. La impresión bloqueará los
+documentos cuyos importes guardados no sean coherentes con sus precios visibles;
+no modificará sus datos al consultarlos.

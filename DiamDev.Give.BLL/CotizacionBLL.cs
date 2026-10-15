@@ -213,6 +213,54 @@ namespace DiamDev.Give.BLL
         }
 
         /// <summary>
+        /// Comprueba los importes persistidos sin modificarlos. Una cotización
+        /// histórica con IVA monetario o con un precio unitario de precisión
+        /// oculta no puede imprimirse como si siguiera la fórmula actual.
+        /// </summary>
+        public static bool TieneImportesConsistentesParaImprimir(
+            CotizacionEncabezado enc)
+        {
+            if (enc == null || enc.Detalles == null || enc.Detalles.Count == 0 ||
+                enc.ImpuestoTotal != 0m)
+                return false;
+
+            try
+            {
+                decimal bruto = 0m, descuento = 0m, total = 0m;
+                foreach (var d in enc.Detalles)
+                {
+                    if (d == null || d.Cantidad <= 0m || d.PrecioUnitario <= 0m ||
+                        d.PrecioUnitario != Redondear(d.PrecioUnitario) ||
+                        d.DescuentoPorcentaje < 0m || d.DescuentoPorcentaje > 100m ||
+                        d.ImpuestoMonto != 0m)
+                        return false;
+
+                    decimal importeVisible = Redondear(d.Cantidad * d.PrecioUnitario);
+                    decimal descuentoAdicional = Redondear(
+                        importeVisible * d.DescuentoPorcentaje / 100m);
+                    decimal totalLinea = Redondear(importeVisible - descuentoAdicional);
+                    if (d.ImporteBruto != importeVisible ||
+                        d.DescuentoMonto != descuentoAdicional ||
+                        d.Subtotal != totalLinea || d.Total != totalLinea)
+                        return false;
+
+                    bruto += importeVisible;
+                    descuento += descuentoAdicional;
+                    total += totalLinea;
+                }
+
+                return enc.ImporteBruto == Redondear(bruto) &&
+                       enc.DescuentoTotal == Redondear(descuento) &&
+                       enc.Subtotal == Redondear(total) &&
+                       enc.Total == Redondear(total);
+            }
+            catch (OverflowException)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Expresa el total monetario con dos decimales para el documento
         /// impreso. Numalet se configura por instancia para evitar que la
         /// denominación quede fija en quetzales.

@@ -17,6 +17,9 @@ const javascript = fs.readFileSync(
 const controlador = fs.readFileSync(
     path.join(raiz, "DiamDev.Give.UI", "Controllers", "CotizacionController.cs"),
     "utf8");
+const vistaPendiente = fs.readFileSync(
+    path.join(raiz, "DiamDev.Give.UI", "Views", "Cotizacion", "ImpresionPendiente.cshtml"),
+    "utf8");
 
 assert(vistaCrear.includes('id="cotCondicionesPago"') &&
        vistaCrear.includes('id="cotTiempoEntrega"') &&
@@ -54,5 +57,15 @@ assert(vistaImprimir.includes("ViewBag.TotalEnLetras") &&
 assert(vistaImprimir.includes("Model.Agente") &&
        !vistaImprimir.includes("Agente / asesor comercial"),
     "La firma debe usar el agente persistido en la cotización.");
+const imprimir = controlador.slice(controlador.indexOf("public ActionResult Imprimir("),
+    controlador.indexOf("[HttpPost]", controlador.indexOf("public ActionResult Imprimir(")));
+assert(imprimir.includes("TieneImportesConsistentesParaImprimir(enc)") &&
+       imprimir.indexOf("TieneImportesConsistentesParaImprimir(enc)") <
+       imprimir.indexOf("return View(enc)"),
+    "La impresión debe rechazar los documentos inconsistentes antes de renderizar el PDF.");
+assert(imprimir.includes('View("ImpresionPendiente", enc)') &&
+       vistaPendiente.includes("impresión está temporalmente deshabilitada") &&
+       !vistaPendiente.includes("window.print()"),
+    "La vista de conciliación no debe ofrecer impresión de cifras contradictorias.");
 
 console.log("OK: condiciones restauradas en creación, detalle e impresión.");

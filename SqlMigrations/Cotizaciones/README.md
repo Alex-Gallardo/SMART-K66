@@ -127,3 +127,27 @@ Para el documento histórico `BOLIK / COT-BO-00000001`, cuyo PDF muestra
 cero los importes monetarios de IVA de esta cotización y conserva el porcentaje
 SAP de referencia. El script es reejecutable, pero no se debe utilizar para
 otras cotizaciones sin verificar individualmente sus descuentos y precios.
+
+## Lote histórico de 20 cotizaciones adicionales
+
+`07_corregir_20_cotizaciones_historicas.sql` contiene exactamente los 20
+documentos con impuesto monetario que aparecieron en la auditoría del
+15/10/2026, sin incluir `COT-BO-00000001`. Su primera ejecución debe conservar
+`@Aplicar = 0`; devuelve una comparación por documento y por línea, comprueba
+la fórmula histórica y revierte la simulación. Comparar cada importe nuevo con
+el anterior y solicitar aprobación comercial/de créditos antes de reemplazar
+cotizaciones ya emitidas.
+
+Es importante distinguir la causa: el código antiguo dividía el precio bruto
+de SAP entre `1 + tasa/100` y luego sumaba IVA al total. Por ello, el cambio
+propuesto *reduce* los importes existentes si el precio neto impreso se trata
+ahora como precio final. No es una simple eliminación visual del IVA. Si esa
+interpretación no está aprobada, no cambiar `@Aplicar` a `1`.
+
+Si los 20 documentos figuran como `LISTO` y sus valores se aprueban, el script
+requiere además `@Confirmacion = N'ACEPTO_REEMPLAZAR_20_TOTALES'`. Se ejecuta
+en una sola transacción y crea respaldos completos en
+`dbo.COT_RESPALDO_20261015_ENC` y `dbo.COT_RESPALDO_20261015_DET`; no toca HANA.
+Si falta un documento, un precio visible es cero, un estado no es vigente o no
+coinciden los cálculos anteriores, aborta todo el lote. La guarda de base exige
+`POS-SmartK66_DEV`, el nombre mostrado en la auditoría compartida.

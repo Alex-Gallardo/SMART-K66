@@ -3,7 +3,7 @@
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=7")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=10")" rel="stylesheet" /> }
 <div class="crm" id="crmApp" data-empresa="@Model.Empresa">
     <header class="crm-page-head"><span class="crm-eyebrow">Clientes · @(Model.EsGlobal ? "Vista global" : "Mis clientes")</span><div class="crm-head-row"><div><h1>Actualización de Cliente</h1><p>Seleccione una ficha CRM o un cliente disponible en SAP para iniciar la actualización.</p></div></div></header>
     @if (TempData["CrmError"] != null)
@@ -136,4 +136,5 @@
     });
 })();
 </script>
+<script src="@Url.Content("~/Scripts/clientes-crm-selects.js?v=1")"></script>
 }

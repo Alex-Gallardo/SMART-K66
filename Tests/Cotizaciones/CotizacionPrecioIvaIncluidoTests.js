@@ -27,8 +27,8 @@ const preciosSap = bloque(
 const calculoNavegador = bloque(
     javascript, "function calcularLinea(x)", "function renderLineas()");
 
-assert(preciosSap.includes("producto.Precio = producto.PrecioBruto"),
-    "El precio mostrado debe conservar el valor final entregado por SAP.");
+assert(preciosSap.includes("producto.Precio = Redondear(producto.PrecioBruto)"),
+    "El precio SAP debe usar los mismos dos decimales que se muestran al usuario.");
 assert(!bll.includes("PrecioNetoDesdeBruto"),
     "Cotizaciones no debe retirar IVA del precio SAP.");
 
@@ -49,9 +49,10 @@ assert(javascript.includes("IVA incluido ·") &&
        javascript.includes("precio final con IVA"),
     "Catálogo y captura manual deben usar la semántica de precio final.");
 
-assert(impresion.includes("precioFinalConIva") &&
-       impresion.includes("Los precios e importes ya incluyen IVA") &&
-       impresion.includes("Documento histórico con IVA calculado por separado"),
-    "La impresión debe distinguir documentos nuevos e históricos.");
+assert(!impresion.includes("precioFinalConIva") &&
+       !impresion.includes("Model.ImpuestoTotal") &&
+       !impresion.includes("Model.Subtotal") &&
+       !impresion.includes('class="sum-note"'),
+    "La impresión no debe mostrar ni operar subtotal o IVA.");
 
 console.log("OK: Cotizaciones conserva precios con IVA y no agrega impuesto adicional.");

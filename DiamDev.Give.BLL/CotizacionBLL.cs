@@ -148,7 +148,7 @@ namespace DiamDev.Give.BLL
                     d.ListaPrecio = producto.ListaPrecio;
                     d.Existencia = producto.Existencia;
                     d.Disponible = producto.Disponible;
-                    d.PrecioLista = producto.Precio;
+                    d.PrecioLista = Redondear(producto.Precio);
                     d.GrupoImpuesto = producto.GrupoImpuesto;
                     d.ImpuestoPorcentaje = producto.ImpuestoPorcentaje;
                     d.Descripcion = string.IsNullOrWhiteSpace(d.Descripcion)
@@ -201,6 +201,9 @@ namespace DiamDev.Give.BLL
         public static void CalcularLinea(CotizacionDetalle d)
         {
             if (d == null) throw new ArgumentNullException("d");
+            // El precio que se multiplica debe ser exactamente el que se muestra
+            // con dos decimales en la cotización y en su impresión.
+            d.PrecioUnitario = Redondear(d.PrecioUnitario);
             d.ImporteBruto = Redondear(d.Cantidad * d.PrecioUnitario);
             d.DescuentoMonto = Redondear(
                 d.ImporteBruto * d.DescuentoPorcentaje / 100m);
@@ -353,7 +356,7 @@ namespace DiamDev.Give.BLL
         {
             if (d.Cantidad <= 0m) return "la cantidad debe ser mayor que cero.";
             if (d.Cantidad > 999999999m) return "la cantidad es demasiado grande.";
-            if (d.PrecioUnitario <= 0m)
+            if (Redondear(d.PrecioUnitario) <= 0m)
                 return "el precio final con IVA debe ser mayor que cero.";
             if (d.PrecioUnitario > 999999999999m) return "el precio es demasiado grande.";
             if (d.DescuentoPorcentaje < 0m || d.DescuentoPorcentaje > 100m)
@@ -382,7 +385,7 @@ namespace DiamDev.Give.BLL
             {
                 // Las fuentes comerciales de SAP ya expresan el precio final
                 // con IVA. No se retira ni se agrega impuesto en Cotizaciones.
-                producto.Precio = producto.PrecioBruto;
+                producto.Precio = Redondear(producto.PrecioBruto);
             }
         }
 

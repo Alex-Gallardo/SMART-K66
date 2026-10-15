@@ -1,7 +1,9 @@
 # Cotizaciones: ejecución de base de datos
 
-Todos los scripts SQL Server apuntan explícitamente a la base de pruebas
-`POS-SmartK66`. Ningún diagnóstico elimina o modifica datos.
+Los scripts de instalación `00`–`04` apuntan a la base de pruebas
+`POS-SmartK66`. Los diagnósticos son de solo lectura. Los scripts `05` y `06`
+documentan una auditoría y corrección puntual posterior en la base donde ya
+se creó la cotización indicada; no forman parte de la instalación inicial.
 
 ## Fase 1 — diagnóstico
 
@@ -98,3 +100,30 @@ El script sólo cambia la nulabilidad de `dbo.COT_ENC.ID_CLIENTE`; no modifica
 filas, índices, cálculos, impuestos ni objetos de SAP HANA. Es transaccional y
 se puede ejecutar nuevamente sin producir cambios adicionales. En instalaciones
 nuevas, `01_crear_estructura_cotizaciones.sql` ya crea esta columna como opcional.
+
+## Auditoría de importes históricos
+
+El cálculo vigente usa el precio unitario visible a dos decimales. No suma IVA
+porque el precio recibido de SAP o capturado por el usuario ya lo incluye. El
+descuento porcentual, cuando se ingresa explícitamente como descuento adicional,
+sí se aplica a ese precio final.
+
+Para el documento histórico `BOLIK / COT-BO-00000001`, cuyo PDF muestra
+`144 × 13.12` pero conserva importes anteriores, ejecutar en este orden:
+
+1. `05_auditar_totales_precio_visible.sql` en la base de producción. Es solo
+   lectura; muestra el caso y otras cotizaciones con impuesto monetario legado.
+2. Revisar que el caso coincida con el PDF: subtotal `1888.71`, IVA `226.65`,
+   total `2115.36`, una línea de cantidad `144`, precio visible `13.12` y sin
+   descuento adicional.
+3. `06_corregir_COT_BO_00000001.sql` primero con `@Aplicar = 0`: muestra el
+   resultado `1889.28` y revierte la transacción. El script exige que la base
+   actual se llame `POS-SmartK66_DEV`; si la base real tiene otro nombre, hay
+   que revisar y cambiar esta guarda de seguridad antes de ejecutarlo.
+4. Si la simulación es correcta, cambiar únicamente `@Aplicar` a `1` y volver
+   a ejecutar. Repetir `05` y regenerar el PDF para comprobar el resultado.
+
+`06` no modifica otros documentos ni las tasas fiscales históricas: pone en
+cero los importes monetarios de IVA de esta cotización y conserva el porcentaje
+SAP de referencia. El script es reejecutable, pero no se debe utilizar para
+otras cotizaciones sin verificar individualmente sus descuentos y precios.

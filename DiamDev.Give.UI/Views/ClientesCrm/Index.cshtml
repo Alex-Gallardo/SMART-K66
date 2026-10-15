@@ -10,7 +10,7 @@
     string estadoActual = ViewBag.Estado as string;
     string filtroActual = ViewBag.Filtro as string;
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=7")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=10")" rel="stylesheet" /> }
 <div class="crm" data-empresa="@empresaActual">
     <header class="crm-page-head">
         <span class="crm-eyebrow">Clientes · Grupo K66</span>
@@ -40,3 +40,4 @@
         @if (Model.Count == 0) { <div class="crm-empty"><i class="icon-file-text"></i><strong>No hay solicitudes con estos filtros</strong><span>Puede crear una nueva solicitud o ajustar la búsqueda.</span></div> }
     </div>
 </div>
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm-selects.js?v=1")"></script> }

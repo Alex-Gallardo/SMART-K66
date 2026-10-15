@@ -17,7 +17,8 @@ function elemento() {
         hidden: true, disabled: false, textContent: '', style: { setProperty(nombre, valor) { this[nombre] = valor; } },
         listeners: {}, classList: {
             add(nombre) { clases.add(nombre); }, remove(nombre) { clases.delete(nombre); },
-            contains(nombre) { return clases.has(nombre); }
+            contains(nombre) { return clases.has(nombre); },
+            toggle(nombre, activar) { if (activar) clases.add(nombre); else clases.delete(nombre); }
         },
         addEventListener(nombre, callback) { this.listeners[nombre] = callback; },
         setAttribute(nombre, valor) { this[nombre] = valor; },
@@ -37,13 +38,13 @@ function probar(incluirDesarrollo) {
     nav.clientWidth = 300;
     nav.scrollLeft = 0;
     nav.querySelector = selector => enlaces[Number(selector.match(/data-step="(\d+)"/)[1])] || null;
-    nav.getBoundingClientRect = () => ({ top: 170, bottom: 210 });
+    nav.getBoundingClientRect = () => ({ left: 70, width: 500, top: 170, bottom: 210 });
     const guia = elemento();
     guia.querySelector = () => elemento();
     const ids = Object.fromEntries([
         'crmGuide', 'crmHelpOpen', 'crmGuideClose', 'crmGuidePrev', 'crmGuideNext',
         'crmHelpHint', 'crmHelpHintClose', 'crmGuideCount', 'crmGuideFill',
-        'crmGuideTitle', 'crmGuideDescription'
+        'crmGuideTitle', 'crmGuideDescription', 'crmGuideIcon'
     ].map(id => [id, elemento()]));
     ids.crmGuide = guia;
     const document = {
@@ -64,11 +65,19 @@ function probar(incluirDesarrollo) {
     ids.crmHelpOpen.listeners.click();
     assert.strictEqual(guia.hidden, false);
     assert(nav.classList.contains('is-guide-active'));
-    assert(enlaces[1].classList.contains('is-guide-target'));
-    assert.strictEqual(ids.crmGuideCount.textContent, `Paso 1 de ${incluirDesarrollo ? 6 : 5}`);
-    assert(ids.crmGuideDescription.textContent.includes('borrador'));
+    assert(nav.classList.contains('is-guide-summary'));
+    assert(!enlaces[1].classList.contains('is-guide-target'));
+    assert.strictEqual(ids.crmGuideCount.textContent, `Paso 1 de ${incluirDesarrollo ? 8 : 7}`);
+    assert(ids.crmGuideDescription.textContent.includes('Créditos'));
+    assert.strictEqual(ids.crmGuideNext.textContent, 'Comenzar');
+    assert.strictEqual(ids.crmGuideIcon.className, 'icon-info-sign');
     assert(Number(guia.style['--crm-guide-pointer-left'].replace('px', '')) > 0);
 
+    ids.crmGuideNext.listeners.click();
+    assert(enlaces[1].classList.contains('is-guide-target'));
+    assert(!nav.classList.contains('is-guide-summary'));
+    assert(ids.crmGuideDescription.textContent.includes('borrador'));
+    assert.strictEqual(ids.crmGuideIcon.className, 'icon-user');
     ids.crmGuideNext.listeners.click();
     assert(enlaces[2].classList.contains('is-guide-target'));
     ids.crmGuidePrev.listeners.click();
@@ -83,6 +92,11 @@ function probar(incluirDesarrollo) {
     assert(!enlaces[1].classList.contains('is-guide-target'));
 
     ids.crmGuideNext.listeners.click();
+    assert(nav.classList.contains('is-guide-summary'));
+    assert.strictEqual(ids.crmGuideNext.textContent, 'Finalizar guía');
+    assert(ids.crmGuideDescription.textContent.includes('«Enviada»'));
+    assert(!enlaces[6].classList.contains('is-guide-target'));
+    ids.crmGuideNext.listeners.click();
     assert.strictEqual(guia.hidden, true);
     assert(!nav.classList.contains('is-guide-active'));
     assert(!enlaces[6].classList.contains('is-guide-target'));
@@ -96,4 +110,4 @@ function probar(incluirDesarrollo) {
 
 probar(false);
 probar(true);
-console.log('OK: guía anclada al navegador, cinco o seis pasos y cierre con foco restaurado.');
+console.log('OK: guía con bienvenida, pasos anclados, conclusión y cierre con foco restaurado.');

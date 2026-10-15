@@ -270,7 +270,7 @@ namespace DiamDev.Give.DAL
         }
 
         public long ResolverSolicitud(long id, int version, bool aprobar, string motivo,
-            string usuario, string ip)
+            string codigoSap, string usuario, string ip)
         {
             using (var cn = new SqlConnection(_conexion))
             {
@@ -297,6 +297,19 @@ namespace DiamDev.Give.DAL
                     string fichaAnterior = null;
                     if (aprobar)
                     {
+                        if (string.IsNullOrWhiteSpace(codigoSap) || codigoSap.Trim().Length > 50)
+                            throw new InvalidOperationException("Ingrese un código de cliente SAP válido antes de aprobar.");
+                        codigoSap = codigoSap.Trim();
+                        const string codigoOcupado = @"SELECT TOP 1 CLIENTE_ID FROM dbo.CRM_CLIENTE_EMPRESA WITH (UPDLOCK,HOLDLOCK)
+                            WHERE EMPRESA=@empresa AND CODIGO_SAP=@codigo
+                              AND (@origenId IS NULL OR CLIENTE_ID<>@origenId);";
+                        using (var cmd = new SqlCommand(codigoOcupado, cn, tx))
+                        {
+                            P(cmd, "@empresa", solicitud.Empresa); P(cmd, "@codigo", codigoSap);
+                            P(cmd, "@origenId", solicitud.OrigenClienteId);
+                            if (cmd.ExecuteScalar() != null)
+                                throw new InvalidOperationException("El código SAP ya está vinculado a otra ficha de esta empresa.");
+                        }
                         var ficha = Newtonsoft.Json.JsonConvert.DeserializeObject<ClienteCrmFicha>(solicitud.FichaJson);
                         ClienteCrmTextoSap.NormalizarFicha(ficha);
                         // La solicitud conserva el contenido enviado; la ficha aprobada
@@ -306,7 +319,7 @@ namespace DiamDev.Give.DAL
                         {
                             if (solicitud.OrigenClienteId.HasValue)
                             {
-                                const string origen = @"SELECT E.VERSION,E.ACTIVO,E.FICHA_JSON,C.NIT_CLAVE,
+                                const string origen = @"SELECT E.VERSION,E.ACTIVO,E.FICHA_JSON,E.CODIGO_SAP,C.NIT_CLAVE,
                                     (SELECT COUNT(*) FROM dbo.CRM_CLIENTE_EMPRESA X WHERE X.CLIENTE_ID=C.ID) AS EMPRESAS
                                     FROM dbo.CRM_CLIENTE C WITH (UPDLOCK,HOLDLOCK)
                                     JOIN dbo.CRM_CLIENTE_EMPRESA E WITH (UPDLOCK,HOLDLOCK) ON E.CLIENTE_ID=C.ID
@@ -323,14 +336,20 @@ namespace DiamDev.Give.DAL
                                         if (Convert.ToInt32(r["EMPRESAS"]) > 1 &&
                                             !string.Equals(Convert.ToString(r["NIT_CLAVE"]), NormalizarNit(ficha.NitDpi), StringComparison.OrdinalIgnoreCase))
                                             throw new InvalidOperationException("El NIT está compartido por varias empresas y no puede cambiarse desde esta actualización.");
+                                        var codigoAnterior = Convert.ToString(r["CODIGO_SAP"]);
+                                        if (!string.IsNullOrWhiteSpace(codigoAnterior) &&
+                                            !string.Equals(codigoAnterior, codigoSap, StringComparison.OrdinalIgnoreCase))
+                                            throw new InvalidOperationException("El código SAP no coincide con la ficha original.");
                                         fichaAnterior = Convert.ToString(r["FICHA_JSON"]);
                                     }
                                 }
                                 clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, fichaClienteJson,
-                                    null, usuario, solicitud.OrigenClienteId, true, true);
+                                    codigoSap, usuario, solicitud.OrigenClienteId, true, false);
                             }
                             else
                             {
+                                if (!string.Equals(solicitud.OrigenCodigoSap, codigoSap, StringComparison.OrdinalIgnoreCase))
+                                    throw new InvalidOperationException("El código SAP no coincide con el cliente seleccionado para actualizar.");
                                 const string duplicado = @"SELECT COUNT(*) FROM dbo.CRM_CLIENTE_EMPRESA E WITH (UPDLOCK,HOLDLOCK)
                                     JOIN dbo.CRM_CLIENTE C ON C.ID=E.CLIENTE_ID
                                     WHERE E.EMPRESA=@empresa AND (E.CODIGO_SAP=@codigo OR C.NIT_CLAVE=@nit);";
@@ -343,7 +362,7 @@ namespace DiamDev.Give.DAL
                                         throw new InvalidOperationException("El cliente SAP ya tiene una ficha CRM. Inicie una actualización desde esa ficha.");
                                 }
                                 clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, fichaClienteJson,
-                                    solicitud.OrigenCodigoSap, usuario, null, true, false);
+                                    codigoSap, usuario, null, true, false);
                             }
                         }
                         else
@@ -359,13 +378,15 @@ namespace DiamDev.Give.DAL
                                     throw new InvalidOperationException("Este cliente ya tiene ficha CRM. Use Actualización de Cliente.");
                             }
                             clienteId = UpsertCliente(cn, tx, solicitud.Empresa, ficha, fichaClienteJson,
-                                null, usuario, null, true, true);
+                                codigoSap, usuario, null, true, false);
                         }
                         VincularUsuario(cn, tx, clienteId.Value, solicitud.Empresa,
                             solicitud.CreadoPor, "SOLICITUD");
                         Auditar(cn, tx, "CLIENTE", clienteId, solicitud.Empresa, usuario,
                             solicitud.TipoSolicitud == TiposSolicitudCliente.Actualizacion ? "APROBACION_ACTUALIZACION" : "APROBACION_SOLICITUD",
                             "Solicitud #" + id, fichaAnterior, fichaClienteJson, ip);
+                        Auditar(cn, tx, "CLIENTE", clienteId, solicitud.Empresa, usuario,
+                            "VINCULAR_CODIGO_SAP", "Solicitud #" + id, null, codigoSap, ip);
                     }
                     const string actualizar = @"UPDATE dbo.CRM_SOLICITUD SET
                         ESTADO=@estado,CLIENTE_ID=@cliente,RESUELTO_EN=SYSDATETIME(),

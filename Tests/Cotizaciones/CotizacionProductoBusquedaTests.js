@@ -61,11 +61,11 @@ assert(consultaProductos.includes("ELSE 'SIN_PRECIO' END"),
 assert(javascript.includes('Sin precio SAP') &&
        javascript.includes('Se requiere precio manual'),
     "La interfaz debe diferenciar un producto genuinamente sin precio SAP.");
-assert(javascript.includes('numero(x.PrecioUnitario) <= 0'),
+assert(javascript.includes('redondear(x.PrecioUnitario) <= 0'),
     "La interfaz no debe permitir guardar accidentalmente un precio cero.");
 assert(javascript.includes("' · precio manual'"),
     "El detalle debe identificar precios capturados manualmente sin referencia SAP.");
-assert(bll.includes('d.PrecioUnitario <= 0m'),
+assert(bll.includes('Redondear(d.PrecioUnitario) <= 0m'),
     "El servidor también debe rechazar precios finales en cero.");
 
 console.log("OK: búsqueda, SellItem, stock cero y precios SAP verificados.");

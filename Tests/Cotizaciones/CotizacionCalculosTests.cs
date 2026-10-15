@@ -59,6 +59,21 @@ namespace Tests.Cotizaciones
             Igual(0m, precioConIva.ImpuestoMonto,
                 "no calcular IVA monetario adicional");
 
+            var cantidadPorPrecioVisible = new CotizacionDetalle
+            {
+                Cantidad = 144m,
+                PrecioUnitario = 13.116042m,
+                DescuentoPorcentaje = 0m,
+                ImpuestoPorcentaje = 12m
+            };
+            CotizacionBLL.CalcularLinea(cantidadPorPrecioVisible);
+            Igual(13.12m, cantidadPorPrecioVisible.PrecioUnitario,
+                "precio persistido igual al precio visible");
+            Igual(1889.28m, cantidadPorPrecioVisible.Total,
+                "144 por 13.12 sin IVA adicional");
+            Igual(0m, cantidadPorPrecioVisible.ImpuestoMonto,
+                "sin IVA adicional en el caso reportado");
+
             decimal totalCasoReportado = 0m;
             foreach (decimal precio in new[]
             {

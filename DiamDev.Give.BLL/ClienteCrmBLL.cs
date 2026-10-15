@@ -256,14 +256,18 @@ namespace DiamDev.Give.BLL
         }
 
         public long ResolverSolicitud(long id, int version, bool aprobar, string motivo,
-            string usuario, string ip)
+            string codigoSap, string usuario, string ip)
         {
+            if (aprobar && string.IsNullOrWhiteSpace(codigoSap))
+                throw new InvalidOperationException("Ingrese el código de cliente SAP antes de aprobar.");
+            if (aprobar && codigoSap.Trim().Length > 50)
+                throw new InvalidOperationException("El código de cliente SAP no puede exceder 50 caracteres.");
             if (!aprobar && string.IsNullOrWhiteSpace(motivo))
                 throw new InvalidOperationException("Escriba el motivo del rechazo.");
             if (!aprobar && motivo.Trim().Length > 1000)
                 throw new InvalidOperationException("El motivo no puede exceder 1000 caracteres.");
             return _da.ResolverSolicitud(id, version, aprobar,
-                aprobar ? null : motivo.Trim(), usuario, ip);
+                aprobar ? null : motivo.Trim(), aprobar ? codigoSap.Trim() : null, usuario, ip);
         }
 
         public long GuardarCliente(ClienteCrmCliente cliente, IList<ClienteCrmArchivo> archivos,

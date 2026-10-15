@@ -9,7 +9,7 @@
     string nombreEmpresa = empresa == "FAES" ? "Escocesa" : empresa == "GRACO" ? "Graco Pack" : "Bolik";
     long entidadId = esSolicitud ? Model.Solicitud.Id : Model.Cliente.Id;
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=9")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=10")" rel="stylesheet" /> }
 <div class="crm crm-detail @(!esSolicitud ? "crm-client-ficha" : "")" data-empresa="@empresa">
     <header class="crm-page-head">
         <a class="crm-back" href="@Url.Action(esSolicitud ? (Model.EsVistaCreditos ? "ControlCreditos" : Model.Solicitud.TipoSolicitud == DiamDev.Give.Entities.TiposSolicitudCliente.Actualizacion ? "Actualizacion" : "Index") : "Actualizacion")"><i class="icon-arrow-left"></i> Volver al listado</a>
@@ -33,7 +33,7 @@
         @if (Model.PuedeAbrirClienteVinculado) { <a class="crm-btn crm-btn-primary" href="@Url.Action("Ficha", new { id = Model.Solicitud.ClienteId.Value, empresa = empresa })"><i class="icon-address-book" aria-hidden="true"></i> Ver ficha de cliente <i class="icon-arrow-right" aria-hidden="true"></i></a> }
     </div> }
     @if (!esSolicitud && Model.EmpresasCliente != null && Model.EmpresasCliente.Count > 1) { <nav class="crm-company-tabs" aria-label="Empresas del cliente">@foreach (var e in Model.EmpresasCliente) { <a class="@(e.Empresa == empresa ? "is-active" : "")" href="@Url.Action("Ficha", new { id = entidadId, empresa = e.Empresa })">@(e.Empresa == "FAES" ? "Escocesa" : e.Empresa == "GRACO" ? "Graco Pack" : "Bolik")</a> }</nav> }
-    @if (!esSolicitud) { <p class="crm-copy-hint"><i class="icon-copy" aria-hidden="true"></i> Haga clic o toque un dato de la ficha para copiarlo.</p><div class="crm-copy-status" id="crmCopyStatus" role="status" aria-live="polite" aria-atomic="true"></div> }
+    <p class="crm-copy-hint"><i class="icon-copy" aria-hidden="true"></i> Haga clic o toque un dato de @(esSolicitud ? "la solicitud" : "la ficha") para copiarlo.</p><div class="crm-copy-status" id="crmCopyStatus" role="status" aria-live="polite" aria-atomic="true"></div>
 
     <div class="crm-detail-grid">
         <div class="crm-detail-main">
@@ -65,12 +65,22 @@
                 else { <dl><dt>Empresa</dt><dd>@nombreEmpresa</dd><dt>Código SAP</dt><dd><strong>@(string.IsNullOrWhiteSpace(Model.Cliente.CodigoSap) ? "Pendiente de vincular" : Model.Cliente.CodigoSap)</strong></dd><dt>Última actualización</dt><dd>@Model.Cliente.ActualizadoEn.ToString("dd/MM/yyyy HH:mm")</dd></dl><a class="crm-btn crm-btn-outline crm-btn-full crm-print-entry" href="@Url.Action("ImprimirFicha", new { id = entidadId, empresa = empresa })" aria-label="Abrir vista de impresión y guardar PDF de la ficha de cliente #@entidadId"><i class="icon-print" aria-hidden="true"></i> Imprimir / guardar PDF</a> }
             </section>
             @if (Model.PuedeResolver) { <section class="crm-card crm-side-card"><h2>Resolver solicitud</h2><p>La aprobación guarda la ficha CRM en SQL. No modifica el cliente en SAP.</p>
-                <form method="post" action="@Url.Action("ResolverSolicitud")">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@entidadId" /><input type="hidden" name="version" value="@Model.Solicitud.Version" /><button class="crm-btn crm-btn-primary crm-btn-full" name="decision" value="APROBAR" type="submit"><i class="icon-ok"></i> Aprobar solicitud</button><label for="crmMotivo">Motivo del rechazo</label><textarea id="crmMotivo" name="motivo" class="form-control" maxlength="1000" rows="3" placeholder="Explique al vendedor qué debe corregir"></textarea><button class="crm-btn crm-btn-danger crm-btn-full" name="decision" value="RECHAZAR" type="submit"><i class="icon-remove"></i> Rechazar solicitud</button></form>
+                <form id="crmResolverForm" method="post" action="@Url.Action("ResolverSolicitud")">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@entidadId" /><input type="hidden" name="version" value="@Model.Solicitud.Version" /><button id="crmAbrirAprobacion" class="crm-btn crm-btn-primary crm-btn-full" type="button" aria-haspopup="dialog" aria-controls="crmAprobacionModal" aria-expanded="false"><i class="icon-ok"></i> Aprobar solicitud</button><label for="crmMotivo">Motivo del rechazo</label><textarea id="crmMotivo" name="motivo" class="form-control" maxlength="1000" rows="3" placeholder="Explique al vendedor qué debe corregir"></textarea><button class="crm-btn crm-btn-danger crm-btn-full" name="decision" value="RECHAZAR" type="submit"><i class="icon-remove"></i> Rechazar solicitud</button></form>
             </section> }
             @if (!esSolicitud && Model.PuedeEditar) { <section class="crm-card crm-side-card"><h2>Administrar cliente</h2><p>La desactivación conserva la ficha y su historial.</p><form method="post" action="@Url.Action("CambiarActivo")">@Html.AntiForgeryToken()<input type="hidden" name="id" value="@entidadId" /><input type="hidden" name="empresa" value="@empresa" /><input type="hidden" name="version" value="@Model.Cliente.Version" /><input type="hidden" name="activo" value="@(Model.Cliente.Activo ? "false" : "true")" /><button type="submit" class="crm-btn crm-btn-outline crm-btn-full">@(Model.Cliente.Activo ? "Desactivar cliente" : "Reactivar cliente")</button></form></section> }
             <section class="crm-card crm-side-card"><h2>Documentos</h2>@if (Model.Archivos != null && Model.Archivos.Count > 0) { foreach (var a in Model.Archivos) { <a class="crm-file-link" href="@Url.Action("Archivo", new { id = a.Id, entidadId = entidadId, esSolicitud = esSolicitud, empresa = empresa })"><i class="icon-paper-clip"></i><span><strong>@a.Tipo</strong><small>@a.Nombre</small></span><i class="icon-download"></i></a> } } else { <p class="crm-muted">Sin documentos adjuntos a esta ficha.</p> }</section>
             <section class="crm-card crm-side-card"><h2>Actividad</h2><ol class="crm-timeline">@foreach (var e in Model.Eventos.Take(15)) { <li><span></span><strong>@e.Accion</strong><small>@e.Fecha.ToString("dd/MM/yyyy HH:mm") · @e.Usuario</small>@if (!string.IsNullOrWhiteSpace(e.Detalle)) { <p>@e.Detalle</p> }</li> }</ol></section>
         </aside>
     </div>
+    @if (Model.PuedeResolver) { <div id="crmAprobacionModal" class="crm-approval-modal" role="dialog" aria-modal="true" aria-labelledby="crmAprobacionTitulo" aria-describedby="crmAprobacionDescripcion" hidden>
+        <div class="crm-approval-card">
+            <div class="crm-approval-top"><span class="crm-approval-icon"><i class="icon-ok-circle" aria-hidden="true"></i></span><button id="crmCerrarAprobacion" class="crm-guide-close" type="button" aria-label="Cerrar confirmación">×</button></div>
+            <h2 id="crmAprobacionTitulo">Aprobar solicitud</h2>
+            <p id="crmAprobacionDescripcion">Ingrese el código del cliente en SAP. Al confirmar, la solicitud pasará a aprobada y la ficha CRM quedará vinculada a ese código. Esta acción no modifica SAP.</p>
+            <label for="crmCodigoSapAprobacion">Código de cliente SAP <b>*</b></label>
+            <input id="crmCodigoSapAprobacion" name="codigoSap" form="crmResolverForm" class="form-control" maxlength="50" autocomplete="off" required disabled placeholder="Ejemplo: CL0320" />
+            <div class="crm-approval-actions"><button id="crmCancelarAprobacion" class="crm-btn crm-btn-outline" type="button">Cancelar</button><button id="crmConfirmarAprobacion" class="crm-btn crm-btn-primary" type="submit" form="crmResolverForm" name="decision" value="APROBAR"><i class="icon-ok" aria-hidden="true"></i> Confirmar aprobación</button></div>
+        </div>
+    </div> }
 </div>
-@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm-detalle.js?v=1")"></script> }
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm-detalle.js?v=2")"></script>@if (Model.PuedeResolver) { <script src="@Url.Content("~/Scripts/clientes-crm-resolver.js?v=1")"></script> } }

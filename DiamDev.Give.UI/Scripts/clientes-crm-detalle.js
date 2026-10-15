@@ -1,7 +1,7 @@
 (function (document, navigator, window) {
     'use strict';
-    var ficha = document.querySelector('.crm-client-ficha');
-    if (!ficha) return;
+    var detalle = document.querySelector('.crm-detail');
+    if (!detalle) return;
     var estado = document.getElementById('crmCopyStatus');
     var temporizador;
 
@@ -63,7 +63,7 @@
         }
     }
 
-    var valores = ficha.querySelectorAll(
+    var valores = detalle.querySelectorAll(
         '.crm-head-row h1, .crm-record-number, ' +
         '.crm-detail-main .crm-data-grid dd, .crm-detail-main .crm-table tbody td, ' +
         '.crm-detail-main .crm-detail-metrics strong, ' +

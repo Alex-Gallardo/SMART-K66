@@ -394,15 +394,16 @@ namespace DiamDev.Give.UI.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Permiso(PermisoDashboard)]
-        public ActionResult ResolverSolicitud(long id, int version, string decision, string motivo)
+        public ActionResult ResolverSolicitud(long id, int version, string decision, string motivo,
+            string codigoSap)
         {
             try
             {
                 bool aprobar = decision == "APROBAR";
                 if (!aprobar && decision != "RECHAZAR")
                     throw new InvalidOperationException("Seleccione una decisión válida.");
-                _crm.ResolverSolicitud(id, version, aprobar, motivo, User.Identity.Name, Ip());
-                TempData["CrmExito"] = aprobar ? "Solicitud aprobada y ficha CRM guardada en SQL." : "Solicitud rechazada.";
+                _crm.ResolverSolicitud(id, version, aprobar, motivo, codigoSap, User.Identity.Name, Ip());
+                TempData["CrmExito"] = aprobar ? "Solicitud aprobada. La ficha CRM quedó vinculada al código SAP indicado." : "Solicitud rechazada.";
             }
             catch (Exception ex) { TempData["CrmError"] = Mensaje(ex); }
             return RedirectToAction("Solicitud", new { id = id });

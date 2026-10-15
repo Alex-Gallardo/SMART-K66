@@ -32,7 +32,7 @@ function elemento(contenido) {
     return e;
 }
 
-async function probar(clipboardDisponible) {
+async function probar(clipboardDisponible, tipoVista) {
     const valor = elemento('  José  Pérez  ');
     const compuesto = elemento('Uno · Dos');
     compuesto.querySelector = () => ({});
@@ -42,7 +42,10 @@ async function probar(clipboardDisponible) {
     const body = elemento();
     const document = {
         body, activeElement: { focus() {} },
-        querySelector() { return ficha; },
+        querySelector(selector) {
+            assert.strictEqual(selector, '.crm-detail', 'La copia se activa en solicitudes y fichas.');
+            return detalle;
+        },
         getElementById() { return estado; },
         createElement() { return elemento(); },
         execCommand(comando) {
@@ -51,7 +54,7 @@ async function probar(clipboardDisponible) {
             return true;
         }
     };
-    const ficha = { querySelectorAll() { return [valor, compuesto, vacio]; } };
+    const detalle = { tipoVista, querySelectorAll() { return [valor, compuesto, vacio]; } };
     const navigator = clipboardDisponible ? {
         clipboard: { writeText(texto) { copiados.push(texto); return Promise.resolve(); } }
     } : {};
@@ -68,7 +71,9 @@ async function probar(clipboardDisponible) {
 }
 
 (async () => {
-    await probar(true);
-    await probar(false); // El despliegue HTTP requiere la alternativa a navigator.clipboard.
-    console.log('OK: copia directa y alternativa HTTP, valores compuestos y ausentes.');
+    for (const tipoVista of ['solicitud', 'ficha']) {
+        await probar(true, tipoVista);
+        await probar(false, tipoVista); // El despliegue HTTP requiere la alternativa a navigator.clipboard.
+    }
+    console.log('OK: copia en solicitud y ficha, alternativa HTTP, valores compuestos y ausentes.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

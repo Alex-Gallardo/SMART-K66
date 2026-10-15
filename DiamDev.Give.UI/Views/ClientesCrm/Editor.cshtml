@@ -22,7 +22,7 @@
             Text = Model.Ficha.TemporadaPago + " (valor anterior)" });
     }
 }
-@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=9")" rel="stylesheet" /> }
+@section styles { <link href="@Url.Content("~/Content/clientes-crm.css?v=10")" rel="stylesheet" /> }
 
 <div class="crm" id="crmApp" data-empresa="@Model.Empresa">
     <div class="crm-page-head">
@@ -214,7 +214,7 @@
         <div class="crm-guide-card">
             <div class="crm-guide-top"><span class="crm-guide-kicker"><i class="icon-question-sign" aria-hidden="true"></i> Guía de solicitudes</span><button id="crmGuideClose" class="crm-guide-close" type="button" aria-label="Cerrar guía">×</button></div>
             <div class="crm-guide-progress"><span id="crmGuideCount"></span><div class="crm-guide-track" aria-hidden="true"><span id="crmGuideFill"></span></div></div>
-            <h2 id="crmGuideTitle"></h2><p id="crmGuideDescription"></p>
+            <div class="crm-guide-content"><span class="crm-guide-icon"><i id="crmGuideIcon" aria-hidden="true"></i></span><div><h2 id="crmGuideTitle"></h2><p id="crmGuideDescription"></p></div></div>
             <div class="crm-guide-foot"><button id="crmGuidePrev" class="crm-btn crm-btn-outline" type="button"><i class="icon-arrow-left" aria-hidden="true"></i> Anterior</button><button id="crmGuideNext" class="crm-btn crm-btn-primary" type="button">Siguiente <i class="icon-arrow-right" aria-hidden="true"></i></button></div>
         </div>
     </div> }
@@ -226,4 +226,4 @@
         </div>
     </div> }
 </div>
-@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=15")"></script> }
+@section scripts { <script src="@Url.Content("~/Scripts/clientes-crm.js?v=16")"></script><script src="@Url.Content("~/Scripts/clientes-crm-selects.js?v=1")"></script> }

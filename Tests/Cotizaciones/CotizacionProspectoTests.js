@@ -83,7 +83,7 @@ assert(!validarNavegador.includes("!estado.cliente") &&
 assert(/IdCliente\s*:\s*estado\.cliente\s*\?\s*estado\.cliente\.CardCode\s*:\s*""/.test(
     guardarNavegador),
     "El payload debe enviar IdCliente vacío de forma segura para prospectos.");
-assert(validarNavegador.includes("numero(x.PrecioUnitario) <= 0") &&
+assert(validarNavegador.includes("redondear(x.PrecioUnitario) <= 0") &&
        guardarNavegador.includes("].PrecioUnitario"),
     "El precio manual debe viajar al servidor y ser mayor que cero.");
 assert(!/IsNullOrWhiteSpace\(enc\.IdCliente\)[\s\S]{0,120}(cliente|obligator)/i.test(
@@ -144,11 +144,11 @@ assert(!/\b(DROP|TRUNCATE|DELETE)\b/i.test(sinComentarios(migracion)),
 
 // El porcentaje SAP se conserva como referencia, pero el precio manual ya
 // incluye IVA y el servidor no debe sumarlo nuevamente.
-assert(javascript.includes(
+assert(!javascript.includes(
     'readonly data-field="ImpuestoPorcentaje"') &&
        validarNavegador.includes("numero(x.ImpuestoPorcentaje) < 0") &&
        validarNavegador.includes("numero(x.ImpuestoPorcentaje) > 100"),
-    "IVA debe seguir siendo de solo lectura y conservar su validación de rango.");
+    "La tasa SAP no debe mostrarse y debe conservar su validación de rango.");
 assert(bll.includes("d.ImpuestoPorcentaje = producto.ImpuestoPorcentaje;") &&
        bll.includes("d.ImpuestoMonto = 0m;") &&
        !bll.includes("d.Subtotal * d.ImpuestoPorcentaje / 100m"),

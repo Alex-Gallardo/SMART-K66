@@ -37,8 +37,10 @@ assert(!vistaImprimir.includes(">Desc.</th>") &&
     "La impresión no debe renderizar la columna ni los valores de descuento.");
 assert(!vistaImprimir.includes("Importe bruto") &&
        !vistaImprimir.includes("Model.ImporteBruto") &&
-       !vistaImprimir.includes("Model.DescuentoTotal"),
-    "El resumen impreso no debe renderizar bruto ni descuento.");
+       !vistaImprimir.includes("Model.DescuentoTotal") &&
+       !vistaImprimir.includes("Model.Subtotal") &&
+       !vistaImprimir.includes("Model.ImpuestoTotal"),
+    "El resumen impreso no debe renderizar bruto, descuento, subtotal ni IVA.");
 assert(vistaImprimir.includes("Condiciones de pago") &&
        vistaImprimir.includes("Model.CondicionesPago") &&
        vistaImprimir.includes("Tiempo de entrega") &&

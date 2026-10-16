@@ -53,6 +53,11 @@ let socket;
                 const result = await call('Runtime.evaluate', { expression: 'JSON.stringify({width:innerWidth,scroll:document.documentElement.scrollWidth,motion:getComputedStyle(document.querySelector(".panel-surface,.admin-section,.pilot-main")).transitionDuration,shell:!!document.querySelector(".app-navbar")&&!!document.querySelector(".app-sidebar"),isolated:!!document.querySelector(".pilot-admin-surface"),heroClear:!document.querySelector(".pbo-filter-section")||document.querySelector(".pbo-hero").getBoundingClientRect().bottom<=document.querySelector(".pbo-filter-section").getBoundingClientRect().top+1})', returnByValue: true }, session);
                 const value = JSON.parse(result.result.value);
                 if (value.width !== width || value.scroll > width + 1 || parseFloat(value.motion) > 0.001 || !value.shell || !value.isolated || !value.heroClear) throw new Error(name + ': ' + JSON.stringify(value));
+                if (name === 'panel-rutas' && width <= 700) {
+                    const tabs = await call('Runtime.evaluate', { expression: 'JSON.stringify(Array.from(document.querySelectorAll(".panel-tabs a")).map(x=>({text:x.textContent,visible:x.getBoundingClientRect().left>=document.querySelector(".panel-tabs").getBoundingClientRect().left-1&&x.getBoundingClientRect().right<=document.querySelector(".panel-tabs").getBoundingClientRect().right+1})))', returnByValue: true }, session);
+                    const items = JSON.parse(tabs.result.value);
+                    if (items.length !== 6 || items.some(x => !x.visible)) throw new Error('Secciones del panel no visibles en móvil: ' + JSON.stringify(items));
+                }
                 if (name === 'panel-resumen') {
                     const expanded = await call('Runtime.evaluate', { expression: 'document.getElementById("panel-filter-toggle").click();JSON.stringify({open:!document.getElementById("panel-filter-body").hidden,expanded:document.getElementById("panel-filter-toggle").getAttribute("aria-expanded"),scroll:document.documentElement.scrollWidth,clear:document.querySelector(".pbo-filter-section").getBoundingClientRect().bottom<=document.querySelector(".panel-toolbar").getBoundingClientRect().top+1})', returnByValue: true }, session);
                     const filters = JSON.parse(expanded.result.value);
@@ -63,7 +68,7 @@ let socket;
                         fs.writeFileSync(path.join(bin, 'panel-filtros-' + width + '.png'), Buffer.from(shot.data, 'base64'));
                     }
                 }
-                if (['panel-resumen','panel-detalle','administracion','configurar'].includes(name)) {
+                if (['panel-rutas','panel-resumen','panel-detalle','administracion','configurar'].includes(name)) {
                     const metrics = await call('Page.getLayoutMetrics', {}, session);
                     const shot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: 0, width, height: Math.min(3500, metrics.cssContentSize.height), scale: 1 } }, session);
                     fs.writeFileSync(path.join(bin, name + '-' + width + '.png'), Buffer.from(shot.data, 'base64'));

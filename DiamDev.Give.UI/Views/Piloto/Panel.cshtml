@@ -7,35 +7,44 @@
     var f=Model.Filtro;
     var secciones=new[]{"rutas","resumen","pilotos","documentos","actividad","alertas"};
     var titulos=new[]{"Rutas","Resumen","Pilotos","Documentos","Actividad","Alertas"};
-    var filtrosAdicionales=new[]{f.Estado!="todos",f.Liquidacion!="no",!string.IsNullOrWhiteSpace(f.Piloto),f.Usuario.HasValue,!string.IsNullOrWhiteSpace(f.Centro),!string.IsNullOrWhiteSpace(f.Placa),f.Avance!="todos",f.Resultado!="todos",!string.IsNullOrWhiteSpace(f.Buscar),f.Evento!="todos"}.Count(x=>x);
+    var filtrosAdicionales=new[]{f.Estado!="todos",f.Liquidacion!="no",!string.IsNullOrWhiteSpace(f.Piloto),f.Usuario.HasValue,!string.IsNullOrWhiteSpace(f.Centro),!string.IsNullOrWhiteSpace(f.Placa),f.Avance!="todos",f.Resultado!="todos",f.Evento!="todos"}.Count(x=>x);
 }
-<div class="pilot-admin-surface panel-shell"><div class="pilot-main">
-<section class="pbo-hero" aria-labelledby="panel-title"><span class="pbo-hero-icon" aria-hidden="true"><svg class="icon"><use href="#i-route" /></svg></span><div class="pbo-hero-copy"><p class="pbo-hero-kicker">CONTROL DE DISTRIBUCIÓN</p><h1 id="panel-title">Panel de distribución</h1><p>Todos los pilotos y centros. Avance guardado y resultados de @Model.Catalogo.</p></div><div class="pbo-hero-actions"><button type="button" class="pbo-hero-button" id="panel-refresh"><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg>Actualizar</button>@if(Model.PuedeAdministrar){<a class="pbo-hero-button" href="@Url.Action("Administracion","Piloto")">Administrar rutas y pilotos<svg class="icon" aria-hidden="true"><use href="#i-settings" /></svg></a>}</div></section>
-<div id="panel-message" class="panel-message" role="alert" hidden><span></span><button type="button" aria-label="Cerrar mensaje">×</button></div>
-<section class="pbo-filter-section" aria-label="Filtros de rutas y pilotos"><div class="pbo-filter-bar"><div class="pbo-filter-copy"><strong>Filtros de rutas y pilotos</strong><span>@f.Desde — @f.Hasta · @(f.Liquidacion=="no"?"Sin liquidar":f.Liquidacion=="si"?"Liquidadas":"Todas") · @(filtrosAdicionales==0?"Sin filtros adicionales":filtrosAdicionales+(filtrosAdicionales==1?" filtro adicional":" filtros adicionales"))</span></div><button type="button" class="pbo-filter-toggle" id="panel-filter-toggle" aria-expanded="false" aria-controls="panel-filter-body"><span>Mostrar filtros</span><svg class="icon" aria-hidden="true"><use href="#i-settings" /></svg></button></div>
-<div class="pbo-filter-body" id="panel-filter-body" hidden>
-<form id="panel-filters" class="panel-filters" action="@Url.Action("Panel","Piloto")" method="get" novalidate>
-    <input type="hidden" name="Seccion" value="@f.Seccion" />
-    <div class="panel-presets" aria-label="Períodos rápidos"><span>Período de las rutas</span><button type="button" data-period="hoy">Hoy</button><button type="button" data-period="ayer">Ayer</button><button type="button" data-period="semana">Últimos 7 días</button></div>
-    <div class="panel-filter-grid">
-        <div><label for="panel-desde">Desde</label><input id="panel-desde" type="date" name="Desde" required value="@f.Desde" /></div>
-        <div><label for="panel-hasta">Hasta</label><input id="panel-hasta" type="date" name="Hasta" required value="@f.Hasta" /></div>
-        <div><label for="panel-estado">Estado</label><select id="panel-estado" name="Estado">@foreach(var e in new[]{"todos","E","A","C","X"}){<option value="@e" selected="@(f.Estado==e)">@(e=="todos"?"Todos":e=="E"?"En ruta":e=="A"?"Abiertas":e=="C"?"Cerradas":"Anuladas")</option>}</select></div>
-        <div><label for="panel-liquidacion">Liquidación</label><select id="panel-liquidacion" name="Liquidacion">@foreach(var e in new[]{"no","si","todas"}){<option value="@e" selected="@(f.Liquidacion==e)">@(e=="no"?"Sin liquidar":e=="si"?"Liquidadas":"Todas")</option>}</select></div>
-        <div><label for="panel-piloto">Empleado piloto</label><input id="panel-piloto" name="Piloto" value="@f.Piloto" maxlength="90" list="panel-empleados" placeholder="Todos" /><datalist id="panel-empleados">@foreach(var p in Model.NombresPiloto){<option value="@p"></option>}</datalist></div>
-        <div><label for="panel-usuario">Usuario POS</label><select id="panel-usuario" name="Usuario"><option value="">Todos</option>@foreach(var p in Model.Pilotos){<option value="@p.Id" selected="@(f.Usuario==p.Id)">@p.Login · @p.Nombre</option>}</select></div>
-        <div><label for="panel-centro">Centro</label><input id="panel-centro" name="Centro" value="@f.Centro" maxlength="15" list="panel-centros" placeholder="Todos" /><datalist id="panel-centros">@foreach(var c in Model.Centros){<option value="@c"></option>}</datalist></div>
-        <div><label for="panel-placa">Placa</label><input id="panel-placa" name="Placa" value="@f.Placa" maxlength="15" list="panel-placas" placeholder="Todas" /><datalist id="panel-placas">@foreach(var p in Model.Placas){<option value="@p"></option>}</datalist></div>
-        <div><label for="panel-avance">Avance de clientes</label><select id="panel-avance" name="Avance">@foreach(var e in new[]{"todos","sin","parcial","listo"}){<option value="@e" selected="@(f.Avance==e)">@(e=="todos"?"Todos":e=="sin"?"Sin clientes completados":e=="parcial"?"Avance parcial":"Pendiente de cerrar")</option>}</select></div>
-        <div><label for="panel-resultado">Resultado de documento</label><select id="panel-resultado" name="Resultado">@foreach(var e in new[]{"todos","PENDIENTE","ENTREGADO","NO ENTREGADO","INCIDENCIA"}){<option value="@e" selected="@(f.Resultado==e)">@(e=="todos"?"Todos":e)</option>}</select></div>
-        <div><label for="panel-buscar">Ruta, cliente o documento</label><input id="panel-buscar" name="Buscar" value="@f.Buscar" maxlength="100" placeholder="Buscar en el período" /></div>
-        <div><label for="panel-evento">Actividad</label><select id="panel-evento" name="Evento">@foreach(var e in new[]{"todos","Cliente","Foto documento","Foto cliente","Cierre POS","Edición ruta","Vínculo","Centro","Vehículo"}){<option value="@e" selected="@(f.Evento==e)">@(e=="todos"?"Todos los eventos":e)</option>}</select></div>
-    </div>
-    <div class="panel-filter-actions"><small>Hasta 31 días. Actividad por fecha del evento, hora Guatemala; avance sobre la ruta completa.</small><a class="button-link button-secondary" href="@Url.Action("Panel","Piloto")">Limpiar filtros</a><button type="submit">Aplicar filtros<svg class="icon" aria-hidden="true"><use href="#i-search" /></svg></button></div>
-</form>
-</div></section>
-<div class="panel-toolbar"><nav class="panel-tabs" aria-label="Secciones del panel">@for(var i=0;i<secciones.Length;i++){<a href="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(secciones[i])))" aria-current="@(f.Seccion==secciones[i]?"page":null)">@titulos[i]</a>}</nav><label class="panel-auto"><input type="checkbox" id="panel-auto" />Actualizar cada 60 s</label></div>
-<div id="panel-content" data-refresh-url="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(pagina:f.Pagina)))" aria-busy="false">@Html.Partial("_PanelContenido",Model)</div>
-<div id="panel-toast" class="panel-toast" role="status" aria-live="polite" hidden></div>
+<div class="pilot-admin-surface panel-shell dist-panel"><div class="pilot-main">
+    <header class="pbo-hero dist-page-head" aria-labelledby="panel-title">
+        <div class="dist-page-head-copy"><span class="dist-kicker">Distribución / Seguimiento</span><h1 id="panel-title">Rutas y pilotos</h1><p>Consulta el avance de las rutas, los documentos y las situaciones que necesitan atención.</p></div>
+        <div class="dist-page-actions"><button type="button" class="dist-btn dist-btn-outline" id="panel-refresh"><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg>Actualizar</button>@if(Model.PuedeAdministrar){<a class="dist-btn dist-btn-primary" href="@Url.Action("Administracion","Piloto")"><svg class="icon" aria-hidden="true"><use href="#i-settings" /></svg>Administrar rutas</a>}</div>
+    </header>
+    <div id="panel-message" class="panel-message" role="alert" hidden><span></span><button type="button" aria-label="Cerrar mensaje">×</button></div>
+    <section class="pbo-filter-section dist-search" aria-label="Buscar y filtrar rutas">
+        <div class="dist-search-head"><div class="dist-section-title"><span class="dist-icon" aria-hidden="true"><svg class="icon"><use href="#i-search" /></svg></span><div><h2>Buscar rutas</h2><p>Elige un período y encuentra una ruta, cliente o documento.</p></div></div><span class="dist-range-note">Máximo 31 días</span></div>
+        <form id="panel-filters" class="panel-filters" action="@Url.Action("Panel","Piloto")" method="get" novalidate>
+            <input type="hidden" name="Seccion" value="@f.Seccion" />
+            <div class="dist-search-main">
+                <div class="dist-field dist-field-search"><label for="panel-buscar">Ruta, cliente o documento</label><input id="panel-buscar" name="Buscar" type="search" value="@f.Buscar" maxlength="100" placeholder="Escribe un nombre o número" /></div>
+                <div class="dist-field"><label for="panel-desde">Desde</label><input id="panel-desde" type="date" name="Desde" required value="@f.Desde" /></div>
+                <div class="dist-field"><label for="panel-hasta">Hasta</label><input id="panel-hasta" type="date" name="Hasta" required value="@f.Hasta" /></div>
+                <button class="dist-btn dist-btn-primary dist-search-submit" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-search" /></svg>Buscar</button>
+            </div>
+            <div class="dist-search-bottom"><div class="panel-presets" aria-label="Períodos rápidos"><span>Ir a:</span><button type="button" data-period="hoy">Hoy</button><button type="button" data-period="ayer">Ayer</button><button type="button" data-period="semana">Últimos 7 días</button></div><button type="button" class="pbo-filter-toggle dist-filter-toggle" id="panel-filter-toggle" aria-expanded="false" aria-controls="panel-filter-body"><svg class="icon" aria-hidden="true"><use href="#i-settings" /></svg><span>Mostrar filtros</span>@if(filtrosAdicionales>0){<b>@filtrosAdicionales</b>}</button></div>
+            <div class="pbo-filter-body" id="panel-filter-body" hidden>
+                <div class="dist-filter-head"><strong>Filtros adicionales</strong><span>Combínalos para reducir la lista.</span></div>
+                <div class="panel-filter-grid">
+                    <div><label for="panel-estado">Estado de ruta</label><select id="panel-estado" name="Estado">@foreach(var e in new[]{"todos","E","A","C","X"}){<option value="@e" selected="@(f.Estado==e)">@(e=="todos"?"Todos":e=="E"?"En ruta":e=="A"?"Abiertas":e=="C"?"Cerradas":"Anuladas")</option>}</select></div>
+                    <div><label for="panel-liquidacion">Liquidación</label><select id="panel-liquidacion" name="Liquidacion">@foreach(var e in new[]{"no","si","todas"}){<option value="@e" selected="@(f.Liquidacion==e)">@(e=="no"?"Sin liquidar":e=="si"?"Liquidadas":"Todas")</option>}</select></div>
+                    <div><label for="panel-piloto">Piloto</label><input id="panel-piloto" name="Piloto" value="@f.Piloto" maxlength="90" list="panel-empleados" placeholder="Todos" /><datalist id="panel-empleados">@foreach(var p in Model.NombresPiloto){<option value="@p"></option>}</datalist></div>
+                    <div><label for="panel-usuario">Usuario POS</label><select id="panel-usuario" name="Usuario"><option value="">Todos</option>@foreach(var p in Model.Pilotos){<option value="@p.Id" selected="@(f.Usuario==p.Id)">@p.Login · @p.Nombre</option>}</select></div>
+                    <div><label for="panel-centro">Centro</label><input id="panel-centro" name="Centro" value="@f.Centro" maxlength="15" list="panel-centros" placeholder="Todos" /><datalist id="panel-centros">@foreach(var c in Model.Centros){<option value="@c"></option>}</datalist></div>
+                    <div><label for="panel-placa">Placa</label><input id="panel-placa" name="Placa" value="@f.Placa" maxlength="15" list="panel-placas" placeholder="Todas" /><datalist id="panel-placas">@foreach(var p in Model.Placas){<option value="@p"></option>}</datalist></div>
+                    <div><label for="panel-avance">Avance de clientes</label><select id="panel-avance" name="Avance">@foreach(var e in new[]{"todos","sin","parcial","listo"}){<option value="@e" selected="@(f.Avance==e)">@(e=="todos"?"Todos":e=="sin"?"Sin clientes completados":e=="parcial"?"Avance parcial":"Pendiente de cerrar")</option>}</select></div>
+                    <div><label for="panel-resultado">Resultado de documento</label><select id="panel-resultado" name="Resultado">@foreach(var e in new[]{"todos","PENDIENTE","ENTREGADO","NO ENTREGADO","INCIDENCIA"}){<option value="@e" selected="@(f.Resultado==e)">@(e=="todos"?"Todos":e)</option>}</select></div>
+                    <div><label for="panel-evento">Actividad</label><select id="panel-evento" name="Evento">@foreach(var e in new[]{"todos","Cliente","Foto documento","Foto cliente","Cierre POS","Edición ruta","Vínculo","Centro","Vehículo"}){<option value="@e" selected="@(f.Evento==e)">@(e=="todos"?"Todos los eventos":e)</option>}</select></div>
+                </div>
+                <div class="panel-filter-actions"><small>La actividad usa la hora Guatemala; el avance corresponde a la ruta completa.</small><a class="dist-btn dist-btn-outline" href="@Url.Action("Panel","Piloto")">Limpiar filtros</a><button class="dist-btn dist-btn-primary" type="submit">Aplicar filtros</button></div>
+            </div>
+        </form>
+    </section>
+    <div class="panel-toolbar dist-view-toolbar"><nav class="panel-tabs" aria-label="Secciones del panel">@for(var i=0;i<secciones.Length;i++){<a href="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(secciones[i])))" aria-current="@(f.Seccion==secciones[i]?"page":null)">@titulos[i]</a>}</nav><label class="panel-auto"><input type="checkbox" id="panel-auto" />Actualizar cada 60 s</label></div>
+    <div id="panel-content" data-refresh-url="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(pagina:f.Pagina)))" aria-busy="false">@Html.Partial("_PanelContenido",Model)</div>
+    <div id="panel-toast" class="panel-toast" role="status" aria-live="polite" hidden></div>
 </div></div>
 @section scripts { <script src="@Url.Content("~/Scripts/pilotos-panel.js")"></script> }

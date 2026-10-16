@@ -5,26 +5,82 @@
 @{
     Layout="~/Views/Shared/_Layout.cshtml";ViewBag.EsPanel=true;ViewBag.Title="Consulta de ruta";ViewBag.PilotoBackoffice=true;
     var r=Model.Detalle;var f=Model.Filtro;
+    var entregados=r.Documentos.Count(d=>d.Resultado=="ENTREGADO");
+    var noEntregados=r.Documentos.Count(d=>d.Resultado=="NO ENTREGADO");
+    var incidencias=r.Documentos.Count(d=>d.Resultado=="INCIDENCIA");
 }
-<div class="pilot-admin-surface panel-shell"><div class="pilot-main">
-<a class="back-link" href="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(pagina:f.Pagina)))"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver al panel con mis filtros</a>
-<section class="pbo-hero @(r.Datos.Estado=="C"?"panel-route-complete":"")" aria-labelledby="detail-title"><span class="pbo-hero-icon" aria-hidden="true"><svg class="icon"><use href="#i-route" /></svg></span><div class="pbo-hero-copy"><p class="pbo-hero-kicker">CONSULTA ADMINISTRATIVA · @Model.Catalogo</p><h1 id="detail-title">@r.Datos.Id</h1><p>@r.Datos.Piloto · @r.Datos.Centro · @r.Datos.Placa</p></div><div class="pbo-hero-meta"><span class="@(r.Datos.Estado=="C"?"panel-complete-pill":"")">@r.Datos.EstadoNombre</span><span>@(r.Liquidada?"Liquidada":"Sin liquidar")</span></div></section>
-<div class="panel-notice"><svg class="icon" aria-hidden="true"><use href="#i-eye" /></svg><p>Esta vista es de consulta. Los resultados POS pendientes se aplican a @Model.Catalogo únicamente cuando el piloto confirma el cierre.</p></div>
-<div class="panel-kpis panel-detail-kpis"><div class="panel-kpi"><span>Fecha de ruta</span><strong class="panel-value-small">@r.Datos.Fecha.ToString("dd/MM/yyyy")</strong></div><div class="panel-kpi"><span>Clientes completados</span><strong>@r.Completados <em>/ @r.Clientes.Count</em></strong></div><div class="panel-kpi"><span>Documentos</span><strong>@r.Documentos.Count()</strong><small>@r.Documentos.Count(d=>d.Resultado=="ENTREGADO") entregados · @r.Documentos.Count(d=>d.Resultado=="NO ENTREGADO") no entregados · @r.Documentos.Count(d=>d.Resultado=="INCIDENCIA") incidencias</small></div><div class="panel-kpi"><span>Usuario POS con acceso actual</span><strong class="panel-value-small">@(r.Pilotos.Count==0?"Sin coincidencia":string.Join(" / ",r.Pilotos.Select(p=>p.Login)))</strong></div></div>
-<section class="panel-surface panel-route-data" aria-label="Datos completos de la ruta"><h2>Datos de la ruta</h2><dl class="panel-document-data"><div><dt>ID</dt><dd>@r.Datos.Id</dd></div><div><dt>Estado</dt><dd>@r.Datos.EstadoNombre</dd></div><div><dt>Liquidación</dt><dd>@(r.Liquidada?"Sí":"No")</dd></div><div><dt>Fecha</dt><dd>@r.Datos.Fecha.ToString("dd/MM/yyyy")</dd></div><div><dt>Piloto</dt><dd>@(r.Datos.Piloto??"Sin asignar")</dd></div><div><dt>Centro de distribución</dt><dd>@(r.Datos.Centro??"Sin registrar")</dd></div><div><dt>Placa</dt><dd>@(r.Datos.Placa??"Sin registrar")</dd></div><div><dt>Vehículo disponible</dt><dd>@(r.VehiculoActivo?"Sí":"No")</dd></div><div><dt>Operador de cierre</dt><dd>@(r.OperadorCierre??"Sin registrar")</dd></div><div><dt>Fecha de monitoreo</dt><dd>@(r.FechaCierre.HasValue?r.FechaCierre.Value.ToString("dd/MM/yyyy HH:mm:ss"):"Sin registrar")</dd></div><div><dt>Última actividad POS</dt><dd>@(r.ActividadUtc.HasValue?PilotoPanelReglas.HoraGuatemala(r.ActividadUtc.Value).ToString("dd/MM/yyyy HH:mm:ss")+" · Guatemala":"Sin actividad")</dd></div><div><dt>Observación general</dt><dd>@(r.Datos.ObservacionGeneral??"Sin observación")</dd></div></dl></section>
-@if(r.FechaCierre.HasValue){<p class="panel-notice">Última fecha de monitoreo registrada en @Model.Catalogo: @r.FechaCierre.Value.ToString("dd/MM/yyyy HH:mm:ss") · operador @r.OperadorCierre. Hora del servidor de rutas.</p>}
-@foreach(var a in r.Alertas){<div class="panel-notice panel-warning-text" role="status"><p>@a</p></div>}
-@if(Model.PuedeAdministrar){<div class="panel-inline-actions"><a class="button-link" href="@Url.Action("EditarRuta","Piloto",new{id=r.Datos.Id})">Editar ruta</a>@foreach(var p in r.Pilotos){<a class="button-link button-secondary" href="@Url.Action("Configurar","Piloto",new{id=p.Id})">Configurar @p.Login</a>}</div>}
-<section class="panel-surface panel-route-documents" aria-label="Todas las facturas de la ruta"><div class="panel-section-heading"><h2>Clientes y facturas completas</h2><span class="count">@r.Documentos.Count()</span></div><p class="muted">Se muestran todos los documentos de la ruta, incluidos los que ya tienen resultado.</p>
-@foreach(var c in r.Clientes){
-<details class="panel-client panel-surface @(c.Completado?"panel-client-complete":"")" open><summary><div><p class="eyebrow">CLIENTE · @c.Documentos.Count documentos</p><h2>@(c.Nombre??"Sin nombre")</h2><span>@c.Direccion</span></div><div><span class="panel-badge @(c.Completado?"panel-complete-pill":"")">@(c.Completado?(r.Datos.Estado=="C"?"Resultados registrados":"Completado en POS"):"Pendiente")</span>@if(c.FechaUtc.HasValue){<small>@PilotoPanelReglas.HoraGuatemala(c.FechaUtc.Value).ToString("dd/MM/yyyy HH:mm") · Guatemala</small>}<span class="panel-expand-label">Mostrar u ocultar facturas</span></div></summary>
-    <div class="panel-client-body">@if(c.Foto){<a class="button-link button-secondary panel-photo" href="@Url.Action("PanelImagen","Piloto",new{id=r.Datos.Id,rowId=c.Primero,cliente=true})" target="_blank" rel="noopener">Ver foto final en POS</a>}
-    @foreach(var d in c.Documentos){<article class="panel-document @(d.Resultado=="ENTREGADO"?"panel-document-complete":"")"><div class="panel-section-heading"><div><p class="eyebrow">@d.Datos.Tipo · @d.Datos.Empresa · ROWID @d.Datos.RowId</p><h3>@d.Datos.Documento</h3></div><span class="panel-badge @(d.Resultado=="ENTREGADO"?"panel-complete-pill":"")">@d.Resultado</span></div><dl class="panel-document-data"><div><dt>Cliente</dt><dd>@(d.Datos.Cliente??"Sin registrar")</dd></div><div><dt>Dirección</dt><dd>@(d.Datos.Direccion??"Sin registrar")</dd></div><div><dt>Visitó</dt><dd>@(d.Datos.Visito.HasValue?(d.Datos.Visito.Value?"Sí":"No"):"Sin registrar")</dd></div><div><dt>Motivo</dt><dd>@(d.Datos.Motivo??"Sin motivo")</dd></div><div><dt>Bultos</dt><dd>@d.Datos.Bultos</dd></div><div><dt>Hora de entrada</dt><dd>@(d.Datos.Entrada.HasValue?d.Datos.Entrada.Value.ToString(@"hh\:mm\:ss"):"Sin registrar")</dd></div><div><dt>Hora de salida</dt><dd>@(d.Datos.Salida.HasValue?d.Datos.Salida.Value.ToString(@"hh\:mm\:ss"):"Sin registrar")</dd></div><div><dt>Fuente</dt><dd>@d.Fuente</dd></div></dl>@if(!string.IsNullOrWhiteSpace(d.Datos.ObservacionPiloto)){<p><strong>Observación POS pendiente:</strong> @d.Datos.ObservacionPiloto</p>}@if(!string.IsNullOrWhiteSpace(d.Datos.Observaciones)){<p><strong>Observación registrada:</strong> @d.Datos.Observaciones</p>}@if(d.Foto){<a class="panel-text-link panel-photo" href="@Url.Action("PanelImagen","Piloto",new{id=r.Datos.Id,rowId=d.Datos.RowId})" target="_blank" rel="noopener">Ver fotografía del documento en POS</a>}</article>}
+<div class="pilot-admin-surface panel-shell dist-panel dist-detail"><div class="pilot-main">
+    <a class="dist-back" href="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(pagina:f.Pagina)))"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver al panel con mis filtros</a>
+    <header class="dist-detail-head" aria-labelledby="detail-title">
+        <div class="dist-detail-title"><span class="dist-kicker">Seguimiento de ruta · @Model.Catalogo</span><div class="dist-detail-title-row"><span class="dist-detail-symbol" aria-hidden="true"><svg class="icon"><use href="#i-route" /></svg></span><h1 id="detail-title">@r.Datos.Id</h1><span class="dist-status dist-status-@r.Datos.Estado">@r.Datos.EstadoNombre</span></div><p><svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg>@r.Datos.Fecha.ToString("dd/MM/yyyy") <span aria-hidden="true">·</span> @(r.Datos.Piloto??"Piloto sin asignar")</p></div>
+        @if(Model.PuedeAdministrar){<a class="dist-btn dist-btn-primary" href="@Url.Action("EditarRuta","Piloto",new{id=r.Datos.Id})"><svg class="icon" aria-hidden="true"><use href="#i-settings" /></svg>Editar ruta</a>}
+    </header>
+    <section class="dist-progress-card" aria-label="Avance de la ruta">
+        <div class="dist-progress-main"><div class="dist-progress-heading"><span>Avance de clientes</span><strong>@r.Completados de @r.Clientes.Count</strong></div><progress max="100" value="@r.Porcentaje" aria-label="Avance de clientes de la ruta"></progress><p>@(r.Datos.Estado=="C"?"Ruta cerrada":r.ListaParaCierre?"Todos los clientes están completos; falta confirmar el cierre.":r.Clientes.Count-r.Completados+" clientes pendientes de completar.")</p></div>
+        <div class="dist-progress-facts"><div><span>Documentos</span><strong>@r.Documentos.Count()</strong></div><div class="dist-fact-delivered"><span>Entregados</span><strong>@entregados</strong></div><div><span>No entregados</span><strong>@noEntregados</strong></div><div><span>Con incidencia</span><strong>@incidencias</strong></div></div>
+    </section>
+    @if(r.Alertas.Count>0){<section class="dist-detail-alerts" aria-label="Observaciones para revisar"><div class="dist-detail-alert-title"><svg class="icon" aria-hidden="true"><use href="#i-info" /></svg><strong>Necesita atención</strong><span>@r.Alertas.Count</span></div>@foreach(var a in r.Alertas){<p role="status">@a</p>}</section>}
+    <div class="dist-detail-layout">
+        <div class="dist-detail-primary">
+            <section class="dist-surface dist-documents" aria-label="Todas las facturas de la ruta">
+                <div class="dist-card-head dist-documents-head"><span class="dist-icon" aria-hidden="true"><svg class="icon"><use href="#i-box" /></svg></span><div><h2>Clientes y documentos <span class="dist-count">@r.Documentos.Count()</span></h2><p>Todas las facturas de la ruta, incluidas las que ya tienen resultado.</p></div></div>
+                @if(r.Clientes.Count==0){<div class="panel-empty"><h3>Sin clientes en esta ruta</h3><p>Cuando haya documentos asignados, aparecerán aquí.</p></div>}
+                @foreach(var c in r.Clientes){
+                    <section class="dist-client" aria-label="Cliente @(c.Nombre??"Sin nombre")">
+                        <div class="dist-client-head"><span class="dist-client-mark @(c.Completado?"dist-client-mark-complete":"")" aria-hidden="true"><svg class="icon"><use href="@(c.Completado?"#i-check":"#i-user")" /></svg></span><div class="dist-client-name"><span class="dist-kicker">Cliente · @c.Documentos.Count @(c.Documentos.Count==1?"documento":"documentos")</span><h3>@(c.Nombre??"Sin nombre")</h3><p><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg>@(c.Direccion??"Dirección sin registrar")</p></div><span class="dist-status @(c.Completado?"dist-status-C":"dist-status-A")">@(c.Completado?(r.Datos.Estado=="C"?"Completado":"Completado en POS"):"Pendiente")</span></div>
+                        @if(c.FechaUtc.HasValue || c.Foto){<div class="dist-client-extra">@if(c.FechaUtc.HasValue){<span><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg>Guardado @PilotoPanelReglas.HoraGuatemala(c.FechaUtc.Value).ToString("dd/MM/yyyy HH:mm") · Guatemala</span>}@if(c.Foto){<a class="panel-photo" href="@Url.Action("PanelImagen","Piloto",new{id=r.Datos.Id,rowId=c.Primero,cliente=true})" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg>Ver foto del cliente</a>}</div>}
+                        <div class="dist-doc-list">
+                        @foreach(var d in c.Documentos){
+                            <article class="dist-doc @(d.Resultado=="ENTREGADO"?"dist-doc-complete":"")">
+                                <div class="dist-doc-head"><div><span class="dist-doc-type">@d.Datos.Tipo · @d.Datos.Empresa</span><h4>@d.Datos.Documento</h4></div><span class="dist-status @(d.Resultado=="ENTREGADO"?"dist-status-C":d.Resultado=="INCIDENCIA"?"dist-status-X":d.Resultado=="NO ENTREGADO"?"dist-status-X":"dist-status-A")">@d.Resultado</span></div>
+                                <dl class="dist-doc-data">
+                                    <div><dt>Cliente</dt><dd>@(d.Datos.Cliente??"Sin registrar")</dd></div>
+                                    <div><dt>Dirección</dt><dd>@(d.Datos.Direccion??"Sin registrar")</dd></div>
+                                    <div><dt>Visitó</dt><dd>@(d.Datos.Visito.HasValue?(d.Datos.Visito.Value?"Sí":"No"):"Sin registrar")</dd></div>
+                                    <div><dt>Motivo</dt><dd>@(d.Datos.Motivo??"Sin motivo")</dd></div>
+                                    <div><dt>Bultos</dt><dd>@d.Datos.Bultos</dd></div>
+                                    <div><dt>Hora de entrada</dt><dd>@(d.Datos.Entrada.HasValue?d.Datos.Entrada.Value.ToString(@"hh\:mm\:ss"):"Sin registrar")</dd></div>
+                                    <div><dt>Hora de salida</dt><dd>@(d.Datos.Salida.HasValue?d.Datos.Salida.Value.ToString(@"hh\:mm\:ss"):"Sin registrar")</dd></div>
+                                    <div><dt>Fuente</dt><dd>@d.Fuente</dd></div>
+                                </dl>
+                                @if(!string.IsNullOrWhiteSpace(d.Datos.ObservacionPiloto) || !string.IsNullOrWhiteSpace(d.Datos.Observaciones)){<div class="dist-doc-notes">@if(!string.IsNullOrWhiteSpace(d.Datos.ObservacionPiloto)){<p><strong>Observación POS pendiente:</strong> @d.Datos.ObservacionPiloto</p>}@if(!string.IsNullOrWhiteSpace(d.Datos.Observaciones)){<p><strong>Observación registrada:</strong> @d.Datos.Observaciones</p>}</div>}
+                                <div class="dist-doc-foot"><span>ROWID @d.Datos.RowId</span>@if(d.Foto){<a class="panel-photo" href="@Url.Action("PanelImagen","Piloto",new{id=r.Datos.Id,rowId=d.Datos.RowId})" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg>Ver fotografía del documento</a>}</div>
+                            </article>
+                        }
+                        </div>
+                    </section>
+                }
+            </section>
+        </div>
+        <aside class="dist-detail-aside" aria-label="Información de la ruta">
+            <section class="dist-surface dist-route-info">
+                <div class="dist-card-head"><span class="dist-icon" aria-hidden="true"><svg class="icon"><use href="#i-truck" /></svg></span><div><h2>Datos de la ruta</h2><p>Asignación y control</p></div></div>
+                <dl class="dist-info-list">
+                    <div><dt>ID de ruta</dt><dd>@r.Datos.Id</dd></div>
+                    <div><dt>Fecha programada</dt><dd>@r.Datos.Fecha.ToString("dd/MM/yyyy")</dd></div>
+                    <div><dt>Piloto</dt><dd>@(r.Datos.Piloto??"Sin asignar")</dd></div>
+                    <div><dt>Centro de distribución</dt><dd>@(r.Datos.Centro??"Sin registrar")</dd></div>
+                    <div><dt>Placa</dt><dd>@(r.Datos.Placa??"Sin registrar")</dd></div>
+                    <div><dt>Vehículo disponible</dt><dd>@(r.VehiculoActivo?"Sí":"No")</dd></div>
+                    <div><dt>Estado</dt><dd>@r.Datos.EstadoNombre</dd></div>
+                    <div><dt>Liquidación</dt><dd>@(r.Liquidada?"Sí":"No")</dd></div>
+                    <div><dt>Usuario POS con acceso</dt><dd>@(r.Pilotos.Count==0?"Sin coincidencia":string.Join(" / ",r.Pilotos.Select(p=>p.Login)))</dd></div>
+                    <div><dt>Operador de cierre</dt><dd>@(r.OperadorCierre??"Sin registrar")</dd></div>
+                    <div><dt>Fecha de monitoreo</dt><dd>@(r.FechaCierre.HasValue?r.FechaCierre.Value.ToString("dd/MM/yyyy HH:mm:ss"):"Sin registrar")</dd></div>
+                    <div><dt>Última actividad POS</dt><dd>@(r.ActividadUtc.HasValue?PilotoPanelReglas.HoraGuatemala(r.ActividadUtc.Value).ToString("dd/MM/yyyy HH:mm:ss")+" · Guatemala":"Sin actividad")</dd></div>
+                    <div class="dist-info-note"><dt>Observación general</dt><dd>@(r.Datos.ObservacionGeneral??"Sin observación")</dd></div>
+                </dl>
+                @if(Model.PuedeAdministrar && r.Pilotos.Count>0){<div class="dist-aside-actions">@foreach(var p in r.Pilotos){<a href="@Url.Action("Configurar","Piloto",new{id=p.Id})">Configurar @p.Login <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>}</div>}
+            </section>
+            <section class="dist-surface dist-activity">
+                <div class="dist-card-head"><span class="dist-icon" aria-hidden="true"><svg class="icon"><use href="#i-clock" /></svg></span><div><h2>Actividad <span class="dist-count">@Model.Actividad.Count</span></h2><p>Eventos guardados · hora Guatemala</p></div></div>
+                @if(Model.Actividad.Count==0){<p class="dist-empty-small">Todavía no hay eventos guardados para esta ruta.</p>}
+                <ol class="dist-timeline">@foreach(var a in Model.Actividad){<li><time>@PilotoPanelReglas.HoraGuatemala(a.FechaUtc).ToString("dd/MM/yyyy HH:mm:ss")</time><strong>@a.Tipo</strong><span>@a.Actor</span><p>@a.Descripcion</p><small>@a.Clave</small></li>}</ol>
+            </section>
+        </aside>
     </div>
-</details>}
-</section>
-<section class="panel-surface"><h2>Historial de actividad de esta ruta <span class="count">@Model.Actividad.Count</span></h2><p class="muted">Todos los eventos guardados para esta ruta, hora Guatemala.</p>@foreach(var a in Model.Actividad){<div class="panel-activity-item"><time>@PilotoPanelReglas.HoraGuatemala(a.FechaUtc).ToString("dd/MM/yyyy HH:mm:ss")</time><strong>@a.Tipo · @a.Actor</strong><p>@a.Descripcion</p><small>@a.Clave</small></div>}@if(Model.Actividad.Count==0){<p class="muted">No hay eventos guardados para esta ruta.</p>}</section>
-@foreach(var aviso in Model.Avisos){<div class="panel-notice"><p>@aviso</p></div>}
-<div id="panel-photo-dialog" class="panel-photo-dialog" role="dialog" aria-modal="true" aria-labelledby="panel-photo-title" hidden><div class="panel-photo-surface"><div class="panel-section-heading"><h2 id="panel-photo-title">Fotografía guardada en POS</h2><button type="button" id="panel-photo-close" class="button-secondary">Cerrar</button></div><p id="panel-photo-state" role="status">Cargando fotografía…</p><img id="panel-photo-image" alt="Fotografía adjunta al documento o cliente" /><a id="panel-photo-original" target="_blank" rel="noopener">Abrir imagen original</a><small>El origen histórico de una imagen POS no incluye el catálogo de rutas.</small></div></div>
+    <div class="dist-detail-footer"><svg class="icon" aria-hidden="true"><use href="#i-eye" /></svg><p>Esta vista es de consulta. Los resultados POS pendientes se aplican a @Model.Catalogo cuando el piloto confirma el cierre.@if(r.FechaCierre.HasValue){<span> Último monitoreo: @r.FechaCierre.Value.ToString("dd/MM/yyyy HH:mm:ss") · operador @r.OperadorCierre (hora del servidor de rutas).</span>}</p></div>
+    @foreach(var aviso in Model.Avisos){<div class="panel-notice" role="status"><p>@aviso</p></div>}
+    <div id="panel-photo-dialog" class="panel-photo-dialog" role="dialog" aria-modal="true" aria-labelledby="panel-photo-title" hidden><div class="panel-photo-surface"><div class="panel-section-heading"><h2 id="panel-photo-title">Fotografía guardada en POS</h2><button type="button" id="panel-photo-close" class="dist-btn dist-btn-outline">Cerrar</button></div><p id="panel-photo-state" role="status">Cargando fotografía…</p><img id="panel-photo-image" alt="Fotografía adjunta al documento o cliente" /><a id="panel-photo-original" target="_blank" rel="noopener">Abrir imagen original</a><small>El origen histórico de una imagen POS no incluye el catálogo de rutas.</small></div></div>
 </div></div>
 @section scripts { <script src="@Url.Content("~/Scripts/pilotos-panel.js")"></script> }

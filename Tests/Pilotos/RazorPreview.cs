@@ -14,6 +14,13 @@ internal static class RazorPreview
 {
     public static string AssetsRoot;
     private static string Asset(string relative) { return new Uri(Path.Combine(AssetsRoot,relative.Replace('/',Path.DirectorySeparatorChar))).AbsoluteUri; }
+    private static string Icons()
+    {
+        var layout=File.ReadAllText(Path.Combine(AssetsRoot,"DiamDev.Give.UI/Views/Shared/_Layout.cshtml".Replace('/',Path.DirectorySeparatorChar)));
+        var match=System.Text.RegularExpressions.Regex.Match(layout,"<svg xmlns=\"http://www.w3.org/2000/svg\"[\\s\\S]*?</svg>");
+        if(!match.Success) throw new InvalidOperationException("No se encontró el sprite de iconos del layout.");
+        return match.Value;
+    }
     public static string Backoffice(string body,bool panel)
     {
         return "<!DOCTYPE html><html lang=\"es\"><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />"
@@ -23,7 +30,8 @@ internal static class RazorPreview
             +"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/pilotos-backoffice.css")+"\" />"
             +(panel?"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/pilotos-panel-backoffice.css")+"\" />":"")
             +"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/pilotos-backoffice-ux.css")+"\" />"
-            +"</head><body class=\"app-shell app-piloto-backoffice\"><div class=\"navbar navbar-inverse navbar-fixed-top app-navbar\"><div class=\"container app-navbar-container\"><span class=\"navbar-brand app-brand\">Smart K66 · APP WEB</span></div></div>"
+            +(panel?"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/pilotos-panel-redesign.css")+"\" />":"")
+            +"</head><body class=\"app-shell app-piloto-backoffice\">"+Icons()+"<div class=\"navbar navbar-inverse navbar-fixed-top app-navbar\"><div class=\"container app-navbar-container\"><span class=\"navbar-brand app-brand\">Smart K66 · APP WEB</span></div></div>"
             +"<div class=\"main-container app-main-container\"><div class=\"navbar-content\"><div class=\"main-navigation navbar-collapse collapse app-sidebar\" id=\"app-sidebar\"><ul class=\"main-navigation-menu\"><li class=\"app-menu-home\"><a href=\"/Inicio/Dashboard\">Inicio</a></li></ul></div></div>"
             +"<main class=\"main-content\" id=\"main-content\"><div class=\"container app-content-container\"><div class=\"app-page-heading\"><ol class=\"breadcrumb app-breadcrumb\"><li>Inicio</li><li>"+(panel?"Panel de distribución":"Administración de pilotos")+"</li></ol></div>"
             +body+"</div></main></div><script src=\"/Scripts/pilotos.js\"></script></body></html>";

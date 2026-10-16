@@ -55,6 +55,10 @@
             <link href="~/Content/pilotos-panel-backoffice.css" rel="stylesheet" />
         }
         <link href="~/Content/pilotos-backoffice-ux.css?v=20260929" rel="stylesheet" />
+        if (ViewBag.EsPanel == true)
+        {
+            <link href="~/Content/pilotos-panel-redesign.css?v=20261016" rel="stylesheet" />
+        }
     }
     @RenderSection("styles", required: false)
     <style type="text/css">

@@ -152,8 +152,14 @@
 .dist-panel .dist-detail-primary,.dist-panel .dist-detail-aside{min-width:0}
 .dist-panel .dist-detail-aside{display:grid;gap:13px}
 .dist-panel .dist-detail-aside .dist-surface{margin:0}
-.dist-panel .dist-documents-head{padding:17px 19px;border-bottom:1px solid var(--dist-line)}
-.dist-panel .dist-client{padding:0 19px;border-bottom:1px solid var(--dist-line)}
+.dist-panel .dist-documents-head{padding:17px 19px;border-bottom:1px solid var(--dist-line); background:white}
+.dist-documents{ background: none !important; overflow: hidden}
+.dist-panel .dist-client {
+    padding: 0 19px;
+    border: 1px solid var(--dist-line);
+    background: white;
+    margin: 1em 0;
+}
 .dist-panel .dist-client:last-child{border-bottom:0}
 .dist-panel .dist-client-head{display:flex;align-items:center;gap:11px;padding:18px 0 12px}
 .dist-panel .dist-client-mark{display:grid;place-items:center;width:34px;height:34px;flex:none;border-radius:50%;background:#e8f0f6;color:#5680a0}
@@ -167,10 +173,18 @@
 .dist-panel .dist-client-extra .icon{width:13px;height:13px}
 .dist-panel .dist-client-extra a,.dist-panel .dist-doc-foot a{color:var(--dist-blue);font-weight:750;text-decoration:none}
 .dist-panel .dist-client-extra a:hover,.dist-panel .dist-doc-foot a:hover{text-decoration:underline}
-.dist-panel .dist-doc-list{border-top:1px solid #eaf0f5}
-.dist-panel .dist-doc{padding:15px 0 16px;border-bottom:1px solid #eaf0f5}
-.dist-panel .dist-doc:last-child{border-bottom:0}
-.dist-panel .dist-doc-complete{box-shadow:inset 3px 0 0 #35a46d;padding-left:12px;margin-left:-12px}
+/*.dist-panel .dist-doc-list{border-top:1px solid #eaf0f5} */
+.dist-panel .dist-doc-list{border:none}
+/*.dist-panel .dist-doc{padding:15px 0 16px;border-bottom:1px solid #eaf0f5}*/
+.dist-panel .dist-doc {
+    padding: 1em;
+    border: 1px dashed #000;
+    margin: .5em 0;
+    border-left: none;
+    box-shadow: inset 4px 0 #cacaca;
+}
+/*.dist-panel .dist-doc:last-child{border-bottom:0}*/
+.dist-panel .dist-doc-complete{box-shadow:inset 4px 0 0 #35a46d;padding-left:12px;}
 .dist-panel .dist-doc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
 .dist-panel .dist-doc-type{color:#63829a;font-size:10px;font-weight:800;letter-spacing:.045em;text-transform:uppercase}
 .dist-panel .dist-doc-head h4{margin:2px 0 0;color:#153f66;font-size:15px;font-weight:800;line-height:1.2;overflow-wrap:anywhere}

@@ -13,6 +13,9 @@ namespace DiamDev.Give.DAL
 {
     public sealed class PilotoRutaDA
     {
+        internal string SqlRegistrarHoraEntrega { get { return @"UPDATE "+apk+@".dbo.RT_RUTAS_DET
+SET MO_HR_ENTRADA=COALESCE(MO_HR_ENTRADA,@hora)
+WHERE ID_RUTA=@ruta AND ROWID=@rowid AND MO_ENTREGA=N'ENTREGADO';"; } }
         private readonly string conexion;
         private readonly string apk;
         private sealed class Acceso { public long Usuario; public string Nombre; public string Operador; public string PlacaPrueba; public string RutaPrueba; public string PilotoPrueba; }
@@ -725,6 +728,8 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
                     }
                     VerificarTrigger(cn,tx);
                     var antes=new XElement("documentos",ruta.Documentos.Select(d=>EstadoXml(d.RowId,d.Visito,d.Entrega,d.Motivo,d.Observaciones)));
+                    // MO_HR_ENTRADA es una hora por documento. Se conserva cualquier hora ya registrada.
+                    var horaEntrega=PilotoReglas.HoraEntregaGuatemala(DateTime.UtcNow);
                     foreach(var resultado in cierre.Documentos)
                     {
                         var original=ruta.Documentos.Single(d=>d.RowId==resultado.RowId);
@@ -739,6 +744,16 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
                             cmd.ExecuteNonQuery();
                         }
                     }
+                    foreach(var resultado in cierre.Documentos.Where(d=>d.Entrega=="ENTREGADO"))
+                    {
+                        using(var cmd=Command(cn,tx,SqlRegistrarHoraEntrega))
+                        {
+                            Param(cmd,"@hora",SqlDbType.Time,horaEntrega);
+                            Param(cmd,"@ruta",SqlDbType.NVarChar,ruta.Id,15);
+                            Param(cmd,"@rowid",SqlDbType.Int,resultado.RowId);
+                            if(cmd.ExecuteNonQuery()!=1) throw new PilotoException(409,"No se pudo registrar la hora de entrega.");
+                        }
+                    }
                     using(var cmd=Command(cn,tx,apk+".dbo.rutas_cerrar"))
                     {
                         cmd.CommandType=CommandType.StoredProcedure; Param(cmd,"@idruta",SqlDbType.NVarChar,ruta.Id,15);
@@ -749,7 +764,8 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
                     if(final.Estado!="C" || final.Documentos.Count!=cierre.Documentos.Count || cierre.Documentos.Any(d=>!final.Documentos.Any(f=>
                         f.RowId==d.RowId && f.Visito==d.Visito && f.Entrega==d.Entrega && (f.Motivo??"")== (d.Motivo??"") &&
                         (f.Observaciones??"")==ObservacionEsperada(ruta.Documentos.Single(o=>o.RowId==d.RowId).Observaciones,d.Observaciones))) ||
-                        final.Documentos.Any(f=>!ruta.Documentos.Any(o=>o.RowId==f.RowId && o.Entrada==f.Entrada && o.Salida==f.Salida)))
+                        final.Documentos.Any(f=>!ruta.Documentos.Any(o=>o.RowId==f.RowId &&
+                            f.Entrada==(f.Entrega=="ENTREGADO" ? (o.Entrada ?? horaEntrega) : o.Entrada) && o.Salida==f.Salida)))
                         throw new PilotoException(409,"No se pudo verificar el cierre. No se guardaron los cambios.");
                     var despues=new XElement("documentos",cierre.Documentos.Select(d=>EstadoXml(d.RowId,d.Visito,d.Entrega,d.Motivo,
                         ObservacionEsperada(ruta.Documentos.Single(o=>o.RowId==d.RowId).Observaciones,d.Observaciones))));

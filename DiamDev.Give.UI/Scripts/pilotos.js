@@ -51,15 +51,25 @@
     }
     var adminForm = document.getElementById("pilot-admin-form");
     if (adminForm) {
+        var adminDialog=document.getElementById("pilot-admin-dialog");
+        var adminSubmit=adminForm.querySelector("button[type=submit]");
         adminForm.addEventListener("submit", function (event) {
-            if (!adminForm.checkValidity()) return;
+            if (adminForm.dataset.confirmed==="true") return;
+            event.preventDefault();
+            if (!adminForm.reportValidity()) return;
             var active = adminForm.querySelector("input[name=Activo][type=checkbox]").checked;
             var message = active
                 ? "¿Confirmas este vínculo, sus centros y vehículos autorizados?"
                 : "¿Confirmas que deseas desactivar el acceso de este piloto?";
-            if (!window.confirm(message)) { event.preventDefault(); return; }
-            var button = adminForm.querySelector("button[type=submit]");
-            button.disabled = true; button.textContent = "Guardando…";
+            document.getElementById("pilot-admin-dialog-message").textContent=message;
+            adminDialog.showModal();
+            document.getElementById("pilot-admin-cancel").focus();
+        });
+        document.getElementById("pilot-admin-cancel").addEventListener("click",function(){adminDialog.close();adminSubmit.focus();});
+        document.getElementById("pilot-admin-confirm").addEventListener("click",function(){
+            adminDialog.close();adminForm.dataset.confirmed="true";
+            adminSubmit.disabled=true;adminSubmit.textContent="Guardando…";
+            adminForm.requestSubmit();
         });
     }
     var imageModal = document.getElementById("image-modal");
@@ -101,6 +111,8 @@
                 imageForm.elements.primerRowId.value = customer ? trigger.getAttribute("data-first-row-id") : "";
                 imageForm.elements.entrega.value = customer ? "" : trigger.closest(".document-card").querySelector(".delivery-result:checked").value;
                 var replacing = trigger.getAttribute("data-replace") === "true";
+                document.getElementById("image-replace-confirmation").hidden=!replacing;
+                document.getElementById("image-replace-checked").checked=false;
                 document.getElementById("image-kind").textContent = customer ? "FOTO FINAL DEL CLIENTE" : "FOTO DEL DOCUMENTO";
                 document.getElementById("image-title").textContent = customer ? (replacing ? "Reemplazar foto final" : "Subir foto final") : (replacing ? "Reemplazar imagen" : "Subir imagen");
                 document.getElementById("image-document").textContent = customer ? "Foto opcional del cliente" : "Documento " + trigger.getAttribute("data-document");
@@ -132,8 +144,11 @@
             event.preventDefault();
             if (!imageForm.checkValidity()) { imageForm.reportValidity(); return; }
             var customer = imageTrigger.classList.contains("client-image-upload-trigger");
-            if (imageTrigger.getAttribute("data-replace") === "true" &&
-                !window.confirm(customer ? "¿Reemplazar la foto final de este cliente?" : "¿Reemplazar la imagen actual de este documento?")) return;
+            if (imageTrigger.getAttribute("data-replace") === "true" && !document.getElementById("image-replace-checked").checked) {
+                imageStatus.textContent="Confirma el reemplazo de la imagen actual.";
+                document.getElementById("image-replace-checked").focus();
+                return;
+            }
             imageSubmit.disabled = true;
             imageSubmitLabel.textContent = "Guardando…";
             imageStatus.textContent = "Subiendo imagen…";
@@ -517,6 +532,10 @@
                 completeGroup(group,response.documentos);
                 clientSaving=false;
                 closeClientModal(true);
+                if (Array.prototype.every.call(groups,function(item) { return item.getAttribute("data-saved")==="true"; })) {
+                    document.getElementById("submit-status").textContent="Todos los clientes están completos. Revisa y confirma la ruta.";
+                    openModal();
+                }
             }).catch(function(error) {
                 var message=error.message || "No se pudo guardar. Inténtalo de nuevo.";
                 status.textContent=message; status.hidden=false;

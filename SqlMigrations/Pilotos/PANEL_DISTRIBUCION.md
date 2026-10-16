@@ -30,7 +30,7 @@ Resumen con indicadores y gráficos, listados de rutas/pilotos/documentos/activi
 
 La actualización automática es opcional cada 60 segundos. Se pausa con pestaña oculta, filtros modificados, detalles abiertos o foco dentro del contenido. Ante error mantiene los datos anteriores y permite reintentar; no reemplaza la pantalla por una consulta incompleta.
 
-Las consultas usan parámetros, lecturas confirmadas, espera por bloqueo de 3 segundos y timeout de 20 segundos. Los listados muestran 25 filas por página; los totales no se calculan solo sobre esa página. Se rechaza expresamente un período con más de 2.000 rutas, 100.000 documentos, 5.000 usuarios o 5.000 eventos para pedir filtros más específicos, sin presentar cifras parciales. La exportación CSV de documentos tiene un máximo de 10.000 filas y protege celdas que puedan interpretarse como fórmulas. No carga binarios de fotografías al construir listados.
+Las consultas usan parámetros, lecturas confirmadas, espera por bloqueo de 3 segundos y timeout de 20 segundos. Los listados muestran hasta 50 filas por página; los totales no se calculan solo sobre esa página. Se rechaza expresamente un período con más de 2.000 rutas, 100.000 documentos, 5.000 usuarios o 5.000 eventos para pedir filtros más específicos, sin presentar cifras parciales. La exportación CSV de documentos tiene un máximo de 10.000 filas y protege celdas que puedan interpretarse como fórmulas. No carga binarios de fotografías al construir listados.
 
 ## Validación en SQL/IIS
 

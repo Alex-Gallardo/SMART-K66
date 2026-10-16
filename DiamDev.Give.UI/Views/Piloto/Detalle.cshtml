@@ -21,7 +21,7 @@
 @if(Model.TotalDocumentos>DiamDev.Give.Entities.PilotoReglas.MaxDocumentos) { <p class="notice">Puedes consultar todos los documentos por páginas. El cierre de esta ruta corresponde a Distribución por su cantidad de documentos.</p> }
 @if (Model.PuedeCerrar)
 {
-    <p class="intro">Abre cada factura, registra su resultado y guarda el cliente. Los resultados se aplicarán a la ruta al confirmar el cierre.</p>
+    <p class="intro">Abre cada factura, registra su resultado y guarda el cliente. Al completar el último cliente se abrirá la revisión final para confirmar el cierre de la ruta.</p>
 }
 else if (ViewBag.PruebasSoloLectura != true)
 {
@@ -209,6 +209,7 @@ else if (ViewBag.PruebasSoloLectura != true)
                 <input type="hidden" name="version" value="@Model.Version" />
                 <label for="image-file">Selecciona o toma una foto <small>JPG, PNG o WebP · máximo 10 MB</small></label>
                 <input id="image-file" type="file" name="archivo" accept="image/jpeg,image/png,image/webp" required />
+                <label id="image-replace-confirmation" class="confirm-check" hidden><input id="image-replace-checked" type="checkbox" /><span>Confirmo que quiero reemplazar la imagen actual.</span></label>
                 <img id="image-preview" class="image-preview" alt="Vista previa de la imagen seleccionada" hidden />
                 <p id="image-status" role="status" aria-live="polite"></p>
                 <div class="modal-actions"><button type="button" class="button-secondary" data-close-image>Cancelar</button><button id="image-submit" type="submit"><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg><span id="image-submit-label">Guardar imagen</span></button></div>

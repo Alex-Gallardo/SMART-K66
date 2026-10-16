@@ -94,7 +94,7 @@ No se enviaron SMS durante estas pruebas.
 | Visita | Selección explícita; entregado requiere visita afirmativa. |
 | Motivo | Obligatorio para no entregado/incidencia y limitado al catálogo observado en APK66. |
 | Observación del piloto | Obligatoria para no entregado/incidencia, máximo 500 caracteres; se agrega sin borrar la observación existente. |
-| Datos que no edita el piloto | Vehículo, asignación, cliente, dirección y horas. |
+| Datos que no edita el piloto | Vehículo, asignación, cliente, dirección y horas manuales. Al confirmar el cierre se registra automáticamente `MO_HR_ENTRADA` en documentos entregados que aún no tengan hora. |
 
 El catálogo inicial usa los motivos recurrentes encontrados en una muestra de
 producción: `TIEMPO CLIENTE`, `TIEMPO RUTA`, `CLIENTE CERRADO`, `FALTA ESPACIO`,
@@ -303,6 +303,12 @@ con Distribucion, sin truncar. No es el ROWID del empleado, la placa ni una clav
 No determina el alcance de rutas. Los codigos de vinculos activos deben ser unicos.
 
 ### Panel de distribución
+
+El panel inicia en **Rutas** y muestra hasta 50 resultados por página. El detalle administrativo abre los clientes y muestra todas las facturas, sus resultados, horas, observaciones, fotografías y la observación general de la ruta. La actividad de detalle muestra el historial de esa ruta sin limitarlo al período de filtros.
+
+`/Piloto/Administracion` permite buscar una ruta por ID y editar fecha, piloto, centro, placa, estado operativo `A/E` y observación general. La edición requiere `Pilotos.Administrar`, una ruta no liquidada en `A/E`, opciones activas y no ambiguas, versión vigente, motivo y la migración POS `26_historial_edicion_rutas_pos.sql`. No se cambian rutas `C/X` ni se modifica liquidación o documentos desde ese formulario. Si existen borradores POS o resultados registrados, se conserva la observación general como única edición permitida. Cada modificación guarda antes/después, actor y motivo en la misma transacción que actualiza APK66. El script 26 inicia en vista previa y debe instalarse manualmente en el catálogo POS correcto.
+
+Al cerrar la ruta, el portal toma una única hora Guatemala (UTC−6), con precisión de segundos, y la escribe en `RT_RUTAS_DET.MO_HR_ENTRADA` solo para documentos `ENTREGADO` cuyo valor esté vacío. La actualización ocurre dentro de la transacción serializable del cierre y se verifica antes de confirmarla; las horas existentes y los documentos no entregados se conservan. `MO_HR_ENTRADA` es una hora por documento; `PilotoCierre.FechaUtc` registra por separado el momento completo de la confirmación de la ruta.
 
 La consulta global `/Piloto/Panel` requiere `Pilotos.Monitorear`; la administración
 de vínculos conserva `Pilotos.Administrar`. El permiso se registra mediante el

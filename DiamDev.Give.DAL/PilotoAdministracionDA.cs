@@ -9,7 +9,7 @@ using DiamDev.Give.Entities;
 
 namespace DiamDev.Give.DAL
 {
-    public sealed class PilotoAdministracionDA
+    public sealed partial class PilotoAdministracionDA
     {
         private readonly string conexion;
         private readonly string apk;

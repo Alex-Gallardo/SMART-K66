@@ -35,11 +35,12 @@ let socket;
         for (const width of [320, 390, 768, 1440]) {
             await call('Emulation.setDeviceMetricsOverride', { width, height: 950, deviceScaleFactor: 1, mobile: width === 390 }, session);
             await call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] }, session);
-            for (const name of ['panel-resumen', 'panel-rutas', 'panel-pilotos', 'panel-documentos', 'panel-actividad', 'panel-alertas', 'panel-detalle', 'panel-error', 'administracion', 'configurar', 'administracion-error']) {
+            for (const name of ['panel-resumen', 'panel-rutas', 'panel-pilotos', 'panel-documentos', 'panel-actividad', 'panel-alertas', 'panel-detalle', 'panel-error', 'administracion', 'configurar', 'editar-ruta', 'administracion-error']) {
                 const isPanel = name.startsWith('panel-');
                 let html = fs.readFileSync(path.join(bin, name + '.html'), 'utf8');
                 for (const css of ['pilotos.css', 'pilotos-panel.css']) html = html.replace('/Content/' + css, pathToFileURL(path.join(root, 'DiamDev.Give.UI/Content', css)).href);
                 html = html.replace('<script src="/Scripts/pilotos.js"></script>', '<script src="' + pathToFileURL(path.join(root, 'DiamDev.Give.UI/Scripts', isPanel ? 'pilotos-panel.js' : 'pilotos.js')).href + '"></script>');
+                html = html.replace('<script src="/Scripts/pilotos-admin-ruta.js"></script>', '<script src="' + pathToFileURL(path.join(root, 'DiamDev.Give.UI/Scripts/pilotos-admin-ruta.js')).href + '"></script>');
                 const file = path.join(bin, 'panel-responsive-preview.html'); fs.writeFileSync(file, html);
                 await call('Page.navigate', { url: pathToFileURL(file).href + '?case=' + name + width }, session);
                 let ready = false;

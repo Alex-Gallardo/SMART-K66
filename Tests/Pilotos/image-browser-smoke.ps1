@@ -34,6 +34,8 @@ window.fetch=function(){
         }
         async function upload(){
             chooseFile();
+            var replace=document.getElementById('image-replace-confirmation');
+            if(!replace.hidden) document.getElementById('image-replace-checked').checked=true;
             document.getElementById('image-upload-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
             await new Promise(function(resolve){setTimeout(resolve,30);});
         }
@@ -150,8 +152,7 @@ window.fetch=function(url){var client=String(url).indexOf('GuardarCliente')>=0;i
     await new Promise(function(resolve){setTimeout(resolve,30);});
     check(second.getAttribute('data-saved')==='true','Segundo cliente no se bloqueó');
     check(window.__clientPosts===3,'El reintento no llegó al servidor');
-    document.getElementById('review-button').click();
-    check(!document.getElementById('complete-modal').hidden,'No abrió resumen final');
+    check(!document.getElementById('complete-modal').hidden,'El último cliente no abrió automáticamente la confirmación final');
     check(document.getElementById('summary-delivered').textContent==='2','Resumen perdió entregas');
     check(document.getElementById('summary-failed').textContent==='1','Resumen perdió no entregados');
     document.documentElement.setAttribute('data-workflow-smoke','PASS');

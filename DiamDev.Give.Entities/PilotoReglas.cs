@@ -13,6 +13,11 @@ namespace DiamDev.Give.Entities
         public const int MaxDocumentos = 200;
         public const int MaxObservacion = 500;
         public const int MaxImagenBytes = 10 * 1024 * 1024;
+        public static TimeSpan HoraEntregaGuatemala(DateTime utc)
+        {
+            var hora=utc.AddHours(-6).TimeOfDay;
+            return TimeSpan.FromSeconds(Math.Floor(hora.TotalSeconds));
+        }
         public static readonly string[] MotivosNoEntrega = new[] {
             "TIEMPO CLIENTE", "TIEMPO RUTA", "CLIENTE CERRADO", "FALTA ESPACIO",
             "PEDIDO INCORRECTO", "CLIENTE RECHAZO PEDIDO", "PRODUCTO NO SOLICITADO", "OTRO"

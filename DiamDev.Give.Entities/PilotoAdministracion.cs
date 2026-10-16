@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace DiamDev.Give.Entities
 {
@@ -116,5 +118,65 @@ namespace DiamDev.Give.Entities
         }
 
         private static string Limpiar(string valor) { return string.IsNullOrWhiteSpace(valor) ? null : valor.Trim(); }
+    }
+
+    public sealed class PilotoAdminRutaGuardar
+    {
+        public string RutaId { get; set; }
+        public string Version { get; set; }
+        public DateTime Fecha { get; set; }
+        public string Piloto { get; set; }
+        public string Centro { get; set; }
+        public string Placa { get; set; }
+        public string Estado { get; set; }
+        public string ObservacionGeneral { get; set; }
+        public string Motivo { get; set; }
+    }
+
+    public sealed class PilotoAdminRutaEdicion
+    {
+        public PilotoRuta Ruta { get; set; }
+        public PilotoAdminRutaGuardar Formulario { get; set; }
+        public bool Liquidada { get; set; }
+        public int Documentos { get; set; }
+        public List<PilotoAdminEmpleado> Pilotos { get; set; }
+        public List<PilotoAdminOpcion> Centros { get; set; }
+        public List<PilotoAdminOpcion> Vehiculos { get; set; }
+        public List<PilotoAdminRutaCambio> Historial { get; set; }
+        public PilotoAdminRutaEdicion()
+        {
+            Pilotos=new List<PilotoAdminEmpleado>();Centros=new List<PilotoAdminOpcion>();Vehiculos=new List<PilotoAdminOpcion>();Historial=new List<PilotoAdminRutaCambio>();
+        }
+        public bool PuedeEditar { get { return !Liquidada && (Ruta.Estado=="A" || Ruta.Estado=="E"); } }
+    }
+
+    public sealed class PilotoAdminRutaCambio
+    {
+        public DateTime FechaUtc { get; set; }
+        public string Actor { get; set; }
+        public string Motivo { get; set; }
+        public string Antes { get; set; }
+        public string Despues { get; set; }
+    }
+
+    public static class PilotoAdminRutaReglas
+    {
+        public static string Version(PilotoRuta ruta,bool liquidada,int documentos)
+        {
+            var texto=string.Join("\u001f",new[]{ruta.Id,ruta.Fecha.Ticks.ToString(),ruta.Piloto,ruta.Centro,ruta.Placa,ruta.Estado,ruta.ObservacionGeneral,liquidada.ToString(),documentos.ToString()}.Select(v=>v??""));
+            using(var sha=SHA256.Create()) return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(texto)));
+        }
+        public static void Validar(PilotoAdminRutaGuardar m)
+        {
+            if(m==null || string.IsNullOrWhiteSpace(m.RutaId) || m.RutaId.Length>15 || string.IsNullOrWhiteSpace(m.Version) || m.Version.Length>100)
+                throw new PilotoException(400,"La ruta o su versión no son válidas.");
+            m.Piloto=(m.Piloto??"").Trim();m.Centro=(m.Centro??"").Trim();m.Placa=(m.Placa??"").Trim();
+            m.ObservacionGeneral=(m.ObservacionGeneral??"").Trim();m.Motivo=(m.Motivo??"").Trim();
+            if(m.Fecha.Year<2000 || m.Fecha.Year>2100 || m.Piloto.Length==0 || m.Piloto.Length>90 || m.Centro.Length==0 || m.Centro.Length>15 || m.Placa.Length==0 || m.Placa.Length>15 ||
+               m.ObservacionGeneral.Length>500 || m.Motivo.Length==0 || m.Motivo.Length>250 || (m.Estado!="A" && m.Estado!="E") ||
+               new[]{m.Piloto,m.Centro,m.Placa}.Any(v=>v.Any(char.IsControl)) ||
+               new[]{m.ObservacionGeneral,m.Motivo}.Any(v=>v.Any(c=>char.IsControl(c) && c!='\r' && c!='\n')))
+                throw new PilotoException(400,"Revisa la fecha, asignación, estado, observación y motivo de la ruta.");
+        }
     }
 }

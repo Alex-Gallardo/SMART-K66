@@ -31,5 +31,18 @@
 @media(max-width:700px){.pilot-admin-surface .panel-table thead{width:1px;clip-path:inset(50%);white-space:nowrap}.pilot-admin-surface .panel-table thead tr{margin:0;padding:0;border:0}}
 @media(prefers-reduced-motion:reduce){.pilot-admin-surface.panel-shell *,.pilot-admin-surface.panel-shell *:before,.pilot-admin-surface.panel-shell *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
+.pilot-admin-surface .panel-route-complete{border-color:#84c8a5;background:linear-gradient(120deg,#f0faf4,#fff)}
+.pilot-admin-surface .panel-complete-pill{background:#dbf4e5!important;color:#176344!important;border:1px solid #9ed8b5}
+.pilot-admin-surface .panel-client-complete{border-color:#a8d8bb;background:#fbfefc}
+.pilot-admin-surface .panel-document-complete{border-left:4px solid #279564;background:#f5fbf7}
+.pilot-admin-surface .panel-route-data,.pilot-admin-surface .panel-route-documents{margin:20px 0}
+.pilot-admin-surface .panel-route-data .panel-document-data{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pilot-admin-surface .panel-document-data dd{white-space:pre-wrap}
+.pilot-admin-surface .panel-table .panel-table-complete{background:#f4faf6}
+.pilot-admin-surface .panel-table .panel-table-complete td:first-child{border-left:3px solid #279564}
+.pilot-admin-surface .panel-page-count{font-size:13px;color:#526579;margin:18px 0 8px}
+@media(max-width:900px){.pilot-admin-surface .panel-route-data .panel-document-data{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:500px){.pilot-admin-surface .panel-route-data .panel-document-data{grid-template-columns:1fr}}
+
 
 .pilot-admin-surface.panel-shell .pilot-main{max-width:none;min-height:0;margin:0;padding:4px 0 48px}

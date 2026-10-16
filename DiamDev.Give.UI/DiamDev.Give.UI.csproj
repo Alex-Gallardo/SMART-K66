@@ -1617,6 +1617,7 @@
     <Content Include="Content\pilotos-backoffice-ux.css" />
     <Content Include="Content\pilotos-panel.css" />
     <Content Include="Content\pilotos-panel-backoffice.css" />
+    <Content Include="Content\pilotos-panel-redesign.css" />
     <Content Include="Scripts\pilotos-panel.js" />
     <Content Include="Views\Piloto\Panel.cshtml" />
     <Content Include="Views\Piloto\_PanelContenido.cshtml" />

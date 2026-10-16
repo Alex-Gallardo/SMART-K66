@@ -1,4 +1,11 @@
 @{ Layout="~/Views/Shared/_Layout.cshtml";ViewBag.Title="Panel de distribución";ViewBag.EsPanel=true;ViewBag.PilotoBackoffice=true; }
-<div class="pilot-admin-surface panel-shell"><div class="pilot-main">
-<section class="panel-surface panel-error"><p class="eyebrow">PANEL DE DISTRIBUCIÓN</p><h1>No pudimos completar la consulta</h1><div class="panel-notice" role="alert"><p>@ViewBag.Mensaje</p></div>@if(ViewBag.Referencia!=null){<p class="muted">Referencia: @ViewBag.Referencia</p>}<a class="button-link" href="@Url.Action("Panel","Piloto")">Volver al panel</a><a class="panel-text-link" href="@Url.Action("Dashboard","Inicio")">Volver al inicio</a></section>
+<div class="pilot-admin-surface panel-shell dist-panel"><div class="pilot-main">
+    <section class="dist-surface dist-error" role="alert">
+        <span class="dist-icon dist-icon-warning" aria-hidden="true"><svg class="icon"><use href="#i-info" /></svg></span>
+        <span class="dist-kicker">Panel de distribución</span>
+        <h1>No pudimos mostrar la consulta</h1>
+        <p>@ViewBag.Mensaje</p>
+        @if(ViewBag.Referencia!=null){<p>Referencia: @ViewBag.Referencia</p>}
+        <div class="dist-error-actions"><a class="dist-btn dist-btn-primary" href="@Url.Action("Panel","Piloto")">Intentar de nuevo</a><a class="dist-btn dist-btn-outline" href="@Url.Action("Dashboard","Inicio")">Volver al inicio</a></div>
+    </section>
 </div></div>

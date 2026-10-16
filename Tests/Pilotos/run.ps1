@@ -1,6 +1,8 @@
 param([string]$MvcDll, [string]$WebPagesDll, [string]$RazorDll, [string]$ScriptDomDll)
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+$project=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/DiamDev.Give.UI.csproj') -Raw
+if($project -notmatch 'Content\\pilotos-panel-redesign\.css') { throw 'La hoja de estilos del panel debe incluirse en la publicación web.' }
 $adminViews=@('Administracion','Configurar','EditarRuta','AdministracionError','Panel','PanelDetalle','PanelError')
 foreach($name in $adminViews) {
     $view=Get-Content -LiteralPath (Join-Path $repo ('DiamDev.Give.UI/Views/Piloto/'+$name+'.cshtml')) -Raw
@@ -147,12 +149,21 @@ if($borrador -notmatch 'data-saved="true"' -or
 Write-Host 'OK: grupos, indices y acciones del detalle renderizado.'
 $pagina1=Get-Content -LiteralPath (Join-Path $out 'panel-pagina-1.html') -Raw
 $pagina2=Get-Content -LiteralPath (Join-Path $out 'panel-pagina-2.html') -Raw
-if(([regex]::Matches($pagina1,'data-label="Ruta / fecha"')).Count -ne 50 -or
-   ([regex]::Matches($pagina2,'data-label="Ruta / fecha"')).Count -ne 1 -or
+if(([regex]::Matches($pagina1,'<td data-label="Ruta">')).Count -ne 50 -or
+   ([regex]::Matches($pagina2,'<td data-label="Ruta">')).Count -ne 1 -or
    $pagina1 -notmatch 'de 51 resultados' -or $pagina2 -notmatch 'de 51 resultados') {
     throw 'La tabla de rutas debe paginar 51 registros como 50 + 1 conservando el total.'
 }
 Write-Host 'OK: paginación de 50 resultados con total de 51.'
+$detallePanel=Get-Content -LiteralPath (Join-Path $out 'panel-detalle.html') -Raw
+if(([regex]::Matches($detallePanel,'class="dist-doc ')).Count -ne 3 -or
+   $detallePanel -notmatch 'DOC-DEMO-001' -or $detallePanel -notmatch 'DOC-DEMO-002' -or $detallePanel -notmatch 'DOC-DEMO-003' -or
+   $detallePanel -notmatch 'Observación POS pendiente:' -or $detallePanel -notmatch 'Hora de entrada' -or
+   $detallePanel -notmatch 'Observación general' -or $detallePanel -notmatch 'Última actividad POS' -or
+   $detallePanel -notmatch 'Volver al panel con mis filtros') {
+    throw 'El detalle debe mostrar todas las facturas y los datos operativos sin perder navegación.'
+}
+Write-Host 'OK: detalle completo de clientes, facturas y datos de ruta.'
 if(!$ScriptDomDll) { $ScriptDomDll=Join-Path $env:USERPROFILE '.nuget/packages/microsoft.sqlserver.transactsql.scriptdom/161.8901.0/lib/net462/Microsoft.SqlServer.TransactSql.ScriptDom.dll' }
 if(!(Test-Path -LiteralPath $ScriptDomDll)) { throw 'Indicar -ScriptDomDll (version 161/net462) para la validacion SQL sin conexion.' }
 Copy-Item -LiteralPath $ScriptDomDll -Destination $out -Force

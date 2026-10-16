@@ -55,7 +55,7 @@ internal static class RazorPreview
             var ruta=model as PilotoRuta; if(ruta!=null && vista=="historial") ruta.Estado="C";
             var viewData=new ViewDataDictionary(model);
             viewData["PruebasSoloLectura"]=!(model is PilotoPanelModelo) && !editable; viewData["PreviewBody"]=body; viewData["PaginaRutas"]=1; viewData["Vista"]=vista;
-            viewData["EsAdministracion"]=model is PilotoAdminLista || model is PilotoAdminEdicion;
+            viewData["EsAdministracion"]=model is PilotoAdminLista || model is PilotoAdminEdicion || model is PilotoAdminRutaEdicion;
             viewData["EsPanel"]=model is PilotoPanelModelo;
             viewData["PanelBody"]=body;
             viewData["Title"]="Pilotos · Demo"; viewData["Desde"]="2026-09-08"; viewData["Hasta"]="2026-09-21";
@@ -89,6 +89,12 @@ internal static class RazorPreview
         }
         m.Detalle=m.Rutas[0];m.Centros.Add("PC");m.Placas.Add("DEMO");m.NombresPiloto.Add("PILOTO DEMO");
         m.Actividad.Add(new PilotoPanelActividad{Tipo="Cliente",Ruta="DEMO-E",Usuario=1,Actor="piloto_demo",Descripcion="Cliente guardado y bloqueado",FechaUtc=m.ActualizadoUtc,Clave="1"});
+        return m;
+    }
+    public static PilotoPanelModelo PanelPaginado(int pagina)
+    {
+        var m=Panel("rutas");m.Filtro.Pagina=pagina;m.Rutas.Clear();
+        for(var i=1;i<=51;i++) m.Rutas.Add(new PilotoPanelRuta{Datos=new PilotoRuta{Id="PAG-"+i.ToString("000"),Fecha=new System.DateTime(2026,9,29),Estado="E",Piloto="PILOTO DEMO",Centro="PC",Placa="DEMO"}});
         return m;
     }
     public static PilotoRuta Ruta()
@@ -142,6 +148,18 @@ internal static class RazorPreview
         modelo.Vehiculos.Add(new PilotoAdminOpcion {Codigo="C-001",Nombre="Marca · Línea · Camión · K66",Activo=true,Seleccionado=true});
         modelo.Vehiculos.Add(new PilotoAdminOpcion {Codigo="C-002",Nombre="Marca · Panel · K66",Activo=true});
         modelo.Rutas.Add(new PilotoRuta {Id="DEMO-2026-001",Fecha=new DateTime(2026,9,22),Estado="E",Centro="CENTRO-1",Placa="C-001"});
+        return modelo;
+    }
+    public static PilotoAdminRutaEdicion AdminRuta()
+    {
+        var ruta=new PilotoRuta{Id="DEMO-2026-001",Fecha=new System.DateTime(2026,9,22),Estado="E",Piloto="EMPLEADO DEMO",Centro="CENTRO-1",Placa="C-001",ObservacionGeneral="Entrega prioritaria"};
+        var modelo=new PilotoAdminRutaEdicion{Ruta=ruta,Documentos=3,Formulario=new PilotoAdminRutaGuardar{RutaId=ruta.Id,Version=PilotoAdminRutaReglas.Version(ruta,false,3),Fecha=ruta.Fecha,Estado=ruta.Estado,Piloto=ruta.Piloto,Centro=ruta.Centro,Placa=ruta.Placa,ObservacionGeneral=ruta.ObservacionGeneral}};
+        modelo.Pilotos.Add(new PilotoAdminEmpleado{RowId=101,Nombre=ruta.Piloto,Activo=true,Seleccionado=true});
+        modelo.Pilotos.Add(new PilotoAdminEmpleado{RowId=102,Nombre="OTRO PILOTO",Activo=true});
+        modelo.Centros.Add(new PilotoAdminOpcion{Codigo=ruta.Centro,Nombre=ruta.Centro,Activo=true,Seleccionado=true});
+        modelo.Centros.Add(new PilotoAdminOpcion{Codigo="CENTRO-2",Nombre="CENTRO-2",Activo=true});
+        modelo.Vehiculos.Add(new PilotoAdminOpcion{Codigo=ruta.Placa,Nombre="Camión demo",Activo=true,Seleccionado=true});
+        modelo.Vehiculos.Add(new PilotoAdminOpcion{Codigo="C-002",Nombre="Panel demo",Activo=true});
         return modelo;
     }
 }

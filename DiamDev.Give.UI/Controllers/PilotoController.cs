@@ -55,7 +55,8 @@ namespace DiamDev.Give.UI.Controllers
             var accion = context.ActionDescriptor.ActionName;
             return new[]{"Panel","PanelDetalle","PanelImagen","PanelExportar"}.Contains(accion,StringComparer.OrdinalIgnoreCase) ||
                    string.Equals(accion, "Administracion", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(accion, "Configurar", StringComparison.OrdinalIgnoreCase);
+                   string.Equals(accion, "Configurar", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(accion, "EditarRuta", StringComparison.OrdinalIgnoreCase);
         }
 
         [HttpGet]
@@ -179,6 +180,43 @@ namespace DiamDev.Give.UI.Controllers
             foreach (var e in vista.Empleados) e.Seleccionado = vista.Formulario.EmpleadoRowId == e.RowId;
             foreach (var c in vista.Centros) c.Seleccionado = centros.Contains(c.Codigo, StringComparer.OrdinalIgnoreCase);
             foreach (var v in vista.Vehiculos) v.Seleccionado = placas.Contains(v.Codigo, StringComparer.OrdinalIgnoreCase);
+        }
+
+        [HttpGet]
+        public ActionResult EditarRuta(string id)
+        {
+            try { return View(new PilotoAdministracionBL().ObtenerRuta(User.Identity.Name,id)); }
+            catch(Exception e) { return ErrorPiloto(e); }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult EditarRuta(PilotoAdminRutaGuardar modelo)
+        {
+            try
+            {
+                if(!ModelState.IsValid) throw new PilotoException(400,"Revisa los datos de la ruta.");
+                new PilotoAdministracionBL().GuardarRuta(User.Identity.Name,modelo);
+                TempData["Piloto.AdminMensaje"]="Ruta actualizada y cambio registrado en el historial.";
+                return RedirectToAction("EditarRuta",new{id=modelo.RutaId});
+            }
+            catch(Exception e)
+            {
+                var esperado=e as PilotoException;
+                if(esperado!=null && (esperado.StatusCode==400 || esperado.StatusCode==409) && modelo!=null && !string.IsNullOrWhiteSpace(modelo.RutaId))
+                {
+                    try
+                    {
+                        var vista=new PilotoAdministracionBL().ObtenerRuta(User.Identity.Name,modelo.RutaId);
+                        vista.Formulario=modelo;
+                        ModelState.Clear();ModelState.AddModelError("",esperado.Message);
+                        Response.StatusCode=esperado.StatusCode;Response.TrySkipIisCustomErrors=true;
+                        return View(vista);
+                    }
+                    catch { /* Se conserva la respuesta segura de error si ya no se puede consultar. */ }
+                }
+                return ErrorPiloto(e);
+            }
         }
 
         public ActionResult Index(string desde, string hasta, int pagina = 1, string vista = null)

@@ -40,8 +40,8 @@ namespace DiamDev.Give.Entities
             Liquidacion=Opcion(Liquidacion,"no",new[]{"no","si","todas"});
             Avance=Opcion(Avance,"todos",new[]{"todos","sin","parcial","listo"});
             Resultado=Opcion(Resultado,"todos",new[]{"todos","PENDIENTE","ENTREGADO","NO ENTREGADO","INCIDENCIA"});
-            Evento=Opcion(Evento,"todos",new[]{"todos","Cliente","Foto documento","Foto cliente","Cierre POS","Vínculo","Centro","Vehículo"});
-            Seccion=Opcion(Seccion,"resumen",new[]{"resumen","rutas","pilotos","documentos","actividad","alertas"});
+            Evento=Opcion(Evento,"todos",new[]{"todos","Cliente","Foto documento","Foto cliente","Cierre POS","Edición ruta","Vínculo","Centro","Vehículo"});
+            Seccion=Opcion(Seccion,"rutas",new[]{"resumen","rutas","pilotos","documentos","actividad","alertas"});
             Piloto=Texto(Piloto,90); Centro=Texto(Centro,15); Placa=Texto(Placa,15); Buscar=Texto(Buscar,100);
             if(Usuario.HasValue && Usuario.Value<=0 || Pagina<1 || Pagina>10000) throw new PilotoException(400,"Selecciona un usuario y una página válidos.");
         }
@@ -166,7 +166,7 @@ namespace DiamDev.Give.Entities
     public static class PilotoPanelReglas
     {
         public const string Permiso="Pilotos.Monitorear";
-        public const int TamanoPagina=25;
+        public const int TamanoPagina=50;
         public static string Grupo(PilotoDocumento d) { return (d.Cliente??"").Trim().ToUpperInvariant()+"\u001f"+(d.Direccion??"").Trim().ToUpperInvariant(); }
         public static void ExigirAcceso(bool cuenta,bool permiso) { if(!cuenta || !permiso) throw new PilotoException(403,"Necesitas el permiso Pilotos.Monitorear y una cuenta activa para acceder al Panel de distribución."); }
         public static bool AplicarBorrador(PilotoPanelRuta r,long usuario,int primero,string version,string xml,bool completado,DateTime fecha,bool origenVerificado=false)

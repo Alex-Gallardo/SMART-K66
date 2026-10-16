@@ -233,3 +233,15 @@ body.app-shell.app-piloto-backoffice .app-breadcrumb { margin: 0; }
   .pilot-admin-surface .pbo-hero,
   .pilot-admin-surface .pbo-filter-section { animation: none !important; transition: none !important; }
 }
+
+.pilot-admin-surface .route-admin-dialog{width:min(92vw,560px);border:1px solid #bfd3c6;border-radius:18px;padding:28px;color:#10283f;box-shadow:0 24px 70px #10283f40}
+.pilot-admin-surface .route-admin-dialog::backdrop{background:#10283f99}
+.pilot-admin-surface .route-admin-dialog h2{font-size:24px;margin:0 0 12px}
+.pilot-admin-surface .route-admin-dialog p{line-height:1.5;margin:0 0 24px}
+.pilot-admin-surface .route-admin-dialog .modal-actions{display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap}
+.pilot-admin-surface .route-admin-dialog button{min-height:44px;padding:10px 18px}
+.pilot-admin-surface .route-admin-history details{border-top:1px solid #d3dde7;padding:14px 0}
+.pilot-admin-surface .route-admin-history summary{cursor:pointer;line-height:1.5}
+.pilot-admin-surface .route-admin-history-data{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:14px}
+.pilot-admin-surface .route-admin-history-data pre{padding:12px;background:#f4f7fa;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
+@media(max-width:700px){.pilot-admin-surface .route-admin-history-data{grid-template-columns:1fr}}

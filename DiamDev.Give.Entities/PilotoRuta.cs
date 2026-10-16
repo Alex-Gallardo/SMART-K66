@@ -16,6 +16,7 @@ namespace DiamDev.Give.Entities
         public bool HayMasDocumentos { get { return (long)PaginaDocumentos * TamanoPaginaDocumentos < TotalDocumentos; } }
         public string Piloto { get; set; }
         public string Centro { get; set; }
+        public string ObservacionGeneral { get; set; }
         public string Estado { get; set; }
         public string Version { get; set; }
         public Guid Solicitud { get; set; }

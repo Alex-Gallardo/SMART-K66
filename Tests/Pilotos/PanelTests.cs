@@ -15,7 +15,9 @@ internal static class PanelTests
     public static int Run()
     {
         var hoy=new DateTime(2026,9,29);
-        var f=new PilotoPanelFiltro();f.Validar(hoy);Check(f.Desde=="2026-09-29" && f.Liquidacion=="no","Inicio sin liquidadas");
+        var f=new PilotoPanelFiltro();f.Validar(hoy);Check(f.Desde=="2026-09-29" && f.Liquidacion=="no" && f.Seccion=="rutas","Inicio en rutas sin liquidadas");
+        Check(PilotoPanelReglas.TamanoPagina==50,"Cada página admite hasta 50 resultados");
+        Check(PilotoReglas.HoraEntregaGuatemala(new DateTime(2026,10,17,2,15,45,900,DateTimeKind.Utc))==new TimeSpan(20,15,45),"Hora de entrega usa Guatemala y segundos completos");
         new PilotoPanelFiltro{Desde="2026-09-01",Hasta="2026-10-01",Liquidacion="todas"}.Validar(hoy);
         Rechaza(()=>new PilotoPanelFiltro{Desde="2026-09-01",Hasta="2026-10-02"}.Validar(hoy),400);
         Rechaza(()=>new PilotoPanelFiltro{Desde="2026-09-30",Hasta="2026-09-29"}.Validar(hoy),400);
@@ -54,6 +56,17 @@ internal static class PanelTests
         Check(PilotoPanelReglas.Csv("=1+1")=="\"'=1+1\"","CSV protege fórmulas");Check(PilotoPanelReglas.Csv(" \t@SUM(1)").StartsWith("\"'"),"CSV protege espacios iniciales");Check(PilotoPanelReglas.Csv("a\"b")=="\"a\"\"b\"","CSV codifica comillas");
         Check(PilotoPanelReglas.HoraGuatemala(new DateTime(2026,9,30,1,0,0)).Date==hoy,"UTC al día anterior en Guatemala");
         p.VinculoActivo=false;p.Revisar();Check(p.Alertas.Count>0 && !p.Coincide(datos),"Vínculo inactivo alertado");
+        var versionAdmin=PilotoAdminRutaReglas.Version(datos,false,1);
+        datos.Placa="OTRA";
+        Check(versionAdmin!=PilotoAdminRutaReglas.Version(datos,false,1),"La edición detecta asignación obsoleta");
+        var cambio=new PilotoAdminRutaGuardar{RutaId="RUTA",Version=versionAdmin,Fecha=hoy,Piloto="JULIO",Centro="PC",Placa="OTRA",Estado="E",Motivo="Corrección de vehículo"};
+        PilotoAdminRutaReglas.Validar(cambio);
+        cambio.Estado="C";Rechaza(()=>PilotoAdminRutaReglas.Validar(cambio),400);
+        cambio.Estado="E";cambio.Motivo=" ";Rechaza(()=>PilotoAdminRutaReglas.Validar(cambio),400);
+        var acciones=typeof(PilotoController).GetMethods().Where(x=>x.Name=="EditarRuta").ToArray();
+        Check(acciones.Length==2 && acciones.Any(x=>x.GetCustomAttributes(typeof(HttpGetAttribute),false).Length==1) &&
+              acciones.Any(x=>x.GetCustomAttributes(typeof(HttpPostAttribute),false).Length==1 && x.GetCustomAttributes(typeof(ValidateAntiForgeryTokenAttribute),false).Length==1),
+              "La edición administrativa usa GET y POST protegido con antifalsificación");
         Console.WriteLine("OK Panel: "+n+" comprobaciones; sin SQL.");return 0;
     }
     public static int Sql()
@@ -66,6 +79,8 @@ internal static class PanelTests
         Console.WriteLine(tipo.GetProperty("SqlActividad",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null));
         tipo.GetField("eventosClientes",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(da,true);
         Console.WriteLine(tipo.GetProperty("SqlArtefactos",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null));
+        Console.WriteLine(tipo.GetProperty("SqlActividad",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null));
+        tipo.GetField("eventosRutas",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(da,true);
         Console.WriteLine(tipo.GetProperty("SqlActividad",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null));return 0;
     }
 }

@@ -85,13 +85,22 @@ internal static class PilotoTests
             if(args.Length==1 && args[0]=="panel") return PanelTests.Run();
             if(args.Length==1 && args[0]=="sql-panel") return PanelTests.Sql();
             if(args.Length==1 && args[0]=="sql-admin") {
-                Console.WriteLine(PilotoAdministracionDA.SqlAutorizacion); return 0;
+                Console.WriteLine(PilotoAdministracionDA.SqlAutorizacion);
+                var tipo=typeof(PilotoAdministracionDA);
+                var da=(PilotoAdministracionDA)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(tipo);
+                tipo.GetField("apk",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(da,"[TEST_RUTAS]");
+                var editarSql=(string)tipo.GetProperty("SqlActualizarRuta",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null);
+                Check(editarSql.Contains("STATUS IN(N'A',N'E')") && editarSql.Contains("ISNULL(LIQUIDADO,0)=0"),"Edición protegida por estado y liquidación");
+                Console.WriteLine(editarSql); return 0;
             }
             if(args.Length==1 && args[0]=="sql-rutas") {
                 // Construye los predicados reales sin abrir una conexión ni leer configuración.
                 var tipo=typeof(PilotoRutaDA);
                 var da=(PilotoRutaDA)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(tipo);
                 tipo.GetField("apk",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(da,"[TEST_RUTAS]");
+                var horaSql=(string)tipo.GetProperty("SqlRegistrarHoraEntrega",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null);
+                Check(horaSql.Contains("COALESCE(MO_HR_ENTRADA,@hora)") && horaSql.Contains("MO_ENTREGA=N'ENTREGADO'"),"La hora conserva valores existentes y solo aplica a entregados");
+                Console.WriteLine(horaSql);
                 var accesoTipo=tipo.GetNestedType("Acceso",BindingFlags.NonPublic);
                 foreach(var modo in new[]{"normal","placa","ruta"}) {
                     var acceso=Activator.CreateInstance(accesoTipo,true);

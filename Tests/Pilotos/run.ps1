@@ -1,7 +1,7 @@
 param([string]$MvcDll, [string]$WebPagesDll, [string]$RazorDll, [string]$ScriptDomDll)
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-$adminViews=@('Administracion','Configurar','AdministracionError','Panel','PanelDetalle','PanelError')
+$adminViews=@('Administracion','Configurar','EditarRuta','AdministracionError','Panel','PanelDetalle','PanelError')
 foreach($name in $adminViews) {
     $view=Get-Content -LiteralPath (Join-Path $repo ('DiamDev.Give.UI/Views/Piloto/'+$name+'.cshtml')) -Raw
     if($view -notmatch 'Layout\s*=\s*"~/Views/Shared/_Layout\.cshtml"' -or $view -notmatch 'ViewBag\.PilotoBackoffice\s*=\s*true') {
@@ -31,7 +31,7 @@ if(!(Test-Path -LiteralPath $WebPagesDll)) { throw 'Restaurar Microsoft.AspNet.W
 $out=Join-Path $PSScriptRoot 'bin'
 New-Item -ItemType Directory -Force $out | Out-Null
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
-$sources=@('DiamDev.Give.Entities/PilotoRuta.cs','DiamDev.Give.Entities/PilotoReglas.cs','DiamDev.Give.Entities/PilotoDesafio.cs','DiamDev.Give.Entities/PilotoAdministracion.cs','DiamDev.Give.DAL/PilotoRutaDA.cs','DiamDev.Give.DAL/PilotoAdministracionDA.cs','DiamDev.Give.BLL/PilotoRutaBL.cs','DiamDev.Give.BLL/PilotoAdministracionBL.cs','DiamDev.Give.UI/Controllers/PilotoController.cs','Tests/Pilotos/PilotoTests.cs') | ForEach-Object { Join-Path $repo $_ }
+$sources=@('DiamDev.Give.Entities/PilotoRuta.cs','DiamDev.Give.Entities/PilotoReglas.cs','DiamDev.Give.Entities/PilotoDesafio.cs','DiamDev.Give.Entities/PilotoAdministracion.cs','DiamDev.Give.DAL/PilotoRutaDA.cs','DiamDev.Give.DAL/PilotoAdministracionDA.cs','DiamDev.Give.DAL/PilotoAdministracionRutaDA.cs','DiamDev.Give.BLL/PilotoRutaBL.cs','DiamDev.Give.BLL/PilotoAdministracionBL.cs','DiamDev.Give.UI/Controllers/PilotoController.cs','Tests/Pilotos/PilotoTests.cs') | ForEach-Object { Join-Path $repo $_ }
 $sources+=@('DiamDev.Give.Entities/PilotoPanel.cs','DiamDev.Give.DAL/PilotoPanelDA.cs','DiamDev.Give.BLL/PilotoPanelBL.cs','Tests/Pilotos/PanelTests.cs') | ForEach-Object { Join-Path $repo $_ }
 & $compiler /nologo /target:exe "/out:$out/PilotoTests.exe" /r:System.Configuration.dll /r:System.Data.dll /r:System.Xml.Linq.dll /r:System.Xml.dll /r:System.Web.dll /r:System.ComponentModel.DataAnnotations.dll "/r:$MvcDll" $sources
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion aislada del modulo.' }
@@ -145,6 +145,14 @@ if($borrador -notmatch 'data-saved="true"' -or
     throw 'El cliente completado debe quedar resumido, bloqueado y conservar sus resultados para el cierre.'
 }
 Write-Host 'OK: grupos, indices y acciones del detalle renderizado.'
+$pagina1=Get-Content -LiteralPath (Join-Path $out 'panel-pagina-1.html') -Raw
+$pagina2=Get-Content -LiteralPath (Join-Path $out 'panel-pagina-2.html') -Raw
+if(([regex]::Matches($pagina1,'data-label="Ruta / fecha"')).Count -ne 50 -or
+   ([regex]::Matches($pagina2,'data-label="Ruta / fecha"')).Count -ne 1 -or
+   $pagina1 -notmatch 'de 51 resultados' -or $pagina2 -notmatch 'de 51 resultados') {
+    throw 'La tabla de rutas debe paginar 51 registros como 50 + 1 conservando el total.'
+}
+Write-Host 'OK: paginación de 50 resultados con total de 51.'
 if(!$ScriptDomDll) { $ScriptDomDll=Join-Path $env:USERPROFILE '.nuget/packages/microsoft.sqlserver.transactsql.scriptdom/161.8901.0/lib/net462/Microsoft.SqlServer.TransactSql.ScriptDom.dll' }
 if(!(Test-Path -LiteralPath $ScriptDomDll)) { throw 'Indicar -ScriptDomDll (version 161/net462) para la validacion SQL sin conexion.' }
 Copy-Item -LiteralPath $ScriptDomDll -Destination $out -Force
@@ -155,6 +163,7 @@ $scripts=@($scripts)+(Join-Path $repo 'SqlMigrations/Pilotos/06_rutas_activas_so
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/23_permiso_administrar_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/24_permiso_monitorear_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/25_eventos_cliente_pos.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/26_historial_edicion_rutas_pos.sql'
 $adminSql=Join-Path $out 'autorizacion-admin.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }

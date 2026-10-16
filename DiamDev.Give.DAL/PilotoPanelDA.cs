@@ -12,7 +12,7 @@ namespace DiamDev.Give.DAL
     public sealed class PilotoPanelDA
     {
         private readonly string conexion,apk;
-        private bool eventosClientes;
+        private bool eventosClientes,eventosRutas;
         public PilotoPanelDA() { var admin=new PilotoAdministracionDA();conexion=admin.ConexionPanel;apk=admin.CatalogoPanel; }
         private static SqlCommand Cmd(SqlConnection cn,SqlTransaction tx,string sql) { return new SqlCommand(sql,cn,tx){CommandTimeout=20}; }
         private static void Param(SqlCommand c,string nombre,SqlDbType tipo,object valor,int largo=0) { var p=largo==0 ? c.Parameters.Add(nombre,tipo) : c.Parameters.Add(nombre,tipo,largo);p.Value=valor??DBNull.Value; }
@@ -42,11 +42,11 @@ AND OBJECT_ID(N'dbo.PilotoCierre',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVi
 AND OBJECT_ID(N'dbo.PilotoCentroHistorial',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVehiculoHistorial',N'U') IS NOT NULL
 THEN 1 ELSE 0 END;";
         // La tabla temporal debe nacer en el ámbito de la conexión, fuera de la consulta parametrizada.
-        internal string SqlCrearRutas { get { return @"SELECT TOP (0) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.LIQUIDADO,r.USR_MON,r.FECHA_MON,
+        internal string SqlCrearRutas { get { return @"SELECT TOP (0) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.OBSR_GENERAL,r.LIQUIDADO,r.USR_MON,r.FECHA_MON,
 CAST(0 AS bit) VehiculoActivo INTO #PanelRutas FROM "+apk+@".dbo.RT_RUTAS r;
 CREATE UNIQUE CLUSTERED INDEX IX_PanelRutas ON #PanelRutas(ID_RUTA);"; } }
-        internal string SqlRutas { get { return @"INSERT #PanelRutas(ID_RUTA,FECHA_RUTA,STATUS,PILOTO,PLACA,CENTRO_DIST,LIQUIDADO,USR_MON,FECHA_MON,VehiculoActivo)
-SELECT TOP (2001) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.LIQUIDADO,r.USR_MON,r.FECHA_MON,
+        internal string SqlRutas { get { return @"INSERT #PanelRutas(ID_RUTA,FECHA_RUTA,STATUS,PILOTO,PLACA,CENTRO_DIST,OBSR_GENERAL,LIQUIDADO,USR_MON,FECHA_MON,VehiculoActivo)
+SELECT TOP (2001) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.OBSR_GENERAL,r.LIQUIDADO,r.USR_MON,r.FECHA_MON,
 CAST(CASE WHEN EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1) THEN 1 ELSE 0 END AS bit) VehiculoActivo
 FROM "+apk+@".dbo.RT_RUTAS r
 WHERE (@id IS NOT NULL AND r.ID_RUTA=@id) OR (@id IS NULL AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin
@@ -98,8 +98,9 @@ UNION ALL SELECT N'Cierre POS',e.Ruta_Id,e.Usuario_Id,CONVERT(nvarchar(128),e.Lo
 UNION ALL SELECT N'Vínculo',NULL,e.Usuario_Id,CONVERT(nvarchar(128),e.Actor),e.Motivo,e.FechaUtc,CONVERT(nvarchar(80),e.Id) FROM dbo.PilotoVinculoHistorial e
 UNION ALL SELECT N'Centro',NULL,e.Usuario_Id,CONVERT(nvarchar(128),e.Actor),CONVERT(nvarchar(250),e.Centro_Dist+N' · '+e.Motivo),e.FechaUtc,CONVERT(nvarchar(80),e.Id) FROM dbo.PilotoCentroHistorial e
 UNION ALL SELECT N'Vehículo',NULL,e.Usuario_Id,CONVERT(nvarchar(128),e.Actor),CONVERT(nvarchar(250),e.Placa+N' · '+e.Motivo),e.FechaUtc,CONVERT(nvarchar(80),e.Id) FROM dbo.PilotoVehiculoHistorial e
-) SELECT TOP (5001) * FROM Eventos e WHERE e.FechaUtc>=@utcDesde AND e.FechaUtc<@utcFin
-AND (@evento=N'todos' OR e.Tipo=@evento) AND (@usuario IS NULL OR e.Usuario=@usuario)
+"+(eventosRutas ? @"UNION ALL SELECT N'Edición ruta',e.Ruta_Id,CONVERT(bigint,0),CONVERT(nvarchar(128),e.Actor),CONVERT(nvarchar(250),e.Motivo),e.FechaUtc,CONVERT(nvarchar(80),e.Id) FROM dbo.PilotoRutaHistorial e WHERE e.CatalogoRutas=@catalogo
+" : "")+@") SELECT TOP (5001) * FROM Eventos e WHERE (@detalleId IS NOT NULL AND e.Ruta=@detalleId OR @detalleId IS NULL AND e.FechaUtc>=@utcDesde AND e.FechaUtc<@utcFin)
+AND (@detalleId IS NOT NULL OR @evento=N'todos' OR e.Tipo=@evento) AND (@detalleId IS NOT NULL OR @usuario IS NULL OR e.Usuario=@usuario)
 AND (EXISTS(SELECT 1 FROM #PanelRutas r WHERE r.ID_RUTA COLLATE DATABASE_DEFAULT=e.Ruta) OR e.Ruta IS NULL)
 ORDER BY e.FechaUtc DESC,e.Tipo,e.Clave;"; } }
         public PilotoPanelModelo Leer(string login,PilotoPanelFiltro filtro,string id=null)
@@ -114,6 +115,7 @@ ORDER BY e.FechaUtc DESC,e.Tipo,e.Clave;"; } }
                     Autorizar(cn,tx,login);modelo.PuedeAdministrar=Permiso(cn,tx,login,PilotoAdminReglas.PermisoAdministrar);
                     using(var c=Cmd(cn,tx,SqlInstalacion)) if((int)c.ExecuteScalar()!=1) throw new PilotoException(503,"Faltan objetos POS del módulo. Revisa las migraciones 18, 19, 20 y 22 antes de consultar el panel.");
                     using(var c=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoClienteEvento',N'U') IS NULL THEN 0 ELSE 1 END;")) eventosClientes=(int)c.ExecuteScalar()==1;
+                    using(var c=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoRutaHistorial',N'U') IS NULL THEN 0 ELSE 1 END;")) eventosRutas=(int)c.ExecuteScalar()==1;
                     if(!eventosClientes) modelo.Avisos.Add("Falta instalar la migración 25 de eventos de cliente. Los guardados se observan desde el borrador vigente y desaparecerán del historial al cerrar la ruta.");
                     CargarPilotos(cn,tx,modelo);
                     using(var c=Cmd(cn,tx,SqlCrearRutas)) c.ExecuteNonQuery();
@@ -121,7 +123,7 @@ ORDER BY e.FechaUtc DESC,e.Tipo,e.Clave;"; } }
                         Param(c,"@id",SqlDbType.NVarChar,id,15);Param(c,"@desde",SqlDbType.Date,filtro.Inicio);Param(c,"@fin",SqlDbType.Date,filtro.Fin);
                         Param(c,"@estado",SqlDbType.NVarChar,filtro.Estado,10);Param(c,"@liquidacion",SqlDbType.NVarChar,filtro.Liquidacion,10);
                         Param(c,"@piloto",SqlDbType.NVarChar,filtro.Piloto,90);Param(c,"@centro",SqlDbType.NVarChar,filtro.Centro,15);Param(c,"@placa",SqlDbType.NVarChar,filtro.Placa,15);
-                        using(var r=c.ExecuteReader()) while(r.Read()) modelo.Rutas.Add(new PilotoPanelRuta { Liquidada=Bit(r,"LIQUIDADO"),VehiculoActivo=Bit(r,"VehiculoActivo"),OperadorCierre=Texto(r,"USR_MON"),FechaCierre=Fecha(r,"FECHA_MON"),Datos=new PilotoRuta { Id=Texto(r,"ID_RUTA"),Fecha=(DateTime)r["FECHA_RUTA"],Estado=Texto(r,"STATUS"),Piloto=Texto(r,"PILOTO"),Centro=Texto(r,"CENTRO_DIST"),Placa=Texto(r,"PLACA") } });
+                        using(var r=c.ExecuteReader()) while(r.Read()) modelo.Rutas.Add(new PilotoPanelRuta { Liquidada=Bit(r,"LIQUIDADO"),VehiculoActivo=Bit(r,"VehiculoActivo"),OperadorCierre=Texto(r,"USR_MON"),FechaCierre=Fecha(r,"FECHA_MON"),Datos=new PilotoRuta { Id=Texto(r,"ID_RUTA"),Fecha=(DateTime)r["FECHA_RUTA"],Estado=Texto(r,"STATUS"),Piloto=Texto(r,"PILOTO"),Centro=Texto(r,"CENTRO_DIST"),Placa=Texto(r,"PLACA"),ObservacionGeneral=Texto(r,"OBSR_GENERAL") } });
                     }
                     if(modelo.Rutas.Count>2000) throw new PilotoException(400,"Hay más de 2.000 rutas. Acota las fechas, el centro o el piloto; no se mostraron totales parciales.");
                     var rutas=modelo.Rutas.ToDictionary(r=>r.Datos.Id,StringComparer.OrdinalIgnoreCase);
@@ -146,7 +148,7 @@ ORDER BY e.FechaUtc DESC,e.Tipo,e.Clave;"; } }
                     }
                     CargarArtefactos(cn,tx,modelo,rutas);
                     using(var c=Cmd(cn,tx,SqlActividad)) {
-                        Param(c,"@utcDesde",SqlDbType.DateTime2,filtro.Inicio.AddHours(6));Param(c,"@utcFin",SqlDbType.DateTime2,filtro.Fin.AddHours(6));Param(c,"@evento",SqlDbType.NVarChar,filtro.Evento,30);Param(c,"@usuario",SqlDbType.BigInt,filtro.Usuario);
+                        Param(c,"@utcDesde",SqlDbType.DateTime2,filtro.Inicio.AddHours(6));Param(c,"@utcFin",SqlDbType.DateTime2,filtro.Fin.AddHours(6));Param(c,"@evento",SqlDbType.NVarChar,filtro.Evento,30);Param(c,"@usuario",SqlDbType.BigInt,filtro.Usuario);Param(c,"@detalleId",SqlDbType.NVarChar,id,15);
                         Param(c,"@catalogo",SqlDbType.NVarChar,modelo.Catalogo,128);
                         using(var r=c.ExecuteReader()) while(r.Read()) modelo.Actividad.Add(new PilotoPanelActividad {Tipo=Texto(r,"Tipo"),Ruta=Texto(r,"Ruta"),Usuario=Convert.ToInt64(r["Usuario"]),Actor=Texto(r,"Actor"),Descripcion=Texto(r,"Descripcion"),FechaUtc=(DateTime)r["FechaUtc"],Clave=Texto(r,"Clave")});
                     }

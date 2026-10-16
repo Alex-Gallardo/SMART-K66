@@ -1,0 +1,39 @@
+@model DiamDev.Give.Entities.PilotoAdminRutaEdicion
+@{
+    Layout="~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title="Editar ruta "+Model.Ruta.Id;
+    ViewBag.PilotoBackoffice=true;
+    var f=Model.Formulario;
+}
+<div class="pilot-admin-surface"><div class="pilot-main">
+<a class="back-link" href="@Url.Action("PanelDetalle","Piloto",new{id=Model.Ruta.Id})"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver al detalle</a>
+<section class="pbo-hero" aria-labelledby="edit-route-title"><span class="pbo-hero-icon" aria-hidden="true"><svg class="icon"><use href="#i-route" /></svg></span><div class="pbo-hero-copy"><p class="pbo-hero-kicker">ADMINISTRACIÓN DE RUTAS</p><h1 id="edit-route-title">@Model.Ruta.Id</h1><p>@Model.Ruta.EstadoNombre · @(Model.Liquidada?"Liquidada":"Sin liquidar") · @Model.Documentos facturas</p></div></section>
+@if(TempData["Piloto.AdminMensaje"]!=null){<p class="notice success" role="status">@TempData["Piloto.AdminMensaje"]</p>}
+@Html.ValidationSummary(false,"Revisa la edición de la ruta.",new{role="alert"})
+@if(!Model.PuedeEditar){<div class="panel-notice" role="status"><p>La ruta está cerrada, anulada o liquidada. Sus datos se muestran para consulta; los cambios operativos requieren revisión de Distribución.</p></div>}
+@using(Html.BeginForm("EditarRuta","Piloto",FormMethod.Post,new{@class="admin-form",id="route-admin-form"}))
+{
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="RutaId" value="@f.RutaId" />
+    <input type="hidden" name="Version" value="@f.Version" />
+    <section class="admin-section"><div class="step-number">1</div><div class="section-title"><h2>Datos operativos</h2><p>Fecha, piloto, centro, vehículo y estado de la ruta.</p></div>
+        <div class="admin-fields">
+            <div><label for="Fecha">Fecha de ruta</label><input id="Fecha" name="Fecha" type="date" required value="@f.Fecha.ToString("yyyy-MM-dd")" disabled="@(!Model.PuedeEditar?"disabled":null)" /></div>
+            <div><label for="Piloto">Piloto</label><select id="Piloto" name="Piloto" required disabled="@(!Model.PuedeEditar?"disabled":null)"><option value="">Seleccionar piloto</option>@foreach(var p in Model.Pilotos){<option value="@p.Nombre" selected="@(f.Piloto==p.Nombre?"selected":null)" disabled="@(!p.Activo?"disabled":null)">@p.Nombre@(!p.Activo?" · INACTIVO":"")</option>}</select></div>
+            <div><label for="Centro">Centro de distribución</label><select id="Centro" name="Centro" required disabled="@(!Model.PuedeEditar?"disabled":null)"><option value="">Seleccionar centro</option>@foreach(var c in Model.Centros){<option value="@c.Codigo" selected="@(f.Centro==c.Codigo?"selected":null)">@c.Codigo</option>}</select></div>
+            <div><label for="Placa">Vehículo / placa</label><select id="Placa" name="Placa" required disabled="@(!Model.PuedeEditar?"disabled":null)"><option value="">Seleccionar vehículo</option>@foreach(var v in Model.Vehiculos){<option value="@v.Codigo" selected="@(f.Placa==v.Codigo?"selected":null)" disabled="@(!v.Activo?"disabled":null)">@v.Codigo · @v.Nombre@(!v.Activo?" · INACTIVO":"")</option>}</select></div>
+            <div><label for="Estado">Estado operativo</label><select id="Estado" name="Estado" required disabled="@(!Model.PuedeEditar?"disabled":null)"><option value="A" selected="@(f.Estado=="A"?"selected":null)">Abierta</option><option value="E" selected="@(f.Estado=="E"?"selected":null)">En ruta</option></select><small>El cierre final se confirma desde el portal del piloto.</small></div>
+        </div>
+    </section>
+    <section class="admin-section"><div class="step-number">2</div><div class="section-title"><h2>Observación y auditoría</h2><p>El motivo queda registrado junto con los valores anteriores y nuevos.</p></div>
+        <div><label for="ObservacionGeneral">Observación general</label><textarea id="ObservacionGeneral" name="ObservacionGeneral" rows="4" maxlength="500" disabled="@(!Model.PuedeEditar?"disabled":null)">@f.ObservacionGeneral</textarea></div>
+        @if(Model.PuedeEditar){<div><label for="Motivo">Motivo del cambio</label><textarea id="Motivo" name="Motivo" rows="3" maxlength="250" required placeholder="Describe por qué se modifica la ruta">@f.Motivo</textarea></div><button type="submit" id="route-admin-submit"><svg class="icon" aria-hidden="true"><use href="#i-save" /></svg>Revisar cambios</button>}
+    </section>
+}
+<section class="admin-section route-admin-history" aria-label="Historial de ediciones"><div class="section-title"><h2>Historial de ediciones</h2><p>@Model.Historial.Count cambios administrativos registrados para esta ruta.</p></div>
+@foreach(var cambio in Model.Historial){<details><summary><strong>@cambio.FechaUtc.AddHours(-6).ToString("dd/MM/yyyy HH:mm:ss") · Guatemala</strong> · @cambio.Actor · @cambio.Motivo</summary><div class="route-admin-history-data"><div><h3>Antes</h3><pre>@cambio.Antes</pre></div><div><h3>Después</h3><pre>@cambio.Despues</pre></div></div></details>}
+@if(Model.Historial.Count==0){<p class="muted">Aún no hay ediciones administrativas registradas.</p>}
+</section>
+<dialog id="route-admin-dialog" class="route-admin-dialog" aria-labelledby="route-admin-dialog-title"><h2 id="route-admin-dialog-title">Confirmar cambios en @Model.Ruta.Id</h2><p>Se actualizará la ruta en APK66 y se guardará una auditoría con tu usuario y el motivo indicado.</p><div class="modal-actions"><button type="button" class="button-secondary" id="route-admin-cancel">Volver a revisar</button><button type="button" id="route-admin-confirm">Confirmar y guardar</button></div></dialog>
+</div></div>
+@section scripts { <script src="@Url.Content("~/Scripts/pilotos-admin-ruta.js")"></script> }

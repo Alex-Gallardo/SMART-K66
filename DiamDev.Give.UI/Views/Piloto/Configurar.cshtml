@@ -54,11 +54,12 @@
         <button type="submit" data-confirm-admin="true"><svg class="icon" aria-hidden="true"><use href="#i-save" /></svg>Guardar configuración</button>
     </section>
 }
+<dialog id="pilot-admin-dialog" class="route-admin-dialog" aria-labelledby="pilot-admin-dialog-title"><h2 id="pilot-admin-dialog-title">Confirmar configuración</h2><p id="pilot-admin-dialog-message"></p><div class="modal-actions"><button type="button" class="button-secondary" id="pilot-admin-cancel">Volver a revisar</button><button type="button" id="pilot-admin-confirm">Confirmar y guardar</button></div></dialog>
 
 <section class="admin-section route-preview">
-    <div class="section-title"><h2>Vista previa de rutas activas</h2><p>Resultado efectivo de la configuración guardada. No asigna ni modifica rutas en APK66.</p></div>
+    <div class="section-title"><h2>Vista previa de rutas activas</h2><p>Resultado efectivo de la configuración guardada. Puedes abrir una ruta para modificar sus datos operativos.</p></div>
     @if (Model.Rutas.Count == 0) { <p class="admin-empty">No hay rutas A/E que coincidan con el vínculo actual.</p> }
-    else { <div class="preview-routes">@foreach (var ruta in Model.Rutas) { <article><span class="route-status status-@ruta.Estado.ToLowerInvariant()">@ruta.EstadoNombre</span><strong>@ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small></article> }</div> }
+    else { <div class="preview-routes">@foreach (var ruta in Model.Rutas) { <article><span class="route-status status-@ruta.Estado.ToLowerInvariant()">@ruta.EstadoNombre</span><strong>@ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small><a href="@Url.Action("EditarRuta","Piloto",new{id=ruta.Id})">Editar ruta</a></article> }</div> }
 </section>
 </div></div>
 @section scripts { <script src="@Url.Content("~/Scripts/pilotos.js")"></script> }

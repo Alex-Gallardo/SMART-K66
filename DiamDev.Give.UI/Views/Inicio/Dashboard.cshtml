@@ -4,7 +4,9 @@
 
 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Pilotos.Monitorear"))
 {
-    <div class="callout callout-info"><h4>Panel de distribución</h4><p>Consulta rutas, pilotos, resultados, fotografías y actividad del módulo.</p><a class="btn btn-primary" href="@Url.Action("Panel","Piloto")">Abrir panel de distribución</a></div>
+    <!-- CAMBIO - CARD DE PANEL PILOTO -->
+    <!--
+        <div class="callout callout-info"><h4>Panel de distribución</h4><p>Consulta rutas, pilotos, resultados, fotografías y actividad del módulo.</p><a class="btn btn-primary" href="@@Url.Action("Panel","Piloto")">Abrir panel de distribución</a></div> -->
 }
 
 <style>
@@ -103,9 +105,9 @@
 
 <div class="row">
 
-		 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Pedido_K66.Crear"))
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Pedido_K66.Crear"))
     {
-	    <div class="col-md-4">
+        <div class="col-md-4">
             <!-- small box -->
             <div class="small-box bg-success">
                 <div class="inner">
@@ -129,7 +131,7 @@
                 <a href="@Url.Action("Index", "Pedido_K66")" class="small-box-footer">Listado <i class="clip-plus-circle"></i></a>
             </div>
         </div>
-		<div class="col-md-4">
+        <div class="col-md-4">
             <!-- small box -->
             <div class="small-box bg-danger">
                 <div class="inner">
@@ -140,15 +142,15 @@
                 </div>
                 <a href="@Url.Action("Rechazado", "Pedido_K66")" class="small-box-footer">Libro <i class="clip-plus-circle"></i></a>
             </div>
-        </div> 
+        </div>
     }
-	
-	 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Visita.Crear"))
+
+    @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Visita.Crear"))
     {
-	 <div class="col-md-4">
-	  <div class="small-box bg-success">
+        <div class="col-md-4">
+            <div class="small-box bg-success">
                 <div class="inner">
-                    
+
                     <p>Crear Visita</p>
                 </div>
                 <div class="icon">
@@ -156,9 +158,9 @@
                 </div>
                 <a href="@Url.Action("Crear", "Visita")" class="small-box-footer">Crear <i class="clip-plus-circle"></i></a>
             </div>
-			   </div>
-			}
-    
+        </div>
+    }
+
 </div>
 <hr />
 <div class="row">
@@ -331,7 +333,7 @@
                 </a>
             </div>
         </div>
-    }  
+    }
     @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Control.Laboratorio.Ver_Listado"))
     {
         <div class="col-md-3">

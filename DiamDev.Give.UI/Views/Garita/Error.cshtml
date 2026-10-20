@@ -1,0 +1,2 @@
+@{Layout="~/Views/Shared/_GaritaLayout.cshtml";ViewBag.Title="Revisar ruta";}
+<section class="error-card" role="alert"><span class="step">GARITA</span><h1>No se completó la acción</h1><p>@ViewBag.Mensaje</p>@if(ViewBag.Referencia!=null){<small>Referencia: @ViewBag.Referencia</small>}@if(ViewBag.EsAdmin==true){<a class="back-button" href="@Url.Action("Administrar","Garita")">Volver a administración</a>}else{<a class="back-button" href="@Url.Action("Index","Garita",new{id=ViewBag.RutaId})">Volver a revisar la ruta</a>}</section>

@@ -3,6 +3,11 @@ $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $project=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/DiamDev.Give.UI.csproj') -Raw
 if($project -notmatch 'Content\\pilotos-panel-redesign\.css') { throw 'La hoja de estilos del panel debe incluirse en la publicación web.' }
+$seguridad=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/Controllers/SeguridadController.cs') -Raw
+if($seguridad -notmatch 'UsuarioTieneRol\(UsuarioActual\.Login, "GARITA"\)' -or $seguridad -notmatch 'return IniciarGarita\(UsuarioActual\)' -or
+   $seguridad -notmatch 'Session\["Garita\.Desafio"\]' -or $seguridad -notmatch 'return RedirectToAction\("Index","Garita"\)') {
+    throw 'El login de GARITA debe redirigir a su vista y validar el desafío antes de emitir la sesión.'
+}
 $adminViews=@('Administracion','Configurar','EditarRuta','AdministracionError','Panel','PanelDetalle','PanelError')
 foreach($name in $adminViews) {
     $view=Get-Content -LiteralPath (Join-Path $repo ('DiamDev.Give.UI/Views/Piloto/'+$name+'.cshtml')) -Raw
@@ -35,6 +40,7 @@ New-Item -ItemType Directory -Force $out | Out-Null
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 $sources=@('DiamDev.Give.Entities/PilotoRuta.cs','DiamDev.Give.Entities/PilotoReglas.cs','DiamDev.Give.Entities/PilotoDesafio.cs','DiamDev.Give.Entities/PilotoAdministracion.cs','DiamDev.Give.DAL/PilotoRutaDA.cs','DiamDev.Give.DAL/PilotoAdministracionDA.cs','DiamDev.Give.DAL/PilotoAdministracionRutaDA.cs','DiamDev.Give.BLL/PilotoRutaBL.cs','DiamDev.Give.BLL/PilotoAdministracionBL.cs','DiamDev.Give.UI/Controllers/PilotoController.cs','Tests/Pilotos/PilotoTests.cs') | ForEach-Object { Join-Path $repo $_ }
 $sources+=@('DiamDev.Give.Entities/PilotoPanel.cs','DiamDev.Give.DAL/PilotoPanelDA.cs','DiamDev.Give.BLL/PilotoPanelBL.cs','Tests/Pilotos/PanelTests.cs') | ForEach-Object { Join-Path $repo $_ }
+$sources+=@('DiamDev.Give.Entities/GaritaRuta.cs','DiamDev.Give.DAL/GaritaRutaDA.cs','DiamDev.Give.UI/Controllers/GaritaController.cs','Tests/Pilotos/GaritaTests.cs') | ForEach-Object { Join-Path $repo $_ }
 & $compiler /nologo /target:exe "/out:$out/PilotoTests.exe" /r:System.Configuration.dll /r:System.Data.dll /r:System.Xml.Linq.dll /r:System.Xml.dll /r:System.Web.dll /r:System.ComponentModel.DataAnnotations.dll "/r:$MvcDll" $sources
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion aislada del modulo.' }
 Copy-Item -LiteralPath $MvcDll -Destination $out -Force
@@ -43,6 +49,8 @@ Copy-Item -LiteralPath $WebPagesDll -Destination $out -Force
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas.' }
 & (Join-Path $out 'PilotoTests.exe') panel
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las reglas del panel.' }
+& (Join-Path $out 'PilotoTests.exe') garita
+if($LASTEXITCODE -ne 0) { throw 'Fallaron las reglas de garita.' }
 $testConfig=Join-Path $out 'PilotoTests.exe.config'
 @'
 <configuration>
@@ -164,6 +172,16 @@ if(([regex]::Matches($detallePanel,'class="dist-doc ')).Count -ne 3 -or
     throw 'El detalle debe mostrar todas las facturas y los datos operativos sin perder navegación.'
 }
 Write-Host 'OK: detalle completo de clientes, facturas y datos de ruta.'
+$garitaLista=Get-Content -LiteralPath (Join-Path $out 'garita-lista.html') -Raw
+$garitaDiferencia=Get-Content -LiteralPath (Join-Path $out 'garita-diferencia.html') -Raw
+$garitaSalida=Get-Content -LiteralPath (Join-Path $out 'garita-salida.html') -Raw
+if($garitaLista -notmatch 'FAC-001' -or $garitaLista -notmatch '4 bultos' -or $garitaLista -notmatch 'name="PilotoVehiculoVerificados"' -or $garitaLista -notmatch 'name="CargaVerificada"' -or $garitaLista -notmatch 'Confirmar salida del vehículo') {throw 'La ruta abierta de garita debe mostrar carga y verificaciones.'}
+if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 'name="PilotoVehiculoVerificados"') {throw 'La diferencia debe bloquear el formulario de salida.'}
+if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -match 'name="PilotoVehiculoVerificados"') {throw 'La salida confirmada debe mostrar hora y agente sin permitir otra confirmación.'}
+$garitaAdmin=Get-Content -LiteralPath (Join-Path $out 'garita-admin.html') -Raw
+if($garitaAdmin -notmatch 'Faltan dos bultos' -or $garitaAdmin -notmatch 'name="asignar"' -or $garitaAdmin -notmatch 'ResolverDiferencia') {throw 'La administración debe mostrar incidentes y permitir centros y resolución.'}
+Write-Host 'OK: búsqueda, carga, bloqueo por diferencia y salida registrada en la vista de garita.'
+if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {& (Join-Path $PSScriptRoot 'garita-browser-smoke.ps1'); if($LASTEXITCODE -ne 0) {throw 'Falló la prueba de navegador de garita.'}}
 if(!$ScriptDomDll) { $ScriptDomDll=Join-Path $env:USERPROFILE '.nuget/packages/microsoft.sqlserver.transactsql.scriptdom/161.8901.0/lib/net462/Microsoft.SqlServer.TransactSql.ScriptDom.dll' }
 if(!(Test-Path -LiteralPath $ScriptDomDll)) { throw 'Indicar -ScriptDomDll (version 161/net462) para la validacion SQL sin conexion.' }
 Copy-Item -LiteralPath $ScriptDomDll -Destination $out -Force
@@ -175,6 +193,7 @@ $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/23_permiso_administrar_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/24_permiso_monitorear_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/25_eventos_cliente_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/26_historial_edicion_rutas_pos.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/27_garita_salida_pos.sql'
 $adminSql=Join-Path $out 'autorizacion-admin.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }
@@ -187,5 +206,9 @@ $panelSql=Join-Path $out 'panel-consultas.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-panel | Set-Content -LiteralPath $panelSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener consultas reales del panel.' }
 $scripts+=$panelSql
+$garitaSql=Join-Path $out 'transicion-garita.sql'
+& (Join-Path $out 'PilotoTests.exe') sql-garita | Set-Content -LiteralPath $garitaSql -Encoding UTF8
+if($LASTEXITCODE -ne 0) { throw 'Fallo protección de la transición real de garita.' }
+$scripts+=$garitaSql
 & (Join-Path $out 'SqlCompile.exe') $scripts
 if($LASTEXITCODE -ne 0) { throw 'Fallo sintaxis SQL.' }

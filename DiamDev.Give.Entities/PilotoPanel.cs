@@ -40,7 +40,7 @@ namespace DiamDev.Give.Entities
             Liquidacion=Opcion(Liquidacion,"no",new[]{"no","si","todas"});
             Avance=Opcion(Avance,"todos",new[]{"todos","sin","parcial","listo"});
             Resultado=Opcion(Resultado,"todos",new[]{"todos","PENDIENTE","ENTREGADO","NO ENTREGADO","INCIDENCIA"});
-            Evento=Opcion(Evento,"todos",new[]{"todos","Cliente","Foto documento","Foto cliente","Cierre POS","Edición ruta","Vínculo","Centro","Vehículo"});
+            Evento=Opcion(Evento,"todos",new[]{"todos","Cliente","Foto documento","Foto cliente","Cierre POS","Edición ruta","Vínculo","Centro","Vehículo","Garita"});
             Seccion=Opcion(Seccion,"rutas",new[]{"resumen","rutas","pilotos","documentos","actividad","alertas"});
             Piloto=Texto(Piloto,90); Centro=Texto(Centro,15); Placa=Texto(Placa,15); Buscar=Texto(Buscar,100);
             if(Usuario.HasValue && Usuario.Value<=0 || Pagina<1 || Pagina>10000) throw new PilotoException(400,"Selecciona un usuario y una página válidos.");
@@ -121,6 +121,10 @@ namespace DiamDev.Give.Entities
     }
     public sealed class PilotoPanelRuta
     {
+        public DateTime? SalidaGaritaUtc { get; set; }
+        public string AgenteGarita { get; set; }
+        public string PrecintoGarita { get; set; }
+        public string DiferenciaGarita { get; set; }
         public PilotoRuta Datos { get; set; }
         public bool Liquidada { get; set; }
         public bool VehiculoActivo { get; set; }

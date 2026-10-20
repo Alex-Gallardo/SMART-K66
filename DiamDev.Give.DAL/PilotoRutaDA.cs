@@ -252,6 +252,11 @@ FROM " + apk + ".dbo.RT_RUTAS r" + hint + "WHERE r.ID_RUTA=@id AND " + AlcanceDe
                     ruta.Vehiculo=string.Join(" · ",new[]{Texto(r,"MARCA"),Texto(r,"LINEA"),Texto(r,"TIPO")}.Where(v=>!string.IsNullOrWhiteSpace(v)));
                 }
             }
+            using(var existe=Command(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.GaritaRutaEvento',N'U') IS NULL THEN 0 ELSE 1 END;"))
+            if((int)existe.ExecuteScalar()==1) using(var salida=Command(cn,tx,@"SELECT TOP (1) FechaUtc FROM dbo.GaritaRutaEvento
+WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo=N'S';"))
+            {Param(salida,"@catalogo",SqlDbType.NVarChar,apk.Substring(1,apk.Length-2).Replace("]]","]"),128);Param(salida,"@id",SqlDbType.NVarChar,id,15);
+             var fechaSalida=salida.ExecuteScalar();if(fechaSalida!=null && fechaSalida!=DBNull.Value) ruta.SalidaGaritaUtc=(DateTime)fechaSalida;}
             sql=@"SELECT ROWID,TIPO,ID_EMPRESA,ID_DOCUMENTO,CLIENTE,DIR_DESPACHO,NO_BULTOS,
 MO_VISITO,MO_ENTREGA,MO_MOTIVO,MO_OBSER,MO_HR_ENTRADA,MO_HR_SALIDA
 FROM " + apk + ".dbo.RT_RUTAS_DET" + hint + "WHERE ID_RUTA=@id ORDER BY ROWID OFFSET @offset ROWS FETCH NEXT @limite ROWS ONLY;";

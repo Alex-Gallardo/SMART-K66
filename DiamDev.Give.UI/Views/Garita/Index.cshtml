@@ -1,0 +1,59 @@
+@using System.Linq
+@model DiamDev.Give.Entities.GaritaRuta
+@{
+    Layout="~/Views/Shared/_GaritaLayout.cshtml";
+    ViewBag.Title="Buscar ruta";
+    var encontrada=!string.IsNullOrEmpty(Model.Id);
+    var abierta=Model.PuedeSalir && Model.VehiculoDisponible;
+}
+<section class="search-card">
+    <span class="step">1 · BUSCAR</span>
+    <h1>Salida de vehículos</h1>
+    <p>Escribe el número de ruta que te indique el piloto.</p>
+    @using(Html.BeginForm("Index","Garita",FormMethod.Get,new{@class="search-form"})) {
+        <label for="id">Número de ruta</label>
+        <div class="search-row"><input id="id" name="id" value="@Model.Id" maxlength="15" autocomplete="off" autocapitalize="characters" placeholder="Ej. PP26-3002255" required autofocus /><button type="submit">Buscar ruta</button></div>
+    }
+</section>
+@if(TempData["Garita.Mensaje"]!=null) {<div class="notice success" role="status">✓ @TempData["Garita.Mensaje"]</div>}
+@if(encontrada) {
+    <section class="route-header">
+        <div><span class="step">2 · REVISAR</span><h2>Ruta @Model.Id</h2><p>Comprueba estos datos con el piloto y el cargamento.</p></div>
+        <span class="state @(Model.SalidaUtc.HasValue?"state-done":abierta?"state-ready":"state-stop")">@(Model.SalidaUtc.HasValue?"Salida registrada":Model.Diferencia!=null?"Diferencia reportada":abierta?"Lista para revisar":"No autorizada para salir")</span>
+    </section>
+    if(Model.SalidaUtc.HasValue) {<div class="notice success" role="status"><strong>Salida confirmada:</strong> @Model.SalidaLocal.Value.ToString("dd/MM/yyyy HH:mm") · Agente: @Model.Agente @(string.IsNullOrEmpty(Model.Precinto)?"":" · Precinto: "+Model.Precinto)</div>}
+    else if(Model.Diferencia!=null) {<div class="notice stop" role="alert"><strong>Detén la salida.</strong> Se reportó esta diferencia: @Model.Diferencia. Distribución debe resolverla antes de confirmar.</div>}
+    else if(!abierta) {<div class="notice stop" role="alert"><strong>No confirmes la salida.</strong> La ruta debe estar abierta, sin resultados ni liquidación y con vehículo activo. Contacta a Distribución.</div>}
+    <section class="facts" aria-label="Datos de la ruta">
+        <div class="fact fact-primary"><span class="fact-icon" aria-hidden="true">🚚</span><span>PLACA</span><strong>@Model.Placa</strong></div>
+        <div class="fact"><span class="fact-icon" aria-hidden="true">👤</span><span>PILOTO</span><strong>@Model.Piloto</strong></div>
+        <div class="fact"><span class="fact-icon" aria-hidden="true">📍</span><span>CENTRO</span><strong>@Model.Centro</strong></div>
+        <div class="fact"><span class="fact-icon" aria-hidden="true">📅</span><span>FECHA</span><strong>@Model.Fecha.ToString("dd/MM/yyyy")</strong></div>
+        <div class="fact"><span class="fact-icon" aria-hidden="true">🏢</span><span>TRANSPORTE</span><strong>@(Model.Transporte??"Sin dato")</strong></div>
+        <div class="fact"><span class="fact-icon" aria-hidden="true">🚛</span><span>VEHÍCULO</span><strong>@(Model.Vehiculo??"Sin dato")</strong></div>
+    </section>
+    <section class="cargo-card"><div class="section-head"><div><span class="step">CARGAMENTO</span><h2>Qué debe llevar</h2></div><div class="totals"><span><strong>@Model.Clientes</strong> clientes</span><span><strong>@Model.Documentos.Count</strong> documentos</span><span><strong>@Model.Bultos.ToString("0.###")</strong> bultos</span></div></div>
+        @if(!string.IsNullOrWhiteSpace(Model.Observacion)) {<div class="notice info"><strong>Nota de Distribución:</strong> @Model.Observacion</div>}
+        @foreach(var grupo in Model.Documentos.GroupBy(d=>new{d.Cliente,d.Direccion})) {
+            <div class="customer"><div class="customer-heading"><span class="customer-icon" aria-hidden="true">📦</span><div><h3>@(string.IsNullOrWhiteSpace(grupo.Key.Cliente)?"Cliente sin nombre":grupo.Key.Cliente)</h3><p>@grupo.Key.Direccion</p></div><span class="customer-count">@grupo.Count() doc.</span></div>
+                <ul class="documents">@foreach(var d in grupo) {<li><span><strong>@d.Documento</strong><small>@d.Tipo · @d.Empresa</small></span><b>@d.Bultos.ToString("0.###") bultos</b></li>}</ul>
+            </div>
+        }
+    </section>
+    if(abierta) {
+        <section class="action-card"><span class="step">3 · DECIDIR</span><h2>¿Todo coincide?</h2><p>Si placa, piloto, documentos y bultos coinciden, marca las dos casillas y confirma.</p>
+            @using(Html.BeginForm("Confirmar","Garita",FormMethod.Post,new{id="confirm-form"})) {
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="RutaId" value="@Model.Id" /><input type="hidden" name="Version" value="@Model.Version" /><input type="hidden" name="Solicitud" value="@Guid.NewGuid()" />
+                <label class="check"><input type="checkbox" name="PilotoVehiculoVerificados" value="true" required /><span>Piloto y placa verificados</span></label>
+                <label class="check"><input type="checkbox" name="CargaVerificada" value="true" required /><span>Documentos y bultos verificados</span></label>
+                <div class="optional"><label for="precinto">Número de precinto o marchamo <small>(opcional)</small></label><input id="precinto" name="Precinto" maxlength="40" autocomplete="off" /><label for="observacion">Observación <small>(opcional)</small></label><textarea id="observacion" name="Observacion" maxlength="250" rows="2"></textarea></div>
+                <button class="confirm-button" type="submit">✓ Confirmar salida del vehículo</button>
+            }
+            <details class="difference"><summary>⚠ Hay una diferencia · Detener salida</summary><p>Escribe qué no coincide. La ruta quedará bloqueada hasta que Distribución resuelva la diferencia.</p>
+                @using(Html.BeginForm("Diferencia","Garita",FormMethod.Post)) {@Html.AntiForgeryToken()<input type="hidden" name="RutaId" value="@Model.Id" /><input type="hidden" name="Version" value="@Model.Version" /><input type="hidden" name="Solicitud" value="@Guid.NewGuid()" /><label for="descripcion">Describe la diferencia</label><textarea id="descripcion" name="Descripcion" maxlength="250" minlength="10" rows="3" required></textarea><button type="submit" class="stop-button">Reportar diferencia</button>}
+            </details>
+        </section>
+    }
+}
+@section scripts {<script>(function(){var form=document.getElementById('confirm-form');if(!form)return;form.addEventListener('submit',function(e){if(!window.confirm('¿Confirmas que el vehículo puede salir de planta con esta ruta?')){e.preventDefault();return;}var button=form.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Registrando salida…';});})();</script>}

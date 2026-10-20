@@ -1,5 +1,7 @@
 # Portal de pilotos
 
+El control de salida de planta para personal de garita se documenta en [GARITA.md](GARITA.md) y se instala con la migración 27.
+
 Vista MVC `/Piloto` para consultar las rutas propias y registrar el resultado de
 cada documento al completar una ruta. Solo se admite **E → C**. La anulación
 **X pertenece a Distribución**; el módulo no incluye acción ni permiso de anular.

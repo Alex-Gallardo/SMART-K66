@@ -152,11 +152,27 @@ ORDER BY e.FechaUtc DESC,e.Tipo,e.Clave;"; } }
                         Param(c,"@catalogo",SqlDbType.NVarChar,modelo.Catalogo,128);
                         using(var r=c.ExecuteReader()) while(r.Read()) modelo.Actividad.Add(new PilotoPanelActividad {Tipo=Texto(r,"Tipo"),Ruta=Texto(r,"Ruta"),Usuario=Convert.ToInt64(r["Usuario"]),Actor=Texto(r,"Actor"),Descripcion=Texto(r,"Descripcion"),FechaUtc=(DateTime)r["FechaUtc"],Clave=Texto(r,"Clave")});
                     }
+                    using(var instalado=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.GaritaRutaEvento',N'U') IS NULL THEN 0 ELSE 1 END;"))
+                    if((int)instalado.ExecuteScalar()==1) {
+                        using(var c=Cmd(cn,tx,@"SELECT TOP (5001) e.Ruta_Id,e.Tipo,e.Actor,e.Usuario_Id,e.FechaUtc,e.Precinto,e.Observacion,e.Id
+FROM dbo.GaritaRutaEvento e JOIN #PanelRutas r ON r.ID_RUTA=e.Ruta_Id COLLATE DATABASE_DEFAULT
+WHERE e.CatalogoRutas=@catalogo ORDER BY e.Id DESC;")) {
+                            Param(c,"@catalogo",SqlDbType.NVarChar,modelo.Catalogo,128);
+                            using(var r=c.ExecuteReader()) while(r.Read()) {
+                                var ruta=rutas[Texto(r,"Ruta_Id")];var tipo=Texto(r,"Tipo");var fecha=(DateTime)r["FechaUtc"];
+                                if(tipo=="S") {ruta.SalidaGaritaUtc=fecha;ruta.AgenteGarita=Texto(r,"Actor");ruta.PrecintoGarita=Texto(r,"Precinto");if(ruta.DiferenciaGarita==null) ruta.DiferenciaGarita="";}
+                                if((tipo=="D" || tipo=="R") && ruta.DiferenciaGarita==null) ruta.DiferenciaGarita=tipo=="D"?Texto(r,"Observacion"):"";
+                                if((filtro.Evento=="todos" || filtro.Evento=="Garita") && (id!=null || fecha>=filtro.Inicio.AddHours(6) && fecha<filtro.Fin.AddHours(6)) && (!filtro.Usuario.HasValue || filtro.Usuario.Value==Convert.ToInt64(r["Usuario_Id"])))
+                                    modelo.Actividad.Add(new PilotoPanelActividad {Tipo=tipo=="S"?"Salida de garita":tipo=="D"?"Diferencia en garita":"Diferencia resuelta",Ruta=ruta.Datos.Id,Usuario=Convert.ToInt64(r["Usuario_Id"]),Actor=Texto(r,"Actor"),Descripcion=tipo=="S"?"Vehículo autorizado a salir"+(Texto(r,"Precinto")==null?"":" · precinto "+Texto(r,"Precinto")):Texto(r,"Observacion"),FechaUtc=fecha,Clave="Garita #"+r["Id"]});
+                            }
+                        }
+                    }
                     if(modelo.Actividad.Count>5000) throw new PilotoException(400,"Hay más de 5.000 eventos. Acota el período, usuario o tipo de evento; no se mostraron registros parciales.");
                     tx.Commit();
                 }
             }
             foreach(var ruta in modelo.Rutas) {
+                if(!string.IsNullOrWhiteSpace(ruta.DiferenciaGarita)) ruta.Alertas.Add("Garita reportó una diferencia. La salida está detenida hasta que Distribución la resuelva.");
                 var ultima=modelo.Actividad.Where(a=>a.Ruta==ruta.Datos.Id && a.Tipo!="Cierre POS").Select(a=>(DateTime?)a.FechaUtc).Max();
                 if(ultima.HasValue && (!ruta.ActividadUtc.HasValue || ruta.ActividadUtc<ultima)) ruta.ActividadUtc=ultima;
                 if(ruta.ListaParaCierre) ruta.Alertas.Add("Todos los clientes están guardados; falta confirmar el cierre.");

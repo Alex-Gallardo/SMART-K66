@@ -1612,7 +1612,9 @@
   -->
   <ItemGroup>
     <Compile Include="Controllers\PilotoController.cs" />
+    <Compile Include="Controllers\GaritaController.cs" />
     <Content Include="Content\pilotos.css" />
+    <Content Include="Content\garita.css" />
     <Content Include="Content\pilotos-backoffice.css" />
     <Content Include="Content\pilotos-backoffice-ux.css" />
     <Content Include="Content\pilotos-panel.css" />
@@ -1627,6 +1629,11 @@
     <Content Include="Views\Piloto\PanelError.cshtml" />
     <Content Include="Scripts\pilotos.js" />
     <Content Include="Views\Shared\_PilotoLayout.cshtml" />
+    <Content Include="Views\Shared\_GaritaLayout.cshtml" />
+    <Content Include="Views\Garita\Index.cshtml" />
+    <Content Include="Views\Garita\Error.cshtml" />
+    <Content Include="Views\Garita\Administrar.cshtml" />
+    <Content Include="Views\Seguridad\GaritaToken.cshtml" />
     <Content Include="Views\Piloto\Index.cshtml" />
     <Content Include="Views\Piloto\Detalle.cshtml" />
     <Content Include="Views\Piloto\Error.cshtml" />

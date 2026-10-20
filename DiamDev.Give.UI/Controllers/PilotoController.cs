@@ -99,8 +99,8 @@ namespace DiamDev.Give.UI.Controllers
                 var m=new PilotoPanelBL().Leer(User.Identity.Name,filtro);
                 var lineas=new List<string[]>();
                 if(tipo=="rutas") {
-                    lineas.Add(new[]{"Ruta","Fecha","Estado","Liquidada","Piloto","Usuarios POS","Centro","Placa","Clientes","Completados","Documentos","Actividad UTC"});
-                    foreach(var r in m.Rutas) lineas.Add(new[]{r.Datos.Id,r.Datos.Fecha.ToString("yyyy-MM-dd"),r.Datos.Estado,r.Liquidada?"Sí":"No",r.Datos.Piloto,string.Join(" / ",r.Pilotos.Select(p=>p.Login)),r.Datos.Centro,r.Datos.Placa,r.Clientes.Count.ToString(),r.Completados.ToString(),r.Documentos.Count().ToString(),r.ActividadUtc.HasValue?r.ActividadUtc.Value.ToString("yyyy-MM-dd HH:mm:ss"):""});
+                    lineas.Add(new[]{"Ruta","Fecha","Estado","Liquidada","Piloto","Usuarios POS","Centro","Placa","Clientes","Completados","Documentos","Actividad UTC","Salida garita Guatemala","Agente garita","Precinto","Diferencia garita"});
+                    foreach(var r in m.Rutas) lineas.Add(new[]{r.Datos.Id,r.Datos.Fecha.ToString("yyyy-MM-dd"),r.Datos.Estado,r.Liquidada?"Sí":"No",r.Datos.Piloto,string.Join(" / ",r.Pilotos.Select(p=>p.Login)),r.Datos.Centro,r.Datos.Placa,r.Clientes.Count.ToString(),r.Completados.ToString(),r.Documentos.Count().ToString(),r.ActividadUtc.HasValue?r.ActividadUtc.Value.ToString("yyyy-MM-dd HH:mm:ss"):"",r.SalidaGaritaUtc.HasValue?PilotoPanelReglas.HoraGuatemala(r.SalidaGaritaUtc.Value).ToString("yyyy-MM-dd HH:mm:ss"):"",r.AgenteGarita,r.PrecintoGarita,r.DiferenciaGarita});
                 } else {
                     lineas.Add(new[]{"Ruta","ROWID","Tipo","Empresa","Documento","Cliente","Dirección","Visitó","Resultado","Motivo","Observación registrada","Observación POS","Fuente","Foto POS"});
                     var docs=DocumentosPanel(m).ToList();

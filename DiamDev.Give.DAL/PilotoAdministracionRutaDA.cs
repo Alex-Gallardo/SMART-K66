@@ -95,6 +95,11 @@ FROM dbo.PilotoRutaHistorial WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id ORDER
                 var cambioOperativo=fechaNueva!=antes.Ruta.Fecha || antes.Ruta.Piloto!=modelo.Piloto || antes.Ruta.Centro!=modelo.Centro || antes.Ruta.Placa!=modelo.Placa || antes.Ruta.Estado!=modelo.Estado;
                 if(cambioOperativo)
                 {
+                    using(var cmd=Comando(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.GaritaRutaEvento',N'U') IS NULL THEN 0 ELSE 1 END;"))
+                    if((int)cmd.ExecuteScalar()==1) using(var salida=Comando(cn,tx,@"SELECT COUNT(*) FROM dbo.GaritaRutaEvento
+WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo=N'S';"))
+                    {Param(salida,"@catalogo",SqlDbType.NVarChar,apk.Substring(1,apk.Length-2).Replace("]]","]"),128);Param(salida,"@id",SqlDbType.NVarChar,modelo.RutaId,15);
+                     if((int)salida.ExecuteScalar()>0) throw new PilotoException(409,"Garita ya registró la salida. Solo se permite cambiar la observación general.");}
                     using(var cmd=Comando(cn,tx,"SELECT COUNT(*) FROM dbo.PilotoBorradorCliente WHERE Ruta_Id=@id;"))
                     {Param(cmd,"@id",SqlDbType.NVarChar,modelo.RutaId,15);if((int)cmd.ExecuteScalar()>0) throw new PilotoException(409,"Hay clientes guardados en POS. Completa o revisa la ruta antes de modificar su asignación.");}
                     using(var cmd=Comando(cn,tx,"SELECT COUNT(*) FROM "+apk+".dbo.RT_RUTAS_DET WHERE ID_RUTA=@id AND (MO_VISITO IS NOT NULL OR NULLIF(LTRIM(RTRIM(MO_ENTREGA)),N'') IS NOT NULL);"))

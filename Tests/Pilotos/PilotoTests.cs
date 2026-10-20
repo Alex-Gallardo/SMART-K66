@@ -83,6 +83,8 @@ internal static class PilotoTests
     public static int Main(string[] args) {
         try {
             if(args.Length==1 && args[0]=="panel") return PanelTests.Run();
+            if(args.Length==1 && args[0]=="garita") return GaritaTests.Run();
+            if(args.Length==1 && args[0]=="sql-garita") return GaritaTests.Sql();
             if(args.Length==1 && args[0]=="sql-panel") return PanelTests.Sql();
             if(args.Length==1 && args[0]=="sql-admin") {
                 Console.WriteLine(PilotoAdministracionDA.SqlAutorizacion);

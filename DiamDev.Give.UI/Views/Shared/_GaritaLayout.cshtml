@@ -1,0 +1,20 @@
+@{
+    Layout = null;
+}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#123c55" />
+    <title>@ViewBag.Title · Garita · Smart K66</title>
+    <link rel="stylesheet" href="@Url.Content("~/Content/garita.css")" />
+</head>
+<body>
+    <a class="skip" href="#contenido">Ir al contenido</a>
+    <header class="topbar"><a class="brand" href="@Url.Action("Index","Garita")"><span class="brand-icon" aria-hidden="true">✓</span><span><strong>SMART K66</strong><small>Control de salida · Garita</small></span></a><span class="session">@User.Identity.Name</span></header>
+    <main id="contenido">@RenderBody()</main>
+    <footer>Garita · Si hay alguna diferencia, detén la salida y llama a Distribución.</footer>
+    @RenderSection("scripts",required:false)
+</body>
+</html>

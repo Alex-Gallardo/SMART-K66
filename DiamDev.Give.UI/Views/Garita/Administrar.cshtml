@@ -1,0 +1,15 @@
+@model DiamDev.Give.Entities.GaritaAdministracion
+@using System.Linq
+@{Layout="~/Views/Shared/_GaritaLayout.cshtml";ViewBag.Title="Administrar garita";}
+<section class="search-card"><span class="step">ADMINISTRACIÓN</span><h1>Accesos de garita</h1><p>Asigna únicamente los centros donde trabaja cada agente. El rol POS debe tener los permisos de garita.</p>
+@using(Html.BeginForm("Administrar","Garita",FormMethod.Get,new{@class="search-form"})){<label for="login">Login POS del agente</label><div class="search-row"><input id="login" name="login" value="@Model.Login" maxlength="50" required /><button type="submit">Buscar usuario</button></div>}
+</section>
+@if(TempData["Garita.Mensaje"]!=null){<div class="notice success" role="status">@TempData["Garita.Mensaje"]</div>}
+@if(Model.UsuarioId>0){<section class="action-card"><span class="step">USUARIO</span><h2>@Model.Nombre</h2><p>@Model.Login · Centros actuales: @(Model.Centros.Count==0?"Ninguno":string.Join(", ",Model.Centros))</p>
+@using(Html.BeginForm("Centro","Garita",FormMethod.Post)){@Html.AntiForgeryToken()<input type="hidden" name="login" value="@Model.Login" /><input type="hidden" name="asignar" value="true" /><label for="centro">Agregar centro</label><div class="search-row"><select id="centro" name="centro" required>@foreach(var centro in Model.Disponibles.Except(Model.Centros)){<option value="@centro">@centro</option>}</select><button type="submit">Asignar</button></div>}
+@foreach(var centro in Model.Centros){using(Html.BeginForm("Centro","Garita",FormMethod.Post)){@Html.AntiForgeryToken()<input type="hidden" name="login" value="@Model.Login" /><input type="hidden" name="centro" value="@centro" /><input type="hidden" name="asignar" value="false" /><button class="stop-button" type="submit">Quitar @centro</button>}}
+</section>}
+<section class="action-card"><span class="step">INCIDENCIAS</span><h2>Resolver una diferencia</h2><p>Después de verificar físicamente y corregir la ruta, indica su número y deja constancia de la solución. Garita deberá revisar todo de nuevo.</p>
+@if(Model.Incidencias.Count==0){<p class="notice success">No hay diferencias pendientes.</p>}
+else {<ul class="documents">@foreach(var d in Model.Incidencias){<li><span><strong>@d.RutaId · @d.Centro</strong><small>@d.FechaUtc.AddHours(-6).ToString("dd/MM/yyyy HH:mm") · @d.Descripcion</small></span></li>}</ul>}
+@using(Html.BeginForm("ResolverDiferencia","Garita",FormMethod.Post)){@Html.AntiForgeryToken()<label for="id">Número de ruta</label><input id="id" name="id" maxlength="15" required /><label for="nota">Solución aplicada</label><textarea id="nota" name="nota" maxlength="250" minlength="10" rows="3" required></textarea><button class="confirm-button" type="submit">Registrar solución</button>}</section>

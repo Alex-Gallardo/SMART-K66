@@ -1,0 +1,107 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace DiamDev.Give.Entities
+{
+    public sealed class GaritaRuta
+    {
+        public string Id { get; set; }
+        public DateTime Fecha { get; set; }
+        public string Piloto { get; set; }
+        public string Placa { get; set; }
+        public string Centro { get; set; }
+        public string Estado { get; set; }
+        public bool Liquidada { get; set; }
+        public string Transporte { get; set; }
+        public string Vehiculo { get; set; }
+        public bool VehiculoDisponible { get; set; }
+        public string Observacion { get; set; }
+        public string Version { get; set; }
+        public DateTime? SalidaUtc { get; set; }
+        public string GuardDecision { get; set; }
+        public string Diferencia { get; set; }
+        public string Agente { get; set; }
+        public string Precinto { get; set; }
+        public List<PilotoDocumento> Documentos { get; set; }
+        public GaritaRuta() { Documentos=new List<PilotoDocumento>(); }
+        public bool PuedeSalir { get { return Estado=="A" && !Liquidada && Diferencia==null && Documentos.Count>0 && !Documentos.Any(d=>d.Visito.HasValue || !string.IsNullOrWhiteSpace(d.Entrega)); } }
+        public int Clientes { get { return Documentos.Select(d=>d.Cliente??"").Distinct(StringComparer.OrdinalIgnoreCase).Count(); } }
+        public decimal Bultos { get { return Documentos.Sum(d=>d.Bultos); } }
+        public DateTime? SalidaLocal { get { return SalidaUtc.HasValue ? SalidaUtc.Value.AddHours(-6) : (DateTime?)null; } }
+    }
+
+    public sealed class GaritaConfirmacion
+    {
+        public string RutaId { get; set; }
+        public string Version { get; set; }
+        public bool PilotoVehiculoVerificados { get; set; }
+        public bool CargaVerificada { get; set; }
+        public string Precinto { get; set; }
+        public string Observacion { get; set; }
+        public Guid Solicitud { get; set; }
+    }
+
+    public sealed class GaritaDiferencia
+    {
+        public string RutaId { get; set; }
+        public string Version { get; set; }
+        public string Descripcion { get; set; }
+        public Guid Solicitud { get; set; }
+    }
+
+    public sealed class GaritaAdministracion
+    {
+        public string Login { get; set; }
+        public long UsuarioId { get; set; }
+        public string Nombre { get; set; }
+        public string RutaId { get; set; }
+        public List<string> Centros { get; set; }
+        public List<string> Disponibles { get; set; }
+        public List<GaritaIncidencia> Incidencias { get; set; }
+        public GaritaAdministracion() { Centros=new List<string>();Disponibles=new List<string>();Incidencias=new List<GaritaIncidencia>(); }
+    }
+    public sealed class GaritaIncidencia
+    {
+        public string RutaId { get; set; }
+        public string Centro { get; set; }
+        public string Descripcion { get; set; }
+        public DateTime FechaUtc { get; set; }
+    }
+
+    public static class GaritaReglas
+    {
+        public const string Ver="Garita.Rutas.Ver", Salir="Garita.Rutas.ConfirmarSalida", Administrar="Garita.Administrar";
+        public static string Id(string id)
+        {
+            id=(id??"").Trim();
+            if(id.Length==0 || id.Length>15 || id.Any(char.IsControl)) throw new PilotoException(400,"Escribe un número de ruta válido (máximo 15 caracteres).");
+            return id;
+        }
+        public static void Validar(GaritaConfirmacion c,GaritaRuta r)
+        {
+            if(c==null || c.RutaId!=r.Id || c.Solicitud==Guid.Empty) throw new PilotoException(400,"Vuelve a abrir la ruta e intenta de nuevo.");
+            if(!r.PuedeSalir) throw new PilotoException(409,"La ruta no está abierta y lista para salir. Consulta a Distribución.");
+            if(c.Version!=r.Version) throw new PilotoException(409,"Los datos de la ruta cambiaron. Revísalos antes de confirmar la salida.");
+            if(!c.PilotoVehiculoVerificados || !c.CargaVerificada) throw new PilotoException(400,"Marca las dos verificaciones antes de confirmar la salida.");
+            c.Precinto=Limpiar(c.Precinto,40);c.Observacion=Limpiar(c.Observacion,250);
+        }
+        public static string Limpiar(string valor,int max)
+        {
+            valor=(valor??"").Replace("\r\n"," ").Replace('\r',' ').Replace('\n',' ').Trim();
+            if(valor.Length>max || valor.Any(char.IsControl)) throw new PilotoException(400,"El texto supera el límite o contiene caracteres inválidos.");
+            return valor;
+        }
+        public static string Version(GaritaRuta r)
+        {
+            var b=new StringBuilder();
+            Action<string> add=s=>{s=s??"";b.Append(s.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(s);};
+            add(r.Id);add(r.Fecha.ToString("O",CultureInfo.InvariantCulture));add(r.Piloto);add(r.Placa);add(r.Centro);add(r.Estado);add(r.Liquidada?"1":"0");add(r.Observacion);add(r.Transporte);add(r.Vehiculo);add(r.VehiculoDisponible?"1":"0");
+            foreach(var d in r.Documentos.OrderBy(x=>x.RowId)) {add(d.RowId.ToString(CultureInfo.InvariantCulture));add(d.Tipo);add(d.Empresa);add(d.Documento);add(d.Cliente);add(d.Direccion);add(d.Bultos.ToString(CultureInfo.InvariantCulture));add(d.Visito.HasValue?(d.Visito.Value?"1":"0"):"");add(d.Entrega);}
+            using(var sha=SHA256.Create()) return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(b.ToString())));
+        }
+    }
+}

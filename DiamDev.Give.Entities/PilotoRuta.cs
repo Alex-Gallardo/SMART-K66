@@ -10,6 +10,7 @@ namespace DiamDev.Give.Entities
         public string Placa { get; set; }
         public string Transporte { get; set; }
         public string Vehiculo { get; set; }
+        public DateTime? SalidaGaritaUtc { get; set; }
         public int TotalDocumentos { get; set; }
         public int PaginaDocumentos { get; set; }
         public int TamanoPaginaDocumentos { get; set; }

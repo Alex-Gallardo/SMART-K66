@@ -351,6 +351,7 @@
     <Compile Include="Usuario.cs" />
     <Compile Include="UsuarioAgencia.cs" />
     <Compile Include="UsuarioRol.cs" />
+    <Compile Include="UsuarioRolPlan.cs" />
     <Compile Include="Vendedor.cs" />
     <Compile Include="VendedorEscala.cs" />
     <Compile Include="VendedorMetaxDia.cs" />

@@ -185,20 +185,13 @@ namespace DiamDev.Give.BLL
 
                     if (entidad.Roles != null && entidad.Roles.Count() > 0)
                     {
-                        //Eliminar por usuarioId                          
-                        var Roles = db.Set<UsuarioRol>().Where(x => x.UsuarioId == UsuarioActual.UsuarioId).ToList();
-                        db.Set<UsuarioRol>().RemoveRange(Roles);
-
-                        //Agregar los nuevos roles
-                        UsuarioActual.Roles = new List<UsuarioRol>();
-
-                        foreach (var Rol in entidad.Roles)
-                        {
-                            if (!UsuarioActual.Roles.Any(x => x.RolId == Rol.RolId))
-                            {
-                                UsuarioActual.Roles.Add(new UsuarioRol() { UsuarioId = UsuarioActual.UsuarioId, RolId = Rol.RolId });
-                            }
-                        }
+                        var rolesActuales = db.Set<UsuarioRol>().Where(x => x.UsuarioId == UsuarioActual.UsuarioId).ToList();
+                        var plan = UsuarioRolPlan.Crear(rolesActuales.Select(x => x.RolId), entidad.Roles.Select(x => x.RolId));
+                        // Conservar los vínculos existentes evita volver a adjuntar la misma clave al contexto EF.
+                        foreach (var rol in rolesActuales.Where(x => plan.Quitar.Contains(x.RolId)))
+                            db.Set<UsuarioRol>().Remove(rol);
+                        foreach (var rolId in plan.Agregar)
+                            db.Set<UsuarioRol>().Add(new UsuarioRol { UsuarioId = UsuarioActual.UsuarioId, RolId = rolId });
                     }
 
                     if (entidad.Agencias != null && entidad.Agencias.Count() > 0)

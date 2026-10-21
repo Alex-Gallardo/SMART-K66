@@ -8,6 +8,12 @@ if($seguridad -notmatch 'UsuarioTieneRol\(UsuarioActual\.Login, "GARITA"\)' -or 
    $seguridad -notmatch 'Session\["Garita\.Desafio"\]' -or $seguridad -notmatch 'return RedirectToAction\("Index","Garita"\)') {
     throw 'El login de GARITA debe redirigir a su vista y validar el desafío antes de emitir la sesión.'
 }
+$usuarioBL=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.BLL/UsuarioBL.cs') -Raw
+$rolBL=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.BLL/RolBL.cs') -Raw
+if($usuarioBL -notmatch 'UsuarioRolPlan\.Crear\(' -or $usuarioBL -match 'db\.Set<UsuarioRol>\(\)\.RemoveRange\(Roles\)' -or
+   $rolBL -match 'db\.Set<RolPermiso>\(\)\.RemoveRange\(Permisos\)' -or $rolBL -notmatch 'solicitados\.Where\(x => !existentes\.Contains\(x\)\)') {
+    throw 'La edición debe conservar roles y permisos existentes y agregar solo los faltantes.'
+}
 $adminViews=@('Administracion','Configurar','EditarRuta','AdministracionError','Panel','PanelDetalle','PanelError')
 foreach($name in $adminViews) {
     $view=Get-Content -LiteralPath (Join-Path $repo ('DiamDev.Give.UI/Views/Piloto/'+$name+'.cshtml')) -Raw
@@ -41,6 +47,7 @@ $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 $sources=@('DiamDev.Give.Entities/PilotoRuta.cs','DiamDev.Give.Entities/PilotoReglas.cs','DiamDev.Give.Entities/PilotoDesafio.cs','DiamDev.Give.Entities/PilotoAdministracion.cs','DiamDev.Give.DAL/PilotoRutaDA.cs','DiamDev.Give.DAL/PilotoAdministracionDA.cs','DiamDev.Give.DAL/PilotoAdministracionRutaDA.cs','DiamDev.Give.BLL/PilotoRutaBL.cs','DiamDev.Give.BLL/PilotoAdministracionBL.cs','DiamDev.Give.UI/Controllers/PilotoController.cs','Tests/Pilotos/PilotoTests.cs') | ForEach-Object { Join-Path $repo $_ }
 $sources+=@('DiamDev.Give.Entities/PilotoPanel.cs','DiamDev.Give.DAL/PilotoPanelDA.cs','DiamDev.Give.BLL/PilotoPanelBL.cs','Tests/Pilotos/PanelTests.cs') | ForEach-Object { Join-Path $repo $_ }
 $sources+=@('DiamDev.Give.Entities/GaritaRuta.cs','DiamDev.Give.DAL/GaritaRutaDA.cs','DiamDev.Give.UI/Controllers/GaritaController.cs','Tests/Pilotos/GaritaTests.cs') | ForEach-Object { Join-Path $repo $_ }
+$sources+=Join-Path $repo 'DiamDev.Give.Entities/UsuarioRolPlan.cs'
 & $compiler /nologo /target:exe "/out:$out/PilotoTests.exe" /r:System.Configuration.dll /r:System.Data.dll /r:System.Xml.Linq.dll /r:System.Xml.dll /r:System.Web.dll /r:System.ComponentModel.DataAnnotations.dll "/r:$MvcDll" $sources
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion aislada del modulo.' }
 Copy-Item -LiteralPath $MvcDll -Destination $out -Force
@@ -194,6 +201,7 @@ $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/24_permiso_monitorear_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/25_eventos_cliente_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/26_historial_edicion_rutas_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/27_garita_salida_pos.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/28_garita_reparar_acceso_pos.sql'
 $adminSql=Join-Path $out 'autorizacion-admin.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }

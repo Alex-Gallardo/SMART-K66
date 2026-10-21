@@ -6,6 +6,10 @@ $garitaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/GaritaRuta
 if($garitaDA -match 'UPDATE\s+[^;]*RT_RUTAS' -or $garitaDA -match 'SqlConfirmarEstado' -or $garitaDA -notmatch 'Cmd\(cn,tx,SqlRegistrarSalida\)') {
     throw 'Garita debe insertar el evento de salida sin actualizar el estado de RT_RUTAS.'
 }
+if($garitaDA -notmatch 'r\.PLACA=@placa AND r\.STATUS=N''E''' -or $garitaDA -notmatch 'GaritaCentro g WHERE g.Usuario_Id=@usuario' -or
+   $garitaDA -notmatch 'INSERT dbo.GaritaSalidaImagen' -or $garitaDA -notmatch 'evento=Convert\.ToInt64\(c\.ExecuteScalar\(\)\)') {
+    throw 'La búsqueda debe limitar placa/estado/centro y la foto debe vincularse al evento de salida.'
+}
 if($project -notmatch 'Content\\pilotos-panel-redesign\.css') { throw 'La hoja de estilos del panel debe incluirse en la publicación web.' }
 $seguridad=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/Controllers/SeguridadController.cs') -Raw
 if($seguridad -notmatch 'UsuarioTieneRol\(UsuarioActual\.Login, "GARITA"\)' -or $seguridad -notmatch 'return IniciarGarita\(UsuarioActual\)' -or
@@ -179,7 +183,7 @@ if(([regex]::Matches($detallePanel,'class="dist-doc ')).Count -ne 3 -or
    $detallePanel -notmatch 'DOC-DEMO-001' -or $detallePanel -notmatch 'DOC-DEMO-002' -or $detallePanel -notmatch 'DOC-DEMO-003' -or
    $detallePanel -notmatch 'Observación POS pendiente:' -or $detallePanel -notmatch 'Hora de entrada' -or
    $detallePanel -notmatch 'Observación general' -or $detallePanel -notmatch 'Última actividad POS' -or
-   $detallePanel -notmatch 'Volver al panel con mis filtros') {
+   $detallePanel -notmatch 'Volver al panel con mis filtros' -or $detallePanel -notmatch 'Ver foto de garita') {
     throw 'El detalle debe mostrar todas las facturas y los datos operativos sin perder navegación.'
 }
 Write-Host 'OK: detalle completo de clientes, facturas y datos de ruta.'
@@ -188,11 +192,13 @@ $garitaDiferencia=Get-Content -LiteralPath (Join-Path $out 'garita-diferencia.ht
 $garitaSalida=Get-Content -LiteralPath (Join-Path $out 'garita-salida.html') -Raw
 $garitaEnRuta=Get-Content -LiteralPath (Join-Path $out 'garita-en-ruta.html') -Raw
 $garitaVacia=Get-Content -LiteralPath (Join-Path $out 'garita-vacia.html') -Raw
-if($garitaVacia -notmatch 'name="id"' -or $garitaVacia -match 'class="recent-route"' -or $garitaVacia -match 'class="route-header"') {throw 'Garita debe mostrar rutas solo después de buscarlas por número.'}
-if($garitaLista -notmatch 'FAC-001' -or $garitaLista -notmatch 'Pendiente de Distribución' -or $garitaLista -match 'id="register-exit-form"') {throw 'La ruta abierta no debe permitir registrar salida.'}
+$garitaSinResultados=Get-Content -LiteralPath (Join-Path $out 'garita-sin-resultados.html') -Raw
+if($garitaVacia -notmatch 'name="placa"' -or $garitaVacia -match 'class="route-option"' -or $garitaVacia -match 'class="route-header"') {throw 'Garita debe mostrar rutas solo después de buscar una placa.'}
+if($garitaLista -notmatch 'PP26-GARITA' -or $garitaLista -notmatch 'PP26-OTRA' -or $garitaLista -notmatch 'OTRO PILOTO' -or $garitaLista -notmatch 'Siguiente' -or $garitaLista -match 'id="register-exit-form"') {throw 'La búsqueda debe listar todas las rutas E de la placa y paginarlas.'}
+if($garitaSinResultados -notmatch 'No hay rutas En ruta' -or $garitaSinResultados -match 'class="route-option"') {throw 'La placa sin rutas debe mostrar un mensaje claro.'}
 if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 'id="register-exit-form"') {throw 'La diferencia debe bloquear el registro de salida.'}
-if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'Registrar hora de salida') {throw 'La ruta E debe mostrar verificaciones y permitir registrar la hora de salida.'}
-if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida:' -or $garitaSalida -match 'id="register-exit-form"') {throw 'La salida registrada debe mostrar hora y agente sin permitir otra salida.'}
+if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'name="foto"' -or $garitaEnRuta -notmatch 'multipart/form-data' -or $garitaEnRuta -match 'PilotoVehiculoVerificados|name="Precinto"' -or $garitaEnRuta -notmatch 'Registrar hora de salida') {throw 'La ruta E debe mostrar un único check y la foto opcional.'}
+if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida:' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"') {throw 'La salida registrada debe mostrar hora, agente y foto sin permitir otra salida.'}
 $garitaAdmin=Get-Content -LiteralPath (Join-Path $out 'garita-admin.html') -Raw
 if($garitaAdmin -notmatch 'Faltan dos bultos' -or $garitaAdmin -notmatch 'name="asignar"' -or $garitaAdmin -notmatch 'ResolverDiferencia') {throw 'La administración debe mostrar incidentes y permitir centros y resolución.'}
 Write-Host 'OK: búsqueda, carga, bloqueo por diferencia y salida registrada en la vista de garita.'
@@ -210,6 +216,7 @@ $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/25_eventos_cliente_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/26_historial_edicion_rutas_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/27_garita_salida_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/28_garita_reparar_acceso_pos.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/29_garita_foto_salida_pos.sql'
 $adminSql=Join-Path $out 'autorizacion-admin.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }

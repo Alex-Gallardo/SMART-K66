@@ -124,6 +124,7 @@ namespace DiamDev.Give.Entities
         public DateTime? SalidaGaritaUtc { get; set; }
         public string AgenteGarita { get; set; }
         public string PrecintoGarita { get; set; }
+        public bool FotoSalidaGarita { get; set; }
         public string DiferenciaGarita { get; set; }
         public PilotoRuta Datos { get; set; }
         public bool Liquidada { get; set; }

@@ -2,7 +2,7 @@
 @model DiamDev.Give.Entities.GaritaRuta
 @{
     Layout="~/Views/Shared/_GaritaLayout.cshtml";
-    ViewBag.Title="Buscar ruta";
+    ViewBag.Title="Buscar por placa";
     var encontrada=!string.IsNullOrEmpty(Model.Id);
     var puedeRegistrar=Model.PuedeRegistrarSalida;
     var enRuta=Model.Estado=="E";
@@ -10,19 +10,40 @@
 <section class="search-card">
     <span class="step">1 · BUSCAR</span>
     <h1>Salida de vehículos</h1>
-    <p>Escribe el número de ruta que te indique el piloto.</p>
+    <p>Escribe la placa del vehículo y selecciona la ruta que vas a revisar.</p>
     @using(Html.BeginForm("Index","Garita",FormMethod.Get,new{@class="search-form"})) {
-        <label for="id">Número de ruta</label>
-        <div class="search-row"><input id="id" name="id" value="@Model.Id" maxlength="15" autocomplete="off" autocapitalize="characters" placeholder="Ej. PP26-3002255" required autofocus /><button type="submit">Buscar ruta</button></div>
+        <label for="placa">Placa del vehículo</label>
+        <div class="search-row"><input id="placa" name="placa" value="@Model.PlacaBusqueda" maxlength="15" autocomplete="off" autocapitalize="characters" placeholder="Ej. C-123ABC" required autofocus /><button type="submit">Buscar placa</button></div>
     }
 </section>
 @if(TempData["Garita.Mensaje"]!=null) {<div class="notice success" role="status">✓ @TempData["Garita.Mensaje"]</div>}
+@if(Model.BusquedaRealizada && !encontrada) {
+    <section class="results-card" aria-label="Rutas de la placa">
+        <div class="section-head"><div><span class="step">2 · ELEGIR RUTA</span><h2>Rutas de @Model.PlacaBusqueda</h2></div><strong>@Model.TotalRutas @(Model.TotalRutas==1?"ruta":"rutas") En ruta</strong></div>
+        @if(Model.TotalRutas==0) {<div class="notice info" role="status">No hay rutas En ruta para esta placa en tus centros autorizados. Comprueba la placa con el piloto.</div>}
+        else {
+            <p>Compara el número, la fecha y el piloto antes de abrir una ruta.</p>
+            <div class="route-list">
+            @foreach(var ruta in Model.Resultados) {
+                <a class="route-option" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,id=ruta.Id})" aria-label="Revisar ruta @ruta.Id, piloto @ruta.Piloto">
+                    <span class="route-option-main"><strong>Ruta @ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small></span>
+                    <span class="route-option-pilot">👤 @(ruta.Piloto??"Piloto sin dato")</span>
+                    <span class="route-option-counts">@ruta.Clientes clientes · @ruta.Documentos documentos · @ruta.Bultos.ToString("0.###") bultos</span>
+                    <span class="state @(ruta.DiferenciaPendiente?"state-stop":ruta.SalidaRegistrada?"state-done":"state-info")">@(ruta.DiferenciaPendiente?"Diferencia pendiente":ruta.SalidaRegistrada?"Salida registrada":"Sin salida registrada")</span>
+                    <span class="route-option-arrow" aria-hidden="true">→</span>
+                </a>
+            }
+            </div>
+            if(Model.TotalRutas>50) {<nav class="pager" aria-label="Páginas de rutas">@if(Model.Pagina>1){<a href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,pagina=Model.Pagina-1})">← Anterior</a>}<span>Página @Model.Pagina de @((Model.TotalRutas+49)/50)</span>@if(Model.Pagina*50<Model.TotalRutas){<a href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,pagina=Model.Pagina+1})">Siguiente →</a>}</nav>}
+        }
+    </section>
+}
 @if(encontrada) {
     <section class="route-header">
-        <div><span class="step">2 · REVISAR</span><h2>Ruta @Model.Id</h2><p>Comprueba estos datos con el piloto y el cargamento.</p></div>
+        <div><a class="back-results" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda})">← Volver a las rutas de @Model.PlacaBusqueda</a><span class="step">3 · REVISAR</span><h2>Ruta @Model.Id</h2><p>Comprueba estos datos con el piloto y el cargamento.</p></div>
         <span class="state @(Model.SalidaUtc.HasValue?"state-done":Model.Diferencia!=null?"state-stop":Model.Estado=="A"?"state-info":puedeRegistrar?"state-ready":enRuta?"state-stop":"state-info")">@(Model.SalidaUtc.HasValue?"Salida registrada":Model.Diferencia!=null?"Diferencia reportada":Model.Estado=="A"?"Pendiente de Distribución":puedeRegistrar?"En ruta · pendiente de salida":enRuta?"En ruta · revisar datos":"Solo consulta")</span>
     </section>
-    if(Model.SalidaUtc.HasValue) {<div class="notice success" role="status"><strong>Hora de salida:</strong> @Model.SalidaLocal.Value.ToString("dd/MM/yyyy HH:mm") · Agente: @Model.Agente @(string.IsNullOrEmpty(Model.Precinto)?"":" · Precinto: "+Model.Precinto)</div>}
+    if(Model.SalidaUtc.HasValue) {<div class="notice success" role="status"><strong>Hora de salida:</strong> @Model.SalidaLocal.Value.ToString("dd/MM/yyyy HH:mm") · Agente: @Model.Agente @(string.IsNullOrEmpty(Model.Precinto)?"":" · Precinto: "+Model.Precinto) @if(Model.TieneFotoSalida){<a href="@Url.Action("FotoSalida","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id})" target="_blank" rel="noopener">Ver foto de salida</a>}</div>}
     else if(Model.Diferencia!=null) {<div class="notice stop" role="alert"><strong>Detén la salida.</strong> Se reportó esta diferencia: @Model.Diferencia. Distribución debe resolverla antes de registrar la salida.</div>}
     else if(Model.Estado=="A") {<div class="notice info" role="status"><strong>Pendiente de Distribución.</strong> La ruta debe estar “En ruta” antes de que Garita registre la hora de salida.</div>}
     else if(enRuta && !puedeRegistrar) {<div class="notice stop" role="alert"><strong>No registres la salida todavía.</strong> Revisa piloto, vehículo, facturas, bultos y liquidación. Si algo no coincide, reporta la diferencia y contacta a Distribución.</div>}
@@ -44,19 +65,19 @@
         }
     </section>
     if(Model.PuedeReportarDiferencia) {
-        <section class="action-card"><span class="step">3 · DECIDIR</span><h2>¿Todo coincide?</h2><p>@(puedeRegistrar?"Si los datos coinciden, marca las dos verificaciones y registra la hora de salida.":"Hay datos que impiden registrar la salida. Reporta la diferencia a Distribución.")</p>
-            @if(puedeRegistrar) {using(Html.BeginForm("RegistrarSalida","Garita",FormMethod.Post,new{id="register-exit-form"})) {
+        <section class="action-card"><span class="step">4 · DECIDIR</span><h2>¿Todo coincide?</h2><p>@(puedeRegistrar?"Si clientes, facturas y bultos coinciden, marca la verificación y registra la hora de salida.":"Hay datos que impiden registrar la salida. Reporta la diferencia a Distribución.")</p>
+            @if(puedeRegistrar) {using(Html.BeginForm("RegistrarSalida","Garita",FormMethod.Post,new{id="register-exit-form",enctype="multipart/form-data"})) {
                 @Html.AntiForgeryToken()
-                <input type="hidden" name="RutaId" value="@Model.Id" /><input type="hidden" name="Version" value="@Model.Version" /><input type="hidden" name="Solicitud" value="@Guid.NewGuid()" />
-                <label class="check"><input type="checkbox" name="PilotoVehiculoVerificados" value="true" required /><span>Piloto y placa verificados</span></label>
+                <input type="hidden" name="RutaId" value="@Model.Id" /><input type="hidden" name="PlacaBusqueda" value="@Model.PlacaBusqueda" /><input type="hidden" name="Version" value="@Model.Version" /><input type="hidden" name="Solicitud" value="@Guid.NewGuid()" />
                 <label class="check"><input type="checkbox" name="CargaVerificada" value="true" required /><span>Clientes, facturas y bultos verificados</span></label>
-                <div class="optional"><label for="precinto">Número de precinto o marchamo <small>(opcional)</small></label><input id="precinto" name="Precinto" maxlength="40" autocomplete="off" /><label for="observacion">Observación <small>(opcional)</small></label><textarea id="observacion" name="Observacion" maxlength="250" rows="2"></textarea></div>
+                <div class="optional"><label for="observacion">Observación <small>(opcional)</small></label><textarea id="observacion" name="Observacion" maxlength="250" rows="2"></textarea></div>
+                <div class="photo-field"><label for="foto">Foto de salida <small>(opcional, JPG, PNG o WebP hasta 10 MB)</small></label><input id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" /><img id="foto-preview" alt="Vista previa de la foto elegida" hidden /><button id="foto-clear" type="button" hidden>Quitar foto</button></div>
                 <button class="confirm-button" type="submit">✓ Registrar hora de salida</button>
             }}
             <details class="difference"><summary>⚠ Hay una diferencia · Detener salida</summary><p>Escribe qué no coincide. La ruta quedará bloqueada hasta que Distribución resuelva la diferencia.</p>
-                @using(Html.BeginForm("Diferencia","Garita",FormMethod.Post)) {@Html.AntiForgeryToken()<input type="hidden" name="RutaId" value="@Model.Id" /><input type="hidden" name="Version" value="@Model.Version" /><input type="hidden" name="Solicitud" value="@Guid.NewGuid()" /><label for="descripcion">Describe la diferencia</label><textarea id="descripcion" name="Descripcion" maxlength="250" minlength="10" rows="3" required></textarea><button type="submit" class="stop-button">Reportar diferencia</button>}
+                @using(Html.BeginForm("Diferencia","Garita",FormMethod.Post)) {@Html.AntiForgeryToken()<input type="hidden" name="RutaId" value="@Model.Id" /><input type="hidden" name="PlacaBusqueda" value="@Model.PlacaBusqueda" /><input type="hidden" name="Version" value="@Model.Version" /><input type="hidden" name="Solicitud" value="@Guid.NewGuid()" /><label for="descripcion">Describe la diferencia</label><textarea id="descripcion" name="Descripcion" maxlength="250" minlength="10" rows="3" required></textarea><button type="submit" class="stop-button">Reportar diferencia</button>}
             </details>
         </section>
     }
 }
-@section scripts {<script>(function(){var form=document.getElementById('register-exit-form');if(!form)return;form.addEventListener('submit',function(e){if(!window.confirm('¿Ya verificaste piloto, placa, clientes, facturas y bultos? Se registrará la hora de salida.')){e.preventDefault();return;}var button=form.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Registrando hora…';});})();</script>}
+@section scripts {<script>(function(){var form=document.getElementById('register-exit-form');if(!form)return;var file=document.getElementById('foto'),preview=document.getElementById('foto-preview'),clear=document.getElementById('foto-clear'),url;function reset(){if(url)URL.revokeObjectURL(url);url=null;file.value='';preview.hidden=true;preview.removeAttribute('src');clear.hidden=true;}file.addEventListener('change',function(){if(url)URL.revokeObjectURL(url);url=null;var f=file.files[0];if(!f){reset();return;}if(f.size>10485760){alert('La foto supera 10 MB. Elige otra.');reset();return;}url=URL.createObjectURL(f);preview.src=url;preview.hidden=false;clear.hidden=false;});clear.addEventListener('click',reset);form.addEventListener('submit',function(e){if(!window.confirm('¿Ya verificaste clientes, facturas y bultos? Se registrará la hora de salida.')){e.preventDefault();return;}var button=form.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Registrando hora…';});})();</script>}

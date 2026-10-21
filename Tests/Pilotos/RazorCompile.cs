@@ -73,14 +73,18 @@ internal static class RazorCompile
                         if(relative=="Piloto/Error.cshtml") previews["error"]=RazorPreview.Render(type,null);
                         if(relative=="Garita/Index.cshtml") {
                             previews["garita-vacia"]=RazorPreview.Render(type,new DiamDev.Give.Entities.GaritaRuta());
-                            var garita=new DiamDev.Give.Entities.GaritaRuta{Id="PP26-GARITA",Estado="A",Centro="PALIN",Piloto="PILOTO DEMO",Placa="C-123ABC",Fecha=new DateTime(2026,10,20),VehiculoDisponible=true};
+                            var busqueda=new DiamDev.Give.Entities.GaritaRuta{PlacaBusqueda="C-123ABC",BusquedaRealizada=true,Pagina=1,TotalRutas=51};
+                            busqueda.Resultados.Add(new DiamDev.Give.Entities.GaritaRutaResumen{Id="PP26-GARITA",Placa="C-123ABC",Centro="PALIN",Piloto="PILOTO DEMO",Fecha=new DateTime(2026,10,20),Documentos=1,Clientes=1,Bultos=4});
+                            busqueda.Resultados.Add(new DiamDev.Give.Entities.GaritaRutaResumen{Id="PP26-OTRA",Placa="C-123ABC",Centro="PALIN",Piloto="OTRO PILOTO",Fecha=new DateTime(2026,10,19),Documentos=2,Clientes=1,Bultos=8,SalidaRegistrada=true});
+                            previews["garita-lista"]=RazorPreview.Render(type,busqueda);
+                            previews["garita-sin-resultados"]=RazorPreview.Render(type,new DiamDev.Give.Entities.GaritaRuta{PlacaBusqueda="X-000",BusquedaRealizada=true,Pagina=1});
+                            var garita=new DiamDev.Give.Entities.GaritaRuta{Id="PP26-GARITA",Estado="E",Centro="PALIN",Piloto="PILOTO DEMO",Placa="C-123ABC",PlacaBusqueda="C-123ABC",Fecha=new DateTime(2026,10,20),VehiculoDisponible=true};
                             garita.Documentos.Add(new DiamDev.Give.Entities.PilotoDocumento{RowId=1,Tipo="FACTURA",Empresa="GRACO",Documento="FAC-001",Cliente="CLIENTE UNO",Direccion="GUATEMALA",Bultos=4});
                             garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);
-                            previews["garita-lista"]=RazorPreview.Render(type,garita);
-                            garita.Estado="E";garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);
+                            garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);
                             garita.Diferencia="Faltan dos bultos";previews["garita-diferencia"]=RazorPreview.Render(type,garita);
                             garita.Diferencia=null;previews["garita-en-ruta"]=RazorPreview.Render(type,garita);
-                            garita.SalidaUtc=new DateTime(2026,10,20,15,30,0,DateTimeKind.Utc);garita.Agente="GUARDIA";previews["garita-salida"]=RazorPreview.Render(type,garita);
+                            garita.SalidaUtc=new DateTime(2026,10,20,15,30,0,DateTimeKind.Utc);garita.Agente="GUARDIA";garita.TieneFotoSalida=true;previews["garita-salida"]=RazorPreview.Render(type,garita);
                         }
                         if(relative=="Garita/Administrar.cshtml") {
                             var admin=new DiamDev.Give.Entities.GaritaAdministracion{Login="agente_demo",UsuarioId=1,Nombre="Agente Demo"};

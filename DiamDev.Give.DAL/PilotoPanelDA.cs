@@ -11,9 +11,9 @@ namespace DiamDev.Give.DAL
     // Consultas globales de distribución. No reutiliza ni suplanta el acceso operativo del piloto.
     public sealed class PilotoPanelDA
     {
-        private readonly string conexion,apk;
+        private readonly string conexion,apk,catalogo;
         private bool eventosClientes,eventosRutas;
-        public PilotoPanelDA() { var admin=new PilotoAdministracionDA();conexion=admin.ConexionPanel;apk=admin.CatalogoPanel; }
+        public PilotoPanelDA() { var admin=new PilotoAdministracionDA();conexion=admin.ConexionPanel;apk=admin.CatalogoPanel;catalogo=apk.Substring(1,apk.Length-2).Replace("]]","]"); }
         private static SqlCommand Cmd(SqlConnection cn,SqlTransaction tx,string sql) { return new SqlCommand(sql,cn,tx){CommandTimeout=20}; }
         private static void Param(SqlCommand c,string nombre,SqlDbType tipo,object valor,int largo=0) { var p=largo==0 ? c.Parameters.Add(nombre,tipo) : c.Parameters.Add(nombre,tipo,largo);p.Value=valor??DBNull.Value; }
         private static string Texto(SqlDataReader r,string col) { return r[col]==DBNull.Value ? null : Convert.ToString(r[col],CultureInfo.InvariantCulture); }
@@ -167,6 +167,12 @@ WHERE e.CatalogoRutas=@catalogo ORDER BY e.Id DESC;")) {
                             }
                         }
                     }
+                    using(var instaladaFoto=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.GaritaSalidaImagen',N'U') IS NULL THEN 0 ELSE 1 END;"))
+                    if((int)instaladaFoto.ExecuteScalar()==1) using(var fotos=Cmd(cn,tx,@"SELECT e.Ruta_Id FROM dbo.GaritaSalidaImagen i
+JOIN dbo.GaritaRutaEvento e ON e.Id=i.Evento_Id
+JOIN #PanelRutas r ON r.ID_RUTA=e.Ruta_Id COLLATE DATABASE_DEFAULT
+WHERE e.CatalogoRutas=@catalogo AND e.Tipo=N'S';"))
+                    {Param(fotos,"@catalogo",SqlDbType.NVarChar,modelo.Catalogo,128);using(var lector=fotos.ExecuteReader()) while(lector.Read()) rutas[Texto(lector,"Ruta_Id")].FotoSalidaGarita=true;}
                     if(modelo.Actividad.Count>5000) throw new PilotoException(400,"Hay más de 5.000 eventos. Acota el período, usuario o tipo de evento; no se mostraron registros parciales.");
                     tx.Commit();
                 }
@@ -214,6 +220,28 @@ WHERE e.CatalogoRutas=@catalogo ORDER BY e.Id DESC;")) {
                 r.NextResult();while(r.Read()) {var ruta=rutas[Texto(r,"Ruta_Id")];var d=ruta.Documentos.SingleOrDefault(x=>x.Datos.RowId==(int)r["Detalle_RowId"]);if(d!=null) {d.Foto=true;var fecha=(DateTime)r["FechaUtc"];if(!ruta.ActividadUtc.HasValue || ruta.ActividadUtc<fecha) ruta.ActividadUtc=fecha;}}
                 r.NextResult();while(r.Read()) {var ruta=rutas[Texto(r,"Ruta_Id")];var cl=ruta.Clientes.SingleOrDefault(x=>x.Primero==(int)r["Primer_RowId"]);if(cl!=null) {cl.Foto=true;var fecha=(DateTime)r["FechaUtc"];if(!ruta.ActividadUtc.HasValue || ruta.ActividadUtc<fecha) ruta.ActividadUtc=fecha;}}
             }
+            }
+        }
+        public PilotoImagen FotoSalidaGarita(string login,string id)
+        {
+            if(string.IsNullOrWhiteSpace(id) || id.Length>15 || id.Any(char.IsControl)) throw new PilotoException(404,"Foto no disponible.");
+            using(var cn=new SqlConnection(conexion)) {
+                cn.Open();using(var c=Cmd(cn,null,"SET LOCK_TIMEOUT 3000;")) c.ExecuteNonQuery();
+                using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted)) {
+                    Autorizar(cn,tx,login);
+                    using(var c=Cmd(cn,tx,@"SELECT TOP (1) i.Nombre,i.ContentType,i.Contenido FROM dbo.GaritaSalidaImagen i
+JOIN dbo.GaritaRutaEvento e ON e.Id=i.Evento_Id
+JOIN "+apk+@".dbo.RT_RUTAS r ON r.ID_RUTA COLLATE DATABASE_DEFAULT=e.Ruta_Id
+WHERE e.CatalogoRutas=@catalogo AND e.Ruta_Id=@id AND e.Tipo=N'S';")) {
+                        Param(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);Param(c,"@id",SqlDbType.NVarChar,id,15);
+                        using(var r=c.ExecuteReader()) {
+                            if(!r.Read()) throw new PilotoException(404,"Foto de garita no disponible.");
+                            var img=new PilotoImagen{RutaId=id,Nombre=Texto(r,"Nombre"),ContentType=Texto(r,"ContentType"),Contenido=(byte[])r["Contenido"]};
+                            if(!new[]{"image/jpeg","image/png","image/webp"}.Contains(img.ContentType)) throw new PilotoException(409,"El formato guardado no está permitido.");
+                            r.Close();tx.Commit();return img;
+                        }
+                    }
+                }
             }
         }
         public PilotoImagen Imagen(string login,string id,int row,bool cliente)

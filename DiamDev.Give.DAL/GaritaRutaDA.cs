@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
 using DiamDev.Give.Entities;
 
 namespace DiamDev.Give.DAL
@@ -11,6 +12,7 @@ namespace DiamDev.Give.DAL
     public sealed class GaritaRutaDA
     {
         internal const string SqlRegistrarSalida = @"INSERT dbo.GaritaRutaEvento(CatalogoRutas,Ruta_Id,Tipo,Solicitud,Usuario_Id,Actor,Centro_Dist,Piloto,Placa,Documentos,Bultos,Version,Precinto,Observacion)
+OUTPUT INSERTED.Id
 VALUES(@catalogo,@id,N'S',@solicitud,@usuario,@actor,@centro,@piloto,@placa,@documentos,@bultos,@version,@precinto,@observacion);";
         private readonly string conexion,apk,catalogo;
         public GaritaRutaDA()
@@ -29,7 +31,7 @@ VALUES(@catalogo,@id,N'S',@solicitud,@usuario,@actor,@centro,@piloto,@placa,@doc
         }
         private static void Instalada(SqlConnection cn,SqlTransaction tx)
         {
-            using(var c=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.GaritaCentro',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.GaritaRutaEvento',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
+            using(var c=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.GaritaCentro',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.GaritaRutaEvento',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.GaritaSalidaImagen',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
                 if((int)c.ExecuteScalar()!=1) throw new PilotoException(503,"Falta instalar la migración de garita en POS.");
         }
         private static long Autorizar(SqlConnection cn,SqlTransaction tx,string login,string permiso)
@@ -60,6 +62,9 @@ FROM "+apk+".dbo.RT_RUTAS_DET"+hint+" WHERE ID_RUTA=@id ORDER BY ROWID;"))
             using(var c=Cmd(cn,tx,@"SELECT TOP (1) Tipo,FechaUtc,Actor,Precinto FROM dbo.GaritaRutaEvento
 WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo=N'S' ORDER BY Id DESC;"))
             {P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@id",SqlDbType.NVarChar,id,15);using(var r=c.ExecuteReader()) if(r.Read()) {ruta.SalidaUtc=(DateTime)r["FechaUtc"];ruta.GuardDecision=S(r,"Tipo");ruta.Agente=S(r,"Actor");ruta.Precinto=S(r,"Precinto");}}
+            if(ruta.SalidaUtc.HasValue) using(var c=Cmd(cn,tx,@"SELECT COUNT(*) FROM dbo.GaritaSalidaImagen i
+JOIN dbo.GaritaRutaEvento e ON e.Id=i.Evento_Id WHERE e.CatalogoRutas=@catalogo AND e.Ruta_Id=@id AND e.Tipo=N'S';"))
+            {P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@id",SqlDbType.NVarChar,id,15);ruta.TieneFotoSalida=(int)c.ExecuteScalar()>0;}
             using(var c=Cmd(cn,tx,@"SELECT TOP (1) Tipo,Observacion FROM dbo.GaritaRutaEvento
 WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo IN(N'D',N'R') ORDER BY Id DESC;"))
             {P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@id",SqlDbType.NVarChar,id,15);using(var r=c.ExecuteReader()) if(r.Read() && S(r,"Tipo")=="D") ruta.Diferencia=S(r,"Observacion");}
@@ -71,6 +76,60 @@ WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo IN(N'D',N'R') ORDER BY Id
             id=GaritaReglas.Id(id);
             using(var cn=Abrir()) using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted))
             {Instalada(cn,tx);var usuario=Autorizar(cn,tx,actor,GaritaReglas.Ver);var ruta=Leer(cn,tx,usuario,id,false);tx.Commit();return ruta;}
+        }
+        public GaritaRuta BuscarPorPlaca(string actor,string placa,int pagina)
+        {
+            placa=GaritaReglas.Placa(placa);
+            if(pagina<1 || pagina>100000) throw new PilotoException(400,"Selecciona una página válida.");
+            var modelo=new GaritaRuta{PlacaBusqueda=placa,Pagina=pagina,BusquedaRealizada=true};
+            using(var cn=Abrir()) using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted))
+            {
+                Instalada(cn,tx);var usuario=Autorizar(cn,tx,actor,GaritaReglas.Ver);
+                var origen=@" FROM "+apk+@".dbo.RT_RUTAS r";
+                var filtro=@" WHERE r.PLACA=@placa AND r.STATUS=N'E' AND EXISTS
+(SELECT 1 FROM dbo.GaritaCentro g WHERE g.Usuario_Id=@usuario AND g.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)";
+                using(var c=Cmd(cn,tx,"SELECT COUNT(*)"+origen+filtro))
+                {P(c,"@placa",SqlDbType.NVarChar,placa,15);P(c,"@usuario",SqlDbType.BigInt,usuario);modelo.TotalRutas=(int)c.ExecuteScalar();}
+                if(pagina>1 && (long)(pagina-1)*50>=modelo.TotalRutas) throw new PilotoException(404,"La página de rutas no existe. Vuelve a buscar la placa.");
+                using(var c=Cmd(cn,tx,SqlBuscarPorPlaca(apk)))
+                {P(c,"@placa",SqlDbType.NVarChar,placa,15);P(c,"@usuario",SqlDbType.BigInt,usuario);P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@offset",SqlDbType.Int,(pagina-1)*50);
+                    using(var r=c.ExecuteReader()) while(r.Read()) modelo.Resultados.Add(new GaritaRutaResumen{Id=S(r,"ID_RUTA"),Fecha=(DateTime)r["FECHA_RUTA"],Placa=S(r,"PLACA"),Piloto=S(r,"PILOTO"),Centro=S(r,"CENTRO_DIST"),Documentos=Convert.ToInt32(r["Documentos"]),Clientes=Convert.ToInt32(r["Clientes"]),Bultos=Convert.ToDecimal(r["Bultos"]),SalidaRegistrada=Convert.ToInt32(r["SalidaRegistrada"])==1,DiferenciaPendiente=Convert.ToInt32(r["DiferenciaPendiente"])==1});}
+                tx.Commit();return modelo;
+            }
+        }
+        internal static string SqlBuscarPorPlaca(string catalogoRutas)
+        {
+            var origen=@" FROM "+catalogoRutas+@".dbo.RT_RUTAS r";
+            var filtro=@" WHERE r.PLACA=@placa AND r.STATUS=N'E' AND EXISTS
+(SELECT 1 FROM dbo.GaritaCentro g WHERE g.Usuario_Id=@usuario AND g.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)";
+            return @"SELECT r.ID_RUTA,r.FECHA_RUTA,r.PLACA,r.PILOTO,r.CENTRO_DIST,
+ISNULL(c.Documentos,0) Documentos,ISNULL(c.Clientes,0) Clientes,ISNULL(c.Bultos,0) Bultos,
+CASE WHEN s.Id IS NULL THEN 0 ELSE 1 END SalidaRegistrada,
+CASE WHEN ultimo.Tipo=N'D' THEN 1 ELSE 0 END DiferenciaPendiente"+origen+@"
+OUTER APPLY (SELECT COUNT(*) Documentos,COUNT(DISTINCT ISNULL(d.CLIENTE,N'')) Clientes,
+ISNULL(SUM(ISNULL(d.NO_BULTOS,0)),0) Bultos FROM "+catalogoRutas+@".dbo.RT_RUTAS_DET d WHERE d.ID_RUTA=r.ID_RUTA) c
+OUTER APPLY (SELECT TOP (1) e.Id FROM dbo.GaritaRutaEvento e WHERE e.CatalogoRutas=@catalogo AND e.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT AND e.Tipo=N'S') s
+OUTER APPLY (SELECT TOP (1) e.Tipo FROM dbo.GaritaRutaEvento e WHERE e.CatalogoRutas=@catalogo AND e.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT AND e.Tipo IN(N'D',N'R') ORDER BY e.Id DESC) ultimo
+"+filtro+@" ORDER BY r.FECHA_RUTA DESC,r.ID_RUTA DESC OFFSET @offset ROWS FETCH NEXT 50 ROWS ONLY;";
+        }
+        public GaritaRuta Detalle(string actor,string placa,string id)
+        {
+            placa=GaritaReglas.Placa(placa);id=GaritaReglas.Id(id);
+            var ruta=Buscar(actor,id);
+            if(ruta.Estado!="E" || !string.Equals(ruta.Placa,placa,StringComparison.OrdinalIgnoreCase)) throw new PilotoException(404,"Ruta no disponible para esa placa.");
+            ruta.PlacaBusqueda=placa;return ruta;
+        }
+        public GaritaFoto ObtenerFoto(string actor,string placa,string id)
+        {
+            placa=GaritaReglas.Placa(placa);id=GaritaReglas.Id(id);
+            using(var cn=Abrir()) using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted))
+            {
+                Instalada(cn,tx);var usuario=Autorizar(cn,tx,actor,GaritaReglas.Ver);var ruta=Leer(cn,tx,usuario,id,false);
+                if(!string.Equals(ruta.Placa,placa,StringComparison.OrdinalIgnoreCase) || !ruta.TieneFotoSalida) throw new PilotoException(404,"Foto no disponible.");
+                using(var c=Cmd(cn,tx,@"SELECT TOP (1) i.ContentType,i.Contenido FROM dbo.GaritaSalidaImagen i
+JOIN dbo.GaritaRutaEvento e ON e.Id=i.Evento_Id WHERE e.CatalogoRutas=@catalogo AND e.Ruta_Id=@id AND e.Tipo=N'S';"))
+                {P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@id",SqlDbType.NVarChar,id,15);using(var r=c.ExecuteReader()) {if(!r.Read()) throw new PilotoException(404,"Foto no disponible.");var foto=new GaritaFoto{ContentType=S(r,"ContentType"),Contenido=(byte[])r["Contenido"]};r.Close();tx.Commit();return foto;}}
+            }
         }
         public void Preparar(string actor)
         {
@@ -95,11 +154,21 @@ WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo IN(N'D',N'R') ORDER BY Id
                     throw new PilotoException(409,"La salida ya fue registrada. Consulta a Distribución.");
                 }
                 GaritaReglas.ValidarSalida(modelo,ruta);
+                if(!string.Equals(GaritaReglas.Placa(modelo.PlacaBusqueda),ruta.Placa,StringComparison.OrdinalIgnoreCase))
+                    throw new PilotoException(409,"La placa cambió. Vuelve a buscarla.");
                 using(var c=Cmd(cn,tx,@"SELECT COUNT(*) FROM "+apk+@".dbo.RT_EMPLEADOS e WHERE e.NOMBRE=@piloto AND e.CARGO=N'PILOTO' AND e.ESTADO=1
 AND NOT EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_EMPLEADOS otro WHERE otro.CARGO=N'PILOTO' AND otro.NOMBRE=e.NOMBRE AND otro.ROWID<>e.ROWID);"))
                 {P(c,"@piloto",SqlDbType.NVarChar,ruta.Piloto,90);if((int)c.ExecuteScalar()!=1) throw new PilotoException(409,"El piloto no está activo o su asignación es ambigua. Consulta a Distribución.");}
+                long evento;
                 using(var c=Cmd(cn,tx,SqlRegistrarSalida))
-                {EventoParametros(c,ruta,usuario,actor,modelo.Solicitud,modelo.Precinto,modelo.Observacion);c.ExecuteNonQuery();}
+                {EventoParametros(c,ruta,usuario,actor,modelo.Solicitud,null,modelo.Observacion);evento=Convert.ToInt64(c.ExecuteScalar());}
+                if(modelo.FotoContenido!=null)
+                {
+                    byte[] hash;using(var sha=SHA256.Create()) hash=sha.ComputeHash(modelo.FotoContenido);
+                    using(var c=Cmd(cn,tx,@"INSERT dbo.GaritaSalidaImagen(Evento_Id,Nombre,ContentType,Tamano,Contenido,HashSha256)
+VALUES(@evento,@nombre,@tipo,@tamano,@contenido,@hash);"))
+                    {P(c,"@evento",SqlDbType.BigInt,evento);P(c,"@nombre",SqlDbType.NVarChar,modelo.FotoNombre,255);P(c,"@tipo",SqlDbType.NVarChar,PilotoReglas.ValidarImagen(modelo.FotoNombre,modelo.FotoContenido),50);P(c,"@tamano",SqlDbType.Int,modelo.FotoContenido.Length);P(c,"@contenido",SqlDbType.VarBinary,modelo.FotoContenido,-1);P(c,"@hash",SqlDbType.Binary,hash,32);c.ExecuteNonQuery();}
+                }
                 tx.Commit();
             }
         }

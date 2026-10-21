@@ -1,6 +1,8 @@
 using System;
 using System.Data.SqlClient;
 using System.Diagnostics;
+using System.IO;
+using System.Web;
 using System.Web.Mvc;
 using DiamDev.Give.DAL;
 using DiamDev.Give.Entities;
@@ -17,26 +19,47 @@ namespace DiamDev.Give.UI.Controllers
             base.OnActionExecuting(context);
         }
         [HttpGet]
-        public ActionResult Index(string id)
+        public ActionResult Index(string placa,string id,int pagina=1)
         {
             try
             {
-                if(string.IsNullOrWhiteSpace(id)) {new GaritaRutaDA().Preparar(User.Identity.Name);return View(new GaritaRuta());}
-                return View(new GaritaRutaDA().Buscar(User.Identity.Name,id));
+                var da=new GaritaRutaDA();
+                if(string.IsNullOrWhiteSpace(placa) && string.IsNullOrWhiteSpace(id)) {da.Preparar(User.Identity.Name);return View(new GaritaRuta());}
+                if(string.IsNullOrWhiteSpace(id)) return View(da.BuscarPorPlaca(User.Identity.Name,placa,pagina));
+                return View(da.Detalle(User.Identity.Name,placa,id));
             }
-            catch(Exception e) { ViewBag.RutaId=id;return Error(e); }
+            catch(Exception e) { ViewBag.Placa=placa;return Error(e); }
         }
         [HttpPost,ValidateAntiForgeryToken]
-        public ActionResult RegistrarSalida(GaritaRegistroSalida modelo)
+        public ActionResult RegistrarSalida(GaritaRegistroSalida modelo,HttpPostedFileBase foto)
         {
             try
             {
-                if(!ModelState.IsValid) throw new PilotoException(400,"Revisa los datos antes de registrar la salida.");
+                if(modelo==null || !ModelState.IsValid) throw new PilotoException(400,"Revisa los datos antes de registrar la salida.");
+                if(foto!=null && (foto.ContentLength>0 || !string.IsNullOrWhiteSpace(foto.FileName)))
+                {
+                    if(foto.ContentLength<=0 || foto.ContentLength>PilotoReglas.MaxImagenBytes) throw new PilotoException(400,"La fotografía debe pesar hasta 10 MB.");
+                    modelo.FotoNombre=Path.GetFileName(foto.FileName??"");
+                    using(var memoria=new MemoryStream())
+                    {
+                        var bloque=new byte[81920];int leidos;
+                        while((leidos=foto.InputStream.Read(bloque,0,bloque.Length))>0)
+                        {if(memoria.Length+leidos>PilotoReglas.MaxImagenBytes) throw new PilotoException(400,"La fotografía supera 10 MB.");memoria.Write(bloque,0,leidos);}
+                        modelo.FotoContenido=memoria.ToArray();
+                    }
+                    PilotoReglas.ValidarImagen(modelo.FotoNombre,modelo.FotoContenido);
+                }
                 new GaritaRutaDA().RegistrarSalida(User.Identity.Name,modelo);
                 TempData["Garita.Mensaje"]="Hora de salida registrada. La ruta sigue En ruta.";
-                return RedirectToAction("Index",new{id=modelo.RutaId});
+                return RedirectToAction("Index",new{placa=modelo.PlacaBusqueda,id=modelo.RutaId});
             }
-            catch(Exception e) { ViewBag.RutaId=modelo==null?null:modelo.RutaId;return Error(e); }
+            catch(Exception e) { ViewBag.Placa=modelo==null?null:modelo.PlacaBusqueda;return Error(e); }
+        }
+        [HttpGet]
+        public ActionResult FotoSalida(string placa,string id)
+        {
+            try {var foto=new GaritaRutaDA().ObtenerFoto(User.Identity.Name,placa,id);Response.AddHeader("X-Content-Type-Options","nosniff");return File(foto.Contenido,foto.ContentType);}
+            catch(Exception e) {ViewBag.Placa=placa;return Error(e);}
         }
         [HttpPost,ValidateAntiForgeryToken]
         public ActionResult Diferencia(GaritaDiferencia modelo)
@@ -46,9 +69,9 @@ namespace DiamDev.Give.UI.Controllers
                 if(!ModelState.IsValid) throw new PilotoException(400,"Revisa la descripción de la diferencia.");
                 new GaritaRutaDA().Reportar(User.Identity.Name,modelo);
                 TempData["Garita.Mensaje"]="Diferencia registrada. No permitas la salida; contacta a Distribución.";
-                return RedirectToAction("Index",new{id=modelo.RutaId});
+                return RedirectToAction("Index",new{placa=modelo.PlacaBusqueda,id=modelo.RutaId});
             }
-            catch(Exception e) { ViewBag.RutaId=modelo==null?null:modelo.RutaId;return Error(e); }
+            catch(Exception e) { ViewBag.Placa=modelo==null?null:modelo.PlacaBusqueda;return Error(e); }
         }
         [HttpGet]
         public ActionResult Administrar(string login)
@@ -74,8 +97,8 @@ namespace DiamDev.Give.UI.Controllers
             Response.StatusCode=esperado==null?503:esperado.StatusCode;
             Response.TrySkipIisCustomErrors=true;
             ViewBag.Mensaje=esperado!=null?esperado.Message:
-                sql!=null && (sql.Number==-2 || sql.Number==1222 || sql.Number==1205)?"La ruta está ocupada. Espera unos segundos y búscala otra vez.":
-                "No se pudo completar la operación. Busca de nuevo la ruta o contacta a Distribución.";
+                sql!=null && (sql.Number==-2 || sql.Number==1222 || sql.Number==1205)?"La ruta está ocupada. Espera unos segundos y busca la placa otra vez.":
+                "No se pudo completar la operación. Busca de nuevo la placa o contacta a Distribución.";
             if(esperado==null) {var referencia=Guid.NewGuid().ToString("N");ViewBag.Referencia=referencia;Trace.TraceError("Garita referencia={0}, tipo={1}, numeroSQL={2}",referencia,e.GetType().Name,sql==null?0:sql.Number);}
             return View("Error");
         }

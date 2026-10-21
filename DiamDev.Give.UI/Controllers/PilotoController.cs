@@ -53,7 +53,7 @@ namespace DiamDev.Give.UI.Controllers
         private static bool EsAdministracion(ActionExecutingContext context)
         {
             var accion = context.ActionDescriptor.ActionName;
-            return new[]{"Panel","PanelDetalle","PanelImagen","PanelExportar"}.Contains(accion,StringComparer.OrdinalIgnoreCase) ||
+            return new[]{"Panel","PanelDetalle","PanelImagen","PanelFotoSalida","PanelExportar"}.Contains(accion,StringComparer.OrdinalIgnoreCase) ||
                    string.Equals(accion, "Administracion", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(accion, "Configurar", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(accion, "EditarRuta", StringComparison.OrdinalIgnoreCase);
@@ -89,6 +89,17 @@ namespace DiamDev.Give.UI.Controllers
                 Response.AddHeader("X-Content-Type-Options","nosniff");
                 return File(imagen.Contenido,imagen.ContentType);
             } catch(Exception e) { return ErrorPanel(e); }
+        }
+        [HttpGet]
+        public ActionResult PanelFotoSalida(string id)
+        {
+            ViewBag.EsPanel=true;
+            try {
+                if(!ModelState.IsValid) throw new PilotoException(404,"Foto no disponible.");
+                var imagen=new PilotoPanelBL().FotoSalidaGarita(User.Identity.Name,id);
+                Response.AddHeader("X-Content-Type-Options","nosniff");
+                return File(imagen.Contenido,imagen.ContentType);
+            } catch(Exception e) {return ErrorPanel(e);}
         }
         [HttpGet]
         public ActionResult PanelExportar(PilotoPanelFiltro filtro,string tipo="rutas")

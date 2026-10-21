@@ -39,6 +39,12 @@ internal static class GaritaTests
         Check(GaritaReglas.Limpiar("a\nb",250)=="a b","nota multilinea normalizada");
         Rechaza(()=>GaritaReglas.Limpiar("a\tb",250),400,"nota con controles");
         Check(GaritaReglas.Ver!=GaritaReglas.Salir && GaritaReglas.Salir!=GaritaReglas.Administrar,"permisos separados");
+        var roles=UsuarioRolPlan.Crear(new[]{1,2},new[]{1,2,3,3});
+        Check(roles.Agregar.SequenceEqual(new[]{3}) && roles.Quitar.Length==0,"agregar GARITA conserva los roles existentes");
+        roles=UsuarioRolPlan.Crear(new[]{1,2,3},new[]{2,3});
+        Check(roles.Agregar.Length==0 && roles.Quitar.SequenceEqual(new[]{1}),"quitar solo el rol desmarcado");
+        roles=UsuarioRolPlan.Crear(new[]{1,2},new[]{1,2});
+        Check(roles.Agregar.Length==0 && roles.Quitar.Length==0,"guardar roles iguales no reinsertará claves existentes");
         foreach(var method in new[]{"Confirmar","Diferencia","Centro","ResolverDiferencia"})
         {var m=typeof(GaritaController).GetMethods().Single(x=>x.Name==method);Check(m.IsDefined(typeof(HttpPostAttribute),true)&&m.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"POST y anti CSRF "+method);}
         Check(typeof(GaritaController).IsDefined(typeof(AuthorizeAttribute),true),"controlador autenticado");

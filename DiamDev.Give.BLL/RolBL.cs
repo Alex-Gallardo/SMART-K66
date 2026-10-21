@@ -57,19 +57,15 @@ namespace DiamDev.Give.BLL
 
                         RolActual.Nombre = entidad.Nombre;
 
-                        if (RolActual.Permisos != null && RolActual.Permisos.Count() > 0)
+                        if (entidad.Permisos != null && entidad.Permisos.Count() > 0)
                         {
-                            //Eliminar permiso por rolId
-                            var Permisos = db.Set<RolPermiso>().Where(x => x.RolId == RolActual.RolId).ToList();
-                            db.Set<RolPermiso>().RemoveRange(Permisos);
-
-                            //Agregar los nuevos permisos
-                            RolActual.Permisos = new List<RolPermiso>();
-                            foreach (var Permiso in entidad.Permisos)
-                            {
-                                db.Set<RolPermiso>().Add(new RolPermiso() { RolId = RolActual.RolId, PermisoId = Permiso.PermisoId });
-                            }
-
+                            var permisosActuales = db.Set<RolPermiso>().Where(x => x.RolId == RolActual.RolId).ToList();
+                            var solicitados = new HashSet<string>(entidad.Permisos.Select(x => x.PermisoId), StringComparer.OrdinalIgnoreCase);
+                            foreach (var permiso in permisosActuales.Where(x => !solicitados.Contains(x.PermisoId)))
+                                db.Set<RolPermiso>().Remove(permiso);
+                            var existentes = new HashSet<string>(permisosActuales.Select(x => x.PermisoId), StringComparer.OrdinalIgnoreCase);
+                            foreach (var permisoId in solicitados.Where(x => !existentes.Contains(x)))
+                                db.Set<RolPermiso>().Add(new RolPermiso { RolId = RolActual.RolId, PermisoId = permisoId });
                         }
 
                         db.SaveChanges();                       

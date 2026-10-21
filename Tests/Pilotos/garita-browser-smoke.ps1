@@ -23,7 +23,15 @@ document.documentElement.setAttribute('data-garita-smoke','PASS');
 "@
     Set-Content -LiteralPath $smoke -Value $probe -Encoding UTF8
     foreach($size in @('500,900','1440,1000')) {
-        $output=& $ChromePath '--headless=new' '--disable-gpu' '--no-first-run' '--no-default-browser-check' "--window-size=$size" '--virtual-time-budget=1000' '--dump-dom' ([Uri]$smoke).AbsoluteUri 2>&1 | Out-String
+        $stdout=Join-Path $bin 'garita-chrome-stdout.tmp'
+        $stderr=Join-Path $bin 'garita-chrome-stderr.tmp'
+        try {
+            $chrome=Start-Process -FilePath $ChromePath -ArgumentList @('--headless=new','--disable-gpu','--disable-extensions','--no-first-run','--no-default-browser-check',"--window-size=$size",'--virtual-time-budget=1000','--dump-dom',([Uri]$smoke).AbsoluteUri) -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+            $output=Get-Content -LiteralPath $stdout -Raw
+            if($chrome.ExitCode -ne 0) { throw ('Chrome terminó con código '+$chrome.ExitCode) }
+        } finally {
+            Remove-Item -LiteralPath $stdout,$stderr -ErrorAction SilentlyContinue
+        }
         if($output -notmatch 'data-garita-smoke="PASS"') {
             $resultado=[regex]::Match($output,'data-garita-smoke="([^"]+)"')
             throw ('Garita '+$name+' '+$size+': '+$(if($resultado.Success){$resultado.Groups[1].Value}else{'sin resultado'}))

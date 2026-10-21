@@ -27,22 +27,11 @@ namespace DiamDev.Give.Entities
         public string Agente { get; set; }
         public string Precinto { get; set; }
         public List<PilotoDocumento> Documentos { get; set; }
-        public List<GaritaRutaResumen> Recientes { get; set; }
-        public GaritaRuta() { Documentos=new List<PilotoDocumento>();Recientes=new List<GaritaRutaResumen>(); }
+        public GaritaRuta() { Documentos=new List<PilotoDocumento>(); }
         public bool PuedeSalir { get { return Estado=="A" && !Liquidada && Diferencia==null && Documentos.Count>0 && !Documentos.Any(d=>d.Visito.HasValue || !string.IsNullOrWhiteSpace(d.Entrega)); } }
         public int Clientes { get { return Documentos.Select(d=>d.Cliente??"").Distinct(StringComparer.OrdinalIgnoreCase).Count(); } }
         public decimal Bultos { get { return Documentos.Sum(d=>d.Bultos); } }
         public DateTime? SalidaLocal { get { return SalidaUtc.HasValue ? SalidaUtc.Value.AddHours(-6) : (DateTime?)null; } }
-    }
-
-    public sealed class GaritaRutaResumen
-    {
-        public string Id { get; set; }
-        public DateTime Fecha { get; set; }
-        public string Piloto { get; set; }
-        public string Placa { get; set; }
-        public string Centro { get; set; }
-        public string Estado { get; set; }
     }
 
     public sealed class GaritaConfirmacion

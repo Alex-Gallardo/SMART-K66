@@ -56,8 +56,6 @@ internal static class GaritaTests
         typeof(GaritaRutaDA).GetField("apk",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(da,"[TEST_RUTAS]");
         var sql=da.SqlConfirmarEstado;
         Check(sql.Contains("STATUS=N'E'") && sql.Contains("STATUS=N'A'") && sql.Contains("ISNULL(LIQUIDADO,0)=0"),"transición A a E con control de liquidación");
-        var rutas=da.SqlRutasCentro;
-        Check(rutas.Contains("r.STATUS IN(N'A',N'E')") && rutas.Contains("g.Usuario_Id=@usuario") && rutas.Contains("g.Centro_Dist=r.CENTRO_DIST") && rutas.Contains("numero<=25"),"listado A y E limitado a los centros del agente");
-        Console.WriteLine(sql);Console.WriteLine(rutas);return 0;
+        Console.WriteLine(sql);return 0;
     }
 }

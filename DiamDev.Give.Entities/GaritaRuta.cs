@@ -26,8 +26,14 @@ namespace DiamDev.Give.Entities
         public string Diferencia { get; set; }
         public string Agente { get; set; }
         public string Precinto { get; set; }
+        public string PlacaBusqueda { get; set; }
+        public int Pagina { get; set; }
+        public int TotalRutas { get; set; }
+        public bool BusquedaRealizada { get; set; }
+        public bool TieneFotoSalida { get; set; }
+        public List<GaritaRutaResumen> Resultados { get; set; }
         public List<PilotoDocumento> Documentos { get; set; }
-        public GaritaRuta() { Documentos=new List<PilotoDocumento>(); }
+        public GaritaRuta() { Documentos=new List<PilotoDocumento>(); Resultados=new List<GaritaRutaResumen>(); }
         public bool PuedeReportarDiferencia { get { return Estado=="E" && !Liquidada && !SalidaUtc.HasValue && Diferencia==null; } }
         public bool PuedeRegistrarSalida { get { return PuedeReportarDiferencia && VehiculoDisponible && !string.IsNullOrWhiteSpace(Piloto) && !string.IsNullOrWhiteSpace(Placa) && !string.IsNullOrWhiteSpace(Centro) && Documentos.Count>0 && !Documentos.Any(d=>d.Visito.HasValue || !string.IsNullOrWhiteSpace(d.Entrega)); } }
         public int Clientes { get { return Documentos.Select(d=>d.Cliente??"").Distinct(StringComparer.OrdinalIgnoreCase).Count(); } }
@@ -35,20 +41,42 @@ namespace DiamDev.Give.Entities
         public DateTime? SalidaLocal { get { return SalidaUtc.HasValue ? SalidaUtc.Value.AddHours(-6) : (DateTime?)null; } }
     }
 
+    public sealed class GaritaRutaResumen
+    {
+        public string Id { get; set; }
+        public DateTime Fecha { get; set; }
+        public string Placa { get; set; }
+        public string Piloto { get; set; }
+        public string Centro { get; set; }
+        public int Documentos { get; set; }
+        public int Clientes { get; set; }
+        public decimal Bultos { get; set; }
+        public bool SalidaRegistrada { get; set; }
+        public bool DiferenciaPendiente { get; set; }
+    }
+
+    public sealed class GaritaFoto
+    {
+        public string ContentType { get; set; }
+        public byte[] Contenido { get; set; }
+    }
+
     public sealed class GaritaRegistroSalida
     {
         public string RutaId { get; set; }
         public string Version { get; set; }
-        public bool PilotoVehiculoVerificados { get; set; }
+        public string PlacaBusqueda { get; set; }
         public bool CargaVerificada { get; set; }
-        public string Precinto { get; set; }
         public string Observacion { get; set; }
+        public string FotoNombre { get; set; }
+        public byte[] FotoContenido { get; set; }
         public Guid Solicitud { get; set; }
     }
 
     public sealed class GaritaDiferencia
     {
         public string RutaId { get; set; }
+        public string PlacaBusqueda { get; set; }
         public string Version { get; set; }
         public string Descripcion { get; set; }
         public Guid Solicitud { get; set; }
@@ -83,13 +111,20 @@ namespace DiamDev.Give.Entities
             if(id.Length==0 || id.Length>15 || id.Any(char.IsControl)) throw new PilotoException(400,"Escribe un número de ruta válido (máximo 15 caracteres).");
             return id;
         }
+        public static string Placa(string placa)
+        {
+            placa=(placa??"").Trim().ToUpperInvariant();
+            if(placa.Length==0 || placa.Length>15 || placa.Any(char.IsControl)) throw new PilotoException(400,"Escribe una placa válida (máximo 15 caracteres).");
+            return placa;
+        }
         public static void ValidarSalida(GaritaRegistroSalida c,GaritaRuta r)
         {
             if(c==null || c.RutaId!=r.Id || c.Solicitud==Guid.Empty) throw new PilotoException(400,"Vuelve a abrir la ruta e intenta de nuevo.");
             if(!r.PuedeRegistrarSalida) throw new PilotoException(409,"La ruta debe estar En ruta, sin salida previa ni diferencias y lista para salir. Consulta a Distribución.");
             if(c.Version!=r.Version) throw new PilotoException(409,"Los datos de la ruta cambiaron. Revísalos antes de registrar la hora de salida.");
-            if(!c.PilotoVehiculoVerificados || !c.CargaVerificada) throw new PilotoException(400,"Marca las dos verificaciones antes de registrar la hora de salida.");
-            c.Precinto=Limpiar(c.Precinto,40);c.Observacion=Limpiar(c.Observacion,250);
+            if(!c.CargaVerificada) throw new PilotoException(400,"Marca la verificación de clientes, facturas y bultos antes de registrar la hora de salida.");
+            if(c.FotoContenido!=null) PilotoReglas.ValidarImagen(c.FotoNombre,c.FotoContenido);
+            c.Observacion=Limpiar(c.Observacion,250);
         }
         public static string Limpiar(string valor,int max)
         {

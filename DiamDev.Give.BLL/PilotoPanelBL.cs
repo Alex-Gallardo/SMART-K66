@@ -7,5 +7,6 @@ namespace DiamDev.Give.BLL
     {
         public PilotoPanelModelo Leer(string login,PilotoPanelFiltro filtro,string id=null) { return new PilotoPanelDA().Leer(login,filtro,id); }
         public PilotoImagen Imagen(string login,string id,int row,bool cliente) { return new PilotoPanelDA().Imagen(login,id,row,cliente); }
+        public PilotoImagen FotoSalidaGarita(string login,string id) { return new PilotoPanelDA().FotoSalidaGarita(login,id); }
     }
 }

@@ -45,7 +45,7 @@
             <div class="vehicle-row"><span class="vehicle-icon"><svg class="icon" aria-hidden="true"><use href="#i-truck" /></svg></span><div><span class="field-label">Vehículo</span><strong class="vehicle-plate">@ruta.Placa</strong></div></div>
             <div class="route-meta"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><span><span class="field-label">Centro</span><strong>@ruta.Centro</strong></span></div>
             @if(ruta.Estado=="A") {
-                <p class="muted">Disponible cuando Garita confirme la salida de planta.</p>
+                <p class="muted">Distribución debe cambiar esta ruta a “En ruta” antes de la salida de planta.</p>
                 <button type="button" class="card-link" disabled>Ruta pendiente de salida</button>
             } else {
                 <a class="button-link card-link" href="@destino" aria-label="Ver ruta @ruta.Id">Ver ruta<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>

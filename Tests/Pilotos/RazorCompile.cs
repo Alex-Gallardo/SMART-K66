@@ -77,8 +77,9 @@ internal static class RazorCompile
                             garita.Documentos.Add(new DiamDev.Give.Entities.PilotoDocumento{RowId=1,Tipo="FACTURA",Empresa="GRACO",Documento="FAC-001",Cliente="CLIENTE UNO",Direccion="GUATEMALA",Bultos=4});
                             garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);
                             previews["garita-lista"]=RazorPreview.Render(type,garita);
+                            garita.Estado="E";garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);
                             garita.Diferencia="Faltan dos bultos";previews["garita-diferencia"]=RazorPreview.Render(type,garita);
-                            garita.Diferencia=null;garita.Estado="E";previews["garita-en-ruta"]=RazorPreview.Render(type,garita);
+                            garita.Diferencia=null;previews["garita-en-ruta"]=RazorPreview.Render(type,garita);
                             garita.SalidaUtc=new DateTime(2026,10,20,15,30,0,DateTimeKind.Utc);garita.Agente="GUARDIA";previews["garita-salida"]=RazorPreview.Render(type,garita);
                         }
                         if(relative=="Garita/Administrar.cshtml") {

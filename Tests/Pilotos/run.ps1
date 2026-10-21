@@ -2,6 +2,10 @@ param([string]$MvcDll, [string]$WebPagesDll, [string]$RazorDll, [string]$ScriptD
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $project=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/DiamDev.Give.UI.csproj') -Raw
+$garitaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/GaritaRutaDA.cs') -Raw
+if($garitaDA -match 'UPDATE\s+[^;]*RT_RUTAS' -or $garitaDA -match 'SqlConfirmarEstado' -or $garitaDA -notmatch 'Cmd\(cn,tx,SqlRegistrarSalida\)') {
+    throw 'Garita debe insertar el evento de salida sin actualizar el estado de RT_RUTAS.'
+}
 if($project -notmatch 'Content\\pilotos-panel-redesign\.css') { throw 'La hoja de estilos del panel debe incluirse en la publicación web.' }
 $seguridad=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/Controllers/SeguridadController.cs') -Raw
 if($seguridad -notmatch 'UsuarioTieneRol\(UsuarioActual\.Login, "GARITA"\)' -or $seguridad -notmatch 'return IniciarGarita\(UsuarioActual\)' -or
@@ -185,10 +189,10 @@ $garitaSalida=Get-Content -LiteralPath (Join-Path $out 'garita-salida.html') -Ra
 $garitaEnRuta=Get-Content -LiteralPath (Join-Path $out 'garita-en-ruta.html') -Raw
 $garitaVacia=Get-Content -LiteralPath (Join-Path $out 'garita-vacia.html') -Raw
 if($garitaVacia -notmatch 'name="id"' -or $garitaVacia -match 'class="recent-route"' -or $garitaVacia -match 'class="route-header"') {throw 'Garita debe mostrar rutas solo después de buscarlas por número.'}
-if($garitaLista -notmatch 'FAC-001' -or $garitaLista -notmatch '4 bultos' -or $garitaLista -notmatch 'name="PilotoVehiculoVerificados"' -or $garitaLista -notmatch 'name="CargaVerificada"' -or $garitaLista -notmatch 'Confirmar salida del vehículo') {throw 'La ruta abierta de garita debe mostrar carga y verificaciones.'}
-if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 'name="PilotoVehiculoVerificados"') {throw 'La diferencia debe bloquear el formulario de salida.'}
-if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'Ruta en curso' -or $garitaEnRuta -match 'id="confirm-form"') {throw 'La ruta E debe poder consultarse sin volver a confirmar salida.'}
-if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -match 'name="PilotoVehiculoVerificados"') {throw 'La salida confirmada debe mostrar hora y agente sin permitir otra confirmación.'}
+if($garitaLista -notmatch 'FAC-001' -or $garitaLista -notmatch 'Pendiente de Distribución' -or $garitaLista -match 'id="register-exit-form"') {throw 'La ruta abierta no debe permitir registrar salida.'}
+if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 'id="register-exit-form"') {throw 'La diferencia debe bloquear el registro de salida.'}
+if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'Registrar hora de salida') {throw 'La ruta E debe mostrar verificaciones y permitir registrar la hora de salida.'}
+if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida:' -or $garitaSalida -match 'id="register-exit-form"') {throw 'La salida registrada debe mostrar hora y agente sin permitir otra salida.'}
 $garitaAdmin=Get-Content -LiteralPath (Join-Path $out 'garita-admin.html') -Raw
 if($garitaAdmin -notmatch 'Faltan dos bultos' -or $garitaAdmin -notmatch 'name="asignar"' -or $garitaAdmin -notmatch 'ResolverDiferencia') {throw 'La administración debe mostrar incidentes y permitir centros y resolución.'}
 Write-Host 'OK: búsqueda, carga, bloqueo por diferencia y salida registrada en la vista de garita.'

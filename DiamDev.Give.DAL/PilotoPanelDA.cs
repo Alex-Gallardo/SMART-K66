@@ -163,7 +163,7 @@ WHERE e.CatalogoRutas=@catalogo ORDER BY e.Id DESC;")) {
                                 if(tipo=="S") {ruta.SalidaGaritaUtc=fecha;ruta.AgenteGarita=Texto(r,"Actor");ruta.PrecintoGarita=Texto(r,"Precinto");if(ruta.DiferenciaGarita==null) ruta.DiferenciaGarita="";}
                                 if((tipo=="D" || tipo=="R") && ruta.DiferenciaGarita==null) ruta.DiferenciaGarita=tipo=="D"?Texto(r,"Observacion"):"";
                                 if((filtro.Evento=="todos" || filtro.Evento=="Garita") && (id!=null || fecha>=filtro.Inicio.AddHours(6) && fecha<filtro.Fin.AddHours(6)) && (!filtro.Usuario.HasValue || filtro.Usuario.Value==Convert.ToInt64(r["Usuario_Id"])))
-                                    modelo.Actividad.Add(new PilotoPanelActividad {Tipo=tipo=="S"?"Salida de garita":tipo=="D"?"Diferencia en garita":"Diferencia resuelta",Ruta=ruta.Datos.Id,Usuario=Convert.ToInt64(r["Usuario_Id"]),Actor=Texto(r,"Actor"),Descripcion=tipo=="S"?"Vehículo autorizado a salir"+(Texto(r,"Precinto")==null?"":" · precinto "+Texto(r,"Precinto")):Texto(r,"Observacion"),FechaUtc=fecha,Clave="Garita #"+r["Id"]});
+                                    modelo.Actividad.Add(new PilotoPanelActividad {Tipo=tipo=="S"?"Salida de garita":tipo=="D"?"Diferencia en garita":"Diferencia resuelta",Ruta=ruta.Datos.Id,Usuario=Convert.ToInt64(r["Usuario_Id"]),Actor=Texto(r,"Actor"),Descripcion=tipo=="S"?"Hora de salida registrada"+(Texto(r,"Precinto")==null?"":" · precinto "+Texto(r,"Precinto")):Texto(r,"Observacion"),FechaUtc=fecha,Clave="Garita #"+r["Id"]});
                             }
                         }
                     }

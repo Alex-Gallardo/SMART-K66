@@ -184,8 +184,7 @@ $garitaDiferencia=Get-Content -LiteralPath (Join-Path $out 'garita-diferencia.ht
 $garitaSalida=Get-Content -LiteralPath (Join-Path $out 'garita-salida.html') -Raw
 $garitaEnRuta=Get-Content -LiteralPath (Join-Path $out 'garita-en-ruta.html') -Raw
 $garitaVacia=Get-Content -LiteralPath (Join-Path $out 'garita-vacia.html') -Raw
-if($garitaVacia -notmatch 'PP26-ABIERTA' -or $garitaVacia -notmatch 'PP26-EN-RUTA' -or
-   ([regex]::Matches($garitaVacia,'class="recent-route"')).Count -ne 2) {throw 'Garita debe listar rutas abiertas y en ruta del centro asignado.'}
+if($garitaVacia -notmatch 'name="id"' -or $garitaVacia -match 'class="recent-route"' -or $garitaVacia -match 'class="route-header"') {throw 'Garita debe mostrar rutas solo después de buscarlas por número.'}
 if($garitaLista -notmatch 'FAC-001' -or $garitaLista -notmatch '4 bultos' -or $garitaLista -notmatch 'name="PilotoVehiculoVerificados"' -or $garitaLista -notmatch 'name="CargaVerificada"' -or $garitaLista -notmatch 'Confirmar salida del vehículo') {throw 'La ruta abierta de garita debe mostrar carga y verificaciones.'}
 if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 'name="PilotoVehiculoVerificados"') {throw 'La diferencia debe bloquear el formulario de salida.'}
 if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'Ruta en curso' -or $garitaEnRuta -match 'id="confirm-form"') {throw 'La ruta E debe poder consultarse sin volver a confirmar salida.'}

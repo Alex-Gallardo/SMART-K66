@@ -17,7 +17,7 @@ check(document.querySelector('input[name="id"]'),'falta búsqueda');
 var form=document.getElementById('confirm-form');
 if('$name'==='lista') {check(form,'falta confirmación');check(form.querySelectorAll('input[type="checkbox"][required]').length===2,'faltan verificaciones');check(document.body.textContent.indexOf('FAC-001')>=0,'falta documento');}
 else check(!form,'confirmación disponible en estado no autorizado');
-if('$name'==='vacia') {check(document.body.textContent.indexOf('PP26-ABIERTA')>=0,'falta ruta abierta');check(document.body.textContent.indexOf('PP26-EN-RUTA')>=0,'falta ruta en curso');}
+if('$name'==='vacia') check(!document.querySelector('.route-header') && !document.querySelector('.recent-route'),'la pantalla inicial debe mostrar solo la búsqueda');
 if('$name'==='en-ruta') check(document.querySelector('.state-info') && document.body.textContent.indexOf('Ruta en curso')>=0,'falta estado En ruta de consulta');
 document.documentElement.setAttribute('data-garita-smoke','PASS');
 }catch(e){document.documentElement.setAttribute('data-garita-smoke','FAIL: '+e.message);}})();

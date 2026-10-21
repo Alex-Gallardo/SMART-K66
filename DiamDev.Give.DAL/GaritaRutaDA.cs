@@ -13,14 +13,6 @@ namespace DiamDev.Give.DAL
         private readonly string conexion,apk,catalogo;
         internal string SqlConfirmarEstado { get { return @"UPDATE "+apk+@".dbo.RT_RUTAS SET STATUS=N'E'
 WHERE ID_RUTA=@id AND STATUS=N'A' AND ISNULL(LIQUIDADO,0)=0;"; } }
-        internal string SqlRutasCentro { get { return @"WITH rutas AS (
-SELECT r.ID_RUTA,r.FECHA_RUTA,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.STATUS,
-ROW_NUMBER() OVER(PARTITION BY r.STATUS ORDER BY r.FECHA_RUTA DESC,r.ID_RUTA DESC) AS numero
-FROM "+apk+@".dbo.RT_RUTAS r
-WHERE r.STATUS IN(N'A',N'E') AND EXISTS
-(SELECT 1 FROM dbo.GaritaCentro g WHERE g.Usuario_Id=@usuario AND g.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT))
-SELECT ID_RUTA,FECHA_RUTA,PILOTO,PLACA,CENTRO_DIST,STATUS FROM rutas
-WHERE numero<=25 ORDER BY CASE STATUS WHEN N'A' THEN 0 ELSE 1 END,FECHA_RUTA DESC,ID_RUTA DESC;"; } }
         public GaritaRutaDA()
         {
             var a=new PilotoAdministracionDA();conexion=a.ConexionPanel;apk=a.CatalogoPanel;
@@ -80,17 +72,13 @@ WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo IN(N'D',N'R') ORDER BY Id
             using(var cn=Abrir()) using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted))
             {Instalada(cn,tx);var usuario=Autorizar(cn,tx,actor,GaritaReglas.Ver);var ruta=Leer(cn,tx,usuario,id,false);tx.Commit();return ruta;}
         }
-        public GaritaRuta Preparar(string actor)
+        public void Preparar(string actor)
         {
             using(var cn=Abrir()) using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted))
             {Instalada(cn,tx);var usuario=Autorizar(cn,tx,actor,GaritaReglas.Ver);
                 using(var c=Cmd(cn,tx,"SELECT COUNT(*) FROM dbo.GaritaCentro WHERE Usuario_Id=@usuario;"))
                 {P(c,"@usuario",SqlDbType.BigInt,usuario);if((int)c.ExecuteScalar()==0) throw new PilotoException(403,"No tienes un centro de garita asignado. Solicita acceso a Distribución.");}
-                var modelo=new GaritaRuta();
-                using(var c=Cmd(cn,tx,SqlRutasCentro))
-                {P(c,"@usuario",SqlDbType.BigInt,usuario);using(var r=c.ExecuteReader()) while(r.Read())
-                    modelo.Recientes.Add(new GaritaRutaResumen{Id=S(r,"ID_RUTA"),Fecha=(DateTime)r["FECHA_RUTA"],Piloto=S(r,"PILOTO"),Placa=S(r,"PLACA"),Centro=S(r,"CENTRO_DIST"),Estado=(S(r,"STATUS")??"").Trim()});}
-                tx.Commit();return modelo;
+                tx.Commit();
             }
         }
         public void Confirmar(string actor,GaritaConfirmacion modelo)

@@ -21,7 +21,7 @@ namespace DiamDev.Give.UI.Controllers
         {
             try
             {
-                if(string.IsNullOrWhiteSpace(id)) {new GaritaRutaDA().Preparar(User.Identity.Name);return View(new GaritaRuta());}
+                if(string.IsNullOrWhiteSpace(id)) return View(new GaritaRutaDA().Preparar(User.Identity.Name));
                 return View(new GaritaRutaDA().Buscar(User.Identity.Name,id));
             }
             catch(Exception e) { ViewBag.RutaId=id;return Error(e); }

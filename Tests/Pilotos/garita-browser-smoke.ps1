@@ -5,7 +5,7 @@ $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $bin=Join-Path $PSScriptRoot 'bin'
 $css=([Uri](Join-Path $repo 'DiamDev.Give.UI/Content/garita.css')).AbsoluteUri
 $smoke=Join-Path $bin 'garita-browser-smoke.html'
-foreach($name in @('vacia','lista','diferencia','salida')) {
+foreach($name in @('vacia','lista','diferencia','en-ruta','salida')) {
     $body=Get-Content -LiteralPath (Join-Path $bin ('garita-'+$name+'.html')) -Raw
     $probe=@"
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="$css"></head><body><main>$body</main>
@@ -17,6 +17,8 @@ check(document.querySelector('input[name="id"]'),'falta búsqueda');
 var form=document.getElementById('confirm-form');
 if('$name'==='lista') {check(form,'falta confirmación');check(form.querySelectorAll('input[type="checkbox"][required]').length===2,'faltan verificaciones');check(document.body.textContent.indexOf('FAC-001')>=0,'falta documento');}
 else check(!form,'confirmación disponible en estado no autorizado');
+if('$name'==='vacia') {check(document.body.textContent.indexOf('PP26-ABIERTA')>=0,'falta ruta abierta');check(document.body.textContent.indexOf('PP26-EN-RUTA')>=0,'falta ruta en curso');}
+if('$name'==='en-ruta') check(document.querySelector('.state-info') && document.body.textContent.indexOf('Ruta en curso')>=0,'falta estado En ruta de consulta');
 document.documentElement.setAttribute('data-garita-smoke','PASS');
 }catch(e){document.documentElement.setAttribute('data-garita-smoke','FAIL: '+e.message);}})();
 </script></body></html>

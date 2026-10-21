@@ -5,6 +5,7 @@
     ViewBag.Title="Buscar ruta";
     var encontrada=!string.IsNullOrEmpty(Model.Id);
     var abierta=Model.PuedeSalir && Model.VehiculoDisponible;
+    var enRuta=Model.Estado=="E";
 }
 <section class="search-card">
     <span class="step">1 · BUSCAR</span>
@@ -15,14 +16,27 @@
         <div class="search-row"><input id="id" name="id" value="@Model.Id" maxlength="15" autocomplete="off" autocapitalize="characters" placeholder="Ej. PP26-3002255" required autofocus /><button type="submit">Buscar ruta</button></div>
     }
 </section>
+@if(!encontrada) {
+    <section class="recent-card" aria-labelledby="rutas-recientes">
+        <div class="section-head"><div><span class="step">RUTAS DE TUS CENTROS</span><h2 id="rutas-recientes">Abiertas y en ruta</h2><p>Selecciona una ruta para revisar sus datos. Si no aparece, búscala por número arriba.</p></div></div>
+        @foreach(var grupo in new[]{new{Estado="A",Titulo="Abiertas",Descripcion="Pendientes de revisar en garita"},new{Estado="E",Titulo="En ruta",Descripcion="Salida registrada o en curso"}}) {
+            var rutas=Model.Recientes.Where(r=>r.Estado==grupo.Estado).ToList();
+            <div class="recent-group"><div class="recent-group-head"><h3>@grupo.Titulo</h3><span>@(rutas.Count==1?"1 reciente":rutas.Count+" recientes")</span></div><p>@grupo.Descripcion</p>
+                @if(rutas.Count==0) {<p class="recent-empty">No hay rutas recientes en este estado.</p>}
+                else {<ul class="recent-list">@foreach(var ruta in rutas) {<li><a class="recent-route" href="@Url.Action("Index","Garita",new{id=ruta.Id})"><span class="recent-id">@ruta.Id</span><span class="recent-meta">@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</span><span class="recent-pilot">@ruta.Piloto</span><span class="recent-open">Ver ruta ›</span></a></li>}</ul>}
+            </div>
+        }
+    </section>
+}
 @if(TempData["Garita.Mensaje"]!=null) {<div class="notice success" role="status">✓ @TempData["Garita.Mensaje"]</div>}
 @if(encontrada) {
     <section class="route-header">
         <div><span class="step">2 · REVISAR</span><h2>Ruta @Model.Id</h2><p>Comprueba estos datos con el piloto y el cargamento.</p></div>
-        <span class="state @(Model.SalidaUtc.HasValue?"state-done":abierta?"state-ready":"state-stop")">@(Model.SalidaUtc.HasValue?"Salida registrada":Model.Diferencia!=null?"Diferencia reportada":abierta?"Lista para revisar":"No autorizada para salir")</span>
+        <span class="state @(enRuta?(Model.SalidaUtc.HasValue?"state-done":"state-info"):abierta?"state-ready":"state-stop")">@(enRuta?"En ruta":Model.Diferencia!=null?"Diferencia reportada":abierta?"Lista para revisar":"No autorizada para salir")</span>
     </section>
     if(Model.SalidaUtc.HasValue) {<div class="notice success" role="status"><strong>Salida confirmada:</strong> @Model.SalidaLocal.Value.ToString("dd/MM/yyyy HH:mm") · Agente: @Model.Agente @(string.IsNullOrEmpty(Model.Precinto)?"":" · Precinto: "+Model.Precinto)</div>}
     else if(Model.Diferencia!=null) {<div class="notice stop" role="alert"><strong>Detén la salida.</strong> Se reportó esta diferencia: @Model.Diferencia. Distribución debe resolverla antes de confirmar.</div>}
+    else if(enRuta) {<div class="notice info" role="status"><strong>Ruta en curso.</strong> Consulta los datos del piloto y el cargamento. Esta ruta no tiene una salida registrada por Garita; si necesitas aclararlo, contacta a Distribución.</div>}
     else if(!abierta) {<div class="notice stop" role="alert"><strong>No confirmes la salida.</strong> La ruta debe estar abierta, sin resultados ni liquidación y con vehículo activo. Contacta a Distribución.</div>}
     <section class="facts" aria-label="Datos de la ruta">
         <div class="fact fact-primary"><span class="fact-icon" aria-hidden="true">🚚</span><span>PLACA</span><strong>@Model.Placa</strong></div>

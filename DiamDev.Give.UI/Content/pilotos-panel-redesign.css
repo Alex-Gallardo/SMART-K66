@@ -175,7 +175,7 @@
 .dist-panel .dist-client-extra a,.dist-panel .dist-doc-foot a{color:var(--dist-blue);font-weight:750;text-decoration:none}
 .dist-panel .dist-client-extra a:hover,.dist-panel .dist-doc-foot a:hover{text-decoration:underline}
 /*.dist-panel .dist-doc-list{border-top:1px solid #eaf0f5} */
-.dist-panel .dist-doc-list{border:none; margin-bottom: 1em}
+.dist-panel .dist-doc-list{border:none; margin-bottom: 1em; padding-bottom: 0.8em;}
 /*.dist-panel .dist-doc{padding:15px 0 16px;border-bottom:1px solid #eaf0f5}*/
 .dist-panel .dist-doc {
     padding: 1em;

@@ -27,13 +27,13 @@ namespace DiamDev.Give.UI.Controllers
             catch(Exception e) { ViewBag.RutaId=id;return Error(e); }
         }
         [HttpPost,ValidateAntiForgeryToken]
-        public ActionResult Confirmar(GaritaConfirmacion modelo)
+        public ActionResult RegistrarSalida(GaritaRegistroSalida modelo)
         {
             try
             {
-                if(!ModelState.IsValid) throw new PilotoException(400,"Revisa los datos antes de confirmar.");
-                new GaritaRutaDA().Confirmar(User.Identity.Name,modelo);
-                TempData["Garita.Mensaje"]="Salida registrada. El piloto ya puede continuar con la ruta.";
+                if(!ModelState.IsValid) throw new PilotoException(400,"Revisa los datos antes de registrar la salida.");
+                new GaritaRutaDA().RegistrarSalida(User.Identity.Name,modelo);
+                TempData["Garita.Mensaje"]="Hora de salida registrada. La ruta sigue En ruta.";
                 return RedirectToAction("Index",new{id=modelo.RutaId});
             }
             catch(Exception e) { ViewBag.RutaId=modelo==null?null:modelo.RutaId;return Error(e); }

@@ -10,9 +10,9 @@ namespace DiamDev.Give.DAL
 {
     public sealed class GaritaRutaDA
     {
+        internal const string SqlRegistrarSalida = @"INSERT dbo.GaritaRutaEvento(CatalogoRutas,Ruta_Id,Tipo,Solicitud,Usuario_Id,Actor,Centro_Dist,Piloto,Placa,Documentos,Bultos,Version,Precinto,Observacion)
+VALUES(@catalogo,@id,N'S',@solicitud,@usuario,@actor,@centro,@piloto,@placa,@documentos,@bultos,@version,@precinto,@observacion);";
         private readonly string conexion,apk,catalogo;
-        internal string SqlConfirmarEstado { get { return @"UPDATE "+apk+@".dbo.RT_RUTAS SET STATUS=N'E'
-WHERE ID_RUTA=@id AND STATUS=N'A' AND ISNULL(LIQUIDADO,0)=0;"; } }
         public GaritaRutaDA()
         {
             var a=new PilotoAdministracionDA();conexion=a.ConexionPanel;apk=a.CatalogoPanel;
@@ -81,29 +81,24 @@ WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo IN(N'D',N'R') ORDER BY Id
                 tx.Commit();
             }
         }
-        public void Confirmar(string actor,GaritaConfirmacion modelo)
+        public void RegistrarSalida(string actor,GaritaRegistroSalida modelo)
         {
             if(modelo==null) throw new PilotoException(400,"Vuelve a abrir la ruta.");
             var id=GaritaReglas.Id(modelo.RutaId);
             using(var cn=Abrir()) using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
             {
-                Instalada(cn,tx);Autorizar(cn,tx,actor,GaritaReglas.Ver);var usuario=Autorizar(cn,tx,actor,GaritaReglas.Salir);
+                Instalada(cn,tx);Autorizar(cn,tx,actor,GaritaReglas.Ver);var usuario=Autorizar(cn,tx,actor,GaritaReglas.RegistrarSalida);
                 var ruta=Leer(cn,tx,usuario,id,true);
                 if(ruta.SalidaUtc.HasValue) {
                     using(var c=Cmd(cn,tx,"SELECT COUNT(*) FROM dbo.GaritaRutaEvento WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo=N'S' AND Solicitud=@solicitud AND Usuario_Id=@usuario;"))
                     {P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@id",SqlDbType.NVarChar,id,15);P(c,"@solicitud",SqlDbType.UniqueIdentifier,modelo.Solicitud);P(c,"@usuario",SqlDbType.BigInt,usuario);if((int)c.ExecuteScalar()==1) {tx.Commit();return;}}
                     throw new PilotoException(409,"La salida ya fue registrada. Consulta a Distribución.");
                 }
-                GaritaReglas.Validar(modelo,ruta);
-                if(string.IsNullOrWhiteSpace(ruta.Piloto) || string.IsNullOrWhiteSpace(ruta.Placa) || string.IsNullOrWhiteSpace(ruta.Centro) || !ruta.VehiculoDisponible)
-                    throw new PilotoException(409,"Faltan datos de piloto, vehículo o centro. Consulta a Distribución.");
+                GaritaReglas.ValidarSalida(modelo,ruta);
                 using(var c=Cmd(cn,tx,@"SELECT COUNT(*) FROM "+apk+@".dbo.RT_EMPLEADOS e WHERE e.NOMBRE=@piloto AND e.CARGO=N'PILOTO' AND e.ESTADO=1
 AND NOT EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_EMPLEADOS otro WHERE otro.CARGO=N'PILOTO' AND otro.NOMBRE=e.NOMBRE AND otro.ROWID<>e.ROWID);"))
                 {P(c,"@piloto",SqlDbType.NVarChar,ruta.Piloto,90);if((int)c.ExecuteScalar()!=1) throw new PilotoException(409,"El piloto no está activo o su asignación es ambigua. Consulta a Distribución.");}
-                using(var c=Cmd(cn,tx,SqlConfirmarEstado))
-                {P(c,"@id",SqlDbType.NVarChar,id,15);if(c.ExecuteNonQuery()!=1) throw new PilotoException(409,"La ruta cambió. Vuelve a consultarla.");}
-                using(var c=Cmd(cn,tx,@"INSERT dbo.GaritaRutaEvento(CatalogoRutas,Ruta_Id,Tipo,Solicitud,Usuario_Id,Actor,Centro_Dist,Piloto,Placa,Documentos,Bultos,Version,Precinto,Observacion)
-VALUES(@catalogo,@id,N'S',@solicitud,@usuario,@actor,@centro,@piloto,@placa,@documentos,@bultos,@version,@precinto,@observacion);"))
+                using(var c=Cmd(cn,tx,SqlRegistrarSalida))
                 {EventoParametros(c,ruta,usuario,actor,modelo.Solicitud,modelo.Precinto,modelo.Observacion);c.ExecuteNonQuery();}
                 tx.Commit();
             }
@@ -114,11 +109,11 @@ VALUES(@catalogo,@id,N'S',@solicitud,@usuario,@actor,@centro,@piloto,@placa,@doc
             var id=GaritaReglas.Id(modelo.RutaId);var nota=GaritaReglas.Limpiar(modelo.Descripcion,250);
             if(nota.Length<10 || modelo.Solicitud==Guid.Empty) throw new PilotoException(400,"Describe la diferencia con al menos 10 caracteres.");
             using(var cn=Abrir()) using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
-            {Instalada(cn,tx);Autorizar(cn,tx,actor,GaritaReglas.Ver);var usuario=Autorizar(cn,tx,actor,GaritaReglas.Salir);var ruta=Leer(cn,tx,usuario,id,true);
+            {Instalada(cn,tx);Autorizar(cn,tx,actor,GaritaReglas.Ver);var usuario=Autorizar(cn,tx,actor,GaritaReglas.RegistrarSalida);var ruta=Leer(cn,tx,usuario,id,true);
                 using(var repetida=Cmd(cn,tx,"SELECT COUNT(*) FROM dbo.GaritaRutaEvento WHERE Solicitud=@solicitud AND Tipo=N'D' AND Usuario_Id=@usuario AND CatalogoRutas=@catalogo AND Ruta_Id=@id;"))
                 {P(repetida,"@solicitud",SqlDbType.UniqueIdentifier,modelo.Solicitud);P(repetida,"@usuario",SqlDbType.BigInt,usuario);P(repetida,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(repetida,"@id",SqlDbType.NVarChar,id,15);
                  if((int)repetida.ExecuteScalar()==1) {tx.Commit();return;}}
-                if(!ruta.PuedeSalir || ruta.SalidaUtc.HasValue || ruta.Version!=modelo.Version) throw new PilotoException(409,"La ruta cambió. Vuelve a revisarla.");
+                if(!ruta.PuedeReportarDiferencia || ruta.Version!=modelo.Version) throw new PilotoException(409,"La ruta cambió. Vuelve a revisarla.");
                 using(var c=Cmd(cn,tx,@"INSERT dbo.GaritaRutaEvento(CatalogoRutas,Ruta_Id,Tipo,Solicitud,Usuario_Id,Actor,Centro_Dist,Piloto,Placa,Documentos,Bultos,Version,Observacion)
 VALUES(@catalogo,@id,N'D',@solicitud,@usuario,@actor,@centro,@piloto,@placa,@documentos,@bultos,@version,@observacion);"))
                 {EventoParametros(c,ruta,usuario,actor,modelo.Solicitud,null,nota);c.ExecuteNonQuery();}tx.Commit();}
@@ -178,7 +173,7 @@ INSERT dbo.GaritaCentro(Usuario_Id,Centro_Dist) VALUES(@usuario,@centro);":@"DEL
                 // El administrador puede revisar una ruta de cualquier centro; no se le concede acceso operativo a la garita.
                 using(var c=Cmd(cn,tx,"SELECT TOP (1) STATUS,LIQUIDADO FROM "+apk+".dbo.RT_RUTAS WITH(UPDLOCK,HOLDLOCK) WHERE ID_RUTA=@id;"))
                 {P(c,"@id",SqlDbType.NVarChar,id,15);using(var r=c.ExecuteReader()) {if(!r.Read()) throw new PilotoException(404,"Ruta no disponible.");
-                    if(S(r,"STATUS")!="A" || r["LIQUIDADO"]!=DBNull.Value && Convert.ToBoolean(r["LIQUIDADO"])) throw new PilotoException(409,"Solo se resuelven diferencias de rutas abiertas y sin liquidar.");}}
+                    if(!new[]{"A","E"}.Contains((S(r,"STATUS")??"").Trim()) || r["LIQUIDADO"]!=DBNull.Value && Convert.ToBoolean(r["LIQUIDADO"])) throw new PilotoException(409,"Solo se resuelven diferencias de rutas abiertas o en ruta sin liquidar.");}}
                 using(var c=Cmd(cn,tx,"SELECT COUNT(*) FROM dbo.GaritaRutaEvento WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo=N'S';"))
                 {P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@id",SqlDbType.NVarChar,id,15);if((int)c.ExecuteScalar()>0) throw new PilotoException(409,"La salida ya está registrada.");}
                 using(var c=Cmd(cn,tx,@"SELECT TOP (1) Id FROM dbo.GaritaRutaEvento

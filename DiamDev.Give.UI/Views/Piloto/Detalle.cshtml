@@ -12,7 +12,7 @@
 @Html.ValidationSummary(false, "Revisa los resultados antes de continuar.", new { role="alert" })
 @if (TempData["Piloto.Mensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.Mensaje"]</p> }
 <dl class="route-summary"><div><dt>Fecha</dt><dd>@Model.Fecha.ToString("dd/MM/yyyy")</dd></div><div><dt>Vehículo</dt><dd>@Model.Placa</dd></div><div><dt>Piloto</dt><dd>@Model.Piloto</dd></div><div><dt>Centro</dt><dd>@Model.Centro</dd></div></dl>
-@if(Model.SalidaGaritaUtc.HasValue){<p class="notice success" role="status">Garita confirmó la salida de planta el @Model.SalidaGaritaUtc.Value.AddHours(-6).ToString("dd/MM/yyyy") a las @Model.SalidaGaritaUtc.Value.AddHours(-6).ToString("HH:mm") (hora de Guatemala).</p>}
+@if(Model.SalidaGaritaUtc.HasValue){<p class="notice success" role="status">Garita registró la salida de planta el @Model.SalidaGaritaUtc.Value.AddHours(-6).ToString("dd/MM/yyyy") a las @Model.SalidaGaritaUtc.Value.AddHours(-6).ToString("HH:mm") (hora de Guatemala).</p>}
 @if (!string.IsNullOrWhiteSpace(Model.Transporte) || !string.IsNullOrWhiteSpace(Model.Vehiculo)) {
     <div class="vehicle-panel"><p class="eyebrow">TRANSPORTE ASIGNADO</p><strong>@(Model.Transporte ?? "Vehículo de la ruta")</strong><p class="muted">@Model.Vehiculo <span class="plate">@Model.Placa</span></p></div>
 }

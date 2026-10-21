@@ -28,13 +28,14 @@ namespace DiamDev.Give.Entities
         public string Precinto { get; set; }
         public List<PilotoDocumento> Documentos { get; set; }
         public GaritaRuta() { Documentos=new List<PilotoDocumento>(); }
-        public bool PuedeSalir { get { return Estado=="A" && !Liquidada && Diferencia==null && Documentos.Count>0 && !Documentos.Any(d=>d.Visito.HasValue || !string.IsNullOrWhiteSpace(d.Entrega)); } }
+        public bool PuedeReportarDiferencia { get { return Estado=="E" && !Liquidada && !SalidaUtc.HasValue && Diferencia==null; } }
+        public bool PuedeRegistrarSalida { get { return PuedeReportarDiferencia && VehiculoDisponible && !string.IsNullOrWhiteSpace(Piloto) && !string.IsNullOrWhiteSpace(Placa) && !string.IsNullOrWhiteSpace(Centro) && Documentos.Count>0 && !Documentos.Any(d=>d.Visito.HasValue || !string.IsNullOrWhiteSpace(d.Entrega)); } }
         public int Clientes { get { return Documentos.Select(d=>d.Cliente??"").Distinct(StringComparer.OrdinalIgnoreCase).Count(); } }
         public decimal Bultos { get { return Documentos.Sum(d=>d.Bultos); } }
         public DateTime? SalidaLocal { get { return SalidaUtc.HasValue ? SalidaUtc.Value.AddHours(-6) : (DateTime?)null; } }
     }
 
-    public sealed class GaritaConfirmacion
+    public sealed class GaritaRegistroSalida
     {
         public string RutaId { get; set; }
         public string Version { get; set; }
@@ -74,19 +75,20 @@ namespace DiamDev.Give.Entities
 
     public static class GaritaReglas
     {
-        public const string Ver="Garita.Rutas.Ver", Salir="Garita.Rutas.ConfirmarSalida", Administrar="Garita.Administrar";
+        // Se conserva el identificador del permiso POS existente; la acción registra un evento, nunca cambia el estado de la ruta.
+        public const string Ver="Garita.Rutas.Ver", RegistrarSalida="Garita.Rutas.ConfirmarSalida", Administrar="Garita.Administrar";
         public static string Id(string id)
         {
             id=(id??"").Trim();
             if(id.Length==0 || id.Length>15 || id.Any(char.IsControl)) throw new PilotoException(400,"Escribe un número de ruta válido (máximo 15 caracteres).");
             return id;
         }
-        public static void Validar(GaritaConfirmacion c,GaritaRuta r)
+        public static void ValidarSalida(GaritaRegistroSalida c,GaritaRuta r)
         {
             if(c==null || c.RutaId!=r.Id || c.Solicitud==Guid.Empty) throw new PilotoException(400,"Vuelve a abrir la ruta e intenta de nuevo.");
-            if(!r.PuedeSalir) throw new PilotoException(409,"La ruta no está abierta y lista para salir. Consulta a Distribución.");
-            if(c.Version!=r.Version) throw new PilotoException(409,"Los datos de la ruta cambiaron. Revísalos antes de confirmar la salida.");
-            if(!c.PilotoVehiculoVerificados || !c.CargaVerificada) throw new PilotoException(400,"Marca las dos verificaciones antes de confirmar la salida.");
+            if(!r.PuedeRegistrarSalida) throw new PilotoException(409,"La ruta debe estar En ruta, sin salida previa ni diferencias y lista para salir. Consulta a Distribución.");
+            if(c.Version!=r.Version) throw new PilotoException(409,"Los datos de la ruta cambiaron. Revísalos antes de registrar la hora de salida.");
+            if(!c.PilotoVehiculoVerificados || !c.CargaVerificada) throw new PilotoException(400,"Marca las dos verificaciones antes de registrar la hora de salida.");
             c.Precinto=Limpiar(c.Precinto,40);c.Observacion=Limpiar(c.Observacion,250);
         }
         public static string Limpiar(string valor,int max)

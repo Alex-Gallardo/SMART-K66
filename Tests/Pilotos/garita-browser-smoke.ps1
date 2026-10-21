@@ -14,11 +14,12 @@ foreach($name in @('vacia','lista','diferencia','en-ruta','salida')) {
 function check(x,m){if(!x)throw new Error(m);}
 check(document.documentElement.scrollWidth<=innerWidth+1,'desbordamiento horizontal');
 check(document.querySelector('input[name="id"]'),'falta búsqueda');
-var form=document.getElementById('confirm-form');
-if('$name'==='lista') {check(form,'falta confirmación');check(form.querySelectorAll('input[type="checkbox"][required]').length===2,'faltan verificaciones');check(document.body.textContent.indexOf('FAC-001')>=0,'falta documento');}
-else check(!form,'confirmación disponible en estado no autorizado');
+var form=document.getElementById('register-exit-form');
+if('$name'==='en-ruta') {check(form,'falta registro de salida');check(form.querySelectorAll('input[type="checkbox"][required]').length===2,'faltan verificaciones');check(document.body.textContent.indexOf('FAC-001')>=0,'falta documento');}
+else check(!form,'registro de salida disponible en estado no autorizado');
 if('$name'==='vacia') check(!document.querySelector('.route-header') && !document.querySelector('.recent-route'),'la pantalla inicial debe mostrar solo la búsqueda');
-if('$name'==='en-ruta') check(document.querySelector('.state-info') && document.body.textContent.indexOf('Ruta en curso')>=0,'falta estado En ruta de consulta');
+if('$name'==='lista') check(document.body.textContent.indexOf('Pendiente de Distribución')>=0,'la ruta abierta debe esperar a Distribución');
+if('$name'==='en-ruta') check(document.querySelector('.state-ready') && document.body.textContent.indexOf('Registrar hora de salida')>=0,'falta acción de salida en ruta E');
 document.documentElement.setAttribute('data-garita-smoke','PASS');
 }catch(e){document.documentElement.setAttribute('data-garita-smoke','FAIL: '+e.message);}})();
 </script></body></html>

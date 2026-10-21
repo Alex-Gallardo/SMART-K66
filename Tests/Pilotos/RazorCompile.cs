@@ -72,10 +72,7 @@ internal static class RazorCompile
                         if(relative=="Piloto/AdministracionError.cshtml") previews["administracion-error"]=RazorPreview.Render(type,null);
                         if(relative=="Piloto/Error.cshtml") previews["error"]=RazorPreview.Render(type,null);
                         if(relative=="Garita/Index.cshtml") {
-                            var vacia=new DiamDev.Give.Entities.GaritaRuta();
-                            vacia.Recientes.Add(new DiamDev.Give.Entities.GaritaRutaResumen{Id="PP26-ABIERTA",Estado="A",Centro="PALIN",Placa="C-123ABC",Piloto="PILOTO UNO",Fecha=new DateTime(2026,10,20)});
-                            vacia.Recientes.Add(new DiamDev.Give.Entities.GaritaRutaResumen{Id="PP26-EN-RUTA",Estado="E",Centro="PALIN",Placa="C-456DEF",Piloto="PILOTO DOS",Fecha=new DateTime(2026,10,19)});
-                            previews["garita-vacia"]=RazorPreview.Render(type,vacia);
+                            previews["garita-vacia"]=RazorPreview.Render(type,new DiamDev.Give.Entities.GaritaRuta());
                             var garita=new DiamDev.Give.Entities.GaritaRuta{Id="PP26-GARITA",Estado="A",Centro="PALIN",Piloto="PILOTO DEMO",Placa="C-123ABC",Fecha=new DateTime(2026,10,20),VehiculoDisponible=true};
                             garita.Documentos.Add(new DiamDev.Give.Entities.PilotoDocumento{RowId=1,Tipo="FACTURA",Empresa="GRACO",Documento="FAC-001",Cliente="CLIENTE UNO",Direccion="GUATEMALA",Bultos=4});
                             garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);

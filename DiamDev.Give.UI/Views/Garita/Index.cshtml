@@ -16,18 +16,6 @@
         <div class="search-row"><input id="id" name="id" value="@Model.Id" maxlength="15" autocomplete="off" autocapitalize="characters" placeholder="Ej. PP26-3002255" required autofocus /><button type="submit">Buscar ruta</button></div>
     }
 </section>
-@if(!encontrada) {
-    <section class="recent-card" aria-labelledby="rutas-recientes">
-        <div class="section-head"><div><span class="step">RUTAS DE TUS CENTROS</span><h2 id="rutas-recientes">Abiertas y en ruta</h2><p>Selecciona una ruta para revisar sus datos. Si no aparece, búscala por número arriba.</p></div></div>
-        @foreach(var grupo in new[]{new{Estado="A",Titulo="Abiertas",Descripcion="Pendientes de revisar en garita"},new{Estado="E",Titulo="En ruta",Descripcion="Salida registrada o en curso"}}) {
-            var rutas=Model.Recientes.Where(r=>r.Estado==grupo.Estado).ToList();
-            <div class="recent-group"><div class="recent-group-head"><h3>@grupo.Titulo</h3><span>@(rutas.Count==1?"1 reciente":rutas.Count+" recientes")</span></div><p>@grupo.Descripcion</p>
-                @if(rutas.Count==0) {<p class="recent-empty">No hay rutas recientes en este estado.</p>}
-                else {<ul class="recent-list">@foreach(var ruta in rutas) {<li><a class="recent-route" href="@Url.Action("Index","Garita",new{id=ruta.Id})"><span class="recent-id">@ruta.Id</span><span class="recent-meta">@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</span><span class="recent-pilot">@ruta.Piloto</span><span class="recent-open">Ver ruta ›</span></a></li>}</ul>}
-            </div>
-        }
-    </section>
-}
 @if(TempData["Garita.Mensaje"]!=null) {<div class="notice success" role="status">✓ @TempData["Garita.Mensaje"]</div>}
 @if(encontrada) {
     <section class="route-header">

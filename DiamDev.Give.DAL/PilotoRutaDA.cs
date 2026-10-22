@@ -18,7 +18,7 @@ SET MO_HR_ENTRADA=COALESCE(MO_HR_ENTRADA,@hora)
 WHERE ID_RUTA=@ruta AND ROWID=@rowid AND MO_ENTREGA=N'ENTREGADO';"; } }
         private readonly string conexion;
         private readonly string apk;
-        private sealed class Acceso { public long Usuario; public string Nombre; public string Operador; public string PlacaPrueba; public string RutaPrueba; public string PilotoPrueba; }
+        private sealed class Acceso { public long Usuario; public string Nombre; public string Operador; public bool Empresa; public string NombreEmpresa; public string PlacaPrueba; public string RutaPrueba; public string PilotoPrueba; }
 
         public static bool Habilitado { get { return EsTrue("Pilotos.Habilitado"); } }
         public static bool PruebasSoloLectura { get { return EsTrue("Pilotos.PruebasSoloLectura"); } }
@@ -99,12 +99,15 @@ WHERE ID_RUTA=@ruta AND ROWID=@rowid AND MO_ENTREGA=N'ENTREGADO';"; } }
         {
             if (string.IsNullOrWhiteSpace(login) || login.Length > 50) throw new PilotoException(403, "Acceso no autorizado.");
             if (PruebasSoloLectura) return AutorizarPrueba(cn,tx,login,permiso);
-            using (var readiness = Command(cn, tx, "SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoVinculo',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoCentro',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVehiculo',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
-                if ((int)readiness.ExecuteScalar() != 1) throw new PilotoException(503, "Falta preparar los vínculos de pilotos y vehículos. Contacta al administrador.");
-            var sql = @"SELECT TOP (2) u.Usuario_Id, e.NOMBRE, p.Codigo_Operador
+            using (var readiness = Command(cn, tx, "SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoVinculo',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoCentro',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVehiculo',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoEmpresa',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorRuta',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorHistorial',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
+                if ((int)readiness.ExecuteScalar() != 1) throw new PilotoException(503, "Faltan vínculos de pilotos o la migración 30 de transportistas en POS. Contacta al administrador.");
+            var sql = @"SELECT TOP (2) u.Usuario_Id, e.NOMBRE, p.Codigo_Operador,
+CAST(ISNULL(pe.Activo,0) AS bit) Empresa,pe.Nombre NombreEmpresa
 FROM dbo.Usuario u JOIN dbo.PilotoVinculo p ON p.Usuario_Id=u.Usuario_Id
+LEFT JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=u.Usuario_Id
 JOIN " + apk + @".dbo.RT_EMPLEADOS e ON e.ROWID=p.Empleado_RowId
 WHERE u.Login=@login AND u.Activo=1 AND u.Autenticar_Site=1 AND p.Activo=1
+AND (pe.Usuario_Id IS NULL OR pe.Activo=1 AND pe.Nit=u.Login)
 AND NOT EXISTS (SELECT 1 FROM dbo.Usuario otroUsuario WHERE otroUsuario.Login=u.Login AND otroUsuario.Usuario_Id<>u.Usuario_Id)
 AND e.ESTADO=1 AND e.CARGO=N'PILOTO' AND NULLIF(LTRIM(RTRIM(e.NOMBRE)),N'') IS NOT NULL
 AND NOT EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_EMPLEADOS otro
@@ -120,7 +123,7 @@ AND EXISTS (SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol_Permiso rp ON rp.Rol_I
                 using (var r = cmd.ExecuteReader())
                 {
                     if (!r.Read()) throw new PilotoException(403, "Tu acceso de piloto no esta configurado o esta inactivo. Contacta a Distribucion.");
-                    var a = new Acceso { Usuario = (long)r["Usuario_Id"], Nombre = Texto(r, "NOMBRE"), Operador = Texto(r, "Codigo_Operador") };
+                    var a = new Acceso { Usuario = (long)r["Usuario_Id"], Nombre = Texto(r, "NOMBRE"), Operador = Texto(r, "Codigo_Operador"), Empresa=(bool)r["Empresa"], NombreEmpresa=Texto(r,"NombreEmpresa") };
                     if (r.Read() || string.IsNullOrWhiteSpace(a.Operador)) throw new PilotoException(403, "El vinculo de piloto es ambiguo o incompleto.");
                     return a;
                 }
@@ -182,7 +185,13 @@ AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA 
                 Estado = Texto(r, "STATUS"), Solicitud = Guid.NewGuid() };
         }
 
-        public PilotoLista Listar(string login, DateTime desde, DateTime hasta, int pagina, string vista = null)
+        private static void ExigirConductor(PilotoRuta ruta)
+        {
+            if(ruta.CuentaEmpresa && (string.IsNullOrWhiteSpace(ruta.ConductorReal) || string.IsNullOrWhiteSpace(ruta.DocumentoConductor)))
+                throw new PilotoException(409,"Distribución debe asignar el conductor de esta ruta antes de registrar entregas.");
+        }
+
+        public PilotoLista Listar(string login, DateTime desde, DateTime hasta, int pagina, string vista = null, string placa = null)
         {
             vista=PilotoReglas.VistaRutas(vista);
             desde = desde.Date; hasta = hasta.Date;
@@ -194,19 +203,34 @@ AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA 
                 using (var tx = cn.BeginTransaction(IsolationLevel.Serializable))
                 {
                     var a = Autorizar(cn, tx, login, "Pilotos.Rutas.Ver");
+                    result.CuentaEmpresa=a.Empresa;result.NombreEmpresa=a.NombreEmpresa;
+                    if(a.Empresa)
+                    {
+                        using(var opciones=Command(cn,tx,@"SELECT pv.Placa FROM dbo.PilotoVehiculo pv
+JOIN "+apk+@".dbo.RT_VEHICULOS v ON v.PLACA=pv.Placa COLLATE DATABASE_DEFAULT AND v.ESTADO=1
+WHERE pv.Usuario_Id=@usuario AND pv.Activo=1 ORDER BY pv.Placa;"))
+                        {Param(opciones,"@usuario",SqlDbType.BigInt,a.Usuario);using(var lector=opciones.ExecuteReader()) while(lector.Read()) result.PlacasDisponibles.Add(Texto(lector,"Placa"));}
+                        result.PlacaSeleccionada=PilotoEmpresaReglas.SeleccionarPlaca(result.PlacasDisponibles,placa);
+                        if(result.PlacaSeleccionada==null) {tx.Commit();return result;}
+                    }
                     result.RutaFija=a.RutaPrueba!=null;
-                    var sql = @"SELECT r.ID_RUTA,r.FECHA_RUTA,r.PLACA,r.PILOTO,r.CENTRO_DIST,r.STATUS
+                    var sql = @"SELECT r.ID_RUTA,r.FECHA_RUTA,r.PLACA,r.PILOTO,r.CENTRO_DIST,r.STATUS,cr.Nombre ConductorReal
 FROM " + apk + @".dbo.RT_RUTAS r
-WHERE " + Alcance(a) + (result.RutaFija ? " AND r.STATUS IN (N'A',N'E',N'C',N'X')" : " AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin AND r.STATUS IN (@estado1,@estado2)") + @"
+LEFT JOIN dbo.PilotoConductorRuta cr ON cr.CatalogoRutas=@catalogo AND cr.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT
+ AND cr.Usuario_Id=@usuario AND cr.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND cr.Piloto=r.PILOTO COLLATE DATABASE_DEFAULT
+WHERE " + Alcance(a) + (a.Empresa ? " AND r.PLACA=@placaEmpresa" : "") + (result.RutaFija ? " AND r.STATUS IN (N'A',N'E',N'C',N'X')" : " AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin AND r.STATUS IN (@estado1,@estado2)") + @"
 ORDER BY CASE WHEN r.STATUS=N'E' THEN 0 ELSE 1 END,r.FECHA_RUTA DESC,r.ID_RUTA DESC OFFSET @offset ROWS FETCH NEXT 26 ROWS ONLY;";
                     using (var cmd = Command(cn, tx, sql))
                     {
                         ParametrosAcceso(cmd,a);
+                        Param(cmd,"@catalogo",SqlDbType.NVarChar,apk.Substring(1,apk.Length-2).Replace("]]","]"),128);
+                        if(a.Empresa) Param(cmd,"@placaEmpresa",SqlDbType.NVarChar,result.PlacaSeleccionada,15);
+                        if(a.PlacaPrueba!=null || a.RutaPrueba!=null) Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario);
                         Param(cmd,"@desde",SqlDbType.Date,desde); Param(cmd,"@fin",SqlDbType.Date,hasta.AddDays(1));
                         Param(cmd,"@offset",SqlDbType.Int,(pagina-1)*25);
                         Param(cmd,"@estado1",SqlDbType.NVarChar,vista=="activas" ? "A" : "C",1);
                         Param(cmd,"@estado2",SqlDbType.NVarChar,vista=="activas" ? "E" : "X",1);
-                        using (var r=cmd.ExecuteReader()) while(r.Read()) result.Rutas.Add(Cabecera(r));
+                        using (var r=cmd.ExecuteReader()) while(r.Read()) {var item=Cabecera(r);item.CuentaEmpresa=a.Empresa;item.ConductorReal=Texto(r,"ConductorReal");result.Rutas.Add(item);}
                     }
                     tx.Commit();
                 }
@@ -237,6 +261,16 @@ FROM " + apk + ".dbo.RT_RUTAS r" + hint + "WHERE r.ID_RUTA=@id AND " + AlcanceDe
             using (var cmd = Command(cn, tx, "SELECT COUNT(*) FROM " + apk + ".dbo.RT_RUTAS_DET WHERE ID_RUTA=@id;"))
             {
                 Param(cmd,"@id",SqlDbType.NVarChar,id,15); ruta.TotalDocumentos=(int)cmd.ExecuteScalar();
+            }
+            ruta.CuentaEmpresa=a.Empresa;
+            if(a.Empresa)
+            {
+                using(var conductor=Command(cn,tx,@"SELECT Nombre,Documento FROM dbo.PilotoConductorRuta
+WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Usuario_Id=@usuario AND Placa=@placa AND Piloto=@piloto;"))
+                {Param(conductor,"@catalogo",SqlDbType.NVarChar,apk.Substring(1,apk.Length-2).Replace("]]","]"),128);Param(conductor,"@id",SqlDbType.NVarChar,id,15);
+                 Param(conductor,"@usuario",SqlDbType.BigInt,a.Usuario);Param(conductor,"@placa",SqlDbType.NVarChar,ruta.Placa,15);Param(conductor,"@piloto",SqlDbType.NVarChar,ruta.Piloto,90);
+                 using(var lector=conductor.ExecuteReader()) if(lector.Read()) {ruta.ConductorReal=Texto(lector,"Nombre");ruta.DocumentoConductor=Texto(lector,"Documento");}}
+                if(string.IsNullOrWhiteSpace(ruta.ConductorReal)) ruta.PuedeCerrar=false;
             }
             if (!consulta && ruta.TotalDocumentos > PilotoReglas.MaxDocumentos)
                 throw new PilotoException(409,"Esta ruta supera el límite de documentos para cierre. Puedes consultarla; solicita el cierre a Distribución.");
@@ -398,6 +432,7 @@ WHERE b.Usuario_Id=@usuario AND b.Ruta_Id=@ruta;"))
             {
                 var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Confirmar");
                 var ruta=LeerRuta(cn,tx,a,borrador.RutaId,true);
+                ExigirConductor(ruta);
                 if(!ruta.PuedeCerrar || !ruta.ClientesCompletadosDisponibles || ruta.Version!=borrador.Version)
                     throw new PilotoException(409,"La ruta cambió o el guardado no está instalado. Recarga los detalles.");
                 var grupo=DocumentosGrupo(ruta,borrador.PrimerRowId);
@@ -505,7 +540,7 @@ WHERE r.ID_RUTA=@id AND d.ROWID=@row AND " + AlcanceDetalle(acceso) + ";";
             using(var sha=SHA256.Create()) huella=sha.ComputeHash(imagen.Contenido);
             using(var cn=AbrirConexion()) using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
             {
-                var acceso=Autorizar(cn,tx,login,"Pilotos.Rutas.Ver");
+                var acceso=Autorizar(cn,tx,login,"Pilotos.Rutas.Confirmar");
                 VerificarTablaImagen(cn,tx);
                 var sql=@"SELECT TOP (1) r.STATUS
 FROM " + apk + @".dbo.RT_RUTAS r WITH(UPDLOCK,HOLDLOCK)
@@ -524,6 +559,7 @@ WHERE r.ID_RUTA=@id AND d.ROWID=@row AND " + Alcance(acceso) + ";";
                 if(imagen.Entrega!="NO ENTREGADO" && imagen.Entrega!="INCIDENCIA")
                     throw new PilotoException(400,"Selecciona No entregado o Incidencia antes de subir la imagen.");
                 var ruta=LeerRuta(cn,tx,acceso,imagen.RutaId,true);
+                ExigirConductor(ruta);
                 if(!ruta.ClientesCompletadosDisponibles) throw new PilotoException(503,"Falta instalar la finalización de clientes en POS.");
                 var documento=ruta.Documentos.SingleOrDefault(d=>d.RowId==imagen.RowId);
                 if(documento==null) throw new PilotoException(404,"Documento no disponible.");
@@ -614,6 +650,7 @@ WHERE Ruta_Id=@ruta AND Primer_RowId=@primero;"))
             {
                 var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Confirmar");
                 var ruta=LeerRuta(cn,tx,a,imagen.RutaId,true);
+                ExigirConductor(ruta);
                 if(!ruta.PuedeCerrar || !ruta.ClientesCompletadosDisponibles || ruta.Version!=imagen.Version)
                     throw new PilotoException(409,"La ruta cambió o la foto final no está instalada. Recarga los detalles.");
                 var grupo=DocumentosGrupo(ruta,imagen.PrimerRowId);
@@ -710,6 +747,7 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
                         }
                     }
                     var ruta=LeerRuta(cn,tx,a,cierre.RutaId,true);
+                    ExigirConductor(ruta);
                     PilotoReglas.ValidarCierre(ruta,cierre);
                     if(!ruta.PuedeCerrar) throw new PilotoException(409,"La ruta no admite cierre desde el portal.");
                     if(!ruta.ClientesCompletadosDisponibles) throw new PilotoException(503,"Falta instalar la finalización de clientes en POS.");

@@ -40,7 +40,7 @@ namespace DiamDev.Give.Entities
             Liquidacion=Opcion(Liquidacion,"no",new[]{"no","si","todas"});
             Avance=Opcion(Avance,"todos",new[]{"todos","sin","parcial","listo"});
             Resultado=Opcion(Resultado,"todos",new[]{"todos","PENDIENTE","ENTREGADO","NO ENTREGADO","INCIDENCIA"});
-            Evento=Opcion(Evento,"todos",new[]{"todos","Cliente","Foto documento","Foto cliente","Cierre POS","Edición ruta","Vínculo","Centro","Vehículo","Garita"});
+            Evento=Opcion(Evento,"todos",new[]{"todos","Cliente","Foto documento","Foto cliente","Cierre POS","Edición ruta","Vínculo","Centro","Vehículo","Conductor","Garita"});
             Seccion=Opcion(Seccion,"rutas",new[]{"resumen","rutas","pilotos","documentos","actividad","alertas"});
             Piloto=Texto(Piloto,90); Centro=Texto(Centro,15); Placa=Texto(Placa,15); Buscar=Texto(Buscar,100);
             if(Usuario.HasValue && Usuario.Value<=0 || Pagina<1 || Pagina>10000) throw new PilotoException(400,"Selecciona un usuario y una página válidos.");
@@ -71,6 +71,7 @@ namespace DiamDev.Give.Entities
         public string Empleado { get; set; }
         public string Operador { get; set; }
         public bool CuentaActiva { get; set; }
+        public bool EmpresaVigente { get; set; }
         public bool RolPiloto { get; set; }
         public bool PermisoVer { get; set; }
         public bool PermisoConfirmar { get; set; }
@@ -82,13 +83,14 @@ namespace DiamDev.Give.Entities
         public List<string> PlacasDisponibles { get; set; }
         public List<string> Alertas { get; set; }
         public int Rutas { get; set; }
-        public PilotoPanelPiloto() { Centros=new List<string>();Placas=new List<string>();PlacasDisponibles=new List<string>();Alertas=new List<string>(); }
-        public bool PuedeConsultar { get { return CuentaActiva && RolPiloto && PermisoVer && VinculoActivo && EmpleadoActivo && EmpleadoUnico && !string.IsNullOrWhiteSpace(Operador); } }
+        public PilotoPanelPiloto() { EmpresaVigente=true;Centros=new List<string>();Placas=new List<string>();PlacasDisponibles=new List<string>();Alertas=new List<string>(); }
+        public bool PuedeConsultar { get { return CuentaActiva && EmpresaVigente && RolPiloto && PermisoVer && VinculoActivo && EmpleadoActivo && EmpleadoUnico && !string.IsNullOrWhiteSpace(Operador); } }
         public bool Coincide(PilotoRuta r) { return PuedeConsultar && string.Equals(Empleado,r.Piloto,StringComparison.OrdinalIgnoreCase) && Centros.Contains(r.Centro,StringComparer.OrdinalIgnoreCase) && PlacasDisponibles.Contains(r.Placa,StringComparer.OrdinalIgnoreCase); }
         public void Revisar()
         {
             Alertas.Clear();
             if(!CuentaActiva) Alertas.Add("Cuenta inactiva o sin acceso al sitio.");
+            if(!EmpresaVigente) Alertas.Add("Cuenta empresarial desactivada o con NIT diferente al login POS.");
             if(!RolPiloto) Alertas.Add("Falta el rol PILOTO.");
             if(!PermisoVer || !PermisoConfirmar) Alertas.Add("Faltan permisos de consulta o confirmación de rutas.");
             if(!VinculoActivo) Alertas.Add("Vínculo de empleado inactivo o ausente.");

@@ -12,7 +12,7 @@
 <div class="pilot-admin-surface panel-shell dist-panel dist-detail"><div class="pilot-main">
     <a class="dist-back" href="@Url.Action("Panel","Piloto",new RouteValueDictionary(f.Valores(pagina:f.Pagina)))"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver al panel con mis filtros</a>
     <header class="dist-detail-head" aria-labelledby="detail-title">
-        <div class="dist-detail-title"><span class="dist-kicker">Seguimiento de ruta · @Model.Catalogo</span><div class="dist-detail-title-row"><span class="dist-detail-symbol" aria-hidden="true"><svg class="icon"><use href="#i-route" /></svg></span><h1 id="detail-title">@r.Datos.Id</h1><span class="dist-status dist-status-@r.Datos.Estado">@r.Datos.EstadoNombre</span></div><p><svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg>@r.Datos.Fecha.ToString("dd/MM/yyyy") <span aria-hidden="true">·</span> @(r.Datos.Piloto??"Piloto sin asignar")</p></div>
+        <div class="dist-detail-title"><span class="dist-kicker">Seguimiento de ruta · @Model.Catalogo</span><div class="dist-detail-title-row"><span class="dist-detail-symbol" aria-hidden="true"><svg class="icon"><use href="#i-route" /></svg></span><h1 id="detail-title">@r.Datos.Id</h1><span class="dist-status dist-status-@r.Datos.Estado">@r.Datos.EstadoNombre</span></div><p><svg class="icon" aria-hidden="true"><use href="#i-calendar" /></svg>@r.Datos.Fecha.ToString("dd/MM/yyyy") <span aria-hidden="true">·</span> @(r.Datos.CuentaEmpresa?(r.Datos.ConductorReal??"Conductor pendiente"):r.Datos.Piloto??"Piloto sin asignar")</p></div>
         @if(Model.PuedeAdministrar){<a class="dist-btn dist-btn-primary" href="@Url.Action("EditarRuta","Piloto",new{id=r.Datos.Id})"><svg class="icon" aria-hidden="true"><use href="#i-settings" /></svg>Editar ruta</a>}
     </header>
     <section class="dist-progress-card" aria-label="Avance de la ruta">
@@ -58,7 +58,8 @@
                 <dl class="dist-info-list">
                     <div><dt>ID de ruta</dt><dd>@r.Datos.Id</dd></div>
                     <div><dt>Fecha programada</dt><dd>@r.Datos.Fecha.ToString("dd/MM/yyyy")</dd></div>
-                    <div><dt>Piloto</dt><dd>@(r.Datos.Piloto??"Sin asignar")</dd></div>
+                    <div><dt>@(r.Datos.CuentaEmpresa?"Registro estable APK66":"Piloto")</dt><dd>@(r.Datos.Piloto??"Sin asignar")</dd></div>
+                    @if(r.Datos.CuentaEmpresa){<div><dt>Conductor real</dt><dd>@(r.Datos.ConductorReal??"Pendiente de asignar")</dd></div><div><dt>Documento/licencia</dt><dd>@(r.Datos.DocumentoConductor??"Pendiente")</dd></div>}
                     <div><dt>Centro de distribución</dt><dd>@(r.Datos.Centro??"Sin registrar")</dd></div>
                     <div><dt>Placa</dt><dd>@(r.Datos.Placa??"Sin registrar")</dd></div>
                     <div><dt>Vehículo disponible</dt><dd>@(r.VehiculoActivo?"Sí":"No")</dd></div>

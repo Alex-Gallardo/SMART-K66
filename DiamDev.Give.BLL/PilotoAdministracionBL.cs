@@ -19,5 +19,8 @@ namespace DiamDev.Give.BLL
 
         public void GuardarRuta(string actor,PilotoAdminRutaGuardar modelo)
         { new PilotoAdministracionDA().GuardarRuta(actor,modelo); }
+
+        public void GuardarConductor(string actor,PilotoConductorGuardar modelo)
+        { new PilotoAdministracionDA().GuardarConductor(actor,modelo); }
     }
 }

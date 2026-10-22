@@ -30,6 +30,21 @@
         @if(Model.PuedeEditar){<div><label for="Motivo">Motivo del cambio</label><textarea id="Motivo" name="Motivo" rows="3" maxlength="250" required placeholder="Describe por qué se modifica la ruta">@f.Motivo</textarea></div><button type="submit" id="route-admin-submit"><svg class="icon" aria-hidden="true"><use href="#i-save" /></svg>Revisar cambios</button>}
     </section>
 }
+@if(Model.EsRutaEmpresa) {
+    <section class="admin-section" aria-labelledby="conductor-title">
+        <div class="step-number">👤</div><div class="section-title"><h2 id="conductor-title">Conductor real del viaje</h2><p>El registro estable de APK66 identifica a la empresa. Aquí se indica a la persona que conduce hoy; Garita verá estos datos.</p></div>
+        @if(!string.IsNullOrWhiteSpace(Model.ConductorReal)){<p class="notice success">Asignado: <strong>@Model.ConductorReal</strong> · Documento/licencia @Model.DocumentoConductor</p>}
+        @if(Model.PuedeEditar) {using(Html.BeginForm("AsignarConductor","Piloto",FormMethod.Post,new{@class="admin-form"})) {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="RutaId" value="@Model.Ruta.Id" /><input type="hidden" name="EmpresaUsuarioId" value="@Model.EmpresaUsuarioId" /><input type="hidden" name="Version" value="@Model.VersionConductor" />
+            <div class="admin-fields"><div><label for="conductor-nombre">Nombre completo</label><input id="conductor-nombre" name="Nombre" maxlength="120" required value="@Model.ConductorReal" /></div>
+            <div><label for="conductor-documento">Documento o licencia</label><input id="conductor-documento" name="Documento" maxlength="30" required value="@Model.DocumentoConductor" /></div></div>
+            <div><label for="conductor-motivo">Motivo de asignación o cambio</label><textarea id="conductor-motivo" name="Motivo" maxlength="250" required rows="2" placeholder="Ej.: Conductor asignado para esta salida"></textarea></div>
+            <button type="submit">Guardar conductor</button>
+        }}
+        @if(Model.HistorialConductor.Count>0){<div class="route-admin-history-data"><h3>Historial de conductores</h3>@foreach(var cambio in Model.HistorialConductor){<p>@cambio.FechaUtc.AddHours(-6).ToString("dd/MM/yyyy HH:mm") · @cambio.Actor · @cambio.Motivo · @(cambio.Antes??"Sin conductor") → @cambio.Despues</p>}</div>}
+    </section>
+}
 <section class="admin-section route-admin-history" aria-label="Historial de ediciones"><div class="section-title"><h2>Historial de ediciones</h2><p>@Model.Historial.Count cambios administrativos registrados para esta ruta.</p></div>
 @foreach(var cambio in Model.Historial){<details><summary><strong>@cambio.FechaUtc.AddHours(-6).ToString("dd/MM/yyyy HH:mm:ss") · Guatemala</strong> · @cambio.Actor · @cambio.Motivo</summary><div class="route-admin-history-data"><div><h3>Antes</h3><pre>@cambio.Antes</pre></div><div><h3>Después</h3><pre>@cambio.Despues</pre></div></div></details>}
 @if(Model.Historial.Count==0){<p class="muted">Aún no hay ediciones administrativas registradas.</p>}

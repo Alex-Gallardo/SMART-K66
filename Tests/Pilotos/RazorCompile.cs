@@ -59,6 +59,8 @@ internal static class RazorCompile
                             previews["fija"]=RazorPreview.Render(type,RazorPreview.Lista(true));
                             previews["vacia"]=RazorPreview.Render(type,RazorPreview.Lista(false,true));
                             previews["historial"]=RazorPreview.Render(type,RazorPreview.Lista(false,false,"historial"));
+                            previews["index-empresa-sin-placa"]=RazorPreview.Render(type,RazorPreview.ListaEmpresa(false));
+                            previews["index-empresa"]=RazorPreview.Render(type,RazorPreview.ListaEmpresa(true));
                         }
                         if(relative=="Piloto/Detalle.cshtml") {
                             previews["detalle"]=RazorPreview.Render(type,RazorPreview.Ruta());
@@ -68,7 +70,7 @@ internal static class RazorCompile
                         }
                         if(relative=="Piloto/Administracion.cshtml") previews["administracion"]=RazorPreview.Render(type,RazorPreview.AdminLista());
                         if(relative=="Piloto/Configurar.cshtml") previews["configurar"]=RazorPreview.Render(type,RazorPreview.AdminEdicion());
-                        if(relative=="Piloto/EditarRuta.cshtml") previews["editar-ruta"]=RazorPreview.Render(type,RazorPreview.AdminRuta());
+                        if(relative=="Piloto/EditarRuta.cshtml") {previews["editar-ruta"]=RazorPreview.Render(type,RazorPreview.AdminRuta());previews["editar-ruta-empresa"]=RazorPreview.Render(type,RazorPreview.AdminRutaEmpresa());}
                         if(relative=="Piloto/AdministracionError.cshtml") previews["administracion-error"]=RazorPreview.Render(type,null);
                         if(relative=="Piloto/Error.cshtml") previews["error"]=RazorPreview.Render(type,null);
                         if(relative=="Garita/Index.cshtml") {
@@ -84,6 +86,9 @@ internal static class RazorCompile
                             garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);
                             garita.Diferencia="Faltan dos bultos";previews["garita-diferencia"]=RazorPreview.Render(type,garita);
                             garita.Diferencia=null;previews["garita-en-ruta"]=RazorPreview.Render(type,garita);
+                            garita.EsRutaEmpresa=true;garita.ConductorReal=null;previews["garita-empresa-pendiente"]=RazorPreview.Render(type,garita);
+                            garita.ConductorReal="JUAN PEREZ";garita.DocumentoConductor="L-1234";garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);previews["garita-empresa-asignada"]=RazorPreview.Render(type,garita);
+                            garita.EsRutaEmpresa=false;garita.ConductorReal=null;garita.DocumentoConductor=null;
                             garita.SalidaUtc=new DateTime(2026,10,20,15,30,0,DateTimeKind.Utc);garita.Agente="GUARDIA";garita.TieneFotoSalida=true;previews["garita-salida"]=RazorPreview.Render(type,garita);
                         }
                         if(relative=="Garita/Administrar.cshtml") {
@@ -97,10 +102,10 @@ internal static class RazorCompile
                 Console.WriteLine("OK Razor: "+relative);
             }
             if(args.Length>1) foreach(var preview in previews) {
-                object model=preview.Key.StartsWith("panel-") ? (object)RazorPreview.Panel() : preview.Key=="administracion" ? (object)RazorPreview.AdminLista() : preview.Key=="configurar" ? (object)RazorPreview.AdminEdicion() : preview.Key=="editar-ruta" ? (object)RazorPreview.AdminRuta() : null;
-                bool backoffice=preview.Key.StartsWith("panel-") || preview.Key=="administracion" || preview.Key=="configurar" || preview.Key=="editar-ruta" || preview.Key=="administracion-error";
+                object model=preview.Key.StartsWith("panel-") ? (object)RazorPreview.Panel() : preview.Key=="administracion" ? (object)RazorPreview.AdminLista() : preview.Key=="configurar" ? (object)RazorPreview.AdminEdicion() : preview.Key=="editar-ruta" ? (object)RazorPreview.AdminRuta() : preview.Key=="editar-ruta-empresa" ? (object)RazorPreview.AdminRutaEmpresa() : null;
+                bool backoffice=preview.Key.StartsWith("panel-") || preview.Key=="administracion" || preview.Key=="configurar" || preview.Key.StartsWith("editar-ruta") || preview.Key=="administracion-error";
                 var html=preview.Key.StartsWith("garita-") ? preview.Value : backoffice ? RazorPreview.Backoffice(preview.Value,preview.Key.StartsWith("panel-")) : RazorPreview.Render(layout,model,preview.Value,"activas",preview.Key=="detalle-cierre" || preview.Key=="detalle-borrador");
-                if(preview.Key=="editar-ruta") html=html.Replace("/Scripts/pilotos.js","/Scripts/pilotos-admin-ruta.js");
+                if(preview.Key.StartsWith("editar-ruta")) html=html.Replace("/Scripts/pilotos.js","/Scripts/pilotos-admin-ruta.js");
                 File.WriteAllText(Path.Combine(bin,preview.Key+".html"),html);
             }
             return 0;

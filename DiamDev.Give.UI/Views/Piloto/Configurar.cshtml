@@ -23,9 +23,15 @@
     @Html.AntiForgeryToken()
     <input type="hidden" name="UsuarioId" value="@Model.Usuario.UsuarioId" />
     <section class="admin-section">
-        <div class="step-number">1</div><div class="section-title"><h2>Identidad en rutas</h2><p>Selecciona el registro exacto de RT_EMPLEADOS y el código que usará la auditoría del cierre.</p></div>
+        <div class="step-number">★</div><div class="section-title"><h2>Cuenta de transportista rentado</h2><p>Usa el usuario POS que ya creaste con el NIT. Vincula un solo empleado estable de APK66 para esta empresa; el conductor real se asigna en cada ruta.</p></div>
+        <label class="switch-card"><input type="checkbox" name="CuentaEmpresa" value="true" checked="@(Model.Formulario.CuentaEmpresa ? "checked" : null)" /><input type="hidden" name="CuentaEmpresa" value="false" /><span><strong>Esta cuenta representa una empresa</strong><small>Sus placas podrán elegirlas los conductores al iniciar sesión</small></span></label>
+        <div><label for="NombreEmpresa">Nombre de la empresa</label><input id="NombreEmpresa" name="NombreEmpresa" maxlength="120" value="@Model.Formulario.NombreEmpresa" placeholder="Nombre del transportista" /></div>
+        <p class="muted">La cuenta y contraseña POS se administran en Usuarios. Este formulario no crea cuentas.</p>
+    </section>
+    <section class="admin-section">
+        <div class="step-number">1</div><div class="section-title"><h2>Identidad en rutas</h2><p>Selecciona el registro exacto de RT_EMPLEADOS y el código que usará la auditoría del cierre. Para empresas, selecciona su registro estable en APK66.</p></div>
         <div class="admin-fields">
-            <div><label for="EmpleadoRowId">Empleado piloto</label><select id="EmpleadoRowId" name="EmpleadoRowId" required><option value="">Seleccionar piloto</option>
+            <div><label for="EmpleadoRowId">Registro piloto / empresa en APK66</label><select id="EmpleadoRowId" name="EmpleadoRowId" required><option value="">Seleccionar registro</option>
                 @foreach (var e in Model.Empleados) { <option value="@e.RowId" selected="@(e.Seleccionado ? "selected" : null)">@e.Nombre · #@e.RowId@(e.Activo ? "" : " · INACTIVO")</option> }
             </select><small>Los nombres duplicados se excluyen.</small></div>
             <div><label for="CodigoOperador">Código de operador</label><input id="CodigoOperador" name="CodigoOperador" maxlength="15" required value="@Model.Formulario.CodigoOperador" placeholder="Login POS del piloto" aria-describedby="operador-ayuda" /><small id="operador-ayuda">Identifica quién cerró la ruta. Usa el usuario de este piloto (@Model.Usuario.Login) si tiene hasta 15 caracteres, o un código único acordado con Distribución. Este texto se registra y se usa en auditoría, ( no determina qué rutas puede ver ).</small></div>

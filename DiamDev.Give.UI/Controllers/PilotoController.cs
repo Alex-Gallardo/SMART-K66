@@ -56,7 +56,8 @@ namespace DiamDev.Give.UI.Controllers
             return new[]{"Panel","PanelDetalle","PanelImagen","PanelFotoSalida","PanelExportar"}.Contains(accion,StringComparer.OrdinalIgnoreCase) ||
                    string.Equals(accion, "Administracion", StringComparison.OrdinalIgnoreCase) ||
                    string.Equals(accion, "Configurar", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(accion, "EditarRuta", StringComparison.OrdinalIgnoreCase);
+                   string.Equals(accion, "EditarRuta", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(accion, "AsignarConductor", StringComparison.OrdinalIgnoreCase);
         }
 
         [HttpGet]
@@ -110,8 +111,8 @@ namespace DiamDev.Give.UI.Controllers
                 var m=new PilotoPanelBL().Leer(User.Identity.Name,filtro);
                 var lineas=new List<string[]>();
                 if(tipo=="rutas") {
-                    lineas.Add(new[]{"Ruta","Fecha","Estado","Liquidada","Piloto","Usuarios POS","Centro","Placa","Clientes","Completados","Documentos","Actividad UTC","Salida garita Guatemala","Agente garita","Precinto","Diferencia garita"});
-                    foreach(var r in m.Rutas) lineas.Add(new[]{r.Datos.Id,r.Datos.Fecha.ToString("yyyy-MM-dd"),r.Datos.Estado,r.Liquidada?"Sí":"No",r.Datos.Piloto,string.Join(" / ",r.Pilotos.Select(p=>p.Login)),r.Datos.Centro,r.Datos.Placa,r.Clientes.Count.ToString(),r.Completados.ToString(),r.Documentos.Count().ToString(),r.ActividadUtc.HasValue?r.ActividadUtc.Value.ToString("yyyy-MM-dd HH:mm:ss"):"",r.SalidaGaritaUtc.HasValue?PilotoPanelReglas.HoraGuatemala(r.SalidaGaritaUtc.Value).ToString("yyyy-MM-dd HH:mm:ss"):"",r.AgenteGarita,r.PrecintoGarita,r.DiferenciaGarita});
+                    lineas.Add(new[]{"Ruta","Fecha","Estado","Liquidada","Piloto APK66","Conductor real","Documento conductor","Usuarios POS","Centro","Placa","Clientes","Completados","Documentos","Actividad UTC","Salida garita Guatemala","Agente garita","Precinto","Diferencia garita"});
+                    foreach(var r in m.Rutas) lineas.Add(new[]{r.Datos.Id,r.Datos.Fecha.ToString("yyyy-MM-dd"),r.Datos.Estado,r.Liquidada?"Sí":"No",r.Datos.Piloto,r.Datos.ConductorReal,r.Datos.DocumentoConductor,string.Join(" / ",r.Pilotos.Select(p=>p.Login)),r.Datos.Centro,r.Datos.Placa,r.Clientes.Count.ToString(),r.Completados.ToString(),r.Documentos.Count().ToString(),r.ActividadUtc.HasValue?r.ActividadUtc.Value.ToString("yyyy-MM-dd HH:mm:ss"):"",r.SalidaGaritaUtc.HasValue?PilotoPanelReglas.HoraGuatemala(r.SalidaGaritaUtc.Value).ToString("yyyy-MM-dd HH:mm:ss"):"",r.AgenteGarita,r.PrecintoGarita,r.DiferenciaGarita});
                 } else {
                     lineas.Add(new[]{"Ruta","ROWID","Tipo","Empresa","Documento","Cliente","Dirección","Visitó","Resultado","Motivo","Observación registrada","Observación POS","Fuente","Foto POS"});
                     var docs=DocumentosPanel(m).ToList();
@@ -230,7 +231,21 @@ namespace DiamDev.Give.UI.Controllers
             }
         }
 
-        public ActionResult Index(string desde, string hasta, int pagina = 1, string vista = null)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult AsignarConductor(PilotoConductorGuardar modelo)
+        {
+            try
+            {
+                if(!ModelState.IsValid) throw new PilotoException(400,"Revisa los datos del conductor.");
+                new PilotoAdministracionBL().GuardarConductor(User.Identity.Name,modelo);
+                TempData["Piloto.AdminMensaje"]="Conductor asignado y cambio registrado en el historial.";
+                return RedirectToAction("EditarRuta",new{id=modelo.RutaId});
+            }
+            catch(Exception e) { return ErrorPiloto(e); }
+        }
+
+        public ActionResult Index(string desde, string hasta, int pagina = 1, string vista = null, string placa = null)
         {
             try
             {
@@ -238,12 +253,12 @@ namespace DiamDev.Give.UI.Controllers
                 var inicio = PilotoRutaBL.ConsultaRutaFija ? hoy : Fecha(desde, hoy.AddDays(-13));
                 var fin = PilotoRutaBL.ConsultaRutaFija ? hoy : Fecha(hasta, hoy);
                 if(PilotoRutaBL.ConsultaRutaFija) pagina=1;
-                return View(new PilotoRutaBL().Listar(User.Identity.Name, inicio, fin, pagina,vista));
+                return View(new PilotoRutaBL().Listar(User.Identity.Name, inicio, fin, pagina,vista,placa));
             }
             catch (Exception e) { return ErrorPiloto(e); }
         }
 
-        public ActionResult Detalle(string id, int pagina = 1, string desde = null, string hasta = null, int paginaRutas = 1, string vista = null)
+        public ActionResult Detalle(string id, int pagina = 1, string desde = null, string hasta = null, int paginaRutas = 1, string vista = null, string placa = null)
         {
             try
             {
@@ -252,6 +267,7 @@ namespace DiamDev.Give.UI.Controllers
                 ViewBag.Hasta=string.IsNullOrEmpty(hasta) ? null : Fecha(hasta,DateTime.Today).ToString("yyyy-MM-dd");
                 ViewBag.PaginaRutas=paginaRutas;
                 ViewBag.Vista=PilotoReglas.VistaRutas(vista);
+                ViewBag.Placa=placa;
                 return View(new PilotoRutaBL().Detalle(User.Identity.Name, id,pagina));
             }
             catch (Exception e) { return ErrorPiloto(e); }

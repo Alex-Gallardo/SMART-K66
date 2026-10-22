@@ -3,6 +3,13 @@ $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $project=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/DiamDev.Give.UI.csproj') -Raw
 $garitaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/GaritaRutaDA.cs') -Raw
+$empresaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoAdministracionRutaDA.cs') -Raw
+$rutasDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoRutaDA.cs') -Raw
+if($empresaDA -notmatch 'DELETE dbo\.PilotoConductorRuta WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id' -or
+   $empresaDA -notmatch 'PilotoDocumentoImagen WHERE Ruta_Id=@ruta' -or
+   $rutasDA -notmatch 'ExigirConductor\(ruta\)' -or $rutasDA -notmatch 'a\.Empresa \? " AND r\.PLACA=@placaEmpresa"') {
+    throw 'La asignación debe invalidarse al editar la ruta y las escrituras empresariales deben exigir conductor y placa.'
+}
 if($garitaDA -match 'UPDATE\s+[^;]*RT_RUTAS' -or $garitaDA -match 'SqlConfirmarEstado' -or $garitaDA -notmatch 'Cmd\(cn,tx,SqlRegistrarSalida\)') {
     throw 'Garita debe insertar el evento de salida sin actualizar el estado de RT_RUTAS.'
 }
@@ -66,6 +73,8 @@ if($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas.' }
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las reglas del panel.' }
 & (Join-Path $out 'PilotoTests.exe') garita
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las reglas de garita.' }
+& (Join-Path $out 'PilotoTests.exe') empresa
+if($LASTEXITCODE -ne 0) { throw 'Fallaron las reglas de transportistas empresariales.' }
 $testConfig=Join-Path $out 'PilotoTests.exe.config'
 @'
 <configuration>
@@ -137,6 +146,18 @@ if($abiertas.Count -ne 2 -or ($abiertas | Where-Object { $_.Value -match '<a\b' 
 $historial=Get-Content -LiteralPath (Join-Path $out 'historial.html') -Raw
 if(([regex]::Matches($historial,'class="button-link card-link"')).Count -ne 4) { throw 'El historial sin liquidar debe conservar sus enlaces de consulta.' }
 Write-Host 'OK: rutas abiertas deshabilitadas; E e historial consultables.'
+$empresaSinPlaca=Get-Content -LiteralPath (Join-Path $out 'index-empresa-sin-placa.html') -Raw
+$empresaConPlaca=Get-Content -LiteralPath (Join-Path $out 'index-empresa.html') -Raw
+if($empresaSinPlaca -notmatch 'name="placa"' -or $empresaSinPlaca -notmatch 'Selecciona una placa' -or $empresaSinPlaca -match 'EMP-001' -or
+   $empresaConPlaca -notmatch 'EMP-001' -or $empresaConPlaca -notmatch 'JUAN PEREZ' -or $empresaConPlaca -notmatch 'value="C-002" selected') {
+    throw 'La empresa debe escoger una placa antes de ver rutas y conservar el conductor asignado.'
+}
+$empresaAdmin=Get-Content -LiteralPath (Join-Path $out 'editar-ruta-empresa.html') -Raw
+if($empresaAdmin -notmatch 'name="EmpresaUsuarioId" value="22"' -or $empresaAdmin -notmatch 'name="Nombre"' -or $empresaAdmin -notmatch 'name="Documento"' -or
+   $empresaAdmin -notmatch 'AsignarConductor' -or $empresaAdmin -notmatch 'JUAN PEREZ') {
+    throw 'Distribución debe poder asignar el conductor real de la ruta empresarial.'
+}
+Write-Host 'OK: selector de placas y asignación de conductor empresarial renderizados.'
 $detalle=Get-Content -LiteralPath (Join-Path $out 'detalle-cierre.html') -Raw
 if(([regex]::Matches($detalle,'class="customer-group(?:\s|\")')).Count -ne 2 -or
    ([regex]::Matches($detalle,'class="document-card"')).Count -ne 3 -or
@@ -193,6 +214,12 @@ $garitaSalida=Get-Content -LiteralPath (Join-Path $out 'garita-salida.html') -Ra
 $garitaEnRuta=Get-Content -LiteralPath (Join-Path $out 'garita-en-ruta.html') -Raw
 $garitaVacia=Get-Content -LiteralPath (Join-Path $out 'garita-vacia.html') -Raw
 $garitaSinResultados=Get-Content -LiteralPath (Join-Path $out 'garita-sin-resultados.html') -Raw
+$garitaEmpresaPendiente=Get-Content -LiteralPath (Join-Path $out 'garita-empresa-pendiente.html') -Raw
+$garitaEmpresaAsignada=Get-Content -LiteralPath (Join-Path $out 'garita-empresa-asignada.html') -Raw
+if($garitaEmpresaPendiente -notmatch 'Conductor pendiente' -or $garitaEmpresaPendiente -match 'id="register-exit-form"' -or
+   $garitaEmpresaAsignada -notmatch 'JUAN PEREZ' -or $garitaEmpresaAsignada -notmatch 'L-1234' -or $garitaEmpresaAsignada -notmatch 'id="register-exit-form"') {
+    throw 'Garita debe bloquear salida sin conductor real y mostrarla cuando Distribución lo asigna.'
+}
 if($garitaVacia -notmatch 'name="placa"' -or $garitaVacia -match 'class="route-option"' -or $garitaVacia -match 'class="route-header"') {throw 'Garita debe mostrar rutas solo después de buscar una placa.'}
 if($garitaLista -notmatch 'PP26-GARITA' -or $garitaLista -notmatch 'PP26-OTRA' -or $garitaLista -notmatch 'OTRO PILOTO' -or $garitaLista -notmatch 'Siguiente' -or $garitaLista -match 'id="register-exit-form"') {throw 'La búsqueda debe listar todas las rutas E de la placa y paginarlas.'}
 if($garitaSinResultados -notmatch 'No hay rutas En ruta' -or $garitaSinResultados -match 'class="route-option"') {throw 'La placa sin rutas debe mostrar un mensaje claro.'}
@@ -203,6 +230,8 @@ $garitaAdmin=Get-Content -LiteralPath (Join-Path $out 'garita-admin.html') -Raw
 if($garitaAdmin -notmatch 'Faltan dos bultos' -or $garitaAdmin -notmatch 'name="asignar"' -or $garitaAdmin -notmatch 'ResolverDiferencia') {throw 'La administración debe mostrar incidentes y permitir centros y resolución.'}
 Write-Host 'OK: búsqueda, carga, bloqueo por diferencia y salida registrada en la vista de garita.'
 if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {& (Join-Path $PSScriptRoot 'garita-browser-smoke.ps1'); if($LASTEXITCODE -ne 0) {throw 'Falló la prueba de navegador de garita.'}}
+if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {& (Join-Path $PSScriptRoot 'empresa-browser-smoke.ps1'); if($LASTEXITCODE -ne 0) {throw 'Falló la prueba de navegador de transportistas.'}}
+if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {& (Join-Path $PSScriptRoot 'route-admin-browser-smoke.ps1'); if($LASTEXITCODE -ne 0) {throw 'Falló la prueba de formularios administrativos.'}}
 if(!$ScriptDomDll) { $ScriptDomDll=Join-Path $env:USERPROFILE '.nuget/packages/microsoft.sqlserver.transactsql.scriptdom/161.8901.0/lib/net462/Microsoft.SqlServer.TransactSql.ScriptDom.dll' }
 if(!(Test-Path -LiteralPath $ScriptDomDll)) { throw 'Indicar -ScriptDomDll (version 161/net462) para la validacion SQL sin conexion.' }
 Copy-Item -LiteralPath $ScriptDomDll -Destination $out -Force
@@ -217,6 +246,7 @@ $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/26_historial_edicion_rutas_pos.
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/27_garita_salida_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/28_garita_reparar_acceso_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/29_garita_foto_salida_pos.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/30_transportistas_empresa_pos.sql'
 $adminSql=Join-Path $out 'autorizacion-admin.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }

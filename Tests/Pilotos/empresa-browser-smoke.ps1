@@ -3,7 +3,7 @@ $ErrorActionPreference='Stop'
 if(!(Test-Path -LiteralPath $ChromePath)) { throw 'Chrome no está disponible para la prueba de transportistas.' }
 $bin=Join-Path $PSScriptRoot 'bin'
 $smoke=Join-Path $bin 'empresa-browser-smoke.html'
-foreach($scenario in @('index-empresa-sin-placa','index-empresa','editar-ruta-empresa')) {
+foreach($scenario in @('index-empresa-sin-placa','index-empresa','detalle-empresa-lista','detalle-empresa-pendiente','detalle-empresa-sin-permiso','editar-ruta-empresa')) {
     $html=Get-Content -LiteralPath (Join-Path $bin ($scenario+'.html')) -Raw
     $probe=@'
 <script>
@@ -20,6 +20,11 @@ if(escenario.indexOf('index-')===0){
   var card=document.querySelector('.route-card');
   check(document.querySelector('.company-selected-plate').textContent.includes('C-002') && card && card.textContent.includes('EMP-001') && card.textContent.includes('JUAN PEREZ'),'ruta o conductor no visibles');
  }
+} else if(escenario.indexOf('detalle-')===0) {
+ var editable=!!document.querySelector('.save-client') && !!document.querySelector('#complete-button');
+ check(editable===(escenario==='detalle-empresa-lista'),'acciones de piloto incorrectas para '+escenario);
+ if(escenario==='detalle-empresa-pendiente') check(document.body.textContent.includes('Conductor pendiente'),'falta explicar la asignación pendiente');
+ if(escenario==='detalle-empresa-sin-permiso') check(document.body.textContent.includes('Pilotos.Rutas.Confirmar'),'falta explicar el permiso pendiente');
 } else {
  var form=document.querySelector('form[action*="AsignarConductor"]');
  check(form && form.elements.EmpresaUsuarioId.value==='22' && form.elements.Nombre.value==='JUAN PEREZ','formulario de conductor incompleto');

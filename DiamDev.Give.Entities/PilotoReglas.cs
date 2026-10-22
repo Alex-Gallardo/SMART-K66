@@ -49,6 +49,11 @@ namespace DiamDev.Give.Entities
             if (vista == "activas" || vista == "historial") return vista;
             throw new PilotoException(400,"Selecciona Activas o Historial para consultar tus rutas.");
         }
+        public static bool PuedeOperar(PilotoRuta ruta, bool cierreHabilitado, bool liquidada)
+        {
+            return ruta != null && cierreHabilitado && ruta.PermisoConfirmar && ruta.Estado=="E" &&
+                !liquidada && ruta.ConductorAsignado;
+        }
         public static void PrepararConsulta(PilotoRuta ruta, int pagina)
         {
             if (pagina < 1 || pagina > 100000) throw new PilotoException(400,"Selecciona una página de documentos válida.");

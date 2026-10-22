@@ -32,7 +32,7 @@
 }
 @if(Model.EsRutaEmpresa) {
     <section class="admin-section" aria-labelledby="conductor-title">
-        <div class="step-number">👤</div><div class="section-title"><h2 id="conductor-title">Conductor real del viaje</h2><p>El registro estable de APK66 identifica a la empresa. Aquí se indica a la persona que conduce hoy; Garita verá estos datos.</p></div>
+        <div class="step-number">👤</div><div class="section-title"><h2 id="conductor-title">Conductor real del viaje</h2><p>El registro estable de APK66 identifica a la empresa. Asigna el nombre y documento del conductor para que el piloto pueda registrar entregas y cerrar esta ruta; Garita también verá estos datos.</p></div>
         @if(!string.IsNullOrWhiteSpace(Model.ConductorReal)){<p class="notice success">Asignado: <strong>@Model.ConductorReal</strong> · Documento/licencia @Model.DocumentoConductor</p>}
         @if(Model.PuedeEditar) {using(Html.BeginForm("AsignarConductor","Piloto",FormMethod.Post,new{@class="admin-form"})) {
             @Html.AntiForgeryToken()

@@ -45,7 +45,7 @@
                 <td data-label="Estado"><span class="dist-status dist-status-@r.Datos.Estado">@r.Datos.EstadoNombre</span><small>@(r.Liquidada?"Liquidada":"Sin liquidar")</small></td>
                 <td data-label="Avance"><strong>@r.Completados de @r.Clientes.Count clientes</strong><progress max="100" value="@r.Porcentaje" aria-label="Avance de @r.Datos.Id"></progress>@if(r.ListaParaCierre){<small class="panel-success">Lista para confirmar</small>}</td>
                 <td data-label="Documentos"><strong>@r.Documentos.Count()</strong><small>@(r.Alertas.Count>0?r.Alertas.Count+" observaciones":"Sin observaciones")</small><small>@(r.ActividadUtc.HasValue?PilotoPanelReglas.HoraGuatemala(r.ActividadUtc.Value).ToString("dd/MM HH:mm")+" · última actividad":"Sin actividad POS")</small></td>
-                <td data-label="Acción"><a class="dist-row-link" href="@detalle(r.Datos.Id)">Ver ruta <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></td>
+                <td data-label="Acción"><a class="dist-row-link" href="@detalle(r.Datos.Id)">Ver ruta <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>@if(Model.PuedeAdministrar && r.Datos.CuentaEmpresa && !r.Datos.ConductorAsignado && r.Datos.Estado=="E" && !r.Liquidada){<a class="panel-text-link" href="@Url.Action("EditarRuta","Piloto",new{id=r.Datos.Id})#conductor-title">Asignar conductor</a>}</td>
             </tr>
         }
         </tbody></table></div>

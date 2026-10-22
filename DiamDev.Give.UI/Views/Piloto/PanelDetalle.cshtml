@@ -20,6 +20,7 @@
         <div class="dist-progress-facts"><div><span>Documentos</span><strong>@r.Documentos.Count()</strong></div><div class="dist-fact-delivered"><span>Entregados</span><strong>@entregados</strong></div><div><span>No entregados</span><strong>@noEntregados</strong></div><div><span>Con incidencia</span><strong>@incidencias</strong></div></div>
     </section>
     @if(r.Alertas.Count>0){<section class="dist-detail-alerts" aria-label="Observaciones para revisar"><div class="dist-detail-alert-title"><svg class="icon" aria-hidden="true"><use href="#i-info" /></svg><strong>Necesita atención</strong><span>@r.Alertas.Count</span></div>@foreach(var a in r.Alertas){<p role="status">@a</p>}</section>}
+    @if(Model.PuedeAdministrar && r.Datos.CuentaEmpresa && !r.Datos.ConductorAsignado && r.Datos.Estado=="E" && !r.Liquidada){<div class="panel-notice" role="status"><svg class="icon" aria-hidden="true"><use href="#i-user" /></svg><p><strong>La empresa aún no puede registrar entregas.</strong> Asigna el conductor real y su documento para habilitar las acciones del piloto.</p><a class="dist-btn dist-btn-primary" href="@Url.Action("EditarRuta","Piloto",new{id=r.Datos.Id})#conductor-title">Asignar conductor</a></div>}
     <div class="dist-detail-layout">
         <div class="dist-detail-primary">
             <section class="dist-surface dist-documents" aria-label="Todas las facturas de la ruta">

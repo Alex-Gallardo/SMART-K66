@@ -19,6 +19,8 @@ namespace DiamDev.Give.Entities
         public bool CuentaEmpresa { get; set; }
         public string ConductorReal { get; set; }
         public string DocumentoConductor { get; set; }
+        public bool ConductorAsignado { get { return !CuentaEmpresa || !string.IsNullOrWhiteSpace(ConductorReal) && !string.IsNullOrWhiteSpace(DocumentoConductor); } }
+        public bool PermisoConfirmar { get; set; }
         public string Centro { get; set; }
         public string ObservacionGeneral { get; set; }
         public string Estado { get; set; }

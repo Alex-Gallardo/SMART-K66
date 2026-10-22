@@ -123,8 +123,12 @@ WHERE CatalogoRutas=@catalogo AND Ruta_Id=@ruta ORDER BY Id DESC;"))
                 if(!ruta.EsRutaEmpresa || ruta.EmpresaUsuarioId!=m.EmpresaUsuarioId) throw new PilotoException(409,"La ruta ya no pertenece a esta empresa o placa.");
                 if((ruta.VersionConductor??"")!=(m.Version??"")) throw new PilotoException(409,"El conductor cambió. Recarga la ruta antes de guardar.");
                 if(ruta.ConductorReal==nombre && ruta.DocumentoConductor==documento) throw new PilotoException(400,"No hay cambios en el conductor.");
+                // Una salida histórica sin conductor admite solo su primera asignación;
+                // las comprobaciones siguientes impiden hacerlo después de actividad operativa.
                 using(var cmd=Comando(cn,tx,"SELECT COUNT(*) FROM dbo.GaritaRutaEvento WHERE CatalogoRutas=@catalogo AND Ruta_Id=@ruta AND Tipo=N'S';"))
-                {Param(cmd,"@catalogo",SqlDbType.NVarChar,apk.Substring(1,apk.Length-2).Replace("]]","]"),128);Param(cmd,"@ruta",SqlDbType.NVarChar,m.RutaId,15);if((int)cmd.ExecuteScalar()>0) throw new PilotoException(409,"Garita ya registró la salida. No cambies el conductor.");}
+                {Param(cmd,"@catalogo",SqlDbType.NVarChar,apk.Substring(1,apk.Length-2).Replace("]]","]"),128);Param(cmd,"@ruta",SqlDbType.NVarChar,m.RutaId,15);
+                 if(!PilotoEmpresaReglas.PuedeAsignarConductor((int)cmd.ExecuteScalar()>0,ruta.ConductorReal,ruta.DocumentoConductor))
+                     throw new PilotoException(409,"Garita ya registró la salida. No cambies el conductor.");}
                 using(var cmd=Comando(cn,tx,"SELECT COUNT(*) FROM dbo.PilotoBorradorCliente WHERE Ruta_Id=@ruta;"))
                 {Param(cmd,"@ruta",SqlDbType.NVarChar,m.RutaId,15);if((int)cmd.ExecuteScalar()>0) throw new PilotoException(409,"Hay clientes guardados. No cambies el conductor.");}
                 using(var cmd=Comando(cn,tx,"SELECT (SELECT COUNT(*) FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@ruta)+(SELECT COUNT(*) FROM dbo.PilotoClienteImagen WHERE Ruta_Id=@ruta);"))

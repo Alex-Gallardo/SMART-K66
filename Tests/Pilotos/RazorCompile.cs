@@ -52,7 +52,9 @@ internal static class RazorCompile
                             var modelo=RazorPreview.PanelPaginado(pagina);
                             previews["panel-pagina-"+pagina]=RazorPreview.Render(type,modelo,RazorPreview.Render(panelContenido,modelo));
                         }
+                        if(relative=="Piloto/Panel.cshtml") {var empresa=RazorPreview.PanelEmpresaPendiente();previews["panel-empresa-pendiente"]=RazorPreview.Render(type,empresa,RazorPreview.Render(panelContenido,empresa));}
                         if(relative=="Piloto/PanelDetalle.cshtml") previews["panel-detalle"]=RazorPreview.Render(type,RazorPreview.Panel());
+                        if(relative=="Piloto/PanelDetalle.cshtml") previews["panel-detalle-empresa-pendiente"]=RazorPreview.Render(type,RazorPreview.PanelEmpresaPendiente());
                         if(relative=="Piloto/PanelError.cshtml") previews["panel-error"]=RazorPreview.Render(type,RazorPreview.Panel());
                         if(relative=="Piloto/Index.cshtml") {
                             previews["index"]=RazorPreview.Render(type,RazorPreview.Lista());
@@ -67,6 +69,9 @@ internal static class RazorCompile
                             previews["detalle-cierre"]=RazorPreview.Render(type,RazorPreview.RutaEditable(),null,"activas",true);
                             previews["detalle-borrador"]=RazorPreview.Render(type,RazorPreview.RutaConBorrador(),null,"activas",true);
                             previews["detalle-historial"]=RazorPreview.Render(type,RazorPreview.Ruta(),null,"historial");
+                            previews["detalle-empresa-lista"]=RazorPreview.Render(type,RazorPreview.RutaEmpresa(true),null,"activas",true);
+                            previews["detalle-empresa-pendiente"]=RazorPreview.Render(type,RazorPreview.RutaEmpresa(false),null,"activas",true);
+                            previews["detalle-empresa-sin-permiso"]=RazorPreview.Render(type,RazorPreview.RutaEmpresa(true,false),null,"activas",true);
                         }
                         if(relative=="Piloto/Administracion.cshtml") previews["administracion"]=RazorPreview.Render(type,RazorPreview.AdminLista());
                         if(relative=="Piloto/Configurar.cshtml") {previews["configurar"]=RazorPreview.Render(type,RazorPreview.AdminEdicion());previews["configurar-empresa"]=RazorPreview.Render(type,RazorPreview.AdminEdicionEmpresa());}
@@ -104,7 +109,7 @@ internal static class RazorCompile
             if(args.Length>1) foreach(var preview in previews) {
                 object model=preview.Key.StartsWith("panel-") ? (object)RazorPreview.Panel() : preview.Key=="administracion" ? (object)RazorPreview.AdminLista() : preview.Key=="configurar" ? (object)RazorPreview.AdminEdicion() : preview.Key=="configurar-empresa" ? (object)RazorPreview.AdminEdicionEmpresa() : preview.Key=="editar-ruta" ? (object)RazorPreview.AdminRuta() : preview.Key=="editar-ruta-empresa" ? (object)RazorPreview.AdminRutaEmpresa() : null;
                 bool backoffice=preview.Key.StartsWith("panel-") || preview.Key=="administracion" || preview.Key.StartsWith("configurar") || preview.Key.StartsWith("editar-ruta") || preview.Key=="administracion-error";
-                var html=preview.Key.StartsWith("garita-") ? preview.Value : backoffice ? RazorPreview.Backoffice(preview.Value,preview.Key.StartsWith("panel-")) : RazorPreview.Render(layout,model,preview.Value,"activas",preview.Key=="detalle-cierre" || preview.Key=="detalle-borrador");
+                var html=preview.Key.StartsWith("garita-") ? preview.Value : backoffice ? RazorPreview.Backoffice(preview.Value,preview.Key.StartsWith("panel-")) : RazorPreview.Render(layout,model,preview.Value,"activas",preview.Key=="detalle-cierre" || preview.Key=="detalle-borrador" || preview.Key.StartsWith("detalle-empresa-"));
                 if(preview.Key.StartsWith("editar-ruta")) html=html.Replace("/Scripts/pilotos.js","/Scripts/pilotos-admin-ruta.js");
                 File.WriteAllText(Path.Combine(bin,preview.Key+".html"),html);
             }

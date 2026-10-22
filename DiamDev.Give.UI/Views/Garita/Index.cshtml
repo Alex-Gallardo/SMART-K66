@@ -40,14 +40,14 @@
 }
 @if(encontrada) {
     <section class="route-header">
-        <div><a class="back-results" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda})">← Volver a las rutas de @Model.PlacaBusqueda</a><span class="step">3 · REVISAR</span><h2>Ruta @Model.Id</h2><p>Comprueba estos datos con el piloto y el cargamento.</p></div>
+        <div class="notice info" style="margin-bottom: 0 !important"><a class="back-results" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda})">← Volver a las rutas de @Model.PlacaBusqueda</a><span class="step">3 · REVISAR</span><h2>Ruta @Model.Id</h2><p>Comprueba estos datos con el piloto y el cargamento.</p></div>
         <span class="state @(Model.SalidaUtc.HasValue?"state-done":Model.Diferencia!=null?"state-stop":Model.Estado=="A"?"state-info":puedeRegistrar?"state-ready":enRuta?"state-stop":"state-info")">@(Model.SalidaUtc.HasValue?"Salida registrada":Model.Diferencia!=null?"Diferencia reportada":Model.Estado=="A"?"Pendiente de Distribución":puedeRegistrar?"En ruta · pendiente de salida":enRuta?"En ruta · revisar datos":"Solo consulta")</span>
     </section>
     if(Model.SalidaUtc.HasValue) {<div class="notice success" role="status"><strong>Hora de salida:</strong> @Model.SalidaLocal.Value.ToString("dd/MM/yyyy HH:mm") · Agente: @Model.Agente @(string.IsNullOrEmpty(Model.Precinto)?"":" · Precinto: "+Model.Precinto) @if(Model.TieneFotoSalida){<a href="@Url.Action("FotoSalida","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id})" target="_blank" rel="noopener">Ver foto de salida</a>}</div>}
     else if(Model.Diferencia!=null) {<div class="notice stop" role="alert"><strong>Detén la salida.</strong> Se reportó esta diferencia: @Model.Diferencia. Distribución debe resolverla antes de registrar la salida.</div>}
     else if(Model.Estado=="A") {<div class="notice info" role="status"><strong>Pendiente de Distribución.</strong> La ruta debe estar “En ruta” antes de que Garita registre la hora de salida.</div>}
     else if(enRuta && !puedeRegistrar) {<div class="notice stop" role="alert"><strong>No registres la salida todavía.</strong> Revisa piloto, vehículo, facturas, bultos y liquidación. Si algo no coincide, reporta la diferencia y contacta a Distribución.</div>}
-    else if(enRuta) {<div class="notice info" role="status"><strong>Lista para verificar.</strong> Compara los datos con el vehículo y el cargamento. Garita registrará la hora de salida sin cambiar el estado de la ruta.</div>}
+    else if(enRuta) {<div class="notice info" role="status"><strong>Lista para verificar.</strong> Compara los datos con el vehículo y el cargamento. Garita registrará la hora de salida.</div>}
     <section class="facts" aria-label="Datos de la ruta">
         <div class="fact fact-primary"><span class="fact-icon" aria-hidden="true">🚚</span><span>PLACA</span><strong>@Model.Placa</strong></div>
         <div class="fact"><span class="fact-icon" aria-hidden="true">👤</span><span>@(Model.EsRutaEmpresa?"PILOTO / TRANSPORTE":"PILOTO")</span><strong>@(Model.EsRutaEmpresa?(Model.ConductorReal??Model.Piloto):Model.Piloto)</strong>@if(Model.EsRutaEmpresa && !string.IsNullOrWhiteSpace(Model.DocumentoConductor)){<small>Documento/licencia: @Model.DocumentoConductor</small>}</div>
@@ -74,7 +74,7 @@
                 <div class="photo-field"><label for="foto">Foto de salida <small>(opcional, JPG, PNG o WebP hasta 10 MB)</small></label><input id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" /><img id="foto-preview" alt="Vista previa de la foto elegida" hidden /><button id="foto-clear" type="button" hidden>Quitar foto</button></div>
                 <button class="confirm-button" type="submit">✓ Registrar hora de salida</button>
             }}
-            <details class="difference"><summary>⚠ Hay una diferencia · Detener salida</summary><p>Escribe qué no coincide. La ruta quedará bloqueada hasta que Distribución resuelva la diferencia.</p>
+            <details class="difference"><summary>⚠ Detener salida</summary><p>Escribe qué no coincide. La ruta quedará bloqueada hasta que Distribución resuelva la diferencia.</p>
                 @using(Html.BeginForm("Diferencia","Garita",FormMethod.Post)) {@Html.AntiForgeryToken()<input type="hidden" name="RutaId" value="@Model.Id" /><input type="hidden" name="PlacaBusqueda" value="@Model.PlacaBusqueda" /><input type="hidden" name="Version" value="@Model.Version" /><input type="hidden" name="Solicitud" value="@Guid.NewGuid()" /><label for="descripcion">Describe la diferencia</label><textarea id="descripcion" name="Descripcion" maxlength="250" minlength="10" rows="3" required></textarea><button type="submit" class="stop-button">Reportar diferencia</button>}
             </details>
         </section>

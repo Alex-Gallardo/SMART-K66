@@ -87,7 +87,7 @@ button,.back-button{border:0;border-radius:12px;font:inherit;font-weight:800;cur
 .confirm-button{background:#138247;color:#fff;padding:17px 22px;min-height:62px;width:100%;font-size:19px}
 .confirm-button:hover{background:#086239}
 .difference{margin-top:25px;border-top:1px solid #e3ebee;padding-top:20px}
-.difference summary{color:#9d392d;font-weight:800;cursor:pointer;list-style:none;padding:12px}
+.difference summary{color:#9d392d;font-weight:800;cursor:pointer;list-style:none;padding:12px;border: 1px solid;border-radius: 0.8em;text-align:center}
 .difference p{margin:8px 0}
 .stop-button{background:#b54231;color:#fff;padding:14px 20px;min-height:54px;margin-top:12px}
 .error-card{max-width:650px;margin:50px auto}

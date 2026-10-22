@@ -9,8 +9,10 @@ namespace DiamDev.Give.Entities
 {
     public static class PilotoReglas
     {
-        // Mantiene el formulario completo por debajo del limite de claves de ASP.NET.
+        // El formulario pequeño conserva el contrato anterior; las rutas grandes se guardan por partes.
         public const int MaxDocumentos = 200;
+        public const int DocumentosPorGrupoGrande = 25;
+        public const int GruposPorPaginaGrande = 4;
         public const int MaxObservacion = 500;
         public const int MaxImagenBytes = 10 * 1024 * 1024;
         public static TimeSpan HoraEntregaGuatemala(DateTime utc)
@@ -52,15 +54,45 @@ namespace DiamDev.Give.Entities
         public static bool PuedeOperar(PilotoRuta ruta, bool cierreHabilitado, bool liquidada)
         {
             return ruta != null && cierreHabilitado && ruta.PermisoConfirmar && ruta.Estado=="E" &&
-                !liquidada && ruta.ConductorAsignado;
+                !liquidada;
+        }
+        public static List<List<PilotoDocumento>> Grupos(PilotoRuta ruta)
+        {
+            var grandes=ruta.TotalDocumentos>MaxDocumentos;
+            var grupos=new List<List<PilotoDocumento>>();
+            foreach(var cliente in ruta.Documentos.GroupBy(d=>(d.Cliente??"").Trim().ToUpperInvariant()+"\u001f"+(d.Direccion??"").Trim().ToUpperInvariant()))
+            {
+                var docs=cliente.OrderBy(d=>d.RowId).ToList();
+                if(!grandes) {grupos.Add(docs);continue;}
+                for(var i=0;i<docs.Count;i+=DocumentosPorGrupoGrande)
+                    grupos.Add(docs.Skip(i).Take(DocumentosPorGrupoGrande).ToList());
+            }
+            return grupos;
+        }
+        public static List<PilotoResultado> ResultadosGuardados(PilotoRuta ruta)
+        {
+            var grupos=Grupos(ruta);
+            if(grupos.Count==0 || ruta.Borradores.Count!=grupos.Count || ruta.Borradores.GroupBy(b=>b.PrimerRowId).Any(g=>g.Count()>1))
+                throw new PilotoException(409,"Guarda cada bloque de cliente antes de cerrar la ruta.");
+            var resultados=new List<PilotoResultado>(ruta.Documentos.Count);
+            foreach(var grupo in grupos)
+            {
+                var ids=grupo.Select(d=>d.RowId).OrderBy(x=>x).ToArray();
+                var borrador=ruta.Borradores.SingleOrDefault(b=>b.PrimerRowId==ids[0]);
+                if(borrador==null || !borrador.Completado || borrador.Documentos==null || borrador.Documentos.Any(d=>d==null) || borrador.Documentos.Count!=ids.Length ||
+                   !borrador.Documentos.Select(d=>d.RowId).OrderBy(x=>x).SequenceEqual(ids))
+                    throw new PilotoException(409,"Guarda cada bloque de cliente antes de cerrar la ruta.");
+                resultados.AddRange(borrador.Documentos);
+            }
+            return resultados.OrderBy(d=>d.RowId).ToList();
         }
         public static void PrepararConsulta(PilotoRuta ruta, int pagina)
         {
             if (pagina < 1 || pagina > 100000) throw new PilotoException(400,"Selecciona una página de documentos válida.");
-            ruta.PuedeCerrar = ruta.PuedeCerrar && ruta.TotalDocumentos <= MaxDocumentos;
-            ruta.TamanoPaginaDocumentos = ruta.PuedeCerrar ? MaxDocumentos : 25;
-            ruta.PaginaDocumentos = ruta.PuedeCerrar ? 1 : pagina;
-            if (ruta.PaginaDocumentos > 1 && (long)(ruta.PaginaDocumentos-1)*ruta.TamanoPaginaDocumentos >= ruta.TotalDocumentos)
+            ruta.TamanoPaginaDocumentos = ruta.PuedeCerrar ? (ruta.TotalDocumentos > MaxDocumentos ? DocumentosPorGrupoGrande * GruposPorPaginaGrande : MaxDocumentos) : 25;
+            ruta.PaginaDocumentos = ruta.PuedeCerrar && ruta.TotalDocumentos <= MaxDocumentos ? 1 : pagina;
+            if (ruta.PaginaDocumentos > 1 && (!ruta.PuedeCerrar || ruta.TotalDocumentos<=MaxDocumentos) &&
+                (long)(ruta.PaginaDocumentos-1)*ruta.TamanoPaginaDocumentos >= ruta.TotalDocumentos)
                 throw new PilotoException(404,"La página de documentos no está disponible. Vuelve al inicio de la ruta.");
         }
         public static void ValidarCierre(PilotoRuta ruta, PilotoCierre cierre)
@@ -73,7 +105,7 @@ namespace DiamDev.Give.Entities
             if (string.IsNullOrEmpty(cierre.Version) || cierre.Version != ruta.Version)
                 throw new PilotoException(409, "La ruta cambio. Recarga sus detalles antes de completar.");
             if (ruta.Documentos.Count == 0 || cierre.Documentos == null ||
-                cierre.Documentos.Count != ruta.Documentos.Count || cierre.Documentos.Count > MaxDocumentos)
+                cierre.Documentos.Count != ruta.Documentos.Count)
                 throw new PilotoException(400, "Debes indicar el resultado de todos los documentos.");
             var esperados = new HashSet<int>(ruta.Documentos.Select(d => d.RowId));
             foreach (var d in cierre.Documentos)
@@ -120,7 +152,6 @@ namespace DiamDev.Give.Entities
             {
                 Texto(w, ruta.Id); w.Write(ruta.Fecha.Ticks); Texto(w, ruta.Estado);
                 Texto(w, ruta.Placa); Texto(w, ruta.Piloto); Texto(w, ruta.Centro);
-                if(ruta.CuentaEmpresa) {Texto(w,ruta.ConductorReal);Texto(w,ruta.DocumentoConductor);}
                 foreach (var d in ruta.Documentos.OrderBy(d => d.RowId))
                 {
                     w.Write(d.RowId); Texto(w, d.Tipo); Texto(w, d.Empresa); Texto(w, d.Documento);
@@ -147,6 +178,14 @@ namespace DiamDev.Give.Entities
                     Texto(w, d.Entrega); Texto(w, d.Motivo); Texto(w, d.Observaciones);
                 }
             });
+        }
+
+        // El cierre grande solo recibe identidad y versión. Los resultados vienen de borradores guardados en POS.
+        public static string HuellaCierreGuardado(PilotoCierre cierre)
+        {
+            if(cierre==null || cierre.Solicitud==Guid.Empty || string.IsNullOrWhiteSpace(cierre.RutaId) || string.IsNullOrWhiteSpace(cierre.Version))
+                throw new PilotoException(400,"La solicitud de cierre no es valida.");
+            return Hash(w=>{Texto(w,"POS-GRANDE");Texto(w,cierre.RutaId);Texto(w,cierre.Version);});
         }
 
         private static string Limpiar(string value) { return string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }

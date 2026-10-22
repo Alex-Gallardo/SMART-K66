@@ -7,8 +7,9 @@ $empresaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoAdm
 $rutasDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoRutaDA.cs') -Raw
 if($empresaDA -notmatch 'DELETE dbo\.PilotoConductorRuta WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id' -or
    $empresaDA -notmatch 'PilotoDocumentoImagen WHERE Ruta_Id=@ruta' -or
-   $rutasDA -notmatch 'ExigirConductor\(ruta\)' -or $rutasDA -notmatch 'a\.Empresa \? " AND r\.PLACA=@placaEmpresa"') {
-    throw 'La asignación debe invalidarse al editar la ruta y las escrituras empresariales deben exigir conductor y placa.'
+   $rutasDA -match 'ExigirConductor\(ruta\)' -or $rutasDA -notmatch 'a\.Empresa \? " AND r\.PLACA=@placaEmpresa"' -or
+   $rutasDA -notmatch 'HuellaCierreGuardado' -or $rutasDA -notmatch 'ResultadosGuardados\(ruta\)') {
+    throw 'Las rutas empresariales deben operar por placa y reconstruir el cierre grande desde borradores guardados.'
 }
 if($garitaDA -match 'UPDATE\s+[^;]*RT_RUTAS' -or $garitaDA -match 'SqlConfirmarEstado' -or $garitaDA -notmatch 'Cmd\(cn,tx,SqlRegistrarSalida\)') {
     throw 'Garita debe insertar el evento de salida sin actualizar el estado de RT_RUTAS.'
@@ -163,17 +164,23 @@ Write-Host 'OK: selector de placas y asignación de conductor empresarial render
 $empresaLista=Get-Content -LiteralPath (Join-Path $out 'detalle-empresa-lista.html') -Raw
 $empresaPendiente=Get-Content -LiteralPath (Join-Path $out 'detalle-empresa-pendiente.html') -Raw
 $empresaSinPermiso=Get-Content -LiteralPath (Join-Path $out 'detalle-empresa-sin-permiso.html') -Raw
+$empresaGrande=Get-Content -LiteralPath (Join-Path $out 'detalle-empresa-grande.html') -Raw
 $panelEmpresa=Get-Content -LiteralPath (Join-Path $out 'panel-empresa-pendiente.html') -Raw
 $panelDetalleEmpresa=Get-Content -LiteralPath (Join-Path $out 'panel-detalle-empresa-pendiente.html') -Raw
 if($empresaLista -notmatch 'class="save-client"' -or $empresaLista -notmatch 'id="complete-button"' -or
    $empresaLista -notmatch 'class="image-upload-trigger' -or $empresaLista -match 'Conductor pendiente' -or
-   $empresaPendiente -notmatch 'Conductor pendiente' -or $empresaPendiente -match 'class="save-client"|id="complete-button"' -or
+   $empresaPendiente -match 'Conductor pendiente' -or $empresaPendiente -notmatch 'class="save-client"|id="complete-button"' -or
    $empresaPendiente -match 'Ruta disponible para consulta. Para cambios' -or
    $empresaSinPermiso -notmatch 'Pilotos.Rutas.Confirmar' -or $empresaSinPermiso -match 'class="save-client"|id="complete-button"' -or
-   $panelEmpresa -notmatch 'Asignar conductor' -or $panelDetalleEmpresa -notmatch 'Asignar conductor') {
-    throw 'La empresa asignada debe operar como piloto; pendiente o sin permiso queda en consulta con una acción clara para Distribución.'
+   $panelEmpresa -match 'para habilitar las entregas' -or $panelDetalleEmpresa -match 'aún no puede registrar entregas') {
+    throw 'La empresa debe operar por placa, incluso sin conductor adicional; la falta de permiso sí bloquea.'
 }
 Write-Host 'OK: ruta empresarial asignada editable y rutas pendientes con acceso directo a Distribución.'
+if($empresaGrande -notmatch 'name="DesdeBorradores" value="true"' -or $empresaGrande -notmatch 'BLOQUE 11 DE 11' -or
+   $empresaGrande -notmatch '10 de 11 bloques guardados' -or $empresaGrande -notmatch 'Guardar bloque' -or
+   $empresaGrande -notmatch 'Confirmar y cerrar ruta' -or $empresaGrande -match 'Conductor pendiente|cierre de esta ruta corresponde a Distribuci') {
+    throw 'La ruta empresarial grande debe mostrar bloques paginados y mantener el cierre disponible.'
+}
 $configEmpresa=Get-Content -LiteralPath (Join-Path $out 'configurar-empresa.html') -Raw
 if($configEmpresa -notmatch 'TRANSPORTE DEMO' -or $configEmpresa -notmatch 'id="individual-pilot-identity" hidden' -or
    $configEmpresa -notmatch 'id="individual-pilot-centers" hidden' -or $configEmpresa -notmatch 'id="EmpleadoRowId" name="EmpleadoRowId" disabled' -or
@@ -238,9 +245,9 @@ $garitaVacia=Get-Content -LiteralPath (Join-Path $out 'garita-vacia.html') -Raw
 $garitaSinResultados=Get-Content -LiteralPath (Join-Path $out 'garita-sin-resultados.html') -Raw
 $garitaEmpresaPendiente=Get-Content -LiteralPath (Join-Path $out 'garita-empresa-pendiente.html') -Raw
 $garitaEmpresaAsignada=Get-Content -LiteralPath (Join-Path $out 'garita-empresa-asignada.html') -Raw
-if($garitaEmpresaPendiente -notmatch 'Conductor pendiente' -or $garitaEmpresaPendiente -match 'id="register-exit-form"' -or
+if($garitaEmpresaPendiente -match 'Conductor pendiente' -or $garitaEmpresaPendiente -notmatch 'id="register-exit-form"' -or
    $garitaEmpresaAsignada -notmatch 'JUAN PEREZ' -or $garitaEmpresaAsignada -notmatch 'L-1234' -or $garitaEmpresaAsignada -notmatch 'id="register-exit-form"') {
-    throw 'Garita debe bloquear salida sin conductor real y mostrarla cuando Distribución lo asigna.'
+    throw 'Garita debe permitir verificar la salida con el piloto de APK66 y mostrar la asignación opcional.'
 }
 if($garitaVacia -notmatch 'name="placa"' -or $garitaVacia -match 'class="route-option"' -or $garitaVacia -match 'class="route-header"') {throw 'Garita debe mostrar rutas solo después de buscar una placa.'}
 if($garitaLista -notmatch 'PP26-GARITA' -or $garitaLista -notmatch 'PP26-OTRA' -or $garitaLista -notmatch 'OTRO PILOTO' -or $garitaLista -notmatch 'Siguiente' -or $garitaLista -match 'id="register-exit-form"') {throw 'La búsqueda debe listar todas las rutas E de la placa y paginarlas.'}

@@ -222,6 +222,7 @@
     }
     var form = document.getElementById("complete-route");
     var groups = form ? form.querySelectorAll(".customer-group") : [];
+    var largeRoute = form && form.getAttribute("data-large-route") === "true";
     function setGroupOpen(group, open) {
         var details = group.querySelector(".customer-documents");
         var toggle = group.querySelector(".client-toggle");
@@ -353,7 +354,7 @@
         group.setAttribute("data-saved", "false");
         group.classList.remove("is-complete");
         group.querySelector(".client-complete-badge").hidden = true;
-        group.querySelector(".group-status").textContent = "Cambios sin guardar. Guarda este cliente antes de cerrar la ruta.";
+        group.querySelector(".group-status").textContent = "Cambios sin guardar. Guarda este " + (largeRoute ? "bloque" : "cliente") + " antes de cerrar la ruta.";
         validateGroup(group,false);
         updateClientPhoto(group);
         group._revision = (group._revision || 0) + 1;
@@ -388,7 +389,7 @@
         var summary=document.createElement("div"); summary.className="client-compact-summary";
         var canonical=[];
         var heading=document.createElement("p"), strong=document.createElement("strong");
-        strong.textContent="Cliente completado. "; heading.appendChild(strong);
+        strong.textContent=largeRoute ? "Bloque guardado. " : "Cliente completado. "; heading.appendChild(strong);
         heading.appendChild(document.createTextNode("Los resultados están bloqueados.")); summary.appendChild(heading);
         var list=document.createElement("ul");
         Array.prototype.forEach.call(cards,function(card) {
@@ -546,10 +547,19 @@
             }).then(function(response) {
                 if (!response.ok) throw new Error(response.mensaje || "No se pudo guardar el cliente.");
                 completeGroup(group,response.documentos);
+                if (largeRoute) {
+                    form.setAttribute("data-completed-groups",String(Number(form.getAttribute("data-completed-groups"))+1));
+                    var resultCounts={"ENTREGADO":"data-delivered","NO ENTREGADO":"data-failed","INCIDENCIA":"data-incidents"};
+                    (response.documentos || []).forEach(function(d) {
+                        var key=resultCounts[d.Entrega];
+                        if(key) form.setAttribute(key,String(Number(form.getAttribute(key))+1));
+                    });
+                }
                 clientSaving=false;
                 closeClientModal(true);
-                if (Array.prototype.every.call(groups,function(item) { return item.getAttribute("data-saved")==="true"; })) {
-                    document.getElementById("submit-status").textContent="Todos los clientes están completos. Revisa y confirma la ruta.";
+                if ((largeRoute && Number(form.getAttribute("data-completed-groups"))===Number(form.getAttribute("data-total-groups"))) ||
+                    (!largeRoute && Array.prototype.every.call(groups,function(item) { return item.getAttribute("data-saved")==="true"; }))) {
+                    document.getElementById("submit-status").textContent=largeRoute ? "Todos los bloques están guardados. Revisa y confirma la ruta." : "Todos los clientes están completos. Revisa y confirma la ruta.";
                     openModal();
                 }
             }).catch(function(error) {
@@ -586,6 +596,7 @@
         var list = document.querySelector("#exception-summary ul");
         list.textContent = "";
         Array.prototype.forEach.call(form.querySelectorAll(".document-card,.completed-document"), function (card) {
+            if (largeRoute) return;
             var completed=card.classList.contains("completed-document");
             var result=completed ? card.getAttribute("data-result") : selectedResult(card).value;
             counts[result]++;
@@ -599,6 +610,11 @@
                 card.querySelector(".delivery-reason").value + ": " + card.querySelector(".delivery-observation").value;
             item.appendChild(title); item.appendChild(detail); list.appendChild(item);
         });
+        if (largeRoute) {
+            counts["ENTREGADO"]=Number(form.getAttribute("data-delivered"));
+            counts["NO ENTREGADO"]=Number(form.getAttribute("data-failed"));
+            counts["INCIDENCIA"]=Number(form.getAttribute("data-incidents"));
+        }
         document.getElementById("summary-delivered").textContent = counts["ENTREGADO"];
         document.getElementById("summary-failed").textContent = counts["NO ENTREGADO"];
         document.getElementById("summary-incidents").textContent = counts["INCIDENCIA"];
@@ -611,6 +627,10 @@
                 pending[0].querySelector(".group-status").textContent = "Cliente listo. Pulsa Guardar cliente para continuar.";
                 pending[0].querySelector(".save-client").focus();
             }
+            return;
+        }
+        if (largeRoute && Number(form.getAttribute("data-completed-groups")) !== Number(form.getAttribute("data-total-groups"))) {
+            document.getElementById("submit-status").textContent="Faltan "+(Number(form.getAttribute("data-total-groups"))-Number(form.getAttribute("data-completed-groups")))+" bloques. Avanza por las páginas y guárdalos antes de cerrar.";
             return;
         }
         if (!form.checkValidity()) {
@@ -658,6 +678,7 @@
         if (modal.hidden || !document.getElementById("confirm-reviewed").checked) {
             event.preventDefault(); openModal(); return;
         }
+        if (largeRoute) Array.prototype.forEach.call(form.querySelectorAll("[name^='Documentos[']"),function(control) { control.disabled=true; });
         completeButton.disabled = true;
         reviewButton.disabled = true;
         modal.querySelector(".confirm-sheet").setAttribute("aria-busy", "true");

@@ -180,9 +180,8 @@ internal static class PilotoTests
             Rechaza(()=>PilotoReglas.VistaRutas("todas"),400,"no acepta ampliacion de estados por URL");
             Rechaza(()=>PilotoReglas.VistaRutas("' OR 1=1 --"),400,"filtro no acepta SQL");
             var grande=new PilotoRuta {TotalDocumentos=201,PuedeCerrar=true};
-            PilotoReglas.PrepararConsulta(grande,9);
-            Check(!grande.PuedeCerrar && grande.PaginaDocumentos==9 && grande.TamanoPaginaDocumentos==25 && !grande.HayMasDocumentos,"ruta de 201 permite consultar ultima pagina sin habilitar cierre");
-            Rechaza(()=>PilotoReglas.PrepararConsulta(grande,10),404,"pagina posterior al ultimo documento");
+            PilotoReglas.PrepararConsulta(grande,3);
+            Check(grande.PuedeCerrar && grande.PaginaDocumentos==3 && grande.TamanoPaginaDocumentos==100,"ruta de 201 conserva cierre por bloques");
             Rechaza(()=>PilotoReglas.PrepararConsulta(grande,0),400,"pagina cero");
             Rechaza(()=>PilotoReglas.PrepararConsulta(grande,int.MaxValue),400,"pagina excesiva no desborda offset");
             var editable=new PilotoRuta {TotalDocumentos=200,PuedeCerrar=true};
@@ -224,7 +223,33 @@ internal static class PilotoTests
             Check(c.Documentos[0].Motivo==null && c.Documentos[0].Observaciones==null,"entregado limpia motivo y observacion nuevos");
             Rechaza(()=>PilotoReglas.HuellaSolicitud(null),400,"null request");
             c.Documentos=Enumerable.Range(1,201).Select(i=>new PilotoResultado { RowId=i }).ToList();
-            Rechaza(()=>PilotoReglas.HuellaSolicitud(c),400,"limite de formulario");
+            Rechaza(()=>PilotoReglas.HuellaSolicitud(c),400,"formulario antiguo mantiene limite");
+            c.Documentos=null;c.DesdeBorradores=true;
+            var huellaGrande=PilotoReglas.HuellaCierreGuardado(c);
+            Check(huellaGrande==PilotoReglas.HuellaCierreGuardado(c),"cierre por borradores mantiene idempotencia");
+            c.Version="OTRA";Check(huellaGrande!=PilotoReglas.HuellaCierreGuardado(c),"version participa en idempotencia grande");
+            var masiva=new PilotoRuta{TotalDocumentos=251,Estado="E",Id="MASIVA"};
+            masiva.Documentos=Enumerable.Range(1,251).Select(i=>new PilotoDocumento{RowId=i,Cliente="MISMO CLIENTE",Direccion="DIRECCION"}).ToList();
+            masiva.Version=PilotoReglas.Version(masiva);
+            var partes=PilotoReglas.Grupos(masiva);
+            Check(partes.Count==11 && partes.All(g=>g.Count<=25) && partes.SelectMany(g=>g).Select(doc=>doc.RowId).Distinct().Count()==251,"cliente grande se divide sin omitir documentos");
+            masiva.Borradores=partes.Select(g=>new PilotoBorradorCliente{PrimerRowId=g[0].RowId,Completado=true,
+                Documentos=g.Select(doc=>new PilotoResultado{RowId=doc.RowId,Visito=true,Entrega="ENTREGADO"}).ToList()}).ToList();
+            Check(PilotoReglas.ResultadosGuardados(masiva).Count==251,"cierre grande reconstruye todos los resultados guardados");
+            masiva.Borradores[10].Completado=false;Rechaza(()=>PilotoReglas.ResultadosGuardados(masiva),409,"bloque incompleto impide cierre");
+            masiva.Borradores[10].Completado=true;masiva.Borradores[10].Documentos[0].RowId=999;
+            Rechaza(()=>PilotoReglas.ResultadosGuardados(masiva),409,"documento ajeno en borrador impide cierre");
+            masiva.Borradores[10].Documentos[0].RowId=251;masiva.Borradores.RemoveAt(0);
+            Rechaza(()=>PilotoReglas.ResultadosGuardados(masiva),409,"bloque faltante impide cierre");
+            var cierreMasivo=new PilotoCierre{RutaId=masiva.Id,Version=masiva.Version,Solicitud=Guid.NewGuid(),Documentos=masiva.Documentos.Select(doc=>new PilotoResultado{RowId=doc.RowId,Visito=true,Entrega="ENTREGADO"}).ToList()};
+            PilotoReglas.ValidarCierre(masiva,cierreMasivo);Check(true,"se validan 251 resultados completos");
+            cierreMasivo.Documentos.RemoveAt(0);Rechaza(()=>PilotoReglas.ValidarCierre(masiva,cierreMasivo),400,"cierre grande incompleto rechazado");
+            var muchosClientes=new PilotoRuta{TotalDocumentos=251,PuedeCerrar=true};
+            muchosClientes.Documentos=Enumerable.Range(1,251).Select(i=>new PilotoDocumento{RowId=i,Cliente="CLIENTE "+i,Direccion="DIRECCION"}).ToList();
+            muchosClientes.TotalGrupos=PilotoReglas.Grupos(muchosClientes).Count;
+            PilotoReglas.PrepararConsulta(muchosClientes,63);
+            Check(muchosClientes.TotalGrupos==251 && muchosClientes.PaginaDocumentos==63 && !muchosClientes.HayMasDocumentos,
+                "251 clientes pequeños llegan a la última página sin límite artificial de 200");
             r=Ruta(); r.Documentos.Clear(); c=Cierre(r); c.Documentos.Clear(); Rechaza(()=>PilotoReglas.ValidarCierre(r,c),400,"ruta vacia");
             var now=new DateTime(2026,1,1,0,0,0,DateTimeKind.Utc);
             var d=new PilotoDesafio("DEMO",now); Check(d.Codigo.Length==6,"codigo de seis digitos");
@@ -304,7 +329,7 @@ internal static class PilotoTests
         ruta.PermisoConfirmar=true;
         Check(PilotoReglas.PuedeOperar(ruta,true,false),"empresa asignada puede registrar clientes, fotos y cierre");
         ruta.DocumentoConductor=null;
-        Check(!PilotoReglas.PuedeOperar(ruta,true,false),"nombre sin documento no habilita entregas");
+        Check(PilotoReglas.PuedeOperar(ruta,true,false),"cuenta empresarial opera sin documento adicional");
         ruta.DocumentoConductor="L-1234";ruta.PermisoConfirmar=false;
         Check(!PilotoReglas.PuedeOperar(ruta,true,false),"cuenta sin permiso de confirmar queda en consulta");
         ruta.PermisoConfirmar=true;
@@ -314,10 +339,10 @@ internal static class PilotoTests
         Check(PilotoReglas.PuedeOperar(ruta,true,false),"piloto individual conserva operación sin asignación empresarial");
         ruta.CuentaEmpresa=true;ruta.ConductorReal="JUAN PEREZ";ruta.DocumentoConductor="L-1234";
         var version=PilotoReglas.Version(ruta);ruta.ConductorReal="PEDRO PEREZ";
-        Check(PilotoReglas.Version(ruta)!=version,"cambio de conductor invalida formulario de entrega");
+        Check(PilotoReglas.Version(ruta)==version,"asignación opcional no invalida entregas guardadas");
         var garita=new GaritaRuta{Id="R-1",Fecha=new DateTime(2026,10,22),Estado="E",Piloto="EMPRESA DEMO",Placa="C-123",Centro="PALIN",VehiculoDisponible=true,EsRutaEmpresa=true};
         garita.Documentos.Add(new PilotoDocumento{RowId=1,Cliente="CLIENTE",Bultos=1});
-        Check(!garita.PuedeRegistrarSalida,"garita bloquea ruta empresarial sin conductor real");
+        Check(garita.PuedeRegistrarSalida,"garita verifica ruta empresarial usando piloto de APK66");
         garita.ConductorReal="JUAN PEREZ";garita.DocumentoConductor="L-1234";
         Check(garita.PuedeRegistrarSalida,"garita admite ruta empresarial asignada");
         var versionGarita=GaritaReglas.Version(garita);garita.ConductorReal="PEDRO PEREZ";

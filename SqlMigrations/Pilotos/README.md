@@ -394,10 +394,12 @@ Los detalles tecnicos de instalacion ya no aparecen en las pantallas del piloto.
 Navbar sticky con Dashboard, Mis rutas, usuario conectado y salida. Los enlaces
 del detalle conservan fechas y pagina del listado. La consulta muestra hasta
 25 documentos por pagina, con total, numeracion continua y horas existentes.
-Las rutas mayores a 200 documentos son consultables; solo su cierre se deriva a
-Distribucion. El formulario editable conserva el conjunto completo de documentos,
-por lo que nunca guarda una pagina parcial. Ante un error de validacion, recupera
-los campos solo si puede volver a autorizar la ruta y su version sigue vigente.
+Las rutas de hasta 200 documentos conservan el formulario completo. Las rutas
+mayores muestran cuatro bloques de cliente por página, con hasta 25 documentos
+por bloque. El piloto guarda cada bloque y el cierre usa los resultados ya
+persistidos en POS; una página parcial nunca se toma como ruta completa. Ante
+un error de validación del formulario pequeño, los campos se recuperan si la
+ruta sigue autorizada y su versión no cambió.
 
 Los errores distinguen sesion de piloto no disponible, configuracion incompleta,
 instalacion pendiente, permisos/conexion y espera/bloqueo. Los errores tecnicos
@@ -633,27 +635,31 @@ usa únicamente las placas vinculadas y su propietario en POS.
 
 Al iniciar sesión, la empresa elige una placa de una lista y ve sus rutas
 activas de cualquier fecha, con independencia de `RT_RUTAS.PILOTO` y
-`CENTRO_DIST`. El historial conserva filtros de fecha. Distribución asigna
-el conductor real a cada ruta antes de las entregas o la salida por Garita.
+`CENTRO_DIST`. El historial conserva filtros de fecha. Distribución puede
+registrar el conductor real para consulta y auditoría, pero la ausencia de ese
+registro no bloquea entregas, salida por Garita ni cierre.
 Garita y Panel detectan la cuenta de empresa por la misma propiedad de placa.
 Los pilotos individuales siguen requiriendo empleado, centro y placa.
 
 ### Entregas y cierre con cuenta empresarial
 
-La placa permite encontrar la ruta, pero no autoriza por sí sola a registrar
-entregas. Antes de comenzar, Distribución abre **Editar ruta**, asigna el nombre
-y documento/licencia del conductor real y guarda el motivo. La cuenta POS de la
-empresa debe conservar el rol `PILOTO` y el permiso
-`Pilotos.Rutas.Confirmar`. Al volver a abrir la ruta **En ruta**, aparecen las
-mismas acciones operativas que para un piloto individual: resultados de
-facturas, cliente completado, fotos admitidas y cierre. El conductor no edita
-fecha, placa, centro ni estado desde el portal piloto.
+La cuenta POS de la empresa debe conservar el rol `PILOTO`, los permisos
+`Pilotos.Rutas.Ver` y `Pilotos.Rutas.Confirmar`, y al menos una placa vinculada.
+El acceso a una ruta se valida por esa placa, aunque `RT_RUTAS.PILOTO` contenga
+el nombre de la empresa u otro piloto. En una ruta **En ruta**, la empresa puede
+registrar resultados, completar clientes, adjuntar fotos y cerrar la ruta sin
+asignación adicional de conductor. El conductor no edita fecha, placa, centro
+ni estado desde el portal piloto.
 
-El panel muestra **Asignar conductor** en rutas empresariales pendientes. Si
-una ruta histórica registró salida de Garita sin conductor, Distribución puede
-completar la primera asignación siempre que aún no existan clientes guardados,
-fotos ni resultados. Tras una salida con conductor completo, no se permite
-cambiarlo. Una ruta cerrada o liquidada tampoco admite esta asignación.
+Distribución puede registrar un conductor real como dato opcional de auditoría
+en **Editar ruta**. Las restricciones de esa edición siguen vigentes, pero no
+forman parte de la autorización para operar la ruta.
+
+En rutas de más de 200 documentos, el portal divide cada cliente en bloques de
+hasta 25 documentos y muestra cuatro bloques por página. Cada bloque se guarda
+en POS; el cierre reconstruye los resultados desde esos borradores, comprueba
+que todos estén completos y aplica el cierre en una transacción. No es necesario
+enviar todos los documentos en el formulario final.
 
 Para verificar una cuenta recién configurada, elegir su placa, abrir una ruta
 En ruta y comprobar que no muestre «Conductor pendiente», que aparezca

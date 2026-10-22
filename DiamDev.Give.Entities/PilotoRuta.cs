@@ -14,7 +14,12 @@ namespace DiamDev.Give.Entities
         public int TotalDocumentos { get; set; }
         public int PaginaDocumentos { get; set; }
         public int TamanoPaginaDocumentos { get; set; }
-        public bool HayMasDocumentos { get { return (long)PaginaDocumentos * TamanoPaginaDocumentos < TotalDocumentos; } }
+        public bool HayMasDocumentos { get { return PuedeCerrar && TotalDocumentos>PilotoReglas.MaxDocumentos ? (long)PaginaDocumentos*PilotoReglas.GruposPorPaginaGrande<TotalGrupos : (long)PaginaDocumentos * TamanoPaginaDocumentos < TotalDocumentos; } }
+        public int TotalGrupos { get; set; }
+        public int GruposCompletados { get; set; }
+        public int DocumentosEntregados { get; set; }
+        public int DocumentosNoEntregados { get; set; }
+        public int DocumentosIncidencias { get; set; }
         public string Piloto { get; set; }
         public bool CuentaEmpresa { get; set; }
         public string ConductorReal { get; set; }
@@ -100,6 +105,7 @@ namespace DiamDev.Give.Entities
         public string RutaId { get; set; }
         public string Version { get; set; }
         public Guid Solicitud { get; set; }
+        public bool DesdeBorradores { get; set; }
         public List<PilotoResultado> Documentos { get; set; }
     }
 

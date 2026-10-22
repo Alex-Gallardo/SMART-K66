@@ -62,7 +62,7 @@ if(Model.Rutas.Count==0) {
             <p class="eyebrow">RUTA</p><h2>@ruta.Id</h2>
             <div class="vehicle-row"><span class="vehicle-icon"><svg class="icon" aria-hidden="true"><use href="#i-truck" /></svg></span><div><span class="field-label">Vehículo</span><strong class="vehicle-plate">@ruta.Placa</strong></div></div>
             <div class="route-meta"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><span><span class="field-label">Centro</span><strong>@ruta.Centro</strong></span></div>
-            @if(Model.CuentaEmpresa){<p class="muted">@(ruta.ConductorAsignado?"Conductor: "+ruta.ConductorReal:"Conductor pendiente: Distribución debe asignarlo antes de las entregas")</p>}
+            @if(Model.CuentaEmpresa){<p class="muted">Piloto / transporte: @(ruta.ConductorAsignado?ruta.ConductorReal:ruta.Piloto)</p>}
             @if(ruta.Estado=="A") {
                 <p class="muted">Distribución debe cambiar esta ruta a “En ruta” antes de la salida de planta.</p>
                 <button type="button" class="card-link" disabled>Ruta pendiente de salida</button>

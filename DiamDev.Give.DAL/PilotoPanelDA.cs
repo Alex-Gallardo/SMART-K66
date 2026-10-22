@@ -162,10 +162,8 @@ WHERE EXISTS(SELECT 1 FROM dbo.Usuario u WHERE u.Usuario_Id=pe.Usuario_Id AND u.
                         foreach(var cliente in ruta.Clientes) cliente.Completado=ruta.Datos.Estado=="C" && cliente.Documentos.All(d=>d.Resultado!="PENDIENTE");
                         if(!ruta.VehiculoActivo) ruta.Alertas.Add("Vehículo inactivo o no disponible.");
                         if(ruta.Pilotos.Count==0 && ruta.Datos.Estado=="E") ruta.Alertas.Add("Ningún usuario POS tiene acceso operativo a esta combinación de empleado, centro y placa.");
-                        if(ruta.Datos.CuentaEmpresa && !ruta.Datos.ConductorAsignado && ruta.Datos.Estado=="E") ruta.Alertas.Add("Distribución debe asignar nombre y documento del conductor para habilitar las entregas de esta ruta.");
                         if(ruta.Pilotos.Count>1) ruta.Alertas.Add("Más de un usuario coincide con la asignación. Revisar vínculos.");
                         if(ruta.Datos.Documentos.Count==0) ruta.Alertas.Add("Ruta sin documentos.");
-                        if(ruta.Datos.Documentos.Count>PilotoReglas.MaxDocumentos) ruta.Alertas.Add("Supera 200 documentos; el cierre corresponde a Distribución.");
                     }
                     CargarArtefactos(cn,tx,modelo,rutas);
                     using(var c=Cmd(cn,tx,SqlActividad)) {

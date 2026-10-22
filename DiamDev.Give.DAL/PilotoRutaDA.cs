@@ -191,12 +191,6 @@ AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA 
                 Estado = Texto(r, "STATUS"), Solicitud = Guid.NewGuid() };
         }
 
-        private static void ExigirConductor(PilotoRuta ruta)
-        {
-            if(!ruta.ConductorAsignado)
-                throw new PilotoException(409,"Distribución debe asignar el conductor de esta ruta antes de registrar entregas.");
-        }
-
         public PilotoLista Listar(string login, DateTime desde, DateTime hasta, int pagina, string vista = null, string placa = null)
         {
             vista=PilotoReglas.VistaRutas(vista);
@@ -281,11 +275,16 @@ WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Usuario_Id=@usuario AND Placa=
                  using(var lector=conductor.ExecuteReader()) if(lector.Read()) {ruta.ConductorReal=Texto(lector,"Nombre");ruta.DocumentoConductor=Texto(lector,"Documento");}}
             }
             ruta.PuedeCerrar=PilotoReglas.PuedeOperar(ruta,CierreHabilitado,liquidada);
-            if (!consulta && ruta.TotalDocumentos > PilotoReglas.MaxDocumentos)
-                throw new PilotoException(409,"Esta ruta supera el límite de documentos para cierre. Puedes consultarla; solicita el cierre a Distribución.");
+            using (var cmd=Command(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoBorradorCliente',N'U') IS NULL THEN 0 ELSE 1 END;"))
+                ruta.BorradoresDisponibles=(int)cmd.ExecuteScalar()==1;
+            if(ruta.BorradoresDisponibles)
+                using (var cmd=Command(cn,tx,"SELECT CASE WHEN COL_LENGTH(N'dbo.PilotoBorradorCliente',N'Completado') IS NULL OR OBJECT_ID(N'dbo.PilotoClienteImagen',N'U') IS NULL OR OBJECT_ID(N'dbo.PilotoClienteImagenEvento',N'U') IS NULL THEN 0 ELSE 1 END;"))
+                    ruta.ClientesCompletadosDisponibles=(int)cmd.ExecuteScalar()==1;
+            if(consulta && !ruta.ClientesCompletadosDisponibles) ruta.PuedeCerrar=false;
             if (consulta) PilotoReglas.PrepararConsulta(ruta,pagina);
             var paginada = consulta && !ruta.PuedeCerrar;
-            if (!consulta) { ruta.TamanoPaginaDocumentos=PilotoReglas.MaxDocumentos; ruta.PaginaDocumentos=1; }
+            if (!consulta) { ruta.TamanoPaginaDocumentos=ruta.TotalDocumentos; ruta.PaginaDocumentos=1; }
+            var cargaCompleta=!paginada;
             using (var cmd = Command(cn, tx, "SELECT MARCA,TIPO,LINEA,EMPRESA FROM " + apk + ".dbo.RT_VEHICULOS WHERE PLACA=@placa;"))
             {
                 Param(cmd,"@placa",SqlDbType.NVarChar,ruta.Placa,15);
@@ -306,8 +305,8 @@ FROM " + apk + ".dbo.RT_RUTAS_DET" + hint + "WHERE ID_RUTA=@id ORDER BY ROWID OF
             using(var cmd=Command(cn,tx,sql))
             {
                 Param(cmd,"@id",SqlDbType.NVarChar,id,15);
-                Param(cmd,"@limite",SqlDbType.Int,ruta.TamanoPaginaDocumentos);
-                Param(cmd,"@offset",SqlDbType.Int,(ruta.PaginaDocumentos-1)*ruta.TamanoPaginaDocumentos);
+                Param(cmd,"@limite",SqlDbType.Int,cargaCompleta ? Math.Max(1,ruta.TotalDocumentos) : ruta.TamanoPaginaDocumentos);
+                Param(cmd,"@offset",SqlDbType.Int,cargaCompleta ? 0 : (ruta.PaginaDocumentos-1)*ruta.TamanoPaginaDocumentos);
                 using(var r=cmd.ExecuteReader()) while(r.Read())
                 {
                     ruta.Documentos.Add(new PilotoDocumento { RowId=(int)r["ROWID"], Tipo=Texto(r,"TIPO"), Empresa=Texto(r,"ID_EMPRESA"),
@@ -338,11 +337,14 @@ FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@id;"))
                 }
             }
             if (paginada && pagina > 1 && ruta.Documentos.Count == 0) throw new PilotoException(404,"La página de documentos no está disponible. Vuelve al inicio de la ruta.");
+            if(cargaCompleta)
+            {
+                ruta.TotalGrupos=PilotoReglas.Grupos(ruta).Count;
+                if(consulta && ruta.PuedeCerrar && ruta.TotalDocumentos>PilotoReglas.MaxDocumentos &&
+                    (long)(pagina-1)*PilotoReglas.GruposPorPaginaGrande>=ruta.TotalGrupos && pagina>1)
+                    throw new PilotoException(404,"La página de clientes no está disponible. Vuelve al inicio de la ruta.");
+            }
             ruta.Version=paginada ? null : PilotoReglas.Version(ruta);
-            using (var cmd=Command(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoBorradorCliente',N'U') IS NULL THEN 0 ELSE 1 END;"))
-                ruta.BorradoresDisponibles=(int)cmd.ExecuteScalar()==1;
-            using (var cmd=Command(cn,tx,"SELECT CASE WHEN COL_LENGTH(N'dbo.PilotoBorradorCliente',N'Completado') IS NULL OR OBJECT_ID(N'dbo.PilotoClienteImagen',N'U') IS NULL OR OBJECT_ID(N'dbo.PilotoClienteImagenEvento',N'U') IS NULL THEN 0 ELSE 1 END;"))
-                ruta.ClientesCompletadosDisponibles=(int)cmd.ExecuteScalar()==1;
             if(ruta.ClientesCompletadosDisponibles)
             {
                 using(var cmd=Command(cn,tx,"SELECT Primer_RowId FROM dbo.PilotoClienteImagen WHERE Ruta_Id=@ruta;"))
@@ -363,22 +365,22 @@ FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@id;"))
                 {
                     var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Ver"); var ruta=LeerRuta(cn,tx,a,id,false,pagina,true);
                     if(ruta.PuedeCerrar && ruta.ClientesCompletadosDisponibles) CargarBorradores(cn,tx,a,ruta);
-                    if(ruta.PuedeCerrar && !ruta.ClientesCompletadosDisponibles) ruta.PuedeCerrar=false;
+                    ruta.GruposCompletados=ruta.Borradores.Count(b=>b.Completado);
+                    var guardados=ruta.Borradores.Where(b=>b.Completado).SelectMany(b=>b.Documentos).ToList();
+                    ruta.DocumentosEntregados=guardados.Count(d=>d.Entrega=="ENTREGADO");
+                    ruta.DocumentosNoEntregados=guardados.Count(d=>d.Entrega=="NO ENTREGADO");
+                    ruta.DocumentosIncidencias=guardados.Count(d=>d.Entrega=="INCIDENCIA");
                     tx.Commit(); return ruta;
                 }
             }
         }
 
-        private static string Grupo(PilotoDocumento d)
-        { return (d.Cliente??"").Trim().ToUpperInvariant()+"\u001f"+(d.Direccion??"").Trim().ToUpperInvariant(); }
-
         private static List<PilotoDocumento> DocumentosGrupo(PilotoRuta ruta,int primero)
         {
             var principal=ruta.Documentos.SingleOrDefault(d=>d.RowId==primero);
             if(principal==null) throw new PilotoException(409,"El cliente ya no pertenece a la ruta. Recarga los detalles.");
-            var clave=Grupo(principal);
-            var docs=ruta.Documentos.Where(d=>Grupo(d)==clave).OrderBy(d=>d.RowId).ToList();
-            if(docs[0].RowId!=primero) throw new PilotoException(409,"El grupo de cliente cambió. Recarga los detalles.");
+            var docs=PilotoReglas.Grupos(ruta).SingleOrDefault(g=>g[0].RowId==primero);
+            if(docs==null) throw new PilotoException(409,"El grupo de cliente cambió. Recarga los detalles.");
             return docs;
         }
 
@@ -403,6 +405,7 @@ FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@id;"))
 
         private void CargarBorradores(SqlConnection cn,SqlTransaction tx,Acceso a,PilotoRuta ruta,bool aplicar=true)
         {
+            var grupos=PilotoReglas.Grupos(ruta).ToDictionary(g=>g[0].RowId);
             using(var cmd=Command(cn,tx,@"SELECT b.Primer_RowId,b.Version,b.MasivoActivo,b.Resultados,b.Anteriores,b.Completado,
 CASE WHEN i.Ruta_Id IS NULL THEN 0 ELSE 1 END AS TieneImagenCliente
 FROM dbo.PilotoBorradorCliente b LEFT JOIN dbo.PilotoClienteImagen i
@@ -417,7 +420,9 @@ WHERE b.Usuario_Id=@usuario AND b.Ruta_Id=@ruta;"))
                         PrimerRowId=(int)r["Primer_RowId"],MasivoActivo=(bool)r["MasivoActivo"],
                         Completado=(bool)r["Completado"],TieneImagenCliente=(int)r["TieneImagenCliente"]==1,
                         Documentos=LeerResultados(Texto(r,"Resultados")),Anteriores=LeerResultados(Texto(r,"Anteriores")) };
-                    var grupo=DocumentosGrupo(ruta,b.PrimerRowId);
+                    List<PilotoDocumento> grupo;
+                    if(!grupos.TryGetValue(b.PrimerRowId,out grupo))
+                        throw new PilotoException(409,"El borrador ya no pertenece a esta ruta. Contacta a Distribución.");
                     if(b.Documentos.Count!=grupo.Count || !b.Documentos.Select(d=>d.RowId).OrderBy(x=>x).SequenceEqual(grupo.Select(d=>d.RowId)))
                         throw new PilotoException(409,"El borrador no coincide con los documentos actuales. Contacta a Distribución.");
                     if(aplicar) foreach(var d in grupo)
@@ -441,7 +446,6 @@ WHERE b.Usuario_Id=@usuario AND b.Ruta_Id=@ruta;"))
             {
                 var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Confirmar");
                 var ruta=LeerRuta(cn,tx,a,borrador.RutaId,true);
-                ExigirConductor(ruta);
                 if(!ruta.PuedeCerrar || !ruta.ClientesCompletadosDisponibles || ruta.Version!=borrador.Version)
                     throw new PilotoException(409,"La ruta cambió o el guardado no está instalado. Recarga los detalles.");
                 var grupo=DocumentosGrupo(ruta,borrador.PrimerRowId);
@@ -568,11 +572,10 @@ WHERE r.ID_RUTA=@id AND d.ROWID=@row AND " + Alcance(acceso) + ";";
                 if(imagen.Entrega!="NO ENTREGADO" && imagen.Entrega!="INCIDENCIA")
                     throw new PilotoException(400,"Selecciona No entregado o Incidencia antes de subir la imagen.");
                 var ruta=LeerRuta(cn,tx,acceso,imagen.RutaId,true);
-                ExigirConductor(ruta);
                 if(!ruta.ClientesCompletadosDisponibles) throw new PilotoException(503,"Falta instalar la finalización de clientes en POS.");
                 var documento=ruta.Documentos.SingleOrDefault(d=>d.RowId==imagen.RowId);
                 if(documento==null) throw new PilotoException(404,"Documento no disponible.");
-                var primero=DocumentosGrupo(ruta,ruta.Documentos.Where(d=>Grupo(d)==Grupo(documento)).Min(d=>d.RowId))[0].RowId;
+                var primero=PilotoReglas.Grupos(ruta).Single(g=>g.Any(d=>d.RowId==documento.RowId))[0].RowId;
                 using(var cmd=Command(cn,tx,@"SELECT Completado FROM dbo.PilotoBorradorCliente WITH(UPDLOCK,HOLDLOCK)
 WHERE Usuario_Id=@usuario AND Ruta_Id=@ruta AND Primer_RowId=@primero;"))
                 {
@@ -659,7 +662,6 @@ WHERE Ruta_Id=@ruta AND Primer_RowId=@primero;"))
             {
                 var a=Autorizar(cn,tx,login,"Pilotos.Rutas.Confirmar");
                 var ruta=LeerRuta(cn,tx,a,imagen.RutaId,true);
-                ExigirConductor(ruta);
                 if(!ruta.PuedeCerrar || !ruta.ClientesCompletadosDisponibles || ruta.Version!=imagen.Version)
                     throw new PilotoException(409,"La ruta cambió o la foto final no está instalada. Recarga los detalles.");
                 var grupo=DocumentosGrupo(ruta,imagen.PrimerRowId);
@@ -736,7 +738,7 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
         {
             if(PruebasSoloLectura) throw new PilotoException(403,"El modo de pruebas permite consultar. El cierre de rutas esta desactivado.");
             if(!CierreHabilitado) throw new PilotoException(503,"El cierre no esta disponible. Contacta a Distribucion.");
-            var huella=PilotoReglas.HuellaSolicitud(cierre);
+            var huella=cierre!=null && cierre.DesdeBorradores ? PilotoReglas.HuellaCierreGuardado(cierre) : PilotoReglas.HuellaSolicitud(cierre);
             if(cierre.Solicitud==Guid.Empty || string.IsNullOrWhiteSpace(cierre.RutaId) || cierre.RutaId.Length>15)
                 throw new PilotoException(400,"La solicitud de cierre no es valida.");
             using(var cn=AbrirConexion())
@@ -756,14 +758,20 @@ WHERE s.name=N'dbo' AND o.name IN(N'RT_RUTAS',N'RT_RUTAS_DET');";
                         }
                     }
                     var ruta=LeerRuta(cn,tx,a,cierre.RutaId,true);
-                    ExigirConductor(ruta);
-                    PilotoReglas.ValidarCierre(ruta,cierre);
                     if(!ruta.PuedeCerrar) throw new PilotoException(409,"La ruta no admite cierre desde el portal.");
                     if(!ruta.ClientesCompletadosDisponibles) throw new PilotoException(503,"Falta instalar la finalización de clientes en POS.");
+                    if(cierre.DesdeBorradores!=(ruta.TotalDocumentos>PilotoReglas.MaxDocumentos))
+                        throw new PilotoException(400,"El modo de cierre no coincide con la ruta. Recarga sus detalles.");
                     CargarBorradores(cn,tx,a,ruta,false);
-                    var grupos=ruta.Documentos.GroupBy(Grupo).ToList();
-                    if(ruta.Borradores.Count!=grupos.Count)
-                        throw new PilotoException(409,"Guarda cada cliente antes de cerrar la ruta.");
+                    var grupos=PilotoReglas.Grupos(ruta);
+                    var guardados=PilotoReglas.ResultadosGuardados(ruta);
+                    if(cierre.DesdeBorradores)
+                    {
+                        if(cierre.Documentos!=null && cierre.Documentos.Count>0)
+                            throw new PilotoException(400,"El cierre grande no acepta resultados enviados en el formulario.");
+                        cierre.Documentos=guardados;
+                    }
+                    PilotoReglas.ValidarCierre(ruta,cierre);
                     foreach(var grupo in grupos)
                     {
                         var ids=grupo.Select(d=>d.RowId).OrderBy(x=>x).ToArray();

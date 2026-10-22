@@ -72,6 +72,7 @@ internal static class RazorCompile
                             previews["detalle-empresa-lista"]=RazorPreview.Render(type,RazorPreview.RutaEmpresa(true),null,"activas",true);
                             previews["detalle-empresa-pendiente"]=RazorPreview.Render(type,RazorPreview.RutaEmpresa(false),null,"activas",true);
                             previews["detalle-empresa-sin-permiso"]=RazorPreview.Render(type,RazorPreview.RutaEmpresa(true,false),null,"activas",true);
+                            previews["detalle-empresa-grande"]=RazorPreview.Render(type,RazorPreview.RutaGrande(),null,"activas",true);
                         }
                         if(relative=="Piloto/Administracion.cshtml") previews["administracion"]=RazorPreview.Render(type,RazorPreview.AdminLista());
                         if(relative=="Piloto/Configurar.cshtml") {previews["configurar"]=RazorPreview.Render(type,RazorPreview.AdminEdicion());previews["configurar-empresa"]=RazorPreview.Render(type,RazorPreview.AdminEdicionEmpresa());}

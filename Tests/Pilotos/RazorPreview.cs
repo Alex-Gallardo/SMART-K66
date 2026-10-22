@@ -146,6 +146,20 @@ internal static class RazorPreview
         ruta.Version=PilotoReglas.Version(ruta);
         return ruta;
     }
+    public static PilotoRuta RutaGrande()
+    {
+        var ruta=RutaEditable();ruta.Id="EMP-GRANDE";ruta.CuentaEmpresa=true;ruta.Piloto="TRANSPORTE DEMO";
+        ruta.ConductorReal=null;ruta.DocumentoConductor=null;ruta.PaginaDocumentos=3;ruta.TamanoPaginaDocumentos=100;
+        ruta.Documentos=Enumerable.Range(1,251).Select(i=>new PilotoDocumento{RowId=i,Tipo="FACTURA",Empresa="GRACO",Documento="FAC-"+i,
+            Cliente="CLIENTE MASIVO",Direccion="PALIN",Bultos=1,Visito=true,Entrega="ENTREGADO"}).ToList();
+        ruta.TotalDocumentos=ruta.Documentos.Count;ruta.TotalGrupos=PilotoReglas.Grupos(ruta).Count;
+        ruta.Version=PilotoReglas.Version(ruta);
+        var grupos=PilotoReglas.Grupos(ruta);
+        foreach(var grupo in grupos.Take(10)) ruta.Borradores.Add(new PilotoBorradorCliente{PrimerRowId=grupo[0].RowId,
+            Completado=true,Documentos=grupo.Select(d=>new PilotoResultado{RowId=d.RowId,Visito=true,Entrega="ENTREGADO"}).ToList()});
+        ruta.GruposCompletados=10;ruta.DocumentosEntregados=250;
+        return ruta;
+    }
     public static PilotoRuta RutaConBorrador()
     {
         var ruta=RutaEditable();

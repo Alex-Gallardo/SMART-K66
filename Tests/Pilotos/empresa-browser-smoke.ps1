@@ -3,7 +3,8 @@ $ErrorActionPreference='Stop'
 if(!(Test-Path -LiteralPath $ChromePath)) { throw 'Chrome no está disponible para la prueba de transportistas.' }
 $bin=Join-Path $PSScriptRoot 'bin'
 $smoke=Join-Path $bin 'empresa-browser-smoke.html'
-foreach($scenario in @('index-empresa-sin-placa','index-empresa','detalle-empresa-lista','detalle-empresa-pendiente','detalle-empresa-sin-permiso','editar-ruta-empresa')) {
+$pilotScript=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../../DiamDev.Give.UI/Scripts/pilotos.js') -Raw
+foreach($scenario in @('index-empresa-sin-placa','index-empresa','detalle-empresa-lista','detalle-empresa-pendiente','detalle-empresa-sin-permiso','detalle-empresa-grande','editar-ruta-empresa')) {
     $html=Get-Content -LiteralPath (Join-Path $bin ($scenario+'.html')) -Raw
     $probe=@'
 <script>
@@ -22,9 +23,26 @@ if(escenario.indexOf('index-')===0){
  }
 } else if(escenario.indexOf('detalle-')===0) {
  var editable=!!document.querySelector('.save-client') && !!document.querySelector('#complete-button');
- check(editable===(escenario==='detalle-empresa-lista'),'acciones de piloto incorrectas para '+escenario);
- if(escenario==='detalle-empresa-pendiente') check(document.body.textContent.includes('Conductor pendiente'),'falta explicar la asignación pendiente');
+ check(editable!==(escenario==='detalle-empresa-sin-permiso'),'acciones de piloto incorrectas para '+escenario);
+ if(escenario==='detalle-empresa-pendiente') check(!Array.prototype.some.call(document.querySelectorAll('.notice'),function(n){return n.textContent.includes('Conductor pendiente');}),'asignación opcional bloquea ruta');
  if(escenario==='detalle-empresa-sin-permiso') check(document.body.textContent.includes('Pilotos.Rutas.Confirmar'),'falta explicar el permiso pendiente');
+ if(escenario==='detalle-empresa-grande') {
+  var groups=document.querySelectorAll('.customer-group');
+  check(groups.length===3 && groups[2].textContent.includes('BLOQUE 11 DE 11'),'paginación de bloques grandes incorrecta');
+  check(document.querySelector('input[name="DesdeBorradores"][value="true"]') && document.querySelector('.pagination'),'falta cierre por borradores o paginación');
+  document.getElementById('review-button').click();
+  check(document.getElementById('complete-modal').hidden,'ruta incompleta abrió cierre');
+  groups[2].setAttribute('data-saved','true');
+  document.getElementById('complete-route').setAttribute('data-completed-groups','11');
+  document.getElementById('review-button').click();
+  check(!document.getElementById('complete-modal').hidden,'ruta completa no abrió confirmación');
+  var form=document.getElementById('complete-route');
+  var reviewed=document.getElementById('confirm-reviewed');reviewed.checked=true;reviewed.dispatchEvent(new Event('change'));
+  form.dispatchEvent(new Event('submit',{cancelable:true}));
+  var payload=new FormData(form);
+  check(payload.get('DesdeBorradores')==='true' && !Array.from(payload.keys()).some(function(key){return key.indexOf('Documentos[')===0;}),
+   'el cierre grande envió resultados parciales');
+ }
 } else {
  var form=document.querySelector('form[action*="AsignarConductor"]');
  check(form && form.elements.EmpresaUsuarioId.value==='22' && form.elements.Nombre.value==='JUAN PEREZ','formulario de conductor incompleto');
@@ -33,7 +51,8 @@ document.documentElement.setAttribute('data-empresa-smoke','PASS');
 }catch(e){document.documentElement.setAttribute('data-empresa-smoke','FAIL: '+e.message);}})();
 </script>
 '@
-    $html=$html.Replace('</body>',$probe.Replace('__SCENARIO__',$scenario)+'</body>')
+    $script=if($scenario -eq 'detalle-empresa-grande') {'<script>'+$pilotScript+'</script>'} else {''}
+    $html=$html.Replace('</body>',$script+$probe.Replace('__SCENARIO__',$scenario)+'</body>')
     Set-Content -LiteralPath $smoke -Value $html -Encoding UTF8
     foreach($size in @('425,900','1280,900')) {
         $stdout=Join-Path $bin 'empresa-chrome-stdout.tmp'

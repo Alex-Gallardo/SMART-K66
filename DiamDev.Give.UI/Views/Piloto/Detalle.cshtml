@@ -4,60 +4,68 @@
     Layout = "~/Views/Shared/_PilotoLayout.cshtml";
     ViewBag.Title = "Ruta " + Model.Id;
     var estadoIcon=Model.Estado=="E" ? "i-truck" : Model.Estado=="C" ? "i-check" : Model.Estado=="X" ? "i-x" : "i-clock";
-    var grupos=Model.Documentos.Select((documento,indice)=>new { Documento=documento, Indice=indice })
-        .GroupBy(x=>new { Cliente=(x.Documento.Cliente??"").Trim().ToUpperInvariant(), Direccion=(x.Documento.Direccion??"").Trim().ToUpperInvariant() }).ToList();
-    var conductorPendiente=Model.CuentaEmpresa && !Model.ConductorAsignado && Model.Estado=="E";
+    var rutaGrande=Model.PuedeCerrar && Model.TotalDocumentos>DiamDev.Give.Entities.PilotoReglas.MaxDocumentos;
+    var todosLosGrupos=Model.PuedeCerrar ? DiamDev.Give.Entities.PilotoReglas.Grupos(Model) : Model.Documentos
+        .GroupBy(d=>new { Cliente=(d.Cliente??"").Trim().ToUpperInvariant(), Direccion=(d.Direccion??"").Trim().ToUpperInvariant() })
+        .Select(g=>g.ToList()).ToList();
+    var gruposVisibles=rutaGrande ? todosLosGrupos.Skip((Model.PaginaDocumentos-1)*DiamDev.Give.Entities.PilotoReglas.GruposPorPaginaGrande)
+        .Take(DiamDev.Give.Entities.PilotoReglas.GruposPorPaginaGrande).ToList() : todosLosGrupos;
+    var indices=(rutaGrande ? gruposVisibles.SelectMany(g=>g) : Model.Documentos).Select((d,i)=>new { d.RowId,Indice=i }).ToDictionary(x=>x.RowId,x=>x.Indice);
+    var grupos=gruposVisibles.Select(g=>g.Select(d=>new { Documento=d, Indice=indices[d.RowId] }).ToList()).ToList();
 }
 <a class="back-link" href="@Url.Action("Index",new { desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,pagina=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa })"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Mis rutas</a>
 <div class="detail-title"><div><p class="eyebrow">DETALLE DE RUTA</p><h1>@Model.Id</h1></div><span class="status status-@Model.Estado"><svg class="icon" aria-hidden="true"><use href="#@estadoIcon" /></svg>@Model.EstadoNombre</span></div>
 @Html.ValidationSummary(false, "Revisa los resultados antes de continuar.", new { role="alert" })
 @if (TempData["Piloto.Mensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.Mensaje"]</p> }
-<dl class="route-summary"><div><dt>Fecha</dt><dd>@Model.Fecha.ToString("dd/MM/yyyy")</dd></div><div><dt>Vehículo</dt><dd>@Model.Placa</dd></div><div><dt>@(Model.CuentaEmpresa?"Conductor asignado":"Piloto")</dt><dd>@(Model.CuentaEmpresa?(Model.ConductorAsignado?Model.ConductorReal:"Pendiente de asignar"):Model.Piloto)</dd></div><div><dt>Centro</dt><dd>@Model.Centro</dd></div></dl>
-@if(conductorPendiente){<p class="notice" role="status"><strong>Conductor pendiente.</strong> Distribución debe registrar su nombre y documento en esta ruta. Después, vuelve a abrirla para registrar entregas y completar clientes.</p>}
+<dl class="route-summary"><div><dt>Fecha</dt><dd>@Model.Fecha.ToString("dd/MM/yyyy")</dd></div><div><dt>Vehículo</dt><dd>@Model.Placa</dd></div><div><dt>@(Model.CuentaEmpresa?"Piloto / transporte":"Piloto")</dt><dd>@(Model.ConductorAsignado && Model.CuentaEmpresa ? Model.ConductorReal : Model.Piloto)</dd></div><div><dt>Centro</dt><dd>@Model.Centro</dd></div></dl>
 @if(Model.SalidaGaritaUtc.HasValue){<p class="notice success" role="status">Garita registró la salida de planta el @Model.SalidaGaritaUtc.Value.AddHours(-6).ToString("dd/MM/yyyy") a las @Model.SalidaGaritaUtc.Value.AddHours(-6).ToString("HH:mm") (hora de Guatemala).</p>}
 @if (!string.IsNullOrWhiteSpace(Model.Transporte) || !string.IsNullOrWhiteSpace(Model.Vehiculo)) {
     <div class="vehicle-panel"><p class="eyebrow">TRANSPORTE ASIGNADO</p><strong>@(Model.Transporte ?? "Vehículo de la ruta")</strong><p class="muted">@Model.Vehiculo <span class="plate">@Model.Placa</span></p></div>
 }
 <div class="list-heading"><h2>Documentos <span class="count">@Model.TotalDocumentos</span></h2>
-    @if (Model.TotalDocumentos>0) { <span class="muted">@((Model.PaginaDocumentos-1)*Model.TamanoPaginaDocumentos+1)–@((Model.PaginaDocumentos-1)*Model.TamanoPaginaDocumentos+Model.Documentos.Count) de @Model.TotalDocumentos</span> }
+    @if (Model.TotalDocumentos>0) { <span class="muted">@(rutaGrande ? "Página "+Model.PaginaDocumentos+" · "+Model.TotalDocumentos+" documentos" : ((Model.PaginaDocumentos-1)*Model.TamanoPaginaDocumentos+1)+"–"+((Model.PaginaDocumentos-1)*Model.TamanoPaginaDocumentos+Model.Documentos.Count)+" de "+Model.TotalDocumentos)</span> }
 </div>
-@if(Model.TotalDocumentos>DiamDev.Give.Entities.PilotoReglas.MaxDocumentos) { <p class="notice">Puedes consultar todos los documentos por páginas. El cierre de esta ruta corresponde a Distribución por su cantidad de documentos.</p> }
+@if(rutaGrande) { <p class="notice" role="status">Esta ruta tiene varios documentos. Guarda cada bloque de cliente; puedes avanzar por páginas. Al completar todos los bloques podrás cerrar la ruta.</p> }
 @if (Model.PuedeCerrar)
 {
-    <p class="intro">Abre cada factura, registra su resultado y guarda el cliente. Al completar el último cliente se abrirá la revisión final para confirmar el cierre de la ruta.</p>
+    <p class="intro">@(rutaGrande ? "Abre cada factura, registra su resultado y guarda cada bloque. Cuando todos estén listos podrás revisar y cerrar la ruta." : "Abre cada factura, registra su resultado y guarda el cliente. Al completar el último cliente se abrirá la revisión final para confirmar el cierre de la ruta.")</p>
 }
-else if (ViewBag.PruebasSoloLectura != true && !conductorPendiente)
+else if (ViewBag.PruebasSoloLectura != true)
 {
     <p class="notice">@(Model.Estado!="E" ? "Esta ruta está disponible solo para consulta." : !Model.PermisoConfirmar ? "Esta cuenta puede consultar rutas, pero le falta el permiso para registrar entregas. Solicita a Distribución que revise Pilotos.Rutas.Confirmar." : "La ruta está disponible para consulta. Solicita a Distribución que revise la configuración de entregas.")</p>
 }
 @if(Model.Estado=="E" && !Model.BorradoresDisponibles && ViewBag.PruebasSoloLectura != true) { <p class="notice">El guardado por cliente estará disponible cuando se instale la tabla de borradores en POS.</p> }
 @if(Model.Estado=="E" && Model.BorradoresDisponibles && !Model.ClientesCompletadosDisponibles && ViewBag.PruebasSoloLectura != true) { <p class="notice">Para completar clientes y subir fotos finales, instala la migración 22 en POS. Por ahora esta ruta está en consulta.</p> }
 @if(Model.Estado=="E" && !Model.ImagenesDisponibles && ViewBag.PruebasSoloLectura != true) { <p class="notice">La carga de imágenes estará disponible cuando se instale la tabla de imágenes en POS.</p> }
-@using (Html.BeginForm("Completar", "Piloto", FormMethod.Post, new { id = "complete-route" }))
+@using (Html.BeginForm("Completar", "Piloto", FormMethod.Post, new { id = "complete-route", data_large_route=rutaGrande ? "true" : "false", data_total_groups=Model.TotalGrupos, data_completed_groups=Model.GruposCompletados, data_delivered=Model.DocumentosEntregados, data_failed=Model.DocumentosNoEntregados, data_incidents=Model.DocumentosIncidencias }))
 {
     @Html.AntiForgeryToken()
     <input type="hidden" name="RutaId" value="@Model.Id" />
     <input type="hidden" name="Version" value="@Model.Version" />
     <input type="hidden" name="Solicitud" value="@Model.Solicitud" />
+    if(rutaGrande) { <input type="hidden" name="DesdeBorradores" value="true" /> }
     foreach (var grupo in grupos)
     {
         var primero = grupo.First().Documento;
         var primerRowId=grupo.Min(x=>x.Documento.RowId);
+        var claveCliente=(primero.Cliente??"").Trim().ToUpperInvariant()+"\u001f"+(primero.Direccion??"").Trim().ToUpperInvariant();
+        var partesCliente=rutaGrande ? todosLosGrupos.Count(g=>(g[0].Cliente??"").Trim().ToUpperInvariant()+"\u001f"+(g[0].Direccion??"").Trim().ToUpperInvariant()==claveCliente) : 1;
+        var parteCliente=rutaGrande ? todosLosGrupos.TakeWhile(g=>g[0].RowId!=primerRowId).Count(g=>(g[0].Cliente??"").Trim().ToUpperInvariant()+"\u001f"+(g[0].Direccion??"").Trim().ToUpperInvariant()==claveCliente)+1 : 1;
         var borrador=Model.Borradores.FirstOrDefault(x=>x.PrimerRowId==primerRowId);
         <section class="customer-group @(borrador!=null && borrador.Completado ? "is-complete" : "")" data-first-row-id="@primerRowId" data-client-name="@(string.IsNullOrWhiteSpace(primero.Cliente) ? "Cliente sin nombre" : primero.Cliente)" data-saved="@(borrador!=null && borrador.Completado ? "true" : "false")" data-bulk-active="@(borrador!=null && borrador.MasivoActivo ? "true" : "false")" aria-label="Documentos de @(primero.Cliente ?? "Cliente sin nombre")">
             <div class="customer-group-heading">
-                <div><p class="eyebrow">CLIENTE · @grupo.Count() @(grupo.Count()==1 ? "documento" : "documentos")</p>
+                <div><p class="eyebrow">CLIENTE @(partesCliente>1 ? "· BLOQUE "+parteCliente+" DE "+partesCliente : "") · @grupo.Count() @(grupo.Count()==1 ? "documento" : "documentos")</p>
                     <h3>@(string.IsNullOrWhiteSpace(primero.Cliente) ? "Cliente sin nombre" : primero.Cliente)</h3>
                     <p class="address"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><span>@(string.IsNullOrWhiteSpace(primero.Direccion) ? "Dirección no registrada" : primero.Direccion)</span></p>
                 </div>
                 <div class="customer-group-action">
-                    @if(Model.PuedeCerrar) { <span class="client-complete-badge" @(borrador==null || !borrador.Completado ? "hidden" : "")>✓ Cliente completado</span> }
+                    @if(Model.PuedeCerrar) { <span class="client-complete-badge" @(borrador==null || !borrador.Completado ? "hidden" : "")>✓ @(rutaGrande ? "Bloque guardado" : "Cliente completado")</span> }
                     <button type="button" class="client-toggle button-secondary" aria-expanded="@(borrador!=null ? "true" : "false")" aria-controls="cliente-@primerRowId">@(borrador!=null ? (borrador.Completado ? "Ocultar resumen" : "Ocultar documentos") : "Ver documentos")</button>
                 </div>
             </div>
         <div id="cliente-@primerRowId" class="customer-documents" @(borrador==null ? "hidden" : "")>
         @if(Model.PuedeCerrar && borrador!=null && borrador.Completado) {
-            <div class="client-compact-summary"><p><strong>Cliente completado.</strong> Los resultados están bloqueados.</p>
+            <div class="client-compact-summary"><p><strong>@(rutaGrande ? "Bloque guardado." : "Cliente completado.")</strong> Los resultados están bloqueados.</p>
                 <ul>
                 @foreach(var item in grupo) {
                     var d=item.Documento;
@@ -149,7 +157,7 @@ else if (ViewBag.PruebasSoloLectura != true && !conductorPendiente)
             </div>
         </article>
         }
-        if(Model.PuedeCerrar) { <div class="client-save-bar"><button type="button" class="save-client"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Guardar cliente</button>@if(Model.PuedeAdjuntarImagen) { <button type="button" class="client-image-upload-trigger button-secondary" data-first-row-id="@primerRowId" data-replace="@(Model.ClientesConImagen.Contains(primerRowId) || borrador!=null && borrador.TieneImagenCliente ? "true" : "false")" disabled><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg><span class="client-image-label">@(Model.ClientesConImagen.Contains(primerRowId) || borrador!=null && borrador.TieneImagenCliente ? "Reemplazar foto final" : "Subir foto final")</span></button> }<p class="group-status" role="status" aria-live="polite">@(borrador!=null ? "Borrador recuperado. Completa el cliente para bloquearlo." : "Pendiente de completar")</p>
+        if(Model.PuedeCerrar) { <div class="client-save-bar"><button type="button" class="save-client"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>@(rutaGrande ? "Guardar bloque" : "Guardar cliente")</button>@if(Model.PuedeAdjuntarImagen) { <button type="button" class="client-image-upload-trigger button-secondary" data-first-row-id="@primerRowId" data-replace="@(Model.ClientesConImagen.Contains(primerRowId) || borrador!=null && borrador.TieneImagenCliente ? "true" : "false")" disabled><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg><span class="client-image-label">@(Model.ClientesConImagen.Contains(primerRowId) || borrador!=null && borrador.TieneImagenCliente ? "Reemplazar foto final" : "Subir foto final")</span></button> }<p class="group-status" role="status" aria-live="polite">@(borrador!=null ? "Borrador recuperado. Completa el cliente para bloquearlo." : "Pendiente de completar")</p>
             <p class="client-image-link" @(Model.ClientesConImagen.Contains(primerRowId) || borrador!=null && borrador.TieneImagenCliente ? "" : "hidden")><a href="@Url.Action("ImagenCliente",new { id=Model.Id,primerRowId=primerRowId })" target="_blank" rel="noopener">Ver foto final</a></p></div> }
         else if(Model.ClientesConImagen.Contains(primerRowId)) { <a class="client-photo-link" href="@Url.Action("ImagenCliente",new { id=Model.Id,primerRowId=primerRowId })" target="_blank" rel="noopener">Ver foto final del cliente</a> }
         }
@@ -159,7 +167,7 @@ else if (ViewBag.PruebasSoloLectura != true && !conductorPendiente)
     if (Model.Documentos.Count == 0) { <p class="empty-state">No hay documentos en esta ruta.</p> }
     if (Model.PuedeCerrar && Model.Documentos.Count > 0)
     {
-        <div class="complete-panel"><p><strong>¿Terminaste todas las entregas?</strong><br />Revisa el resumen antes de cerrar la ruta.</p><button type="button" id="review-button"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Revisar y completar ruta</button><p id="submit-status" role="status" aria-live="polite"></p></div>
+        <div class="complete-panel"><p><strong>¿Terminaste todas las entregas?</strong><br />@(rutaGrande ? Model.GruposCompletados+" de "+Model.TotalGrupos+" bloques guardados. Revisa el resumen antes de cerrar." : "Revisa el resumen antes de cerrar la ruta.")</p><button type="button" id="review-button"><svg class="icon" aria-hidden="true"><use href="#i-check" /></svg>Revisar y completar ruta</button><p id="submit-status" role="status" aria-live="polite"></p></div>
         <div id="draft-endpoint" data-url="@Url.Action("GuardarCliente","Piloto")" hidden></div>
         <div id="complete-modal" class="confirm-modal" hidden>
             <button type="button" class="modal-backdrop" data-close-modal aria-label="Cerrar confirmación"></button>
@@ -167,7 +175,7 @@ else if (ViewBag.PruebasSoloLectura != true && !conductorPendiente)
                 <div class="confirm-handle" aria-hidden="true"></div>
                 <p class="eyebrow">CONFIRMACIÓN FINAL</p>
                 <h2 id="confirm-title">Revisa antes de cerrar</h2>
-                <p id="confirm-help">La ruta <strong>@Model.Id</strong> cambiará de En ruta a Cerrada.</p>
+                <p id="confirm-help">La ruta <strong>@Model.Id</strong> cambiará de En ruta a Cerrada. @(rutaGrande ? "Se comprobarán todos los bloques guardados en POS." : "")</p>
                 <div class="confirm-counts" aria-live="polite">
                     <div class="delivered"><strong id="summary-delivered">0</strong><span>Entregadas</span></div>
                     <div class="failed"><strong id="summary-failed">0</strong><span>No entregadas</span></div>

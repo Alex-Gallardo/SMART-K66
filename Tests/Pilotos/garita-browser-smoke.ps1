@@ -15,13 +15,13 @@ function check(x,m){if(!x)throw new Error(m);}
 check(document.documentElement.scrollWidth<=innerWidth+1,'desbordamiento horizontal');
 check(document.querySelector('input[name="placa"]'),'falta búsqueda por placa');
 var form=document.getElementById('register-exit-form');
-if('$name'==='en-ruta' || '$name'==='empresa-asignada') {check(form,'falta registro de salida');check(form.querySelectorAll('input[type="checkbox"][required]').length===1,'debe haber un solo check');check(form.querySelector('input[type="file"][name="foto"]'),'falta foto opcional');check(!form.querySelector('input[name="Precinto"]'),'precinto visible');check(document.body.textContent.indexOf('FAC-001')>=0,'falta documento');}
+if('$name'==='en-ruta' || '$name'==='empresa-asignada' || '$name'==='empresa-pendiente') {check(form,'falta registro de salida');check(form.querySelectorAll('input[type="checkbox"][required]').length===1,'debe haber un solo check');check(form.querySelector('input[type="file"][name="foto"]'),'falta foto opcional');check(!form.querySelector('input[name="Precinto"]'),'precinto visible');check(document.body.textContent.indexOf('FAC-001')>=0,'falta documento');}
 else check(!form,'registro de salida disponible en estado no autorizado');
 if('$name'==='vacia') check(!document.querySelector('.route-header') && !document.querySelector('.route-option'),'la pantalla inicial debe mostrar solo la búsqueda');
 if('$name'==='lista') check(document.querySelectorAll('.route-option').length===2 && document.querySelector('.pager'),'la placa debe mostrar varias rutas y paginación');
 if('$name'==='sin-resultados') check(!document.querySelector('.route-option') && document.body.textContent.indexOf('No hay rutas En ruta')>=0,'debe mostrar placa sin rutas');
 if('$name'==='en-ruta') check(document.querySelector('.state-ready') && document.body.textContent.indexOf('Registrar hora de salida')>=0,'falta acción de salida en ruta E');
-if('$name'==='empresa-pendiente') check(!form && document.body.textContent.indexOf('Conductor pendiente')>=0,'garita permitió salida sin conductor');
+if('$name'==='empresa-pendiente') check(form && document.body.textContent.indexOf('PILOTO DEMO')>=0,'garita debe usar el piloto de APK66');
 if('$name'==='empresa-asignada') check(form && document.body.textContent.indexOf('JUAN PEREZ')>=0,'garita no mostró conductor asignado');
 document.documentElement.setAttribute('data-garita-smoke','PASS');
 }catch(e){document.documentElement.setAttribute('data-garita-smoke','FAIL: '+e.message);}})();

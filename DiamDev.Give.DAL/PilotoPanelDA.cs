@@ -40,7 +40,7 @@ AND OBJECT_ID(N'dbo.PilotoDocumentoImagen',N'U') IS NOT NULL AND OBJECT_ID(N'dbo
 AND OBJECT_ID(N'dbo.PilotoClienteImagen',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoClienteImagenEvento',N'U') IS NOT NULL
 AND OBJECT_ID(N'dbo.PilotoCierre',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVinculoHistorial',N'U') IS NOT NULL
 AND OBJECT_ID(N'dbo.PilotoCentroHistorial',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVehiculoHistorial',N'U') IS NOT NULL
-AND OBJECT_ID(N'dbo.PilotoEmpresa',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorRuta',N'U') IS NOT NULL
+AND OBJECT_ID(N'dbo.PilotoEmpresa',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoEmpresaPlaca',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorRuta',N'U') IS NOT NULL
 AND OBJECT_ID(N'dbo.PilotoConductorHistorial',N'U') IS NOT NULL
 THEN 1 ELSE 0 END;";
         // La tabla temporal debe nacer en el ámbito de la conexión, fuera de la consulta parametrizada.
@@ -67,26 +67,29 @@ CAST(CASE WHEN e.ROWID IS NOT NULL AND NOT EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_
 CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol rol ON rol.Rol_Id=ur.Rol_Id WHERE ur.Usuario_Id=u.Usuario_Id AND rol.Nombre=N'PILOTO') THEN 1 ELSE 0 END AS bit) RolPiloto,
 CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol_Permiso rp ON rp.Rol_Id=ur.Rol_Id WHERE ur.Usuario_Id=u.Usuario_Id AND rp.Permiso_Id=N'Pilotos.Rutas.Ver') THEN 1 ELSE 0 END AS bit) PermisoVer,
 CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol_Permiso rp ON rp.Rol_Id=ur.Rol_Id WHERE ur.Usuario_Id=u.Usuario_Id AND rp.Permiso_Id=N'Pilotos.Rutas.Confirmar') THEN 1 ELSE 0 END AS bit) PermisoConfirmar
- ,CAST(CASE WHEN pe.Usuario_Id IS NULL OR pe.Activo=1 AND pe.Nit=u.Login THEN 1 ELSE 0 END AS bit) EmpresaVigente
+ ,CAST(CASE WHEN pe.Usuario_Id IS NULL OR pe.Activo=1 AND pe.Nit=u.Login THEN 1 ELSE 0 END AS bit) EmpresaVigente,
+ CAST(CASE WHEN pe.Usuario_Id IS NOT NULL THEN 1 ELSE 0 END AS bit) CuentaEmpresa
 FROM dbo.Usuario u LEFT JOIN dbo.PilotoVinculo p ON p.Usuario_Id=u.Usuario_Id LEFT JOIN "+apk+@".dbo.RT_EMPLEADOS e ON e.ROWID=p.Empleado_RowId
 LEFT JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=u.Usuario_Id
 WHERE p.Usuario_Id IS NOT NULL OR EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol rol ON rol.Rol_Id=ur.Rol_Id WHERE ur.Usuario_Id=u.Usuario_Id AND rol.Nombre=N'PILOTO')
 ORDER BY u.Nombre,u.Usuario_Id;
 SELECT Usuario_Id,Centro_Dist FROM dbo.PilotoCentro;
-SELECT pv.Usuario_Id,pv.Placa,CAST(CASE WHEN EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_VEHICULOS v WHERE v.PLACA=pv.Placa COLLATE DATABASE_DEFAULT AND v.ESTADO=1) THEN 1 ELSE 0 END AS bit) Disponible FROM dbo.PilotoVehiculo pv WHERE pv.Activo=1;"; } }
+SELECT pv.Usuario_Id,pv.Placa,CAST(CASE WHEN EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_VEHICULOS v WHERE v.PLACA=pv.Placa COLLATE DATABASE_DEFAULT AND v.ESTADO=1)
+AND (pe.Usuario_Id IS NULL OR EXISTS(SELECT 1 FROM dbo.PilotoEmpresaPlaca ep WHERE ep.Usuario_Id=pv.Usuario_Id AND ep.Placa=pv.Placa)) THEN 1 ELSE 0 END AS bit) Disponible
+FROM dbo.PilotoVehiculo pv LEFT JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=pv.Usuario_Id WHERE pv.Activo=1;"; } }
         internal string SqlAsignaciones { get { return @"SELECT r.ID_RUTA,u.Usuario_Id FROM #PanelRutas r
-JOIN "+apk+@".dbo.RT_EMPLEADOS e ON e.NOMBRE=r.PILOTO
-JOIN dbo.PilotoVinculo p ON p.Empleado_RowId=e.ROWID JOIN dbo.Usuario u ON u.Usuario_Id=p.Usuario_Id
+JOIN dbo.PilotoVehiculo v ON v.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND v.Activo=1
+JOIN dbo.PilotoVinculo p ON p.Usuario_Id=v.Usuario_Id JOIN dbo.Usuario u ON u.Usuario_Id=p.Usuario_Id
 LEFT JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=u.Usuario_Id
 WHERE u.Activo=1 AND u.Autenticar_Site=1 AND p.Activo=1 AND NULLIF(LTRIM(RTRIM(p.Codigo_Operador)),N'') IS NOT NULL
 AND (pe.Usuario_Id IS NULL OR pe.Activo=1 AND pe.Nit=u.Login)
 AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.Usuario_Id<>u.Usuario_Id)
-AND e.ESTADO=1 AND e.CARGO=N'PILOTO' AND NULLIF(LTRIM(RTRIM(e.NOMBRE)),N'') IS NOT NULL
-AND NOT EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_EMPLEADOS otro WHERE otro.CARGO=N'PILOTO' AND otro.NOMBRE=e.NOMBRE AND otro.ROWID<>e.ROWID)
 AND EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol rol ON rol.Rol_Id=ur.Rol_Id WHERE ur.Usuario_Id=u.Usuario_Id AND rol.Nombre=N'PILOTO')
 AND EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol_Permiso rp ON rp.Rol_Id=ur.Rol_Id WHERE ur.Usuario_Id=u.Usuario_Id AND rp.Permiso_Id=N'Pilotos.Rutas.Ver')
-AND EXISTS(SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=u.Usuario_Id AND c.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)
-AND EXISTS(SELECT 1 FROM dbo.PilotoVehiculo v WHERE v.Usuario_Id=u.Usuario_Id AND v.Activo=1 AND v.Placa=r.PLACA COLLATE DATABASE_DEFAULT)
+AND (pe.Usuario_Id IS NOT NULL AND EXISTS(SELECT 1 FROM dbo.PilotoEmpresaPlaca ep WHERE ep.Usuario_Id=u.Usuario_Id AND ep.Placa=r.PLACA COLLATE DATABASE_DEFAULT)
+ OR pe.Usuario_Id IS NULL AND EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_EMPLEADOS e WHERE e.ROWID=p.Empleado_RowId AND e.NOMBRE=r.PILOTO AND e.ESTADO=1 AND e.CARGO=N'PILOTO'
+ AND NOT EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_EMPLEADOS otro WHERE otro.CARGO=N'PILOTO' AND otro.NOMBRE=e.NOMBRE AND otro.ROWID<>e.ROWID))
+ AND EXISTS(SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=u.Usuario_Id AND c.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT))
 AND EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1);"; } }
         internal string SqlArtefactos { get { return @"SELECT b.*,"+(eventosClientes ? @"CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.PilotoClienteEvento e WHERE e.CatalogoRutas=@catalogo AND e.Usuario_Id=b.Usuario_Id AND e.Ruta_Id=b.Ruta_Id AND e.Primer_RowId=b.Primer_RowId AND e.Version=b.Version) THEN 1 ELSE 0 END AS bit)"
             : "CAST(0 AS bit)")+@" OrigenVerificado FROM dbo.PilotoBorradorCliente b JOIN #PanelRutas r ON r.ID_RUTA COLLATE DATABASE_DEFAULT=b.Ruta_Id;
@@ -135,15 +138,13 @@ ORDER BY e.FechaUtc DESC,e.Tipo,e.Clave;"; } }
                     if(modelo.Rutas.Count>2000) throw new PilotoException(400,"Hay más de 2.000 rutas. Acota las fechas, el centro o el piloto; no se mostraron totales parciales.");
                     var rutas=modelo.Rutas.ToDictionary(r=>r.Datos.Id,StringComparer.OrdinalIgnoreCase);
                     using(var c=Cmd(cn,tx,@"SELECT r.ID_RUTA,cr.Nombre,cr.Documento FROM #PanelRutas r
-JOIN "+apk+@".dbo.RT_EMPLEADOS e ON e.NOMBRE=r.PILOTO
-JOIN dbo.PilotoVinculo pv ON pv.Empleado_RowId=e.ROWID
-JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=pv.Usuario_Id
+JOIN dbo.PilotoEmpresaPlaca ep ON ep.Placa=r.PLACA COLLATE DATABASE_DEFAULT
+JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=ep.Usuario_Id AND pe.Activo=1
+JOIN dbo.PilotoVinculo pv ON pv.Usuario_Id=pe.Usuario_Id AND pv.Activo=1
+JOIN dbo.PilotoVehiculo v ON v.Usuario_Id=pe.Usuario_Id AND v.Placa=ep.Placa AND v.Activo=1
 LEFT JOIN dbo.PilotoConductorRuta cr ON cr.CatalogoRutas=@catalogo AND cr.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT
- AND pe.Activo=1 AND pv.Activo=1
- AND EXISTS(SELECT 1 FROM dbo.Usuario u WHERE u.Usuario_Id=pe.Usuario_Id AND u.Activo=1 AND u.Autenticar_Site=1 AND u.Login=pe.Nit)
- AND EXISTS(SELECT 1 FROM dbo.PilotoCentro pc WHERE pc.Usuario_Id=pe.Usuario_Id AND pc.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)
- AND EXISTS(SELECT 1 FROM dbo.PilotoVehiculo v WHERE v.Usuario_Id=pe.Usuario_Id AND v.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND v.Activo=1)
- AND cr.Usuario_Id=pe.Usuario_Id AND cr.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND cr.Piloto=r.PILOTO COLLATE DATABASE_DEFAULT;"))
+ AND cr.Usuario_Id=pe.Usuario_Id AND cr.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND cr.Piloto=r.PILOTO COLLATE DATABASE_DEFAULT
+WHERE EXISTS(SELECT 1 FROM dbo.Usuario u WHERE u.Usuario_Id=pe.Usuario_Id AND u.Activo=1 AND u.Autenticar_Site=1 AND u.Login=pe.Nit);"))
                     {Param(c,"@catalogo",SqlDbType.NVarChar,modelo.Catalogo,128);
                      using(var lector=c.ExecuteReader()) while(lector.Read()) {var ruta=rutas[Texto(lector,"ID_RUTA")].Datos;ruta.CuentaEmpresa=true;ruta.ConductorReal=Texto(lector,"Nombre");ruta.DocumentoConductor=Texto(lector,"Documento");}}
                     var personas=modelo.Pilotos.ToDictionary(p=>p.Id);
@@ -219,7 +220,7 @@ WHERE e.CatalogoRutas=@catalogo AND e.Tipo=N'S';"))
         private void CargarPilotos(SqlConnection cn,SqlTransaction tx,PilotoPanelModelo modelo)
         {
             using(var c=Cmd(cn,tx,SqlPilotos)) using(var r=c.ExecuteReader()) {
-                while(r.Read()) modelo.Pilotos.Add(new PilotoPanelPiloto {Id=Convert.ToInt64(r["Usuario_Id"]),Login=Texto(r,"Login"),Nombre=Texto(r,"Nombre"),Empleado=Texto(r,"Empleado"),Operador=Texto(r,"Codigo_Operador"),CuentaActiva=Bit(r,"Activo") && Bit(r,"Autenticar_Site") && Bit(r,"CuentaUnica"),EmpresaVigente=Bit(r,"EmpresaVigente"),RolPiloto=Bit(r,"RolPiloto"),PermisoVer=Bit(r,"PermisoVer"),PermisoConfirmar=Bit(r,"PermisoConfirmar"),VinculoActivo=Bit(r,"VinculoActivo"),EmpleadoActivo=Bit(r,"EmpleadoActivo"),EmpleadoUnico=Bit(r,"EmpleadoUnico")});
+                while(r.Read()) modelo.Pilotos.Add(new PilotoPanelPiloto {Id=Convert.ToInt64(r["Usuario_Id"]),Login=Texto(r,"Login"),Nombre=Texto(r,"Nombre"),Empleado=Texto(r,"Empleado"),Operador=Texto(r,"Codigo_Operador"),CuentaEmpresa=Bit(r,"CuentaEmpresa"),CuentaActiva=Bit(r,"Activo") && Bit(r,"Autenticar_Site") && Bit(r,"CuentaUnica"),EmpresaVigente=Bit(r,"EmpresaVigente"),RolPiloto=Bit(r,"RolPiloto"),PermisoVer=Bit(r,"PermisoVer"),PermisoConfirmar=Bit(r,"PermisoConfirmar"),VinculoActivo=Bit(r,"VinculoActivo"),EmpleadoActivo=Bit(r,"EmpleadoActivo"),EmpleadoUnico=Bit(r,"EmpleadoUnico")});
                 if(modelo.Pilotos.Count>5000) throw new PilotoException(400,"La consulta supera 5.000 usuarios piloto. Requiere revisar el alcance de la instalación.");
                 var personas=modelo.Pilotos.ToDictionary(p=>p.Id);r.NextResult();
                 while(r.Read()) {PilotoPanelPiloto p;if(personas.TryGetValue(Convert.ToInt64(r["Usuario_Id"]),out p)) p.Centros.Add(Texto(r,"Centro_Dist"));}

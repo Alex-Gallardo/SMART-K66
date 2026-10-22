@@ -23,30 +23,30 @@
     @Html.AntiForgeryToken()
     <input type="hidden" name="UsuarioId" value="@Model.Usuario.UsuarioId" />
     <section class="admin-section">
-        <div class="step-number">★</div><div class="section-title"><h2>Cuenta de transportista rentado</h2><p>Usa el usuario POS que ya creaste con el NIT. Vincula un solo empleado estable de APK66 para esta empresa; el conductor real se asigna en cada ruta.</p></div>
+        <div class="step-number">★</div><div class="section-title"><h2>Cuenta de transportista rentado</h2><p>Usa el usuario POS que ya creaste con el NIT. Las placas vinculadas determinan las rutas disponibles; Distribución asigna el conductor real en cada ruta.</p></div>
         <label class="switch-card"><input type="checkbox" name="CuentaEmpresa" value="true" checked="@(Model.Formulario.CuentaEmpresa ? "checked" : null)" /><input type="hidden" name="CuentaEmpresa" value="false" /><span><strong>Esta cuenta representa una empresa</strong><small>Sus placas podrán elegirlas los conductores al iniciar sesión</small></span></label>
         <div><label for="NombreEmpresa">Nombre de la empresa</label><input id="NombreEmpresa" name="NombreEmpresa" maxlength="120" value="@Model.Formulario.NombreEmpresa" placeholder="Nombre del transportista" /></div>
         <p class="muted">La cuenta y contraseña POS se administran en Usuarios. Este formulario no crea cuentas.</p>
     </section>
     <section class="admin-section">
-        <div class="step-number">1</div><div class="section-title"><h2>Identidad en rutas</h2><p>Selecciona el registro exacto de RT_EMPLEADOS y el código que usará la auditoría del cierre. Para empresas, selecciona su registro estable en APK66.</p></div>
+        <div class="step-number">1</div><div class="section-title"><h2>Identidad de operación</h2><p>El código de operador identifica el cierre. Solo los pilotos individuales necesitan un empleado de APK66.</p></div>
         <div class="admin-fields">
-            <div><label for="EmpleadoRowId">Registro piloto / empresa en APK66</label><select id="EmpleadoRowId" name="EmpleadoRowId" required><option value="">Seleccionar registro</option>
+            <div id="individual-pilot-identity" hidden="@(Model.Formulario.CuentaEmpresa ? "hidden" : null)"><label for="EmpleadoRowId">Registro de piloto en APK66</label><select id="EmpleadoRowId" name="EmpleadoRowId" required="@(!Model.Formulario.CuentaEmpresa ? "required" : null)" disabled="@(Model.Formulario.CuentaEmpresa ? "disabled" : null)"><option value="">Seleccionar registro</option>
                 @foreach (var e in Model.Empleados) { <option value="@e.RowId" selected="@(e.Seleccionado ? "selected" : null)">@e.Nombre · #@e.RowId@(e.Activo ? "" : " · INACTIVO")</option> }
             </select><small>Los nombres duplicados se excluyen.</small></div>
-            <div><label for="CodigoOperador">Código de operador</label><input id="CodigoOperador" name="CodigoOperador" maxlength="15" required value="@Model.Formulario.CodigoOperador" placeholder="Login POS del piloto" aria-describedby="operador-ayuda" /><small id="operador-ayuda">Identifica quién cerró la ruta. Usa el usuario de este piloto (@Model.Usuario.Login) si tiene hasta 15 caracteres, o un código único acordado con Distribución. Este texto se registra y se usa en auditoría, ( no determina qué rutas puede ver ).</small></div>
+            <div><label for="CodigoOperador">Código de operador</label><input id="CodigoOperador" name="CodigoOperador" maxlength="15" required value="@Model.Formulario.CodigoOperador" placeholder="Código de cierre" aria-describedby="operador-ayuda" /><small id="operador-ayuda">Se registra al cerrar una ruta; no determina qué rutas puede ver esta cuenta. Puedes usar el NIT si tiene hasta 15 caracteres.</small></div>
         </div>
     </section>
 
-    <section class="admin-section">
-        <div class="step-number">2</div><div class="section-title"><h2>Centros autorizados</h2><p>El piloto solo verá rutas cuyo centro esté marcado.</p></div>
+    <section class="admin-section" id="individual-pilot-centers" hidden="@(Model.Formulario.CuentaEmpresa ? "hidden" : null)">
+        <div class="step-number">2</div><div class="section-title"><h2>Centros autorizados</h2><p>Para pilotos individuales, solo se muestran rutas de los centros marcados.</p></div>
         <div class="option-grid compact-options">
-        @foreach (var c in Model.Centros) { <label class="check-card"><input type="checkbox" name="Centros" value="@c.Codigo" checked="@(c.Seleccionado ? "checked" : null)" /><span><strong>@c.Codigo</strong></span></label> }
+        @foreach (var c in Model.Centros) { <label class="check-card"><input type="checkbox" name="Centros" value="@c.Codigo" checked="@(c.Seleccionado ? "checked" : null)" disabled="@(Model.Formulario.CuentaEmpresa ? "disabled" : null)" /><span><strong>@c.Codigo</strong></span></label> }
         </div>
     </section>
 
     <section class="admin-section">
-        <div class="step-number">3</div><div class="section-title"><h2>Vehículos autorizados</h2><p>Puede seleccionar más de una placa para cubrir cambios de turno.</p></div>
+        <div class="step-number">3</div><div class="section-title"><h2>Vehículos autorizados</h2><p>Una empresa puede vincular varias placas. Cada placa solo puede pertenecer a una empresa activa.</p></div>
         <label for="vehicle-filter">Filtrar vehículos</label><input id="vehicle-filter" type="search" placeholder="Escribe placa, marca o transporte" autocomplete="off" />
         <div class="option-grid vehicle-options" id="vehicle-options">
         @foreach (var v in Model.Vehiculos) { <label class="check-card" data-option="@((v.Codigo + " " + v.Nombre).ToLowerInvariant())"><input type="checkbox" name="Placas" value="@v.Codigo" checked="@(v.Seleccionado ? "checked" : null)" disabled="@(!v.Activo && !v.Seleccionado ? "disabled" : null)" /><span><strong>@v.Codigo</strong><small>@v.Nombre@(!v.Activo ? " · INACTIVO" : "")</small></span></label> }

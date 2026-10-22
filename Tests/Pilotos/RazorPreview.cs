@@ -165,6 +165,14 @@ internal static class RazorPreview
         modelo.Rutas.Add(new PilotoRuta {Id="DEMO-2026-001",Fecha=new DateTime(2026,9,22),Estado="E",Centro="CENTRO-1",Placa="C-001"});
         return modelo;
     }
+    public static PilotoAdminEdicion AdminEdicionEmpresa()
+    {
+        var modelo=AdminEdicion();
+        modelo.Usuario.CuentaEmpresa=true;modelo.Usuario.NombreEmpresa="TRANSPORTE DEMO";modelo.Usuario.EmpleadoRowId=null;modelo.Usuario.Piloto=null;modelo.Usuario.Centros=0;
+        modelo.Formulario.CuentaEmpresa=true;modelo.Formulario.NombreEmpresa="TRANSPORTE DEMO";modelo.Formulario.EmpleadoRowId=null;modelo.Formulario.Centros=new string[0];
+        modelo.Centros.Clear();
+        return modelo;
+    }
     public static PilotoAdminRutaEdicion AdminRuta()
     {
         var ruta=new PilotoRuta{Id="DEMO-2026-001",Fecha=new System.DateTime(2026,9,22),Estado="E",Piloto="EMPLEADO DEMO",Centro="CENTRO-1",Placa="C-001",ObservacionGeneral="Entrega prioritaria"};

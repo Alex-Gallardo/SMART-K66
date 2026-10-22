@@ -31,7 +31,7 @@ VALUES(@catalogo,@id,N'S',@solicitud,@usuario,@actor,@centro,@piloto,@placa,@doc
         }
         private static void Instalada(SqlConnection cn,SqlTransaction tx)
         {
-            using(var c=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.GaritaCentro',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.GaritaRutaEvento',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.GaritaSalidaImagen',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoEmpresa',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorRuta',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorHistorial',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
+            using(var c=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.GaritaCentro',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.GaritaRutaEvento',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.GaritaSalidaImagen',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoEmpresa',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoEmpresaPlaca',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorRuta',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorHistorial',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
                 if((int)c.ExecuteScalar()!=1) throw new PilotoException(503,"Falta instalar la migración de garita o transportistas en POS.");
         }
         private static long Autorizar(SqlConnection cn,SqlTransaction tx,string login,string permiso)
@@ -55,15 +55,14 @@ FROM "+apk+@".dbo.RT_RUTAS r"+hint+@" WHERE r.ID_RUTA=@id AND EXISTS
             }
             using(var c=Cmd(cn,tx,"SELECT TOP (2) MARCA,TIPO,LINEA,EMPRESA,ESTADO FROM "+apk+".dbo.RT_VEHICULOS WHERE PLACA=@placa;"))
             {P(c,"@placa",SqlDbType.NVarChar,ruta.Placa,15);using(var r=c.ExecuteReader()) if(r.Read()) {ruta.Transporte=S(r,"EMPRESA");ruta.Vehiculo=string.Join(" · ",new[]{S(r,"MARCA"),S(r,"LINEA"),S(r,"TIPO")}.Where(x=>!string.IsNullOrWhiteSpace(x)));ruta.VehiculoDisponible=r["ESTADO"]!=DBNull.Value && Convert.ToBoolean(r["ESTADO"]);if(r.Read()) {ruta.Vehiculo=null;ruta.VehiculoDisponible=false;}}}
-            using(var c=Cmd(cn,tx,@"SELECT TOP (2) pe.Usuario_Id,cr.Nombre,cr.Documento FROM dbo.PilotoEmpresa pe
-JOIN dbo.PilotoVinculo pv ON pv.Usuario_Id=pe.Usuario_Id
-JOIN "+apk+@".dbo.RT_EMPLEADOS e ON e.ROWID=pv.Empleado_RowId AND e.NOMBRE=@piloto
+            using(var c=Cmd(cn,tx,@"SELECT TOP (2) pe.Usuario_Id,cr.Nombre,cr.Documento FROM dbo.PilotoEmpresaPlaca ep
+JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=ep.Usuario_Id AND pe.Activo=1
+JOIN dbo.PilotoVinculo pv ON pv.Usuario_Id=pe.Usuario_Id AND pv.Activo=1
+JOIN dbo.Usuario u ON u.Usuario_Id=pe.Usuario_Id AND u.Activo=1 AND u.Autenticar_Site=1 AND u.Login=pe.Nit
+JOIN dbo.PilotoVehiculo v ON v.Usuario_Id=pe.Usuario_Id AND v.Placa=ep.Placa AND v.Activo=1
 LEFT JOIN dbo.PilotoConductorRuta cr ON cr.CatalogoRutas=@catalogo AND cr.Ruta_Id=@id AND cr.Usuario_Id=pe.Usuario_Id AND cr.Piloto=@piloto AND cr.Placa=@placa
- AND pe.Activo=1 AND pv.Activo=1 AND e.ESTADO=1
- AND EXISTS(SELECT 1 FROM dbo.Usuario u WHERE u.Usuario_Id=pe.Usuario_Id AND u.Activo=1 AND u.Autenticar_Site=1 AND u.Login=pe.Nit)
- AND EXISTS(SELECT 1 FROM dbo.PilotoCentro pc WHERE pc.Usuario_Id=pe.Usuario_Id AND pc.Centro_Dist=@centro)
- AND EXISTS(SELECT 1 FROM dbo.PilotoVehiculo v WHERE v.Usuario_Id=pe.Usuario_Id AND v.Placa=@placa AND v.Activo=1);"))
-            {P(c,"@piloto",SqlDbType.NVarChar,ruta.Piloto,90);P(c,"@centro",SqlDbType.NVarChar,ruta.Centro,15);P(c,"@placa",SqlDbType.NVarChar,ruta.Placa,15);
+WHERE ep.Placa=@placa;"))
+            {P(c,"@piloto",SqlDbType.NVarChar,ruta.Piloto,90);P(c,"@placa",SqlDbType.NVarChar,ruta.Placa,15);
              P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@id",SqlDbType.NVarChar,ruta.Id,15);
              using(var r=c.ExecuteReader()) if(r.Read()) {ruta.EsRutaEmpresa=true;ruta.ConductorReal=S(r,"Nombre");ruta.DocumentoConductor=S(r,"Documento");if(r.Read()) throw new PilotoException(409,"La ruta coincide con varias empresas. Consulta a Distribución.");}}
             using(var c=Cmd(cn,tx,@"SELECT TOP (10001) ROWID,TIPO,ID_EMPRESA,ID_DOCUMENTO,CLIENTE,DIR_DESPACHO,NO_BULTOS,MO_VISITO,MO_ENTREGA
@@ -121,13 +120,13 @@ OUTER APPLY (SELECT COUNT(*) Documentos,COUNT(DISTINCT ISNULL(d.CLIENTE,N'')) Cl
 ISNULL(SUM(ISNULL(d.NO_BULTOS,0)),0) Bultos FROM "+catalogoRutas+@".dbo.RT_RUTAS_DET d WHERE d.ID_RUTA=r.ID_RUTA) c
 OUTER APPLY (SELECT TOP (1) e.Id FROM dbo.GaritaRutaEvento e WHERE e.CatalogoRutas=@catalogo AND e.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT AND e.Tipo=N'S') s
 OUTER APPLY (SELECT TOP (1) e.Tipo FROM dbo.GaritaRutaEvento e WHERE e.CatalogoRutas=@catalogo AND e.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT AND e.Tipo IN(N'D',N'R') ORDER BY e.Id DESC) ultimo
-OUTER APPLY (SELECT TOP (1) pc.Nombre FROM dbo.PilotoConductorRuta pc JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=pc.Usuario_Id AND pe.Activo=1
+OUTER APPLY (SELECT TOP (1) pc.Nombre FROM dbo.PilotoEmpresaPlaca ep
+ JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=ep.Usuario_Id AND pe.Activo=1
  JOIN dbo.PilotoVinculo pv ON pv.Usuario_Id=pe.Usuario_Id AND pv.Activo=1
- JOIN "+catalogoRutas+@".dbo.RT_EMPLEADOS em ON em.ROWID=pv.Empleado_RowId AND em.NOMBRE=r.PILOTO AND em.ESTADO=1
- WHERE pc.CatalogoRutas=@catalogo AND pc.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT AND pc.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND pc.Piloto=r.PILOTO COLLATE DATABASE_DEFAULT
+ JOIN dbo.PilotoConductorRuta pc ON pc.Usuario_Id=pe.Usuario_Id AND pc.CatalogoRutas=@catalogo AND pc.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT AND pc.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND pc.Piloto=r.PILOTO COLLATE DATABASE_DEFAULT
+ WHERE ep.Placa=r.PLACA COLLATE DATABASE_DEFAULT
  AND EXISTS(SELECT 1 FROM dbo.Usuario u WHERE u.Usuario_Id=pe.Usuario_Id AND u.Activo=1 AND u.Autenticar_Site=1 AND u.Login=pe.Nit)
- AND EXISTS(SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=pe.Usuario_Id AND c.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)
- AND EXISTS(SELECT 1 FROM dbo.PilotoVehiculo v WHERE v.Usuario_Id=pe.Usuario_Id AND v.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND v.Activo=1)) cr
+ AND EXISTS(SELECT 1 FROM dbo.PilotoVehiculo v WHERE v.Usuario_Id=pe.Usuario_Id AND v.Placa=ep.Placa AND v.Activo=1)) cr
 "+filtro+@" ORDER BY r.FECHA_RUTA DESC,r.ID_RUTA DESC OFFSET @offset ROWS FETCH NEXT 50 ROWS ONLY;";
         }
         public GaritaRuta Detalle(string actor,string placa,string id)

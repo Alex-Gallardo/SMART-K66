@@ -12,11 +12,14 @@ function check(ok,message){if(!ok)throw new Error(message);}
 check(document.documentElement.scrollWidth<=innerWidth+1,'desbordamiento horizontal');
 var escenario='__SCENARIO__';
 if(escenario.indexOf('index-')===0){
- var selector=document.querySelector('.company-vehicle-picker select[name="placa"]');
- check(selector && selector.getBoundingClientRect().width>100 && getComputedStyle(selector).display!=='none','selector de placa oculto');
- check(selector.options.length===3,'placas de empresa incompletas');
- if(escenario==='index-empresa-sin-placa') check(!document.querySelector('.route-card'),'ruta visible antes de escoger placa');
- else {var card=document.querySelector('.route-card');check(selector.value==='C-002' && card && card.textContent.includes('EMP-001') && card.textContent.includes('JUAN PEREZ'),'ruta o conductor no visibles');}
+ if(escenario==='index-empresa-sin-placa') {
+  var placas=document.querySelectorAll('.company-plate-option');
+  check(placas.length===2 && placas[0].getBoundingClientRect().width>100,'lista de placas incompleta u oculta');
+  check(!document.querySelector('.route-card'),'ruta visible antes de escoger placa');
+ } else {
+  var card=document.querySelector('.route-card');
+  check(document.querySelector('.company-selected-plate').textContent.includes('C-002') && card && card.textContent.includes('EMP-001') && card.textContent.includes('JUAN PEREZ'),'ruta o conductor no visibles');
+ }
 } else {
  var form=document.querySelector('form[action*="AsignarConductor"]');
  check(form && form.elements.EmpresaUsuarioId.value==='22' && form.elements.Nombre.value==='JUAN PEREZ','formulario de conductor incompleto');

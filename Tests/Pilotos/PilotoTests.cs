@@ -105,14 +105,17 @@ internal static class PilotoTests
                 Check(horaSql.Contains("COALESCE(MO_HR_ENTRADA,@hora)") && horaSql.Contains("MO_ENTREGA=N'ENTREGADO'"),"La hora conserva valores existentes y solo aplica a entregados");
                 Console.WriteLine(horaSql);
                 var accesoTipo=tipo.GetNestedType("Acceso",BindingFlags.NonPublic);
-                foreach(var modo in new[]{"normal","placa","ruta"}) {
+                foreach(var modo in new[]{"normal","empresa","placa","ruta"}) {
                     var acceso=Activator.CreateInstance(accesoTipo,true);
+                    if(modo=="empresa") accesoTipo.GetField("Empresa").SetValue(acceso,true);
                     if(modo=="placa") accesoTipo.GetField("PlacaPrueba").SetValue(acceso,"DEMO");
                     if(modo=="ruta") accesoTipo.GetField("RutaPrueba").SetValue(acceso,"DEMO-1");
                     foreach(var metodo in new[]{"Alcance","AlcanceDetalle"}) {
                         var filtro=(string)tipo.GetMethod(metodo,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(da,new[]{acceso});
                         Check(filtro.Contains("ISNULL(r.LIQUIDADO,0)=0"),"liquidadas excluidas en "+modo+" / "+metodo);
                         if(metodo=="AlcanceDetalle") Check(filtro.StartsWith("r.STATUS IN(N'E',N'C',N'X') AND "),"abiertas sin acceso directo en "+modo);
+                        if(modo=="empresa") Check(filtro.Contains("PilotoEmpresaPlaca") && filtro.Contains("ep.Usuario_Id=@usuario") && !filtro.Contains("r.PILOTO=@piloto") && !filtro.Contains("PilotoCentro"),"empresa autorizada por placa propietaria sin empleado ni centro");
+                        if(modo=="normal") Check(filtro.Contains("r.PILOTO=@piloto") && filtro.Contains("PilotoCentro"),"piloto individual conserva empleado y centro");
                         Console.WriteLine("SELECT r.ID_RUTA FROM [TEST_RUTAS].dbo.RT_RUTAS r WHERE "+filtro+";");
                     }
                 }
@@ -287,7 +290,14 @@ internal static class PilotoTests
         Rechaza(()=>PilotoEmpresaReglas.SeleccionarPlaca(placas,"OTRA"),403,"placa de otra empresa denegada");
         var config=new PilotoAdminGuardar{UsuarioId=1,EmpleadoRowId=2,CodigoOperador="OPERADOR",Centros=new[]{"PALIN"},Placas=new[]{"C-123"},Activo=true,CuentaEmpresa=true,Motivo="Alta empresa"};
         Rechaza(()=>PilotoAdminReglas.Validar(config),400,"empresa sin nombre rechazada");
-        config.NombreEmpresa="Transporte Demo";PilotoAdminReglas.Validar(config);Check(config.NombreEmpresa=="Transporte Demo","empresa válida conserva usuario existente");
+        config.NombreEmpresa="Transporte Demo";PilotoAdminReglas.Validar(config);
+        Check(config.NombreEmpresa=="Transporte Demo" && !config.EmpleadoRowId.HasValue && config.Centros.Length==0,"empresa válida usa placas y prescinde de empleado y centros");
+        var empresaSinEmpleado=new PilotoAdminGuardar{UsuarioId=2,CodigoOperador="NIT123",Centros=new string[0],Placas=new[]{"C-456"},Activo=true,CuentaEmpresa=true,NombreEmpresa="Otra Empresa",Motivo="Alta empresa"};
+        PilotoAdminReglas.Validar(empresaSinEmpleado);Check(true,"empresa activa no exige empleado ni centro");
+        var usuarioEmpresa=new PilotoAdminUsuario{UsuarioActivo=true,AutenticarSite=true,TieneRolPiloto=true,VinculoActivo=true,CuentaEmpresa=true,Vehiculos=2,Centros=0};
+        Check(usuarioEmpresa.Listo,"cuenta empresarial configurada con placas no exige centro");
+        usuarioEmpresa.CuentaEmpresa=false;Check(!usuarioEmpresa.Listo,"piloto individual sí exige centro");
+        empresaSinEmpleado.Placas=new string[0];Rechaza(()=>PilotoAdminReglas.Validar(empresaSinEmpleado),400,"empresa activa exige placa");
         var ruta=Ruta();ruta.CuentaEmpresa=true;ruta.ConductorReal="JUAN PEREZ";ruta.DocumentoConductor="L-1234";
         var version=PilotoReglas.Version(ruta);ruta.ConductorReal="PEDRO PEREZ";
         Check(PilotoReglas.Version(ruta)!=version,"cambio de conductor invalida formulario de entrega");
@@ -300,6 +310,9 @@ internal static class PilotoTests
         Check(GaritaReglas.Version(garita)!=versionGarita,"cambio de conductor invalida revisión de garita");
         var panel=new PilotoPanelPiloto{CuentaActiva=true,RolPiloto=true,PermisoVer=true,VinculoActivo=true,EmpleadoActivo=true,EmpleadoUnico=true,Operador="OPERADOR",EmpresaVigente=false};
         Check(!panel.PuedeConsultar,"empresa revocada no aparece con acceso operativo en panel");
+        panel.CuentaEmpresa=true;panel.EmpresaVigente=true;panel.EmpleadoActivo=false;panel.EmpleadoUnico=false;panel.PlacasDisponibles.Add("C-123");
+        Check(panel.PuedeConsultar && panel.Coincide(new PilotoRuta{Placa="C-123",Piloto="OTRO PILOTO",Centro="OTRO CENTRO"}),"empresa coincide por placa aunque piloto y centro difieran");
+        Check(!panel.Coincide(new PilotoRuta{Placa="C-789",Piloto="OTRO PILOTO",Centro="OTRO CENTRO"}),"empresa no coincide con otra placa");
         var accion=typeof(PilotoController).GetMethod("AsignarConductor");
         Check(accion.IsDefined(typeof(HttpPostAttribute),true) && accion.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"asignación administrativa protegida contra CSRF");
         Console.WriteLine("OK empresa: "+comprobaciones+" comprobaciones");return 0;

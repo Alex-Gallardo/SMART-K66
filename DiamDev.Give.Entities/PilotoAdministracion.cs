@@ -29,7 +29,7 @@ namespace DiamDev.Give.Entities
         public string NombreEmpresa { get; set; }
         public int Centros { get; set; }
         public int Vehiculos { get; set; }
-        public bool Listo { get { return UsuarioActivo && AutenticarSite && TieneRolPiloto && VinculoActivo == true && Centros > 0 && Vehiculos > 0; } }
+        public bool Listo { get { return UsuarioActivo && AutenticarSite && TieneRolPiloto && VinculoActivo == true && Vehiculos > 0 && (CuentaEmpresa || Centros > 0); } }
     }
 
     public sealed class PilotoAdminEmpleado
@@ -102,7 +102,8 @@ namespace DiamDev.Give.Entities
         {
             Normalizar(modelo);
             if (modelo == null || modelo.UsuarioId <= 0) throw new PilotoException(400, "Selecciona un usuario válido.");
-            if (modelo.Activo && (!modelo.EmpleadoRowId.HasValue || modelo.EmpleadoRowId.Value <= 0)) throw new PilotoException(400, "Selecciona el empleado piloto de APK66.");
+            if (modelo.CuentaEmpresa) { modelo.EmpleadoRowId=null; modelo.Centros=new string[0]; }
+            if (modelo.Activo && !modelo.CuentaEmpresa && (!modelo.EmpleadoRowId.HasValue || modelo.EmpleadoRowId.Value <= 0)) throw new PilotoException(400, "Selecciona el empleado piloto de APK66.");
             if (modelo.Activo && (string.IsNullOrEmpty(modelo.CodigoOperador) || modelo.CodigoOperador.Length > 15))
                 throw new PilotoException(400, "Indica un código de operador de hasta 15 caracteres.");
             if (string.IsNullOrEmpty(modelo.Motivo) || modelo.Motivo.Length > 250)
@@ -113,8 +114,8 @@ namespace DiamDev.Give.Entities
                 throw new PilotoException(400, "La selección supera el límite permitido.");
             if (modelo.Activo && (modelo.Centros.Any(v => v.Length > 15) || modelo.Placas.Any(v => v.Length > 15)))
                 throw new PilotoException(400, "Centros y placas admiten hasta 15 caracteres.");
-            if (modelo.Activo && (modelo.Centros.Length == 0 || modelo.Placas.Length == 0))
-                throw new PilotoException(400, "Un vínculo activo necesita al menos un centro y un vehículo.");
+            if (modelo.Activo && (modelo.Placas.Length == 0 || !modelo.CuentaEmpresa && modelo.Centros.Length == 0))
+                throw new PilotoException(400, "Un vínculo activo necesita un vehículo y, para pilotos individuales, un centro.");
         }
 
         private static string[] NormalizarLista(string[] valores)

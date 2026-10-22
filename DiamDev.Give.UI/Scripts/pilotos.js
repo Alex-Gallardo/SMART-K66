@@ -51,6 +51,22 @@
     }
     var adminForm = document.getElementById("pilot-admin-form");
     if (adminForm) {
+        var companyAccount=adminForm.querySelector("input[name=CuentaEmpresa][type=checkbox]");
+        var employee=adminForm.querySelector("#EmpleadoRowId");
+        var employeeSection=adminForm.querySelector("#individual-pilot-identity");
+        var centersSection=adminForm.querySelector("#individual-pilot-centers");
+        var companyName=adminForm.querySelector("#NombreEmpresa");
+        function updateAccountFields() {
+            var company=companyAccount.checked;
+            employeeSection.hidden=company;
+            centersSection.hidden=company;
+            employee.disabled=company;
+            employee.required=!company;
+            companyName.required=company;
+            Array.prototype.forEach.call(centersSection.querySelectorAll("input[name=Centros]"),function(input){input.disabled=company;});
+        }
+        companyAccount.addEventListener("change",updateAccountFields);
+        updateAccountFields();
         var adminDialog=document.getElementById("pilot-admin-dialog");
         var adminSubmit=adminForm.querySelector("button[type=submit]");
         adminForm.addEventListener("submit", function (event) {
@@ -59,7 +75,7 @@
             if (!adminForm.reportValidity()) return;
             var active = adminForm.querySelector("input[name=Activo][type=checkbox]").checked;
             var message = active
-                ? "¿Confirmas este vínculo, sus centros y vehículos autorizados?"
+                ? companyAccount.checked ? "¿Confirmas esta empresa y las placas que podrá consultar?" : "¿Confirmas este vínculo, sus centros y vehículos autorizados?"
                 : "¿Confirmas que deseas desactivar el acceso de este piloto?";
             document.getElementById("pilot-admin-dialog-message").textContent=message;
             adminDialog.showModal();

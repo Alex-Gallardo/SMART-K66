@@ -25,9 +25,9 @@
             <p>Compara el número, la fecha y el piloto antes de abrir una ruta.</p>
             <div class="route-list">
             @foreach(var ruta in Model.Resultados) {
-                <a class="route-option" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,id=ruta.Id})" aria-label="Revisar ruta @ruta.Id, piloto @ruta.Piloto">
+                <a class="route-option" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,id=ruta.Id})" aria-label="Revisar ruta @ruta.Id, piloto @(ruta.ConductorReal??ruta.Piloto)">
                     <span class="route-option-main"><strong>Ruta @ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small></span>
-                    <span class="route-option-pilot">👤 @(ruta.Piloto??"Piloto sin dato")</span>
+                    <span class="route-option-pilot">👤 @(ruta.ConductorReal??ruta.Piloto??"Piloto sin dato")</span>
                     <span class="route-option-counts">@ruta.Clientes clientes · @ruta.Documentos documentos · @ruta.Bultos.ToString("0.###") bultos</span>
                     <span class="state @(ruta.DiferenciaPendiente?"state-stop":ruta.SalidaRegistrada?"state-done":"state-info")">@(ruta.DiferenciaPendiente?"Diferencia pendiente":ruta.SalidaRegistrada?"Salida registrada":"Sin salida registrada")</span>
                     <span class="route-option-arrow" aria-hidden="true">→</span>
@@ -46,11 +46,12 @@
     if(Model.SalidaUtc.HasValue) {<div class="notice success" role="status"><strong>Hora de salida:</strong> @Model.SalidaLocal.Value.ToString("dd/MM/yyyy HH:mm") · Agente: @Model.Agente @(string.IsNullOrEmpty(Model.Precinto)?"":" · Precinto: "+Model.Precinto) @if(Model.TieneFotoSalida){<a href="@Url.Action("FotoSalida","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id})" target="_blank" rel="noopener">Ver foto de salida</a>}</div>}
     else if(Model.Diferencia!=null) {<div class="notice stop" role="alert"><strong>Detén la salida.</strong> Se reportó esta diferencia: @Model.Diferencia. Distribución debe resolverla antes de registrar la salida.</div>}
     else if(Model.Estado=="A") {<div class="notice info" role="status"><strong>Pendiente de Distribución.</strong> La ruta debe estar “En ruta” antes de que Garita registre la hora de salida.</div>}
+    else if(enRuta && Model.EsRutaEmpresa && string.IsNullOrWhiteSpace(Model.ConductorReal)) {<div class="notice stop" role="alert"><strong>Conductor pendiente.</strong> Distribución debe asignar el nombre y documento del conductor antes de registrar la salida.</div>}
     else if(enRuta && !puedeRegistrar) {<div class="notice stop" role="alert"><strong>No registres la salida todavía.</strong> Revisa piloto, vehículo, facturas, bultos y liquidación. Si algo no coincide, reporta la diferencia y contacta a Distribución.</div>}
     else if(enRuta) {<div class="notice info" role="status"><strong>Lista para verificar.</strong> Compara los datos con el vehículo y el cargamento. Garita registrará la hora de salida sin cambiar el estado de la ruta.</div>}
     <section class="facts" aria-label="Datos de la ruta">
         <div class="fact fact-primary"><span class="fact-icon" aria-hidden="true">🚚</span><span>PLACA</span><strong>@Model.Placa</strong></div>
-        <div class="fact"><span class="fact-icon" aria-hidden="true">👤</span><span>PILOTO</span><strong>@Model.Piloto</strong></div>
+        <div class="fact"><span class="fact-icon" aria-hidden="true">👤</span><span>@(Model.EsRutaEmpresa?"CONDUCTOR":"PILOTO")</span><strong>@(Model.EsRutaEmpresa?(Model.ConductorReal??"Pendiente de Distribución"):Model.Piloto)</strong>@if(Model.EsRutaEmpresa && !string.IsNullOrWhiteSpace(Model.DocumentoConductor)){<small>Documento/licencia: @Model.DocumentoConductor</small>}</div>
         <div class="fact"><span class="fact-icon" aria-hidden="true">📍</span><span>CENTRO</span><strong>@Model.Centro</strong></div>
         <div class="fact"><span class="fact-icon" aria-hidden="true">📅</span><span>FECHA</span><strong>@Model.Fecha.ToString("dd/MM/yyyy")</strong></div>
         <div class="fact"><span class="fact-icon" aria-hidden="true">🏢</span><span>TRANSPORTE</span><strong>@(Model.Transporte??"Sin dato")</strong></div>

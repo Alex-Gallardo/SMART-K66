@@ -7,11 +7,12 @@
     var grupos=Model.Documentos.Select((documento,indice)=>new { Documento=documento, Indice=indice })
         .GroupBy(x=>new { Cliente=(x.Documento.Cliente??"").Trim().ToUpperInvariant(), Direccion=(x.Documento.Direccion??"").Trim().ToUpperInvariant() }).ToList();
 }
-<a class="back-link" href="@Url.Action("Index",new { desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,pagina=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista })"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Mis rutas</a>
+<a class="back-link" href="@Url.Action("Index",new { desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,pagina=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa })"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Mis rutas</a>
 <div class="detail-title"><div><p class="eyebrow">DETALLE DE RUTA</p><h1>@Model.Id</h1></div><span class="status status-@Model.Estado"><svg class="icon" aria-hidden="true"><use href="#@estadoIcon" /></svg>@Model.EstadoNombre</span></div>
 @Html.ValidationSummary(false, "Revisa los resultados antes de continuar.", new { role="alert" })
 @if (TempData["Piloto.Mensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.Mensaje"]</p> }
-<dl class="route-summary"><div><dt>Fecha</dt><dd>@Model.Fecha.ToString("dd/MM/yyyy")</dd></div><div><dt>Vehículo</dt><dd>@Model.Placa</dd></div><div><dt>Piloto</dt><dd>@Model.Piloto</dd></div><div><dt>Centro</dt><dd>@Model.Centro</dd></div></dl>
+<dl class="route-summary"><div><dt>Fecha</dt><dd>@Model.Fecha.ToString("dd/MM/yyyy")</dd></div><div><dt>Vehículo</dt><dd>@Model.Placa</dd></div><div><dt>@(Model.CuentaEmpresa?"Conductor asignado":"Piloto")</dt><dd>@(Model.CuentaEmpresa?(Model.ConductorReal??"Pendiente de asignar"):Model.Piloto)</dd></div><div><dt>Centro</dt><dd>@Model.Centro</dd></div></dl>
+@if(Model.CuentaEmpresa && string.IsNullOrWhiteSpace(Model.ConductorReal)){<p class="notice" role="status">Distribución debe asignar el conductor real antes de registrar entregas.</p>}
 @if(Model.SalidaGaritaUtc.HasValue){<p class="notice success" role="status">Garita registró la salida de planta el @Model.SalidaGaritaUtc.Value.AddHours(-6).ToString("dd/MM/yyyy") a las @Model.SalidaGaritaUtc.Value.AddHours(-6).ToString("HH:mm") (hora de Guatemala).</p>}
 @if (!string.IsNullOrWhiteSpace(Model.Transporte) || !string.IsNullOrWhiteSpace(Model.Vehiculo)) {
     <div class="vehicle-panel"><p class="eyebrow">TRANSPORTE ASIGNADO</p><strong>@(Model.Transporte ?? "Vehículo de la ruta")</strong><p class="muted">@Model.Vehiculo <span class="plate">@Model.Placa</span></p></div>
@@ -220,9 +221,9 @@ else if (ViewBag.PruebasSoloLectura != true)
 }
 @if(Model.PaginaDocumentos>1 || Model.HayMasDocumentos) {
     <nav class="pagination" aria-label="Páginas de documentos">
-        @if(Model.PaginaDocumentos>1) { <a href="@Url.Action("Detalle",new { id=Model.Id,pagina=Model.PaginaDocumentos-1,desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,paginaRutas=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista })">← Anterior</a> }
+        @if(Model.PaginaDocumentos>1) { <a href="@Url.Action("Detalle",new { id=Model.Id,pagina=Model.PaginaDocumentos-1,desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,paginaRutas=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa })">← Anterior</a> }
         <span>Página @Model.PaginaDocumentos</span>
-        @if(Model.HayMasDocumentos) { <a href="@Url.Action("Detalle",new { id=Model.Id,pagina=Model.PaginaDocumentos+1,desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,paginaRutas=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista })">Siguiente →</a> }
+        @if(Model.HayMasDocumentos) { <a href="@Url.Action("Detalle",new { id=Model.Id,pagina=Model.PaginaDocumentos+1,desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,paginaRutas=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa })">Siguiente →</a> }
     </nav>
 }
 <div class="detail-footer"><a class="button-link button-secondary" href="@Url.Action("Index",new{desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,pagina=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista})"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver a mis rutas</a></div>

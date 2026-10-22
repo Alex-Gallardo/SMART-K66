@@ -25,6 +25,8 @@ namespace DiamDev.Give.Entities
         public int? EmpleadoRowId { get; set; }
         public string Piloto { get; set; }
         public string CodigoOperador { get; set; }
+        public bool CuentaEmpresa { get; set; }
+        public string NombreEmpresa { get; set; }
         public int Centros { get; set; }
         public int Vehiculos { get; set; }
         public bool Listo { get { return UsuarioActivo && AutenticarSite && TieneRolPiloto && VinculoActivo == true && Centros > 0 && Vehiculos > 0; } }
@@ -55,6 +57,8 @@ namespace DiamDev.Give.Entities
         public string[] Centros { get; set; }
         public string[] Placas { get; set; }
         public string Motivo { get; set; }
+        public bool CuentaEmpresa { get; set; }
+        public string NombreEmpresa { get; set; }
     }
 
     public sealed class PilotoAdminEdicion
@@ -89,6 +93,7 @@ namespace DiamDev.Give.Entities
             if (modelo == null) return;
             modelo.CodigoOperador = Limpiar(modelo.CodigoOperador);
             modelo.Motivo = Limpiar(modelo.Motivo);
+            modelo.NombreEmpresa = Limpiar(modelo.NombreEmpresa);
             modelo.Centros = NormalizarLista(modelo.Centros);
             modelo.Placas = NormalizarLista(modelo.Placas);
         }
@@ -102,6 +107,8 @@ namespace DiamDev.Give.Entities
                 throw new PilotoException(400, "Indica un código de operador de hasta 15 caracteres.");
             if (string.IsNullOrEmpty(modelo.Motivo) || modelo.Motivo.Length > 250)
                 throw new PilotoException(400, "Describe el motivo del cambio en hasta 250 caracteres.");
+            if (modelo.CuentaEmpresa && (string.IsNullOrWhiteSpace(modelo.NombreEmpresa) || modelo.NombreEmpresa.Length > 120 || modelo.NombreEmpresa.Any(char.IsControl)))
+                throw new PilotoException(400, "Indica el nombre de la empresa (máximo 120 caracteres).");
             if (modelo.Centros.Length > MaxCentros || modelo.Placas.Length > MaxVehiculos)
                 throw new PilotoException(400, "La selección supera el límite permitido.");
             if (modelo.Activo && (modelo.Centros.Any(v => v.Length > 15) || modelo.Placas.Any(v => v.Length > 15)))
@@ -118,6 +125,49 @@ namespace DiamDev.Give.Entities
         }
 
         private static string Limpiar(string valor) { return string.IsNullOrWhiteSpace(valor) ? null : valor.Trim(); }
+    }
+
+    public static class PilotoEmpresaReglas
+    {
+        public static bool NitCoincide(string login)
+        {
+            if(string.IsNullOrWhiteSpace(login) || login.Length>50) return false;
+            var valor=login.Trim().ToUpperInvariant();
+            return System.Text.RegularExpressions.Regex.IsMatch(valor,@"^[0-9]{1,12}-?[0-9K]$");
+        }
+        public static string Conductor(string valor)
+        {
+            valor=(valor??"").Trim();
+            if(valor.Length<5 || valor.Length>120 || valor.Any(char.IsControl))
+                throw new PilotoException(400,"Indica el nombre completo del conductor (5 a 120 caracteres).");
+            return valor;
+        }
+        public static string Documento(string valor)
+        {
+            valor=(valor??"").Trim();
+            if(valor.Length<4 || valor.Length>30 || valor.Any(char.IsControl))
+                throw new PilotoException(400,"Indica el documento o licencia del conductor (4 a 30 caracteres).");
+            return valor;
+        }
+        public static string SeleccionarPlaca(IEnumerable<string> autorizadas,string solicitada)
+        {
+            solicitada=(solicitada??"").Trim();
+            if(solicitada.Length==0) return null;
+            if(solicitada.Length>15 || solicitada.Any(char.IsControl)) throw new PilotoException(400,"Selecciona una placa válida.");
+            var placa=(autorizadas??Enumerable.Empty<string>()).FirstOrDefault(p=>string.Equals(p,solicitada,StringComparison.OrdinalIgnoreCase));
+            if(placa==null) throw new PilotoException(403,"Esta placa no está vinculada a tu empresa.");
+            return placa;
+        }
+    }
+
+    public sealed class PilotoConductorGuardar
+    {
+        public string RutaId { get; set; }
+        public string Version { get; set; }
+        public long EmpresaUsuarioId { get; set; }
+        public string Nombre { get; set; }
+        public string Documento { get; set; }
+        public string Motivo { get; set; }
     }
 
     public sealed class PilotoAdminRutaGuardar
@@ -143,9 +193,15 @@ namespace DiamDev.Give.Entities
         public List<PilotoAdminOpcion> Centros { get; set; }
         public List<PilotoAdminOpcion> Vehiculos { get; set; }
         public List<PilotoAdminRutaCambio> Historial { get; set; }
+        public string ConductorReal { get; set; }
+        public string DocumentoConductor { get; set; }
+        public string VersionConductor { get; set; }
+        public long EmpresaUsuarioId { get; set; }
+        public bool EsRutaEmpresa { get; set; }
+        public List<PilotoAdminRutaCambio> HistorialConductor { get; set; }
         public PilotoAdminRutaEdicion()
         {
-            Pilotos=new List<PilotoAdminEmpleado>();Centros=new List<PilotoAdminOpcion>();Vehiculos=new List<PilotoAdminOpcion>();Historial=new List<PilotoAdminRutaCambio>();
+            Pilotos=new List<PilotoAdminEmpleado>();Centros=new List<PilotoAdminOpcion>();Vehiculos=new List<PilotoAdminOpcion>();Historial=new List<PilotoAdminRutaCambio>();HistorialConductor=new List<PilotoAdminRutaCambio>();
         }
         public bool PuedeEditar { get { return !Liquidada && (Ruta.Estado=="A" || Ruta.Estado=="E"); } }
     }

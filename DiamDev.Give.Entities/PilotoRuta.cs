@@ -16,6 +16,9 @@ namespace DiamDev.Give.Entities
         public int TamanoPaginaDocumentos { get; set; }
         public bool HayMasDocumentos { get { return (long)PaginaDocumentos * TamanoPaginaDocumentos < TotalDocumentos; } }
         public string Piloto { get; set; }
+        public bool CuentaEmpresa { get; set; }
+        public string ConductorReal { get; set; }
+        public string DocumentoConductor { get; set; }
         public string Centro { get; set; }
         public string ObservacionGeneral { get; set; }
         public string Estado { get; set; }
@@ -112,6 +115,10 @@ namespace DiamDev.Give.Entities
 
     public sealed class PilotoLista
     {
+        public bool CuentaEmpresa { get; set; }
+        public string NombreEmpresa { get; set; }
+        public string PlacaSeleccionada { get; set; }
+        public List<string> PlacasDisponibles { get; set; }
         public string Vista { get; set; }
         public bool RutaFija { get; set; }
         public List<PilotoRuta> Rutas { get; set; }
@@ -119,6 +126,7 @@ namespace DiamDev.Give.Entities
         public DateTime Hasta { get; set; }
         public bool HayMas { get; set; }
         public int Pagina { get; set; }
+        public PilotoLista() { PlacasDisponibles = new List<string>(); }
     }
 
     public sealed class PilotoException : Exception

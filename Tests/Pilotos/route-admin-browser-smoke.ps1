@@ -1,6 +1,15 @@
 param([string]$ChromePath='C:\Program Files\Google\Chrome\Application\chrome.exe')
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+function Invoke-SmokeChrome([string]$size,[string]$file) {
+    $stdout=Join-Path $PSScriptRoot 'bin/route-admin-chrome-stdout.tmp'
+    $stderr=Join-Path $PSScriptRoot 'bin/route-admin-chrome-stderr.tmp'
+    try {
+        $process=Start-Process -FilePath $ChromePath -ArgumentList @('--headless=new','--disable-gpu','--disable-extensions','--no-first-run','--no-default-browser-check',"--window-size=$size",'--virtual-time-budget=3000','--dump-dom',([Uri]$file).AbsoluteUri) -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+        if($process.ExitCode -ne 0) {throw ('Chrome terminó con código '+$process.ExitCode)}
+        return Get-Content -LiteralPath $stdout -Raw
+    } finally {Remove-Item -LiteralPath $stdout,$stderr -ErrorAction SilentlyContinue}
+}
 $fixture=Join-Path $PSScriptRoot 'bin/editar-ruta.html'
 if(!(Test-Path -LiteralPath $fixture)) { throw 'Ejecuta Tests/Pilotos/run.ps1 para generar la vista previa.' }
 if(!(Test-Path -LiteralPath $ChromePath)) { throw 'Indica la ruta de Chrome con -ChromePath.' }
@@ -34,7 +43,7 @@ $smoke=Join-Path $env:TEMP ('pilotos-route-admin-'+[Guid]::NewGuid().ToString('N
 try {
     Set-Content -LiteralPath $smoke -Value $html -Encoding UTF8
     foreach($size in @('425,900','1280,900')) {
-        $output=& $ChromePath '--headless=new' '--disable-gpu' '--no-first-run' '--no-default-browser-check' "--window-size=$size" '--virtual-time-budget=3000' '--dump-dom' ([Uri]$smoke).AbsoluteUri 2>&1 | Out-String
+        $output=Invoke-SmokeChrome $size $smoke
         if($output -notmatch 'data-route-admin-smoke="PASS"') {
             $failure=[regex]::Match($output,'data-route-admin-smoke="([^"]+)"')
             throw ('Edición administrativa '+$size+': '+$(if($failure.Success){$failure.Groups[1].Value}else{'sin resultado'}))
@@ -65,7 +74,7 @@ try {
     if(!$config.Contains($configMarker)) { throw 'No se encontró el script del formulario de piloto.' }
     $config=$config.Replace($configMarker,$configProbe.Replace('__SCRIPT_URI__',$configScript))
     Set-Content -LiteralPath $smoke -Value $config -Encoding UTF8
-    $output=& $ChromePath '--headless=new' '--disable-gpu' '--no-first-run' '--no-default-browser-check' '--window-size=425,900' '--virtual-time-budget=3000' '--dump-dom' ([Uri]$smoke).AbsoluteUri 2>&1 | Out-String
+    $output=Invoke-SmokeChrome '425,900' $smoke
     if($output -notmatch 'data-config-smoke="PASS"') {
         $failure=[regex]::Match($output,'data-config-smoke="([^"]+)"')
         throw ('Configuración de piloto: '+$(if($failure.Success){$failure.Groups[1].Value}else{'sin resultado'}))

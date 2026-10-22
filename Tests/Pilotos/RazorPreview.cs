@@ -83,6 +83,13 @@ internal static class RazorPreview
         if(!vacia) for(int i=1;i<=(fija?1:4);i++) lista.Rutas.Add(new PilotoRuta {Id="DEMO-2026-"+i.ToString("000"),Placa="DEMO-001",Fecha=new DateTime(2026,9,21),Estado=fija?"C":vista=="historial"?(i%2==0?"X":"C"):(i%2==0?"A":"E"),Centro="CENTRO DE DISTRIBUCIÓN",Piloto="Piloto de demostración"});
         return lista;
     }
+    public static PilotoLista ListaEmpresa(bool seleccionada)
+    {
+        var lista=Lista(false,true);lista.CuentaEmpresa=true;lista.NombreEmpresa="TRANSPORTE DEMO";
+        lista.PlacasDisponibles.AddRange(new[]{"C-001","C-002"});
+        if(seleccionada) {lista.PlacaSeleccionada="C-002";lista.Rutas.Add(new PilotoRuta{Id="EMP-001",Fecha=new DateTime(2026,9,21),Estado="E",Placa="C-002",Piloto="TRANSPORTE DEMO",ConductorReal="JUAN PEREZ",Centro="PALIN",CuentaEmpresa=true});}
+        return lista;
+    }
     public static PilotoPanelModelo Panel(string seccion="resumen",bool admin=false)
     {
         var f=new PilotoPanelFiltro{Desde="2026-09-21",Hasta="2026-09-29",Seccion=seccion};f.Validar(new DateTime(2026,9,29));
@@ -168,6 +175,11 @@ internal static class RazorPreview
         modelo.Centros.Add(new PilotoAdminOpcion{Codigo="CENTRO-2",Nombre="CENTRO-2",Activo=true});
         modelo.Vehiculos.Add(new PilotoAdminOpcion{Codigo=ruta.Placa,Nombre="Camión demo",Activo=true,Seleccionado=true});
         modelo.Vehiculos.Add(new PilotoAdminOpcion{Codigo="C-002",Nombre="Panel demo",Activo=true});
+        return modelo;
+    }
+    public static PilotoAdminRutaEdicion AdminRutaEmpresa()
+    {
+        var modelo=AdminRuta();modelo.EsRutaEmpresa=true;modelo.EmpresaUsuarioId=22;modelo.ConductorReal="JUAN PEREZ";modelo.DocumentoConductor="L-1234";modelo.VersionConductor=Guid.NewGuid().ToString();
         return modelo;
     }
 }

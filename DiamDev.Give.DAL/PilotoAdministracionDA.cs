@@ -72,9 +72,11 @@ FROM dbo.Usuario u WHERE u.Login=@login;";
             const string sql = @"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoVinculo',N'U') IS NOT NULL
  AND OBJECT_ID(N'dbo.PilotoCentro',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVehiculo',N'U') IS NOT NULL
  AND OBJECT_ID(N'dbo.PilotoVehiculoHistorial',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVinculoHistorial',N'U') IS NOT NULL
- AND OBJECT_ID(N'dbo.PilotoCentroHistorial',N'U') IS NOT NULL THEN 1 ELSE 0 END;";
+ AND OBJECT_ID(N'dbo.PilotoCentroHistorial',N'U') IS NOT NULL
+ AND OBJECT_ID(N'dbo.PilotoEmpresa',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorRuta',N'U') IS NOT NULL
+ AND OBJECT_ID(N'dbo.PilotoConductorHistorial',N'U') IS NOT NULL THEN 1 ELSE 0 END;";
             using (var cmd = Comando(cn, tx, sql))
-                if ((int)cmd.ExecuteScalar() != 1) throw new PilotoException(503, "Falta instalar la administración de vínculos de pilotos.");
+                if ((int)cmd.ExecuteScalar() != 1) throw new PilotoException(503, "Faltan vínculos de pilotos o la migración 30 de transportistas en POS.");
         }
 
         private static void Autorizar(SqlConnection cn, SqlTransaction tx, string login)
@@ -108,10 +110,12 @@ FROM dbo.Usuario u WHERE u.Login=@login;";
  CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol r ON r.Rol_Id=ur.Rol_Id
   WHERE ur.Usuario_Id=u.Usuario_Id AND r.Nombre=N'PILOTO') THEN 1 ELSE 0 END AS bit) TieneRolPiloto,
  p.Activo VinculoActivo,p.Empleado_RowId,p.Codigo_Operador,e.NOMBRE Piloto,
+ CAST(ISNULL(pe.Activo,0) AS bit) CuentaEmpresa,pe.Nombre NombreEmpresa,
  (SELECT COUNT(*) FROM dbo.PilotoCentro c WHERE c.Usuario_Id=u.Usuario_Id) Centros,
  (SELECT COUNT(*) FROM dbo.PilotoVehiculo v WHERE v.Usuario_Id=u.Usuario_Id AND v.Activo=1) Vehiculos
 FROM dbo.Usuario u
 LEFT JOIN dbo.PilotoVinculo p ON p.Usuario_Id=u.Usuario_Id
+LEFT JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=u.Usuario_Id
 LEFT JOIN {APK}.dbo.RT_EMPLEADOS e ON e.ROWID=p.Empleado_RowId
 WHERE (p.Usuario_Id IS NOT NULL OR EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol r ON r.Rol_Id=ur.Rol_Id
        WHERE ur.Usuario_Id=u.Usuario_Id AND r.Nombre=N'PILOTO'))
@@ -140,6 +144,7 @@ ORDER BY CASE WHEN p.Activo=1 THEN 0 WHEN p.Usuario_Id IS NULL THEN 1 ELSE 2 END
                 resultado.Formulario = new PilotoAdminGuardar {
                     UsuarioId = usuarioId, EmpleadoRowId = resultado.Usuario.EmpleadoRowId,
                     CodigoOperador = resultado.Usuario.CodigoOperador, Activo = resultado.Usuario.VinculoActivo == true,
+                    CuentaEmpresa = resultado.Usuario.CuentaEmpresa, NombreEmpresa = resultado.Usuario.NombreEmpresa,
                     Centros = LeerCodigos(cn, tx, "SELECT Centro_Dist Codigo FROM dbo.PilotoCentro WHERE Usuario_Id=@u ORDER BY Centro_Dist;", usuarioId),
                     Placas = LeerCodigos(cn, tx, "SELECT Placa Codigo FROM dbo.PilotoVehiculo WHERE Usuario_Id=@u AND Activo=1 ORDER BY Placa;", usuarioId)
                 };
@@ -155,9 +160,11 @@ ORDER BY CASE WHEN p.Activo=1 THEN 0 WHEN p.Usuario_Id IS NULL THEN 1 ELSE 2 END
             var sql = @"SELECT u.Usuario_Id,u.Login,u.Nombre,u.Activo,u.Autenticar_Site,
  CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol r ON r.Rol_Id=ur.Rol_Id WHERE ur.Usuario_Id=u.Usuario_Id AND r.Nombre=N'PILOTO') THEN 1 ELSE 0 END AS bit) TieneRolPiloto,
  p.Activo VinculoActivo,p.Empleado_RowId,p.Codigo_Operador,e.NOMBRE Piloto,
+ CAST(ISNULL(pe.Activo,0) AS bit) CuentaEmpresa,pe.Nombre NombreEmpresa,
  (SELECT COUNT(*) FROM dbo.PilotoCentro c WHERE c.Usuario_Id=u.Usuario_Id) Centros,
  (SELECT COUNT(*) FROM dbo.PilotoVehiculo v WHERE v.Usuario_Id=u.Usuario_Id AND v.Activo=1) Vehiculos
 FROM dbo.Usuario u LEFT JOIN dbo.PilotoVinculo p ON p.Usuario_Id=u.Usuario_Id
+LEFT JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=u.Usuario_Id
 LEFT JOIN " + apk + @".dbo.RT_EMPLEADOS e ON e.ROWID=p.Empleado_RowId WHERE u.Usuario_Id=@u;";
             using (var cmd = Comando(cn, tx, sql))
             {
@@ -174,6 +181,7 @@ LEFT JOIN " + apk + @".dbo.RT_EMPLEADOS e ON e.ROWID=p.Empleado_RowId WHERE u.Us
                 VinculoActivo = r["VinculoActivo"] == DBNull.Value ? (bool?)null : (bool)r["VinculoActivo"],
                 EmpleadoRowId = r["Empleado_RowId"] == DBNull.Value ? (int?)null : (int)r["Empleado_RowId"],
                 CodigoOperador = Texto(r, "Codigo_Operador"), Piloto = Texto(r, "Piloto"),
+                CuentaEmpresa = (bool)r["CuentaEmpresa"], NombreEmpresa = Texto(r, "NombreEmpresa"),
                 Centros = (int)r["Centros"], Vehiculos = (int)r["Vehiculos"]
             };
         }
@@ -249,18 +257,47 @@ ORDER BY CASE WHEN r.STATUS=N'E' THEN 0 ELSE 1 END,r.FECHA_RUTA DESC,r.ID_RUTA D
                 try
                 {
                     Autorizar(cn, tx, actor); ExigirInstalacion(cn, tx);
+                    using(var empresaActual=Comando(cn,tx,"SELECT COUNT(*) FROM dbo.PilotoEmpresa WHERE Usuario_Id=@u;"))
+                    {Param(empresaActual,"@u",SqlDbType.BigInt,modelo.UsuarioId);
+                     if((int)empresaActual.ExecuteScalar()>0 && modelo.Activo && !modelo.CuentaEmpresa)
+                         throw new PilotoException(400,"Esta cuenta fue empresarial. Mantén marcada la opción de empresa o desactiva el vínculo; no puede convertirse en piloto individual automáticamente.");}
                     if (!modelo.Activo) PrepararDesactivacion(cn, tx, modelo);
                     ValidarDestino(cn, tx, modelo);
                     GuardarVinculo(cn, tx, actor, modelo);
                     GuardarCentros(cn, tx, actor, modelo);
                     GuardarVehiculos(cn, tx, actor, modelo);
+                    GuardarEmpresa(cn, tx, actor, modelo);
                     tx.Commit();
                 }
                 catch (SqlException e)
                 {
-                    if (e.Number == 2601 || e.Number == 2627) throw new PilotoException(409, "El empleado o código de operador ya está activo para otro usuario.");
+                    if (e.Number == 2601 || e.Number == 2627) throw new PilotoException(409, "El empleado, código de operador o NIT ya está vinculado a otra cuenta.");
                     throw;
                 }
+            }
+        }
+
+        private static void GuardarEmpresa(SqlConnection cn, SqlTransaction tx, string actor, PilotoAdminGuardar m)
+        {
+            string login;
+            using(var cmd=Comando(cn,tx,"SELECT Login FROM dbo.Usuario WITH(UPDLOCK,HOLDLOCK) WHERE Usuario_Id=@u;"))
+            { Param(cmd,"@u",SqlDbType.BigInt,m.UsuarioId); login=Convert.ToString(cmd.ExecuteScalar(),CultureInfo.InvariantCulture); }
+            if(m.CuentaEmpresa && !PilotoEmpresaReglas.NitCoincide(login))
+                throw new PilotoException(400,"La cuenta empresarial debe iniciar sesión con el NIT de la empresa.");
+            if(!m.CuentaEmpresa)
+            {
+                using(var desactivar=Comando(cn,tx,"UPDATE dbo.PilotoEmpresa SET Activo=0,ModificadoUtc=SYSUTCDATETIME(),ModificadoPor=@actor WHERE Usuario_Id=@u AND Activo=1;"))
+                {Param(desactivar,"@u",SqlDbType.BigInt,m.UsuarioId);Param(desactivar,"@actor",SqlDbType.NVarChar,actor,128);desactivar.ExecuteNonQuery();}
+                return;
+            }
+            using(var cmd=Comando(cn,tx,@"UPDATE dbo.PilotoEmpresa SET Nit=@nit,Nombre=@nombre,Activo=@activo,ModificadoUtc=SYSUTCDATETIME(),ModificadoPor=@actor
+WHERE Usuario_Id=@u;
+IF @@ROWCOUNT=0 AND @activo=1 INSERT dbo.PilotoEmpresa(Usuario_Id,Nit,Nombre,Activo,ModificadoPor)
+VALUES(@u,@nit,@nombre,1,@actor);"))
+            {
+                Param(cmd,"@u",SqlDbType.BigInt,m.UsuarioId);Param(cmd,"@nit",SqlDbType.NVarChar,login,50);
+                Param(cmd,"@nombre",SqlDbType.NVarChar,m.NombreEmpresa,120);Param(cmd,"@activo",SqlDbType.Bit,m.CuentaEmpresa && m.Activo);
+                Param(cmd,"@actor",SqlDbType.NVarChar,actor,128);cmd.ExecuteNonQuery();
             }
         }
 

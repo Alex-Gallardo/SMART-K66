@@ -64,6 +64,7 @@ internal static class GaritaTests
         Check(sql.Contains("INSERT dbo.GaritaRutaEvento") && sql.Contains("OUTPUT INSERTED.Id") && sql.Contains("@solicitud") && sql.Contains("N'S'") && !sql.Contains("RT_RUTAS"),"Garita registra evento sin cambiar estado de ruta");
         var lista=GaritaRutaDA.SqlBuscarPorPlaca("[TEST_RUTAS]");
         Check(lista.Contains("r.PLACA=@placa AND r.STATUS=N'E'") && lista.Contains("GaritaCentro") && lista.Contains("FETCH NEXT 50 ROWS ONLY"),"consulta de placa paginada y limitada al centro");
+        Check(lista.Contains("ConductorReal") && lista.Contains("PilotoConductorRuta") && lista.Contains("PilotoEmpresa"),"Garita muestra conductor real únicamente desde la asignación de empresa");
         Console.WriteLine(sql);Console.WriteLine(lista);return 0;
     }
 }

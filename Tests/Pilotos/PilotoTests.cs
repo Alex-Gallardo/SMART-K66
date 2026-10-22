@@ -84,6 +84,7 @@ internal static class PilotoTests
         try {
             if(args.Length==1 && args[0]=="panel") return PanelTests.Run();
             if(args.Length==1 && args[0]=="garita") return GaritaTests.Run();
+            if(args.Length==1 && args[0]=="empresa") return Empresa();
             if(args.Length==1 && args[0]=="sql-garita") return GaritaTests.Sql();
             if(args.Length==1 && args[0]=="sql-panel") return PanelTests.Sql();
             if(args.Length==1 && args[0]=="sql-admin") {
@@ -271,5 +272,36 @@ internal static class PilotoTests
             Check(adminFilter.Result==null && object.Equals(adminController.ViewData["EsAdministracion"],true),"administracion no exige sesion especial de piloto");
             Console.WriteLine("OK: "+comprobaciones+" comprobaciones de reglas, paginacion, formulario y desafio."); return 0;
         } catch(Exception e) { Console.Error.WriteLine(e); return 1; }
+    }
+
+    static int Empresa()
+    {
+        Check(PilotoEmpresaReglas.NitCoincide("1234567-8") && PilotoEmpresaReglas.NitCoincide("123456K"),"NIT válido como login POS");
+        Check(!PilotoEmpresaReglas.NitCoincide("transportista") && !PilotoEmpresaReglas.NitCoincide(""),"cuenta empresarial exige NIT");
+        Check(PilotoEmpresaReglas.Conductor("  JUAN PEREZ  ")=="JUAN PEREZ","nombre del conductor normalizado");
+        Rechaza(()=>PilotoEmpresaReglas.Conductor("X"),400,"conductor incompleto");
+        Rechaza(()=>PilotoEmpresaReglas.Documento("X"),400,"documento incompleto");
+        var placas=new[]{"C-123","P-789"};
+        Check(PilotoEmpresaReglas.SeleccionarPlaca(placas," c-123 ")=="C-123","placa se normaliza dentro de la empresa");
+        Check(PilotoEmpresaReglas.SeleccionarPlaca(placas,null)==null,"sin placa aún no se listan rutas");
+        Rechaza(()=>PilotoEmpresaReglas.SeleccionarPlaca(placas,"OTRA"),403,"placa de otra empresa denegada");
+        var config=new PilotoAdminGuardar{UsuarioId=1,EmpleadoRowId=2,CodigoOperador="OPERADOR",Centros=new[]{"PALIN"},Placas=new[]{"C-123"},Activo=true,CuentaEmpresa=true,Motivo="Alta empresa"};
+        Rechaza(()=>PilotoAdminReglas.Validar(config),400,"empresa sin nombre rechazada");
+        config.NombreEmpresa="Transporte Demo";PilotoAdminReglas.Validar(config);Check(config.NombreEmpresa=="Transporte Demo","empresa válida conserva usuario existente");
+        var ruta=Ruta();ruta.CuentaEmpresa=true;ruta.ConductorReal="JUAN PEREZ";ruta.DocumentoConductor="L-1234";
+        var version=PilotoReglas.Version(ruta);ruta.ConductorReal="PEDRO PEREZ";
+        Check(PilotoReglas.Version(ruta)!=version,"cambio de conductor invalida formulario de entrega");
+        var garita=new GaritaRuta{Id="R-1",Fecha=new DateTime(2026,10,22),Estado="E",Piloto="EMPRESA DEMO",Placa="C-123",Centro="PALIN",VehiculoDisponible=true,EsRutaEmpresa=true};
+        garita.Documentos.Add(new PilotoDocumento{RowId=1,Cliente="CLIENTE",Bultos=1});
+        Check(!garita.PuedeRegistrarSalida,"garita bloquea ruta empresarial sin conductor real");
+        garita.ConductorReal="JUAN PEREZ";garita.DocumentoConductor="L-1234";
+        Check(garita.PuedeRegistrarSalida,"garita admite ruta empresarial asignada");
+        var versionGarita=GaritaReglas.Version(garita);garita.ConductorReal="PEDRO PEREZ";
+        Check(GaritaReglas.Version(garita)!=versionGarita,"cambio de conductor invalida revisión de garita");
+        var panel=new PilotoPanelPiloto{CuentaActiva=true,RolPiloto=true,PermisoVer=true,VinculoActivo=true,EmpleadoActivo=true,EmpleadoUnico=true,Operador="OPERADOR",EmpresaVigente=false};
+        Check(!panel.PuedeConsultar,"empresa revocada no aparece con acceso operativo en panel");
+        var accion=typeof(PilotoController).GetMethod("AsignarConductor");
+        Check(accion.IsDefined(typeof(HttpPostAttribute),true) && accion.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"asignación administrativa protegida contra CSRF");
+        Console.WriteLine("OK empresa: "+comprobaciones+" comprobaciones");return 0;
     }
 }

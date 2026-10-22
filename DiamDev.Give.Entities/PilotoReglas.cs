@@ -115,6 +115,7 @@ namespace DiamDev.Give.Entities
             {
                 Texto(w, ruta.Id); w.Write(ruta.Fecha.Ticks); Texto(w, ruta.Estado);
                 Texto(w, ruta.Placa); Texto(w, ruta.Piloto); Texto(w, ruta.Centro);
+                if(ruta.CuentaEmpresa) {Texto(w,ruta.ConductorReal);Texto(w,ruta.DocumentoConductor);}
                 foreach (var d in ruta.Documentos.OrderBy(d => d.RowId))
                 {
                     w.Write(d.RowId); Texto(w, d.Tipo); Texto(w, d.Empresa); Texto(w, d.Documento);

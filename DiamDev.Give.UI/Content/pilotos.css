@@ -698,6 +698,22 @@ dd {
   display: none;
 }
 
+.company-vehicle-picker {
+  padding:22px;
+  margin:0 0 22px;
+  border:1px solid #b8d7c9;
+  border-left:5px solid #218257;
+  border-radius:14px;
+  background:#f4fbf7;
+  box-shadow:0 4px 18px rgba(20,55,45,.06)
+}
+.company-vehicle-picker h2 {margin:4px 0 16px;font-size:clamp(22px,4vw,28px)}
+.company-vehicle-picker form {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 14px;align-items:end}
+.company-vehicle-picker form label {grid-column:1/-1;margin:0}
+.company-vehicle-picker form select {margin:0}
+.company-vehicle-picker .button-link {min-height:56px;white-space:nowrap}
+@media (max-width:620px) {.company-vehicle-picker form {grid-template-columns:1fr}.company-vehicle-picker .button-link {width:100%}}
+
 .vehicle-panel>strong {
   overflow-wrap:anywhere;
 }

@@ -42,7 +42,8 @@ else
             <div class="admin-card-top"><div><span class="field-label">@usuario.Login</span><h3>@usuario.Nombre</h3></div>
                 <span class="status-pill @(usuario.Listo ? "status-ready" : usuario.VinculoActivo == false ? "status-off" : "status-pending")">@(usuario.Listo ? "Listo" : usuario.VinculoActivo == false ? "Desactivado" : "Pendiente")</span>
             </div>
-            <dl class="admin-stats"><div><dt>Piloto APK66</dt><dd>@(string.IsNullOrWhiteSpace(usuario.Piloto) ? "Sin vincular" : usuario.Piloto)</dd></div><div><dt>Centros</dt><dd>@usuario.Centros</dd></div><div><dt>Vehículos</dt><dd>@usuario.Vehiculos</dd></div></dl>
+            @if(usuario.CuentaEmpresa){<p class="muted">Transportista rentado · @usuario.NombreEmpresa</p>}
+            <dl class="admin-stats"><div><dt>@(usuario.CuentaEmpresa?"Registro estable APK66":"Piloto APK66")</dt><dd>@(string.IsNullOrWhiteSpace(usuario.Piloto) ? "Sin vincular" : usuario.Piloto)</dd></div><div><dt>Centros</dt><dd>@usuario.Centros</dd></div><div><dt>Vehículos</dt><dd>@usuario.Vehiculos</dd></div></dl>
             @if (!usuario.UsuarioActivo || !usuario.AutenticarSite || !usuario.TieneRolPiloto) { <p class="admin-warning">Requiere @(usuario.TieneRolPiloto ? "cuenta activa y acceso web" : "rol PILOTO").</p> }
             <a class="button-link" href="@Url.Action("Configurar", new { id = usuario.UsuarioId })">Configurar acceso<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
         </article>

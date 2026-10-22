@@ -600,3 +600,18 @@ breve y enlaces a las fotos. Tras recargar o iniciar sesión de nuevo, debe
 persistir el bloqueo. Un intento directo de volver a guardar o subir fotos
 debe ser rechazado por el servidor. El cierre exige todos los clientes
 completados; solo al confirmar la ruta se escriben resultados en APK66/APP_TEST.
+# Transportistas rentados: cuenta por empresa (migración 30)
+
+La migración `30_transportistas_empresa_pos.sql` se ejecuta **manualmente en POS**. Por defecto solo muestra una vista previa. Antes de activar `@Aplicar=1`, declarar `@BaseEsperada` con el nombre exacto del catálogo POS y comprobar que el usuario SQL de `GiveContext` tiene SELECT/INSERT/UPDATE sobre las tablas nuevas. No crea usuarios, contraseñas, empleados ni rutas en APK66.
+
+Configuración:
+
+1. Crear manualmente en Usuarios POS una cuenta cuyo login sea el NIT, con acceso web y rol `PILOTO` (permisos `Pilotos.Rutas.Ver` y `Pilotos.Rutas.Confirmar`). La contraseña y su entrega quedan a cargo del administrador de POS. La verificación SMS sigue la configuración existente de esa cuenta.
+2. En APK66, disponer de **un empleado activo y único por empresa** con cargo `PILOTO` y nombre estable. Antes de usar este criterio, validar con los responsables de APK66 los reportes externos que leen `RT_RUTAS.PILOTO`; ese campo pasará a identificar el registro estable de la empresa, mientras el conductor real se guarda en POS.
+3. En `Piloto/Administracion` → `Configurar acceso`, marcar la cuenta empresarial, indicar su nombre, elegir ese empleado, código de operador, centros y todas las placas activas de la empresa. El nombre `EMPRESA` visible en `RT_VEHICULOS` es solo información de catálogo; las placas autorizadas se vinculan explícitamente aquí.
+4. Distribución asigna el empleado estable y la placa a la ruta, luego registra el nombre y documento/licencia del conductor en `Editar ruta`. Garita comprueba esos datos y la carga antes de marcar la hora de salida. Una ruta empresarial sin conductor asignado permite consulta, pero bloquea salida y entregas.
+5. El conductor inicia sesión con la cuenta POS de la empresa y elige una placa. Puede cambiar de placa para consultar otras rutas de **esa misma empresa**; la selección es un filtro de la lista, no una credencial. Cada operación comprueba de nuevo empleado, centro, placa, usuario activo y asignación actual. La cuenta compartida identifica a la empresa; el conductor guardado para la ruta identifica a la persona indicada por Distribución y verificada en Garita.
+
+Al cambiar fecha, empleado, centro, placa o estado de una ruta desde la administración, la asignación de conductor se invalida y se conserva en el historial. El historial y las entregas previas no se borran. No desactivar empleados individuales históricos en APK66 hasta revisar sus rutas, reportes y dependencias; esta migración no borra esos registros.
+
+La cuenta empresarial no se convierte automáticamente en piloto individual al desmarcarla: desactivar el vínculo revoca su acceso y conserva los datos históricos. Para cambiar de modelo, revisar la cuenta y sus rutas con Distribución.

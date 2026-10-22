@@ -87,7 +87,7 @@ internal static class RazorPreview
     {
         var lista=Lista(false,true);lista.CuentaEmpresa=true;lista.NombreEmpresa="TRANSPORTE DEMO";
         lista.PlacasDisponibles.AddRange(new[]{"C-001","C-002"});
-        if(seleccionada) {lista.PlacaSeleccionada="C-002";lista.Rutas.Add(new PilotoRuta{Id="EMP-001",Fecha=new DateTime(2026,9,21),Estado="E",Placa="C-002",Piloto="TRANSPORTE DEMO",ConductorReal="JUAN PEREZ",Centro="PALIN",CuentaEmpresa=true});}
+        if(seleccionada) {lista.PlacaSeleccionada="C-002";lista.Rutas.Add(new PilotoRuta{Id="EMP-001",Fecha=new DateTime(2026,9,21),Estado="E",Placa="C-002",Piloto="TRANSPORTE DEMO",ConductorReal="JUAN PEREZ",DocumentoConductor="L-1234",Centro="PALIN",CuentaEmpresa=true});}
         return lista;
     }
     public static PilotoPanelModelo Panel(string seccion="resumen",bool admin=false)
@@ -112,6 +112,12 @@ internal static class RazorPreview
         for(var i=1;i<=51;i++) m.Rutas.Add(new PilotoPanelRuta{Datos=new PilotoRuta{Id="PAG-"+i.ToString("000"),Fecha=new System.DateTime(2026,9,29),Estado="E",Piloto="PILOTO DEMO",Centro="PC",Placa="DEMO"}});
         return m;
     }
+    public static PilotoPanelModelo PanelEmpresaPendiente()
+    {
+        var m=Panel("rutas",true);var r=m.Rutas[0];r.Datos.CuentaEmpresa=true;r.Datos.ConductorReal=null;r.Datos.DocumentoConductor=null;
+        r.Alertas.Add("Distribución debe asignar nombre y documento del conductor para habilitar las entregas de esta ruta.");
+        return m;
+    }
     public static PilotoRuta Ruta()
     {
         var ruta=Lista().Rutas[0]; ruta.Transporte="Transporte de demostración"; ruta.Vehiculo="Camión · Línea de prueba";
@@ -129,6 +135,14 @@ internal static class RazorPreview
         ruta.Solicitud=Guid.NewGuid();
         ruta.Documentos[1].Visito=false; ruta.Documentos[1].Entrega="NO ENTREGADO"; ruta.Documentos[1].Motivo="CLIENTE CERRADO";
         ruta.Documentos[1].ObservacionPiloto="Se encontró el local cerrado al llegar.";
+        ruta.Version=PilotoReglas.Version(ruta);
+        return ruta;
+    }
+    public static PilotoRuta RutaEmpresa(bool asignado,bool permiso=true)
+    {
+        var ruta=RutaEditable();ruta.CuentaEmpresa=true;ruta.PermisoConfirmar=permiso;
+        ruta.ConductorReal=asignado?"JUAN PEREZ":null;ruta.DocumentoConductor=asignado?"L-1234":null;
+        ruta.PuedeCerrar=PilotoReglas.PuedeOperar(ruta,true,false);
         ruta.Version=PilotoReglas.Version(ruta);
         return ruta;
     }

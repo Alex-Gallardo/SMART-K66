@@ -6,13 +6,14 @@
     var estadoIcon=Model.Estado=="E" ? "i-truck" : Model.Estado=="C" ? "i-check" : Model.Estado=="X" ? "i-x" : "i-clock";
     var grupos=Model.Documentos.Select((documento,indice)=>new { Documento=documento, Indice=indice })
         .GroupBy(x=>new { Cliente=(x.Documento.Cliente??"").Trim().ToUpperInvariant(), Direccion=(x.Documento.Direccion??"").Trim().ToUpperInvariant() }).ToList();
+    var conductorPendiente=Model.CuentaEmpresa && !Model.ConductorAsignado && Model.Estado=="E";
 }
 <a class="back-link" href="@Url.Action("Index",new { desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,pagina=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa })"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Mis rutas</a>
 <div class="detail-title"><div><p class="eyebrow">DETALLE DE RUTA</p><h1>@Model.Id</h1></div><span class="status status-@Model.Estado"><svg class="icon" aria-hidden="true"><use href="#@estadoIcon" /></svg>@Model.EstadoNombre</span></div>
 @Html.ValidationSummary(false, "Revisa los resultados antes de continuar.", new { role="alert" })
 @if (TempData["Piloto.Mensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.Mensaje"]</p> }
-<dl class="route-summary"><div><dt>Fecha</dt><dd>@Model.Fecha.ToString("dd/MM/yyyy")</dd></div><div><dt>Vehículo</dt><dd>@Model.Placa</dd></div><div><dt>@(Model.CuentaEmpresa?"Conductor asignado":"Piloto")</dt><dd>@(Model.CuentaEmpresa?(Model.ConductorReal??"Pendiente de asignar"):Model.Piloto)</dd></div><div><dt>Centro</dt><dd>@Model.Centro</dd></div></dl>
-@if(Model.CuentaEmpresa && string.IsNullOrWhiteSpace(Model.ConductorReal)){<p class="notice" role="status">Distribución debe asignar el conductor real antes de registrar entregas.</p>}
+<dl class="route-summary"><div><dt>Fecha</dt><dd>@Model.Fecha.ToString("dd/MM/yyyy")</dd></div><div><dt>Vehículo</dt><dd>@Model.Placa</dd></div><div><dt>@(Model.CuentaEmpresa?"Conductor asignado":"Piloto")</dt><dd>@(Model.CuentaEmpresa?(Model.ConductorAsignado?Model.ConductorReal:"Pendiente de asignar"):Model.Piloto)</dd></div><div><dt>Centro</dt><dd>@Model.Centro</dd></div></dl>
+@if(conductorPendiente){<p class="notice" role="status"><strong>Conductor pendiente.</strong> Distribución debe registrar su nombre y documento en esta ruta. Después, vuelve a abrirla para registrar entregas y completar clientes.</p>}
 @if(Model.SalidaGaritaUtc.HasValue){<p class="notice success" role="status">Garita registró la salida de planta el @Model.SalidaGaritaUtc.Value.AddHours(-6).ToString("dd/MM/yyyy") a las @Model.SalidaGaritaUtc.Value.AddHours(-6).ToString("HH:mm") (hora de Guatemala).</p>}
 @if (!string.IsNullOrWhiteSpace(Model.Transporte) || !string.IsNullOrWhiteSpace(Model.Vehiculo)) {
     <div class="vehicle-panel"><p class="eyebrow">TRANSPORTE ASIGNADO</p><strong>@(Model.Transporte ?? "Vehículo de la ruta")</strong><p class="muted">@Model.Vehiculo <span class="plate">@Model.Placa</span></p></div>
@@ -25,9 +26,9 @@
 {
     <p class="intro">Abre cada factura, registra su resultado y guarda el cliente. Al completar el último cliente se abrirá la revisión final para confirmar el cierre de la ruta.</p>
 }
-else if (ViewBag.PruebasSoloLectura != true)
+else if (ViewBag.PruebasSoloLectura != true && !conductorPendiente)
 {
-    <p class="notice">Ruta disponible para consulta. Para cambios, contacta a Distribución.</p>
+    <p class="notice">@(Model.Estado!="E" ? "Esta ruta está disponible solo para consulta." : !Model.PermisoConfirmar ? "Esta cuenta puede consultar rutas, pero le falta el permiso para registrar entregas. Solicita a Distribución que revise Pilotos.Rutas.Confirmar." : "La ruta está disponible para consulta. Solicita a Distribución que revise la configuración de entregas.")</p>
 }
 @if(Model.Estado=="E" && !Model.BorradoresDisponibles && ViewBag.PruebasSoloLectura != true) { <p class="notice">El guardado por cliente estará disponible cuando se instale la tabla de borradores en POS.</p> }
 @if(Model.Estado=="E" && Model.BorradoresDisponibles && !Model.ClientesCompletadosDisponibles && ViewBag.PruebasSoloLectura != true) { <p class="notice">Para completar clientes y subir fotos finales, instala la migración 22 en POS. Por ahora esta ruta está en consulta.</p> }

@@ -130,6 +130,10 @@ namespace DiamDev.Give.Entities
 
     public static class PilotoEmpresaReglas
     {
+        public static bool PuedeAsignarConductor(bool salidaRegistrada,string nombre,string documento)
+        {
+            return !salidaRegistrada || string.IsNullOrWhiteSpace(nombre) || string.IsNullOrWhiteSpace(documento);
+        }
         public static bool NitCoincide(string login)
         {
             if(string.IsNullOrWhiteSpace(login) || login.Length>50) return false;

@@ -160,6 +160,20 @@ if($empresaAdmin -notmatch 'name="EmpresaUsuarioId" value="22"' -or $empresaAdmi
     throw 'Distribución debe poder asignar el conductor real de la ruta empresarial.'
 }
 Write-Host 'OK: selector de placas y asignación de conductor empresarial renderizados.'
+$empresaLista=Get-Content -LiteralPath (Join-Path $out 'detalle-empresa-lista.html') -Raw
+$empresaPendiente=Get-Content -LiteralPath (Join-Path $out 'detalle-empresa-pendiente.html') -Raw
+$empresaSinPermiso=Get-Content -LiteralPath (Join-Path $out 'detalle-empresa-sin-permiso.html') -Raw
+$panelEmpresa=Get-Content -LiteralPath (Join-Path $out 'panel-empresa-pendiente.html') -Raw
+$panelDetalleEmpresa=Get-Content -LiteralPath (Join-Path $out 'panel-detalle-empresa-pendiente.html') -Raw
+if($empresaLista -notmatch 'class="save-client"' -or $empresaLista -notmatch 'id="complete-button"' -or
+   $empresaLista -notmatch 'class="image-upload-trigger' -or $empresaLista -match 'Conductor pendiente' -or
+   $empresaPendiente -notmatch 'Conductor pendiente' -or $empresaPendiente -match 'class="save-client"|id="complete-button"' -or
+   $empresaPendiente -match 'Ruta disponible para consulta. Para cambios' -or
+   $empresaSinPermiso -notmatch 'Pilotos.Rutas.Confirmar' -or $empresaSinPermiso -match 'class="save-client"|id="complete-button"' -or
+   $panelEmpresa -notmatch 'Asignar conductor' -or $panelDetalleEmpresa -notmatch 'Asignar conductor') {
+    throw 'La empresa asignada debe operar como piloto; pendiente o sin permiso queda en consulta con una acción clara para Distribución.'
+}
+Write-Host 'OK: ruta empresarial asignada editable y rutas pendientes con acceso directo a Distribución.'
 $configEmpresa=Get-Content -LiteralPath (Join-Path $out 'configurar-empresa.html') -Raw
 if($configEmpresa -notmatch 'TRANSPORTE DEMO' -or $configEmpresa -notmatch 'id="individual-pilot-identity" hidden' -or
    $configEmpresa -notmatch 'id="individual-pilot-centers" hidden' -or $configEmpresa -notmatch 'id="EmpleadoRowId" name="EmpleadoRowId" disabled' -or

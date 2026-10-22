@@ -284,6 +284,8 @@ internal static class PilotoTests
         Check(PilotoEmpresaReglas.Conductor("  JUAN PEREZ  ")=="JUAN PEREZ","nombre del conductor normalizado");
         Rechaza(()=>PilotoEmpresaReglas.Conductor("X"),400,"conductor incompleto");
         Rechaza(()=>PilotoEmpresaReglas.Documento("X"),400,"documento incompleto");
+        Check(PilotoEmpresaReglas.PuedeAsignarConductor(true,null,null),"Distribución puede recuperar una ruta antigua que salió sin conductor si no tiene actividad");
+        Check(!PilotoEmpresaReglas.PuedeAsignarConductor(true,"JUAN PEREZ","L-1234"),"conductor completo no se cambia tras salida de Garita");
         var placas=new[]{"C-123","P-789"};
         Check(PilotoEmpresaReglas.SeleccionarPlaca(placas," c-123 ")=="C-123","placa se normaliza dentro de la empresa");
         Check(PilotoEmpresaReglas.SeleccionarPlaca(placas,null)==null,"sin placa aún no se listan rutas");
@@ -299,6 +301,18 @@ internal static class PilotoTests
         usuarioEmpresa.CuentaEmpresa=false;Check(!usuarioEmpresa.Listo,"piloto individual sí exige centro");
         empresaSinEmpleado.Placas=new string[0];Rechaza(()=>PilotoAdminReglas.Validar(empresaSinEmpleado),400,"empresa activa exige placa");
         var ruta=Ruta();ruta.CuentaEmpresa=true;ruta.ConductorReal="JUAN PEREZ";ruta.DocumentoConductor="L-1234";
+        ruta.PermisoConfirmar=true;
+        Check(PilotoReglas.PuedeOperar(ruta,true,false),"empresa asignada puede registrar clientes, fotos y cierre");
+        ruta.DocumentoConductor=null;
+        Check(!PilotoReglas.PuedeOperar(ruta,true,false),"nombre sin documento no habilita entregas");
+        ruta.DocumentoConductor="L-1234";ruta.PermisoConfirmar=false;
+        Check(!PilotoReglas.PuedeOperar(ruta,true,false),"cuenta sin permiso de confirmar queda en consulta");
+        ruta.PermisoConfirmar=true;
+        Check(!PilotoReglas.PuedeOperar(ruta,false,false) && !PilotoReglas.PuedeOperar(ruta,true,true),"cierre apagado o ruta liquidada bloquean escrituras");
+        ruta.Estado="C";Check(!PilotoReglas.PuedeOperar(ruta,true,false),"ruta cerrada no permite entregas nuevas");
+        ruta.Estado="E";ruta.CuentaEmpresa=false;ruta.ConductorReal=null;ruta.DocumentoConductor=null;
+        Check(PilotoReglas.PuedeOperar(ruta,true,false),"piloto individual conserva operación sin asignación empresarial");
+        ruta.CuentaEmpresa=true;ruta.ConductorReal="JUAN PEREZ";ruta.DocumentoConductor="L-1234";
         var version=PilotoReglas.Version(ruta);ruta.ConductorReal="PEDRO PEREZ";
         Check(PilotoReglas.Version(ruta)!=version,"cambio de conductor invalida formulario de entrega");
         var garita=new GaritaRuta{Id="R-1",Fecha=new DateTime(2026,10,22),Estado="E",Piloto="EMPRESA DEMO",Placa="C-123",Centro="PALIN",VehiculoDisponible=true,EsRutaEmpresa=true};

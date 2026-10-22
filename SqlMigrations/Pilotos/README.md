@@ -638,6 +638,29 @@ el conductor real a cada ruta antes de las entregas o la salida por Garita.
 Garita y Panel detectan la cuenta de empresa por la misma propiedad de placa.
 Los pilotos individuales siguen requiriendo empleado, centro y placa.
 
+### Entregas y cierre con cuenta empresarial
+
+La placa permite encontrar la ruta, pero no autoriza por sí sola a registrar
+entregas. Antes de comenzar, Distribución abre **Editar ruta**, asigna el nombre
+y documento/licencia del conductor real y guarda el motivo. La cuenta POS de la
+empresa debe conservar el rol `PILOTO` y el permiso
+`Pilotos.Rutas.Confirmar`. Al volver a abrir la ruta **En ruta**, aparecen las
+mismas acciones operativas que para un piloto individual: resultados de
+facturas, cliente completado, fotos admitidas y cierre. El conductor no edita
+fecha, placa, centro ni estado desde el portal piloto.
+
+El panel muestra **Asignar conductor** en rutas empresariales pendientes. Si
+una ruta histórica registró salida de Garita sin conductor, Distribución puede
+completar la primera asignación siempre que aún no existan clientes guardados,
+fotos ni resultados. Tras una salida con conductor completo, no se permite
+cambiarlo. Una ruta cerrada o liquidada tampoco admite esta asignación.
+
+Para verificar una cuenta recién configurada, elegir su placa, abrir una ruta
+En ruta y comprobar que no muestre «Conductor pendiente», que aparezca
+«Guardar cliente» y que el cierre quede disponible al completar todos los
+clientes. Si el portal indica que falta `Pilotos.Rutas.Confirmar`, revisar los
+permisos efectivos de la cuenta POS antes de repetir la operación.
+
 Si el catálogo APK66 tiene muchas rutas, revisar el plan de consulta por
 placa. `32_indice_rutas_placa_apk66.sql` ofrece un índice **opcional** para
 esa búsqueda; queda en vista previa hasta declarar el catálogo APK66 exacto

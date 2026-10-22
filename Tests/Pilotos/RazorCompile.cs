@@ -69,7 +69,7 @@ internal static class RazorCompile
                             previews["detalle-historial"]=RazorPreview.Render(type,RazorPreview.Ruta(),null,"historial");
                         }
                         if(relative=="Piloto/Administracion.cshtml") previews["administracion"]=RazorPreview.Render(type,RazorPreview.AdminLista());
-                        if(relative=="Piloto/Configurar.cshtml") previews["configurar"]=RazorPreview.Render(type,RazorPreview.AdminEdicion());
+                        if(relative=="Piloto/Configurar.cshtml") {previews["configurar"]=RazorPreview.Render(type,RazorPreview.AdminEdicion());previews["configurar-empresa"]=RazorPreview.Render(type,RazorPreview.AdminEdicionEmpresa());}
                         if(relative=="Piloto/EditarRuta.cshtml") {previews["editar-ruta"]=RazorPreview.Render(type,RazorPreview.AdminRuta());previews["editar-ruta-empresa"]=RazorPreview.Render(type,RazorPreview.AdminRutaEmpresa());}
                         if(relative=="Piloto/AdministracionError.cshtml") previews["administracion-error"]=RazorPreview.Render(type,null);
                         if(relative=="Piloto/Error.cshtml") previews["error"]=RazorPreview.Render(type,null);
@@ -102,8 +102,8 @@ internal static class RazorCompile
                 Console.WriteLine("OK Razor: "+relative);
             }
             if(args.Length>1) foreach(var preview in previews) {
-                object model=preview.Key.StartsWith("panel-") ? (object)RazorPreview.Panel() : preview.Key=="administracion" ? (object)RazorPreview.AdminLista() : preview.Key=="configurar" ? (object)RazorPreview.AdminEdicion() : preview.Key=="editar-ruta" ? (object)RazorPreview.AdminRuta() : preview.Key=="editar-ruta-empresa" ? (object)RazorPreview.AdminRutaEmpresa() : null;
-                bool backoffice=preview.Key.StartsWith("panel-") || preview.Key=="administracion" || preview.Key=="configurar" || preview.Key.StartsWith("editar-ruta") || preview.Key=="administracion-error";
+                object model=preview.Key.StartsWith("panel-") ? (object)RazorPreview.Panel() : preview.Key=="administracion" ? (object)RazorPreview.AdminLista() : preview.Key=="configurar" ? (object)RazorPreview.AdminEdicion() : preview.Key=="configurar-empresa" ? (object)RazorPreview.AdminEdicionEmpresa() : preview.Key=="editar-ruta" ? (object)RazorPreview.AdminRuta() : preview.Key=="editar-ruta-empresa" ? (object)RazorPreview.AdminRutaEmpresa() : null;
+                bool backoffice=preview.Key.StartsWith("panel-") || preview.Key=="administracion" || preview.Key.StartsWith("configurar") || preview.Key.StartsWith("editar-ruta") || preview.Key=="administracion-error";
                 var html=preview.Key.StartsWith("garita-") ? preview.Value : backoffice ? RazorPreview.Backoffice(preview.Value,preview.Key.StartsWith("panel-")) : RazorPreview.Render(layout,model,preview.Value,"activas",preview.Key=="detalle-cierre" || preview.Key=="detalle-borrador");
                 if(preview.Key.StartsWith("editar-ruta")) html=html.Replace("/Scripts/pilotos.js","/Scripts/pilotos-admin-ruta.js");
                 File.WriteAllText(Path.Combine(bin,preview.Key+".html"),html);

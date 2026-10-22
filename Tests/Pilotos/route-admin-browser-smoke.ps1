@@ -79,5 +79,34 @@ try {
         $failure=[regex]::Match($output,'data-config-smoke="([^"]+)"')
         throw ('Configuración de piloto: '+$(if($failure.Success){$failure.Groups[1].Value}else{'sin resultado'}))
     }
+    $companyConfig=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'bin/configurar-empresa.html') -Raw
+    $companyProbe=@'
+<script src="__SCRIPT_URI__"></script>
+<script>
+(function(){try {
+    var form=document.getElementById('pilot-admin-form');
+    var company=form.querySelector('input[name=CuentaEmpresa][type=checkbox]');
+    var employee=form.querySelector('#EmpleadoRowId');
+    var centers=form.querySelector('#individual-pilot-centers');
+    if(!company.checked || !employee.disabled || employee.required || !centers.hidden) throw new Error('La empresa aún exige empleado o centro');
+    if(document.documentElement.scrollWidth>innerWidth+1) throw new Error('Desbordamiento horizontal');
+    company.click();
+    if(employee.disabled || !employee.required || centers.hidden) throw new Error('El piloto individual no recupera sus campos');
+    company.click();
+    if(!employee.disabled || !centers.hidden) throw new Error('La empresa no recupera sus campos');
+    document.documentElement.setAttribute('data-company-config-smoke','PASS');
+} catch(error){document.documentElement.setAttribute('data-company-config-smoke','FAIL: '+error.message);}})();
+</script>
+'@
+    if(!$companyConfig.Contains($configMarker)) { throw 'No se encontró el script de configuración empresarial.' }
+    $companyConfig=$companyConfig.Replace($configMarker,$companyProbe.Replace('__SCRIPT_URI__',$configScript))
+    Set-Content -LiteralPath $smoke -Value $companyConfig -Encoding UTF8
+    foreach($size in @('425,900','1280,900')) {
+        $output=Invoke-SmokeChrome $size $smoke
+        if($output -notmatch 'data-company-config-smoke="PASS"') {
+            $failure=[regex]::Match($output,'data-company-config-smoke="([^"]+)"')
+            throw ('Configuración empresarial '+$size+': '+$(if($failure.Success){$failure.Groups[1].Value}else{'sin resultado'}))
+        }
+    }
     Write-Host 'OK Chrome: confirmación de edición de rutas y configuración de piloto.'
 } finally { Remove-Item -LiteralPath $smoke -Force -ErrorAction SilentlyContinue }

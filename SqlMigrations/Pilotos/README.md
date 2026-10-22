@@ -600,18 +600,46 @@ breve y enlaces a las fotos. Tras recargar o iniciar sesión de nuevo, debe
 persistir el bloqueo. Un intento directo de volver a guardar o subir fotos
 debe ser rechazado por el servidor. El cierre exige todos los clientes
 completados; solo al confirmar la ruta se escriben resultados en APK66/APP_TEST.
-# Transportistas rentados: cuenta por empresa (migración 30)
+# Transportistas rentados: esquema inicial (migración 30)
 
 La migración `30_transportistas_empresa_pos.sql` se ejecuta **manualmente en POS**. Por defecto solo muestra una vista previa. Antes de activar `@Aplicar=1`, declarar `@BaseEsperada` con el nombre exacto del catálogo POS y comprobar que el usuario SQL de `GiveContext` tiene SELECT/INSERT/UPDATE sobre las tablas nuevas. No crea usuarios, contraseñas, empleados ni rutas en APK66.
 
-Configuración:
-
-1. Crear manualmente en Usuarios POS una cuenta cuyo login sea el NIT, con acceso web y rol `PILOTO` (permisos `Pilotos.Rutas.Ver` y `Pilotos.Rutas.Confirmar`). La contraseña y su entrega quedan a cargo del administrador de POS. La verificación SMS sigue la configuración existente de esa cuenta.
-2. En APK66, disponer de **un empleado activo y único por empresa** con cargo `PILOTO` y nombre estable. Antes de usar este criterio, validar con los responsables de APK66 los reportes externos que leen `RT_RUTAS.PILOTO`; ese campo pasará a identificar el registro estable de la empresa, mientras el conductor real se guarda en POS.
-3. En `Piloto/Administracion` → `Configurar acceso`, marcar la cuenta empresarial, indicar su nombre, elegir ese empleado, código de operador, centros y todas las placas activas de la empresa. El nombre `EMPRESA` visible en `RT_VEHICULOS` es solo información de catálogo; las placas autorizadas se vinculan explícitamente aquí.
-4. Distribución asigna el empleado estable y la placa a la ruta, luego registra el nombre y documento/licencia del conductor en `Editar ruta`. Garita comprueba esos datos y la carga antes de marcar la hora de salida. Una ruta empresarial sin conductor asignado permite consulta, pero bloquea salida y entregas.
-5. El conductor inicia sesión con la cuenta POS de la empresa y elige una placa. Puede cambiar de placa para consultar otras rutas de **esa misma empresa**; la selección es un filtro de la lista, no una credencial. Cada operación comprueba de nuevo empleado, centro, placa, usuario activo y asignación actual. La cuenta compartida identifica a la empresa; el conductor guardado para la ruta identifica a la persona indicada por Distribución y verificada en Garita.
-
-Al cambiar fecha, empleado, centro, placa o estado de una ruta desde la administración, la asignación de conductor se invalida y se conserva en el historial. El historial y las entregas previas no se borran. No desactivar empleados individuales históricos en APK66 hasta revisar sus rutas, reportes y dependencias; esta migración no borra esos registros.
+La versión inicial exigía un empleado APK66 y centros para la empresa. **Aplicar
+la migración 31 y seguir el procedimiento siguiente** para acceder por placa.
+La migración 30 conserva el historial de conductor y no modifica APK66.
 
 La cuenta empresarial no se convierte automáticamente en piloto individual al desmarcarla: desactivar el vínculo revoca su acceso y conserva los datos históricos. Para cambiar de modelo, revisar la cuenta y sus rutas con Distribución.
+
+## Acceso empresarial por placa (migración 31)
+
+`31_empresa_placas_pos.sql` reemplaza el criterio de empleado y centro de la
+migración 30 para **cuentas de empresa**. Ejecutar manualmente en POS, primero
+con `@Aplicar=0`; revisar la lista de placas vinculadas a varias empresas
+activas. Corregir esos vínculos antes de declarar `@BaseEsperada` y aplicar.
+La migración deja nullable el empleado del vínculo, conserva los datos
+históricos y crea `PilotoEmpresaPlaca` con una placa única por empresa activa.
+No crea usuarios POS ni altera rutas o empleados de APK66.
+
+Después de aplicar la 31, entrar a `Piloto/Administracion` y guardar cada
+cuenta de empresa con su nombre, código de operador y placas. Ya no hace falta
+elegir empleado APK66 ni centros: si había uno vinculado, se libera al guardar.
+Crear manualmente en Usuarios POS una cuenta cuyo login sea el NIT, con acceso
+web y rol `PILOTO` (permisos `Pilotos.Rutas.Ver` y
+`Pilotos.Rutas.Confirmar`). La contraseña y su entrega quedan a cargo del
+administrador de POS. La verificación SMS sigue la configuración de esa cuenta.
+La propiedad de las placas existentes se migra automáticamente. El nombre
+`EMPRESA` de `RT_VEHICULOS` se muestra como referencia, pero la autorización
+usa únicamente las placas vinculadas y su propietario en POS.
+
+Al iniciar sesión, la empresa elige una placa de una lista y ve sus rutas
+activas de cualquier fecha, con independencia de `RT_RUTAS.PILOTO` y
+`CENTRO_DIST`. El historial conserva filtros de fecha. Distribución asigna
+el conductor real a cada ruta antes de las entregas o la salida por Garita.
+Garita y Panel detectan la cuenta de empresa por la misma propiedad de placa.
+Los pilotos individuales siguen requiriendo empleado, centro y placa.
+
+Si el catálogo APK66 tiene muchas rutas, revisar el plan de consulta por
+placa. `32_indice_rutas_placa_apk66.sql` ofrece un índice **opcional** para
+esa búsqueda; queda en vista previa hasta declarar el catálogo APK66 exacto
+y aplicarlo en una ventana de mantenimiento. No es requisito funcional de la
+migración 31.

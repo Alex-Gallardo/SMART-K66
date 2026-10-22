@@ -71,6 +71,7 @@ namespace DiamDev.Give.Entities
         public string Empleado { get; set; }
         public string Operador { get; set; }
         public bool CuentaActiva { get; set; }
+        public bool CuentaEmpresa { get; set; }
         public bool EmpresaVigente { get; set; }
         public bool RolPiloto { get; set; }
         public bool PermisoVer { get; set; }
@@ -84,8 +85,8 @@ namespace DiamDev.Give.Entities
         public List<string> Alertas { get; set; }
         public int Rutas { get; set; }
         public PilotoPanelPiloto() { EmpresaVigente=true;Centros=new List<string>();Placas=new List<string>();PlacasDisponibles=new List<string>();Alertas=new List<string>(); }
-        public bool PuedeConsultar { get { return CuentaActiva && EmpresaVigente && RolPiloto && PermisoVer && VinculoActivo && EmpleadoActivo && EmpleadoUnico && !string.IsNullOrWhiteSpace(Operador); } }
-        public bool Coincide(PilotoRuta r) { return PuedeConsultar && string.Equals(Empleado,r.Piloto,StringComparison.OrdinalIgnoreCase) && Centros.Contains(r.Centro,StringComparer.OrdinalIgnoreCase) && PlacasDisponibles.Contains(r.Placa,StringComparer.OrdinalIgnoreCase); }
+        public bool PuedeConsultar { get { return CuentaActiva && EmpresaVigente && RolPiloto && PermisoVer && VinculoActivo && (CuentaEmpresa || EmpleadoActivo && EmpleadoUnico) && !string.IsNullOrWhiteSpace(Operador); } }
+        public bool Coincide(PilotoRuta r) { return PuedeConsultar && PlacasDisponibles.Contains(r.Placa,StringComparer.OrdinalIgnoreCase) && (CuentaEmpresa || string.Equals(Empleado,r.Piloto,StringComparison.OrdinalIgnoreCase) && Centros.Contains(r.Centro,StringComparer.OrdinalIgnoreCase)); }
         public void Revisar()
         {
             Alertas.Clear();
@@ -93,13 +94,13 @@ namespace DiamDev.Give.Entities
             if(!EmpresaVigente) Alertas.Add("Cuenta empresarial desactivada o con NIT diferente al login POS.");
             if(!RolPiloto) Alertas.Add("Falta el rol PILOTO.");
             if(!PermisoVer || !PermisoConfirmar) Alertas.Add("Faltan permisos de consulta o confirmación de rutas.");
-            if(!VinculoActivo) Alertas.Add("Vínculo de empleado inactivo o ausente.");
+            if(!VinculoActivo) Alertas.Add("Vínculo de cuenta inactivo o ausente.");
             if(string.IsNullOrWhiteSpace(Operador)) Alertas.Add("Falta el código de operador.");
-            if(!EmpleadoActivo) Alertas.Add("Empleado no disponible como piloto activo.");
-            if(!EmpleadoUnico && !string.IsNullOrWhiteSpace(Empleado)) Alertas.Add("El nombre del empleado es ambiguo en APK66.");
-            if(Centros.Count==0) Alertas.Add("No tiene centros autorizados.");
+            if(!CuentaEmpresa && !EmpleadoActivo) Alertas.Add("Empleado no disponible como piloto activo.");
+            if(!CuentaEmpresa && !EmpleadoUnico && !string.IsNullOrWhiteSpace(Empleado)) Alertas.Add("El nombre del empleado es ambiguo en APK66.");
+            if(!CuentaEmpresa && Centros.Count==0) Alertas.Add("No tiene centros autorizados.");
             if(Placas.Count==0) Alertas.Add("No tiene vehículos autorizados.");
-            else if(Placas.Except(PlacasDisponibles,StringComparer.OrdinalIgnoreCase).Any()) Alertas.Add("Tiene vehículos autorizados inactivos o ausentes en APK66.");
+            else if(Placas.Except(PlacasDisponibles,StringComparer.OrdinalIgnoreCase).Any()) Alertas.Add("Tiene vehículos inactivos, ausentes o sin propiedad empresarial en POS.");
         }
     }
     public sealed class PilotoPanelCliente

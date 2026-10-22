@@ -99,19 +99,20 @@ WHERE ID_RUTA=@ruta AND ROWID=@rowid AND MO_ENTREGA=N'ENTREGADO';"; } }
         {
             if (string.IsNullOrWhiteSpace(login) || login.Length > 50) throw new PilotoException(403, "Acceso no autorizado.");
             if (PruebasSoloLectura) return AutorizarPrueba(cn,tx,login,permiso);
-            using (var readiness = Command(cn, tx, "SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoVinculo',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoCentro',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVehiculo',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoEmpresa',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorRuta',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorHistorial',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
-                if ((int)readiness.ExecuteScalar() != 1) throw new PilotoException(503, "Faltan vínculos de pilotos o la migración 30 de transportistas en POS. Contacta al administrador.");
+            using (var readiness = Command(cn, tx, "SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoVinculo',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoCentro',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoVehiculo',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoEmpresa',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoEmpresaPlaca',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorRuta',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoConductorHistorial',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
+                if ((int)readiness.ExecuteScalar() != 1) throw new PilotoException(503, "Faltan vínculos de pilotos o la migración 31 de placas empresariales en POS. Contacta al administrador.");
             var sql = @"SELECT TOP (2) u.Usuario_Id, e.NOMBRE, p.Codigo_Operador,
 CAST(ISNULL(pe.Activo,0) AS bit) Empresa,pe.Nombre NombreEmpresa
 FROM dbo.Usuario u JOIN dbo.PilotoVinculo p ON p.Usuario_Id=u.Usuario_Id
 LEFT JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=u.Usuario_Id
-JOIN " + apk + @".dbo.RT_EMPLEADOS e ON e.ROWID=p.Empleado_RowId
+LEFT JOIN " + apk + @".dbo.RT_EMPLEADOS e ON e.ROWID=p.Empleado_RowId
 WHERE u.Login=@login AND u.Activo=1 AND u.Autenticar_Site=1 AND p.Activo=1
 AND (pe.Usuario_Id IS NULL OR pe.Activo=1 AND pe.Nit=u.Login)
 AND NOT EXISTS (SELECT 1 FROM dbo.Usuario otroUsuario WHERE otroUsuario.Login=u.Login AND otroUsuario.Usuario_Id<>u.Usuario_Id)
-AND e.ESTADO=1 AND e.CARGO=N'PILOTO' AND NULLIF(LTRIM(RTRIM(e.NOMBRE)),N'') IS NOT NULL
-AND NOT EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_EMPLEADOS otro
-                WHERE otro.CARGO=N'PILOTO' AND otro.NOMBRE=e.NOMBRE AND otro.ROWID<>e.ROWID)
+AND (pe.Usuario_Id IS NOT NULL OR e.ESTADO=1 AND e.CARGO=N'PILOTO'
+ AND NULLIF(LTRIM(RTRIM(e.NOMBRE)),N'') IS NOT NULL
+ AND NOT EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_EMPLEADOS otro
+                 WHERE otro.CARGO=N'PILOTO' AND otro.NOMBRE=e.NOMBRE AND otro.ROWID<>e.ROWID))
 AND EXISTS (SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol r ON r.Rol_Id=ur.Rol_Id
             WHERE ur.Usuario_Id=u.Usuario_Id AND r.Nombre=N'PILOTO')
 AND EXISTS (SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol_Permiso rp ON rp.Rol_Id=ur.Rol_Id
@@ -158,7 +159,10 @@ AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.
 
         private string Alcance(Acceso a)
         {
-            var alcance = a.PlacaPrueba!=null ? "r.PLACA=@placa" + (a.PilotoPrueba==null ? "" : " AND r.PILOTO=@pilotoPrueba") : a.RutaPrueba!=null ? "r.ID_RUTA=@rutaPrueba" : @"r.PILOTO=@piloto
+            var alcance = a.PlacaPrueba!=null ? "r.PLACA=@placa" + (a.PilotoPrueba==null ? "" : " AND r.PILOTO=@pilotoPrueba") : a.RutaPrueba!=null ? "r.ID_RUTA=@rutaPrueba" : a.Empresa ? @"EXISTS (SELECT 1 FROM dbo.PilotoEmpresaPlaca ep
+JOIN dbo.PilotoVehiculo pv ON pv.Usuario_Id=ep.Usuario_Id AND pv.Placa=ep.Placa AND pv.Activo=1
+WHERE ep.Usuario_Id=@usuario AND ep.Placa=r.PLACA COLLATE DATABASE_DEFAULT)
+AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1)" : @"r.PILOTO=@piloto
 AND EXISTS (SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=@usuario AND c.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)
 AND EXISTS (SELECT 1 FROM dbo.PilotoVehiculo pv WHERE pv.Usuario_Id=@usuario AND pv.Activo=1 AND pv.Placa=r.PLACA COLLATE DATABASE_DEFAULT)
 AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1)";
@@ -175,7 +179,7 @@ AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA 
                 if(a.PilotoPrueba!=null) Param(cmd,"@pilotoPrueba",SqlDbType.NVarChar,a.PilotoPrueba,90);
             }
             else if(a.RutaPrueba!=null) Param(cmd,"@rutaPrueba",SqlDbType.NVarChar,a.RutaPrueba,15);
-            else { Param(cmd,"@piloto",SqlDbType.NVarChar,a.Nombre,90); Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario); }
+            else { if(!a.Empresa) Param(cmd,"@piloto",SqlDbType.NVarChar,a.Nombre,90); Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario); }
         }
 
         private static PilotoRuta Cabecera(SqlDataReader r)
@@ -206,9 +210,10 @@ AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA 
                     result.CuentaEmpresa=a.Empresa;result.NombreEmpresa=a.NombreEmpresa;
                     if(a.Empresa)
                     {
-                        using(var opciones=Command(cn,tx,@"SELECT pv.Placa FROM dbo.PilotoVehiculo pv
-JOIN "+apk+@".dbo.RT_VEHICULOS v ON v.PLACA=pv.Placa COLLATE DATABASE_DEFAULT AND v.ESTADO=1
-WHERE pv.Usuario_Id=@usuario AND pv.Activo=1 ORDER BY pv.Placa;"))
+                        using(var opciones=Command(cn,tx,@"SELECT ep.Placa FROM dbo.PilotoEmpresaPlaca ep
+JOIN dbo.PilotoVehiculo pv ON pv.Usuario_Id=ep.Usuario_Id AND pv.Placa=ep.Placa AND pv.Activo=1
+JOIN "+apk+@".dbo.RT_VEHICULOS v ON v.PLACA=ep.Placa COLLATE DATABASE_DEFAULT AND v.ESTADO=1
+WHERE ep.Usuario_Id=@usuario ORDER BY ep.Placa;"))
                         {Param(opciones,"@usuario",SqlDbType.BigInt,a.Usuario);using(var lector=opciones.ExecuteReader()) while(lector.Read()) result.PlacasDisponibles.Add(Texto(lector,"Placa"));}
                         result.PlacaSeleccionada=PilotoEmpresaReglas.SeleccionarPlaca(result.PlacasDisponibles,placa);
                         if(result.PlacaSeleccionada==null) {tx.Commit();return result;}
@@ -218,7 +223,7 @@ WHERE pv.Usuario_Id=@usuario AND pv.Activo=1 ORDER BY pv.Placa;"))
 FROM " + apk + @".dbo.RT_RUTAS r
 LEFT JOIN dbo.PilotoConductorRuta cr ON cr.CatalogoRutas=@catalogo AND cr.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT
  AND cr.Usuario_Id=@usuario AND cr.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND cr.Piloto=r.PILOTO COLLATE DATABASE_DEFAULT
-WHERE " + Alcance(a) + (a.Empresa ? " AND r.PLACA=@placaEmpresa" : "") + (result.RutaFija ? " AND r.STATUS IN (N'A',N'E',N'C',N'X')" : " AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin AND r.STATUS IN (@estado1,@estado2)") + @"
+WHERE " + Alcance(a) + (a.Empresa ? " AND r.PLACA=@placaEmpresa" : "") + (result.RutaFija ? " AND r.STATUS IN (N'A',N'E',N'C',N'X')" : a.Empresa && vista=="activas" ? " AND r.STATUS IN (@estado1,@estado2)" : " AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin AND r.STATUS IN (@estado1,@estado2)") + @"
 ORDER BY CASE WHEN r.STATUS=N'E' THEN 0 ELSE 1 END,r.FECHA_RUTA DESC,r.ID_RUTA DESC OFFSET @offset ROWS FETCH NEXT 26 ROWS ONLY;";
                     using (var cmd = Command(cn, tx, sql))
                     {

@@ -82,11 +82,10 @@ FROM dbo.PilotoRutaHistorial WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id ORDER
             using(var cmd=Comando(cn,tx,@"SELECT TOP (2) pe.Usuario_Id FROM dbo.PilotoEmpresa pe
 JOIN dbo.PilotoVinculo pv ON pv.Usuario_Id=pe.Usuario_Id AND pv.Activo=1
 JOIN dbo.Usuario u ON u.Usuario_Id=pe.Usuario_Id AND u.Activo=1 AND u.Autenticar_Site=1 AND u.Login=pe.Nit
-JOIN "+apk+@".dbo.RT_EMPLEADOS e ON e.ROWID=pv.Empleado_RowId AND e.NOMBRE=@piloto AND e.ESTADO=1 AND e.CARGO=N'PILOTO'
-JOIN dbo.PilotoVehiculo v ON v.Usuario_Id=pe.Usuario_Id AND v.Placa=@placa AND v.Activo=1
-JOIN dbo.PilotoCentro c ON c.Usuario_Id=pe.Usuario_Id AND c.Centro_Dist=@centro
+JOIN dbo.PilotoEmpresaPlaca ep ON ep.Usuario_Id=pe.Usuario_Id AND ep.Placa=@placa
+JOIN dbo.PilotoVehiculo v ON v.Usuario_Id=pe.Usuario_Id AND v.Placa=ep.Placa AND v.Activo=1
 WHERE pe.Activo=1;"))
-            {Param(cmd,"@piloto",SqlDbType.NVarChar,ruta.Piloto,90);Param(cmd,"@placa",SqlDbType.NVarChar,ruta.Placa,15);Param(cmd,"@centro",SqlDbType.NVarChar,ruta.Centro,15);
+            {Param(cmd,"@placa",SqlDbType.NVarChar,ruta.Placa,15);
              using(var lector=cmd.ExecuteReader()) if(lector.Read()) {modelo.EsRutaEmpresa=true;modelo.EmpresaUsuarioId=Convert.ToInt64(lector[0]);if(lector.Read()) throw new PilotoException(409,"La ruta coincide con varias empresas. Revisa sus vínculos.");}}
             if(!modelo.EsRutaEmpresa) return;
             using(var cmd=Comando(cn,tx,@"SELECT Nombre,Documento,Version FROM dbo.PilotoConductorRuta

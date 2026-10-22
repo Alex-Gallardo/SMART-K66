@@ -148,8 +148,10 @@ if(([regex]::Matches($historial,'class="button-link card-link"')).Count -ne 4) {
 Write-Host 'OK: rutas abiertas deshabilitadas; E e historial consultables.'
 $empresaSinPlaca=Get-Content -LiteralPath (Join-Path $out 'index-empresa-sin-placa.html') -Raw
 $empresaConPlaca=Get-Content -LiteralPath (Join-Path $out 'index-empresa.html') -Raw
-if($empresaSinPlaca -notmatch 'name="placa"' -or $empresaSinPlaca -notmatch 'Selecciona una placa' -or $empresaSinPlaca -match 'EMP-001' -or
-   $empresaConPlaca -notmatch 'EMP-001' -or $empresaConPlaca -notmatch 'JUAN PEREZ' -or $empresaConPlaca -notmatch 'value="C-002" selected') {
+if(([regex]::Matches($empresaSinPlaca,'class="company-plate-option"')).Count -ne 2 -or
+   $empresaSinPlaca -notmatch 'Selecciona la placa' -or $empresaSinPlaca -match 'EMP-001' -or
+   $empresaConPlaca -notmatch 'EMP-001' -or $empresaConPlaca -notmatch 'JUAN PEREZ' -or
+   $empresaConPlaca -notmatch 'Viendo rutas de' -or $empresaConPlaca -notmatch 'Cambiar placa') {
     throw 'La empresa debe escoger una placa antes de ver rutas y conservar el conductor asignado.'
 }
 $empresaAdmin=Get-Content -LiteralPath (Join-Path $out 'editar-ruta-empresa.html') -Raw
@@ -158,6 +160,12 @@ if($empresaAdmin -notmatch 'name="EmpresaUsuarioId" value="22"' -or $empresaAdmi
     throw 'Distribución debe poder asignar el conductor real de la ruta empresarial.'
 }
 Write-Host 'OK: selector de placas y asignación de conductor empresarial renderizados.'
+$configEmpresa=Get-Content -LiteralPath (Join-Path $out 'configurar-empresa.html') -Raw
+if($configEmpresa -notmatch 'TRANSPORTE DEMO' -or $configEmpresa -notmatch 'id="individual-pilot-identity" hidden' -or
+   $configEmpresa -notmatch 'id="individual-pilot-centers" hidden' -or $configEmpresa -notmatch 'id="EmpleadoRowId" name="EmpleadoRowId" disabled' -or
+   $configEmpresa -notmatch 'name="Placas" value="C-001"') {
+    throw 'La configuración empresarial debe omitir empleado y centros y conservar sus placas.'
+}
 $detalle=Get-Content -LiteralPath (Join-Path $out 'detalle-cierre.html') -Raw
 if(([regex]::Matches($detalle,'class="customer-group(?:\s|\")')).Count -ne 2 -or
    ([regex]::Matches($detalle,'class="document-card"')).Count -ne 3 -or
@@ -247,6 +255,8 @@ $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/27_garita_salida_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/28_garita_reparar_acceso_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/29_garita_foto_salida_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/30_transportistas_empresa_pos.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/31_empresa_placas_pos.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/32_indice_rutas_placa_apk66.sql'
 $adminSql=Join-Path $out 'autorizacion-admin.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }

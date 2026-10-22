@@ -712,6 +712,16 @@ dd {
 .company-vehicle-picker form label {grid-column:1/-1;margin:0}
 .company-vehicle-picker form select {margin:0}
 .company-vehicle-picker .button-link {min-height:56px;white-space:nowrap}
+.company-plate-list {display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:18px}
+.company-plate-option {display:flex;align-items:center;gap:14px;min-height:78px;padding:14px;border:2px solid #d4e0e8;border-radius:16px;background:#fff;color:#102d41;text-decoration:none;box-shadow:0 3px 12px rgba(15,42,61,.05)}
+.company-plate-option:hover,.company-plate-option:focus-visible {border-color:#087a58;background:#f1fbf6;outline:none;box-shadow:0 5px 18px rgba(8,122,88,.15)}
+.company-plate-option small {display:block;color:#547082;font-size:12px;font-weight:700;letter-spacing:.08em}
+.company-plate-option strong {display:block;font-size:22px;letter-spacing:.02em}
+.company-plate-arrow {margin-left:auto;color:#087a58}
+.company-selected-plate {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding:14px 18px;border:1px solid #b6dfcb;border-radius:14px;background:#f1fbf6}
+.company-selected-plate strong {font-size:20px}
+.company-selected-plate a {color:#075e49;font-weight:700;text-decoration:underline}
+.admin-section[hidden],#individual-pilot-identity[hidden] {display:none!important}
 @media (max-width:620px) {.company-vehicle-picker form {grid-template-columns:1fr}.company-vehicle-picker .button-link {width:100%}}
 
 .vehicle-panel>strong {

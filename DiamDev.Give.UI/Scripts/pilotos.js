@@ -1,5 +1,19 @@
 (function () {
     "use strict";
+    var plateFilter = document.getElementById("company-plate-filter");
+    if (plateFilter) {
+        var plateOptions = document.querySelectorAll(".company-plate-option");
+        var plateEmpty = document.querySelector(".company-plate-empty");
+        plateFilter.addEventListener("input", function () {
+            var query = plateFilter.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+            var visible = 0;
+            Array.prototype.forEach.call(plateOptions, function (option) {
+                option.hidden = option.getAttribute("data-plate").toUpperCase().replace(/[^A-Z0-9]/g, "").indexOf(query) === -1;
+                if (!option.hidden) visible++;
+            });
+            plateEmpty.hidden = visible !== 0;
+        });
+    }
     // Only scroll position is stored, scoped to the normalized list filters.
     var grid = document.querySelector(".route-grid");
     if (grid) {

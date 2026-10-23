@@ -470,13 +470,6 @@ h3 {
   box-shadow:0 3px 0 #10283f06
 }
 
-.route-card-pending {
-  border-style: dashed;
-}
-.route-card-pending .card-link:disabled {
-  background: var(--surface-soft, #eef2f6);
-  color: var(--muted, #526579);
-}
 .route-card {
   display:flex;
   flex-direction:column
@@ -699,30 +692,57 @@ dd {
 }
 
 .company-vehicle-picker {
-  padding:22px;
-  margin:0 0 22px;
-  border:1px solid #b8d7c9;
-  border-left:5px solid #218257;
-  border-radius:14px;
-  background:#f4fbf7;
-  box-shadow:0 4px 18px rgba(20,55,45,.06)
+  margin:0 0 24px;
+  padding:clamp(20px,3vw,32px);
+  border:1px solid #cbdde9;
+  border-radius:22px;
+  background:linear-gradient(145deg,#fff 58%,#edf6fb);
+  box-shadow:0 12px 30px rgba(15,42,61,.08)
 }
-.company-vehicle-picker h2 {margin:4px 0 16px;font-size:clamp(22px,4vw,28px)}
-.company-vehicle-picker form {display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 14px;align-items:end}
-.company-vehicle-picker form label {grid-column:1/-1;margin:0}
-.company-vehicle-picker form select {margin:0}
-.company-vehicle-picker .button-link {min-height:56px;white-space:nowrap}
-.company-plate-list {display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:18px}
-.company-plate-option {display:flex;align-items:center;gap:14px;min-height:78px;padding:14px;border:2px solid #d4e0e8;border-radius:16px;background:#fff;color:#102d41;text-decoration:none;box-shadow:0 3px 12px rgba(15,42,61,.05)}
-.company-plate-option:hover,.company-plate-option:focus-visible {border-color:#087a58;background:#f1fbf6;outline:none;box-shadow:0 5px 18px rgba(8,122,88,.15)}
-.company-plate-option small {display:block;color:#547082;font-size:12px;font-weight:700;letter-spacing:.08em}
-.company-plate-option strong {display:block;font-size:22px;letter-spacing:.02em}
-.company-plate-arrow {margin-left:auto;color:#087a58}
-.company-selected-plate {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding:14px 18px;border:1px solid #b6dfcb;border-radius:14px;background:#f1fbf6}
-.company-selected-plate strong {font-size:20px}
-.company-selected-plate a {color:#075e49;font-weight:700;text-decoration:underline}
+.company-picker-heading {display:flex;align-items:flex-start;gap:16px;margin-bottom:22px}
+.company-picker-heading>div {min-width:0}
+.company-picker-symbol,.company-selected-symbol {display:grid;place-items:center;flex:none;width:54px;height:54px;border-radius:16px;background:#e4f1fa;color:#0c5c94}
+.company-picker-symbol .icon,.company-selected-symbol .icon {width:29px;height:29px}
+.company-picker-heading .eyebrow,.company-selected-copy .eyebrow {margin:0 0 5px;color:#357294;overflow-wrap:anywhere}
+.company-picker-heading h2 {margin:0 0 5px;font-size:clamp(24px,4vw,32px);line-height:1.16}
+.company-picker-heading p:last-child,.company-selected-copy p:last-child {margin:0;color:#496578}
+.company-plate-search {max-width:440px;margin-bottom:20px}
+.company-plate-search label {display:block;margin-bottom:7px;font-size:14px;font-weight:750;color:#2a4e66}
+.company-plate-search input {width:100%;min-height:52px;padding:10px 15px;border:2px solid #b7cbda;border-radius:12px;background:#fff;color:#102d41;font:inherit}
+.company-plate-search input:focus-visible {outline:3px solid #9bd1ee;outline-offset:2px;border-color:#0c5c94}
+.company-plate-list {display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:12px}
+.company-plate-option {display:flex;align-items:center;gap:13px;min-height:100px;padding:15px;border:2px solid #d1e1eb;border-radius:16px;background:#fff;color:#102d41;text-decoration:none;box-shadow:0 3px 12px rgba(15,42,61,.04);transition:border-color .15s,background-color .15s,transform .15s}
+.company-plate-option[hidden],.company-plate-empty[hidden] {display:none!important}
+.company-plate-option:hover,.company-plate-option:focus-visible {border-color:#0c7b57;background:#f2fbf7;outline:3px solid #b5e4cf;outline-offset:1px;transform:translateY(-2px)}
+.company-option-icon {display:grid;place-items:center;flex:none;width:48px;height:48px;border-radius:13px;background:#e8f3fa;color:#0c5c94}
+.company-option-icon .icon {width:26px;height:26px}
+.company-option-text {min-width:0}
+.company-option-text small {display:block;color:#587388;font-size:11px;font-weight:800;letter-spacing:.08em}
+.company-option-text strong {display:block;font-size:clamp(19px,2.5vw,23px);letter-spacing:.02em;overflow-wrap:anywhere}
+.company-option-action {display:flex;align-items:center;gap:5px;margin-left:auto;color:#086841;font-size:13px;font-weight:800;white-space:nowrap}
+.company-option-action .icon {width:19px;height:19px}
+.company-plate-empty {padding:18px;margin:12px 0 0;border:1px solid #cbdde9;border-radius:12px;background:#fff;color:#34566b}
+.company-vehicle-active {padding:18px 22px;background:#f1faf6;border-color:#aedac1}
+.company-selected-plate {display:flex;align-items:center;gap:16px}
+.company-selected-symbol {background:#d8f2e3;color:#12643e}
+.company-selected-copy {min-width:0;flex:1}
+.company-selected-title {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.company-selected-title strong {font-size:clamp(23px,3vw,29px);line-height:1.1;overflow-wrap:anywhere}
+.company-selected-title span {display:inline-flex;align-items:center;gap:4px;padding:5px 9px;border-radius:999px;background:#d5f1e1;color:#11633b;font-size:12px;font-weight:800}
+.company-selected-title .icon {width:16px;height:16px}
+.company-change-plate {display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:10px 17px;border:2px solid #0c5c94;border-radius:12px;background:#fff;color:#0c5c94;font-weight:800;text-decoration:none;white-space:nowrap}
+.company-change-plate:hover,.company-change-plate:focus-visible {background:#e8f3fa;outline:3px solid #a8d8ed;outline-offset:2px}
+.company-change-plate .icon {width:18px;height:18px}
 .admin-section[hidden],#individual-pilot-identity[hidden] {display:none!important}
-@media (max-width:620px) {.company-vehicle-picker form {grid-template-columns:1fr}.company-vehicle-picker .button-link {width:100%}}
+@media (max-width:620px) {
+  .company-vehicle-picker {padding:18px}
+  .company-picker-heading {gap:12px}
+  .company-picker-symbol,.company-selected-symbol {width:45px;height:45px}
+  .company-plate-list {grid-template-columns:1fr}
+  .company-plate-option {min-height:86px}
+  .company-selected-plate {align-items:flex-start;flex-wrap:wrap}
+  .company-change-plate {width:100%}
+}
 
 .vehicle-panel>strong {
   overflow-wrap:anywhere;

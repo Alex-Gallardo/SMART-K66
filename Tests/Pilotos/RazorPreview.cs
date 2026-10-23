@@ -80,13 +80,13 @@ internal static class RazorPreview
     public static PilotoLista Lista(bool fija=false,bool vacia=false,string vista="activas")
     {
         var lista=new PilotoLista {Desde=new DateTime(2026,9,8),Hasta=new DateTime(2026,9,21),Pagina=1,Vista=vista,RutaFija=fija,Rutas=new List<PilotoRuta>()};
-        if(!vacia) for(int i=1;i<=(fija?1:4);i++) lista.Rutas.Add(new PilotoRuta {Id="DEMO-2026-"+i.ToString("000"),Placa="DEMO-001",Fecha=new DateTime(2026,9,21),Estado=fija?"C":vista=="historial"?(i%2==0?"X":"C"):(i%2==0?"A":"E"),Centro="CENTRO DE DISTRIBUCIÓN",Piloto="Piloto de demostración"});
+        if(!vacia) for(int i=1;i<=(fija?1:4);i++) lista.Rutas.Add(new PilotoRuta {Id="DEMO-2026-"+i.ToString("000"),Placa="DEMO-001",Fecha=new DateTime(2026,9,21),Estado=fija?"C":vista=="historial"?(i%2==0?"X":"C"):"E",Centro="CENTRO DE DISTRIBUCIÓN",Piloto="Piloto de demostración"});
         return lista;
     }
     public static PilotoLista ListaEmpresa(bool seleccionada)
     {
         var lista=Lista(false,true);lista.CuentaEmpresa=true;lista.NombreEmpresa="TRANSPORTE DEMO";
-        lista.PlacasDisponibles.AddRange(new[]{"C-001","C-002"});
+        lista.PlacasDisponibles.AddRange(new[]{"C-001","C-002","C-003","C-004","C-005","C-006","C-007","C-008"});
         if(seleccionada) {lista.PlacaSeleccionada="C-002";lista.Rutas.Add(new PilotoRuta{Id="EMP-001",Fecha=new DateTime(2026,9,21),Estado="E",Placa="C-002",Piloto="TRANSPORTE DEMO",ConductorReal="JUAN PEREZ",DocumentoConductor="L-1234",Centro="PALIN",CuentaEmpresa=true});}
         return lista;
     }

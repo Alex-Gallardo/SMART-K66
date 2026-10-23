@@ -7,13 +7,23 @@
     var puedeRegistrar=Model.PuedeRegistrarSalida;
     var enRuta=Model.Estado=="E";
 }
-<section class="search-card">
-    <span class="step">1 · BUSCAR</span>
-    <h1>Salida de vehículos</h1>
-    <p>Escribe la placa del vehículo y selecciona la ruta que vas a revisar.</p>
-    @using(Html.BeginForm("Index","Garita",FormMethod.Get,new{@class="search-form"})) {
-        <label for="placa">Placa del vehículo</label>
-        <div class="search-row"><input id="placa" name="placa" value="@Model.PlacaBusqueda" maxlength="15" autocomplete="off" autocapitalize="characters" placeholder="Ej. C-123ABC" required autofocus /><button type="submit">Buscar placa</button></div>
+<section class="search-card @(encontrada?"search-card-detail":"")" aria-label="Buscar ruta por placa">
+    @if(encontrada) {
+        <div class="search-detail-row"><div><span class="step">RUTA EN REVISIÓN</span><h2>Ruta @Model.Id</h2><p>Placa @Model.PlacaBusqueda</p></div><a class="search-back-link" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda})">← Volver a rutas de esta placa</a></div>
+        <details class="search-again"><summary>Buscar otra placa</summary>
+            @using(Html.BeginForm("Index","Garita",FormMethod.Get,new{@class="search-form"})) {
+                <label for="placa">Placa del vehículo</label>
+                <div class="search-row"><input id="placa" name="placa" value="@Model.PlacaBusqueda" maxlength="15" autocomplete="off" autocapitalize="characters" placeholder="Ej. C-123ABC" required /><button type="submit">Buscar placa</button></div>
+            }
+        </details>
+    } else {
+        <span class="step">1 · BUSCAR</span>
+        <h1>Salida de vehículos</h1>
+        <p>Escribe la placa del vehículo y selecciona la ruta que vas a revisar.</p>
+        using(Html.BeginForm("Index","Garita",FormMethod.Get,new{@class="search-form"})) {
+            <label for="placa">Placa del vehículo</label>
+            <div class="search-row"><input id="placa" name="placa" value="@Model.PlacaBusqueda" maxlength="15" autocomplete="off" autocapitalize="characters" placeholder="Ej. C-123ABC" required autofocus /><button type="submit">Buscar placa</button></div>
+        }
     }
 </section>
 @if(TempData["Garita.Mensaje"]!=null) {<div class="notice success" role="status">✓ @TempData["Garita.Mensaje"]</div>}
@@ -40,7 +50,7 @@
 }
 @if(encontrada) {
     <section class="route-header">
-        <div class="notice info" style="margin-bottom: 0 !important"><a class="back-results" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda})">← Volver a las rutas de @Model.PlacaBusqueda</a><span class="step">3 · REVISAR</span><h2>Ruta @Model.Id</h2><p>Comprueba estos datos con el piloto y el cargamento.</p></div>
+        <div class="route-review-intro"><span class="step">3 · REVISAR</span><h2>Comprueba la carga</h2><p>Compara los datos de la ruta con el piloto y el cargamento.</p></div>
         <span class="state @(Model.SalidaUtc.HasValue?"state-done":Model.Diferencia!=null?"state-stop":Model.Estado=="A"?"state-info":puedeRegistrar?"state-ready":enRuta?"state-stop":"state-info")">@(Model.SalidaUtc.HasValue?"Salida registrada":Model.Diferencia!=null?"Diferencia reportada":Model.Estado=="A"?"Pendiente de Distribución":puedeRegistrar?"En ruta · pendiente de salida":enRuta?"En ruta · revisar datos":"Solo consulta")</span>
     </section>
     if(Model.SalidaUtc.HasValue) {<div class="notice success" role="status"><strong>Hora de salida:</strong> @Model.SalidaLocal.Value.ToString("dd/MM/yyyy HH:mm") · Agente: @Model.Agente @(string.IsNullOrEmpty(Model.Precinto)?"":" · Precinto: "+Model.Precinto) @if(Model.TieneFotoSalida){<a href="@Url.Action("FotoSalida","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id})" target="_blank" rel="noopener">Ver foto de salida</a>}</div>}

@@ -14,6 +14,14 @@ foreach($name in @('vacia','lista','sin-resultados','diferencia','en-ruta','sali
 function check(x,m){if(!x)throw new Error(m);}
 check(document.documentElement.scrollWidth<=innerWidth+1,'desbordamiento horizontal');
 check(document.querySelector('input[name="placa"]'),'falta búsqueda por placa');
+var detalle=!!document.querySelector('.route-header');
+var buscador=document.querySelector('.search-card');
+check(buscador.classList.contains('search-card-detail')===detalle,'el buscador solo debe compactarse en el detalle');
+if(detalle) {
+ check(document.querySelector('.search-back-link') && document.querySelector('.search-back-link').getAttribute('href').indexOf('placa=')>=0,'falta volver a las rutas de la placa');
+ check(document.querySelector('.search-again summary') && document.querySelector('.search-again .search-form'),'falta buscar otra placa');
+ check(buscador.getBoundingClientRect().height<240,'buscador de detalle ocupa demasiado espacio');
+} else check(buscador.querySelector('h1') && !document.querySelector('.search-back-link'),'búsqueda inicial incompleta');
 var form=document.getElementById('register-exit-form');
 if('$name'==='en-ruta' || '$name'==='empresa-asignada' || '$name'==='empresa-pendiente') {check(form,'falta registro de salida');check(form.querySelectorAll('input[type="checkbox"][required]').length===1,'debe haber un solo check');check(form.querySelector('input[type="file"][name="foto"]'),'falta foto opcional');check(!form.querySelector('input[name="Precinto"]'),'precinto visible');check(document.body.textContent.indexOf('FAC-001')>=0,'falta documento');}
 else check(!form,'registro de salida disponible en estado no autorizado');

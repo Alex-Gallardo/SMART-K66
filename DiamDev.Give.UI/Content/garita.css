@@ -19,6 +19,16 @@ p{color:#4e6472}
 .step{font-weight:800;color:#127047;font-size:13px;letter-spacing:.1em}
 .search-card,.results-card,.cargo-card,.action-card,.error-card{background:#fff;border:1px solid #d9e5ea;border-radius:20px;box-shadow:0 8px 28px #173b5010;padding:28px;margin-bottom:22px}
 .search-form{margin-top:20px}
+.search-card-detail{padding:18px 22px;margin-bottom:16px;background:#f8fbfc}
+.search-detail-row{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.search-detail-row h2{font-size:22px;margin:4px 0 2px}
+.search-detail-row p{margin:0;font-weight:700;color:#426578}
+.search-back-link{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:10px 17px;border-radius:11px;background:#0c5c88;color:white;font-weight:800;text-align:center;text-decoration:none}
+.search-back-link:hover,.search-back-link:focus-visible{background:#084a6e}
+.search-again{margin-top:13px;padding-top:11px;border-top:1px solid #d9e5ea}
+.search-again summary{display:inline-block;color:#0c5c88;font-weight:800;cursor:pointer;padding:5px 0}
+.search-again .search-form{margin-top:8px}
+.route-review-intro h2{margin-bottom:4px}
 .search-form label,.optional label,.difference label{font-weight:700;display:block;margin:10px 0 7px}
 .search-row{display:flex;gap:12px}
 input,textarea,select{font:inherit;color:#153046;border:2px solid #b7cdd7;border-radius:12px;padding:14px;background:#fff;width:100%}
@@ -96,6 +106,7 @@ footer{text-align:center;color:#667d88;font-size:13px;padding:25px;border-top:1p
 @media(max-width:950px){.route-option{grid-template-columns:1fr auto}.route-option-pilot,.route-option-counts{grid-column:1/-1}.route-option .state{grid-column:1}.route-option-arrow{grid-column:2;grid-row:1}}
 @media(max-width:750px){main{padding:17px 13px 55px}
 .search-card,.results-card,.cargo-card,.action-card,.error-card{padding:20px}
+.search-card-detail{padding:16px 18px}
 .facts{grid-template-columns:repeat(2,1fr)}
 .route-header,.section-head{align-items:start;flex-direction:column}
 .optional{display:block}
@@ -104,6 +115,8 @@ footer{text-align:center;color:#667d88;font-size:13px;padding:25px;border-top:1p
 .session{max-width:95px;overflow:hidden;text-overflow:ellipsis}
 }
 @media(max-width:600px){.search-row{flex-direction:column}
+.search-detail-row{align-items:stretch;flex-direction:column;gap:12px}
+.search-back-link{width:100%}
 .search-row button{width:100%}
 .facts{grid-template-columns:1fr 1fr}
 .fact{padding:13px}

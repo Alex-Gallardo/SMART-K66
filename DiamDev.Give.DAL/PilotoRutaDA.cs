@@ -191,6 +191,13 @@ AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA 
                 Estado = Texto(r, "STATUS"), Solicitud = Guid.NewGuid() };
         }
 
+        private static string FiltroEstadoListado(bool rutaFija, bool empresa, string vista)
+        {
+            if(rutaFija) return " AND r.STATUS IN (N'E',N'C',N'X')";
+            var fechas=empresa && vista=="activas" ? "" : " AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin";
+            return fechas + (vista=="activas" ? " AND r.STATUS=N'E'" : " AND r.STATUS IN (N'C',N'X')");
+        }
+
         public PilotoLista Listar(string login, DateTime desde, DateTime hasta, int pagina, string vista = null, string placa = null)
         {
             vista=PilotoReglas.VistaRutas(vista);
@@ -219,7 +226,7 @@ WHERE ep.Usuario_Id=@usuario ORDER BY ep.Placa;"))
 FROM " + apk + @".dbo.RT_RUTAS r
 LEFT JOIN dbo.PilotoConductorRuta cr ON cr.CatalogoRutas=@catalogo AND cr.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT
  AND cr.Usuario_Id=@usuario AND cr.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND cr.Piloto=r.PILOTO COLLATE DATABASE_DEFAULT
-WHERE " + Alcance(a) + (a.Empresa ? " AND r.PLACA=@placaEmpresa" : "") + (result.RutaFija ? " AND r.STATUS IN (N'A',N'E',N'C',N'X')" : a.Empresa && vista=="activas" ? " AND r.STATUS IN (@estado1,@estado2)" : " AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin AND r.STATUS IN (@estado1,@estado2)") + @"
+WHERE " + Alcance(a) + (a.Empresa ? " AND r.PLACA=@placaEmpresa" : "") + FiltroEstadoListado(result.RutaFija,a.Empresa,vista) + @"
 ORDER BY CASE WHEN r.STATUS=N'E' THEN 0 ELSE 1 END,r.FECHA_RUTA DESC,r.ID_RUTA DESC OFFSET @offset ROWS FETCH NEXT 26 ROWS ONLY;";
                     using (var cmd = Command(cn, tx, sql))
                     {
@@ -229,8 +236,6 @@ ORDER BY CASE WHEN r.STATUS=N'E' THEN 0 ELSE 1 END,r.FECHA_RUTA DESC,r.ID_RUTA D
                         if(a.PlacaPrueba!=null || a.RutaPrueba!=null) Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario);
                         Param(cmd,"@desde",SqlDbType.Date,desde); Param(cmd,"@fin",SqlDbType.Date,hasta.AddDays(1));
                         Param(cmd,"@offset",SqlDbType.Int,(pagina-1)*25);
-                        Param(cmd,"@estado1",SqlDbType.NVarChar,vista=="activas" ? "A" : "C",1);
-                        Param(cmd,"@estado2",SqlDbType.NVarChar,vista=="activas" ? "E" : "X",1);
                         using (var r=cmd.ExecuteReader()) while(r.Read()) {var item=Cabecera(r);item.CuentaEmpresa=a.Empresa;item.ConductorReal=Texto(r,"ConductorReal");item.DocumentoConductor=Texto(r,"DocumentoConductor");result.Rutas.Add(item);}
                     }
                     tx.Commit();

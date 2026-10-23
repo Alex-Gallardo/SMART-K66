@@ -1,6 +1,14 @@
 param([string]$MvcDll, [string]$WebPagesDll, [string]$RazorDll, [string]$ScriptDomDll)
 $ErrorActionPreference='Stop'
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+if(Get-Command node -ErrorAction SilentlyContinue) {
+    & node (Join-Path $PSScriptRoot 'garita-qr.test.js')
+    if($LASTEXITCODE -ne 0) { throw 'Falló el lector QR de garita.' }
+    if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {
+        & node (Join-Path $PSScriptRoot 'garita-qr-browser.test.js') 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+        if($LASTEXITCODE -ne 0) { throw 'Falló la lectura real del QR en Chrome.' }
+    }
+} else { throw 'Node.js es necesario para validar el lector QR de garita.' }
 $project=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/DiamDev.Give.UI.csproj') -Raw
 $garitaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/GaritaRutaDA.cs') -Raw
 $empresaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoAdministracionRutaDA.cs') -Raw
@@ -11,10 +19,14 @@ if($empresaDA -notmatch 'DELETE dbo\.PilotoConductorRuta WHERE CatalogoRutas=@ca
    $rutasDA -notmatch 'HuellaCierreGuardado' -or $rutasDA -notmatch 'ResultadosGuardados\(ruta\)') {
     throw 'Las rutas empresariales deben operar por placa y reconstruir el cierre grande desde borradores guardados.'
 }
-if($garitaDA -match 'UPDATE\s+[^;]*RT_RUTAS' -or $garitaDA -match 'SqlConfirmarEstado' -or $garitaDA -notmatch 'Cmd\(cn,tx,SqlRegistrarSalida\)') {
-    throw 'Garita debe insertar el evento de salida sin actualizar el estado de RT_RUTAS.'
+if($garitaDA -match 'SET\s+STATUS\s*=' -or $garitaDA -match 'SqlConfirmarEstado' -or
+   $garitaDA -notmatch 'Cmd\(cn,tx,SqlActualizarHoraSalida\(apk\)\)' -or
+   $garitaDA -notmatch 'Cmd\(cn,tx,SqlRegistrarSalida\)' -or
+   $garitaDA -notmatch 'Cmd\(cn,tx,SqlActualizarHoraEntrada\(apk\)\)' -or
+   $garitaDA -notmatch 'Cmd\(cn,tx,SqlRegistrarEntrada\)') {
+    throw 'Garita debe guardar las horas en APK66 antes de auditar en POS, sin cambiar STATUS.'
 }
-if($garitaDA -notmatch 'r\.PLACA=@placa AND r\.STATUS=N''E''' -or $garitaDA -notmatch 'GaritaCentro g WHERE g.Usuario_Id=@usuario' -or
+if($garitaDA -notmatch 'r\.PLACA=@placa AND r\.STATUS=' -or $garitaDA -notmatch 'GaritaCentro g WHERE g.Usuario_Id=@usuario' -or
    $garitaDA -notmatch 'INSERT dbo.GaritaSalidaImagen' -or $garitaDA -notmatch 'evento=Convert\.ToInt64\(c\.ExecuteScalar\(\)\)') {
     throw 'La búsqueda debe limitar placa/estado/centro y la foto debe vincularse al evento de salida.'
 }
@@ -245,6 +257,8 @@ $garitaVacia=Get-Content -LiteralPath (Join-Path $out 'garita-vacia.html') -Raw
 $garitaSinResultados=Get-Content -LiteralPath (Join-Path $out 'garita-sin-resultados.html') -Raw
 $garitaEmpresaPendiente=Get-Content -LiteralPath (Join-Path $out 'garita-empresa-pendiente.html') -Raw
 $garitaEmpresaAsignada=Get-Content -LiteralPath (Join-Path $out 'garita-empresa-asignada.html') -Raw
+$garitaCerrada=Get-Content -LiteralPath (Join-Path $out 'garita-cerrada.html') -Raw
+$garitaEntrada=Get-Content -LiteralPath (Join-Path $out 'garita-entrada.html') -Raw
 if($garitaEmpresaPendiente -match 'Conductor pendiente' -or $garitaEmpresaPendiente -notmatch 'id="register-exit-form"' -or
    $garitaEmpresaAsignada -notmatch 'JUAN PEREZ' -or $garitaEmpresaAsignada -notmatch 'L-1234' -or $garitaEmpresaAsignada -notmatch 'id="register-exit-form"') {
     throw 'Garita debe permitir verificar la salida con el piloto de APK66 y mostrar la asignación opcional.'
@@ -254,7 +268,16 @@ if($garitaLista -notmatch 'PP26-GARITA' -or $garitaLista -notmatch 'PP26-OTRA' -
 if($garitaSinResultados -notmatch 'No hay rutas En ruta' -or $garitaSinResultados -match 'class="route-option"') {throw 'La placa sin rutas debe mostrar un mensaje claro.'}
 if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 'id="register-exit-form"') {throw 'La diferencia debe bloquear el registro de salida.'}
 if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'name="foto"' -or $garitaEnRuta -notmatch 'multipart/form-data' -or $garitaEnRuta -match 'PilotoVehiculoVerificados|name="Precinto"' -or $garitaEnRuta -notmatch 'Registrar hora de salida') {throw 'La ruta E debe mostrar un único check y la foto opcional.'}
-if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida:' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"') {throw 'La salida registrada debe mostrar hora, agente y foto sin permitir otra salida.'}
+if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida en APK66:' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"') {throw 'La salida registrada debe mostrar hora, agente y foto sin permitir otra salida.'}
+if($garitaVacia -notmatch 'id="qr-open"' -or $garitaVacia -notmatch 'id="qr-dialog"' -or
+   $garitaLista -notmatch 'Rutas cerradas sin hora de entrada|Cerradas sin entrada' -or
+   $garitaLista -notmatch 'PP26-CERRADA' -or $garitaLista -notmatch 'Sin hora de entrada registrada' -or
+   $garitaCerrada -notmatch 'id="register-entry-form"' -or $garitaCerrada -notmatch 'Registrar hora de entrada' -or
+   $garitaCerrada -match 'id="register-exit-form"' -or $garitaEntrada -match 'id="register-entry-form"' -or
+   $garitaEntrada -notmatch 'Hora de entrada en APK66' -or
+   $garitaCerrada -notmatch 'Volver a rutas de esta placa' -or $garitaCerrada -notmatch 'Buscar otra placa') {
+    throw 'La búsqueda QR, las cerradas pendientes, la entrada y los enlaces de regreso deben renderizar correctamente.'
+}
 $garitaAdmin=Get-Content -LiteralPath (Join-Path $out 'garita-admin.html') -Raw
 if($garitaAdmin -notmatch 'Faltan dos bultos' -or $garitaAdmin -notmatch 'name="asignar"' -or $garitaAdmin -notmatch 'ResolverDiferencia') {throw 'La administración debe mostrar incidentes y permitir centros y resolución.'}
 Write-Host 'OK: búsqueda, carga, bloqueo por diferencia y salida registrada en la vista de garita.'
@@ -278,6 +301,7 @@ $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/29_garita_foto_salida_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/30_transportistas_empresa_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/31_empresa_placas_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/32_indice_rutas_placa_apk66.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/33_garita_entrada_pos.sql'
 $adminSql=Join-Path $out 'autorizacion-admin.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }
@@ -294,5 +318,9 @@ $garitaSql=Join-Path $out 'transicion-garita.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-garita | Set-Content -LiteralPath $garitaSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo protección de la transición real de garita.' }
 $scripts+=$garitaSql
+$horasSql=Join-Path $out 'horas-garita.sql'
+& (Join-Path $out 'PilotoTests.exe') sql-horas-garita | Set-Content -LiteralPath $horasSql -Encoding UTF8
+if($LASTEXITCODE -ne 0) { throw 'Fallo obtener las escrituras reales de horas de garita.' }
+$scripts+=$horasSql
 & (Join-Path $out 'SqlCompile.exe') $scripts
 if($LASTEXITCODE -ne 0) { throw 'Fallo sintaxis SQL.' }

@@ -12,9 +12,9 @@
 </head>
 <body>
     <a class="skip" href="#contenido">Ir al contenido</a>
-    <header class="topbar"><a class="brand" href="@Url.Action("Index","Garita")"><span class="brand-icon" aria-hidden="true">✓</span><span><strong>SMART K66</strong><small>Control de salida · Garita</small></span></a><span class="session">@User.Identity.Name</span></header>
+    <header class="topbar"><a class="brand" href="@Url.Content("~/Garita/Index")"><span class="brand-icon" aria-hidden="true">✓</span><span><strong>SMART K66</strong><small>Control de vehículos · Garita</small></span></a><span class="session">@User.Identity.Name</span></header>
     <main id="contenido">@RenderBody()</main>
-    <footer>Garita · Si hay alguna diferencia, detén la salida y llama a Distribución.</footer>
+    <footer>Garita · Si hay alguna diferencia, detén el movimiento y llama a Distribución.</footer>
     @RenderSection("scripts",required:false)
 </body>
 </html>

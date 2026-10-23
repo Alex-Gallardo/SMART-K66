@@ -1,6 +1,6 @@
 # Portal de pilotos
 
-El control de salida de planta para personal de garita se documenta en [GARITA.md](GARITA.md) y se instala con la migración 27.
+El control de salida y entrada de planta para personal de garita se documenta en [GARITA.md](GARITA.md). Requiere las migraciones POS 27, 29 y 33; las horas se guardan en columnas existentes de APK66.
 
 Vista MVC `/Piloto` para consultar las rutas propias y registrar el resultado de
 cada documento al completar una ruta. Solo se admite **E → C**. La anulación

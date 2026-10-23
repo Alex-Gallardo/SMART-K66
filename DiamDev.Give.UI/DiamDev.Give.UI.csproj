@@ -1615,6 +1615,10 @@
     <Compile Include="Controllers\GaritaController.cs" />
     <Content Include="Content\pilotos.css" />
     <Content Include="Content\garita.css" />
+    <Content Include="Scripts\garita-qr.js" />
+    <Content Include="Scripts\qr-scanner\qr-scanner.umd.min.js" />
+    <Content Include="Scripts\qr-scanner\qr-scanner-worker.min.js" />
+    <Content Include="Scripts\qr-scanner\LICENSE" />
     <Content Include="Content\pilotos-backoffice.css" />
     <Content Include="Content\pilotos-backoffice-ux.css" />
     <Content Include="Content\pilotos-panel.css" />

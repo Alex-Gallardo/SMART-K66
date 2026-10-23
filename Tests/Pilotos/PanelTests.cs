@@ -36,6 +36,7 @@ internal static class PanelTests
         typeof(PilotoPanelDA).GetField("apk",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(dao,"[TEST_RUTAS]");
         Check(dao.SqlCrearRutas.Contains("INTO #PanelRutas") && !dao.SqlCrearRutas.Contains("@"),"La tabla temporal se crea fuera del comando parametrizado");
         Check(dao.SqlRutas.StartsWith("INSERT #PanelRutas") && !dao.SqlRutas.Contains("INTO #PanelRutas"),"La consulta parametrizada solo inserta en la tabla existente");
+        Check(dao.SqlCrearRutas.Contains("GARITA_FECHA_SALIDA") && dao.SqlRutas.Contains("GARITA_FECHA_ENTRADA"),"Panel lee las horas de Garita desde RT_RUTAS");
         var p=new PilotoPanelPiloto{Id=10,Login="piloto",Empleado="JULIO",Operador="piloto",CuentaActiva=true,RolPiloto=true,PermisoVer=true,PermisoConfirmar=true,VinculoActivo=true,EmpleadoActivo=true,EmpleadoUnico=true};p.Centros.Add("PC");p.PlacasDisponibles.Add("ABC");p.Placas.Add("ABC");
         var datos=new PilotoRuta{Id="RUTA",Estado="E",Piloto="JULIO",Centro="PC",Placa="ABC",Fecha=hoy};
         datos.Documentos.Add(new PilotoDocumento{RowId=1,Documento="F1",Cliente="CLIENTE",Direccion="DIR"});

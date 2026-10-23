@@ -35,9 +35,19 @@ internal static class GaritaTests
         r.Diferencia="Faltan bultos";Check(!r.PuedeRegistrarSalida && !r.PuedeReportarDiferencia,"diferencia bloquea salida");Rechaza(()=>GaritaReglas.ValidarSalida(c,r),409,"diferencia pendiente");r.Diferencia=null;
         r.Estado="A";Check(!r.PuedeRegistrarSalida && !r.PuedeReportarDiferencia,"ruta abierta espera a Distribución");Rechaza(()=>GaritaReglas.ValidarSalida(c,r),409,"A no registra salida");r.Estado="E";
         r.SalidaUtc=DateTime.UtcNow;Check(!r.PuedeRegistrarSalida && !r.PuedeReportarDiferencia,"salida no se registra dos veces");r.SalidaUtc=null;
+        r.SalidaRutaLocal=new DateTime(2026,10,20,8,30,0);Check(!r.PuedeRegistrarSalida && !r.PuedeReportarDiferencia && r.SalidaLocal==r.SalidaRutaLocal,"hora de salida APK66 impide repetir salida");r.SalidaRutaLocal=null;
         r.Liquidada=true;Check(!r.PuedeRegistrarSalida,"liquidada no sale");r.Liquidada=false;
         r.Documentos[0].Visito=true;Check(!r.PuedeRegistrarSalida,"documento trabajado no sale");r.Documentos[0].Visito=null;
         r.Documentos.Clear();Check(!r.PuedeRegistrarSalida && r.PuedeReportarDiferencia,"sin documentos se reporta diferencia");
+        r.Estado="C";r.Version=GaritaReglas.Version(r);
+        var entrada=new GaritaRegistroEntrada{RutaId=r.Id,Version=r.Version,PlacaBusqueda=r.Placa,Solicitud=Guid.NewGuid()};
+        Check(r.PuedeRegistrarEntrada,"ruta cerrada sin liquidar permite entrada aun sin salida previa");GaritaReglas.ValidarEntrada(entrada,r);
+        entrada.Version="anterior";Rechaza(()=>GaritaReglas.ValidarEntrada(entrada,r),409,"entrada exige version actual");entrada.Version=r.Version;
+        r.Placa="OTRA";Check(GaritaReglas.Version(r)!=entrada.Version,"cambio de placa invalida entrada");r.Placa="P-123";
+        r.EntradaRutaLocal=new DateTime(2026,10,20,18,0,0);Check(!r.PuedeRegistrarEntrada && r.EntradaLocal==r.EntradaRutaLocal,"entrada APK66 registrada impide duplicado");Rechaza(()=>GaritaReglas.ValidarEntrada(entrada,r),409,"no repetir entrada APK66");r.EntradaRutaLocal=null;
+        r.EntradaUtc=DateTime.UtcNow;Check(!r.PuedeRegistrarEntrada,"evento POS impide duplicado");r.EntradaUtc=null;
+        r.Liquidada=true;Check(!r.PuedeRegistrarEntrada,"liquidada excluida de entrada");r.Liquidada=false;
+        r.Estado="E";Check(!r.PuedeRegistrarEntrada,"En ruta no permite entrada");r.Estado="C";
         Rechaza(()=>GaritaReglas.Id(" "),400,"id vacío");Rechaza(()=>GaritaReglas.Id(new string('A',16)),400,"id largo");
         Check(GaritaReglas.Placa(" c-123abc ")=="C-123ABC","placa normalizada");
         Rechaza(()=>GaritaReglas.Placa(" "),400,"placa vacía");
@@ -51,7 +61,7 @@ internal static class GaritaTests
         Check(roles.Agregar.Length==0 && roles.Quitar.SequenceEqual(new[]{1}),"quitar solo el rol desmarcado");
         roles=UsuarioRolPlan.Crear(new[]{1,2},new[]{1,2});
         Check(roles.Agregar.Length==0 && roles.Quitar.Length==0,"guardar roles iguales no reinsertará claves existentes");
-        foreach(var method in new[]{"RegistrarSalida","Diferencia","Centro","ResolverDiferencia"})
+        foreach(var method in new[]{"RegistrarSalida","RegistrarEntrada","Diferencia","Centro","ResolverDiferencia"})
         {var m=typeof(GaritaController).GetMethods().Single(x=>x.Name==method);Check(m.IsDefined(typeof(HttpPostAttribute),true)&&m.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"POST y anti CSRF "+method);}
         Check(typeof(GaritaController).IsDefined(typeof(AuthorizeAttribute),true),"controlador autenticado");
         Check(typeof(GaritaController).GetMethod("FotoSalida").IsDefined(typeof(HttpGetAttribute),true),"foto protegida por controlador autenticado");
@@ -61,10 +71,15 @@ internal static class GaritaTests
     public static int Sql()
     {
         var sql=GaritaRutaDA.SqlRegistrarSalida;
-        Check(sql.Contains("INSERT dbo.GaritaRutaEvento") && sql.Contains("OUTPUT INSERTED.Id") && sql.Contains("@solicitud") && sql.Contains("N'S'") && !sql.Contains("RT_RUTAS"),"Garita registra evento sin cambiar estado de ruta");
-        var lista=GaritaRutaDA.SqlBuscarPorPlaca("[TEST_RUTAS]");
-        Check(lista.Contains("r.PLACA=@placa AND r.STATUS=N'E'") && lista.Contains("GaritaCentro") && lista.Contains("FETCH NEXT 50 ROWS ONLY"),"consulta de placa paginada y limitada al centro");
+        Check(sql.Contains("INSERT dbo.GaritaRutaEvento") && sql.Contains("OUTPUT INSERTED.Id") && sql.Contains("@fechaUtc") && sql.Contains("N'S'") && !sql.Contains("RT_RUTAS"),"Garita registra evento de salida auditado");
+        var salida=GaritaRutaDA.SqlActualizarSalidaRuta("[TEST_RUTAS]");var llegada=GaritaRutaDA.SqlActualizarEntradaRuta("[TEST_RUTAS]");
+        Check(salida.Contains("GARITA_FECHA_SALIDA=DATEADD(HOUR,-6,@fechaUtc)") && salida.Contains("STATUS=N'E'") && salida.Contains("ISNULL(LIQUIDADO,0)=0") && salida.Contains("GARITA_FECHA_SALIDA IS NULL"),"salida actualiza solo ruta E no liquidada y sin hora");
+        Check(llegada.Contains("GARITA_FECHA_ENTRADA=DATEADD(HOUR,-6,@fechaUtc)") && llegada.Contains("STATUS=N'C'") && llegada.Contains("ISNULL(LIQUIDADO,0)=0") && llegada.Contains("GARITA_FECHA_ENTRADA IS NULL"),"entrada actualiza solo ruta C no liquidada y sin hora");
+        Check(GaritaRutaDA.SqlRegistrarEntrada.Contains("N'I'") && GaritaRutaDA.SqlRegistrarEntrada.Contains("@fechaUtc"),"evento POS de entrada usa el mismo instante");
+        var lista=GaritaRutaDA.SqlBuscarPorPlaca("[TEST_RUTAS]");var cerradas=GaritaRutaDA.SqlBuscarPorPlaca("[TEST_RUTAS]",true);
+        Check(lista.Contains("r.PLACA=@placa AND r.STATUS=N'E'") && lista.Contains("ISNULL(r.LIQUIDADO,0)=0") && lista.Contains("GaritaCentro") && lista.Contains("FETCH NEXT 50 ROWS ONLY"),"consulta En ruta paginada sin liquidadas y limitada al centro");
+        Check(cerradas.Contains("r.STATUS=N'C'") && cerradas.Contains("r.GARITA_FECHA_ENTRADA IS NULL") && cerradas.Contains("entrada.Tipo=N'I'") && cerradas.Contains("ISNULL(r.LIQUIDADO,0)=0") && cerradas.Contains("FETCH NEXT 50 ROWS ONLY"),"consulta cerradas solo sin entrada ni liquidacion");
         Check(lista.Contains("ConductorReal") && lista.Contains("PilotoConductorRuta") && lista.Contains("PilotoEmpresa"),"Garita muestra conductor real únicamente desde la asignación de empresa");
-        Console.WriteLine(sql);Console.WriteLine(lista);return 0;
+        Console.WriteLine(sql);Console.WriteLine(salida);Console.WriteLine(llegada);Console.WriteLine(GaritaRutaDA.SqlRegistrarEntrada);Console.WriteLine(lista);Console.WriteLine(cerradas);return 0;
     }
 }

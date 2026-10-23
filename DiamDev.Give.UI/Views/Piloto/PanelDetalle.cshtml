@@ -65,8 +65,10 @@
                     <div><dt>Vehículo disponible</dt><dd>@(r.VehiculoActivo?"Sí":"No")</dd></div>
                     <div><dt>Estado</dt><dd>@r.Datos.EstadoNombre</dd></div>
                     <div><dt>Liquidación</dt><dd>@(r.Liquidada?"Sí":"No")</dd></div>
-                    <div><dt>Salida de planta</dt><dd>@(r.SalidaGaritaUtc.HasValue?PilotoPanelReglas.HoraGuatemala(r.SalidaGaritaUtc.Value).ToString("dd/MM/yyyy HH:mm:ss")+" · Guatemala":"Sin registro de garita")</dd></div>
+                    <div><dt>Salida de planta</dt><dd>@(r.SalidaGaritaLocal.HasValue?r.SalidaGaritaLocal.Value.ToString("dd/MM/yyyy HH:mm:ss")+" · Guatemala":r.SalidaGaritaUtc.HasValue?PilotoPanelReglas.HoraGuatemala(r.SalidaGaritaUtc.Value).ToString("dd/MM/yyyy HH:mm:ss")+" · Guatemala":"Sin registro de garita")</dd></div>
                     <div><dt>Agente de garita</dt><dd>@(r.AgenteGarita??"Sin registro")</dd></div>
+                    <div><dt>Entrada a planta</dt><dd>@(r.EntradaGaritaLocal.HasValue?r.EntradaGaritaLocal.Value.ToString("dd/MM/yyyy HH:mm:ss")+" · Guatemala":r.EntradaGaritaUtc.HasValue?PilotoPanelReglas.HoraGuatemala(r.EntradaGaritaUtc.Value).ToString("dd/MM/yyyy HH:mm:ss")+" · Guatemala":"Sin hora de entrada registrada")</dd></div>
+                    <div><dt>Agente de entrada</dt><dd>@(r.AgenteEntradaGarita??"Sin registro")</dd></div>
                     @if(r.FotoSalidaGarita){<div><dt>Evidencia de salida</dt><dd><a class="panel-photo" href="@Url.Action("PanelFotoSalida","Piloto",new{id=r.Datos.Id})" target="_blank" rel="noopener"><svg class="icon" aria-hidden="true"><use href="#i-camera" /></svg>Ver foto de garita</a></dd></div>}
                     <div><dt>Precinto / marchamo</dt><dd>@(r.PrecintoGarita??"Sin registrar")</dd></div>
                     @if(!string.IsNullOrWhiteSpace(r.DiferenciaGarita)){<div class="dist-info-note"><dt>Diferencia en garita pendiente</dt><dd>@r.DiferenciaGarita</dd></div>}

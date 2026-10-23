@@ -5,7 +5,7 @@ $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $bin=Join-Path $PSScriptRoot 'bin'
 $css=([Uri](Join-Path $repo 'DiamDev.Give.UI/Content/garita.css')).AbsoluteUri
 $smoke=Join-Path $bin 'garita-browser-smoke.html'
-foreach($name in @('vacia','lista','sin-resultados','diferencia','en-ruta','salida','empresa-pendiente','empresa-asignada')) {
+foreach($name in @('vacia','lista','sin-resultados','diferencia','en-ruta','salida','cerrada','entrada','empresa-pendiente','empresa-asignada')) {
     $body=Get-Content -LiteralPath (Join-Path $bin ('garita-'+$name+'.html')) -Raw
     $probe=@"
 <!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="$css"></head><body><main>$body</main>
@@ -23,11 +23,15 @@ if(detalle) {
  check(buscador.getBoundingClientRect().height<240,'buscador de detalle ocupa demasiado espacio');
 } else check(buscador.querySelector('h1') && !document.querySelector('.search-back-link'),'búsqueda inicial incompleta');
 var form=document.getElementById('register-exit-form');
+var entrada=document.getElementById('register-entry-form');
 if('$name'==='en-ruta' || '$name'==='empresa-asignada' || '$name'==='empresa-pendiente') {check(form,'falta registro de salida');check(form.querySelectorAll('input[type="checkbox"][required]').length===1,'debe haber un solo check');check(form.querySelector('input[type="file"][name="foto"]'),'falta foto opcional');check(!form.querySelector('input[name="Precinto"]'),'precinto visible');check(document.body.textContent.indexOf('FAC-001')>=0,'falta documento');}
 else check(!form,'registro de salida disponible en estado no autorizado');
+if('$name'==='cerrada') check(entrada && entrada.querySelector('input[name="Solicitud"]') && entrada.querySelector('input[name="Version"]') && document.body.textContent.includes('Hora de salida:'),'ruta cerrada sin entrada requiere acción y datos de salida');
+else check(!entrada,'registro de entrada disponible fuera de cerrada pendiente');
+if('$name'==='entrada') check(document.body.textContent.includes('Hora de entrada:') && document.body.textContent.includes('GUARDIA ENTRADA'),'falta entrada ya registrada');
 if('$name'==='vacia') check(!document.querySelector('.route-header') && !document.querySelector('.route-option'),'la pantalla inicial debe mostrar solo la búsqueda');
-if('$name'==='lista') check(document.querySelectorAll('.route-option').length===2 && document.querySelector('.pager'),'la placa debe mostrar varias rutas y paginación');
-if('$name'==='sin-resultados') check(!document.querySelector('.route-option') && document.body.textContent.indexOf('No hay rutas En ruta')>=0,'debe mostrar placa sin rutas');
+if('$name'==='lista') check(document.querySelectorAll('.results-card').length===2 && document.querySelectorAll('.route-option').length===4 && document.querySelectorAll('.pager').length===2 && document.querySelectorAll('.route-option-closed').length===2,'la placa debe separar rutas En ruta y cerradas con paginación');
+if('$name'==='sin-resultados') check(!document.querySelector('.route-option') && document.body.textContent.indexOf('No hay rutas En ruta')>=0 && document.body.textContent.indexOf('No hay rutas cerradas')>=0,'debe mostrar placa sin rutas en ambas secciones');
 if('$name'==='en-ruta') check(document.querySelector('.state-ready') && document.body.textContent.indexOf('Registrar hora de salida')>=0,'falta acción de salida en ruta E');
 if('$name'==='empresa-pendiente') check(form && document.body.textContent.indexOf('PILOTO DEMO')>=0,'garita debe usar el piloto de APK66');
 if('$name'==='empresa-asignada') check(form && document.body.textContent.indexOf('JUAN PEREZ')>=0,'garita no mostró conductor asignado');

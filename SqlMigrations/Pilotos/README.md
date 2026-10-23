@@ -1,6 +1,6 @@
 # Portal de pilotos
 
-El control de salida de planta para personal de garita se documenta en [GARITA.md](GARITA.md) y se instala con la migración 27.
+El control de salida y entrada de planta para personal de garita se documenta en [GARITA.md](GARITA.md). Las horas de ruta requieren las migraciones 33 a 35 después de las anteriores de Garita.
 
 Vista MVC `/Piloto` para consultar las rutas propias y registrar el resultado de
 cada documento al completar una ruta. Solo se admite **E → C**. La anulación

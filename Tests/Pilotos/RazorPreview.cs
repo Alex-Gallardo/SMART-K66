@@ -99,7 +99,8 @@ internal static class RazorPreview
             var datos=RutaEditable();datos.Id="DEMO-"+estado;datos.Estado=estado;datos.Piloto="PILOTO DEMO";datos.Centro="PC";datos.Placa="DEMO";
             var ruta=new PilotoPanelRuta{Datos=datos,VehiculoActivo=true,ActividadUtc=m.ActualizadoUtc};ruta.Pilotos.Add(p);
             ruta.Clientes=datos.Documentos.GroupBy(PilotoPanelReglas.Grupo).Select(g=>new PilotoPanelCliente{Primero=g.Min(d=>d.RowId),Nombre=g.First().Cliente,Direccion=g.First().Direccion,Completado=estado=="C",Foto=true,Documentos=g.Select(d=>new PilotoPanelDocumento{Ruta=datos.Id,Datos=d,Foto=true,Fuente=estado=="E"?"POS · pendiente de cierre":"APK66"}).ToList()}).ToList();
-            if(estado=="E") {ruta.Clientes[0].Completado=true;ruta.Alertas.Add("Ejemplo: revisar configuración de distribución.");ruta.FotoSalidaGarita=true;ruta.SalidaGaritaUtc=m.ActualizadoUtc;}
+            if(estado=="E") {ruta.Clientes[0].Completado=true;ruta.Alertas.Add("Ejemplo: revisar configuración de distribución.");ruta.FotoSalidaGarita=true;ruta.SalidaGaritaUtc=m.ActualizadoUtc;ruta.SalidaGaritaLocal=new DateTime(2026,9,29,10,30,0);}
+            if(estado=="C") {ruta.EntradaGaritaLocal=new DateTime(2026,9,29,18,30,0);ruta.AgenteEntradaGarita="GARITA DEMO";}
             m.Rutas.Add(ruta);
         }
         m.Detalle=m.Rutas[0];m.Centros.Add("PC");m.Placas.Add("DEMO");m.NombresPiloto.Add("PILOTO DEMO");

@@ -139,20 +139,20 @@ if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador Razor.' }
 & (Join-Path $out 'RazorCompile.exe') $repo --render
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las vistas Razor.' }
 $index=Get-Content -LiteralPath (Join-Path $out 'index.html') -Raw
-$abiertas=@([regex]::Matches($index,'(?s)<article class="route-card route-card-pending">.*?</article>'))
-if($abiertas.Count -ne 2 -or ($abiertas | Where-Object { $_.Value -match '<a\b' -or $_.Value -notmatch '<button[^>]*disabled>Ruta pendiente de salida</button>' }) -or
-   ([regex]::Matches($index,'class="button-link card-link"')).Count -ne 2) {
-    throw 'Las abiertas deben quedar deshabilitadas y las dos rutas E conservar el enlace.'
+if($index -match 'route-card-pending|Abiertas y en ruta|Ruta pendiente de salida' -or
+   ([regex]::Matches($index,'class="button-link card-link"')).Count -ne 4 -or $index -notmatch '>En ruta</h2>') {
+    throw 'El listado de pilotos debe mostrar únicamente rutas En ruta con enlace.'
 }
 $historial=Get-Content -LiteralPath (Join-Path $out 'historial.html') -Raw
 if(([regex]::Matches($historial,'class="button-link card-link"')).Count -ne 4) { throw 'El historial sin liquidar debe conservar sus enlaces de consulta.' }
-Write-Host 'OK: rutas abiertas deshabilitadas; E e historial consultables.'
+Write-Host 'OK: solo rutas En ruta activas; historial consultable.'
 $empresaSinPlaca=Get-Content -LiteralPath (Join-Path $out 'index-empresa-sin-placa.html') -Raw
 $empresaConPlaca=Get-Content -LiteralPath (Join-Path $out 'index-empresa.html') -Raw
-if(([regex]::Matches($empresaSinPlaca,'class="company-plate-option"')).Count -ne 2 -or
+if(([regex]::Matches($empresaSinPlaca,'class="company-plate-option"')).Count -ne 8 -or
    $empresaSinPlaca -notmatch 'Selecciona la placa' -or $empresaSinPlaca -match 'EMP-001' -or
+   $empresaSinPlaca -notmatch 'id="company-plate-filter"' -or
    $empresaConPlaca -notmatch 'EMP-001' -or $empresaConPlaca -notmatch 'JUAN PEREZ' -or
-   $empresaConPlaca -notmatch 'Viendo rutas de' -or $empresaConPlaca -notmatch 'Cambiar placa') {
+   $empresaConPlaca -notmatch 'CAMIÓN SELECCIONADO' -or $empresaConPlaca -notmatch 'Cambiar placa') {
     throw 'La empresa debe escoger una placa antes de ver rutas y conservar el conductor asignado.'
 }
 $empresaAdmin=Get-Content -LiteralPath (Join-Path $out 'editar-ruta-empresa.html') -Raw

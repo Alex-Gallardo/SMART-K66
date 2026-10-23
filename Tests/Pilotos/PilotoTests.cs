@@ -99,6 +99,15 @@ internal static class PilotoTests
             if(args.Length==1 && args[0]=="sql-rutas") {
                 // Construye los predicados reales sin abrir una conexión ni leer configuración.
                 var tipo=typeof(PilotoRutaDA);
+                var filtroListado=tipo.GetMethod("FiltroEstadoListado",BindingFlags.Static|BindingFlags.NonPublic);
+                foreach(var empresa in new[]{false,true}) {
+                    var activas=(string)filtroListado.Invoke(null,new object[]{false,empresa,"activas"});
+                    var historial=(string)filtroListado.Invoke(null,new object[]{false,empresa,"historial"});
+                    Check(activas.Contains("r.STATUS=N'E'") && !activas.Contains("N'A'"),"Listado activo solo incluye En ruta");
+                    Check(historial.Contains("N'C',N'X'") && !historial.Contains("N'A'"),"Historial excluye Abierta");
+                    Check(activas.Contains("FECHA_RUTA")!=empresa,"El límite de fecha depende del tipo de cuenta");
+                }
+                Check(!((string)filtroListado.Invoke(null,new object[]{true,true,"activas"})).Contains("N'A'"),"Ruta fija tampoco incluye Abierta");
                 var da=(PilotoRutaDA)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(tipo);
                 tipo.GetField("apk",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(da,"[TEST_RUTAS]");
                 var horaSql=(string)tipo.GetProperty("SqlRegistrarHoraEntrega",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null);

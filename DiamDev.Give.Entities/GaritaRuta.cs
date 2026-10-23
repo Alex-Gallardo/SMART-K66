@@ -25,10 +25,6 @@ namespace DiamDev.Give.Entities
         public string Observacion { get; set; }
         public string Version { get; set; }
         public DateTime? SalidaUtc { get; set; }
-        public DateTime? EntradaUtc { get; set; }
-        public DateTime? SalidaRutaLocal { get; set; }
-        public DateTime? EntradaRutaLocal { get; set; }
-        public string AgenteEntrada { get; set; }
         public string GuardDecision { get; set; }
         public string Diferencia { get; set; }
         public string Agente { get; set; }
@@ -36,21 +32,16 @@ namespace DiamDev.Give.Entities
         public string PlacaBusqueda { get; set; }
         public int Pagina { get; set; }
         public int TotalRutas { get; set; }
-        public int PaginaCerradas { get; set; }
-        public int TotalCerradas { get; set; }
         public bool BusquedaRealizada { get; set; }
         public bool TieneFotoSalida { get; set; }
         public List<GaritaRutaResumen> Resultados { get; set; }
-        public List<GaritaRutaResumen> ResultadosCerradas { get; set; }
         public List<PilotoDocumento> Documentos { get; set; }
-        public GaritaRuta() { Documentos=new List<PilotoDocumento>(); Resultados=new List<GaritaRutaResumen>(); ResultadosCerradas=new List<GaritaRutaResumen>(); }
-        public bool PuedeReportarDiferencia { get { return Estado=="E" && !Liquidada && !SalidaUtc.HasValue && !SalidaRutaLocal.HasValue && Diferencia==null; } }
-        public bool PuedeRegistrarSalida { get { return PuedeReportarDiferencia && !SalidaRutaLocal.HasValue && VehiculoDisponible && !string.IsNullOrWhiteSpace(Piloto) && !string.IsNullOrWhiteSpace(Placa) && !string.IsNullOrWhiteSpace(Centro) && Documentos.Count>0 && !Documentos.Any(d=>d.Visito.HasValue || !string.IsNullOrWhiteSpace(d.Entrega)); } }
-        public bool PuedeRegistrarEntrada { get { return Estado=="C" && !Liquidada && !EntradaRutaLocal.HasValue && !EntradaUtc.HasValue && !string.IsNullOrWhiteSpace(Placa) && !string.IsNullOrWhiteSpace(Centro); } }
+        public GaritaRuta() { Documentos=new List<PilotoDocumento>(); Resultados=new List<GaritaRutaResumen>(); }
+        public bool PuedeReportarDiferencia { get { return Estado=="E" && !Liquidada && !SalidaUtc.HasValue && Diferencia==null; } }
+        public bool PuedeRegistrarSalida { get { return PuedeReportarDiferencia && VehiculoDisponible && !string.IsNullOrWhiteSpace(Piloto) && !string.IsNullOrWhiteSpace(Placa) && !string.IsNullOrWhiteSpace(Centro) && Documentos.Count>0 && !Documentos.Any(d=>d.Visito.HasValue || !string.IsNullOrWhiteSpace(d.Entrega)); } }
         public int Clientes { get { return Documentos.Select(d=>d.Cliente??"").Distinct(StringComparer.OrdinalIgnoreCase).Count(); } }
         public decimal Bultos { get { return Documentos.Sum(d=>d.Bultos); } }
-        public DateTime? SalidaLocal { get { return SalidaRutaLocal ?? (SalidaUtc.HasValue ? SalidaUtc.Value.AddHours(-6) : (DateTime?)null); } }
-        public DateTime? EntradaLocal { get { return EntradaRutaLocal ?? (EntradaUtc.HasValue ? EntradaUtc.Value.AddHours(-6) : (DateTime?)null); } }
+        public DateTime? SalidaLocal { get { return SalidaUtc.HasValue ? SalidaUtc.Value.AddHours(-6) : (DateTime?)null; } }
     }
 
     public sealed class GaritaRutaResumen
@@ -92,14 +83,6 @@ namespace DiamDev.Give.Entities
         public string PlacaBusqueda { get; set; }
         public string Version { get; set; }
         public string Descripcion { get; set; }
-        public Guid Solicitud { get; set; }
-    }
-
-    public sealed class GaritaRegistroEntrada
-    {
-        public string RutaId { get; set; }
-        public string Version { get; set; }
-        public string PlacaBusqueda { get; set; }
         public Guid Solicitud { get; set; }
     }
 
@@ -147,12 +130,6 @@ namespace DiamDev.Give.Entities
             if(c.FotoContenido!=null) PilotoReglas.ValidarImagen(c.FotoNombre,c.FotoContenido);
             c.Observacion=Limpiar(c.Observacion,250);
         }
-        public static void ValidarEntrada(GaritaRegistroEntrada c,GaritaRuta r)
-        {
-            if(c==null || c.RutaId!=r.Id || c.Solicitud==Guid.Empty) throw new PilotoException(400,"Vuelve a abrir la ruta e intenta de nuevo.");
-            if(!r.PuedeRegistrarEntrada) throw new PilotoException(409,"La ruta debe estar Cerrada, sin liquidar y sin hora de entrada. Consulta a Distribución.");
-            if(c.Version!=r.Version) throw new PilotoException(409,"Los datos de la ruta cambiaron. Revísalos antes de registrar la hora de entrada.");
-        }
         public static string Limpiar(string valor,int max)
         {
             valor=(valor??"").Replace("\r\n"," ").Replace('\r',' ').Replace('\n',' ').Trim();
@@ -164,8 +141,6 @@ namespace DiamDev.Give.Entities
             var b=new StringBuilder();
             Action<string> add=s=>{s=s??"";b.Append(s.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(s);};
             add(r.Id);add(r.Fecha.ToString("O",CultureInfo.InvariantCulture));add(r.Piloto);add(r.Placa);add(r.Centro);add(r.Estado);add(r.Liquidada?"1":"0");add(r.Observacion);add(r.Transporte);add(r.Vehiculo);add(r.VehiculoDisponible?"1":"0");
-            add(r.SalidaRutaLocal.HasValue?r.SalidaRutaLocal.Value.ToString("O",CultureInfo.InvariantCulture):null);
-            add(r.EntradaRutaLocal.HasValue?r.EntradaRutaLocal.Value.ToString("O",CultureInfo.InvariantCulture):null);
             if(r.EsRutaEmpresa){add(r.ConductorReal);add(r.DocumentoConductor);}
             foreach(var d in r.Documentos.OrderBy(x=>x.RowId)) {add(d.RowId.ToString(CultureInfo.InvariantCulture));add(d.Tipo);add(d.Empresa);add(d.Documento);add(d.Cliente);add(d.Direccion);add(d.Bultos.ToString(CultureInfo.InvariantCulture));add(d.Visito.HasValue?(d.Visito.Value?"1":"0"):"");add(d.Entrega);}
             using(var sha=SHA256.Create()) return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(b.ToString())));

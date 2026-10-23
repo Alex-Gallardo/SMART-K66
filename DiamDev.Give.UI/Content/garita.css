@@ -46,14 +46,6 @@ button,.back-button{border:0;border-radius:12px;font:inherit;font-weight:800;cur
 .route-option-pilot{font-weight:700}
 .route-option-counts{font-size:15px;color:#375367}
 .route-option-arrow{font-size:25px;font-weight:800;color:#138247}
-.closed-results{border-color:#cbd8eb}
-.route-option-closed{border-color:#d4dfec;background:#fbfcff}
-.route-option-closed:hover,.route-option-closed:focus-visible{border-color:#376a9c;background:#f1f6fd}
-.closed-badges{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
-.closed-badges small{font-weight:700;color:#9a4d17}
-.state-closed{background:#e8eef8;color:#244d7b}
-.state-entry-pending{background:#fff1db;color:#86510e}
-.entry-action{border-color:#a7cfb8}
 .pager{display:flex;justify-content:center;align-items:center;gap:20px;margin-top:24px}
 .pager a{padding:10px 15px;border:1px solid #b7cdd7;border-radius:10px;font-weight:700;text-decoration:none}
 .route-header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin:31px 0 18px}

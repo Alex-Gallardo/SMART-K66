@@ -44,11 +44,11 @@ AND OBJECT_ID(N'dbo.PilotoEmpresa',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoE
 AND OBJECT_ID(N'dbo.PilotoConductorHistorial',N'U') IS NOT NULL
 THEN 1 ELSE 0 END;";
         // La tabla temporal debe nacer en el ámbito de la conexión, fuera de la consulta parametrizada.
-        internal string SqlCrearRutas { get { return @"SELECT TOP (0) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.OBSR_GENERAL,r.LIQUIDADO,r.USR_MON,r.FECHA_MON,r.GARITA_FECHA_SALIDA,r.GARITA_FECHA_ENTRADA,
+        internal string SqlCrearRutas { get { return @"SELECT TOP (0) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.OBSR_GENERAL,r.LIQUIDADO,r.USR_MON,r.FECHA_MON,
 CAST(0 AS bit) VehiculoActivo INTO #PanelRutas FROM "+apk+@".dbo.RT_RUTAS r;
 CREATE UNIQUE CLUSTERED INDEX IX_PanelRutas ON #PanelRutas(ID_RUTA);"; } }
-        internal string SqlRutas { get { return @"INSERT #PanelRutas(ID_RUTA,FECHA_RUTA,STATUS,PILOTO,PLACA,CENTRO_DIST,OBSR_GENERAL,LIQUIDADO,USR_MON,FECHA_MON,GARITA_FECHA_SALIDA,GARITA_FECHA_ENTRADA,VehiculoActivo)
-SELECT TOP (2001) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.OBSR_GENERAL,r.LIQUIDADO,r.USR_MON,r.FECHA_MON,r.GARITA_FECHA_SALIDA,r.GARITA_FECHA_ENTRADA,
+        internal string SqlRutas { get { return @"INSERT #PanelRutas(ID_RUTA,FECHA_RUTA,STATUS,PILOTO,PLACA,CENTRO_DIST,OBSR_GENERAL,LIQUIDADO,USR_MON,FECHA_MON,VehiculoActivo)
+SELECT TOP (2001) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST,r.OBSR_GENERAL,r.LIQUIDADO,r.USR_MON,r.FECHA_MON,
 CAST(CASE WHEN EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1) THEN 1 ELSE 0 END AS bit) VehiculoActivo
 FROM "+apk+@".dbo.RT_RUTAS r
 WHERE (@id IS NOT NULL AND r.ID_RUTA=@id) OR (@id IS NULL AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin
@@ -133,7 +133,7 @@ ORDER BY e.FechaUtc DESC,e.Tipo,e.Clave;"; } }
                         Param(c,"@id",SqlDbType.NVarChar,id,15);Param(c,"@desde",SqlDbType.Date,filtro.Inicio);Param(c,"@fin",SqlDbType.Date,filtro.Fin);
                         Param(c,"@estado",SqlDbType.NVarChar,filtro.Estado,10);Param(c,"@liquidacion",SqlDbType.NVarChar,filtro.Liquidacion,10);
                         Param(c,"@piloto",SqlDbType.NVarChar,filtro.Piloto,90);Param(c,"@centro",SqlDbType.NVarChar,filtro.Centro,15);Param(c,"@placa",SqlDbType.NVarChar,filtro.Placa,15);
-                        using(var r=c.ExecuteReader()) while(r.Read()) modelo.Rutas.Add(new PilotoPanelRuta { Liquidada=Bit(r,"LIQUIDADO"),VehiculoActivo=Bit(r,"VehiculoActivo"),OperadorCierre=Texto(r,"USR_MON"),FechaCierre=Fecha(r,"FECHA_MON"),SalidaGaritaLocal=Fecha(r,"GARITA_FECHA_SALIDA"),EntradaGaritaLocal=Fecha(r,"GARITA_FECHA_ENTRADA"),Datos=new PilotoRuta { Id=Texto(r,"ID_RUTA"),Fecha=(DateTime)r["FECHA_RUTA"],Estado=Texto(r,"STATUS"),Piloto=Texto(r,"PILOTO"),Centro=Texto(r,"CENTRO_DIST"),Placa=Texto(r,"PLACA"),ObservacionGeneral=Texto(r,"OBSR_GENERAL") } });
+                        using(var r=c.ExecuteReader()) while(r.Read()) modelo.Rutas.Add(new PilotoPanelRuta { Liquidada=Bit(r,"LIQUIDADO"),VehiculoActivo=Bit(r,"VehiculoActivo"),OperadorCierre=Texto(r,"USR_MON"),FechaCierre=Fecha(r,"FECHA_MON"),Datos=new PilotoRuta { Id=Texto(r,"ID_RUTA"),Fecha=(DateTime)r["FECHA_RUTA"],Estado=Texto(r,"STATUS"),Piloto=Texto(r,"PILOTO"),Centro=Texto(r,"CENTRO_DIST"),Placa=Texto(r,"PLACA"),ObservacionGeneral=Texto(r,"OBSR_GENERAL") } });
                     }
                     if(modelo.Rutas.Count>2000) throw new PilotoException(400,"Hay más de 2.000 rutas. Acota las fechas, el centro o el piloto; no se mostraron totales parciales.");
                     var rutas=modelo.Rutas.ToDictionary(r=>r.Datos.Id,StringComparer.OrdinalIgnoreCase);
@@ -180,10 +180,9 @@ WHERE e.CatalogoRutas=@catalogo ORDER BY e.Id DESC;")) {
                             using(var r=c.ExecuteReader()) while(r.Read()) {
                                 var ruta=rutas[Texto(r,"Ruta_Id")];var tipo=Texto(r,"Tipo");var fecha=(DateTime)r["FechaUtc"];
                                 if(tipo=="S") {ruta.SalidaGaritaUtc=fecha;ruta.AgenteGarita=Texto(r,"Actor");ruta.PrecintoGarita=Texto(r,"Precinto");if(ruta.DiferenciaGarita==null) ruta.DiferenciaGarita="";}
-                                if(tipo=="I") {ruta.EntradaGaritaUtc=fecha;ruta.AgenteEntradaGarita=Texto(r,"Actor");}
                                 if((tipo=="D" || tipo=="R") && ruta.DiferenciaGarita==null) ruta.DiferenciaGarita=tipo=="D"?Texto(r,"Observacion"):"";
                                 if((filtro.Evento=="todos" || filtro.Evento=="Garita") && (id!=null || fecha>=filtro.Inicio.AddHours(6) && fecha<filtro.Fin.AddHours(6)) && (!filtro.Usuario.HasValue || filtro.Usuario.Value==Convert.ToInt64(r["Usuario_Id"])))
-                                    modelo.Actividad.Add(new PilotoPanelActividad {Tipo=tipo=="S"?"Salida de garita":tipo=="I"?"Entrada de garita":tipo=="D"?"Diferencia en garita":"Diferencia resuelta",Ruta=ruta.Datos.Id,Usuario=Convert.ToInt64(r["Usuario_Id"]),Actor=Texto(r,"Actor"),Descripcion=tipo=="S"?"Hora de salida registrada"+(Texto(r,"Precinto")==null?"":" · precinto "+Texto(r,"Precinto")):tipo=="I"?"Hora de entrada registrada":Texto(r,"Observacion"),FechaUtc=fecha,Clave="Garita #"+r["Id"]});
+                                    modelo.Actividad.Add(new PilotoPanelActividad {Tipo=tipo=="S"?"Salida de garita":tipo=="D"?"Diferencia en garita":"Diferencia resuelta",Ruta=ruta.Datos.Id,Usuario=Convert.ToInt64(r["Usuario_Id"]),Actor=Texto(r,"Actor"),Descripcion=tipo=="S"?"Hora de salida registrada"+(Texto(r,"Precinto")==null?"":" · precinto "+Texto(r,"Precinto")):Texto(r,"Observacion"),FechaUtc=fecha,Clave="Garita #"+r["Id"]});
                             }
                         }
                     }

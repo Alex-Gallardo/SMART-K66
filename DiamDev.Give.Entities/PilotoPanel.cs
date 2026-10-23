@@ -125,11 +125,7 @@ namespace DiamDev.Give.Entities
     public sealed class PilotoPanelRuta
     {
         public DateTime? SalidaGaritaUtc { get; set; }
-        public DateTime? EntradaGaritaUtc { get; set; }
-        public DateTime? SalidaGaritaLocal { get; set; }
-        public DateTime? EntradaGaritaLocal { get; set; }
         public string AgenteGarita { get; set; }
-        public string AgenteEntradaGarita { get; set; }
         public string PrecintoGarita { get; set; }
         public bool FotoSalidaGarita { get; set; }
         public string DiferenciaGarita { get; set; }

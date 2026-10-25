@@ -263,7 +263,10 @@ if($garitaEmpresaPendiente -match 'Conductor pendiente' -or $garitaEmpresaPendie
    $garitaEmpresaAsignada -notmatch 'JUAN PEREZ' -or $garitaEmpresaAsignada -notmatch 'L-1234' -or $garitaEmpresaAsignada -notmatch 'id="register-exit-form"') {
     throw 'Garita debe permitir verificar la salida con el piloto de APK66 y mostrar la asignación opcional.'
 }
-if($garitaVacia -notmatch 'name="placa"' -or $garitaVacia -match 'class="route-option"' -or $garitaVacia -match 'class="route-header"') {throw 'Garita debe mostrar rutas solo después de buscar una placa.'}
+if($garitaVacia -notmatch 'name="placa"' -or $garitaVacia -match 'class="route-option"' -or $garitaVacia -match 'class="route-header"' -or
+   $garitaVacia -notmatch 'id="qr-file"[^>]*capture="environment"' -or $garitaVacia -notmatch 'id="qr-gallery"') {
+    throw 'Garita debe mostrar solo la búsqueda y ofrecer captura nativa y foto guardada para el QR.'
+}
 if($garitaLista -notmatch 'PP26-GARITA' -or $garitaLista -notmatch 'PP26-OTRA' -or $garitaLista -notmatch 'OTRO PILOTO' -or $garitaLista -notmatch 'Siguiente' -or $garitaLista -match 'id="register-exit-form"') {throw 'La búsqueda debe listar todas las rutas E de la placa y paginarlas.'}
 if($garitaSinResultados -notmatch 'No hay rutas En ruta' -or $garitaSinResultados -match 'class="route-option"') {throw 'La placa sin rutas debe mostrar un mensaje claro.'}
 if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 'id="register-exit-form"') {throw 'La diferencia debe bloquear el registro de salida.'}

@@ -36,9 +36,11 @@ p{color:#4e6472}
 .qr-dialog-head h2{margin:0}
 #qr-close{background:#eaf1f4;color:#163d52;padding:8px 14px;font-size:22px}
 #qr-video{display:block;width:100%;max-height:48vh;min-height:180px;background:#173b50;border-radius:14px;object-fit:cover;margin:15px 0}
+#qr-video[hidden]{display:none}
 #qr-status{margin:12px 0;color:#174d69;font-weight:700}
 .qr-file-label{display:block;background:#0c5c88;color:white;text-align:center;border-radius:11px;padding:14px;font-weight:800;cursor:pointer}
-#qr-file{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.qr-gallery-label{background:#e3f3e9;color:#115e39;margin-top:10px}
+#qr-file,#qr-gallery{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
 #qr-cancel{display:block;width:100%;background:#e8f0f4;color:#174d69;padding:13px;margin-top:10px}
 .search-again{margin-top:13px;padding-top:11px;border-top:1px solid #d9e5ea}
 .search-again summary{display:inline-block;color:#0c5c88;font-weight:800;cursor:pointer;padding:5px 0}

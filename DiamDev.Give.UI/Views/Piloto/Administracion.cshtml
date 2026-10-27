@@ -16,7 +16,7 @@
 
 @if (TempData["Piloto.AdminMensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.AdminMensaje"]</p> }
 
-<section class="admin-section" aria-labelledby="admin-route-search-title"><div class="section-title"><h2 id="admin-route-search-title">Editar una ruta</h2><p>Busca por el ID exacto para revisar su asignación, fecha, estado y observación.</p></div>
+<section style="display: none" class="admin-section" aria-labelledby="admin-route-search-title"><div class="section-title"><h2 id="admin-route-search-title">Editar una ruta</h2><p>Busca por el ID exacto para revisar su asignación, fecha, estado y observación.</p></div>
 @using(Html.BeginForm("EditarRuta","Piloto",FormMethod.Get,new{@class="admin-search",role="search"})) {<div><label for="ruta-id">ID de ruta</label><input id="ruta-id" name="id" maxlength="15" required placeholder="Ej.: RT-000001" /></div><button type="submit">Abrir ruta</button>}
 </section>
 

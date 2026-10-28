@@ -130,11 +130,14 @@ namespace DiamDev.Give.Entities
         public string Vista { get; set; }
         public bool RutaFija { get; set; }
         public List<PilotoRuta> Rutas { get; set; }
+        public List<PilotoRuta> RutasAbiertas { get; set; }
         public DateTime Desde { get; set; }
         public DateTime Hasta { get; set; }
         public bool HayMas { get; set; }
         public int Pagina { get; set; }
-        public PilotoLista() { PlacasDisponibles = new List<string>(); }
+        public bool HayMasAbiertas { get; set; }
+        public int PaginaAbiertas { get; set; }
+        public PilotoLista() { PlacasDisponibles = new List<string>(); RutasAbiertas = new List<PilotoRuta>(); }
     }
 
     public sealed class PilotoException : Exception

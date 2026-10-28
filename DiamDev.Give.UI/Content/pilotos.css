@@ -475,6 +475,64 @@ h3 {
   flex-direction:column
 }
 
+.open-route-section {
+  margin-top:32px;
+  padding-top:24px;
+  border-top:1px solid var(--line)
+}
+
+.open-route-section .list-heading {
+  align-items:flex-start
+}
+
+.open-route-section .list-heading .muted {
+  margin:5px 0 0;
+  line-height:1.45
+}
+
+.route-card-pending {
+  background:#f4f6f8;
+  border:1px dashed #aab9c8;
+  box-shadow:none;
+  color:#42566a
+}
+
+.route-card-pending .vehicle-icon {
+  background:#e6ebf0;
+  color:#536b80
+}
+
+.route-card-pending h2,.route-card-pending .vehicle-plate {
+  color:#263f54
+}
+
+.pending-route-pilot {
+  margin:0 0 18px;
+  line-height:1.4
+}
+
+.pending-route-notice,.open-route-empty {
+  border-radius:10px;
+  background:#e8edf2;
+  color:#35516a;
+  padding:14px 16px;
+  line-height:1.4
+}
+
+.pending-route-notice {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:auto 0 0;
+  font-weight:700
+}
+
+.pending-route-notice .icon {
+  width:20px;
+  height:20px;
+  flex-shrink:0
+}
+
 .card-top {
   display:flex;
   align-items:center;

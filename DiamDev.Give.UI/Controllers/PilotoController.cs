@@ -245,27 +245,28 @@ namespace DiamDev.Give.UI.Controllers
             catch(Exception e) { return ErrorPiloto(e); }
         }
 
-        public ActionResult Index(string desde, string hasta, int pagina = 1, string vista = null, string placa = null)
+        public ActionResult Index(string desde, string hasta, int pagina = 1, string vista = null, string placa = null, int paginaAbiertas = 1)
         {
             try
             {
                 var hoy = DateTime.Today;
                 var inicio = PilotoRutaBL.ConsultaRutaFija ? hoy : Fecha(desde, hoy.AddDays(-13));
                 var fin = PilotoRutaBL.ConsultaRutaFija ? hoy : Fecha(hasta, hoy);
-                if(PilotoRutaBL.ConsultaRutaFija) pagina=1;
-                return View(new PilotoRutaBL().Listar(User.Identity.Name, inicio, fin, pagina,vista,placa));
+                if(PilotoRutaBL.ConsultaRutaFija) { pagina=1; paginaAbiertas=1; }
+                return View(new PilotoRutaBL().Listar(User.Identity.Name, inicio, fin, pagina,vista,placa,paginaAbiertas));
             }
             catch (Exception e) { return ErrorPiloto(e); }
         }
 
-        public ActionResult Detalle(string id, int pagina = 1, string desde = null, string hasta = null, int paginaRutas = 1, string vista = null, string placa = null)
+        public ActionResult Detalle(string id, int pagina = 1, string desde = null, string hasta = null, int paginaRutas = 1, string vista = null, string placa = null, int paginaAbiertas = 1)
         {
             try
             {
-                if(paginaRutas<1 || paginaRutas>1000) throw new PilotoException(400,"La página de rutas no es válida.");
+                if(paginaRutas<1 || paginaRutas>1000 || paginaAbiertas<1 || paginaAbiertas>1000) throw new PilotoException(400,"La página de rutas no es válida.");
                 ViewBag.Desde=string.IsNullOrEmpty(desde) ? null : Fecha(desde,DateTime.Today).ToString("yyyy-MM-dd");
                 ViewBag.Hasta=string.IsNullOrEmpty(hasta) ? null : Fecha(hasta,DateTime.Today).ToString("yyyy-MM-dd");
                 ViewBag.PaginaRutas=paginaRutas;
+                ViewBag.PaginaAbiertas=paginaAbiertas;
                 ViewBag.Vista=PilotoReglas.VistaRutas(vista);
                 ViewBag.Placa=placa;
                 return View(new PilotoRutaBL().Detalle(User.Identity.Name, id,pagina));

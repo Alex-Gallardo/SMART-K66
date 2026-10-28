@@ -5,7 +5,7 @@ $bin=Join-Path $PSScriptRoot 'bin'
 $smoke=Join-Path $bin 'empresa-browser-smoke.html'
 $pilotScript=Get-Content -LiteralPath (Join-Path $PSScriptRoot '../../DiamDev.Give.UI/Scripts/pilotos.js') -Raw
 $pilotCss=([Uri](Join-Path $PSScriptRoot '../../DiamDev.Give.UI/Content/pilotos.css')).AbsoluteUri
-foreach($scenario in @('index-empresa-sin-placa','index-empresa','detalle-empresa-lista','detalle-empresa-pendiente','detalle-empresa-sin-permiso','detalle-empresa-grande','editar-ruta-empresa')) {
+foreach($scenario in @('index-empresa-sin-placa','index-empresa','index-solo-abiertas','detalle-empresa-lista','detalle-empresa-pendiente','detalle-empresa-sin-permiso','detalle-empresa-grande','editar-ruta-empresa')) {
     $html=Get-Content -LiteralPath (Join-Path $bin ($scenario+'.html')) -Raw
     $html=$html.Replace('href="/Content/pilotos.css"',('href="'+$pilotCss+'"'))
     $probe=@'
@@ -25,10 +25,16 @@ if(escenario.indexOf('index-')===0){
   check(Array.prototype.filter.call(placas,function(p){return !p.hidden;}).length===1 && !placas[1].hidden,'filtro de placas incorrecto');
   filtro.value='sin placa';filtro.dispatchEvent(new Event('input'));
   check(!document.querySelector('.company-plate-empty').hidden,'falta mensaje sin coincidencias');
+ } else if(escenario==='index-solo-abiertas') {
+  check(!document.querySelector('#rutas-principales ~ .route-grid') && document.querySelector('.route-card-pending'),'ruta Abierta no aparece cuando no hay E');
+  check(!document.querySelector('.route-card-pending a, .route-card-pending button'),'ruta Abierta ofrece acciones');
  } else {
   var card=document.querySelector('.route-card');
   check(document.querySelector('.company-selected-plate').textContent.includes('C-002') && card && card.textContent.includes('EMP-001') && card.textContent.includes('JUAN PEREZ'),'ruta o conductor no visibles');
   check(document.querySelector('.company-change-plate').getBoundingClientRect().height>=50,'Cambiar placa debe ser fácil de tocar');
+  var pendiente=document.querySelector('.route-card-pending');
+  check(pendiente && pendiente.textContent.includes('EMP-ABIERTA') && pendiente.getBoundingClientRect().top>card.getBoundingClientRect().top,'Abiertas deben quedar debajo de En ruta');
+  check(!pendiente.querySelector('a,button') && getComputedStyle(pendiente).backgroundColor!==getComputedStyle(card).backgroundColor,'Abierta debe ser informativa y visualmente distinta');
  }
 } else if(escenario.indexOf('detalle-')===0) {
  var editable=!!document.querySelector('.save-client') && !!document.querySelector('#complete-button');

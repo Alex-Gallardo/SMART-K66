@@ -198,13 +198,38 @@ AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA 
             return fechas + (vista=="activas" ? " AND r.STATUS=N'E'" : " AND r.STATUS IN (N'C',N'X')");
         }
 
-        public PilotoLista Listar(string login, DateTime desde, DateTime hasta, int pagina, string vista = null, string placa = null)
+        private static string FiltroEstadoAbiertas(bool empresa)
+        {
+            return (empresa ? "" : " AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin") + " AND r.STATUS=N'A'";
+        }
+
+        private void CargarListado(SqlConnection cn,SqlTransaction tx,Acceso a,PilotoLista result,string filtro,int pagina,List<PilotoRuta> destino)
+        {
+            var sql = @"SELECT r.ID_RUTA,r.FECHA_RUTA,r.PLACA,r.PILOTO,r.CENTRO_DIST,r.STATUS,cr.Nombre ConductorReal,cr.Documento DocumentoConductor
+FROM " + apk + @".dbo.RT_RUTAS r
+LEFT JOIN dbo.PilotoConductorRuta cr ON cr.CatalogoRutas=@catalogo AND cr.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT
+ AND cr.Usuario_Id=@usuario AND cr.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND cr.Piloto=r.PILOTO COLLATE DATABASE_DEFAULT
+WHERE " + Alcance(a) + (a.Empresa ? " AND r.PLACA=@placaEmpresa" : "") + filtro + @"
+ORDER BY r.FECHA_RUTA DESC,r.ID_RUTA DESC OFFSET @offset ROWS FETCH NEXT 26 ROWS ONLY;";
+            using (var cmd = Command(cn, tx, sql))
+            {
+                ParametrosAcceso(cmd,a);
+                Param(cmd,"@catalogo",SqlDbType.NVarChar,apk.Substring(1,apk.Length-2).Replace("]]","]"),128);
+                if(a.Empresa) Param(cmd,"@placaEmpresa",SqlDbType.NVarChar,result.PlacaSeleccionada,15);
+                if(a.PlacaPrueba!=null || a.RutaPrueba!=null) Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario);
+                Param(cmd,"@desde",SqlDbType.Date,result.Desde); Param(cmd,"@fin",SqlDbType.Date,result.Hasta.AddDays(1));
+                Param(cmd,"@offset",SqlDbType.Int,(pagina-1)*25);
+                using (var r=cmd.ExecuteReader()) while(r.Read()) {var item=Cabecera(r);item.CuentaEmpresa=a.Empresa;item.ConductorReal=Texto(r,"ConductorReal");item.DocumentoConductor=Texto(r,"DocumentoConductor");destino.Add(item);}
+            }
+        }
+
+        public PilotoLista Listar(string login, DateTime desde, DateTime hasta, int pagina, string vista = null, string placa = null, int paginaAbiertas = 1)
         {
             vista=PilotoReglas.VistaRutas(vista);
             desde = desde.Date; hasta = hasta.Date;
-            if (hasta < desde || (hasta-desde).TotalDays >= 31 || hasta == DateTime.MaxValue.Date || pagina < 1 || pagina > 1000)
+            if (hasta < desde || (hasta-desde).TotalDays >= 31 || hasta == DateTime.MaxValue.Date || pagina < 1 || pagina > 1000 || paginaAbiertas < 1 || paginaAbiertas > 1000)
                 throw new PilotoException(400, "Selecciona un periodo de hasta 31 dias y una pagina valida.");
-            var result = new PilotoLista { Desde=desde, Hasta=hasta, Pagina=pagina, Vista=vista, Rutas=new List<PilotoRuta>() };
+            var result = new PilotoLista { Desde=desde, Hasta=hasta, Pagina=pagina, PaginaAbiertas=paginaAbiertas, Vista=vista, Rutas=new List<PilotoRuta>() };
             using (var cn = AbrirConexion())
             {
                 using (var tx = cn.BeginTransaction(IsolationLevel.Serializable))
@@ -222,27 +247,16 @@ WHERE ep.Usuario_Id=@usuario ORDER BY ep.Placa;"))
                         if(result.PlacaSeleccionada==null) {tx.Commit();return result;}
                     }
                     result.RutaFija=a.RutaPrueba!=null;
-                    var sql = @"SELECT r.ID_RUTA,r.FECHA_RUTA,r.PLACA,r.PILOTO,r.CENTRO_DIST,r.STATUS,cr.Nombre ConductorReal,cr.Documento DocumentoConductor
-FROM " + apk + @".dbo.RT_RUTAS r
-LEFT JOIN dbo.PilotoConductorRuta cr ON cr.CatalogoRutas=@catalogo AND cr.Ruta_Id=r.ID_RUTA COLLATE DATABASE_DEFAULT
- AND cr.Usuario_Id=@usuario AND cr.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND cr.Piloto=r.PILOTO COLLATE DATABASE_DEFAULT
-WHERE " + Alcance(a) + (a.Empresa ? " AND r.PLACA=@placaEmpresa" : "") + FiltroEstadoListado(result.RutaFija,a.Empresa,vista) + @"
-ORDER BY CASE WHEN r.STATUS=N'E' THEN 0 ELSE 1 END,r.FECHA_RUTA DESC,r.ID_RUTA DESC OFFSET @offset ROWS FETCH NEXT 26 ROWS ONLY;";
-                    using (var cmd = Command(cn, tx, sql))
-                    {
-                        ParametrosAcceso(cmd,a);
-                        Param(cmd,"@catalogo",SqlDbType.NVarChar,apk.Substring(1,apk.Length-2).Replace("]]","]"),128);
-                        if(a.Empresa) Param(cmd,"@placaEmpresa",SqlDbType.NVarChar,result.PlacaSeleccionada,15);
-                        if(a.PlacaPrueba!=null || a.RutaPrueba!=null) Param(cmd,"@usuario",SqlDbType.BigInt,a.Usuario);
-                        Param(cmd,"@desde",SqlDbType.Date,desde); Param(cmd,"@fin",SqlDbType.Date,hasta.AddDays(1));
-                        Param(cmd,"@offset",SqlDbType.Int,(pagina-1)*25);
-                        using (var r=cmd.ExecuteReader()) while(r.Read()) {var item=Cabecera(r);item.CuentaEmpresa=a.Empresa;item.ConductorReal=Texto(r,"ConductorReal");item.DocumentoConductor=Texto(r,"DocumentoConductor");result.Rutas.Add(item);}
-                    }
+                    CargarListado(cn,tx,a,result,FiltroEstadoListado(result.RutaFija,a.Empresa,vista),pagina,result.Rutas);
+                    if(vista=="activas" && !result.RutaFija)
+                        CargarListado(cn,tx,a,result,FiltroEstadoAbiertas(a.Empresa),paginaAbiertas,result.RutasAbiertas);
                     tx.Commit();
                 }
             }
             result.HayMas=result.Rutas.Count>25;
             if(result.HayMas) result.Rutas.RemoveAt(25);
+            result.HayMasAbiertas=result.RutasAbiertas.Count>25;
+            if(result.HayMasAbiertas) result.RutasAbiertas.RemoveAt(25);
             return result;
         }
 

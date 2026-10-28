@@ -152,20 +152,31 @@ if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador Razor.' }
 & (Join-Path $out 'RazorCompile.exe') $repo --render
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las vistas Razor.' }
 $index=Get-Content -LiteralPath (Join-Path $out 'index.html') -Raw
-if($index -match 'route-card-pending|Abiertas y en ruta|Ruta pendiente de salida' -or
-   ([regex]::Matches($index,'class="button-link card-link"')).Count -ne 4 -or $index -notmatch '>En ruta</h2>') {
-    throw 'El listado de pilotos debe mostrar únicamente rutas En ruta con enlace.'
+$soloAbiertas=Get-Content -LiteralPath (Join-Path $out 'index-solo-abiertas.html') -Raw
+$paginas=Get-Content -LiteralPath (Join-Path $out 'index-paginas.html') -Raw
+$seccionAbiertas=$index.Substring($index.IndexOf('id="rutas-abiertas"'))
+if($index -notmatch '>En ruta</h2>' -or $index -notmatch 'id="rutas-abiertas"' -or
+   $index.IndexOf('id="rutas-principales"') -ge $index.IndexOf('id="rutas-abiertas"') -or
+   ([regex]::Matches($index,'class="button-link card-link"')).Count -ne 4 -or
+   ([regex]::Matches($seccionAbiertas,'class="route-card route-card-pending"')).Count -ne 2 -or
+   $seccionAbiertas -match 'class="button-link card-link"|href="[^"]*Detalle' -or
+   $seccionAbiertas -notmatch 'Pendiente de salida en Garita. Solo consulta' -or
+   $soloAbiertas -notmatch 'SOLO-ABIERTA' -or $soloAbiertas -match 'class="button-link card-link"' -or
+   $paginas -notmatch 'aria-label="Páginas de rutas En ruta"' -or $paginas -notmatch 'aria-label="Páginas de rutas Abiertas"' -or
+   $paginas -notmatch 'paginaAbiertas=4' -or $paginas -notmatch 'pagina=3') {
+    throw 'Piloto debe mostrar E operativas y A solo consulta en secciones y páginas independientes.'
 }
 $historial=Get-Content -LiteralPath (Join-Path $out 'historial.html') -Raw
-if(([regex]::Matches($historial,'class="button-link card-link"')).Count -ne 4) { throw 'El historial sin liquidar debe conservar sus enlaces de consulta.' }
-Write-Host 'OK: solo rutas En ruta activas; historial consultable.'
+if(([regex]::Matches($historial,'class="button-link card-link"')).Count -ne 4 -or $historial -match 'id="rutas-abiertas"') { throw 'El historial sin liquidar debe conservar sus enlaces de consulta y excluir A.' }
+Write-Host 'OK: secciones E y A independientes; A sin acciones; historial consultable.'
 $empresaSinPlaca=Get-Content -LiteralPath (Join-Path $out 'index-empresa-sin-placa.html') -Raw
 $empresaConPlaca=Get-Content -LiteralPath (Join-Path $out 'index-empresa.html') -Raw
 if(([regex]::Matches($empresaSinPlaca,'class="company-plate-option"')).Count -ne 8 -or
    $empresaSinPlaca -notmatch 'Selecciona la placa' -or $empresaSinPlaca -match 'EMP-001' -or
    $empresaSinPlaca -notmatch 'id="company-plate-filter"' -or
    $empresaConPlaca -notmatch 'EMP-001' -or $empresaConPlaca -notmatch 'JUAN PEREZ' -or
-   $empresaConPlaca -notmatch 'CAMIÓN SELECCIONADO' -or $empresaConPlaca -notmatch 'Cambiar placa') {
+   $empresaConPlaca -notmatch 'CAMIÓN SELECCIONADO' -or $empresaConPlaca -notmatch 'Cambiar placa' -or
+   $empresaConPlaca -notmatch 'EMP-ABIERTA' -or $empresaConPlaca -notmatch 'route-card-pending') {
     throw 'La empresa debe escoger una placa antes de ver rutas y conservar el conductor asignado.'
 }
 $empresaAdmin=Get-Content -LiteralPath (Join-Path $out 'editar-ruta-empresa.html') -Raw

@@ -101,12 +101,16 @@ internal static class PilotoTests
                 // Construye los predicados reales sin abrir una conexión ni leer configuración.
                 var tipo=typeof(PilotoRutaDA);
                 var filtroListado=tipo.GetMethod("FiltroEstadoListado",BindingFlags.Static|BindingFlags.NonPublic);
+                var filtroAbiertas=tipo.GetMethod("FiltroEstadoAbiertas",BindingFlags.Static|BindingFlags.NonPublic);
                 foreach(var empresa in new[]{false,true}) {
                     var activas=(string)filtroListado.Invoke(null,new object[]{false,empresa,"activas"});
+                    var abiertas=(string)filtroAbiertas.Invoke(null,new object[]{empresa});
                     var historial=(string)filtroListado.Invoke(null,new object[]{false,empresa,"historial"});
                     Check(activas.Contains("r.STATUS=N'E'") && !activas.Contains("N'A'"),"Listado activo solo incluye En ruta");
+                    Check(abiertas.Contains("r.STATUS=N'A'") && !abiertas.Contains("N'E'"),"Listado separado solo incluye Abiertas");
                     Check(historial.Contains("N'C',N'X'") && !historial.Contains("N'A'"),"Historial excluye Abierta");
                     Check(activas.Contains("FECHA_RUTA")!=empresa,"El límite de fecha depende del tipo de cuenta");
+                    Check(abiertas.Contains("FECHA_RUTA")!=empresa,"Abiertas conservan el alcance temporal de la cuenta");
                 }
                 Check(!((string)filtroListado.Invoke(null,new object[]{true,true,"activas"})).Contains("N'A'"),"Ruta fija tampoco incluye Abierta");
                 var da=(PilotoRutaDA)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(tipo);
@@ -181,6 +185,7 @@ internal static class PilotoTests
                 Rechaza(()=>new PilotoRutaDA().GuardarImagen("CONSULTA_DEMO",null),403,"consulta temporal bloquea cargas antes de SQL");
                 Rechaza(()=>new PilotoRutaDA().Listar("consulta_demo",DateTime.Today,DateTime.Today,1,"cualquier estado"),400,"vista desconocida rechazada antes de SQL");
                 Rechaza(()=>new PilotoRutaDA().Listar("consulta_demo",DateTime.Today.AddDays(-31),DateTime.Today,1,"activas"),400,"ventana de activas acotada antes de SQL");
+                Rechaza(()=>new PilotoRutaDA().Listar("consulta_demo",DateTime.Today,DateTime.Today,1,"activas",null,0),400,"página de Abiertas inválida rechazada antes de SQL");
                 Console.WriteLine("OK: "+comprobaciones+" comprobaciones de consulta temporal; sin conexiones SQL."); return 0;
             }
             ProbarAccesoSesion(false);

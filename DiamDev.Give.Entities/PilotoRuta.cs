@@ -42,7 +42,7 @@ namespace DiamDev.Give.Entities
         public PilotoRuta() { Documentos = new List<PilotoDocumento>(); Borradores = new List<PilotoBorradorCliente>(); ClientesConImagen = new HashSet<int>(); }
         public string EstadoNombre
         {
-            get { return Estado == "A" ? "Abierta" : Estado == "E" ? "En ruta" : Estado == "C" ? "Cerrada" : Estado == "X" ? "Anulada" : "Sin clasificar"; }
+            get { return Estado == "B" ? "Borrador" : Estado == "A" ? "Abierta" : Estado == "E" ? "En ruta" : Estado == "C" ? "Cerrada" : Estado == "L" ? "Liquidada" : Estado == "X" ? "Anulada" : "Sin clasificar"; }
         }
     }
 

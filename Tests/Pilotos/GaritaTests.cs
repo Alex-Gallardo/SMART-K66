@@ -33,7 +33,10 @@ internal static class GaritaTests
         r.Placa="OTRA";Check(GaritaReglas.Version(r)!=c.Version,"cambio de placa invalida confirmación");r.Placa="P-123";
         r.VehiculoDisponible=false;Check(GaritaReglas.Version(r)!=c.Version && !r.PuedeRegistrarSalida && r.PuedeReportarDiferencia,"vehículo inactivo impide registrar pero permite reportar");r.VehiculoDisponible=true;
         r.Diferencia="Faltan bultos";Check(!r.PuedeRegistrarSalida && !r.PuedeReportarDiferencia,"diferencia bloquea salida");Rechaza(()=>GaritaReglas.ValidarSalida(c,r),409,"diferencia pendiente");r.Diferencia=null;
-        r.Estado="A";Check(!r.PuedeRegistrarSalida && !r.PuedeReportarDiferencia,"ruta abierta espera a Distribución");Rechaza(()=>GaritaReglas.ValidarSalida(c,r),409,"A no registra salida");r.Estado="E";
+        r.Estado="A";r.Version=GaritaReglas.Version(r);c.Version=r.Version;
+        Check(r.PuedeRegistrarSalida && r.PuedeReportarDiferencia,"ruta abierta permite verificar y registrar salida");GaritaReglas.ValidarSalida(c,r);
+        foreach(var estado in new[]{"B","C","L","X"}) {r.Estado=estado;Check(!r.PuedeRegistrarSalida && !r.PuedeReportarDiferencia,"estado "+estado+" no sale");Rechaza(()=>GaritaReglas.ValidarSalida(c,r),409,"estado "+estado+" rechazado");}
+        r.Estado="E";r.Version=GaritaReglas.Version(r);c.Version=r.Version;
         r.SalidaUtc=DateTime.UtcNow;Check(!r.PuedeRegistrarSalida && !r.PuedeReportarDiferencia,"salida no se registra dos veces");r.SalidaUtc=null;
         r.HoraSalidaApk=new TimeSpan(12,30,0);Check(!r.PuedeRegistrarSalida && !r.PuedeReportarDiferencia,"salida previa en APK66 no se duplica");Check(GaritaReglas.Version(r)!=c.Version,"hora APK66 invalida versión");r.HoraSalidaApk=null;
         r.Liquidada=true;Check(!r.PuedeRegistrarSalida,"liquidada no sale");r.Liquidada=false;
@@ -71,15 +74,18 @@ internal static class GaritaTests
     {
         var sql=GaritaRutaDA.SqlRegistrarSalida;
         Check(sql.Contains("INSERT dbo.GaritaRutaEvento") && sql.Contains("OUTPUT INSERTED.Id") && sql.Contains("@solicitud") && sql.Contains("N'S'"),"Garita audita salida en POS");
-        Check(GaritaRutaDA.SqlActualizarHoraSalida("[TEST_RUTAS]").Contains("SET HR_SALIDA=CONVERT(time(0)") && GaritaRutaDA.SqlActualizarHoraSalida("[TEST_RUTAS]").Contains("STATUS=N'E'"),"salida actualiza APK66 en ruta");
+        var salidaSql=GaritaRutaDA.SqlActualizarHoraSalida("[TEST_RUTAS]");
+        Check(salidaSql.Contains("SET HR_SALIDA=CONVERT(time(0)") && salidaSql.Contains("STATUS=CASE WHEN STATUS=N'A' THEN N'E' ELSE STATUS END") && salidaSql.Contains("STATUS IN(N'A',N'E')") && salidaSql.Contains("HR_SALIDA IS NULL") && salidaSql.Contains("LIQUIDADO"),"salida cambia A a E y conserva E junto a la hora en APK66");
         Check(GaritaRutaDA.SqlActualizarHoraEntrada("[TEST_RUTAS]").Contains("SET HR_ENTRADA=CONVERT(time(0)") && GaritaRutaDA.SqlActualizarHoraEntrada("[TEST_RUTAS]").Contains("STATUS=N'C'") && GaritaRutaDA.SqlActualizarHoraEntrada("[TEST_RUTAS]").Contains("LIQUIDADO"),"entrada actualiza solo cerrada sin liquidar en APK66");
         Check(GaritaRutaDA.SqlRegistrarEntrada.Contains("Tipo,Solicitud") && GaritaRutaDA.SqlRegistrarEntrada.Contains("N'I'"),"Garita audita entrada en POS");
         var lista=GaritaRutaDA.SqlBuscarPorPlaca("[TEST_RUTAS]");
         Check(lista.Contains("r.PLACA=@placa AND r.STATUS=N'E'") && lista.Contains("GaritaCentro") && lista.Contains("FETCH NEXT 50 ROWS ONLY"),"consulta de placa paginada y limitada al centro");
+        var abiertas=GaritaRutaDA.SqlBuscarPorPlaca("[TEST_RUTAS]",false,true);
+        Check(abiertas.Contains("r.PLACA=@placa AND r.STATUS=N'A'") && abiertas.Contains("LIQUIDADO") && abiertas.Contains("GaritaCentro") && abiertas.Contains("FETCH NEXT 50 ROWS ONLY"),"abiertas paginadas por placa y centro, sin liquidar");
         var cerradas=GaritaRutaDA.SqlBuscarPorPlaca("[TEST_RUTAS]",true);
         Check(cerradas.Contains("r.STATUS=N'C'") && cerradas.Contains("r.HR_ENTRADA IS NULL") && cerradas.Contains("LIQUIDADO") && cerradas.Contains("FETCH NEXT 50 ROWS ONLY"),"cerradas pendientes paginadas sin liquidadas");
         Check(lista.Contains("ConductorReal") && lista.Contains("PilotoConductorRuta") && lista.Contains("PilotoEmpresa"),"Garita muestra conductor real únicamente desde la asignación de empresa");
-        Console.WriteLine(sql);Console.WriteLine(lista);Console.WriteLine(cerradas);return 0;
+        Console.WriteLine(sql);Console.WriteLine(abiertas);Console.WriteLine(lista);Console.WriteLine(cerradas);return 0;
     }
     public static int SqlHours()
     {

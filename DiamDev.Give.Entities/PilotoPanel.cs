@@ -36,7 +36,7 @@ namespace DiamDev.Give.Entities
                b<a || (b-a).TotalDays>=31 || b==DateTime.MaxValue.Date)
                 throw new PilotoException(400,"Selecciona un período válido de hasta 31 días.");
             Inicio=a; Fin=b.AddDays(1);
-            Estado=Opcion(Estado,"todos",new[]{"todos","A","E","C","X"});
+            Estado=Opcion(Estado,"todos",new[]{"todos","B","A","E","C","L","X"});
             Liquidacion=Opcion(Liquidacion,"no",new[]{"no","si","todas"});
             Avance=Opcion(Avance,"todos",new[]{"todos","sin","parcial","listo"});
             Resultado=Opcion(Resultado,"todos",new[]{"todos","PENDIENTE","ENTREGADO","NO ENTREGADO","INCIDENCIA"});

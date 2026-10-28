@@ -63,6 +63,9 @@ button,.back-button{border:0;border-radius:12px;font:inherit;font-weight:800;cur
 .route-option-pilot{font-weight:700}
 .route-option-counts{font-size:15px;color:#375367}
 .route-option-arrow{font-size:25px;font-weight:800;color:#138247}
+.open-results{border-color:#b9d9c5}
+.route-option-open{background:#f4fbf7;border-color:#bbddc8}
+.state-open{background:#dff6e8;color:#116339}
 .closed-results{border-color:#c4dce7}
 .route-option-closed{background:#f7fbfd;border-color:#bfd8e4}
 .closed-badges{display:flex;flex-direction:column;align-items:flex-start;gap:6px}

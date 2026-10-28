@@ -16,6 +16,8 @@ internal static class PanelTests
     {
         var hoy=new DateTime(2026,9,29);
         var f=new PilotoPanelFiltro();f.Validar(hoy);Check(f.Desde=="2026-09-29" && f.Liquidacion=="no" && f.Seccion=="rutas","Inicio en rutas sin liquidadas");
+        foreach(var estado in new[]{"B","A","E","C","L","X"}) {var filtro=new PilotoPanelFiltro{Estado=estado};filtro.Validar(hoy);Check(filtro.Estado==estado,"Panel acepta estado "+estado);}
+        Check(new PilotoRuta{Estado="B"}.EstadoNombre=="Borrador" && new PilotoRuta{Estado="L"}.EstadoNombre=="Liquidada","Panel identifica nuevos estados");
         Check(PilotoPanelReglas.TamanoPagina==50,"Cada página admite hasta 50 resultados");
         Check(PilotoReglas.HoraEntregaGuatemala(new DateTime(2026,10,17,2,15,45,900,DateTimeKind.Utc))==new TimeSpan(20,15,45),"Hora de entrega usa Guatemala y segundos completos");
         new PilotoPanelFiltro{Desde="2026-09-01",Hasta="2026-10-01",Liquidacion="todas"}.Validar(hoy);
@@ -36,6 +38,7 @@ internal static class PanelTests
         typeof(PilotoPanelDA).GetField("apk",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(dao,"[TEST_RUTAS]");
         Check(dao.SqlCrearRutas.Contains("INTO #PanelRutas") && !dao.SqlCrearRutas.Contains("@"),"La tabla temporal se crea fuera del comando parametrizado");
         Check(dao.SqlRutas.StartsWith("INSERT #PanelRutas") && !dao.SqlRutas.Contains("INTO #PanelRutas"),"La consulta parametrizada solo inserta en la tabla existente");
+        Check(dao.SqlRutas.Contains("r.STATUS IN(N'B',N'A',N'E',N'C',N'L',N'X')"),"Panel incluye nuevos estados y conserva anuladas históricas");
         var p=new PilotoPanelPiloto{Id=10,Login="piloto",Empleado="JULIO",Operador="piloto",CuentaActiva=true,RolPiloto=true,PermisoVer=true,PermisoConfirmar=true,VinculoActivo=true,EmpleadoActivo=true,EmpleadoUnico=true};p.Centros.Add("PC");p.PlacasDisponibles.Add("ABC");p.Placas.Add("ABC");
         var datos=new PilotoRuta{Id="RUTA",Estado="E",Piloto="JULIO",Centro="PC",Placa="ABC",Fecha=hoy};
         datos.Documentos.Add(new PilotoDocumento{RowId=1,Documento="F1",Cliente="CLIENTE",Direccion="DIR"});

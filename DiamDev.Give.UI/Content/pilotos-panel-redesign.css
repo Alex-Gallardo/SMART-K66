@@ -100,6 +100,8 @@
 .dist-panel .dist-status-A{background:#edf2f7;color:#566f85}
 .dist-panel .dist-status-C{background:#e0f4e8;color:#146d42}
 .dist-panel .dist-status-X{background:#fff1dc;color:#915c08}
+.dist-panel .dist-status-B{background:#f0eefb;color:#5d4c91}
+.dist-panel .dist-status-L{background:#e3f0eb;color:#285d49}
 .dist-panel .dist-row-link{display:inline-flex;align-items:center;gap:4px;color:#1264a3;font-size:11px;font-weight:800;text-decoration:none;white-space:nowrap}
 .dist-panel .dist-row-link .icon{width:13px;height:13px}
 .dist-panel .dist-row-link:hover{text-decoration:underline}

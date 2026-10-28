@@ -52,7 +52,7 @@ SELECT TOP (2001) r.ID_RUTA,r.FECHA_RUTA,r.STATUS,r.PILOTO,r.PLACA,r.CENTRO_DIST
 CAST(CASE WHEN EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1) THEN 1 ELSE 0 END AS bit) VehiculoActivo
 FROM "+apk+@".dbo.RT_RUTAS r
 WHERE (@id IS NOT NULL AND r.ID_RUTA=@id) OR (@id IS NULL AND r.FECHA_RUTA>=@desde AND r.FECHA_RUTA<@fin
-AND (@estado=N'todos' OR r.STATUS=@estado) AND r.STATUS IN(N'A',N'E',N'C',N'X')
+AND (@estado=N'todos' OR r.STATUS=@estado) AND r.STATUS IN(N'B',N'A',N'E',N'C',N'L',N'X')
 AND (@liquidacion=N'todas' OR @liquidacion=N'si' AND ISNULL(r.LIQUIDADO,0)=1 OR @liquidacion=N'no' AND ISNULL(r.LIQUIDADO,0)=0)
 AND (@piloto=N'' OR r.PILOTO=@piloto) AND (@centro=N'' OR r.CENTRO_DIST=@centro) AND (@placa=N'' OR r.PLACA=@placa))
 ORDER BY r.FECHA_RUTA DESC,r.ID_RUTA DESC;

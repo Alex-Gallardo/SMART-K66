@@ -1593,6 +1593,7 @@
     <Compile Include="PilotoRutaDA.cs" />
     <Compile Include="GaritaRutaDA.cs" />
     <Compile Include="PilotoPanelDA.cs" />
+    <Compile Include="PilotoLiquidacionDA.cs" />
     <Compile Include="PilotoAdministracionDA.cs" />
     <Compile Include="PilotoAdministracionRutaDA.cs" />
   </ItemGroup>

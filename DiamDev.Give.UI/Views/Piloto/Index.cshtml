@@ -48,7 +48,7 @@
 @if(!Model.CuentaEmpresa || Model.PlacaSeleccionada!=null) {
 <section class="route-section" aria-labelledby="rutas-principales">
 <div class="list-heading"><h2 id="rutas-principales">@(Model.RutaFija ? "Ruta seleccionada" : Model.Vista=="activas" ? "En ruta" : "Cerradas y anuladas")</h2><span class="count" aria-label="Rutas en esta página">@Model.Rutas.Count</span></div>
-if(Model.Rutas.Count==0) {
+@if(Model.Rutas.Count==0) {
     <section class="empty-state"><span class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-route" /></svg></span>
         <h2>@(Model.CuentaEmpresa && Model.PlacaSeleccionada==null ? "Selecciona una placa" : Model.RutaFija ? "Ruta no disponible" : "No hay rutas en esta vista")</h2>
         <p>@(Model.CuentaEmpresa && Model.PlacaSeleccionada==null ? "Después de elegir la placa verás sus rutas asignadas." : Model.RutaFija ? "Solicita revisar la ruta seleccionada para tu prueba." : Model.Vista=="activas" ? "Todavía no hay rutas En ruta para esta placa o período. Revisa las rutas Abiertas abajo." : "Revisa el período o cambia de vista. Si esperabas una asignación, consulta a Distribución.")</p>
@@ -70,7 +70,7 @@ if(Model.Rutas.Count==0) {
     }
     </div>
 }
-if(!Model.RutaFija && (Model.Pagina>1 || Model.HayMas)) {
+@if(!Model.RutaFija && (Model.Pagina>1 || Model.HayMas)) {
     <nav class="pagination" aria-label="Páginas de rutas En ruta">
         @if(Model.Pagina>1) { <a href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista,pagina=Model.Pagina-1,paginaAbiertas=Model.PaginaAbiertas,placa=Model.PlacaSeleccionada})"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Anterior</a> }
         <span>Página @Model.Pagina</span>
@@ -80,7 +80,12 @@ if(!Model.RutaFija && (Model.Pagina>1 || Model.HayMas)) {
 </section>
 if(Model.Vista=="activas" && !Model.RutaFija) {
 <section class="route-section open-route-section" aria-labelledby="rutas-abiertas">
-    <div class="list-heading"><div><h2 id="rutas-abiertas">Abiertas · pendientes de salida</h2><p class="muted">Podrás trabajar en estas rutas cuando Garita registre la salida y pasen a En ruta.</p></div><span class="count" aria-label="Rutas abiertas en esta página">@Model.RutasAbiertas.Count</span></div>
+    <div class="list-heading">
+        <div>
+            <h2 id="rutas-abiertas">Abiertas · pendientes de salida <span class="count" aria-label="Rutas abiertas en esta página">@Model.RutasAbiertas.Count</span></h2>
+            <p class="muted">Podrás trabajar en estas rutas cuando Garita registre la salida y pasen a En ruta.</p>
+        </div>
+    </div>
     @if(Model.RutasAbiertas.Count==0) {<p class="open-route-empty">No hay rutas Abiertas para esta placa o período.</p>}
     else {
         <div class="route-grid" data-scroll-key="@(Model.PlacaSeleccionada + "|" + desde + "|" + hasta + "|abiertas|" + Model.PaginaAbiertas)">

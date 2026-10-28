@@ -13,7 +13,7 @@
     var indices=(rutaGrande ? gruposVisibles.SelectMany(g=>g) : Model.Documentos).Select((d,i)=>new { d.RowId,Indice=i }).ToDictionary(x=>x.RowId,x=>x.Indice);
     var grupos=gruposVisibles.Select(g=>g.Select(d=>new { Documento=d, Indice=indices[d.RowId] }).ToList()).ToList();
 }
-<a class="back-link" href="@Url.Action("Index",new { desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,pagina=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa })"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Mis rutas</a>
+<a class="back-link" href="@Url.Action("Index",new { desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,pagina=(int?)ViewBag.PaginaRutas ?? 1,paginaAbiertas=(int?)ViewBag.PaginaAbiertas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa })"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Mis rutas</a>
 <div class="detail-title"><div><p class="eyebrow">DETALLE DE RUTA</p><h1>@Model.Id</h1></div><span class="status status-@Model.Estado"><svg class="icon" aria-hidden="true"><use href="#@estadoIcon" /></svg>@Model.EstadoNombre</span></div>
 @Html.ValidationSummary(false, "Revisa los resultados antes de continuar.", new { role="alert" })
 @if (TempData["Piloto.Mensaje"] != null) { <p class="notice success" role="status">@TempData["Piloto.Mensaje"]</p> }
@@ -230,9 +230,9 @@ else if (ViewBag.PruebasSoloLectura != true)
 }
 @if(Model.PaginaDocumentos>1 || Model.HayMasDocumentos) {
     <nav class="pagination" aria-label="Páginas de documentos">
-        @if(Model.PaginaDocumentos>1) { <a href="@Url.Action("Detalle",new { id=Model.Id,pagina=Model.PaginaDocumentos-1,desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,paginaRutas=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa })">← Anterior</a> }
+        @if(Model.PaginaDocumentos>1) { <a href="@Url.Action("Detalle",new { id=Model.Id,pagina=Model.PaginaDocumentos-1,desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,paginaRutas=(int?)ViewBag.PaginaRutas ?? 1,paginaAbiertas=(int?)ViewBag.PaginaAbiertas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa })">← Anterior</a> }
         <span>Página @Model.PaginaDocumentos</span>
-        @if(Model.HayMasDocumentos) { <a href="@Url.Action("Detalle",new { id=Model.Id,pagina=Model.PaginaDocumentos+1,desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,paginaRutas=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa })">Siguiente →</a> }
+        @if(Model.HayMasDocumentos) { <a href="@Url.Action("Detalle",new { id=Model.Id,pagina=Model.PaginaDocumentos+1,desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,paginaRutas=(int?)ViewBag.PaginaRutas ?? 1,paginaAbiertas=(int?)ViewBag.PaginaAbiertas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa })">Siguiente →</a> }
     </nav>
 }
-<div class="detail-footer"><a class="button-link button-secondary" href="@Url.Action("Index",new{desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,pagina=(int?)ViewBag.PaginaRutas ?? 1,vista=(string)ViewBag.Vista})"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver a mis rutas</a></div>
+<div class="detail-footer"><a class="button-link button-secondary" href="@Url.Action("Index",new{desde=(string)ViewBag.Desde,hasta=(string)ViewBag.Hasta,pagina=(int?)ViewBag.PaginaRutas ?? 1,paginaAbiertas=(int?)ViewBag.PaginaAbiertas ?? 1,vista=(string)ViewBag.Vista,placa=(string)ViewBag.Placa})"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver a mis rutas</a></div>

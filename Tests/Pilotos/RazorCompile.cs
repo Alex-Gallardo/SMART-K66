@@ -58,6 +58,8 @@ internal static class RazorCompile
                         if(relative=="Piloto/PanelError.cshtml") previews["panel-error"]=RazorPreview.Render(type,RazorPreview.Panel());
                         if(relative=="Piloto/Index.cshtml") {
                             previews["index"]=RazorPreview.Render(type,RazorPreview.Lista());
+                            var soloAbiertas=RazorPreview.Lista(false,true);soloAbiertas.RutasAbiertas.Add(new DiamDev.Give.Entities.PilotoRuta{Id="SOLO-ABIERTA",Fecha=new DateTime(2026,9,21),Estado="A",Placa="DEMO-001",Centro="PALIN",Piloto="PILOTO DEMO"});previews["index-solo-abiertas"]=RazorPreview.Render(type,soloAbiertas);
+                            var paginada=RazorPreview.Lista();paginada.Pagina=2;paginada.PaginaAbiertas=3;paginada.HayMas=true;paginada.HayMasAbiertas=true;previews["index-paginas"]=RazorPreview.Render(type,paginada);
                             previews["fija"]=RazorPreview.Render(type,RazorPreview.Lista(true));
                             previews["vacia"]=RazorPreview.Render(type,RazorPreview.Lista(false,true));
                             previews["historial"]=RazorPreview.Render(type,RazorPreview.Lista(false,false,"historial"));

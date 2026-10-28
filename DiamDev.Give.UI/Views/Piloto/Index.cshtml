@@ -8,12 +8,12 @@
 <section class="page-heading">
     <p class="eyebrow">TU JORNADA</p>
     <h1>@(Model.RutaFija ? "Ruta de prueba" : "Mis rutas")</h1>
-    <p class="intro">@(Model.CuentaEmpresa ? "Elige el camión de hoy para ver sus rutas en marcha." : Model.RutaFija ? "Estás consultando una ruta seleccionada." : "Tu siguiente entrega empieza aquí.")</p>
+    <p class="intro">@(Model.CuentaEmpresa ? "Elige el camión de hoy para ver sus rutas." : Model.RutaFija ? "Estás consultando una ruta seleccionada." : "Tu siguiente entrega empieza aquí.")</p>
 </section>
 @if(Model.CuentaEmpresa) {
     <section class="company-vehicle-picker @(Model.PlacaSeleccionada==null ? "company-vehicle-choose" : "company-vehicle-active")" aria-label="Seleccionar vehículo">
         @if(Model.PlacaSeleccionada==null){
-            <div class="company-picker-heading"><span class="company-picker-symbol"><svg class="icon" aria-hidden="true"><use href="#i-truck" /></svg></span><div><p class="eyebrow">@Model.NombreEmpresa · VEHÍCULO DE HOY</p><h2>Selecciona la placa</h2><p>Busca tu camión y toca su placa para ver las rutas en marcha.</p></div></div>
+            <div class="company-picker-heading"><span class="company-picker-symbol"><svg class="icon" aria-hidden="true"><use href="#i-truck" /></svg></span><div><p class="eyebrow">@Model.NombreEmpresa · VEHÍCULO DE HOY</p><h2>Selecciona la placa</h2><p>Busca tu camión y toca su placa para ver sus rutas.</p></div></div>
             if(Model.PlacasDisponibles.Count>6){<div class="company-plate-search"><label for="company-plate-filter">Buscar entre @Model.PlacasDisponibles.Count placas</label><input id="company-plate-filter" type="search" placeholder="Escribe la placa" autocomplete="off" aria-controls="company-plate-list" /></div>}
             <div id="company-plate-list" class="company-plate-list" role="list">
                 @foreach(var opcion in Model.PlacasDisponibles){<a role="listitem" class="company-plate-option" data-plate="@opcion" href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista,placa=opcion})"><span class="company-option-icon"><svg class="icon" aria-hidden="true"><use href="#i-truck" /></svg></span><span class="company-option-text"><small>CAMIÓN · PLACA</small><strong>@opcion</strong></span><span class="company-option-action">Ver rutas <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></span></a>}
@@ -28,7 +28,7 @@
 @if (!Model.RutaFija && (!Model.CuentaEmpresa || Model.PlacaSeleccionada!=null))
 {
     <nav class="route-tabs" aria-label="Estado de las rutas">
-        <a class="@(Model.Vista=="activas" ? "selected" : "")" aria-current="@(Model.Vista=="activas" ? "page" : null)" href="@Url.Action("Index",new{desde,hasta,vista="activas",placa=Model.PlacaSeleccionada})"><svg class="icon" aria-hidden="true"><use href="#i-route" /></svg>En ruta</a>
+        <a class="@(Model.Vista=="activas" ? "selected" : "")" aria-current="@(Model.Vista=="activas" ? "page" : null)" href="@Url.Action("Index",new{desde,hasta,vista="activas",placa=Model.PlacaSeleccionada})"><svg class="icon" aria-hidden="true"><use href="#i-route" /></svg>Mis rutas</a>
         <a class="@(Model.Vista=="historial" ? "selected" : "")" aria-current="@(Model.Vista=="historial" ? "page" : null)" href="@Url.Action("Index",new{desde,hasta,vista="historial",placa=Model.PlacaSeleccionada})"><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg>Historial</a>
     </nav>
     if(!Model.CuentaEmpresa || Model.Vista=="historial") {
@@ -43,20 +43,21 @@
             <small>Hasta 31 días por consulta. Las rutas fuera del período no se muestran.</small>
         }
     </details>
-    } else { <p class="muted">Se muestran todas las rutas En ruta de esta placa, sin límite de fecha.</p> }
+    } else { <p class="muted">Se muestran las rutas En ruta y Abiertas de esta placa, sin límite de fecha.</p> }
 }
 @if(!Model.CuentaEmpresa || Model.PlacaSeleccionada!=null) {
-<div class="list-heading"><h2>@(Model.RutaFija ? "Ruta seleccionada" : Model.Vista=="activas" ? "En ruta" : "Cerradas y anuladas")</h2><span class="count" aria-label="Rutas en esta página">@Model.Rutas.Count</span></div>
+<section class="route-section" aria-labelledby="rutas-principales">
+<div class="list-heading"><h2 id="rutas-principales">@(Model.RutaFija ? "Ruta seleccionada" : Model.Vista=="activas" ? "En ruta" : "Cerradas y anuladas")</h2><span class="count" aria-label="Rutas en esta página">@Model.Rutas.Count</span></div>
 if(Model.Rutas.Count==0) {
     <section class="empty-state"><span class="empty-icon"><svg class="icon" aria-hidden="true"><use href="#i-route" /></svg></span>
         <h2>@(Model.CuentaEmpresa && Model.PlacaSeleccionada==null ? "Selecciona una placa" : Model.RutaFija ? "Ruta no disponible" : "No hay rutas en esta vista")</h2>
-        <p>@(Model.CuentaEmpresa && Model.PlacaSeleccionada==null ? "Después de elegir la placa verás sus rutas asignadas." : Model.RutaFija ? "Solicita revisar la ruta seleccionada para tu prueba." : Model.Vista=="activas" ? "Distribución aún no ha puesto rutas En ruta para esta placa o período." : "Revisa el período o cambia de vista. Si esperabas una asignación, consulta a Distribución.")</p>
+        <p>@(Model.CuentaEmpresa && Model.PlacaSeleccionada==null ? "Después de elegir la placa verás sus rutas asignadas." : Model.RutaFija ? "Solicita revisar la ruta seleccionada para tu prueba." : Model.Vista=="activas" ? "Todavía no hay rutas En ruta para esta placa o período. Revisa las rutas Abiertas abajo." : "Revisa el período o cambia de vista. Si esperabas una asignación, consulta a Distribución.")</p>
         @if(!Model.RutaFija && (!Model.CuentaEmpresa || Model.PlacaSeleccionada!=null)) { <a class="button-link button-secondary" href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista=="activas" ? "historial" : "activas",placa=Model.PlacaSeleccionada})">@(Model.Vista=="activas" ? "Ver historial" : "Ver rutas activas")</a> }
     </section>
 } else {
     <div class="route-grid" data-scroll-key="@(Model.PlacaSeleccionada + "|" + desde + "|" + hasta + "|" + Model.Vista + "|" + Model.Pagina)">
     @foreach(var ruta in Model.Rutas) {
-        var destino=Url.Action("Detalle",new{id=ruta.Id,desde,hasta,paginaRutas=Model.Pagina,vista=Model.Vista,placa=Model.PlacaSeleccionada});
+        var destino=Url.Action("Detalle",new{id=ruta.Id,desde,hasta,paginaRutas=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,vista=Model.Vista,placa=Model.PlacaSeleccionada});
         var icono=ruta.Estado=="E" ? "i-truck" : ruta.Estado=="C" ? "i-check" : ruta.Estado=="X" ? "i-x" : "i-clock";
         <article class="route-card">
             <div class="card-top"><span class="status status-@ruta.Estado"><svg class="icon" aria-hidden="true"><use href="#@icono" /></svg>@ruta.EstadoNombre</span><time datetime="@ruta.Fecha.ToString("yyyy-MM-dd")">@ruta.Fecha.ToString("dd/MM/yyyy")</time></div>
@@ -69,11 +70,39 @@ if(Model.Rutas.Count==0) {
     }
     </div>
 }
-}
-@if(!Model.RutaFija && (Model.Pagina>1 || Model.HayMas)) {
-    <nav class="pagination" aria-label="Páginas de rutas">
-        @if(Model.Pagina>1) { <a href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista,pagina=Model.Pagina-1,placa=Model.PlacaSeleccionada})"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Anterior</a> }
+if(!Model.RutaFija && (Model.Pagina>1 || Model.HayMas)) {
+    <nav class="pagination" aria-label="Páginas de rutas En ruta">
+        @if(Model.Pagina>1) { <a href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista,pagina=Model.Pagina-1,paginaAbiertas=Model.PaginaAbiertas,placa=Model.PlacaSeleccionada})"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Anterior</a> }
         <span>Página @Model.Pagina</span>
-        @if(Model.HayMas) { <a href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista,pagina=Model.Pagina+1,placa=Model.PlacaSeleccionada})">Siguiente<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a> }
+        @if(Model.HayMas) { <a href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista,pagina=Model.Pagina+1,paginaAbiertas=Model.PaginaAbiertas,placa=Model.PlacaSeleccionada})">Siguiente<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a> }
     </nav>
+}
+</section>
+if(Model.Vista=="activas" && !Model.RutaFija) {
+<section class="route-section open-route-section" aria-labelledby="rutas-abiertas">
+    <div class="list-heading"><div><h2 id="rutas-abiertas">Abiertas · pendientes de salida</h2><p class="muted">Podrás trabajar en estas rutas cuando Garita registre la salida y pasen a En ruta.</p></div><span class="count" aria-label="Rutas abiertas en esta página">@Model.RutasAbiertas.Count</span></div>
+    @if(Model.RutasAbiertas.Count==0) {<p class="open-route-empty">No hay rutas Abiertas para esta placa o período.</p>}
+    else {
+        <div class="route-grid" data-scroll-key="@(Model.PlacaSeleccionada + "|" + desde + "|" + hasta + "|abiertas|" + Model.PaginaAbiertas)">
+        @foreach(var ruta in Model.RutasAbiertas) {
+            <article class="route-card route-card-pending" aria-label="Ruta @ruta.Id Abierta, pendiente de salida en Garita">
+                <div class="card-top"><span class="status status-A"><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg>Abierta</span><time datetime="@ruta.Fecha.ToString("yyyy-MM-dd")">@ruta.Fecha.ToString("dd/MM/yyyy")</time></div>
+                <p class="eyebrow">RUTA</p><h2>@ruta.Id</h2>
+                <div class="vehicle-row"><span class="vehicle-icon"><svg class="icon" aria-hidden="true"><use href="#i-truck" /></svg></span><div><span class="field-label">Vehículo</span><strong class="vehicle-plate">@ruta.Placa</strong></div></div>
+                <div class="route-meta"><svg class="icon" aria-hidden="true"><use href="#i-pin" /></svg><span><span class="field-label">Centro</span><strong>@ruta.Centro</strong></span></div>
+                <p class="pending-route-pilot">Piloto / transporte: @(ruta.ConductorAsignado?ruta.ConductorReal:ruta.Piloto)</p>
+                <p class="pending-route-notice"><svg class="icon" aria-hidden="true"><use href="#i-clock" /></svg><span>Pendiente de salida en Garita. Solo consulta.</span></p>
+            </article>
+        }
+        </div>
+    }
+    @if(Model.PaginaAbiertas>1 || Model.HayMasAbiertas) {
+        <nav class="pagination" aria-label="Páginas de rutas Abiertas">
+            @if(Model.PaginaAbiertas>1) { <a href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista,pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas-1,placa=Model.PlacaSeleccionada})"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Anterior</a> }
+            <span>Página @Model.PaginaAbiertas</span>
+            @if(Model.HayMasAbiertas) { <a href="@Url.Action("Index",new{desde,hasta,vista=Model.Vista,pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas+1,placa=Model.PlacaSeleccionada})">Siguiente<svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a> }
+        </nav>
+    }
+</section>
+}
 }

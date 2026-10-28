@@ -19,12 +19,13 @@ if($empresaDA -notmatch 'DELETE dbo\.PilotoConductorRuta WHERE CatalogoRutas=@ca
    $rutasDA -notmatch 'HuellaCierreGuardado' -or $rutasDA -notmatch 'ResultadosGuardados\(ruta\)') {
     throw 'Las rutas empresariales deben operar por placa y reconstruir el cierre grande desde borradores guardados.'
 }
-if($garitaDA -match 'SET\s+STATUS\s*=' -or $garitaDA -match 'SqlConfirmarEstado' -or
+if($garitaDA -notmatch "STATUS=CASE WHEN STATUS=N'A' THEN N'E' ELSE STATUS END" -or
+   $garitaDA -notmatch "STATUS IN\(N'A',N'E'\)" -or
    $garitaDA -notmatch 'Cmd\(cn,tx,SqlActualizarHoraSalida\(apk\)\)' -or
    $garitaDA -notmatch 'Cmd\(cn,tx,SqlRegistrarSalida\)' -or
    $garitaDA -notmatch 'Cmd\(cn,tx,SqlActualizarHoraEntrada\(apk\)\)' -or
    $garitaDA -notmatch 'Cmd\(cn,tx,SqlRegistrarEntrada\)') {
-    throw 'Garita debe guardar las horas en APK66 antes de auditar en POS, sin cambiar STATUS.'
+    throw 'Garita debe guardar la salida y avanzar A a E en APK66 antes de auditar en POS; la entrada C no cambia estado.'
 }
 if($garitaDA -notmatch 'r\.PLACA=@placa AND r\.STATUS=' -or $garitaDA -notmatch 'GaritaCentro g WHERE g.Usuario_Id=@usuario' -or
    $garitaDA -notmatch 'INSERT dbo.GaritaSalidaImagen' -or $garitaDA -notmatch 'evento=Convert\.ToInt64\(c\.ExecuteScalar\(\)\)') {
@@ -253,6 +254,7 @@ $garitaLista=Get-Content -LiteralPath (Join-Path $out 'garita-lista.html') -Raw
 $garitaDiferencia=Get-Content -LiteralPath (Join-Path $out 'garita-diferencia.html') -Raw
 $garitaSalida=Get-Content -LiteralPath (Join-Path $out 'garita-salida.html') -Raw
 $garitaEnRuta=Get-Content -LiteralPath (Join-Path $out 'garita-en-ruta.html') -Raw
+$garitaAbierta=Get-Content -LiteralPath (Join-Path $out 'garita-abierta.html') -Raw
 $garitaVacia=Get-Content -LiteralPath (Join-Path $out 'garita-vacia.html') -Raw
 $garitaSinResultados=Get-Content -LiteralPath (Join-Path $out 'garita-sin-resultados.html') -Raw
 $garitaEmpresaPendiente=Get-Content -LiteralPath (Join-Path $out 'garita-empresa-pendiente.html') -Raw
@@ -267,10 +269,12 @@ if($garitaVacia -notmatch 'name="placa"' -or $garitaVacia -match 'class="route-o
    $garitaVacia -notmatch 'id="qr-file"[^>]*capture="environment"' -or $garitaVacia -notmatch 'id="qr-gallery"') {
     throw 'Garita debe mostrar solo la búsqueda y ofrecer captura nativa y foto guardada para el QR.'
 }
-if($garitaLista -notmatch 'PP26-GARITA' -or $garitaLista -notmatch 'PP26-OTRA' -or $garitaLista -notmatch 'OTRO PILOTO' -or $garitaLista -notmatch 'Siguiente' -or $garitaLista -match 'id="register-exit-form"') {throw 'La búsqueda debe listar todas las rutas E de la placa y paginarlas.'}
+if($garitaLista -notmatch 'PP26-ABIERTA' -or $garitaLista -notmatch 'PP26-GARITA' -or $garitaLista -notmatch 'PP26-OTRA' -or $garitaLista -notmatch 'OTRO PILOTO' -or $garitaLista -notmatch 'Siguiente' -or $garitaLista -match 'id="register-exit-form"') {throw 'La búsqueda debe listar por separado A, E y C con sus páginas.'}
 if($garitaSinResultados -notmatch 'No hay rutas En ruta' -or $garitaSinResultados -match 'class="route-option"') {throw 'La placa sin rutas debe mostrar un mensaje claro.'}
 if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 'id="register-exit-form"') {throw 'La diferencia debe bloquear el registro de salida.'}
 if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'name="foto"' -or $garitaEnRuta -notmatch 'multipart/form-data' -or $garitaEnRuta -match 'PilotoVehiculoVerificados|name="Precinto"' -or $garitaEnRuta -notmatch 'Registrar hora de salida') {throw 'La ruta E debe mostrar un único check y la foto opcional.'}
+$garitaAbiertaTexto=[System.Net.WebUtility]::HtmlDecode($garitaAbierta)
+if($garitaAbiertaTexto -notmatch 'Abierta · pendiente de salida' -or $garitaAbierta -notmatch 'id="register-exit-form"' -or $garitaAbiertaTexto -notmatch 'pasará de Abierta a En ruta') {throw 'La ruta A debe permitir la salida y explicar el cambio a E.'}
 if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida en APK66:' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"') {throw 'La salida registrada debe mostrar hora, agente y foto sin permitir otra salida.'}
 if($garitaVacia -notmatch 'id="qr-open"' -or $garitaVacia -notmatch 'id="qr-dialog"' -or
    $garitaLista -notmatch 'Rutas cerradas sin hora de entrada|Cerradas sin entrada' -or

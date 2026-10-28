@@ -36,15 +36,18 @@ namespace DiamDev.Give.Entities
         public string PlacaBusqueda { get; set; }
         public int Pagina { get; set; }
         public int TotalRutas { get; set; }
+        public int PaginaAbiertas { get; set; }
+        public int TotalAbiertas { get; set; }
         public int PaginaCerradas { get; set; }
         public int TotalCerradas { get; set; }
         public bool BusquedaRealizada { get; set; }
         public bool TieneFotoSalida { get; set; }
         public List<GaritaRutaResumen> Resultados { get; set; }
+        public List<GaritaRutaResumen> ResultadosAbiertas { get; set; }
         public List<GaritaRutaResumen> ResultadosCerradas { get; set; }
         public List<PilotoDocumento> Documentos { get; set; }
-        public GaritaRuta() { Documentos=new List<PilotoDocumento>(); Resultados=new List<GaritaRutaResumen>(); ResultadosCerradas=new List<GaritaRutaResumen>(); }
-        public bool PuedeReportarDiferencia { get { return Estado=="E" && !Liquidada && !SalidaUtc.HasValue && !HoraSalidaApk.HasValue && Diferencia==null; } }
+        public GaritaRuta() { Documentos=new List<PilotoDocumento>(); Resultados=new List<GaritaRutaResumen>(); ResultadosAbiertas=new List<GaritaRutaResumen>(); ResultadosCerradas=new List<GaritaRutaResumen>(); }
+        public bool PuedeReportarDiferencia { get { return (Estado=="A" || Estado=="E") && !Liquidada && !SalidaUtc.HasValue && !HoraSalidaApk.HasValue && Diferencia==null; } }
         public bool PuedeRegistrarSalida { get { return PuedeReportarDiferencia && VehiculoDisponible && !string.IsNullOrWhiteSpace(Piloto) && !string.IsNullOrWhiteSpace(Placa) && !string.IsNullOrWhiteSpace(Centro) && Documentos.Count>0 && !Documentos.Any(d=>d.Visito.HasValue || !string.IsNullOrWhiteSpace(d.Entrega)); } }
         public bool PuedeRegistrarEntrada { get { return Estado=="C" && !Liquidada && !HoraEntradaApk.HasValue && !string.IsNullOrWhiteSpace(Placa) && !string.IsNullOrWhiteSpace(Centro); } }
         public int Clientes { get { return Documentos.Select(d=>d.Cliente??"").Distinct(StringComparer.OrdinalIgnoreCase).Count(); } }
@@ -123,7 +126,7 @@ namespace DiamDev.Give.Entities
 
     public static class GaritaReglas
     {
-        // Se conserva el identificador del permiso POS existente; la acción registra un evento, nunca cambia el estado de la ruta.
+        // Se conserva el permiso POS existente; registrar salida avanza A a E.
         public const string Ver="Garita.Rutas.Ver", RegistrarSalida="Garita.Rutas.ConfirmarSalida", Administrar="Garita.Administrar";
         public static string Id(string id)
         {
@@ -140,7 +143,7 @@ namespace DiamDev.Give.Entities
         public static void ValidarSalida(GaritaRegistroSalida c,GaritaRuta r)
         {
             if(c==null || c.RutaId!=r.Id || c.Solicitud==Guid.Empty) throw new PilotoException(400,"Vuelve a abrir la ruta e intenta de nuevo.");
-            if(!r.PuedeRegistrarSalida) throw new PilotoException(409,"La ruta debe estar En ruta, sin salida previa ni diferencias y lista para salir. Consulta a Distribución.");
+            if(!r.PuedeRegistrarSalida) throw new PilotoException(409,"La ruta debe estar Abierta o En ruta, sin salida previa ni diferencias y lista para salir. Consulta a Distribución.");
             if(c.Version!=r.Version) throw new PilotoException(409,"Los datos de la ruta cambiaron. Revísalos antes de registrar la hora de salida.");
             if(!c.CargaVerificada) throw new PilotoException(400,"Marca la verificación de clientes, facturas y bultos antes de registrar la hora de salida.");
             if(c.FotoContenido!=null) PilotoReglas.ValidarImagen(c.FotoNombre,c.FotoContenido);

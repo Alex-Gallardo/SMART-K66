@@ -19,13 +19,13 @@ namespace DiamDev.Give.UI.Controllers
             base.OnActionExecuting(context);
         }
         [HttpGet]
-        public ActionResult Index(string placa,string id,int pagina=1,int paginaCerradas=1)
+        public ActionResult Index(string placa,string id,int pagina=1,int paginaCerradas=1,int paginaAbiertas=1)
         {
             try
             {
                 var da=new GaritaRutaDA();
                 if(string.IsNullOrWhiteSpace(placa) && string.IsNullOrWhiteSpace(id)) {da.Preparar(User.Identity.Name);return View(new GaritaRuta());}
-                if(string.IsNullOrWhiteSpace(id)) return View(da.BuscarPorPlaca(User.Identity.Name,placa,pagina,paginaCerradas));
+                if(string.IsNullOrWhiteSpace(id)) return View(da.BuscarPorPlaca(User.Identity.Name,placa,pagina,paginaCerradas,paginaAbiertas));
                 return View(da.Detalle(User.Identity.Name,placa,id));
             }
             catch(Exception e) { ViewBag.Placa=placa;return Error(e); }
@@ -62,7 +62,7 @@ namespace DiamDev.Give.UI.Controllers
                     PilotoReglas.ValidarImagen(modelo.FotoNombre,modelo.FotoContenido);
                 }
                 new GaritaRutaDA().RegistrarSalida(User.Identity.Name,modelo);
-                TempData["Garita.Mensaje"]="Hora de salida registrada. La ruta sigue En ruta.";
+                TempData["Garita.Mensaje"]="Hora de salida registrada. La ruta está En ruta.";
                 return RedirectToAction("Index",new{placa=modelo.PlacaBusqueda,id=modelo.RutaId});
             }
             catch(Exception e) { ViewBag.Placa=modelo==null?null:modelo.PlacaBusqueda;return Error(e); }

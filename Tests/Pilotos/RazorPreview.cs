@@ -21,7 +21,7 @@ internal static class RazorPreview
         if(!match.Success) throw new InvalidOperationException("No se encontró el sprite de iconos del layout.");
         return match.Value;
     }
-    public static string Backoffice(string body,bool panel)
+    public static string Backoffice(string body,bool panel,bool liquidacion=false)
     {
         return "<!DOCTYPE html><html lang=\"es\"><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\" />"
             +"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/assets/plugins/bootstrap/css/bootstrap.min.css")+"\" />"
@@ -31,6 +31,7 @@ internal static class RazorPreview
             +(panel?"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/pilotos-panel-backoffice.css")+"\" />":"")
             +"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/pilotos-backoffice-ux.css")+"\" />"
             +(panel?"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/pilotos-panel-redesign.css")+"\" />":"")
+            +(liquidacion?"<link rel=\"stylesheet\" href=\""+Asset("DiamDev.Give.UI/Content/pilotos-liquidacion.css")+"\" />":"")
             +"</head><body class=\"app-shell app-piloto-backoffice\">"+Icons()+"<div class=\"navbar navbar-inverse navbar-fixed-top app-navbar\"><div class=\"container app-navbar-container\"><span class=\"navbar-brand app-brand\">Smart K66 · APP WEB</span></div></div>"
             +"<div class=\"main-container app-main-container\"><div class=\"navbar-content\"><div class=\"main-navigation navbar-collapse collapse app-sidebar\" id=\"app-sidebar\"><ul class=\"main-navigation-menu\"><li class=\"app-menu-home\"><a href=\"/Inicio/Dashboard\">Inicio</a></li></ul></div></div>"
             +"<main class=\"main-content\" id=\"main-content\"><div class=\"container app-content-container\"><div class=\"app-page-heading\"><ol class=\"breadcrumb app-breadcrumb\"><li>Inicio</li><li>"+(panel?"Panel de distribución":"Administración de pilotos")+"</li></ol></div>"
@@ -68,6 +69,7 @@ internal static class RazorPreview
             viewData["PanelBody"]=body;
             viewData["Title"]="Pilotos · Demo"; viewData["Desde"]="2026-09-08"; viewData["Hasta"]="2026-09-21";
             viewData["Mensaje"]="La ruta no está disponible. Consulta a Distribución.";
+            if(model is PilotoLiquidacionRuta) {var filtro=new PilotoLiquidacionFiltro();filtro.Validar(new DateTime(2026,10,28));viewData["Filtro"]=filtro;}
             var page=(WebViewPage)Activator.CreateInstance(type);
             page.ViewContext=new ViewContext(controller.ControllerContext,new PreviewView(),viewData,new TempDataDictionary(),writer);
             page.ViewData=viewData; page.InitHelpers();
@@ -76,6 +78,21 @@ internal static class RazorPreview
             page.Execute(); page.Layout=null; page.PopContext();
             return writer.ToString();
         }
+    }
+    public static PilotoLiquidacionRuta LiquidacionRuta(bool lista=false,bool liquidada=false)
+    {
+        var r=new PilotoLiquidacionRuta{Id="PP26-3002255",Fecha=new DateTime(2026,10,27),Estado=liquidada?"L":"C",Liquidada=liquidada,Piloto="TRANSPORTE DEMO",Placa="C-123ABC",Centro="PALIN",HoraSalida=new TimeSpan(8,0,0),HoraEntrada=new TimeSpan(17,45,0),TotalDocumentos=2,DocumentosConResultado=2,DocumentosLiquidados=lista||liquidada?2:0,UsuarioLiquida=liquidada?"DISTRIBUCION":null,FechaLiquida=liquidada?(DateTime?)new DateTime(2026,10,28,10,0,0):null};
+        r.Documentos.Add(new PilotoLiquidacionDocumento{RutaId=r.Id,RowId=1,Tipo="FACTURA",Numero="F-100",Cliente="CLIENTE UNO",Direccion="ZONA 1",Bultos=2,Resultado="ENTREGADO",UsuarioLiquida=lista||liquidada?"DISTRIBUCION":null,FechaLiquida=lista||liquidada?(DateTime?)new DateTime(2026,10,28,9,0,0):null});
+        r.Documentos.Add(new PilotoLiquidacionDocumento{RutaId=r.Id,RowId=2,Tipo="FACTURA",Numero="F-101",Cliente="CLIENTE DOS",Direccion="ZONA 2",Bultos=3,Resultado="NO ENTREGADO",Motivo="CLIENTE CERRADO",UsuarioLiquida=lista||liquidada?"DISTRIBUCION":null,FechaLiquida=lista||liquidada?(DateTime?)new DateTime(2026,10,28,9,0,0):null});
+        return r;
+    }
+    public static PilotoLiquidacionLista LiquidacionLista(bool verLiquidadas=false)
+    {
+        var f=new PilotoLiquidacionFiltro{VerLiquidadas=verLiquidadas};f.Validar(new DateTime(2026,10,28));
+        var m=new PilotoLiquidacionLista{Filtro=f,Total=51};m.Rutas.Add(LiquidacionRuta());
+        var lista=LiquidacionRuta(true);lista.Id="PP26-LISTA";m.Rutas.Add(lista);
+        if(verLiquidadas) {var liquidada=LiquidacionRuta(true,true);liquidada.Id="PP26-LIQUIDADA";m.Rutas.Add(liquidada);}
+        return m;
     }
     public static PilotoLista Lista(bool fija=false,bool vacia=false,string vista="activas")
     {

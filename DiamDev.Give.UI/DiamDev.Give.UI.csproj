@@ -1613,8 +1613,15 @@
   <ItemGroup>
     <Compile Include="Controllers\PilotoController.cs" />
     <Compile Include="Controllers\GaritaController.cs" />
+    <Compile Include="Controllers\LiquidacionController.cs" />
+    <Compile Include="Controllers\PilotoLiquidacionExcel.cs" />
     <Content Include="Content\pilotos.css" />
     <Content Include="Content\garita.css" />
+    <Content Include="Content\pilotos-liquidacion.css" />
+    <Content Include="Scripts\pilotos-liquidacion.js" />
+    <Content Include="Views\Liquidacion\Index.cshtml" />
+    <Content Include="Views\Liquidacion\Detalle.cshtml" />
+    <Content Include="Views\Liquidacion\Error.cshtml" />
     <Content Include="Scripts\garita-qr.js" />
     <Content Include="Scripts\qr-scanner\qr-scanner.umd.min.js" />
     <Content Include="Scripts\qr-scanner\qr-scanner-worker.min.js" />

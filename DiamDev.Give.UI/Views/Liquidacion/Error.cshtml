@@ -1,0 +1,5 @@
+@{
+    Layout="~/Views/Shared/_Layout.cshtml";ViewBag.Title="Liquidación";ViewBag.PilotoBackoffice=true;
+}
+<div class="liq-page"><div class="liq-empty" role="alert"><span aria-hidden="true">⚠️</span><h1>No se completó la operación</h1><p>@ViewBag.Mensaje</p><a class="liq-primary" href="@Url.Action("Index","Liquidacion")">Volver a Liquidación</a></div></div>
+@section styles {<link rel="stylesheet" href="@Url.Content("~/Content/pilotos-liquidacion.css")" />}

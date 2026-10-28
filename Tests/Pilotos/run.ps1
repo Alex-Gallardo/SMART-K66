@@ -75,16 +75,22 @@ New-Item -ItemType Directory -Force $out | Out-Null
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 $sources=@('DiamDev.Give.Entities/PilotoRuta.cs','DiamDev.Give.Entities/PilotoReglas.cs','DiamDev.Give.Entities/PilotoDesafio.cs','DiamDev.Give.Entities/PilotoAdministracion.cs','DiamDev.Give.DAL/PilotoRutaDA.cs','DiamDev.Give.DAL/PilotoAdministracionDA.cs','DiamDev.Give.DAL/PilotoAdministracionRutaDA.cs','DiamDev.Give.BLL/PilotoRutaBL.cs','DiamDev.Give.BLL/PilotoAdministracionBL.cs','DiamDev.Give.UI/Controllers/PilotoController.cs','Tests/Pilotos/PilotoTests.cs') | ForEach-Object { Join-Path $repo $_ }
 $sources+=@('DiamDev.Give.Entities/PilotoPanel.cs','DiamDev.Give.DAL/PilotoPanelDA.cs','DiamDev.Give.BLL/PilotoPanelBL.cs','Tests/Pilotos/PanelTests.cs') | ForEach-Object { Join-Path $repo $_ }
+$sources+=@('DiamDev.Give.Entities/PilotoLiquidacion.cs','DiamDev.Give.DAL/PilotoLiquidacionDA.cs','DiamDev.Give.BLL/PilotoLiquidacionBL.cs','DiamDev.Give.UI/Controllers/LiquidacionController.cs','DiamDev.Give.UI/Controllers/PilotoLiquidacionExcel.cs','Tests/Pilotos/LiquidacionTests.cs') | ForEach-Object { Join-Path $repo $_ }
 $sources+=@('DiamDev.Give.Entities/GaritaRuta.cs','DiamDev.Give.DAL/GaritaRutaDA.cs','DiamDev.Give.UI/Controllers/GaritaController.cs','Tests/Pilotos/GaritaTests.cs') | ForEach-Object { Join-Path $repo $_ }
 $sources+=Join-Path $repo 'DiamDev.Give.Entities/UsuarioRolPlan.cs'
-& $compiler /nologo /target:exe "/out:$out/PilotoTests.exe" /r:System.Configuration.dll /r:System.Data.dll /r:System.Xml.Linq.dll /r:System.Xml.dll /r:System.Web.dll /r:System.ComponentModel.DataAnnotations.dll "/r:$MvcDll" $sources
+$EpPlusDll=Join-Path $env:USERPROFILE '.nuget/packages/epplus/4.5.2.1/lib/net40/EPPlus.dll'
+if(!(Test-Path -LiteralPath $EpPlusDll)) {throw 'Restaurar EPPlus 4.5.2.1 para probar Liquidación.'}
+& $compiler /nologo /target:exe "/out:$out/PilotoTests.exe" /r:System.Configuration.dll /r:System.Data.dll /r:System.Xml.Linq.dll /r:System.Xml.dll /r:System.Web.dll /r:System.ComponentModel.DataAnnotations.dll /r:System.Drawing.dll "/r:$MvcDll" "/r:$EpPlusDll" $sources
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion aislada del modulo.' }
 Copy-Item -LiteralPath $MvcDll -Destination $out -Force
 Copy-Item -LiteralPath $WebPagesDll -Destination $out -Force
+Copy-Item -LiteralPath $EpPlusDll -Destination $out -Force
 & (Join-Path $out 'PilotoTests.exe')
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas.' }
 & (Join-Path $out 'PilotoTests.exe') panel
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las reglas del panel.' }
+& (Join-Path $out 'PilotoTests.exe') liquidacion
+if($LASTEXITCODE -ne 0) { throw 'Fallaron las reglas de Liquidación.' }
 & (Join-Path $out 'PilotoTests.exe') garita
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las reglas de garita.' }
 & (Join-Path $out 'PilotoTests.exe') empresa
@@ -151,6 +157,22 @@ Copy-Item -LiteralPath $RazorDll -Destination $out -Force
 if($LASTEXITCODE -ne 0) { throw 'Fallo compilacion del verificador Razor.' }
 & (Join-Path $out 'RazorCompile.exe') $repo --render
 if($LASTEXITCODE -ne 0) { throw 'Fallaron las vistas Razor.' }
+$liqIndex=Get-Content -LiteralPath (Join-Path $out 'liq-index.html') -Raw
+$liqHistorial=Get-Content -LiteralPath (Join-Path $out 'liq-con-historial.html') -Raw
+$liqDetalle=Get-Content -LiteralPath (Join-Path $out 'liq-detalle.html') -Raw
+$liqLista=Get-Content -LiteralPath (Join-Path $out 'liq-lista.html') -Raw
+$liqLiquidada=Get-Content -LiteralPath (Join-Path $out 'liq-liquidada.html') -Raw
+if($liqIndex -notmatch 'name="VerLiquidadas"' -or $liqIndex -notmatch 'id="liq-export-form"' -or
+   $liqIndex -notmatch 'PP26-3002255' -or $liqIndex -notmatch 'PP26-LISTA' -or $liqIndex -match 'PP26-LIQUIDADA' -or
+   $liqIndex -notmatch 'data-confirm-action="Liquidar ruta"' -or $liqIndex -notmatch 'aria-label="Páginas de rutas"' -or
+   $liqHistorial -notmatch 'PP26-LIQUIDADA' -or $liqDetalle -notmatch 'Liquidar 2 documentos juntos' -or
+   ([regex]::Matches($liqDetalle,'data-confirm-action="Liquidar documento"')).Count -ne 2 -or
+   $liqDetalle -match 'data-confirm-action="Liquidar ruta"' -or $liqLista -notmatch 'data-confirm-action="Liquidar ruta"' -or
+   $liqLista -match 'Liquidar 2 documentos juntos' -or $liqLiquidada -match 'data-confirm-action="Liquidar ruta"|data-confirm-action="Liquidar documento"' -or
+   $liqLiquidada -notmatch 'solo consulta' -or $liqIndex -match 'if\(Model\.|\} else \{') {
+    throw 'Liquidación debe mostrar filtros, historial, Excel y acciones documentales antes de la ruta.'
+}
+Write-Host 'OK Razor Liquidación: estados, pasos, selección y acciones condicionadas.'
 $index=Get-Content -LiteralPath (Join-Path $out 'index.html') -Raw
 $soloAbiertas=Get-Content -LiteralPath (Join-Path $out 'index-solo-abiertas.html') -Raw
 $paginas=Get-Content -LiteralPath (Join-Path $out 'index-paginas.html') -Raw
@@ -302,6 +324,7 @@ Write-Host 'OK: búsqueda, carga, bloqueo por diferencia y salida registrada en 
 if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {& (Join-Path $PSScriptRoot 'garita-browser-smoke.ps1'); if($LASTEXITCODE -ne 0) {throw 'Falló la prueba de navegador de garita.'}}
 if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {& (Join-Path $PSScriptRoot 'empresa-browser-smoke.ps1'); if($LASTEXITCODE -ne 0) {throw 'Falló la prueba de navegador de transportistas.'}}
 if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {& (Join-Path $PSScriptRoot 'route-admin-browser-smoke.ps1'); if($LASTEXITCODE -ne 0) {throw 'Falló la prueba de formularios administrativos.'}}
+if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {& (Join-Path $PSScriptRoot 'liquidacion-browser-smoke.ps1'); if($LASTEXITCODE -ne 0) {throw 'Falló la prueba de navegador de Liquidación.'}}
 if(!$ScriptDomDll) { $ScriptDomDll=Join-Path $env:USERPROFILE '.nuget/packages/microsoft.sqlserver.transactsql.scriptdom/161.8901.0/lib/net462/Microsoft.SqlServer.TransactSql.ScriptDom.dll' }
 if(!(Test-Path -LiteralPath $ScriptDomDll)) { throw 'Indicar -ScriptDomDll (version 161/net462) para la validacion SQL sin conexion.' }
 Copy-Item -LiteralPath $ScriptDomDll -Destination $out -Force
@@ -320,6 +343,7 @@ $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/30_transportistas_empresa_pos.s
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/31_empresa_placas_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/32_indice_rutas_placa_apk66.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/33_garita_entrada_pos.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/34_permiso_liquidacion_pos.sql'
 $adminSql=Join-Path $out 'autorizacion-admin.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }
@@ -340,5 +364,9 @@ $horasSql=Join-Path $out 'horas-garita.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-horas-garita | Set-Content -LiteralPath $horasSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener las escrituras reales de horas de garita.' }
 $scripts+=$horasSql
+$liqSql=Join-Path $out 'liquidacion-consultas.sql'
+& (Join-Path $out 'PilotoTests.exe') sql-liquidacion | Set-Content -LiteralPath $liqSql -Encoding UTF8
+if($LASTEXITCODE -ne 0) {throw 'Fallo obtener consultas reales de Liquidación.'}
+$scripts+=$liqSql
 & (Join-Path $out 'SqlCompile.exe') $scripts
 if($LASTEXITCODE -ne 0) { throw 'Fallo sintaxis SQL.' }

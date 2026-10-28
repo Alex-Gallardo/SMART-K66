@@ -10,6 +10,10 @@
 {
     <div class="callout callout-info"><h4>Administración de garita</h4><p>Asigna centros a los agentes y resuelve diferencias reportadas.</p><a class="btn btn-primary" href="@Url.Action("Administrar","Garita")">Administrar garita</a></div>
 }
+@if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Pilotos.Liquidar"))
+{
+    <div class="callout callout-success"><h4>✅ Liquidación de rutas</h4><p>Revisa documentos y liquida rutas cerradas de todos los centros.</p><a class="btn btn-success" href="@Url.Action("Index","Liquidacion")">Abrir Liquidación</a></div>
+}
 
 @if (DiamDev.Give.UI.App_Start.CustomHelper.Permiso("Pilotos.Monitorear"))
 {

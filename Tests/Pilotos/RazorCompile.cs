@@ -18,7 +18,7 @@ internal static class RazorCompile
             RazorPreview.AssetsRoot=root;
             var previews=new Dictionary<string,string>(); Type layout=null;Type panelContenido=null;
             RouteTable.Routes.MapRoute("Default","{controller}/{action}/{id}",new {action="Index",id=UrlParameter.Optional});
-            foreach(var relative in new[]{"Piloto/Index.cshtml","Piloto/Detalle.cshtml","Piloto/Error.cshtml","Piloto/Administracion.cshtml","Piloto/Configurar.cshtml","Piloto/EditarRuta.cshtml","Piloto/AdministracionError.cshtml","Seguridad/PilotoToken.cshtml","Seguridad/GaritaToken.cshtml","Piloto/_PanelContenido.cshtml","Piloto/Panel.cshtml","Piloto/PanelDetalle.cshtml","Piloto/PanelError.cshtml","Shared/_PilotoLayout.cshtml","Shared/_Layout.cshtml","Garita/Index.cshtml","Garita/Error.cshtml","Garita/Administrar.cshtml","Shared/_GaritaLayout.cshtml"}) {
+            foreach(var relative in new[]{"Piloto/Index.cshtml","Piloto/Detalle.cshtml","Piloto/Error.cshtml","Piloto/Administracion.cshtml","Piloto/Configurar.cshtml","Piloto/EditarRuta.cshtml","Piloto/AdministracionError.cshtml","Seguridad/PilotoToken.cshtml","Seguridad/GaritaToken.cshtml","Piloto/_PanelContenido.cshtml","Piloto/Panel.cshtml","Piloto/PanelDetalle.cshtml","Piloto/PanelError.cshtml","Shared/_PilotoLayout.cshtml","Shared/_Layout.cshtml","Garita/Index.cshtml","Garita/Error.cshtml","Garita/Administrar.cshtml","Shared/_GaritaLayout.cshtml","Liquidacion/Index.cshtml","Liquidacion/Detalle.cshtml","Liquidacion/Error.cshtml"}) {
                 string file=Path.Combine(root,"DiamDev.Give.UI/Views/"+relative);
                 var host=new MvcWebPageRazorHost("~/Views/"+relative,file);
                 host.NamespaceImports.Add("System"); host.NamespaceImports.Add("System.Linq");
@@ -105,6 +105,9 @@ internal static class RazorCompile
                             garita.Estado="C";garita.HoraSalidaApk=new TimeSpan(9,30,0);garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);previews["garita-cerrada"]=RazorPreview.Render(type,garita);
                             garita.HoraEntradaApk=new TimeSpan(17,15,0);garita.EntradaUtc=new DateTime(2026,10,20,23,15,0,DateTimeKind.Utc);garita.AgenteEntrada="GUARDIA";garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);previews["garita-entrada"]=RazorPreview.Render(type,garita);
                         }
+                        if(relative=="Liquidacion/Index.cshtml") {previews["liq-index"]=RazorPreview.Render(type,RazorPreview.LiquidacionLista());previews["liq-con-historial"]=RazorPreview.Render(type,RazorPreview.LiquidacionLista(true));}
+                        if(relative=="Liquidacion/Detalle.cshtml") {previews["liq-detalle"]=RazorPreview.Render(type,RazorPreview.LiquidacionRuta());previews["liq-lista"]=RazorPreview.Render(type,RazorPreview.LiquidacionRuta(true));previews["liq-liquidada"]=RazorPreview.Render(type,RazorPreview.LiquidacionRuta(true,true));}
+                        if(relative=="Liquidacion/Error.cshtml") previews["liq-error"]=RazorPreview.Render(type,null);
                         if(relative=="Garita/Administrar.cshtml") {
                             var admin=new DiamDev.Give.Entities.GaritaAdministracion{Login="agente_demo",UsuarioId=1,Nombre="Agente Demo"};
                             admin.Centros.Add("PALIN");admin.Disponibles.Add("PALIN");admin.Disponibles.Add("GUATEMALA");
@@ -117,8 +120,9 @@ internal static class RazorCompile
             }
             if(args.Length>1) foreach(var preview in previews) {
                 object model=preview.Key.StartsWith("panel-") ? (object)RazorPreview.Panel() : preview.Key=="administracion" ? (object)RazorPreview.AdminLista() : preview.Key=="configurar" ? (object)RazorPreview.AdminEdicion() : preview.Key=="configurar-empresa" ? (object)RazorPreview.AdminEdicionEmpresa() : preview.Key=="editar-ruta" ? (object)RazorPreview.AdminRuta() : preview.Key=="editar-ruta-empresa" ? (object)RazorPreview.AdminRutaEmpresa() : null;
-                bool backoffice=preview.Key.StartsWith("panel-") || preview.Key=="administracion" || preview.Key.StartsWith("configurar") || preview.Key.StartsWith("editar-ruta") || preview.Key=="administracion-error";
-                var html=preview.Key.StartsWith("garita-") ? preview.Value : backoffice ? RazorPreview.Backoffice(preview.Value,preview.Key.StartsWith("panel-")) : RazorPreview.Render(layout,model,preview.Value,"activas",preview.Key=="detalle-cierre" || preview.Key=="detalle-borrador" || preview.Key.StartsWith("detalle-empresa-"));
+                bool backoffice=preview.Key.StartsWith("panel-") || preview.Key.StartsWith("liq-") || preview.Key=="administracion" || preview.Key.StartsWith("configurar") || preview.Key.StartsWith("editar-ruta") || preview.Key=="administracion-error";
+                var html=preview.Key.StartsWith("garita-") ? preview.Value : backoffice ? RazorPreview.Backoffice(preview.Value,preview.Key.StartsWith("panel-"),preview.Key.StartsWith("liq-")) : RazorPreview.Render(layout,model,preview.Value,"activas",preview.Key=="detalle-cierre" || preview.Key=="detalle-borrador" || preview.Key.StartsWith("detalle-empresa-"));
+                if(preview.Key.StartsWith("liq-")) html=html.Replace("</body>","<script src=\""+new Uri(Path.Combine(root,"DiamDev.Give.UI/Scripts/pilotos-liquidacion.js")).AbsoluteUri+"\"></script></body>");
                 if(preview.Key.StartsWith("editar-ruta")) html=html.Replace("/Scripts/pilotos.js","/Scripts/pilotos-admin-ruta.js");
                 File.WriteAllText(Path.Combine(bin,preview.Key+".html"),html);
             }

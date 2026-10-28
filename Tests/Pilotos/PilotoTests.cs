@@ -83,6 +83,8 @@ internal static class PilotoTests
     public static int Main(string[] args) {
         try {
             if(args.Length==1 && args[0]=="panel") return PanelTests.Run();
+            if(args.Length==1 && args[0]=="liquidacion") return LiquidacionTests.Run();
+            if(args.Length==1 && args[0]=="sql-liquidacion") return LiquidacionTests.Sql();
             if(args.Length==1 && args[0]=="garita") return GaritaTests.Run();
             if(args.Length==1 && args[0]=="empresa") return Empresa();
             if(args.Length==1 && args[0]=="sql-garita") return GaritaTests.Sql();

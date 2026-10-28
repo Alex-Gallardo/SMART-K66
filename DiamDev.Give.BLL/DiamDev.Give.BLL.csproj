@@ -211,6 +211,7 @@
   <ItemGroup>
     <Compile Include="PilotoRutaBL.cs" />
     <Compile Include="PilotoPanelBL.cs" />
+    <Compile Include="PilotoLiquidacionBL.cs" />
     <Compile Include="PilotoAdministracionBL.cs" />
   </ItemGroup>
 </Project>

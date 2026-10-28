@@ -1,0 +1,53 @@
+@model DiamDev.Give.Entities.PilotoLiquidacionRuta
+@{
+    Layout="~/Views/Shared/_Layout.cshtml";ViewBag.Title="Liquidar ruta "+Model.Id;ViewBag.PilotoBackoffice=true;
+    var f=(DiamDev.Give.Entities.PilotoLiquidacionFiltro)ViewBag.Filtro;
+    var pendientes=Model.TotalDocumentos-Model.DocumentosLiquidados;
+}
+<div class="liq-page">
+    <nav class="liq-breadcrumb" aria-label="Ruta de navegación"><a href="@Url.Action("Dashboard","Inicio")">Inicio</a><span aria-hidden="true">›</span><a href="@Url.Action("Index",new{desde=f.Desde,hasta=f.Hasta,buscar=f.Buscar,verLiquidadas=f.VerLiquidadas,pagina=f.Pagina})">Liquidación</a><span aria-hidden="true">›</span><span>@Model.Id</span></nav>
+    <a class="liq-back" href="@Url.Action("Index",new{desde=f.Desde,hasta=f.Hasta,buscar=f.Buscar,verLiquidadas=f.VerLiquidadas,pagina=f.Pagina})">← Volver a las rutas</a>
+    <header class="liq-hero"><span class="liq-hero-icon" aria-hidden="true">🚚</span><div><p class="liq-kicker">RUTA @Model.Estado</p><h1>@Model.Id</h1><p>@Model.Fecha.ToString("dd/MM/yyyy") · @Model.Centro · Placa @Model.Placa</p></div><span class="liq-badge @(Model.Liquidada?"liq-badge-done":"liq-badge-pending")">@(Model.Liquidada?"✅ Liquidada":"📦 Cerrada")</span></header>
+    @if(TempData["Liquidacion.Mensaje"]!=null){<div class="liq-alert liq-success" role="status">✅ @TempData["Liquidacion.Mensaje"]</div>}
+    <section class="liq-detail-summary" aria-label="Datos de la ruta">
+        <div><span>👤 Piloto / transporte</span><strong>@Model.Piloto</strong></div><div><span>🚚 Placa</span><strong>@Model.Placa</strong></div><div><span>🏢 Centro</span><strong>@Model.Centro</strong></div><div><span>🕒 Salida</span><strong>@(Model.HoraSalida.HasValue?Model.HoraSalida.Value.ToString(@"hh\:mm"):"Sin registro")</strong></div><div><span>🏁 Entrada</span><strong>@(Model.HoraEntrada.HasValue?Model.HoraEntrada.Value.ToString(@"hh\:mm"):"Sin registro")</strong></div><div><span>🧾 Documentos</span><strong>@Model.DocumentosLiquidados de @Model.TotalDocumentos liquidados</strong></div>
+    </section>
+    @if(Model.Liquidada){<div class="liq-alert liq-success" role="status">Liquidada por <strong>@Model.UsuarioLiquida</strong> el @(Model.FechaLiquida.HasValue?Model.FechaLiquida.Value.ToString("dd/MM/yyyy HH:mm"):"fecha no registrada"). Esta ruta es de solo consulta.</div>}
+    else if(!Model.HoraEntrada.HasValue){<div class="liq-alert liq-warning" role="status">⏳ Falta la hora de entrada de Garita. Podrás liquidar documentos y ruta cuando se registre.</div>}
+    else if(Model.DocumentosInconsistentes>0){<div class="liq-alert liq-warning" role="alert">Hay @Model.DocumentosInconsistentes documentos con usuario o fecha de liquidación incompletos. Solicita revisión a Distribución.</div>}
+    else if(Model.DocumentosConResultado<Model.TotalDocumentos){<div class="liq-alert liq-warning" role="status">Hay @(Model.TotalDocumentos-Model.DocumentosConResultado) documentos sin resultado de entrega. Puedes liquidar individualmente los que ya tienen resultado.</div>}
+    <section class="liq-step-card" aria-labelledby="liq-docs-title"><div class="liq-section-title"><div><p class="liq-kicker">1 · DOCUMENTOS</p><h2 id="liq-docs-title">Revisa y liquida los documentos</h2><p>@Model.DocumentosLiquidados de @Model.TotalDocumentos liquidados · @pendientes pendientes</p></div>
+        @if(!Model.Liquidada && pendientes>0 && Model.PuedeLiquidarDocumentos && Model.DocumentosConResultado==Model.TotalDocumentos){
+            <form method="post" action="@Url.Action("LiquidarTodos")" class="liq-confirm-form" data-confirm="¿Liquidar todos los documentos pendientes de la ruta @Model.Id?" data-confirm-action="Liquidar documentos">
+                @Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" /><input type="hidden" name="Desde" value="@f.Desde" /><input type="hidden" name="Hasta" value="@f.Hasta" /><input type="hidden" name="Buscar" value="@f.Buscar" /><input type="hidden" name="VerLiquidadas" value="@f.VerLiquidadas.ToString().ToLowerInvariant()" /><input type="hidden" name="Pagina" value="@f.Pagina" />
+                <button class="liq-primary" type="submit">✅ Liquidar @pendientes documentos juntos</button>
+            </form>
+        }
+    </div>
+    @if(Model.Documentos.Count==0){<p class="liq-empty">La ruta no tiene documentos; consulta a Distribución.</p>}
+    else {<div class="liq-doc-list">
+        @foreach(var d in Model.Documentos){
+            <article class="liq-doc-card @(d.Liquidado?"liq-doc-done":"")"><div class="liq-doc-head"><div><span class="liq-badge @(d.Liquidado?"liq-badge-done":"liq-badge-pending")">@(d.Liquidado?"✅ Liquidado":"🧾 Pendiente")</span><h3>@d.Tipo · @d.Numero</h3><p>@d.Cliente</p></div><strong>@d.Bultos.ToString("0.###") bultos</strong></div>
+                <dl class="liq-doc-facts"><div><dt>📍 Dirección</dt><dd>@d.Direccion</dd></div><div><dt>Resultado</dt><dd>@(string.IsNullOrWhiteSpace(d.Resultado)?"Sin resultado":d.Resultado)</dd></div>@if(!string.IsNullOrWhiteSpace(d.Motivo)){<div><dt>Motivo</dt><dd>@d.Motivo</dd></div>}@if(!string.IsNullOrWhiteSpace(d.Observacion)){<div><dt>Observación</dt><dd>@d.Observacion</dd></div>}</dl>
+                @if(d.Liquidado){<p class="liq-doc-audit">Liquidado por @d.UsuarioLiquida · @(d.FechaLiquida.HasValue?d.FechaLiquida.Value.ToString("dd/MM/yyyy HH:mm"):"")</p>}
+                else if(d.Inconsistente){<p class="liq-warning-text">Los datos de liquidación están incompletos. Solicita revisión.</p>}
+                else if(Model.PuedeLiquidarDocumentos && !string.IsNullOrWhiteSpace(d.Resultado)){
+                    <form method="post" action="@Url.Action("LiquidarDocumento")" class="liq-confirm-form" data-confirm="¿Liquidar el documento @d.Numero de la ruta @Model.Id?" data-confirm-action="Liquidar documento">
+                        @Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" /><input type="hidden" name="rowId" value="@d.RowId" /><input type="hidden" name="Desde" value="@f.Desde" /><input type="hidden" name="Hasta" value="@f.Hasta" /><input type="hidden" name="Buscar" value="@f.Buscar" /><input type="hidden" name="VerLiquidadas" value="@f.VerLiquidadas.ToString().ToLowerInvariant()" /><input type="hidden" name="Pagina" value="@f.Pagina" />
+                        <button class="liq-secondary" type="submit">Liquidar este documento</button>
+                    </form>
+                }
+            </article>
+        }
+    </div>}
+    </section>
+    <section class="liq-step-card liq-finish" aria-labelledby="liq-finish-title"><div><p class="liq-kicker">2 · RUTA</p><h2 id="liq-finish-title">Finaliza la liquidación</h2><p>@(Model.Liquidada?"Esta ruta ya está liquidada.":Model.PuedeLiquidarRuta?"Todos los documentos están liquidados. Confirma para terminar.":"Primero liquida todos los documentos y verifica la entrada de Garita.")</p></div>
+        @if(Model.PuedeLiquidarRuta){<form method="post" action="@Url.Action("LiquidarRuta")" class="liq-confirm-form" data-confirm="¿Liquidar definitivamente la ruta @Model.Id? Todos sus documentos ya están liquidados." data-confirm-action="Liquidar ruta">
+            @Html.AntiForgeryToken()<input type="hidden" name="id" value="@Model.Id" /><input type="hidden" name="Desde" value="@f.Desde" /><input type="hidden" name="Hasta" value="@f.Hasta" /><input type="hidden" name="Buscar" value="@f.Buscar" /><input type="hidden" name="VerLiquidadas" value="@f.VerLiquidadas.ToString().ToLowerInvariant()" /><input type="hidden" name="Pagina" value="@f.Pagina" />
+            <button class="liq-primary" type="submit">✅ Liquidar ruta</button>
+        </form>}
+    </section>
+</div>
+<div id="liq-confirm-modal" class="liq-modal" role="dialog" aria-modal="true" aria-labelledby="liq-modal-title" hidden><div class="liq-modal-panel"><span aria-hidden="true">✅</span><h2 id="liq-modal-title">Confirmar liquidación</h2><p id="liq-modal-message"></p><div class="liq-modal-actions"><button id="liq-modal-cancel" class="liq-secondary" type="button">Cancelar</button><button id="liq-modal-accept" class="liq-primary" type="button">Confirmar</button></div></div></div>
+@section styles {<link rel="stylesheet" href="@Url.Content("~/Content/pilotos-liquidacion.css")" />}
+@section scripts {<script src="@Url.Content("~/Scripts/pilotos-liquidacion.js")"></script>}

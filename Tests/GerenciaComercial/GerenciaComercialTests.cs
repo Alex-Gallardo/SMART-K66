@@ -58,7 +58,20 @@ public static class GerenciaComercialTests
         Check(sqlVentas.Contains("'QTZ','Q','GTQ'") && sqlVentas.Contains("'GTQ' ELSE"), "La moneda local SAP debe normalizarse a GTQ.");
         Check(sqlVentas.Contains("-1 * CASE"), "Las notas de crédito deben descontarse de las ventas.");
         Check(sqlVentas.Contains("P.\"Agente\"") && sqlVentas.Contains("P.\"Cliente\"") && sqlVentas.Contains("P.\"Estado\""), "Los filtros avanzados deben aplicarse en SAP.");
-        Console.WriteLine("OK: " + _passed + " verificaciones de filtros, privacidad y exportación.");
+        var types = (string[])typeof(GerenciaComercialController).GetField("Tipos", BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+        Check(Array.IndexOf(types, "productos") < 0 && Array.IndexOf(types, "clientesSql") < 0 && Array.IndexOf(types, "productosSql") < 0, "Las tres secciones en desarrollo no deben admitir listados, detalles ni exportaciones.");
+        Check(Array.IndexOf(types, "ventas") >= 0 && Array.IndexOf(types, "clientes") >= 0, "Las secciones activas deben permanecer disponibles.");
+
+        HanaHelper.Consultas.Clear();
+        new GerenciaComercialDA().DetalleSap("ventas", "FAES", "123");
+        Check(HanaHelper.Consultas.Count == 2, "El detalle de ventas debe consultar encabezado y productos.");
+        Check(HanaHelper.Consultas[0].Contains("\"SBOESCOCESA\".\"OINV\"") && HanaHelper.Consultas[1].Contains("\"SBOESCOCESA\".\"INV1\""), "La factura debe usar el esquema y tablas SAP correctos.");
+        Check(!HanaHelper.Consultas[0].Contains("SELECT *") && !HanaHelper.Consultas[1].Contains("SELECT *"), "El detalle de ventas no debe devolver todas las columnas técnicas SAP.");
+        Check(HanaHelper.Consultas[0].Contains("\"Subtotal\"") && HanaHelper.Consultas[0].Contains("\"Cliente\"") && HanaHelper.Consultas[1].Contains("\"PrecioUnitario\""), "El detalle debe conservar importes y datos comerciales útiles.");
+        HanaHelper.Consultas.Clear();
+        new GerenciaComercialDA().DetalleSap("notas", "BOLIK", "456");
+        Check(HanaHelper.Consultas[0].Contains("\"ORIN\"") && HanaHelper.Consultas[1].Contains("\"RIN1\""), "Las notas de crédito deben consultar sus propias tablas.");
+        Console.WriteLine("OK: " + _passed + " verificaciones de filtros, privacidad, detalle y exportación.");
         return 0;
     }
 }

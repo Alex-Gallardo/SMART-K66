@@ -3,7 +3,7 @@
     var root = document.getElementById("gc");
     if (!root) return;
     var byId = function (id) { return document.getElementById(id); };
-    var state = { type: "ventas", page: 1, size: 25, total: 0, listRequest: 0, summaryRequest: 0 };
+    var state = { type: "ventas", page: 1, size: 25, total: 0, listRequest: 0, summaryRequest: 0, trendCurrency: "GTQ", trendDay: null, trendData: null };
     var companies = ["BOLIK", "FAES", "GRACO"];
     var currency = function (value, code) { return (code || "GTQ") + " " + Number(value || 0).toLocaleString("es-GT", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
     var integer = function (value) { return Number(value || 0).toLocaleString("es-GT"); };
@@ -65,40 +65,105 @@
         });
     }
 
+    function svgElement(tag, attributes, content) {
+        var element = document.createElementNS("http://www.w3.org/2000/svg", tag);
+        Object.keys(attributes || {}).forEach(function (name) { element.setAttribute(name, attributes[name]); });
+        if (content !== undefined) element.textContent = content;
+        return element;
+    }
+    function renderTrendDay(context, day) {
+        state.trendDay = day;
+        var index = context.days.indexOf(day), point = context.points[day], target = byId("gc-trend-day");
+        if (index < 0) return;
+        if (context.slider) context.slider.value = String(index);
+        var x = context.x(index);
+        context.marker.setAttribute("x1", x); context.marker.setAttribute("x2", x);
+        context.dot.setAttribute("cx", x); context.dot.setAttribute("cy", context.y(point.net));
+        target.replaceChildren();
+        var head = create("div", "gc-trend-day-head");
+        head.appendChild(create("strong", "", day));
+        head.appendChild(create("b", "", currency(point.net, context.code)));
+        target.appendChild(head);
+        target.appendChild(create("p", "", integer(point.invoices) + " facturas · " + integer(point.credits) + " notas de crédito"));
+        var breakdown = create("div", "gc-trend-breakdown");
+        companies.forEach(function (company) {
+            var value = point.companies[company];
+            if (value !== undefined) breakdown.appendChild(create("span", "", company + " · " + currency(value, context.code)));
+        });
+        if (!breakdown.childNodes.length) breakdown.appendChild(create("span", "", "Sin movimientos en este día"));
+        target.appendChild(breakdown);
+    }
     function renderTrend(data) {
-        var target = byId("gc-trend"), points = {};
-        (data.ventas || []).forEach(function (r) {
-            var day = String(r.Dia || "").slice(0, 10), code = r.Moneda;
-            if (code !== "GTQ" && code !== "USD") return;
-            if (!points[day]) points[day] = { GTQ: 0, USD: 0 };
-            points[day][code] += Number(r.Neto || 0);
+        state.trendData = data;
+        var target = byId("gc-trend"), stats = byId("gc-trend-stats"), dayBox = byId("gc-trend-day");
+        target.replaceChildren(); stats.replaceChildren(); dayBox.replaceChildren();
+        var rows = data.ventas || [];
+        var available = { GTQ: false, USD: false };
+        rows.forEach(function (r) { if (available.hasOwnProperty(r.Moneda)) available[r.Moneda] = true; });
+        if (!available[state.trendCurrency] && (available.GTQ || available.USD)) state.trendCurrency = available.GTQ ? "GTQ" : "USD";
+        root.querySelectorAll("[data-trend-currency]").forEach(function (button) {
+            var code = button.getAttribute("data-trend-currency"), selected = code === state.trendCurrency;
+            button.disabled = !available[code]; button.classList.toggle("is-active", selected); button.setAttribute("aria-pressed", selected ? "true" : "false");
         });
-        var days = Object.keys(points).sort(); target.replaceChildren();
-        if (!days.length) { target.appendChild(create("p", "gc-empty", "No hay ventas en este período.")); return; }
-        var values = days.flatMap(function (d) { return [points[d].GTQ, points[d].USD]; });
-        var min = Math.min(0, Math.min.apply(null, values)), max = Math.max(0, Math.max.apply(null, values));
-        if (max === min) max = min + 1;
-        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        svg.setAttribute("viewBox", "0 0 640 205"); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", "Ventas netas diarias en GTQ y USD");
-        for (var i = 0; i < 4; i++) {
-            var gy = 15 + i * 54;
-            var line = document.createElementNS(svg.namespaceURI, "line"); line.setAttribute("x1", "0"); line.setAttribute("x2", "640"); line.setAttribute("y1", gy); line.setAttribute("y2", gy); line.setAttribute("stroke", "#e7edf2"); svg.appendChild(line);
+        var code = state.trendCurrency;
+        if (!available[code]) { target.appendChild(create("p", "gc-empty", "No hay ventas en este período.")); return; }
+        var points = {}, days = [], cursor = new Date(data.desde + "T00:00:00"), end = new Date(data.hasta + "T00:00:00");
+        while (cursor <= end) {
+            var key = dateInput(cursor); days.push(key); points[key] = { net: 0, invoices: 0, credits: 0, companies: {} }; cursor.setDate(cursor.getDate() + 1);
         }
-        ["GTQ", "USD"].forEach(function (code, index) {
-            var color = index === 0 ? "#2082af" : "#59b594";
-            if (days.length === 1) {
-                var valueY = 190 - (points[days[0]][code] - min) * 175 / (max - min), zeroY = 190 - (0 - min) * 175 / (max - min);
-                var bar = document.createElementNS(svg.namespaceURI, "rect");
-                bar.setAttribute("x", index === 0 ? "270" : "330"); bar.setAttribute("y", Math.min(valueY, zeroY)); bar.setAttribute("width", "42"); bar.setAttribute("height", Math.max(2, Math.abs(valueY - zeroY))); bar.setAttribute("rx", "5"); bar.setAttribute("fill", color); svg.appendChild(bar);
-            } else {
-                var poly = document.createElementNS(svg.namespaceURI, "polyline");
-                poly.setAttribute("points", days.map(function (day, j) { return (5 + j * 630 / (days.length - 1)).toFixed(1) + "," + (190 - (points[day][code] - min) * 175 / (max - min)).toFixed(1); }).join(" "));
-                poly.setAttribute("fill", "none"); poly.setAttribute("stroke", color); poly.setAttribute("stroke-width", "3"); poly.setAttribute("stroke-linecap", "round"); poly.setAttribute("stroke-linejoin", "round"); svg.appendChild(poly);
-            }
+        rows.filter(function (r) { return r.Moneda === code; }).forEach(function (r) {
+            var key = String(r.Dia || "").slice(0, 10), point = points[key]; if (!point) return;
+            var amount = Number(r.Neto || 0); point.net += amount;
+            point.invoices += Number(r.Facturas || 0); point.credits += Number(r.NotasCredito || 0);
+            point.companies[r.Empresa] = (point.companies[r.Empresa] || 0) + amount;
         });
-        target.appendChild(svg);
-        var labels = create("div", "gc-chart-labels"); labels.appendChild(create("span", "", days[0])); labels.appendChild(create("span", "", days[days.length - 1])); target.appendChild(labels);
-        var legend = create("div", "gc-legend"); legend.appendChild(create("span", "", "GTQ")); legend.appendChild(create("span", "usd", "USD")); target.appendChild(legend);
+        if (!days.length) { target.appendChild(create("p", "gc-empty", "No hay días en el período seleccionado.")); return; }
+        var values = days.map(function (d) { return points[d].net; });
+        var min = Math.min(0, Math.min.apply(null, values)), max = Math.max(0, Math.max.apply(null, values));
+        if (min === max) max = min + 1;
+        var y = function (value) { return 210 - (value - min) * 190 / (max - min); };
+        var x = function (index) { return days.length === 1 ? 375 : 70 + index * 610 / (days.length - 1); };
+        var svg = svgElement("svg", { viewBox: "0 0 700 250", role: "img", "aria-label": "Ventas netas diarias en " + code + " del " + days[0] + " al " + days[days.length - 1] });
+        for (var i = 0; i <= 4; i++) {
+            var tick = min + (max - min) * i / 4, tickY = y(tick);
+            svg.appendChild(svgElement("line", { x1: 70, x2: 680, y1: tickY, y2: tickY, stroke: Math.abs(tick) < 0.001 ? "#9fb3c1" : "#e7edf2", "stroke-width": Math.abs(tick) < 0.001 ? 1.5 : 1 }));
+            svg.appendChild(svgElement("text", { x: 62, y: tickY + 4, "text-anchor": "end", class: "gc-axis-text" }, new Intl.NumberFormat("es-GT", { notation: "compact", maximumFractionDigits: 1 }).format(tick)));
+        }
+        var labelCount = Math.min(5, days.length), used = {};
+        for (var j = 0; j < labelCount; j++) {
+            var labelIndex = Math.round(j * (days.length - 1) / Math.max(1, labelCount - 1));
+            if (used[labelIndex]) continue; used[labelIndex] = true;
+            svg.appendChild(svgElement("text", { x: x(labelIndex), y: 238, "text-anchor": days.length === 1 ? "middle" : labelIndex === 0 ? "start" : labelIndex === days.length - 1 ? "end" : "middle", class: "gc-axis-text" }, days[labelIndex].slice(5)));
+        }
+        var color = code === "GTQ" ? "#2082af" : "#209a7b";
+        if (days.length === 1) {
+            svg.appendChild(svgElement("line", { x1: 375, x2: 375, y1: y(0), y2: y(values[0]), stroke: color, "stroke-width": 20, "stroke-linecap": "round" }));
+        } else {
+            svg.appendChild(svgElement("polyline", { points: days.map(function (d, index) { return x(index).toFixed(2) + "," + y(points[d].net).toFixed(2); }).join(" "), fill: "none", stroke: color, "stroke-width": 3, "stroke-linecap": "round", "stroke-linejoin": "round" }));
+        }
+        var marker = svgElement("line", { y1: 20, y2: 210, stroke: color, "stroke-dasharray": "4 4", opacity: .55 });
+        var dot = svgElement("circle", { r: 5, fill: color, stroke: "white", "stroke-width": 2 });
+        svg.appendChild(marker); svg.appendChild(dot);
+        var context = { days: days, points: points, marker: marker, dot: dot, x: x, y: y, code: code };
+        var hitArea = svgElement("rect", { x: 70, y: 20, width: 610, height: 190, fill: "transparent", class: "gc-chart-hit" });
+        hitArea.addEventListener("mousemove", function (event) {
+            var bounds = hitArea.getBoundingClientRect(), fraction = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+            renderTrendDay(context, days[Math.round(fraction * (days.length - 1))]);
+        });
+        svg.appendChild(hitArea); target.appendChild(svg);
+        var sliderLabel = create("label", "gc-trend-slider-label", "Explorar día");
+        var selectedIndex = days.indexOf(state.trendDay);
+        if (selectedIndex < 0) selectedIndex = days.length - 1;
+        var slider = create("input", "gc-trend-slider"); slider.type = "range"; slider.min = "0"; slider.max = String(days.length - 1); slider.value = String(selectedIndex);
+        slider.setAttribute("aria-label", "Día seleccionado en la gráfica");
+        slider.addEventListener("input", function () { renderTrendDay(context, days[Number(slider.value)]); });
+        context.slider = slider;
+        sliderLabel.appendChild(slider); target.appendChild(sliderLabel);
+        var total = values.reduce(function (a, b) { return a + b; }, 0), peak = days.reduce(function (best, d) { return points[d].net > points[best].net ? d : best; }, days[0]);
+        [["Total del período", currency(total, code)], ["Promedio diario", currency(total / days.length, code)], ["Mejor día", peak + " · " + currency(points[peak].net, code)]].forEach(function (pair) {
+            var item = create("div", "gc-trend-stat"); item.appendChild(create("small", "", pair[0])); item.appendChild(create("strong", "", pair[1])); stats.appendChild(item);
+        });
+        renderTrendDay(context, days[Number(slider.value)]);
     }
 
     function renderCompanies(data) {
@@ -166,6 +231,7 @@
         byId("gc-agente").value = ""; byId("gc-cliente").value = "";
     }
     async function loadTable() {
+        if (root.querySelector('[data-type="' + state.type + '"][data-unavailable]')) return;
         var request = ++state.listRequest, body = byId("gc-rows"); body.replaceChildren();
         var tr = create("tr"), td = create("td", "gc-empty", "Cargando registros…"); td.colSpan = 11; tr.appendChild(td); body.appendChild(tr);
         try { var data = await json(url("listar", { tipo: state.type, buscar: byId("gc-search").value.trim(), pagina: state.page, tamano: state.size })); if (request === state.listRequest) renderTable(data); }
@@ -173,15 +239,45 @@
     }
 
     var lastFocus = null;
+    function renderSalesDetail(body, sections) {
+        var header = (sections.Principal || [])[0];
+        if (!header) { body.appendChild(create("p", "gc-empty", "No se encontró el documento.")); return; }
+        var section = create("section", "gc-modal-section"); section.appendChild(create("h3", "", "Documento y cliente"));
+        var grid = create("div", "gc-details-grid");
+        [["Documento", header.Documento], ["Fecha", String(header.Fecha || "").slice(0, 10)], ["Vencimiento", String(header.Vencimiento || "").slice(0, 10)], ["Estado", header.Estado], ["Cliente", header.Cliente], ["Código de cliente", header.CodigoCliente], ["Agente", header.Agente], ["Referencia del cliente", header.ReferenciaCliente]].forEach(function (pair) {
+            if (pair[1] === null || pair[1] === undefined || pair[1] === "") return;
+            var field = create("div", "gc-detail-field"); field.appendChild(create("b", "", pair[0])); field.appendChild(create("span", "", text(pair[1]))); grid.appendChild(field);
+        });
+        section.appendChild(grid); body.appendChild(section);
+        var totals = create("div", "gc-sales-totals");
+        [["Subtotal", header.Subtotal], ["Impuesto", header.Impuesto], ["Total", header.Total]].forEach(function (pair) {
+            var item = create("div"); item.appendChild(create("span", "", pair[0])); item.appendChild(create("strong", "", currency(pair[1], header.Moneda))); totals.appendChild(item);
+        });
+        body.appendChild(totals);
+        var lines = sections.Productos || [], products = create("section", "gc-modal-section");
+        products.appendChild(create("h3", "", "Productos (" + integer(lines.length) + ")"));
+        if (!lines.length) products.appendChild(create("p", "gc-empty", "Sin productos relacionados."));
+        else {
+            var wrap = create("div", "gc-modal-table"), table = create("table"), head = create("thead"), tr = create("tr");
+            ["Código", "Producto", "Cantidad", "Unidad", "Precio unitario", "Importe"].forEach(function (label) { tr.appendChild(create("th", "", label)); }); head.appendChild(tr); table.appendChild(head);
+            var tbody = create("tbody"); lines.forEach(function (line) {
+                var row = create("tr"); [line.CodigoProducto, line.Producto, integer(line.Cantidad), line.Unidad, currency(line.PrecioUnitario, header.Moneda), currency(line.Importe, header.Moneda)].forEach(function (value) { row.appendChild(create("td", "", text(value))); }); tbody.appendChild(row);
+            }); table.appendChild(tbody); wrap.appendChild(table); products.appendChild(wrap);
+            if (lines.length === 100) products.appendChild(create("p", "gc-modal-more", "Se muestran los primeros 100 productos del documento."));
+        }
+        body.appendChild(products);
+    }
     async function showDetail(row) {
         lastFocus = document.activeElement;
         var modal = byId("gc-modal"), body = byId("gc-modal-body"); modal.hidden = false; document.body.style.overflow = "hidden";
         byId("gc-modal-subtitle").textContent = row.Empresa + " · " + row.Fuente;
-        byId("gc-modal-title").textContent = text(row.Nombre) + " · " + text(row.Codigo);
+        byId("gc-modal-title").textContent = state.type === "ventas" ? text(row.Tipo) : text(row.Nombre) + " · " + text(row.Codigo);
         body.replaceChildren(create("p", "gc-empty", "Cargando detalle…")); modal.querySelector(".gc-modal-close").focus();
         try {
-            var data = await json(url("detalle", { tipo: state.type, empresa: row.Empresa, codigo: row.Codigo, documento: String(row.Tipo || "").indexOf("Nota de crédito") === 0 ? "nota" : "factura" }));
+            var detailType = state.type;
+            var data = await json(url("detalle", { tipo: detailType, empresa: row.Empresa, codigo: row.Codigo, documento: String(row.Tipo || "").indexOf("Nota de crédito") === 0 ? "nota" : "factura" }));
             if (modal.hidden) return; body.replaceChildren();
+            if (detailType === "ventas") { renderSalesDetail(body, data.secciones || {}); return; }
             Object.keys(data.secciones || {}).forEach(function (name) {
                 var records = data.secciones[name] || [], section = create("section", "gc-modal-section"); section.appendChild(create("h3", "", name + " (" + integer(records.length) + ")"));
                 if (!records.length) { section.appendChild(create("p", "gc-empty", "Sin registros relacionados.")); body.appendChild(section); return; }
@@ -200,6 +296,7 @@
     function closeDetail() { byId("gc-modal").hidden = true; document.body.style.overflow = ""; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
 
     async function exportTable() {
+        if (root.querySelector('[data-type="' + state.type + '"][data-unavailable]')) return;
         var button = byId("gc-export"); button.disabled = true; button.textContent = "Preparando Excel…";
         try {
             var response = await fetch(url("exportar", { tipo: state.type, buscar: byId("gc-search").value.trim() }), { credentials: "same-origin", cache: "no-store" });
@@ -211,11 +308,19 @@
         finally { button.disabled = false; button.innerHTML = '<i class="fa fa-file-excel-o" aria-hidden="true"></i> Exportar Excel'; }
     }
 
+    root.querySelectorAll("[data-trend-currency]").forEach(function (button) { button.addEventListener("click", function () { if (!button.disabled && state.trendData) { state.trendCurrency = button.getAttribute("data-trend-currency"); state.trendDay = null; renderTrend(state.trendData); } }); });
     root.querySelectorAll("[data-period]").forEach(function (button) { button.addEventListener("click", function () { setPeriod(button.getAttribute("data-period")); if (button.getAttribute("data-period") !== "custom") { state.page = 1; loadSummary(); loadTable(); } }); });
     ["gc-desde", "gc-hasta"].forEach(function (id) { byId(id).addEventListener("change", function () { root.querySelectorAll("[data-period]").forEach(function (b) { b.classList.toggle("is-active", b.getAttribute("data-period") === "custom"); }); }); });
     byId("gc-filters").addEventListener("submit", function (event) { event.preventDefault(); if (byId("gc-desde").value > byId("gc-hasta").value) { alertMessage("La fecha inicial debe ser anterior a la final.", true); return; } state.page = 1; loadSummary(); loadTable(); });
     byId("gc-refresh").addEventListener("click", function () { loadSummary(true); loadTable(); });
-    root.querySelectorAll("[data-type]").forEach(function (tab) { tab.addEventListener("click", function () { state.type = tab.getAttribute("data-type"); state.page = 1; root.querySelectorAll("[data-type]").forEach(function (t) { var selected = t === tab; t.classList.toggle("is-active", selected); t.setAttribute("aria-selected", selected ? "true" : "false"); }); configureAdvanced(); loadTable(); }); });
+    root.querySelectorAll("[data-type]").forEach(function (tab) { tab.addEventListener("click", function () {
+        state.type = tab.getAttribute("data-type"); state.page = 1;
+        root.querySelectorAll("[data-type]").forEach(function (t) { var selected = t === tab; t.classList.toggle("is-active", selected); t.setAttribute("aria-selected", selected ? "true" : "false"); });
+        var unavailable = !!tab.getAttribute("data-unavailable");
+        byId("gc-explorer-content").hidden = unavailable; byId("gc-unavailable").hidden = !unavailable;
+        if (unavailable) { state.listRequest++; byId("gc-unavailable-title").textContent = "Sección de " + tab.getAttribute("data-unavailable") + " en desarrollo"; return; }
+        configureAdvanced(); loadTable();
+    }); });
     byId("gc-advanced-apply").addEventListener("click", function () { state.page = 1; loadTable(); });
     byId("gc-advanced-clear").addEventListener("click", function () { byId("gc-estado").value = ""; byId("gc-agente").value = ""; byId("gc-cliente").value = ""; state.page = 1; loadTable(); });
     var searchTimer; byId("gc-search").addEventListener("input", function () { clearTimeout(searchTimer); searchTimer = setTimeout(function () { state.page = 1; loadTable(); }, 350); });

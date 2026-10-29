@@ -7,7 +7,7 @@ internal static class RazorSyntaxCheck
 {
     public static int Main(string[] args)
     {
-        foreach (string relative in new[] { "GerenciaComercial/Index.cshtml", "Shared/_Layout.cshtml" })
+        foreach (string relative in new[] { "GerenciaComercial/Index.cshtml", "Shared/_Layout.cshtml", "Shared/_Menu.cshtml" })
         {
             string path = Path.Combine(args[0], "DiamDev.Give.UI", "Views", relative.Replace('/', Path.DirectorySeparatorChar));
             var host = new MvcWebPageRazorHost("~/Views/" + relative, path);

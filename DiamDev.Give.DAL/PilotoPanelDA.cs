@@ -182,7 +182,7 @@ WHERE e.CatalogoRutas=@catalogo ORDER BY e.Id DESC;")) {
                                 if(tipo=="S") {ruta.SalidaGaritaUtc=fecha;ruta.AgenteGarita=Texto(r,"Actor");ruta.PrecintoGarita=Texto(r,"Precinto");if(ruta.DiferenciaGarita==null) ruta.DiferenciaGarita="";}
                                 if((tipo=="D" || tipo=="R") && ruta.DiferenciaGarita==null) ruta.DiferenciaGarita=tipo=="D"?Texto(r,"Observacion"):"";
                                 if((filtro.Evento=="todos" || filtro.Evento=="Garita") && (id!=null || fecha>=filtro.Inicio.AddHours(6) && fecha<filtro.Fin.AddHours(6)) && (!filtro.Usuario.HasValue || filtro.Usuario.Value==Convert.ToInt64(r["Usuario_Id"])))
-                                    modelo.Actividad.Add(new PilotoPanelActividad {Tipo=tipo=="S"?"Salida de garita":tipo=="D"?"Diferencia en garita":"Diferencia resuelta",Ruta=ruta.Datos.Id,Usuario=Convert.ToInt64(r["Usuario_Id"]),Actor=Texto(r,"Actor"),Descripcion=tipo=="S"?"Hora de salida registrada"+(Texto(r,"Precinto")==null?"":" · precinto "+Texto(r,"Precinto")):Texto(r,"Observacion"),FechaUtc=fecha,Clave="Garita #"+r["Id"]});
+                                    modelo.Actividad.Add(new PilotoPanelActividad {Tipo=PilotoPanelReglas.TipoEventoGarita(tipo),Ruta=ruta.Datos.Id,Usuario=Convert.ToInt64(r["Usuario_Id"]),Actor=Texto(r,"Actor"),Descripcion=PilotoPanelReglas.DescripcionEventoGarita(tipo,Texto(r,"Observacion"),Texto(r,"Precinto")),FechaUtc=fecha,Clave="Garita #"+r["Id"]});
                             }
                         }
                     }
@@ -211,7 +211,7 @@ WHERE e.CatalogoRutas=@catalogo AND e.Tipo=N'S';"))
             modelo.Pilotos=modelo.Pilotos.Where(p=>(!filtro.Usuario.HasValue || p.Id==filtro.Usuario) && (string.IsNullOrEmpty(filtro.Piloto) || string.Equals(p.Empleado,filtro.Piloto,StringComparison.OrdinalIgnoreCase)) && (string.IsNullOrEmpty(filtro.Centro) || p.Centros.Contains(filtro.Centro,StringComparer.OrdinalIgnoreCase)) && (string.IsNullOrEmpty(filtro.Placa) || p.Placas.Contains(filtro.Placa,StringComparer.OrdinalIgnoreCase))).ToList();
             foreach(var p in modelo.Pilotos) p.Rutas=modelo.Rutas.Count(r=>r.Pilotos.Any(x=>x.Id==p.Id));
             var ids=new HashSet<string>(modelo.Rutas.Select(r=>r.Datos.Id),StringComparer.OrdinalIgnoreCase);var usuarios=new HashSet<long>(modelo.Pilotos.Select(p=>p.Id));
-            modelo.Actividad=modelo.Actividad.Where(a=>a.Ruta==null ? id==null && usuarios.Contains(a.Usuario) && string.IsNullOrEmpty(filtro.Buscar) : ids.Contains(a.Ruta)).ToList();
+            modelo.Actividad=PilotoPanelReglas.OrdenarActividad(modelo.Actividad.Where(a=>a.Ruta==null ? id==null && usuarios.Contains(a.Usuario) && string.IsNullOrEmpty(filtro.Buscar) : ids.Contains(a.Ruta)));
             if(modelo.Actividad.Any(a=>a.Tipo=="Cierre POS")) modelo.Avisos.Add("La auditoría histórica de POS no registra el catálogo de origen. Un ID coincidente no demuestra un cierre de producción; verifica el estado y los resultados actuales en "+modelo.Catalogo+".");
             return modelo;
         }

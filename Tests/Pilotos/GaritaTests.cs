@@ -83,7 +83,8 @@ internal static class GaritaTests
         Check(sql.Contains("INSERT dbo.GaritaRutaEvento") && sql.Contains("OUTPUT INSERTED.Id") && sql.Contains("@solicitud") && sql.Contains("N'S'"),"Garita audita salida en POS");
         var salidaSql=GaritaRutaDA.SqlActualizarHoraSalida("[TEST_RUTAS]");
         Check(salidaSql.Contains("SET HR_SALIDA=CONVERT(time(0)") && salidaSql.Contains("STATUS=CASE WHEN STATUS=N'A' THEN N'E' ELSE STATUS END") && salidaSql.Contains("STATUS IN(N'A',N'E')") && salidaSql.Contains("HR_SALIDA IS NULL") && salidaSql.Contains("LIQUIDADO"),"salida cambia A a E y conserva E junto a la hora en APK66");
-        Check(GaritaRutaDA.SqlActualizarHoraEntrada("[TEST_RUTAS]").Contains("SET HR_ENTRADA=CONVERT(time(0)") && GaritaRutaDA.SqlActualizarHoraEntrada("[TEST_RUTAS]").Contains("STATUS=N'C'") && GaritaRutaDA.SqlActualizarHoraEntrada("[TEST_RUTAS]").Contains("LIQUIDADO"),"entrada actualiza solo cerrada sin liquidar en APK66");
+        var entradaSql=GaritaRutaDA.SqlActualizarHoraEntrada("[TEST_RUTAS]");
+        Check(entradaSql.Contains("SET HR_ENTRADA=CONVERT(time(0)") && entradaSql.Contains("STATUS=N'C'") && entradaSql.Contains("LIQUIDADO") && !entradaSql.Contains("HR_SALIDA"),"entrada actualiza HR_ENTRADA sin tocar HR_SALIDA en APK66");
         Check(GaritaRutaDA.SqlRegistrarEntrada.Contains("Tipo,Solicitud") && GaritaRutaDA.SqlRegistrarEntrada.Contains("N'I'"),"Garita audita entrada en POS");
         var lista=GaritaRutaDA.SqlBuscarPorPlaca("[TEST_RUTAS]");
         Check(lista.Contains("r.PLACA=@placa AND r.STATUS=N'E'") && lista.Contains("GaritaCentro") && lista.Contains("FETCH NEXT 50 ROWS ONLY"),"consulta de placa paginada y limitada al centro");

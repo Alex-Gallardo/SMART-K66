@@ -122,6 +122,9 @@ internal static class RazorPreview
         }
         m.Detalle=m.Rutas[0];m.Centros.Add("PC");m.Placas.Add("DEMO");m.NombresPiloto.Add("PILOTO DEMO");
         m.Actividad.Add(new PilotoPanelActividad{Tipo="Cliente",Ruta="DEMO-E",Usuario=1,Actor="piloto_demo",Descripcion="Cliente guardado y bloqueado",FechaUtc=m.ActualizadoUtc,Clave="1"});
+        m.Actividad.Add(new PilotoPanelActividad{Tipo="Entrada de garita",Ruta="DEMO-E",Usuario=1,Actor="garita_demo",Descripcion="Hora de entrada registrada",FechaUtc=m.ActualizadoUtc.AddMinutes(10),Clave="Garita #2"});
+        m.Actividad.Add(new PilotoPanelActividad{Tipo="Salida de garita",Ruta="DEMO-E",Usuario=1,Actor="garita_demo",Descripcion="Hora de salida registrada",FechaUtc=m.ActualizadoUtc.AddMinutes(-10),Clave="Garita #1"});
+        m.Actividad=PilotoPanelReglas.OrdenarActividad(m.Actividad);
         return m;
     }
     public static PilotoPanelModelo PanelPaginado(int pagina)

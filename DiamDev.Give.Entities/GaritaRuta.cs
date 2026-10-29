@@ -128,6 +128,9 @@ namespace DiamDev.Give.Entities
     {
         // Se conserva el permiso POS existente; registrar salida avanza A a E.
         public const string Ver="Garita.Rutas.Ver", RegistrarSalida="Garita.Rutas.ConfirmarSalida", Administrar="Garita.Administrar";
+        // El límite de antigüedad aplica solo al listado de cerradas, no al detalle ni al registro de entrada.
+        public static DateTime CerradasDesde(DateTime hoyLocal) { return hoyLocal.Date.AddDays(-3); }
+        public static DateTime CerradasAntesDe(DateTime hoyLocal) { return hoyLocal.Date.AddDays(1); }
         public static string Id(string id)
         {
             id=(id??"").Trim();

@@ -311,6 +311,7 @@ if($garitaAbiertaTexto -notmatch 'Abierta · pendiente de salida' -or $garitaAbi
 if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida en APK66:' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"') {throw 'La salida registrada debe mostrar hora, agente y foto sin permitir otra salida.'}
 if($garitaVacia -notmatch 'id="qr-open"' -or $garitaVacia -notmatch 'id="qr-dialog"' -or
    $garitaLista -notmatch 'Rutas cerradas sin hora de entrada|Cerradas sin entrada' -or
+   $garitaLista -notmatch 'Rutas de hoy y los 3 días anteriores' -or
    $garitaLista -notmatch 'PP26-CERRADA' -or $garitaLista -notmatch 'Sin hora de entrada registrada' -or
    $garitaCerrada -notmatch 'id="register-entry-form"' -or $garitaCerrada -notmatch 'Registrar hora de entrada' -or
    $garitaCerrada -match 'id="register-exit-form"' -or $garitaEntrada -match 'id="register-entry-form"' -or

@@ -1,0 +1,102 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title = "Gerencia Comercial";
+}
+@section styles {
+    <link href="@Url.Content("~/Content/gerencia-comercial.css?v=1")" rel="stylesheet" />
+}
+
+<div class="gc" id="gc" data-resumen="@Url.Action("Resumen")" data-listar="@Url.Action("Listar")" data-detalle="@Url.Action("Detalle")" data-exportar="@Url.Action("Exportar")">
+    <header class="gc-hero">
+        <div>
+            <div class="gc-eyebrow"><span class="gc-live-dot"></span> Inteligencia comercial · Grupo K66</div>
+            <h1>Gerencia Comercial</h1>
+            <p>Ventas, pedidos, clientes, productos y agentes de Bolik, Faes y Graco en un solo lugar.</p>
+        </div>
+        <div class="gc-hero-right">
+            <span class="gc-source-pill">SAP HANA <span>+</span> POS-SmartK66_DEV</span>
+            <span id="gc-updated" class="gc-updated">Preparando datos…</span>
+        </div>
+    </header>
+
+    <form id="gc-filters" class="gc-filters" autocomplete="off">
+        <div class="gc-filter-top">
+            <div class="gc-periods" role="group" aria-label="Período">
+                <button type="button" data-period="today">Hoy</button>
+                <button type="button" data-period="week">Semana</button>
+                <button type="button" data-period="month" class="is-active">Mes</button>
+                <button type="button" data-period="custom">Personalizado</button>
+            </div>
+            <button type="button" id="gc-refresh" class="gc-btn gc-btn-outline"><i class="fa fa-refresh" aria-hidden="true"></i> Actualizar</button>
+        </div>
+        <div class="gc-filter-grid">
+            <label>Desde <input id="gc-desde" type="date" required /></label>
+            <label>Hasta <input id="gc-hasta" type="date" required /></label>
+            <label>Empresa
+                <select id="gc-empresa"><option value="">Todas las empresas</option><option value="BOLIK">Bolik</option><option value="FAES">Faes</option><option value="GRACO">Graco</option></select>
+            </label>
+            <label>Moneda
+                <select id="gc-moneda"><option value="">Todas, separadas</option><option value="GTQ">GTQ</option><option value="USD">USD</option></select>
+            </label>
+            <button class="gc-btn gc-btn-primary" type="submit">Aplicar filtros</button>
+        </div>
+    </form>
+
+    <div id="gc-alert" class="gc-alert" role="status" aria-live="polite" hidden></div>
+    <section aria-label="Indicadores principales">
+        <div class="gc-section-head"><div><span class="gc-kicker">Vista ejecutiva</span><h2>Indicadores del período</h2></div><span class="gc-context">Ventas netas sin impuesto; notas de crédito descontadas</span></div>
+        <div id="gc-kpis" class="gc-kpis" aria-live="polite"><div class="gc-skeleton"></div><div class="gc-skeleton"></div><div class="gc-skeleton"></div><div class="gc-skeleton"></div></div>
+        <div class="gc-grid-main">
+            <article class="gc-panel gc-trend-panel"><div class="gc-panel-head"><div><span class="gc-kicker">Evolución</span><h3>Ventas netas por día</h3></div><span class="gc-caption">Series por moneda, sin conversión</span></div><div id="gc-trend" class="gc-trend" aria-label="Tendencia de ventas"></div></article>
+            <article class="gc-panel"><div class="gc-panel-head"><div><span class="gc-kicker">Operación</span><h3>Por empresa</h3></div></div><div id="gc-companies"></div></article>
+        </div>
+        <div class="gc-grid-rank">
+            <article class="gc-panel"><div class="gc-panel-head"><div><span class="gc-kicker">Demanda</span><h3>Productos más vendidos</h3></div></div><div id="gc-products-top"></div><small class="gc-caption">Cantidad neta; cada producto conserva su propia unidad de venta.</small></article>
+            <article class="gc-panel"><div class="gc-panel-head"><div><span class="gc-kicker">Desempeño</span><h3>Agentes destacados</h3></div></div><div id="gc-agents-top"></div></article>
+            <article class="gc-panel"><div class="gc-panel-head"><div><span class="gc-kicker">Cartera</span><h3>Clientes principales</h3></div></div><div id="gc-clients-top"></div></article>
+        </div>
+    </section>
+
+    <section class="gc-explorer" aria-label="Explorador comercial">
+        <div class="gc-section-head"><div><span class="gc-kicker">Explorar datos</span><h2>Registros y detalle</h2></div><span class="gc-context">Catálogos completos con paginación · SAP y SQL por separado</span></div>
+        <div class="gc-tabs" role="tablist" aria-label="Tipo de datos">
+            <button type="button" role="tab" data-type="ventas" class="is-active" aria-selected="true">Ventas SAP</button>
+            <button type="button" role="tab" data-type="pedidos" aria-selected="false">Pedidos SAP</button>
+            <button type="button" role="tab" data-type="clientes" aria-selected="false">Clientes SAP</button>
+            <button type="button" role="tab" data-type="productos" aria-selected="false">Productos SAP</button>
+            <button type="button" role="tab" data-type="agentes" aria-selected="false">Agentes SAP</button>
+            <button type="button" role="tab" data-type="pedidosSql" aria-selected="false">Pedidos K66</button>
+            <button type="button" role="tab" data-type="clientesSql" aria-selected="false">Clientes SQL</button>
+            <button type="button" role="tab" data-type="productosSql" aria-selected="false">Productos SQL</button>
+            <button type="button" role="tab" data-type="agentesSql" aria-selected="false">Agentes SQL</button>
+        </div>
+        <div class="gc-table-toolbar">
+            <label class="gc-search"><i class="fa fa-search" aria-hidden="true"></i><input id="gc-search" type="search" placeholder="Buscar por código, nombre o documento" aria-label="Buscar registros" /></label>
+            <label class="gc-size">Filas <select id="gc-size"><option>25</option><option>50</option><option>100</option></select></label>
+            <button id="gc-export" type="button" class="gc-btn gc-btn-outline"><i class="fa fa-file-excel-o" aria-hidden="true"></i> Exportar Excel</button>
+        </div>
+        <details class="gc-advanced"><summary>Filtros avanzados del explorador</summary>
+            <div class="gc-advanced-grid">
+                <label>Estado <select id="gc-estado"><option value="">Todos</option></select></label>
+                <label id="gc-agente-wrap">Código de agente SAP <input id="gc-agente" type="text" maxlength="30" placeholder="Ej. 12" /></label>
+                <label id="gc-cliente-wrap">Código de cliente <input id="gc-cliente" type="text" maxlength="60" placeholder="Código exacto" /></label>
+                <button type="button" id="gc-advanced-apply" class="gc-btn gc-btn-outline">Aplicar al listado</button>
+                <button type="button" id="gc-advanced-clear" class="gc-btn gc-btn-outline">Limpiar</button>
+            </div>
+        </details>
+        <div class="gc-table-wrap"><table class="gc-table"><thead><tr><th>Empresa</th><th>Código</th><th>Nombre / cliente</th><th>Tipo</th><th>Fecha</th><th>Estado</th><th>Moneda</th><th>Importe</th><th>Dato adicional</th><th>Existencia</th><th></th></tr></thead><tbody id="gc-rows"><tr><td colspan="11" class="gc-empty">Cargando registros…</td></tr></tbody></table></div>
+        <div class="gc-pagination"><span id="gc-count">—</span><div><button type="button" id="gc-prev" class="gc-btn gc-btn-outline">Anterior</button><span id="gc-page">1</span><button type="button" id="gc-next" class="gc-btn gc-btn-outline">Siguiente</button></div></div>
+    </section>
+</div>
+
+<div id="gc-modal" class="gc-modal" role="dialog" aria-modal="true" aria-labelledby="gc-modal-title" hidden>
+    <div class="gc-modal-backdrop" data-close="true"></div>
+    <div class="gc-modal-card">
+        <header><div><span class="gc-kicker" id="gc-modal-subtitle">Detalle</span><h2 id="gc-modal-title">Registro</h2></div><button type="button" class="gc-modal-close" data-close="true" aria-label="Cerrar detalle">&times;</button></header>
+        <div id="gc-modal-body" class="gc-modal-body"></div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="@Url.Content("~/Scripts/App/gerencia-comercial.js?v=1")"></script>
+}

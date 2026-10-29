@@ -47,17 +47,17 @@
         var gtq = ventas.filter(function (v) { return v.Moneda === "GTQ"; });
         var usd = ventas.filter(function (v) { return v.Moneda === "USD"; });
         var box = byId("gc-kpis"); box.replaceChildren();
-        box.appendChild(kpi("Ventas netas GTQ", currency(sum(gtq, "Neto"), "GTQ"), "Facturas menos notas de crédito · sin IVA", "green"));
-        box.appendChild(kpi("Ventas netas USD", currency(sum(usd, "Neto"), "USD"), "Sin convertir ni mezclar monedas", ""));
-        box.appendChild(kpi("Cobros SAP GTQ", currency(sum(cobros.filter(function (v) { return v.Moneda === "GTQ"; }), "Monto"), "GTQ"), "Pagos recibidos en el período", "green"));
-        box.appendChild(kpi("Cobros SAP USD", currency(sum(cobros.filter(function (v) { return v.Moneda === "USD"; }), "Monto"), "USD"), "No se suman a ventas", ""));
+        box.appendChild(kpi("Ventas netas (GTQ)", currency(sum(gtq, "Neto"), "GTQ"), "Facturas menos notas de crédito", "green"));
+        box.appendChild(kpi("Ventas netas (USD)", currency(sum(usd, "Neto"), "USD"), "Sin convertir", ""));
+        box.appendChild(kpi("Cobros SAP (GTQ)", currency(sum(cobros.filter(function (v) { return v.Moneda === "GTQ"; }), "Monto"), "GTQ"), "Pagos recibidos en el período", "green"));
+        box.appendChild(kpi("Cobros SAP (USD)", currency(sum(cobros.filter(function (v) { return v.Moneda === "USD"; }), "Monto"), "USD"), "No se suman a ventas", ""));
         box.appendChild(kpi("Facturas del período", integer(sum(ventas, "Facturas")), "Notas de crédito: " + integer(sum(ventas, "NotasCredito")), "violet"));
         box.appendChild(kpi("Pedidos SAP del período", integer(sum(catalogos, "PedidosPeriodo")), "Documentos creados durante el rango", "amber"));
         box.appendChild(kpi("Pedidos SAP abiertos", integer(sum(catalogos, "PedidosAbiertos")), "Estado actual en SAP", "amber"));
         box.appendChild(kpi("Clientes SAP", integer(sum(catalogos, "Clientes")), "Catálogo de las empresas seleccionadas", ""));
-        box.appendChild(kpi("Productos SAP", integer(sum(catalogos, "Productos")), "Catálogo completo, incluidos inactivos", "green"));
+        // box.appendChild(kpi("Productos SAP", integer(sum(catalogos, "Productos")), "Catálogo completo, incluidos inactivos", "green"));
         box.appendChild(kpi("Agentes SAP", integer(sum(catalogos, "Agentes")), "Catálogo completo, incluidos inactivos", "violet"));
-        box.appendChild(kpi("Pedidos K66 pendientes", integer(sum(sql, "Pendientes")), integer(sum(sql, "Pedidos")) + " pedidos en SQL durante el período", "amber"));
+        box.appendChild(kpi("Pedidos pendientes", integer(sum(sql, "Pendientes")), integer(sum(sql, "Pedidos")) + " pedidos durante el período", "amber"));
         var extraCodes = Array.from(new Set(ventas.concat(cobros).map(function (x) { return x.Moneda; }).filter(function (x) { return x && x !== "GTQ" && x !== "USD"; }))).sort();
         extraCodes.forEach(function (code) {
             box.appendChild(kpi("Ventas netas " + code, currency(sum(ventas.filter(function (x) { return x.Moneda === code; }), "Neto"), code), "Moneda separada", ""));
@@ -176,7 +176,7 @@
             var row = create("div", "gc-company"), head = create("div", "gc-company-head");
             head.appendChild(create("span", "", name)); head.appendChild(create("em", "", c ? "SAP conectado" : "SAP sin datos")); row.appendChild(head);
             var stats = create("div", "gc-company-stats");
-            [["Ventas GTQ", currency(sum(sales.filter(function (x) { return x.Moneda === "GTQ"; }), "Neto"), "GTQ")], ["Ventas USD", currency(sum(sales.filter(function (x) { return x.Moneda === "USD"; }), "Neto"), "USD")], ["Pedidos del período", integer(c && c.PedidosPeriodo)], ["Pedidos abiertos", integer(c && c.PedidosAbiertos)], ["K66 pendientes", integer(s && s.Pendientes)]].forEach(function (pair) { var cell = create("span"); cell.appendChild(create("b", "", pair[0] + ": ")); cell.appendChild(document.createTextNode(pair[1])); stats.appendChild(cell); });
+            [["Ventas GTQ", currency(sum(sales.filter(function (x) { return x.Moneda === "GTQ"; }), "Neto"), "GTQ")], ["Ventas USD", currency(sum(sales.filter(function (x) { return x.Moneda === "USD"; }), "Neto"), "USD")], ["Pedidos del período", integer(c && c.PedidosPeriodo)], ["Pedidos abiertos", integer(c && c.PedidosAbiertos)], ["Pedidos pendientes", integer(s && s.Pendientes)]].forEach(function (pair) { var cell = create("span"); cell.appendChild(create("b", "", pair[0] + ": ")); cell.appendChild(document.createTextNode(pair[1])); stats.appendChild(cell); });
             row.appendChild(stats); target.appendChild(row);
         });
     }

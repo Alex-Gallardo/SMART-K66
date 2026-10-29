@@ -11,6 +11,7 @@ namespace DiamDev.Give.DAL
 {
     public sealed class GaritaRutaDA
     {
+        internal const string SqlHoyGuatemala="SELECT CONVERT(date,DATEADD(HOUR,-6,SYSUTCDATETIME()));";
         internal static string SqlActualizarHoraSalida(string catalogoRutas) { return @"UPDATE " + catalogoRutas + @".dbo.RT_RUTAS
 SET HR_SALIDA=CONVERT(time(0),DATEADD(HOUR,-6,@fechaUtc)),
     STATUS=CASE WHEN STATUS=N'A' THEN N'E' ELSE STATUS END
@@ -106,9 +107,13 @@ WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo IN(N'D',N'R') ORDER BY Id
         private static string FiltroPorPlaca(bool cerradas,bool abiertas=false)
         {
             return @" WHERE r.PLACA=@placa AND r.STATUS="+(cerradas?"N'C'":abiertas?"N'A'":"N'E'")+@" AND ISNULL(r.LIQUIDADO,0)=0"+
-                (cerradas?@" AND r.HR_ENTRADA IS NULL":"")+@" AND EXISTS
+                (cerradas?@" AND r.HR_ENTRADA IS NULL AND r.FECHA_RUTA>=@desdeCerradas AND r.FECHA_RUTA<@hastaCerradas":"")+@" AND EXISTS
 (SELECT 1 FROM dbo.GaritaCentro g WHERE g.Usuario_Id=@usuario AND g.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)";
         }
+        internal static string SqlContarPorPlaca(string catalogoRutas,bool cerradas=false,bool abiertas=false)
+        { return "SELECT COUNT(*) FROM "+catalogoRutas+".dbo.RT_RUTAS r"+FiltroPorPlaca(cerradas,abiertas)+";"; }
+        private static void FechasCerradas(SqlCommand c,DateTime hoyLocal)
+        { P(c,"@desdeCerradas",SqlDbType.Date,GaritaReglas.CerradasDesde(hoyLocal));P(c,"@hastaCerradas",SqlDbType.Date,GaritaReglas.CerradasAntesDe(hoyLocal)); }
         private static GaritaRutaResumen Resumen(SqlDataReader r)
         {
             return new GaritaRutaResumen{Id=S(r,"ID_RUTA"),Fecha=(DateTime)r["FECHA_RUTA"],Placa=S(r,"PLACA"),Piloto=S(r,"PILOTO"),ConductorReal=S(r,"ConductorReal"),Centro=S(r,"CENTRO_DIST"),Documentos=Convert.ToInt32(r["Documentos"]),Clientes=Convert.ToInt32(r["Clientes"]),Bultos=Convert.ToDecimal(r["Bultos"]),SalidaRegistrada=Convert.ToInt32(r["SalidaRegistrada"])==1,DiferenciaPendiente=Convert.ToInt32(r["DiferenciaPendiente"])==1};
@@ -121,12 +126,12 @@ WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo IN(N'D',N'R') ORDER BY Id
             using(var cn=Abrir()) using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted))
             {
                 Instalada(cn,tx);var usuario=Autorizar(cn,tx,actor,GaritaReglas.Ver);
-                var origen=@" FROM "+apk+@".dbo.RT_RUTAS r";
-                using(var c=Cmd(cn,tx,"SELECT COUNT(*)"+origen+FiltroPorPlaca(false)))
+                DateTime hoyLocal;using(var reloj=Cmd(cn,tx,SqlHoyGuatemala)) hoyLocal=(DateTime)reloj.ExecuteScalar();
+                using(var c=Cmd(cn,tx,SqlContarPorPlaca(apk)))
                 {P(c,"@placa",SqlDbType.NVarChar,placa,15);P(c,"@usuario",SqlDbType.BigInt,usuario);modelo.TotalRutas=(int)c.ExecuteScalar();}
-                using(var c=Cmd(cn,tx,"SELECT COUNT(*)"+origen+FiltroPorPlaca(true)))
-                {P(c,"@placa",SqlDbType.NVarChar,placa,15);P(c,"@usuario",SqlDbType.BigInt,usuario);P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);modelo.TotalCerradas=(int)c.ExecuteScalar();}
-                using(var c=Cmd(cn,tx,"SELECT COUNT(*)"+origen+FiltroPorPlaca(false,true)))
+                using(var c=Cmd(cn,tx,SqlContarPorPlaca(apk,true)))
+                {P(c,"@placa",SqlDbType.NVarChar,placa,15);P(c,"@usuario",SqlDbType.BigInt,usuario);FechasCerradas(c,hoyLocal);modelo.TotalCerradas=(int)c.ExecuteScalar();}
+                using(var c=Cmd(cn,tx,SqlContarPorPlaca(apk,false,true)))
                 {P(c,"@placa",SqlDbType.NVarChar,placa,15);P(c,"@usuario",SqlDbType.BigInt,usuario);modelo.TotalAbiertas=(int)c.ExecuteScalar();}
                 if(pagina>1 && (long)(pagina-1)*50>=modelo.TotalRutas) throw new PilotoException(404,"La página de rutas no existe. Vuelve a buscar la placa.");
                 if(paginaCerradas>1 && (long)(paginaCerradas-1)*50>=modelo.TotalCerradas) throw new PilotoException(404,"La página de rutas cerradas no existe. Vuelve a buscar la placa.");
@@ -138,7 +143,7 @@ WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo IN(N'D',N'R') ORDER BY Id
                 {P(c,"@placa",SqlDbType.NVarChar,placa,15);P(c,"@usuario",SqlDbType.BigInt,usuario);P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@offset",SqlDbType.Int,(pagina-1)*50);
                     using(var r=c.ExecuteReader()) while(r.Read()) modelo.Resultados.Add(Resumen(r));}
                 using(var c=Cmd(cn,tx,SqlBuscarPorPlaca(apk,true)))
-                {P(c,"@placa",SqlDbType.NVarChar,placa,15);P(c,"@usuario",SqlDbType.BigInt,usuario);P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@offset",SqlDbType.Int,(paginaCerradas-1)*50);
+                {P(c,"@placa",SqlDbType.NVarChar,placa,15);P(c,"@usuario",SqlDbType.BigInt,usuario);P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@offset",SqlDbType.Int,(paginaCerradas-1)*50);FechasCerradas(c,hoyLocal);
                     using(var r=c.ExecuteReader()) while(r.Read()) modelo.ResultadosCerradas.Add(Resumen(r));}
                 tx.Commit();return modelo;
             }

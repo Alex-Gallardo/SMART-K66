@@ -77,8 +77,8 @@
         }
     </section>
     <section class="results-card closed-results" aria-label="Rutas cerradas sin hora de entrada">
-        <div class="section-head"><div><span class="step">4 · REGRESOS</span><h2>Cerradas sin entrada</h2></div><strong>@Model.TotalCerradas @(Model.TotalCerradas==1?"ruta":"rutas") pendientes</strong></div>
-        @if(Model.TotalCerradas==0) {<div class="notice info" role="status">No hay rutas cerradas sin hora de entrada para esta placa.</div>}
+        <div class="section-head"><div><span class="step">4 · REGRESOS</span><h2>Cerradas sin entrada</h2><p>Rutas de hoy y los 3 días anteriores.</p></div><strong>@Model.TotalCerradas @(Model.TotalCerradas==1?"ruta":"rutas") pendientes</strong></div>
+        @if(Model.TotalCerradas==0) {<div class="notice info" role="status">No hay rutas cerradas sin hora de entrada de hoy o los 3 días anteriores para esta placa.</div>}
         else {
             <p>Selecciona la ruta que regresó y verifica la placa y el cargamento antes de registrar la hora.</p>
             <div class="route-list">

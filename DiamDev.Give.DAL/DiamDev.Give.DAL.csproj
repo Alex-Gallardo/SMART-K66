@@ -66,6 +66,7 @@
     <Compile Include="ClienteCrmDA.cs" />
     <Compile Include="HanaHelper.cs" />
     <Compile Include="HanaRepository.cs" />
+    <Compile Include="GerenciaComercialDA.cs" />
     <Compile Include="Migrations\202111112211234_SeQuitaCampoEmpresaTablaAgencia.cs" />
     <Compile Include="Migrations\202111112211234_SeQuitaCampoEmpresaTablaAgencia.Designer.cs">
       <DependentUpon>202111112211234_SeQuitaCampoEmpresaTablaAgencia.cs</DependentUpon>

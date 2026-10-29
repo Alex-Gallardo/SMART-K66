@@ -600,6 +600,7 @@
     <Content Include="Content\borrador-nc.css" />
     <Content Include="Content\borrador-nc-sap-indicadores.css" />
     <Content Include="Content\borrador-nc-dashboard.css" />
+    <Content Include="Content\gerencia-comercial.css" />
     <Content Include="Content\borrador-nc-dashboard-detalle.css" />
     <Content Include="Content\borrador-nc-dashboard-audit.css" />
     <Content Include="Content\cotizaciones.css" />
@@ -672,6 +673,7 @@
     <Content Include="Scripts\App\BorradorNc-Autorizaciones.js" />
     <Content Include="Scripts\App\BorradorNc-Dashboard.js" />
     <Content Include="Scripts\App\BorradorNc-DashboardDetalle.js" />
+    <Content Include="Scripts\App\gerencia-comercial.js" />
     <Content Include="Scripts\App\Cotizacion-Index.js" />
     <Content Include="Scripts\clientes-crm.js" />
     <Content Include="Scripts\clientes-crm-detalle.js" />
@@ -764,6 +766,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Views\Dashboard\Index.cshtml" />
+    <Content Include="Views\GerenciaComercial\Index.cshtml" />
     <Content Include="Views\Backlog\Index.cshtml" />
     <Content Include="Views\OTIF\Index.cshtml" />
     <Content Include="Views\ProduccionV2\Index.cshtml" />
@@ -868,6 +871,7 @@
     <Compile Include="App_Start\SeguridadAttribute.cs" />
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\DashboardController.cs" />
+    <Compile Include="Controllers\GerenciaComercialController.cs" />
     <Compile Include="Controllers\BacklogController.cs" />
     <Compile Include="Controllers\OTIFController.cs" />
     <Compile Include="Controllers\ProduccionV2Controller.cs" />

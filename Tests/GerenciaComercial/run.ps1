@@ -19,7 +19,14 @@ $uiStub = Join-Path $testDir 'UiStub.cs'
 @'
 namespace DiamDev.Give.DAL {
     public static class HanaHelper {
-        public static System.Data.DataTable EjecutarConsulta(string sql, System.Data.Odbc.OdbcParameter[] parametros = null) { return null; }
+        public static readonly System.Collections.Generic.List<string> Consultas = new System.Collections.Generic.List<string>();
+        public static System.Data.DataTable EjecutarConsulta(string sql, System.Data.Odbc.OdbcParameter[] parametros = null) {
+            Consultas.Add(sql);
+            var table = new System.Data.DataTable();
+            table.Columns.Add("Dato", typeof(int));
+            table.Rows.Add(1);
+            return table;
+        }
     }
 }
 '@ | Set-Content -LiteralPath $hanaStub -Encoding UTF8
@@ -56,3 +63,7 @@ Copy-Item -LiteralPath $webpages -Destination $testDir
 Copy-Item -LiteralPath $webpagesRazor -Destination $testDir
 & $razorExe $project
 if ($LASTEXITCODE -ne 0) { throw 'Razor contiene errores.' }
+$node = Get-Command node -ErrorAction SilentlyContinue
+if (-not $node) { throw 'Se requiere Node.js para las pruebas de interfaz.' }
+& $node.Source (Join-Path $PSScriptRoot 'gerencia-comercial-ui.test.js')
+if ($LASTEXITCODE -ne 0) { throw 'Las pruebas de interfaz fallaron.' }

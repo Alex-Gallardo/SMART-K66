@@ -19,7 +19,7 @@ namespace DiamDev.Give.UI.Controllers
     {
         private readonly GerenciaComercialDA _datos = new GerenciaComercialDA();
         private const int MaximoExportacion = 10000;
-        private static readonly string[] Tipos = { "ventas", "pedidos", "clientes", "productos", "agentes", "pedidosSql", "clientesSql", "productosSql", "agentesSql" };
+        private static readonly string[] Tipos = { "ventas", "pedidos", "clientes", "agentes", "pedidosSql", "agentesSql" };
 
         [HttpGet]
         public ActionResult Index()

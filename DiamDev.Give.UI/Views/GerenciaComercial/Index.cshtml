@@ -3,7 +3,7 @@
     ViewBag.Title = "Gerencia Comercial";
 }
 @section styles {
-    <link href="@Url.Content("~/Content/gerencia-comercial.css?v=1")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/gerencia-comercial.css?v=2")" rel="stylesheet" />
 }
 
 <div class="gc" id="gc" data-resumen="@Url.Action("Resumen")" data-listar="@Url.Action("Listar")" data-detalle="@Url.Action("Detalle")" data-exportar="@Url.Action("Exportar")">
@@ -47,7 +47,17 @@
         <div class="gc-section-head"><div><span class="gc-kicker">Vista ejecutiva</span><h2>Indicadores del período</h2></div><span class="gc-context">Ventas netas sin impuesto; notas de crédito descontadas</span></div>
         <div id="gc-kpis" class="gc-kpis" aria-live="polite"><div class="gc-skeleton"></div><div class="gc-skeleton"></div><div class="gc-skeleton"></div><div class="gc-skeleton"></div></div>
         <div class="gc-grid-main">
-            <article class="gc-panel gc-trend-panel"><div class="gc-panel-head"><div><span class="gc-kicker">Evolución</span><h3>Ventas netas por día</h3></div><span class="gc-caption">Series por moneda, sin conversión</span></div><div id="gc-trend" class="gc-trend" aria-label="Tendencia de ventas"></div></article>
+            <article class="gc-panel gc-trend-panel">
+                <div class="gc-panel-head"><div><span class="gc-kicker">Evolución</span><h3>Ventas netas por día</h3></div><span class="gc-caption">Facturas menos notas de crédito · sin IVA</span></div>
+                <div class="gc-trend-controls" role="group" aria-label="Moneda de la gráfica">
+                    <button type="button" data-trend-currency="GTQ" class="is-active" aria-pressed="true">GTQ</button>
+                    <button type="button" data-trend-currency="USD" aria-pressed="false">USD</button>
+                    <span>Una moneda a la vez, sin conversión</span>
+                </div>
+                <div id="gc-trend" class="gc-trend" aria-label="Tendencia de ventas"></div>
+                <div id="gc-trend-stats" class="gc-trend-stats" aria-live="polite"></div>
+                <div id="gc-trend-day" class="gc-trend-day" aria-live="polite"></div>
+            </article>
             <article class="gc-panel"><div class="gc-panel-head"><div><span class="gc-kicker">Operación</span><h3>Por empresa</h3></div></div><div id="gc-companies"></div></article>
         </div>
         <div class="gc-grid-rank">
@@ -63,13 +73,15 @@
             <button type="button" role="tab" data-type="ventas" class="is-active" aria-selected="true">Ventas SAP</button>
             <button type="button" role="tab" data-type="pedidos" aria-selected="false">Pedidos SAP</button>
             <button type="button" role="tab" data-type="clientes" aria-selected="false">Clientes SAP</button>
-            <button type="button" role="tab" data-type="productos" aria-selected="false">Productos SAP</button>
+            <button type="button" role="tab" data-type="productos" data-unavailable="Productos SAP" aria-selected="false">Productos SAP <span class="gc-tab-badge">En desarrollo</span></button>
             <button type="button" role="tab" data-type="agentes" aria-selected="false">Agentes SAP</button>
             <button type="button" role="tab" data-type="pedidosSql" aria-selected="false">Pedidos K66</button>
-            <button type="button" role="tab" data-type="clientesSql" aria-selected="false">Clientes SQL</button>
-            <button type="button" role="tab" data-type="productosSql" aria-selected="false">Productos SQL</button>
+            <button type="button" role="tab" data-type="clientesSql" data-unavailable="Clientes SQL" aria-selected="false">Clientes SQL <span class="gc-tab-badge">En desarrollo</span></button>
+            <button type="button" role="tab" data-type="productosSql" data-unavailable="Productos SQL" aria-selected="false">Productos SQL <span class="gc-tab-badge">En desarrollo</span></button>
             <button type="button" role="tab" data-type="agentesSql" aria-selected="false">Agentes SQL</button>
         </div>
+        <div id="gc-unavailable" class="gc-unavailable" role="status" hidden><div class="gc-unavailable-icon"><i class="fa fa-wrench" aria-hidden="true"></i></div><h3 id="gc-unavailable-title"></h3><p>Estamos preparando esta sección para ofrecer datos claros y confiables. Vuelve pronto.</p></div>
+        <div id="gc-explorer-content">
         <div class="gc-table-toolbar">
             <label class="gc-search"><i class="fa fa-search" aria-hidden="true"></i><input id="gc-search" type="search" placeholder="Buscar por código, nombre o documento" aria-label="Buscar registros" /></label>
             <label class="gc-size">Filas <select id="gc-size"><option>25</option><option>50</option><option>100</option></select></label>
@@ -86,6 +98,7 @@
         </details>
         <div class="gc-table-wrap"><table class="gc-table"><thead><tr><th>Empresa</th><th>Código</th><th>Nombre / cliente</th><th>Tipo</th><th>Fecha</th><th>Estado</th><th>Moneda</th><th>Importe</th><th>Dato adicional</th><th>Existencia</th><th></th></tr></thead><tbody id="gc-rows"><tr><td colspan="11" class="gc-empty">Cargando registros…</td></tr></tbody></table></div>
         <div class="gc-pagination"><span id="gc-count">—</span><div><button type="button" id="gc-prev" class="gc-btn gc-btn-outline">Anterior</button><span id="gc-page">1</span><button type="button" id="gc-next" class="gc-btn gc-btn-outline">Siguiente</button></div></div>
+        </div>
     </section>
 </div>
 
@@ -98,5 +111,5 @@
 </div>
 
 @section scripts {
-    <script src="@Url.Content("~/Scripts/App/gerencia-comercial.js?v=1")"></script>
+    <script src="@Url.Content("~/Scripts/App/gerencia-comercial.js?v=2")"></script>
 }

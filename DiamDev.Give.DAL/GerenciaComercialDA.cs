@@ -278,6 +278,15 @@ namespace DiamDev.Give.DAL
             bool numerica = llave == "DocEntry" || llave == "SlpCode";
             string condicion = "\"" + llave + "\"=?";
             var result = new Dictionary<string, DataTable>();
+            if (tipo == "ventas" || tipo == "notas")
+            {
+                string encabezado = @"SELECT H.""DocNum"" AS ""Documento"", H.""DocDate"" AS ""Fecha"", H.""DocDueDate"" AS ""Vencimiento"", H.""CardCode"" AS ""CodigoCliente"", H.""CardName"" AS ""Cliente"", COALESCE(S.""SlpName"",'—') AS ""Agente"", H.""NumAtCard"" AS ""ReferenciaCliente"", CASE WHEN H.""DocCur"" IN ('QTZ','Q','GTQ') THEN 'GTQ' ELSE H.""DocCur"" END AS ""Moneda"", CASE WHEN H.""DocCur"" IN ('QTZ','Q','GTQ') THEN H.""DocTotal""-H.""VatSum"" ELSE H.""DocTotalFC""-H.""VatSumFC"" END AS ""Subtotal"", CASE WHEN H.""DocCur"" IN ('QTZ','Q','GTQ') THEN H.""VatSum"" ELSE H.""VatSumFC"" END AS ""Impuesto"", CASE WHEN H.""DocCur"" IN ('QTZ','Q','GTQ') THEN H.""DocTotal"" ELSE H.""DocTotalFC"" END AS ""Total"", CASE WHEN H.""CANCELED""='Y' THEN 'Cancelado' WHEN H.""DocStatus""='O' THEN 'Abierto' ELSE 'Cerrado' END AS ""Estado"" FROM " + s + ".\"" + tabla + "\" H LEFT JOIN " + s + ".\"OSLP\" S ON S.\"SlpCode\"=H.\"SlpCode\" WHERE H.\"DocEntry\"=?";
+                result["Principal"] = HanaHelper.EjecutarConsulta(encabezado, ClaveHana(clave, true));
+                if (result["Principal"].Rows.Count == 0) return result;
+                string lineas = @"SELECT L.""ItemCode"" AS ""CodigoProducto"", L.""Dscription"" AS ""Producto"", L.""Quantity"" AS ""Cantidad"", L.""unitMsr"" AS ""Unidad"", L.""Price"" AS ""PrecioUnitario"", CASE WHEN H.""DocCur"" IN ('QTZ','Q','GTQ') THEN L.""LineTotal"" ELSE L.""TotalFrgn"" END AS ""Importe"" FROM " + s + ".\"" + secundaria + "\" L JOIN " + s + ".\"" + tabla + "\" H ON H.\"DocEntry\"=L.\"DocEntry\" WHERE L.\"DocEntry\"=? ORDER BY L.\"LineNum\" LIMIT 100";
+                result["Productos"] = HanaHelper.EjecutarConsulta(lineas, ClaveHana(clave, true));
+                return result;
+            }
             result["Principal"] = HanaHelper.EjecutarConsulta("SELECT * FROM " + s + ".\"" + tabla + "\" WHERE " + condicion, ClaveHana(clave, numerica));
             if (result["Principal"].Rows.Count == 0) return result;
             if (secundaria != null)

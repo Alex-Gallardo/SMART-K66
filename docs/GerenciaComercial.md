@@ -34,4 +34,4 @@ Los campos de contraseña y binarios no se envían al navegador. Si una fuente n
 
 Ejecutar `Tests/GerenciaComercial/run.ps1` para compilar las clases nuevas y validar filtros, privacidad, exportación y sintaxis Razor. Ejecutar `node --check DiamDev.Give.UI/Scripts/App/gerencia-comercial.js` para validar JavaScript.
 
-Para verificar los esquemas reales desde un servidor con conectividad, ejecutar `Tests/GerenciaComercial/DiagnosticoFuentes.ps1 -ConfigPath <Web.config desplegado>` y revisar las columnas reportadas. El diagnóstico solo realiza consultas de lectura y no imprime credenciales ni registros.
+El panel reutiliza `HanaHelper`, la configuración `HanaSchema.*` y `GiveContext` que ya emplean los módulos existentes. La verificación de datos en un entorno conectado forma parte de la revisión de integración y no requiere instalar componentes adicionales del panel.

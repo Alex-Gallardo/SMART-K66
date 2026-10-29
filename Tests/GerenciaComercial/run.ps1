@@ -34,6 +34,16 @@ namespace DiamDev.Give.DAL {
 namespace DiamDev.Give.UI.App_Start {
     public static class CustomHelper { public static void setTitle(string a, string b) {} }
 }
+namespace DiamDev.Give.BLL {
+    public class RolBL {
+        public static bool Permitido;
+        public static string UltimoPermiso;
+        public bool AutorizacionPermisoPorUsuario(string usuario, string permiso) {
+            UltimoPermiso = permiso;
+            return Permitido;
+        }
+    }
+}
 '@ | Set-Content -LiteralPath $uiStub -Encoding UTF8
 $dal = Join-Path $testDir 'GerenciaComercialDA.dll'
 $ui = Join-Path $testDir 'GerenciaComercialUI.dll'
@@ -47,9 +57,9 @@ $exe = Join-Path $testDir 'GerenciaComercialTests.exe'
 '@ | Set-Content -LiteralPath ($exe + '.config') -Encoding UTF8
 & $csc /nologo /target:library "/out:$dal" /r:System.Core.dll /r:System.Data.dll /r:System.Configuration.dll (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialDA.cs') $hanaStub
 if ($LASTEXITCODE -ne 0) { throw 'No compiló la capa de datos.' }
-& $csc /nologo /target:library "/out:$ui" /r:System.Core.dll /r:System.Data.dll /r:System.Drawing.dll /r:System.Web.dll "/r:$dal" "/r:$mvc" "/r:$epplus" (Join-Path $project 'DiamDev.Give.UI\Controllers\GerenciaComercialController.cs') $uiStub
+& $csc /nologo /target:library "/out:$ui" /r:System.Core.dll /r:System.Data.dll /r:System.Drawing.dll /r:System.Web.dll "/r:$dal" "/r:$mvc" "/r:$epplus" (Join-Path $project 'DiamDev.Give.UI\Controllers\GerenciaComercialController.cs') (Join-Path $project 'DiamDev.Give.UI\App_Start\PermisoAttribute.cs') $uiStub
 if ($LASTEXITCODE -ne 0) { throw 'No compiló el controlador.' }
-& $csc /nologo /target:exe "/out:$exe" /r:System.Core.dll /r:System.Data.dll "/r:$dal" "/r:$ui" "/r:$mvc" (Join-Path $PSScriptRoot 'GerenciaComercialTests.cs')
+& $csc /nologo /target:exe "/out:$exe" /r:System.Core.dll /r:System.Data.dll /r:System.Web.dll "/r:$dal" "/r:$ui" "/r:$mvc" (Join-Path $PSScriptRoot 'GerenciaComercialTests.cs')
 if ($LASTEXITCODE -ne 0) { throw 'No compilaron las pruebas.' }
 Copy-Item -LiteralPath $mvc -Destination $testDir
 Copy-Item -LiteralPath $epplus -Destination $testDir

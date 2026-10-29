@@ -3,11 +3,21 @@ using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.Reflection;
+using System.Security.Principal;
+using System.Web;
 using DiamDev.Give.DAL;
+using DiamDev.Give.BLL;
+using DiamDev.Give.UI.App_Start;
 using DiamDev.Give.UI.Controllers;
 
 public static class GerenciaComercialTests
 {
+    private sealed class ContextoPrueba : HttpContextBase
+    {
+        private readonly IPrincipal _usuario;
+        public ContextoPrueba(string login) { _usuario = new GenericPrincipal(new GenericIdentity(login), new string[0]); }
+        public override IPrincipal User { get { return _usuario; } set { } }
+    }
     private static int _passed;
     private static object Invoke(string name, params object[] args)
     {
@@ -52,6 +62,13 @@ public static class GerenciaComercialTests
         Check((string)rows[0]["Adjunto"] == "Archivo binario", "No enviar binarios al navegador.");
         Check((string)Invoke("CeldaSegura", "  =2+2") == "'  =2+2", "Neutralizar fórmulas en Excel.");
         Check((string)Invoke("CeldaSegura", "Cliente") == "Cliente", "Conservar texto normal en Excel.");
+        var permiso = (PermisoAttribute)Attribute.GetCustomAttribute(typeof(GerenciaComercialController), typeof(PermisoAttribute));
+        Check(permiso != null && permiso.Permiso == "Control.GerenciaComercial.Ver", "Vista y endpoints deben exigir el mismo permiso comercial.");
+        var autorizar = typeof(PermisoAttribute).GetMethod("AuthorizeCore", BindingFlags.NonPublic | BindingFlags.Instance);
+        RolBL.Permitido = false;
+        Check(!(bool)autorizar.Invoke(permiso, new object[] { new ContextoPrueba("vendedor") }), "Un usuario sin permiso no debe acceder al panel.");
+        RolBL.Permitido = true;
+        Check((bool)autorizar.Invoke(permiso, new object[] { new ContextoPrueba("gerencia") }) && RolBL.UltimoPermiso == "Control.GerenciaComercial.Ver", "El acceso debe consultar el permiso comercial exacto.");
 
         var sqlVentas = (string)typeof(GerenciaComercialDA).GetMethod("ParteSap", BindingFlags.NonPublic | BindingFlags.Static).Invoke(null, new object[] { "ventas", "FAES" });
         Check(sqlVentas.Contains("\"SBOESCOCESA\".\"OINV\"") && sqlVentas.Contains("\"SBOESCOCESA\".\"ORIN\""), "FAES debe consultar facturas y notas de crédito en su schema configurado.");

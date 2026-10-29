@@ -5,10 +5,18 @@
     foreach (var Item in Model)
     {
         <li class="app-menu-group">
-		    <a class="app-menu-link" href="javascript:void(0)" aria-expanded="false"><i class="@(Item.IconName)" aria-hidden="true"></i>
-			    <span class="title"> @(Item.Titulo) </span><i class="icon-arrow"></i>
-			    <span class="selected"></span>
-		    </a>
+            @if (!string.IsNullOrWhiteSpace(Item.Action) && !string.IsNullOrWhiteSpace(Item.Controller) && (Item.Items == null || Item.Items.Count == 0))
+            {
+                <a class="app-menu-link" href="@Url.Action(Item.Action, Item.Controller)"><i class="@(Item.IconName)" aria-hidden="true"></i>
+                    <span class="title">@Item.Titulo</span><span class="selected"></span>
+                </a>
+            }
+            else
+            {
+                <a class="app-menu-link" href="javascript:void(0)" aria-expanded="false"><i class="@(Item.IconName)" aria-hidden="true"></i>
+                    <span class="title">@Item.Titulo</span><i class="icon-arrow"></i><span class="selected"></span>
+                </a>
+            }
 
             @if (Item.Items != null)
             {

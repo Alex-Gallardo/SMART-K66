@@ -2,6 +2,14 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const project = path.join(__dirname, "../..");
+const layout = fs.readFileSync(path.join(project, "DiamDev.Give.UI/Views/Shared/_Layout.cshtml"), "utf8");
+const menu = fs.readFileSync(path.join(project, "DiamDev.Give.UI/Views/Shared/_Menu.cshtml"), "utf8");
+const migration = fs.readFileSync(path.join(project, "SqlMigrations/GerenciaComercial/01_permiso_menu.sql"), "utf8");
+assert.doesNotMatch(layout, /Url\.Action\("Index",\s*"GerenciaComercial"\)/, "El layout no debe publicar el enlace a todos los usuarios");
+assert.match(menu, /Url\.Action\(Item\.Action,\s*Item\.Controller\)/, "Un menú raíz con acción debe ser navegable");
+assert.match(migration, /Control\.GerenciaComercial\.Ver/);
+assert.doesNotMatch(migration, /INSERT\s+(?:INTO\s+)?dbo\.Rol_Permiso/i, "El permiso no debe asignarse a roles por defecto");
 
 class Element {
     constructor(tag = "div") {

@@ -279,7 +279,11 @@ if(([regex]::Matches($detallePanel,'class="dist-doc ')).Count -ne 3 -or
    $detallePanel -notmatch 'DOC-DEMO-001' -or $detallePanel -notmatch 'DOC-DEMO-002' -or $detallePanel -notmatch 'DOC-DEMO-003' -or
    $detallePanel -notmatch 'Observación POS pendiente:' -or $detallePanel -notmatch 'Hora de entrada' -or
    $detallePanel -notmatch 'Observación general' -or $detallePanel -notmatch 'Última actividad POS' -or
-   $detallePanel -notmatch 'Volver al panel con mis filtros' -or $detallePanel -notmatch 'Ver foto de garita') {
+   $detallePanel -notmatch 'Volver al panel con mis filtros' -or $detallePanel -notmatch 'Ver foto de garita' -or
+   $detallePanel.IndexOf('<strong>Entrada de garita</strong>') -lt 0 -or
+   $detallePanel.IndexOf('<strong>Salida de garita</strong>') -lt 0 -or
+   $detallePanel.IndexOf('<strong>Entrada de garita</strong>') -ge $detallePanel.IndexOf('<strong>Salida de garita</strong>') -or
+   $detallePanel -notmatch 'Hora de entrada registrada') {
     throw 'El detalle debe mostrar todas las facturas y los datos operativos sin perder navegación.'
 }
 Write-Host 'OK: detalle completo de clientes, facturas y datos de ruta.'

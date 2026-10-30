@@ -212,5 +212,23 @@ namespace DiamDev.Give.Entities
             return "\""+valor.Replace("\"","\"\"")+"\"";
         }
         public static DateTime HoraGuatemala(DateTime utc) { return DateTime.SpecifyKind(utc,DateTimeKind.Utc).AddHours(-6); }
+        public static string TipoEventoGarita(string tipo)
+        {
+            switch(tipo) {
+                case "S": return "Salida de garita";
+                case "I": return "Entrada de garita";
+                case "D": return "Diferencia en garita";
+                case "R": return "Diferencia resuelta";
+                default: return "Evento de garita";
+            }
+        }
+        public static string DescripcionEventoGarita(string tipo,string observacion,string precinto)
+        {
+            if(tipo=="S") return "Hora de salida registrada"+(string.IsNullOrWhiteSpace(precinto)?"":" · precinto "+precinto);
+            if(tipo=="I") return "Hora de entrada registrada";
+            return observacion;
+        }
+        public static List<PilotoPanelActividad> OrdenarActividad(IEnumerable<PilotoPanelActividad> eventos)
+        { return eventos.OrderByDescending(a=>a.FechaUtc).ThenBy(a=>a.Tipo).ThenBy(a=>a.Clave).ToList(); }
     }
 }

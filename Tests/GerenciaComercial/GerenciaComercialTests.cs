@@ -97,6 +97,7 @@ public static class GerenciaComercialTests
         HanaHelper.Consultas.Clear();
         new GerenciaComercialDA().Comparar("productos", valid, "cantidad");
         Check(HanaHelper.Consultas[0].Contains("\"INV1\"") && HanaHelper.Consultas[0].Contains("\"RIN1\"") && HanaHelper.Consultas[0].Contains("\"TotalFrgn\""), "Productos deben usar líneas SAP en moneda de documento.");
+        Check(HanaHelper.Consultas[0].Contains("D.\"TotalEmpresa\" FROM G LEFT JOIN D") && HanaHelper.Consultas[0].Contains("SUM(\"Monto\"*\"Signo\")"), "La participación de productos debe dividirse entre la venta neta completa de su empresa, no entre líneas.");
         HanaHelper.Consultas.Clear();
         new GerenciaComercialDA().Historico("clientes", valid, "C001");
         Check(HanaHelper.Consultas[0].Contains("'YYYY-MM'") && HanaHelper.Consultas[0].Contains("P.\"Codigo\""), "El histórico individual debe agruparse por mes y filtrar el código.");

@@ -49,7 +49,15 @@ namespace DiamDev.Give.DAL
         private static string ConsultaComparativa(string dimension, Filtro f)
         {
             string union = string.Join(" UNION ALL ", SeleccionarEmpresas(f.Empresa).Select(e => ParteComparativo(dimension, e)));
-            return ComparativoP + "X AS (" + union + "), G AS (SELECT \"Empresa\", \"Codigo\", MAX(\"Nombre\") AS \"Nombre\", MAX(\"Familia\") AS \"Familia\", \"Moneda\", SUM(CASE WHEN \"Periodo\"=1 THEN \"Neto\" ELSE 0 END) AS \"Actual\", SUM(CASE WHEN \"Periodo\"=0 THEN \"Neto\" ELSE 0 END) AS \"Anterior\", SUM(CASE WHEN \"Periodo\"=1 THEN \"Cantidad\" ELSE 0 END) AS \"CantidadActual\", SUM(CASE WHEN \"Periodo\"=0 THEN \"Cantidad\" ELSE 0 END) AS \"CantidadAnterior\" FROM X GROUP BY \"Empresa\", \"Codigo\", \"Moneda\"), T AS (SELECT G.*, SUM(G.\"Actual\") OVER (PARTITION BY G.\"Empresa\", G.\"Moneda\") AS \"TotalEmpresa\" FROM G), R AS (SELECT T.*, T.\"Actual\"-T.\"Anterior\" AS \"Delta\", CASE WHEN T.\"Anterior\"=0 THEN NULL ELSE 100*(T.\"Actual\"-T.\"Anterior\")/ABS(T.\"Anterior\") END AS \"Variacion\", CASE WHEN T.\"TotalEmpresa\"=0 THEN NULL ELSE 100*T.\"Actual\"/T.\"TotalEmpresa\" END AS \"Participacion\" FROM T) ";
+            string agrupado = "X AS (" + union + "), G AS (SELECT \"Empresa\", \"Codigo\", MAX(\"Nombre\") AS \"Nombre\", MAX(\"Familia\") AS \"Familia\", \"Moneda\", SUM(CASE WHEN \"Periodo\"=1 THEN \"Neto\" ELSE 0 END) AS \"Actual\", SUM(CASE WHEN \"Periodo\"=0 THEN \"Neto\" ELSE 0 END) AS \"Anterior\", SUM(CASE WHEN \"Periodo\"=1 THEN \"Cantidad\" ELSE 0 END) AS \"CantidadActual\", SUM(CASE WHEN \"Periodo\"=0 THEN \"Cantidad\" ELSE 0 END) AS \"CantidadAnterior\" FROM X GROUP BY \"Empresa\", \"Codigo\", \"Moneda\")";
+            string total;
+            if (dimension == "productos")
+            {
+                string documentos = string.Join(" UNION ALL ", SeleccionarEmpresas(f.Empresa).Select(ParteResumenVentas));
+                total = ", D AS (SELECT \"Empresa\", \"Moneda\", SUM(\"Monto\"*\"Signo\") AS \"TotalEmpresa\" FROM (" + documentos + ") V GROUP BY \"Empresa\", \"Moneda\"), T AS (SELECT G.*, D.\"TotalEmpresa\" FROM G LEFT JOIN D ON D.\"Empresa\"=G.\"Empresa\" AND D.\"Moneda\"=G.\"Moneda\")";
+            }
+            else total = ", T AS (SELECT G.*, SUM(G.\"Actual\") OVER (PARTITION BY G.\"Empresa\", G.\"Moneda\") AS \"TotalEmpresa\" FROM G)";
+            return ComparativoP + agrupado + total + ", R AS (SELECT T.*, T.\"Actual\"-T.\"Anterior\" AS \"Delta\", CASE WHEN T.\"Anterior\"=0 THEN NULL ELSE 100*(T.\"Actual\"-T.\"Anterior\")/ABS(T.\"Anterior\") END AS \"Variacion\", CASE WHEN T.\"TotalEmpresa\"=0 THEN NULL ELSE 100*T.\"Actual\"/T.\"TotalEmpresa\" END AS \"Participacion\" FROM T) ";
         }
 
         public PaginaDatos Comparar(string dimension, Filtro f, string orden)

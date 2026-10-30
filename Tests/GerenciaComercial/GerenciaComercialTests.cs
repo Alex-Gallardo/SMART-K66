@@ -88,7 +88,27 @@ public static class GerenciaComercialTests
         HanaHelper.Consultas.Clear();
         new GerenciaComercialDA().DetalleSap("notas", "BOLIK", "456");
         Check(HanaHelper.Consultas[0].Contains("\"ORIN\"") && HanaHelper.Consultas[1].Contains("\"RIN1\""), "Las notas de crédito deben consultar sus propias tablas.");
-        Console.WriteLine("OK: " + _passed + " verificaciones de filtros, privacidad, detalle y exportación.");
+        HanaHelper.Consultas.Clear();
+        new GerenciaComercialDA().Comparar("agentes", valid, "caida");
+        Check(HanaHelper.Consultas.Count == 1 && HanaHelper.Consultas[0].Contains("\"OINV\"") && HanaHelper.Consultas[0].Contains("\"ORIN\""), "El comparativo debe contar y paginar facturas menos notas de crédito en una consulta.");
+        Check(HanaHelper.Consultas[0].Contains("\"AnteriorDesde\"") && HanaHelper.Consultas[0].Contains("\"AnteriorHasta\""), "Debe comparar contra las mismas fechas del año anterior.");
+        Check(HanaHelper.Consultas[0].Contains("PARTITION BY G.\"Empresa\", G.\"Moneda\"") && HanaHelper.Consultas[0].Contains("\"Participacion\""), "La participación debe usar el total de cada empresa y moneda antes de buscar.");
+        Check(HanaHelper.Consultas[0].Contains("R.\"Delta\" ASC") && HanaHelper.Consultas[0].Contains("ROW_NUMBER()") && HanaHelper.Consultas[0].Contains("COUNT(*) OVER"), "La mayor caída debe ordenarse y paginarse en SAP.");
+        HanaHelper.Consultas.Clear();
+        new GerenciaComercialDA().Comparar("productos", valid, "cantidad");
+        Check(HanaHelper.Consultas[0].Contains("\"INV1\"") && HanaHelper.Consultas[0].Contains("\"RIN1\"") && HanaHelper.Consultas[0].Contains("\"TotalFrgn\""), "Productos deben usar líneas SAP en moneda de documento.");
+        Check(HanaHelper.Consultas[0].Contains("D.\"TotalEmpresa\" FROM G LEFT JOIN D") && HanaHelper.Consultas[0].Contains("SUM(\"Monto\"*\"Signo\")"), "La participación de productos debe dividirse entre la venta neta completa de su empresa, no entre líneas.");
+        HanaHelper.Consultas.Clear();
+        new GerenciaComercialDA().Historico("clientes", valid, "C001");
+        Check(HanaHelper.Consultas[0].Contains("'YYYY-MM'") && HanaHelper.Consultas[0].Contains("P.\"Codigo\""), "El histórico individual debe agruparse por mes y filtrar el código.");
+        Check((string)Invoke("Frente", "SALA DE VENTAS") == "Sala de Ventas" && (string)Invoke("Frente", "EXPORTACIÓN") == "Exportaciones", "Clasificación exacta de frentes comerciales.");
+        var agentes = new DataTable(); agentes.Columns.Add("Empresa", typeof(string)); agentes.Columns.Add("Codigo", typeof(string)); agentes.Columns.Add("Nombre", typeof(string)); agentes.Rows.Add("FAES", "2", "Otro nombre SAP");
+        var operadores = new DataTable(); operadores.Columns.Add("EmpresaId", typeof(long)); operadores.Columns.Add("Codigo", typeof(string)); operadores.Columns.Add("Depto", typeof(string)); operadores.Rows.Add(20210705003L, "2-GERENCIA", "X");
+        Invoke("Clasificar", agentes, operadores);
+        Check((string)agentes.Rows[0]["Frente"] == "Gerencia", "Usuario_Empresa debe relacionarse por empresa y código SAP.");
+        var comparison = typeof(GerenciaComercialController).GetMethod("Comparativo").GetCustomAttributes(typeof(System.Web.Mvc.HttpGetAttribute), true);
+        Check(comparison.Length == 1 && typeof(GerenciaComercialController).GetMethod("Historico").GetCustomAttributes(typeof(System.Web.Mvc.HttpGetAttribute), true).Length == 1, "Los nuevos endpoints deben estar bajo el permiso del controlador.");
+        Console.WriteLine("OK: " + _passed + " verificaciones de filtros, privacidad, detalle y análisis histórico.");
         return 0;
     }
 }

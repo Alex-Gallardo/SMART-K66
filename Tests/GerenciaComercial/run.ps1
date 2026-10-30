@@ -24,7 +24,8 @@ namespace DiamDev.Give.DAL {
             Consultas.Add(sql);
             var table = new System.Data.DataTable();
             table.Columns.Add("Dato", typeof(int));
-            table.Rows.Add(1);
+            table.Columns.Add("TotalFilas", typeof(int));
+            table.Rows.Add(1, 1);
             return table;
         }
     }
@@ -55,7 +56,7 @@ $exe = Join-Path $testDir 'GerenciaComercialTests.exe'
 <add key="HanaSchema.GRACO" value="SBO_GRACO" />
 </appSettings></configuration>
 '@ | Set-Content -LiteralPath ($exe + '.config') -Encoding UTF8
-& $csc /nologo /target:library "/out:$dal" /r:System.Core.dll /r:System.Data.dll /r:System.Configuration.dll (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialDA.cs') $hanaStub
+& $csc /nologo /target:library "/out:$dal" /r:System.Core.dll /r:System.Data.dll /r:System.Configuration.dll (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialDA.cs') (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialAnalisisDA.cs') $hanaStub
 if ($LASTEXITCODE -ne 0) { throw 'No compiló la capa de datos.' }
 & $csc /nologo /target:library "/out:$ui" /r:System.Core.dll /r:System.Data.dll /r:System.Drawing.dll /r:System.Web.dll "/r:$dal" "/r:$mvc" "/r:$epplus" (Join-Path $project 'DiamDev.Give.UI\Controllers\GerenciaComercialController.cs') (Join-Path $project 'DiamDev.Give.UI\App_Start\PermisoAttribute.cs') $uiStub
 if ($LASTEXITCODE -ne 0) { throw 'No compiló el controlador.' }
@@ -77,3 +78,7 @@ $node = Get-Command node -ErrorAction SilentlyContinue
 if (-not $node) { throw 'Se requiere Node.js para las pruebas de interfaz.' }
 & $node.Source (Join-Path $PSScriptRoot 'gerencia-comercial-ui.test.js')
 if ($LASTEXITCODE -ne 0) { throw 'Las pruebas de interfaz fallaron.' }
+& $node.Source --check (Join-Path $project 'DiamDev.Give.UI\Scripts\App\gerencia-comercial-analisis.js')
+if ($LASTEXITCODE -ne 0) { throw 'JavaScript de análisis contiene errores.' }
+& $node.Source (Join-Path $PSScriptRoot 'gerencia-comercial-analisis-ui.test.js')
+if ($LASTEXITCODE -ne 0) { throw 'Las pruebas de análisis comercial fallaron.' }

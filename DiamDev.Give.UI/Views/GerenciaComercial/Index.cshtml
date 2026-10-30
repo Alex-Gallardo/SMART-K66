@@ -3,10 +3,10 @@
     ViewBag.Title = "Gerencia Comercial";
 }
 @section styles {
-    <link href="@Url.Content("~/Content/gerencia-comercial.css?v=2")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/gerencia-comercial.css?v=3")" rel="stylesheet" />
 }
 
-<div class="gc" id="gc" data-resumen="@Url.Action("Resumen")" data-listar="@Url.Action("Listar")" data-detalle="@Url.Action("Detalle")" data-exportar="@Url.Action("Exportar")">
+<div class="gc" id="gc" data-resumen="@Url.Action("Resumen")" data-listar="@Url.Action("Listar")" data-detalle="@Url.Action("Detalle")" data-exportar="@Url.Action("Exportar")" data-comparativo="@Url.Action("Comparativo")" data-historico="@Url.Action("Historico")" data-exportar-comparativo="@Url.Action("ExportarComparativo")">
     <header class="gc-hero">
         <div>
             <div class="gc-eyebrow"><span class="gc-live-dot"></span> Inteligencia comercial · Grupo K66</div>
@@ -67,6 +67,34 @@
         </div>
     </section>
 
+    <section class="gc-analysis" aria-label="Análisis histórico comercial">
+        <div class="gc-section-head"><div><span class="gc-kicker">Seguimiento comercial</span><h2>Desempeño y comparación histórica</h2></div><span class="gc-context">Período seleccionado frente a las mismas fechas del año anterior</span></div>
+        <div class="gc-analysis-toolbar">
+            <div class="gc-analysis-tabs" role="tablist" aria-label="Dimensión de desempeño">
+                <button type="button" data-analysis="agentes" class="is-active" aria-selected="true">Agentes y frentes</button>
+                <button type="button" data-analysis="clientes" aria-selected="false">Clientes</button>
+                <button type="button" data-analysis="productos" aria-selected="false">Productos</button>
+            </div>
+            <div class="gc-analysis-actions">
+                <button type="button" id="gc-report-closed" class="gc-btn gc-btn-outline"><i class="fa fa-calendar-check-o" aria-hidden="true"></i> Cierre del último mes</button>
+                <button type="button" id="gc-report-money" class="gc-btn gc-btn-primary"><i class="fa fa-file-text-o" aria-hidden="true"></i> Informe monetario</button>
+                <button type="button" id="gc-report-percent" class="gc-btn gc-btn-outline"><i class="fa fa-percent" aria-hidden="true"></i> Informe porcentual</button>
+            </div>
+        </div>
+        <p class="gc-analysis-note">El informe utiliza una empresa y una moneda a la vez. La participación se calcula sobre el total de esa empresa y moneda. En productos se usan importes de líneas sin impuesto; ajustes de encabezado pueden causar diferencias con el total de facturas.</p>
+        <div id="gc-fronts" class="gc-fronts" aria-live="polite"></div>
+        <div class="gc-analysis-filters">
+            <label class="gc-search"><i class="fa fa-search" aria-hidden="true"></i><input id="gc-analysis-search" type="search" placeholder="Buscar agente, cliente, producto o código" aria-label="Buscar desempeño" /></label>
+            <label id="gc-analysis-front-label">Frente <select id="gc-analysis-front"><option value="">Todos</option><option>Sala de Ventas</option><option>Gerencia</option><option>Exportaciones</option><option>Agente comercial</option></select></label>
+            <label>Ordenar <select id="gc-analysis-order"><option value="actual">Venta actual</option><option value="delta">Mayor crecimiento</option><option value="caida">Mayor caída</option><option value="variacion">Variación %</option><option value="anterior">Venta anterior</option><option value="cantidad">Unidades actuales</option><option value="nombre">Nombre</option></select></label>
+            <label>Filas <select id="gc-analysis-size"><option>25</option><option>50</option><option>100</option></select></label>
+            <button type="button" id="gc-analysis-export" class="gc-btn gc-btn-outline"><i class="fa fa-file-excel-o" aria-hidden="true"></i> Exportar comparativo</button>
+        </div>
+        <div id="gc-analysis-status" class="gc-analysis-status" role="status" aria-live="polite">Preparando comparativo…</div>
+        <div class="gc-table-wrap"><table class="gc-table gc-analysis-table"><thead><tr><th>Empresa</th><th>Código / nombre</th><th>Frente / familia</th><th>Moneda</th><th>Período anterior</th><th>Período actual</th><th>Variación</th><th>Participación</th><th>Unidades netas</th><th></th></tr></thead><tbody id="gc-analysis-rows"></tbody></table></div>
+        <div class="gc-pagination"><span id="gc-analysis-count">—</span><div><button type="button" id="gc-analysis-prev" class="gc-btn gc-btn-outline">Anterior</button><span id="gc-analysis-page">1</span><button type="button" id="gc-analysis-next" class="gc-btn gc-btn-outline">Siguiente</button></div></div>
+    </section>
+
     <section class="gc-explorer" aria-label="Explorador comercial">
         <div class="gc-section-head"><div><span class="gc-kicker">Explorar datos</span><h2>Registros y detalle</h2></div><span class="gc-context">Catálogos completos con paginación · SAP y SQL por separado</span></div>
         <div class="gc-tabs" role="tablist" aria-label="Tipo de datos">
@@ -110,6 +138,14 @@
     </div>
 </div>
 
+<div id="gc-history-modal" class="gc-modal" role="dialog" aria-modal="true" aria-labelledby="gc-history-title" hidden>
+    <div class="gc-modal-backdrop" data-history-close="true"></div>
+    <div class="gc-modal-card gc-history-card"><header><div><span class="gc-kicker">Evolución individual · hasta cinco años</span><h2 id="gc-history-title">Histórico</h2></div><button type="button" class="gc-modal-close" data-history-close="true" aria-label="Cerrar histórico">&times;</button></header><div id="gc-history-body" class="gc-modal-body"></div></div>
+</div>
+
+<div id="gc-report" class="gc-report" hidden></div>
+
 @section scripts {
-    <script src="@Url.Content("~/Scripts/App/gerencia-comercial.js?v=2")"></script>
+    <script src="@Url.Content("~/Scripts/App/gerencia-comercial.js?v=3")"></script>
+    <script src="@Url.Content("~/Scripts/App/gerencia-comercial-analisis.js?v=1")"></script>
 }

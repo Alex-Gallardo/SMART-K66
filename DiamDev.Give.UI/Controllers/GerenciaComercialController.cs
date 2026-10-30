@@ -4,6 +4,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Web;
 using System.Web.Mvc;
 using DiamDev.Give.DAL;
@@ -213,6 +214,137 @@ namespace DiamDev.Give.UI.Controllers
                     hoja.Cells[1, 1, Math.Max(2, datos.Filas.Rows.Count + 1), columnas.Count].AutoFilter = true;
                     hoja.Cells[hoja.Dimension.Address].AutoFitColumns();
                     return File(paquete.GetAsByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "gerencia-comercial-" + tipo + "-" + DateTime.Today.ToString("yyyyMMdd") + ".xlsx");
+                }
+            }
+            catch (Exception ex) { return Error(ex); }
+        }
+
+        private static string DimensionValida(string dimension)
+        {
+            if (dimension != "agentes" && dimension != "clientes" && dimension != "productos") throw new ArgumentException("Seleccione agentes, clientes o productos.");
+            return dimension;
+        }
+
+        private static void ValidarComparacion(GerenciaComercialDA.Filtro f)
+        {
+            if ((f.Hasta - f.Desde).TotalDays > 366) throw new ArgumentException("El comparativo admite períodos de hasta un año. Para más historia, abra la evolución individual.");
+        }
+
+        private static string SinAcentos(string valor)
+        {
+            var normal = (valor ?? "").Trim().ToUpperInvariant().Normalize(NormalizationForm.FormD);
+            var b = new StringBuilder();
+            foreach (char c in normal) if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark) b.Append(c);
+            return b.ToString().Normalize(NormalizationForm.FormC);
+        }
+
+        private static string Frente(string nombre)
+        {
+            string n = SinAcentos(nombre);
+            if (n == "SALA DE VENTAS" || n == "SALA VENTAS") return "Sala de Ventas";
+            if (n == "GERENCIA") return "Gerencia";
+            if (n == "EXPORTACIONES" || n == "EXPORTACION" || n == "DEPTO EXPORTACIONES" || n == "DEPARTAMENTO EXPORTACIONES") return "Exportaciones";
+            return "Agente comercial";
+        }
+
+        private static void Clasificar(DataTable filas, DataTable operadores)
+        {
+            if (!filas.Columns.Contains("Frente")) filas.Columns.Add("Frente", typeof(string));
+            foreach (DataRow fila in filas.Rows)
+            {
+                string empresa = Convert.ToString(fila["Empresa"]), codigo = Convert.ToString(fila["Codigo"]);
+                string frente = Frente(Convert.ToString(fila["Nombre"]));
+                if (frente == "Agente comercial" && operadores != null)
+                {
+                    long id = empresa == "BOLIK" ? 20210705001L : empresa == "FAES" ? 20210705003L : empresa == "GRACO" ? 20210705004L : 0;
+                    foreach (DataRow operador in operadores.Rows)
+                    {
+                        if (Convert.ToInt64(operador["EmpresaId"]) != id) continue;
+                        string valor = Convert.ToString(operador["Codigo"]);
+                        int guion = valor.IndexOf('-');
+                        if (guion <= 0 || valor.Substring(0, guion).Trim() != codigo) continue;
+                        frente = Frente(valor.Substring(guion + 1));
+                        if (frente != "Agente comercial") break;
+                    }
+                }
+                fila["Frente"] = frente;
+            }
+        }
+
+        [HttpGet]
+        public ActionResult Comparativo(string dimension, string empresa, string desde, string hasta, string moneda, string buscar, string orden = "actual", int pagina = 1, int tamano = 25)
+        {
+            Response.Cache.SetNoStore();
+            try
+            {
+                DimensionValida(dimension);
+                var f = FiltroValido(empresa, desde, hasta, buscar, moneda, pagina, Math.Min(tamano, 1000));
+                ValidarComparacion(f);
+                var datos = _datos.Comparar(dimension, f, orden);
+                string advertencia = null;
+                if (dimension == "agentes")
+                {
+                    DataTable operadores = null;
+                    try { operadores = _datos.OperadoresComerciales(); }
+                    catch (Exception ex) { Trace.TraceError("[GerenciaComercial] Usuario_Empresa: {0}", ex); advertencia = "No se pudo leer Usuario_Empresa; los frentes se identifican por el nombre SAP."; }
+                    Clasificar(datos.Filas, operadores);
+                }
+                return JsonGrande(new { filas = Filas(datos.Filas), total = datos.Total, pagina = f.Pagina, tamano = f.Tamano, anteriorDesde = f.Desde.AddYears(-1).ToString("yyyy-MM-dd"), anteriorHasta = f.Hasta.AddYears(-1).ToString("yyyy-MM-dd"), advertencia });
+            }
+            catch (Exception ex) { return Error(ex); }
+        }
+
+        [HttpGet]
+        public ActionResult Historico(string dimension, string empresa, string codigo, string hasta, string moneda)
+        {
+            Response.Cache.SetNoStore();
+            try
+            {
+                DimensionValida(dimension);
+                var f = FiltroValido(empresa, null, hasta, "", moneda, 1, 1);
+                return JsonGrande(new { filas = Filas(_datos.Historico(dimension, f, codigo)), empresa = f.Empresa, codigo, dimension });
+            }
+            catch (Exception ex) { return Error(ex); }
+        }
+
+        [HttpGet]
+        public ActionResult ExportarComparativo(string dimension, string empresa, string desde, string hasta, string moneda, string buscar, string orden = "actual")
+        {
+            Response.Cache.SetNoStore();
+            try
+            {
+                DimensionValida(dimension);
+                var f = FiltroValido(empresa, desde, hasta, buscar, moneda, 1, MaximoExportacion);
+                ValidarComparacion(f);
+                var datos = _datos.Comparar(dimension, f, orden);
+                if (datos.Total > MaximoExportacion) return new HttpStatusCodeResult(400, "La exportación supera 10,000 filas. Aplique filtros.");
+                if (dimension == "agentes")
+                {
+                    try { Clasificar(datos.Filas, _datos.OperadoresComerciales()); }
+                    catch (Exception ex) { Trace.TraceError("[GerenciaComercial] Usuario_Empresa: {0}", ex); Clasificar(datos.Filas, null); }
+                }
+                using (var paquete = new ExcelPackage())
+                {
+                    var hoja = paquete.Workbook.Worksheets.Add("Comparativo " + dimension);
+                    var columnas = datos.Filas.Columns.Cast<DataColumn>().Where(c => c.ColumnName != "Fila").ToList();
+                    for (int c = 0; c < columnas.Count; c++) hoja.Cells[1, c + 1].Value = columnas[c].ColumnName;
+                    for (int r = 0; r < datos.Filas.Rows.Count; r++)
+                        for (int c = 0; c < columnas.Count; c++)
+                        {
+                            object valor = datos.Filas.Rows[r][columnas[c]];
+                            hoja.Cells[r + 2, c + 1].Value = valor == DBNull.Value ? "" : valor is string ? CeldaSegura(valor) : valor;
+                        }
+                    using (var encabezado = hoja.Cells[1, 1, 1, columnas.Count])
+                    {
+                        encabezado.Style.Font.Bold = true;
+                        encabezado.Style.Font.Color.SetColor(System.Drawing.Color.White);
+                        encabezado.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                        encabezado.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(20, 46, 76));
+                    }
+                    hoja.View.FreezePanes(2, 1);
+                    hoja.Cells[1, 1, Math.Max(2, datos.Filas.Rows.Count + 1), columnas.Count].AutoFilter = true;
+                    hoja.Cells[hoja.Dimension.Address].AutoFitColumns();
+                    return File(paquete.GetAsByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "comparativo-" + dimension + "-" + DateTime.Today.ToString("yyyyMMdd") + ".xlsx");
                 }
             }
             catch (Exception ex) { return Error(ex); }

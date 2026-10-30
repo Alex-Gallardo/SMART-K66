@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 namespace DiamDev.Give.DAL
 {
     /// <summary>Consultas comerciales de solo lectura. Nunca ejecuta SQL recibido del navegador.</summary>
-    public sealed class GerenciaComercialDA
+    public sealed partial class GerenciaComercialDA
     {
         private static readonly string[] Empresas = { "BOLIK", "FAES", "GRACO" };
         private static readonly Dictionary<string, long> EmpresaIds = new Dictionary<string, long>

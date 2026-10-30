@@ -674,6 +674,7 @@
     <Content Include="Scripts\App\BorradorNc-Dashboard.js" />
     <Content Include="Scripts\App\BorradorNc-DashboardDetalle.js" />
     <Content Include="Scripts\App\gerencia-comercial.js" />
+    <Content Include="Scripts\App\gerencia-comercial-analisis.js" />
     <Content Include="Scripts\App\Cotizacion-Index.js" />
     <Content Include="Scripts\clientes-crm.js" />
     <Content Include="Scripts\clientes-crm-detalle.js" />

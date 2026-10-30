@@ -57,7 +57,7 @@
                 <div class="dist-card-head"><span class="dist-icon" aria-hidden="true"><svg class="icon"><use href="#i-truck" /></svg></span><div><h2>Datos de la ruta</h2><p>Asignación y control</p></div></div>
                 <dl class="dist-info-list">
                     <div><dt>ID de ruta</dt><dd>@r.Datos.Id</dd></div>
-                    <div><dt>Fecha programada</dt><dd>@r.Datos.Fecha.ToString("dd/MM/yyyy")</dd></div>
+                    <div><dt>Fecha ruta</dt><dd>@r.Datos.Fecha.ToString("dd/MM/yyyy")</dd></div>
                     <div><dt>@(r.Datos.CuentaEmpresa?"Registro estable APK66":"Piloto")</dt><dd>@(r.Datos.Piloto??"Sin asignar")</dd></div>
                     @if(r.Datos.CuentaEmpresa){<div><dt>Conductor real</dt><dd>@(r.Datos.ConductorReal??"Pendiente de asignar")</dd></div><div><dt>Documento/licencia</dt><dd>@(r.Datos.DocumentoConductor??"Pendiente")</dd></div>}
                     <div><dt>Centro de distribución</dt><dd>@(r.Datos.Centro??"Sin registrar")</dd></div>

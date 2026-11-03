@@ -239,12 +239,10 @@ ORDER BY CASE WHEN EXISTS(SELECT 1 FROM dbo.PilotoVehiculo pv WHERE pv.Usuario_I
                 ? @"EXISTS(SELECT 1 FROM dbo.PilotoEmpresaPlaca ep JOIN dbo.PilotoVehiculo v ON v.Usuario_Id=ep.Usuario_Id AND v.Placa=ep.Placa AND v.Activo=1
                     WHERE ep.Usuario_Id=@u AND ep.Placa=r.PLACA COLLATE DATABASE_DEFAULT)"
                 : @"r.PILOTO=@piloto AND EXISTS(SELECT 1 FROM " + apk + @".dbo.RT_EMPLEADOS e WHERE e.ROWID=@empleado AND e.ESTADO=1 AND e.CARGO=N'PILOTO' AND e.NOMBRE=r.PILOTO
-                    AND NOT EXISTS(SELECT 1 FROM " + apk + @".dbo.RT_EMPLEADOS otro WHERE otro.CARGO=N'PILOTO' AND otro.NOMBRE=e.NOMBRE AND otro.ROWID<>e.ROWID))
-                    AND EXISTS(SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=@u AND c.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)
-                    AND EXISTS(SELECT 1 FROM dbo.PilotoVehiculo v WHERE v.Usuario_Id=@u AND v.Activo=1 AND v.Placa=r.PLACA COLLATE DATABASE_DEFAULT)";
+                    AND NOT EXISTS(SELECT 1 FROM " + apk + @".dbo.RT_EMPLEADOS otro WHERE otro.CARGO=N'PILOTO' AND otro.NOMBRE=e.NOMBRE AND otro.ROWID<>e.ROWID))";
             var sql = @"SELECT TOP (10) r.ID_RUTA,r.FECHA_RUTA,r.PLACA,r.PILOTO,r.CENTRO_DIST,r.STATUS
-FROM " + apk + @".dbo.RT_RUTAS r WHERE r.STATUS IN(N'A',N'E') AND " + alcance + @"
-AND EXISTS(SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS rv WHERE rv.PLACA=r.PLACA AND rv.ESTADO=1)
+FROM " + apk + @".dbo.RT_RUTAS r WHERE r.STATUS IN(N'A',N'E') AND " + alcance +
+                (modelo.Usuario.CuentaEmpresa ? @" AND EXISTS(SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS rv WHERE rv.PLACA=r.PLACA AND rv.ESTADO=1)" : "") + @"
 ORDER BY CASE WHEN r.STATUS=N'E' THEN 0 ELSE 1 END,r.FECHA_RUTA DESC,r.ID_RUTA DESC;";
             using (var cmd = Comando(cn, tx, sql))
             {

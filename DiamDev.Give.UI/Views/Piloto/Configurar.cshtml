@@ -39,14 +39,14 @@
     </section>
 
     <section class="admin-section" id="individual-pilot-centers" hidden="@(Model.Formulario.CuentaEmpresa ? "hidden" : null)">
-        <div class="step-number">2</div><div class="section-title"><h2>Centros autorizados</h2><p>Para pilotos individuales, solo se muestran rutas de los centros marcados.</p></div>
+        <div class="step-number">2</div><div class="section-title"><h2>Centros de referencia</h2><p>Opcionales para pilotos propios. Las rutas se asignan por el piloto vinculado al usuario POS, sin filtrar por centro.</p></div>
         <div class="option-grid compact-options">
         @foreach (var c in Model.Centros) { <label class="check-card"><input type="checkbox" name="Centros" value="@c.Codigo" checked="@(c.Seleccionado ? "checked" : null)" disabled="@(Model.Formulario.CuentaEmpresa ? "disabled" : null)" /><span><strong>@c.Codigo</strong></span></label> }
         </div>
     </section>
 
     <section class="admin-section">
-        <div class="step-number">3</div><div class="section-title"><h2>Vehículos autorizados</h2><p>Una empresa puede vincular varias placas. Cada placa solo puede pertenecer a una empresa activa.</p></div>
+        <div class="step-number">3</div><div class="section-title"><h2>Vehículos vinculados</h2><p>En cuentas de empresa, las placas determinan el acceso y cada una solo puede pertenecer a una empresa activa. En pilotos propios son opcionales y no filtran rutas.</p></div>
         <label for="vehicle-filter">Filtrar vehículos</label><input id="vehicle-filter" type="search" placeholder="Escribe placa, marca o transporte" autocomplete="off" />
         <div class="option-grid vehicle-options" id="vehicle-options">
         @foreach (var v in Model.Vehiculos) { <label class="check-card" data-option="@((v.Codigo + " " + v.Nombre).ToLowerInvariant())"><input type="checkbox" name="Placas" value="@v.Codigo" checked="@(v.Seleccionado ? "checked" : null)" disabled="@(!v.Activo && !v.Seleccionado ? "disabled" : null)" /><span><strong>@v.Codigo</strong><small>@v.Nombre@(!v.Activo ? " · INACTIVO" : "")</small></span></label> }

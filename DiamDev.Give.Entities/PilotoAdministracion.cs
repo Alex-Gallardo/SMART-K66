@@ -29,7 +29,7 @@ namespace DiamDev.Give.Entities
         public string NombreEmpresa { get; set; }
         public int Centros { get; set; }
         public int Vehiculos { get; set; }
-        public bool Listo { get { return UsuarioActivo && AutenticarSite && TieneRolPiloto && VinculoActivo == true && Vehiculos > 0 && (CuentaEmpresa || Centros > 0); } }
+        public bool Listo { get { return UsuarioActivo && AutenticarSite && TieneRolPiloto && VinculoActivo == true && (CuentaEmpresa ? Vehiculos > 0 : EmpleadoRowId.HasValue && !string.IsNullOrWhiteSpace(Piloto)); } }
     }
 
     public sealed class PilotoAdminEmpleado
@@ -114,8 +114,8 @@ namespace DiamDev.Give.Entities
                 throw new PilotoException(400, "La selección supera el límite permitido.");
             if (modelo.Activo && (modelo.Centros.Any(v => v.Length > 15) || modelo.Placas.Any(v => v.Length > 15)))
                 throw new PilotoException(400, "Centros y placas admiten hasta 15 caracteres.");
-            if (modelo.Activo && (modelo.Placas.Length == 0 || !modelo.CuentaEmpresa && modelo.Centros.Length == 0))
-                throw new PilotoException(400, "Un vínculo activo necesita un vehículo y, para pilotos individuales, un centro.");
+            if (modelo.Activo && modelo.CuentaEmpresa && modelo.Placas.Length == 0)
+                throw new PilotoException(400, "Una cuenta empresarial activa necesita al menos un vehículo.");
         }
 
         private static string[] NormalizarLista(string[] valores)

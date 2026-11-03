@@ -77,20 +77,26 @@ SELECT Usuario_Id,Centro_Dist FROM dbo.PilotoCentro;
 SELECT pv.Usuario_Id,pv.Placa,CAST(CASE WHEN EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_VEHICULOS v WHERE v.PLACA=pv.Placa COLLATE DATABASE_DEFAULT AND v.ESTADO=1)
 AND (pe.Usuario_Id IS NULL OR EXISTS(SELECT 1 FROM dbo.PilotoEmpresaPlaca ep WHERE ep.Usuario_Id=pv.Usuario_Id AND ep.Placa=pv.Placa)) THEN 1 ELSE 0 END AS bit) Disponible
 FROM dbo.PilotoVehiculo pv LEFT JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=pv.Usuario_Id WHERE pv.Activo=1;"; } }
-        internal string SqlAsignaciones { get { return @"SELECT r.ID_RUTA,u.Usuario_Id FROM #PanelRutas r
-JOIN dbo.PilotoVehiculo v ON v.Placa=r.PLACA COLLATE DATABASE_DEFAULT AND v.Activo=1
-JOIN dbo.PilotoVinculo p ON p.Usuario_Id=v.Usuario_Id JOIN dbo.Usuario u ON u.Usuario_Id=p.Usuario_Id
+        internal string SqlAsignaciones { get { return @"WITH Accesos AS (
+SELECT u.Usuario_Id,p.Empleado_RowId,pe.Usuario_Id EmpresaId
+FROM dbo.PilotoVinculo p JOIN dbo.Usuario u ON u.Usuario_Id=p.Usuario_Id
 LEFT JOIN dbo.PilotoEmpresa pe ON pe.Usuario_Id=u.Usuario_Id
 WHERE u.Activo=1 AND u.Autenticar_Site=1 AND p.Activo=1 AND NULLIF(LTRIM(RTRIM(p.Codigo_Operador)),N'') IS NOT NULL
 AND (pe.Usuario_Id IS NULL OR pe.Activo=1 AND pe.Nit=u.Login)
 AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.Usuario_Id<>u.Usuario_Id)
 AND EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol rol ON rol.Rol_Id=ur.Rol_Id WHERE ur.Usuario_Id=u.Usuario_Id AND rol.Nombre=N'PILOTO')
 AND EXISTS(SELECT 1 FROM dbo.Usuario_Rol ur JOIN dbo.Rol_Permiso rp ON rp.Rol_Id=ur.Rol_Id WHERE ur.Usuario_Id=u.Usuario_Id AND rp.Permiso_Id=N'Pilotos.Rutas.Ver')
-AND (pe.Usuario_Id IS NOT NULL AND EXISTS(SELECT 1 FROM dbo.PilotoEmpresaPlaca ep WHERE ep.Usuario_Id=u.Usuario_Id AND ep.Placa=r.PLACA COLLATE DATABASE_DEFAULT)
- OR pe.Usuario_Id IS NULL AND EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_EMPLEADOS e WHERE e.ROWID=p.Empleado_RowId AND e.NOMBRE=r.PILOTO AND e.ESTADO=1 AND e.CARGO=N'PILOTO'
- AND NOT EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_EMPLEADOS otro WHERE otro.CARGO=N'PILOTO' AND otro.NOMBRE=e.NOMBRE AND otro.ROWID<>e.ROWID))
- AND EXISTS(SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=u.Usuario_Id AND c.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT))
-AND EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1);"; } }
+)
+SELECT r.ID_RUTA,a.Usuario_Id FROM #PanelRutas r
+JOIN "+apk+@".dbo.RT_EMPLEADOS e ON e.NOMBRE=r.PILOTO AND e.ESTADO=1 AND e.CARGO=N'PILOTO'
+JOIN Accesos a ON a.Empleado_RowId=e.ROWID AND a.EmpresaId IS NULL
+WHERE NOT EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_EMPLEADOS otro WHERE otro.CARGO=N'PILOTO' AND otro.NOMBRE=e.NOMBRE AND otro.ROWID<>e.ROWID)
+UNION ALL
+SELECT r.ID_RUTA,a.Usuario_Id FROM #PanelRutas r
+JOIN dbo.PilotoEmpresaPlaca ep ON ep.Placa=r.PLACA COLLATE DATABASE_DEFAULT
+JOIN dbo.PilotoVehiculo pv ON pv.Usuario_Id=ep.Usuario_Id AND pv.Placa=ep.Placa AND pv.Activo=1
+JOIN Accesos a ON a.Usuario_Id=ep.Usuario_Id AND a.EmpresaId IS NOT NULL
+WHERE EXISTS(SELECT 1 FROM "+apk+@".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1);"; } }
         internal string SqlArtefactos { get { return @"SELECT b.*,"+(eventosClientes ? @"CAST(CASE WHEN EXISTS(SELECT 1 FROM dbo.PilotoClienteEvento e WHERE e.CatalogoRutas=@catalogo AND e.Usuario_Id=b.Usuario_Id AND e.Ruta_Id=b.Ruta_Id AND e.Primer_RowId=b.Primer_RowId AND e.Version=b.Version) THEN 1 ELSE 0 END AS bit)"
             : "CAST(0 AS bit)")+@" OrigenVerificado FROM dbo.PilotoBorradorCliente b JOIN #PanelRutas r ON r.ID_RUTA COLLATE DATABASE_DEFAULT=b.Ruta_Id;
 SELECT i.Ruta_Id,i.Detalle_RowId,i.Usuario_Id,i.FechaUtc FROM dbo.PilotoDocumentoImagen i JOIN #PanelRutas r ON r.ID_RUTA COLLATE DATABASE_DEFAULT=i.Ruta_Id;

@@ -274,6 +274,14 @@ if(([regex]::Matches($pagina1,'<td data-label="Ruta">')).Count -ne 50 -or
     throw 'La tabla de rutas debe paginar 51 registros como 50 + 1 conservando el total.'
 }
 Write-Host 'OK: paginación de 50 resultados con total de 51.'
+$panelPilotos=Get-Content -LiteralPath (Join-Path $out 'panel-pilotos.html') -Raw
+$configurar=Get-Content -LiteralPath (Join-Path $out 'configurar.html') -Raw
+if($panelPilotos -notmatch 'Por piloto APK66' -or $panelPilotos -notmatch 'Sin filtro de centro ni placa' -or
+   $configurar -notmatch 'En pilotos propios son opcionales y no filtran rutas' -or
+   $configurar -notmatch 'sin filtrar por centro') {
+    throw 'La administración debe explicar el alcance por identidad del piloto propio.'
+}
+Write-Host 'OK: panel y configuración explican el alcance del piloto propio.'
 $detallePanel=Get-Content -LiteralPath (Join-Path $out 'panel-detalle.html') -Raw
 if(([regex]::Matches($detallePanel,'class="dist-doc ')).Count -ne 3 -or
    $detallePanel -notmatch 'DOC-DEMO-001' -or $detallePanel -notmatch 'DOC-DEMO-002' -or $detallePanel -notmatch 'DOC-DEMO-003' -or

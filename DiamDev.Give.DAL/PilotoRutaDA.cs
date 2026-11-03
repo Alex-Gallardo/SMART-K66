@@ -164,10 +164,7 @@ AND NOT EXISTS(SELECT 1 FROM dbo.Usuario otro WHERE otro.Login=u.Login AND otro.
             var alcance = a.PlacaPrueba!=null ? "r.PLACA=@placa" + (a.PilotoPrueba==null ? "" : " AND r.PILOTO=@pilotoPrueba") : a.RutaPrueba!=null ? "r.ID_RUTA=@rutaPrueba" : a.Empresa ? @"EXISTS (SELECT 1 FROM dbo.PilotoEmpresaPlaca ep
 JOIN dbo.PilotoVehiculo pv ON pv.Usuario_Id=ep.Usuario_Id AND pv.Placa=ep.Placa AND pv.Activo=1
 WHERE ep.Usuario_Id=@usuario AND ep.Placa=r.PLACA COLLATE DATABASE_DEFAULT)
-AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1)" : @"r.PILOTO=@piloto
-AND EXISTS (SELECT 1 FROM dbo.PilotoCentro c WHERE c.Usuario_Id=@usuario AND c.Centro_Dist=r.CENTRO_DIST COLLATE DATABASE_DEFAULT)
-AND EXISTS (SELECT 1 FROM dbo.PilotoVehiculo pv WHERE pv.Usuario_Id=@usuario AND pv.Activo=1 AND pv.Placa=r.PLACA COLLATE DATABASE_DEFAULT)
-AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1)";
+AND EXISTS (SELECT 1 FROM " + apk + @".dbo.RT_VEHICULOS v WHERE v.PLACA=r.PLACA AND v.ESTADO=1)" : @"r.PILOTO=@piloto";
             return "ISNULL(r.LIQUIDADO,0)=0 AND (" + alcance + ")";
         }
         private string AlcanceDetalle(Acceso a)

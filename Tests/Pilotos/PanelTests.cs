@@ -39,8 +39,16 @@ internal static class PanelTests
         Check(dao.SqlCrearRutas.Contains("INTO #PanelRutas") && !dao.SqlCrearRutas.Contains("@"),"La tabla temporal se crea fuera del comando parametrizado");
         Check(dao.SqlRutas.StartsWith("INSERT #PanelRutas") && !dao.SqlRutas.Contains("INTO #PanelRutas"),"La consulta parametrizada solo inserta en la tabla existente");
         Check(dao.SqlRutas.Contains("r.STATUS IN(N'B',N'A',N'E',N'C',N'L',N'X')"),"Panel incluye nuevos estados y conserva anuladas históricas");
+        Check(dao.SqlAsignaciones.Contains("JOIN Accesos a ON a.Empleado_RowId=e.ROWID AND a.EmpresaId IS NULL") &&
+              dao.SqlAsignaciones.Contains("JOIN dbo.PilotoEmpresaPlaca ep ON ep.Placa=r.PLACA") &&
+              dao.SqlAsignaciones.Contains("pv.Activo=1") && dao.SqlAsignaciones.Contains("v.ESTADO=1") &&
+              !dao.SqlAsignaciones.Contains("PilotoCentro"),"Panel asigna pilotos propios por identidad y empresas por placa activa");
         var p=new PilotoPanelPiloto{Id=10,Login="piloto",Empleado="JULIO",Operador="piloto",CuentaActiva=true,RolPiloto=true,PermisoVer=true,PermisoConfirmar=true,VinculoActivo=true,EmpleadoActivo=true,EmpleadoUnico=true};p.Centros.Add("PC");p.PlacasDisponibles.Add("ABC");p.Placas.Add("ABC");
         var datos=new PilotoRuta{Id="RUTA",Estado="E",Piloto="JULIO",Centro="PC",Placa="ABC",Fecha=hoy};
+        Check(p.Coincide(new PilotoRuta{Piloto="JULIO",Centro="OTRO",Placa="OTRA"}),"piloto propio coincide aunque cambien centro y placa");
+        Check(!p.Coincide(new PilotoRuta{Piloto="OTRO",Centro="PC",Placa="ABC"}),"piloto propio no accede a rutas de otro piloto");
+        p.Centros.Clear();p.Placas.Clear();p.PlacasDisponibles.Clear();p.Revisar();
+        Check(p.PuedeConsultar && p.Alertas.Count==0 && p.Coincide(datos),"sin centros ni placas sigue disponible el acceso del piloto propio");
         datos.Documentos.Add(new PilotoDocumento{RowId=1,Documento="F1",Cliente="CLIENTE",Direccion="DIR"});
         datos.Version=PilotoReglas.Version(datos);
         var ruta=new PilotoPanelRuta{Datos=datos};ruta.Pilotos.Add(p);ruta.Clientes.Add(new PilotoPanelCliente{Primero=1,Documentos=new List<PilotoPanelDocumento>{new PilotoPanelDocumento{Datos=datos.Documentos[0],Fuente="APK66"}}});

@@ -130,8 +130,8 @@ internal static class PilotoTests
                         var filtro=(string)tipo.GetMethod(metodo,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(da,new[]{acceso});
                         Check(filtro.Contains("ISNULL(r.LIQUIDADO,0)=0"),"liquidadas excluidas en "+modo+" / "+metodo);
                         if(metodo=="AlcanceDetalle") Check(filtro.StartsWith("r.STATUS IN(N'E',N'C',N'X') AND "),"abiertas sin acceso directo en "+modo);
-                        if(modo=="empresa") Check(filtro.Contains("PilotoEmpresaPlaca") && filtro.Contains("ep.Usuario_Id=@usuario") && !filtro.Contains("r.PILOTO=@piloto") && !filtro.Contains("PilotoCentro"),"empresa autorizada por placa propietaria sin empleado ni centro");
-                        if(modo=="normal") Check(filtro.Contains("r.PILOTO=@piloto") && filtro.Contains("PilotoCentro"),"piloto individual conserva empleado y centro");
+                        if(modo=="empresa") Check(filtro.Contains("PilotoEmpresaPlaca") && filtro.Contains("ep.Usuario_Id=@usuario") && filtro.Contains("pv.Activo=1") && filtro.Contains("v.ESTADO=1") && !filtro.Contains("r.PILOTO=@piloto") && !filtro.Contains("PilotoCentro"),"empresa conserva placas vinculadas y vehículos activos");
+                        if(modo=="normal") Check(filtro.Contains("r.PILOTO=@piloto") && !filtro.Contains("PilotoCentro") && !filtro.Contains("PilotoVehiculo") && !filtro.Contains("RT_VEHICULOS") && !filtro.Contains("r.PLACA") && !filtro.Contains("r.CENTRO_DIST"),"piloto propio autorizado solo por identidad de piloto");
                         Console.WriteLine("SELECT r.ID_RUTA FROM [TEST_RUTAS].dbo.RT_RUTAS r WHERE "+filtro+";");
                     }
                 }
@@ -298,8 +298,7 @@ internal static class PilotoTests
                 Centros=new[]{" PC ","pc",""},Placas=new[]{" C-001 ","c-001"},Motivo=" Alta inicial "};
             PilotoAdminReglas.Validar(admin);
             Check(admin.CodigoOperador=="operador" && admin.Centros.Length==1 && admin.Placas.Length==1,"administracion normaliza seleccion sin duplicados");
-            admin.Centros=new string[0]; Rechaza(()=>PilotoAdminReglas.Validar(admin),400,"vinculo activo exige centro");
-            admin.Centros=new[]{"PC"}; admin.Placas=new string[0]; Rechaza(()=>PilotoAdminReglas.Validar(admin),400,"vinculo activo exige vehiculo");
+            admin.Centros=new string[0]; admin.Placas=new string[0]; PilotoAdminReglas.Validar(admin); Check(true,"piloto propio activo no exige centro ni placa");
             admin.Activo=false; admin.EmpleadoRowId=null; admin.CodigoOperador=null; PilotoAdminReglas.Validar(admin); Check(true,"desactivacion no depende de catalogos obsoletos");
             admin.Motivo=" "; Rechaza(()=>PilotoAdminReglas.Validar(admin),400,"cambio administrativo exige motivo");
             admin.Motivo="Cambio"; admin.Activo=true; admin.EmpleadoRowId=2; admin.CodigoOperador="operador"; admin.Centros=new[]{new string('x',16)}; admin.Placas=new[]{"C-001"}; Rechaza(()=>PilotoAdminReglas.Validar(admin),400,"centro administrativo demasiado largo");
@@ -340,7 +339,9 @@ internal static class PilotoTests
         PilotoAdminReglas.Validar(empresaSinEmpleado);Check(true,"empresa activa no exige empleado ni centro");
         var usuarioEmpresa=new PilotoAdminUsuario{UsuarioActivo=true,AutenticarSite=true,TieneRolPiloto=true,VinculoActivo=true,CuentaEmpresa=true,Vehiculos=2,Centros=0};
         Check(usuarioEmpresa.Listo,"cuenta empresarial configurada con placas no exige centro");
-        usuarioEmpresa.CuentaEmpresa=false;Check(!usuarioEmpresa.Listo,"piloto individual sí exige centro");
+        usuarioEmpresa.CuentaEmpresa=false;Check(!usuarioEmpresa.Listo,"piloto propio sin identidad APK66 no está listo");
+        usuarioEmpresa.EmpleadoRowId=2;usuarioEmpresa.Piloto="JULIO";usuarioEmpresa.Vehiculos=0;
+        Check(usuarioEmpresa.Listo,"piloto propio con identidad APK66 está listo sin placa ni centro");
         empresaSinEmpleado.Placas=new string[0];Rechaza(()=>PilotoAdminReglas.Validar(empresaSinEmpleado),400,"empresa activa exige placa");
         var ruta=Ruta();ruta.CuentaEmpresa=true;ruta.ConductorReal="JUAN PEREZ";ruta.DocumentoConductor="L-1234";
         ruta.PermisoConfirmar=true;

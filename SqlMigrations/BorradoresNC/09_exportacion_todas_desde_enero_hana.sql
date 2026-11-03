@@ -1,6 +1,10 @@
 /* SAP HANA / NDB - EXPORTACION: todas las facturas no anuladas desde el
    1 de enero del año en curso hasta hoy, incluidas las ya pagadas.
 
+   HISTÓRICA: ejecutar también 10_corregir_pagado_moneda_factura_hana.sql.
+   Reejecutar solo esta migración después de la 10 revierte la corrección
+   de moneda para agentes distintos de EXPORTACION.
+
    Requisitos de despliegue:
    1. Respaldar el CREATE VIEW actual de las tres vistas.
    2. Ejecutar cada CREATE OR REPLACE VIEW individualmente en producción.

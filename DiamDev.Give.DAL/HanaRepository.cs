@@ -1014,6 +1014,8 @@ namespace DiamDev.Give.DAL
                 ? " WHERE " + string.Join(" AND ", condiciones)
                 : string.Empty;
 
+            // La vista debe entregar DocTotal y PaidToDate en DocCur. Para moneda
+            // extranjera, PaidToDate es el alias de OINV.PaidFC (migración 10).
             string query = string.Format(
                 "SELECT \"DocNum\", \"DocDate\", \"CardCode\", \"CardName\", \"SlpName\", " +
                 "       \"DocCur\", \"DocTotal\", \"PaidToDate\", " +

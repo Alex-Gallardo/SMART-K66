@@ -1,7 +1,10 @@
 # Validación del importe pagado de Borradores NC
 
-La migración `10_corregir_pagado_moneda_factura_hana.sql` conserva las columnas,
-los filtros y los rangos de fechas de `RC_FACTURAS_BORRNC`. Corrige el par de
+La migración `10_corregir_pagado_moneda_factura_hana.sql` parte de las tres
+definiciones de producción compartidas el 03/11/2026. Conserva sus columnas,
+filtros, rangos de fechas y `WITH READ ONLY`. Se aplica directamente a esas
+vistas; no es necesario ejecutar antes la migración histórica 09, que agrega
+un límite de fecha distinto para `EXPORTACION`. Corrige el par de
 importes que consume la aplicación: ambos deben estar en la moneda de `DocCur`.
 
 | `OINV.DocCur` | Total de la vista | Pagado de la vista |

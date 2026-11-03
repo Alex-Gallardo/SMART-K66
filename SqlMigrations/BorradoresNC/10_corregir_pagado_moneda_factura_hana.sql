@@ -1,5 +1,6 @@
 /* SAP HANA / NDB - corrección del pago en moneda de la factura.
-   Ejecutar DESPUÉS de 09_exportacion_todas_desde_enero_hana.sql.
+   Esta definición parte de las tres vistas vigentes compartidas para
+   despliegue: conserva sus filtros, columnas y WITH READ ONLY.
 
    Antes de aplicar, guardar la definición actual de RC_FACTURAS_BORRNC
    en las tres sociedades y comparar sus filtros con esta migración. Ejecutar
@@ -9,7 +10,8 @@
    La vista conserva su contrato: DocTotal y PaidToDate se expresan ambos
    en moneda del documento. Para QTZ: OINV.DocTotal / OINV.PaidToDate.
    Para moneda extranjera: OINV.DocTotalFC / OINV.PaidFC. Esta regla se
-   aplica a todos los agentes; los filtros por agente y fecha no cambian. */
+   aplica a todos los agentes. A diferencia de la migración histórica 09,
+   no agrega un límite superior de fecha para EXPORTACION a la vista. */
 
 /* 1/3 BOLIK. Otros agentes: 60 días; ABEL RIOS: 364 días. */
 CREATE OR REPLACE VIEW "SBOBOLIK"."RC_FACTURAS_BORRNC"
@@ -41,8 +43,7 @@ AS ((SELECT 'BOLIK' AS "Empresa", T1."SlpName", T0."DocNum",
        AND ((T1."SlpName" = 'ABEL RIOS'
              AND DAYS_BETWEEN(T0."DocDate", CURRENT_DATE) <= 364)
             OR (T1."SlpName" = 'EXPORTACION'
-                AND T0."DocDate" >= ADD_DAYS(CURRENT_DATE, 1 - DAYOFYEAR(CURRENT_DATE))
-                AND T0."DocDate" < ADD_DAYS(CURRENT_DATE, 1)))));
+                AND T0."DocDate" >= ADD_DAYS(CURRENT_DATE, 1 - DAYOFYEAR(CURRENT_DATE)))))) WITH READ ONLY;
 
 /* 2/3 FAES. Otros agentes y ABEL RIOS: 150 días. */
 CREATE OR REPLACE VIEW "SBOESCOCESA"."RC_FACTURAS_BORRNC"
@@ -74,8 +75,7 @@ AS ((SELECT 'FAES' AS "Empresa", T1."SlpName", T0."DocNum",
        AND ((T1."SlpName" = 'ABEL RIOS'
              AND DAYS_BETWEEN(T0."DocDate", CURRENT_DATE) <= 150)
             OR (T1."SlpName" = 'EXPORTACION'
-                AND T0."DocDate" >= ADD_DAYS(CURRENT_DATE, 1 - DAYOFYEAR(CURRENT_DATE))
-                AND T0."DocDate" < ADD_DAYS(CURRENT_DATE, 1)))));
+                AND T0."DocDate" >= ADD_DAYS(CURRENT_DATE, 1 - DAYOFYEAR(CURRENT_DATE)))))) WITH READ ONLY;
 
 /* 3/3 GRACO. Otros agentes: 60 días; ABEL RIOS: 365 días. */
 CREATE OR REPLACE VIEW "SBO_GRACO"."RC_FACTURAS_BORRNC"
@@ -107,11 +107,11 @@ AS ((SELECT 'GRACO' AS "Empresa", T1."SlpName", T0."DocNum",
        AND ((T1."SlpName" = 'ABEL RIOS'
              AND DAYS_BETWEEN(T0."DocDate", CURRENT_DATE) <= 365)
             OR (T1."SlpName" = 'EXPORTACION'
-                AND T0."DocDate" >= ADD_DAYS(CURRENT_DATE, 1 - DAYOFYEAR(CURRENT_DATE))
-                AND T0."DocDate" < ADD_DAYS(CURRENT_DATE, 1)))));
+                AND T0."DocDate" >= ADD_DAYS(CURRENT_DATE, 1 - DAYOFYEAR(CURRENT_DATE)))))) WITH READ ONLY;
 
-/* Debe devolver tres vistas válidas. */
-SELECT "SCHEMA_NAME", "IS_VALID", LENGTH("DEFINITION") AS "LARGO"
+/* Debe devolver tres vistas válidas y de solo lectura. */
+SELECT "SCHEMA_NAME", "IS_VALID", "IS_READ_ONLY",
+       LENGTH("DEFINITION") AS "LARGO"
 FROM "SYS"."VIEWS"
 WHERE "VIEW_NAME" = 'RC_FACTURAS_BORRNC'
   AND "SCHEMA_NAME" IN ('SBOBOLIK', 'SBOESCOCESA', 'SBO_GRACO')

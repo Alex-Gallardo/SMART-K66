@@ -72,18 +72,24 @@ assert((migracionHana.match(/^CREATE OR REPLACE VIEW/gm) || []).length === 3 &&
     "La migración 09 histórica debe conservar su alcance de EXPORTACION.");
 
 const definiciones = sql => sql.slice(sql.search(/^CREATE OR REPLACE VIEW /m),
-    sql.indexOf("/* Debe devolver tres vistas válidas. */"));
-const pagoAnterior = definiciones(migracionHana);
+    sql.indexOf("/* Debe devolver tres vistas válidas"));
+const pagoAnterior = definiciones(migracionHana).replace(/\r\n/g, "\n");
 const pagoCorregido = pagoAnterior
     .replace(/            T0\."PaidToDate"(?=\s+FROM)/g,
         '            CASE WHEN T0."DocCur" <> \'QTZ\' THEN T0."PaidFC"\n                 ELSE T0."PaidToDate" END AS "PaidToDate"')
     .replace(/CASE WHEN T1\."SlpName" = 'EXPORTACION' AND T0\."DocCur" <> 'QTZ' THEN T0\."PaidFC"/g,
-        'CASE WHEN T0."DocCur" <> \'QTZ\' THEN T0."PaidFC"');
+        'CASE WHEN T0."DocCur" <> \'QTZ\' THEN T0."PaidFC"')
+    .replace(/\n\s+AND T0\."DocDate" < ADD_DAYS\(CURRENT_DATE, 1\)\)+;/g,
+        ')))) WITH READ ONLY;');
 assert.strictEqual(definiciones(correccionHana).replace(/\r\n/g, "\n"),
-    pagoCorregido.replace(/\r\n/g, "\n"),
-    "La corrección solo debe cambiar el pago; filtros, fechas y totales se conservan.");
+    pagoCorregido,
+    "La corrección debe preservar el resto de la definición de producción.");
 assert.strictEqual((correccionHana.match(/CASE WHEN T0\."DocCur" <> 'QTZ' THEN T0\."PaidFC"/g) || []).length, 6,
     "Las dos ramas de cada sociedad deben leer PaidFC en moneda extranjera.");
+assert.strictEqual((correccionHana.match(/\) WITH READ ONLY;/g) || []).length, 3,
+    "Las tres vistas de producción deben conservar WITH READ ONLY.");
+assert(!correccionHana.includes('T0."DocDate" < ADD_DAYS(CURRENT_DATE, 1)'),
+    "La corrección no debe agregar un filtro de fecha a las vistas actuales.");
 assert(repositorioHana.includes('DocTotal = LeerDecimal(row, "DocTotal")') &&
        repositorioHana.includes('Pagado = LeerDecimal(row, "PaidToDate")') &&
        bll.includes("detalle.Pagado = facturaSap.Pagado") &&
@@ -101,4 +107,4 @@ assert.strictEqual(abierta(22_473.04, 30_000), true,
     "un pago parcial en USD no se debe comparar con su equivalente en GTQ");
 assert.strictEqual(abierta(30_000, 30_000), false, "factura extranjera pagada por completo");
 
-console.log("OK: pago y total en la misma moneda para todos los agentes; filtros y avisos conservados.");
+console.log("OK: pagos en moneda de factura; definiciones actuales y avisos conservados.");

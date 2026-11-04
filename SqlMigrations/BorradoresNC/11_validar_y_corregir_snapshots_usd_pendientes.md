@@ -45,6 +45,21 @@ corrección. No sustituirlo por el pagado actual.
    `PaidToDate` y `PaidFC` aún coinciden con la evidencia y que no hubo pagos,
    NC o conciliaciones posteriores a la creación. Igualdad del valor local
    actual con el guardado es un indicio fuerte, pero no sustituye esa revisión.
+   Esta consulta debe devolver seis filas; comparar sus tres importes con la
+   tabla anterior y el `TOTAL_FACT` del borrador:
+
+   ```sql
+   SELECT 'GRACO' AS "Empresa", "DocNum", "CardCode", "DocCur",
+          "DocTotalFC", "PaidFC", "PaidToDate", "DocStatus"
+   FROM "SBO_GRACO"."OINV"
+   WHERE "CardCode" = 'CE0016'
+     AND "DocNum" IN (2001463, 2001424, 2001384, 2001368, 2001324)
+   UNION ALL
+   SELECT 'FAES', "DocNum", "CardCode", "DocCur",
+          "DocTotalFC", "PaidFC", "PaidToDate", "DocStatus"
+   FROM "SBOESCOCESA"."OINV"
+   WHERE "CardCode" = 'CE0004' AND "DocNum" = 2000607;
+   ```
 2. Confirmar en SQL Server que los seis borradores siguen `PENDIENTE` y que
    sus importes guardados no cambiaron. El script también comprueba esto y
    aborta sin actualizar si alguna fila difiere.
@@ -52,6 +67,7 @@ corrección. No sustituirlo por el pagado actual.
    [`11_corregir_snapshots_usd_pendientes_20261104_DEV.sql`](11_corregir_snapshots_usd_pendientes_20261104_DEV.sql)
    con `@Aplicar = 0`. Debe mostrar seis filas propuestas y
    `SIMULADO_SIN_CAMBIOS`; después del `ROLLBACK` no habrá respaldo ni cambios.
+   La simulación realizada el 04/11/2026 devolvió esas seis filas y ese estado.
 4. Si las seis filas son correctas, cambiar `@Aplicar = 1` y ejecutar el script
    completo una sola vez. Debe devolver `APLICADO`. La tabla permanente
    `dbo.BORR_NC_DET_RESPALDO_PAGADO_20261104` conservará las filas originales,

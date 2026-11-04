@@ -38,10 +38,20 @@ Las tres empresas se resuelven mediante las claves existentes `HanaSchema.BOLIK`
 - **Informe ejecutivo**: requiere una sola empresa y moneda. Genera la versión monetaria o porcentual con resultados por agente y principales clientes y productos en crecimiento/caída. La versión porcentual no contiene importes monetarios. El navegador permite imprimir o guardar como PDF. «Cierre del último mes» selecciona el último mes calendario completo y prepara el informe.
 - **Excel**: el comparativo filtrado se exporta hasta 10,000 filas; los valores de texto se neutralizan contra fórmulas.
 
+## Avances de ventas por agente y períodos libres
+
+- La sección a ancho completo de `/GerenciaComercial/Index` compara entre 2 y 12 períodos de hasta un año cada uno, dentro de los últimos diez años calendario. Los períodos se pueden añadir, editar, ordenar y quitar. Por defecto se presentan los avances del año actual y el anterior al mismo día de corte. El año en curso termina en la fecha actual y se identifica como parcial.
+- La comparación usa una empresa (Bolik, Faes o Graco) y una moneda (GTQ o USD) por consulta. El eje vertical muestra agentes SAP y el horizontal ventas netas en la moneda seleccionada. Barras agrupa las series por agente; Líneas conecta los valores de cada agente entre períodos. Se muestran 12 agentes por defecto y se puede desplegar el listado completo.
+- El endpoint `Avances` agrupa `OINV` menos `ORIN` por `OSLP.SlpCode` y período, sin impuesto y por fecha de documento. Incluye agentes activos sin movimientos y agentes inactivos con movimientos. `Usuario_Empresa` clasifica Sala de Ventas, Gerencia y Exportaciones con el mismo mapeo del comparativo existente. Ninguna venta POS se suma a SAP.
+- Las unidades netas provienen de `INV1` menos `RIN1` y se agrupan por `unitMsr`. Si existen medidas distintas, no se presenta un total combinado. El Excel contiene una hoja de ventas por agente y otra de unidades por medida.
+- Los KPI, lectura ejecutiva, alertas y panorama se calculan sobre la misma respuesta de SAP. El cambio absoluto y porcentual compara los últimos dos períodos en el orden elegido; también se muestra el último frente al período base. Con base cero se indica «Nuevo / sin base». Si los períodos tienen duraciones distintas se advierte expresamente.
+- Las alertas señalan la mayor caída absoluta, caídas de al menos 20 % con impacto mínimo de 1 % sobre el resultado actual, concentración de los tres mayores agentes de al menos 60 %, y resultados netos no positivos. Son reglas visibles y deterministas para orientar la revisión comercial.
+- El acceso sigue protegido por `Control.GerenciaComercial.Ver`; todas las fuentes se consultan en modo lectura.
+
 Los campos de contraseña y binarios no se envían al navegador. Si una fuente no responde, el resumen muestra una advertencia y conserva los indicadores disponibles. Los errores técnicos se registran en el servidor.
 
 ## Verificación
 
-Ejecutar `Tests/GerenciaComercial/run.ps1` para compilar las clases nuevas y validar filtros, privacidad, exportación y sintaxis Razor. Ejecutar `node --check DiamDev.Give.UI/Scripts/App/gerencia-comercial.js` para validar JavaScript.
+Ejecutar `Tests/GerenciaComercial/run.ps1` para compilar las clases nuevas y validar filtros, privacidad, exportación, sintaxis Razor y la interfaz de avances. El script también comprueba la sintaxis de los tres archivos JavaScript del módulo.
 
 El panel reutiliza `HanaHelper`, la configuración `HanaSchema.*` y `GiveContext` que ya emplean los módulos existentes. La verificación de datos en un entorno conectado forma parte de la revisión de integración y no requiere instalar componentes adicionales del panel.

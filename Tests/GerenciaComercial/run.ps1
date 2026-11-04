@@ -20,8 +20,10 @@ $uiStub = Join-Path $testDir 'UiStub.cs'
 namespace DiamDev.Give.DAL {
     public static class HanaHelper {
         public static readonly System.Collections.Generic.List<string> Consultas = new System.Collections.Generic.List<string>();
+        public static readonly System.Collections.Generic.List<System.Data.Odbc.OdbcParameter[]> Parametros = new System.Collections.Generic.List<System.Data.Odbc.OdbcParameter[]>();
         public static System.Data.DataTable EjecutarConsulta(string sql, System.Data.Odbc.OdbcParameter[] parametros = null) {
             Consultas.Add(sql);
+            Parametros.Add(parametros);
             var table = new System.Data.DataTable();
             table.Columns.Add("Dato", typeof(int));
             table.Columns.Add("TotalFilas", typeof(int));
@@ -56,7 +58,7 @@ $exe = Join-Path $testDir 'GerenciaComercialTests.exe'
 <add key="HanaSchema.GRACO" value="SBO_GRACO" />
 </appSettings></configuration>
 '@ | Set-Content -LiteralPath ($exe + '.config') -Encoding UTF8
-& $csc /nologo /target:library "/out:$dal" /r:System.Core.dll /r:System.Data.dll /r:System.Configuration.dll (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialDA.cs') (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialAnalisisDA.cs') $hanaStub
+& $csc /nologo /target:library "/out:$dal" /r:System.Core.dll /r:System.Data.dll /r:System.Configuration.dll (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialDA.cs') (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialAnalisisDA.cs') (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialAvancesDA.cs') $hanaStub
 if ($LASTEXITCODE -ne 0) { throw 'No compiló la capa de datos.' }
 & $csc /nologo /target:library "/out:$ui" /r:System.Core.dll /r:System.Data.dll /r:System.Drawing.dll /r:System.Web.dll "/r:$dal" "/r:$mvc" "/r:$epplus" (Join-Path $project 'DiamDev.Give.UI\Controllers\GerenciaComercialController.cs') (Join-Path $project 'DiamDev.Give.UI\App_Start\PermisoAttribute.cs') $uiStub
 if ($LASTEXITCODE -ne 0) { throw 'No compiló el controlador.' }
@@ -82,3 +84,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Las pruebas de interfaz fallaron.' }
 if ($LASTEXITCODE -ne 0) { throw 'JavaScript de análisis contiene errores.' }
 & $node.Source (Join-Path $PSScriptRoot 'gerencia-comercial-analisis-ui.test.js')
 if ($LASTEXITCODE -ne 0) { throw 'Las pruebas de análisis comercial fallaron.' }
+& $node.Source --check (Join-Path $project 'DiamDev.Give.UI\Scripts\App\gerencia-comercial-avances.js')
+if ($LASTEXITCODE -ne 0) { throw 'JavaScript de avances contiene errores.' }
+& $node.Source (Join-Path $PSScriptRoot 'gerencia-comercial-avances-ui.test.js')
+if ($LASTEXITCODE -ne 0) { throw 'Las pruebas de avances fallaron.' }

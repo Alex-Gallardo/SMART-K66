@@ -75,19 +75,9 @@ vm.runInNewContext(source, { document, window: { location: {} }, fetch: fetchMoc
 
 (async () => {
     await new Promise(resolve => setTimeout(resolve, 0));
-    assert.match(nodes["gc-trend-day"].textContent, /GTQ 500\.00/);
-    assert.match(nodes["gc-trend-stats"].textContent, /GTQ 1,500\.00/);
-    currencies[1].fire("click");
-    assert.match(nodes["gc-trend-stats"].textContent, /USD 10\.00/);
-    assert.doesNotMatch(nodes["gc-trend-stats"].textContent, /1,500/);
-    assert.match(nodes["gc-trend"].children[0].getAttribute("aria-label"), /USD/);
-    const slider = nodes["gc-trend"].children.find(child => child.tagName === "label").children[0];
-    slider.value = "0"; slider.fire("input");
-    assert.match(nodes["gc-trend-day"].textContent, /GRACO · USD 10\.00/);
-    slider.value = "1"; slider.fire("input");
-    assert.match(nodes["gc-trend-day"].textContent, /Sin movimientos en este día/);
-    nodes["gc-trend"].children[0].children.at(-1).fire("mousemove", { clientX: 0 });
-    assert.equal(slider.value, "0", "El día seleccionado debe seguir el cursor sobre la gráfica");
+    assert.match(nodes["gc-kpis"].textContent, /GTQ 1,500\.00/);
+    assert.match(nodes["gc-kpis"].textContent, /USD 10\.00/);
+    assert.match(nodes["gc-companies"].textContent, /GRACO/);
     const before = listCalls;
     for (const type of ["productos", "clientesSql", "productosSql"]) {
         tabs.find(tab => tab.getAttribute("data-type") === type).fire("click");
@@ -105,5 +95,5 @@ vm.runInNewContext(source, { document, window: { location: {} }, fetch: fetchMoc
     assert.match(nodes["gc-modal-body"].textContent, /Documento y cliente/);
     assert.match(nodes["gc-modal-body"].textContent, /Artículo/);
     assert.doesNotMatch(nodes["gc-modal-body"].textContent, /BASEVAT/);
-    console.log("OK UI: moneda, día, pestañas en desarrollo y modal de ventas.");
+    console.log("OK UI: indicadores, empresas, pestañas en desarrollo y modal de ventas.");
 })().catch(error => { console.error(error); process.exitCode = 1; });

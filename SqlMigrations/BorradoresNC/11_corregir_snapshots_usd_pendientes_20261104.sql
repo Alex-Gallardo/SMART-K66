@@ -1,4 +1,9 @@
 /*
+  SUSPENDIDO: los seis registros se identificaron en POS-SmartK66_DEV.
+  No está confirmado que esa sea la base de la aplicación reportada.
+  Este archivo no debe ejecutarse hasta identificar la base correcta y
+  preparar una nueva corrección con sus datos verificados.
+
   Corrección puntual de seis borradores USD pendientes creados el 28/10/2026.
   La vista HANA ya fue corregida por la migración 10. Esta operación corrige
   únicamente la fotografía PAGADO guardada antes de esa migración.
@@ -22,6 +27,8 @@ GO
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 SET LOCK_TIMEOUT 5000;
+
+THROW 58107, 'SUSPENDIDO: valores obtenidos de POS-SmartK66_DEV; identificar base de la aplicación.', 1;
 
 DECLARE @Aplicar bit = 0; -- 0 = solo lectura; 1 = respaldo y corrección
 DECLARE @Correcciones TABLE

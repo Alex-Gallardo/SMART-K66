@@ -1,5 +1,10 @@
 # Corrección puntual de pagos históricos en borradores USD
 
+**SUSPENDIDA:** las filas y valores de este documento provienen de
+`POS-SmartK66_DEV`. Antes de preparar o ejecutar una corrección hay que
+confirmar qué base utiliza la pantalla reportada y consultar allí los datos.
+El script SQL tiene una excepción deliberada que impide ejecutarlo.
+
 La migración HANA 10 corrigió la fuente para borradores nuevos. Al guardar,
 `BorradorNcBLL` vuelve a consultar HANA y copia el importe a `BORR_NC_DET.PAGADO`.
 Autorizaciones muestra «Pagada al crear» si el importe guardado es mayor o igual

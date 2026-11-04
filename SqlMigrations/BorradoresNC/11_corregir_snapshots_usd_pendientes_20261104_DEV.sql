@@ -1,6 +1,8 @@
 /*
   Base de datos: POS-SmartK66_DEV. El usuario confirmó el 04/11/2026 que
   BorradorNcContext de la aplicación publicada apunta a esta base.
+  ESTADO: APLICADO el 04/11/2026; seis filas y respaldo verificados. No
+  volver a ejecutar. El control del respaldo también impide una repetición.
 
   Corrección puntual de seis borradores USD pendientes creados el 28/10/2026.
   La vista HANA ya fue corregida por la migración 10. Esta operación corrige

@@ -5,6 +5,11 @@ usuario confirmó el 04/11/2026 que `BorradorNcContext` de la aplicación
 publicada usa esa base. El script comprueba el nombre de la base antes de
 simular o aplicar cualquier cambio.
 
+**Estado: aplicado el 04/11/2026.** La verificación posterior mostró los seis
+`PAGADO` en USD con los valores de la tabla y seis filas en
+`dbo.BORR_NC_DET_RESPALDO_PAGADO_20261104`. No volver a ejecutar el script;
+su control del respaldo también impide aplicarlo dos veces.
+
 La migración HANA 10 corrigió la fuente para borradores nuevos. Al guardar,
 `BorradorNcBLL` vuelve a consultar HANA y copia el importe a `BORR_NC_DET.PAGADO`.
 Autorizaciones muestra «Pagada al crear» si el importe guardado es mayor o igual

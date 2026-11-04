@@ -36,13 +36,26 @@ abierta. Son seis registros con importes de monedas mezcladas:
 | BWG-00014 | 214 | 2001368 | 23202.970 | 3040.540 |
 | BWG-00013 | 213 | 2001324 | 134237.060 | 17571.170 |
 
-El séptimo, **BWF-00035 / ROWID 207**, queda excluido. Su `PAGADO` guardado
-era 119520.970, mientras que `OINV.PaidToDate` actual era 132695.230 y
-`OINV.PaidFC` actual 17406.260. No se conoce `PaidFC` a la hora de creación.
-Revisar en SAP las aplicaciones y conciliaciones de la factura FAES 2000777
-(`DocEntry` 22031, cliente CE0011) hasta el 28/10/2026 a las 12:08:31.
-Solo después de obtener el pagado USD histórico se podrá preparar otra
-corrección. No sustituirlo por el pagado actual.
+El séptimo, **BWF-00035 / ROWID 207**, no se incluyó en la primera corrección:
+su `PAGADO` guardado era 119520.970, mientras `OINV.PaidToDate` actual era
+132695.230. Una consulta posterior a `OITR` e `ITR1` de la factura FAES
+2000777 (`DocEntry` 22031, cliente CE0011) reconstruyó el importe histórico:
+
+| Conciliación | Creada | Aplicado local | Aplicado USD |
+| --- | --- | ---: | ---: |
+| 31209 | 30/09/2026 | 119520.97 | 15678.13 |
+| 33665 | 03/11/2026 | 13174.26 | 1728.13 |
+
+La primera conciliación existía antes de crear BWF-00035 el 28/10/2026 a las
+12:08:31 y su importe local coincide exactamente con el `PAGADO` guardado.
+La segunda se creó después. Las sumas coinciden con los valores actuales de
+`OINV`: 132695.23 local y 17406.26 USD. El pagado correcto **al crear** era
+por tanto **15678.130 USD**. El script separado
+[`12_corregir_snapshot_usd_BWF00035_DEV.sql`](12_corregir_snapshot_usd_BWF00035_DEV.sql)
+comprueba esa única fila y crea un respaldo distinto. Debe simularse con
+`@Aplicar = 0` antes de ejecutarse con `@Aplicar = 1`. El saldo de la factura
+al crear era 4571.12 USD; el borrador solicita 5278.45 USD, por lo que la
+aplicación del excedente de 707.33 USD requiere revisión de Autorizaciones.
 
 ## Antes de ejecutar
 

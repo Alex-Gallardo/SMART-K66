@@ -199,7 +199,7 @@
         byId("gc-updated").textContent = "Actualizando…";
         try {
             var data = await json(url("resumen", force ? { forzar: "true" } : {})); if (request !== state.summaryRequest) return;
-            renderKpis(data); renderTrend(data); renderCompanies(data);
+            renderKpis(data); renderCompanies(data);
             renderRanking("gc-products-top", data.productos, "Cantidad", function (r) { return integer(r.Cantidad); });
             renderRanking("gc-agents-top", data.agentes, "Neto", function (r) { return currency(r.Neto, r.Moneda); }, true);
             renderRanking("gc-clients-top", data.clientes, "Neto", function (r) { return currency(r.Neto, r.Moneda); }, true);

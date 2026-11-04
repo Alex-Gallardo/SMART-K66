@@ -108,7 +108,29 @@ public static class GerenciaComercialTests
         Check((string)agentes.Rows[0]["Frente"] == "Gerencia", "Usuario_Empresa debe relacionarse por empresa y código SAP.");
         var comparison = typeof(GerenciaComercialController).GetMethod("Comparativo").GetCustomAttributes(typeof(System.Web.Mvc.HttpGetAttribute), true);
         Check(comparison.Length == 1 && typeof(GerenciaComercialController).GetMethod("Historico").GetCustomAttributes(typeof(System.Web.Mvc.HttpGetAttribute), true).Length == 1, "Los nuevos endpoints deben estar bajo el permiso del controlador.");
-        Console.WriteLine("OK: " + _passed + " verificaciones de filtros, privacidad, detalle y análisis histórico.");
+        string desdeAvance = DateTime.Today.AddYears(-2).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        string hastaAvance = DateTime.Today.AddYears(-2).AddDays(10).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        string desdeSegundo = DateTime.Today.AddYears(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        string hastaSegundo = DateTime.Today.AddYears(-1).AddDays(10).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        string rangos = desdeAvance + "," + hastaAvance + "|" + desdeSegundo + "," + hastaSegundo;
+        var periodos = (List<GerenciaComercialDA.PeriodoAvance>)Invoke("PeriodosAvance", rangos);
+        Check(periodos.Count == 2 && periodos[0].Indice == 0 && periodos[1].Indice == 1, "Los períodos deben conservar el orden elegido.");
+        int leap = DateTime.Today.Year - 1; while (!DateTime.IsLeapYear(leap)) leap--;
+        var anioBisiesto = (List<GerenciaComercialDA.PeriodoAvance>)Invoke("PeriodosAvance", leap + "-01-01," + leap + "-12-31|" + rangos.Split('|')[1]);
+        Check(anioBisiesto[0].Hasta.Month == 12 && anioBisiesto[0].Hasta.Day == 31, "Aceptar años bisiestos completos.");
+        try { Invoke("PeriodosAvance", rangos + "|" + desdeAvance + "," + hastaAvance); throw new Exception("Se aceptó un período duplicado."); }
+        catch (TargetInvocationException ex) { Check(ex.InnerException is ArgumentException, "Rechazar períodos duplicados."); }
+        try { Invoke("PeriodosAvance", desdeAvance + "," + DateTime.Today.AddDays(1).ToString("yyyy-MM-dd") + "|" + desdeSegundo + "," + hastaSegundo); throw new Exception("Se aceptó una fecha futura."); }
+        catch (TargetInvocationException ex) { Check(ex.InnerException is ArgumentException, "Rechazar fechas futuras."); }
+        HanaHelper.Consultas.Clear(); HanaHelper.Parametros.Clear();
+        new GerenciaComercialDA().AvancesAgentes("FAES", "GTQ", periodos);
+        Check(HanaHelper.Consultas.Count == 2 && HanaHelper.Consultas[0].Contains("\"OINV\"") && HanaHelper.Consultas[0].Contains("\"ORIN\"") && HanaHelper.Consultas[0].Contains("\"OSLP\""), "Ventas de avance: facturas, notas y catálogo de agentes de FAES.");
+        Check(HanaHelper.Consultas[0].Contains("\"SBOESCOCESA\".\"OINV\"") && HanaHelper.Consultas[0].Contains("COALESCE(G.\"Neto\",0)"), "Los agentes sin venta deben aparecer con valor cero.");
+        Check(HanaHelper.Consultas[1].Contains("\"INV1\"") && HanaHelper.Consultas[1].Contains("\"RIN1\"") && HanaHelper.Consultas[1].Contains("\"Unidad\""), "Cantidades netas agrupadas por unidad de medida.");
+        Check(HanaHelper.Parametros[0].Length == 5 && Convert.ToString(HanaHelper.Parametros[0][0].Value) == "GTQ" && HanaHelper.Consultas[0].Contains("? AS \"Desde\""), "Moneda y fechas deben enviarse como parámetros ODBC.");
+        Check(typeof(GerenciaComercialController).GetMethod("Avances").GetCustomAttributes(typeof(System.Web.Mvc.HttpGetAttribute), true).Length == 1, "Avances debe conservar el permiso del controlador.");
+        Check(typeof(GerenciaComercialController).GetMethod("ExportarAvances").GetCustomAttributes(typeof(System.Web.Mvc.HttpGetAttribute), true).Length == 1, "El Excel de avances debe conservar el permiso del controlador.");
+        Console.WriteLine("OK: " + _passed + " verificaciones de filtros, privacidad, detalle y avances.");
         return 0;
     }
 }

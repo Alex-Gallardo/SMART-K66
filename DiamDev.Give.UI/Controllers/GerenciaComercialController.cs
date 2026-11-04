@@ -294,6 +294,154 @@ namespace DiamDev.Give.UI.Controllers
             catch (Exception ex) { return Error(ex); }
         }
 
+        private static List<GerenciaComercialDA.PeriodoAvance> PeriodosAvance(string rangos)
+        {
+            if (string.IsNullOrWhiteSpace(rangos) || rangos.Length > 300) throw new ArgumentException("Seleccione entre 2 y 12 períodos.");
+            string[] partes = rangos.Split('|');
+            if (partes.Length < 2 || partes.Length > 12) throw new ArgumentException("Seleccione entre 2 y 12 períodos.");
+            var resultado = new List<GerenciaComercialDA.PeriodoAvance>();
+            var vistos = new HashSet<string>();
+            for (int i = 0; i < partes.Length; i++)
+            {
+                string[] fechas = partes[i].Split(',');
+                DateTime desde, hasta;
+                if (fechas.Length != 2 ||
+                    !DateTime.TryParseExact(fechas[0], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out desde) ||
+                    !DateTime.TryParseExact(fechas[1], "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out hasta) ||
+                    desde > hasta || hasta > DateTime.Today || desde < new DateTime(DateTime.Today.Year - 10, 1, 1) || (hasta - desde).TotalDays > 365)
+                    throw new ArgumentException("Cada período debe tener fechas válidas, sin futuro, y durar como máximo un año.");
+                if (!vistos.Add(partes[i])) throw new ArgumentException("Hay períodos duplicados.");
+                resultado.Add(new GerenciaComercialDA.PeriodoAvance { Indice = i, Desde = desde, Hasta = hasta });
+            }
+            return resultado;
+        }
+
+        [HttpGet]
+        public ActionResult Avances(string empresa, string moneda, string rangos)
+        {
+            Response.Cache.SetNoStore();
+            try
+            {
+                empresa = (empresa ?? "").Trim().ToUpperInvariant();
+                moneda = (moneda ?? "").Trim().ToUpperInvariant();
+                if (empresa != "BOLIK" && empresa != "FAES" && empresa != "GRACO") throw new ArgumentException("Seleccione una empresa.");
+                if (moneda != "GTQ" && moneda != "USD") throw new ArgumentException("Seleccione GTQ o USD.");
+                var periodos = PeriodosAvance(rangos);
+                var datos = _datos.AvancesAgentes(empresa, moneda, periodos);
+                string advertencia = null;
+                try { Clasificar(datos.Ventas, _datos.OperadoresComerciales()); }
+                catch (Exception ex)
+                {
+                    Trace.TraceError("[GerenciaComercial] Usuario_Empresa en avances: {0}", ex);
+                    Clasificar(datos.Ventas, null);
+                    advertencia = "Usuario_Empresa no está disponible; los frentes se identifican por nombre SAP.";
+                }
+                return JsonGrande(new
+                {
+                    empresa,
+                    moneda,
+                    periodos = periodos.Select(p => new { p.Indice, desde = p.Desde.ToString("yyyy-MM-dd"), hasta = p.Hasta.ToString("yyyy-MM-dd") }),
+                    ventas = Filas(datos.Ventas),
+                    unidades = Filas(datos.Unidades),
+                    advertencia,
+                    actualizado = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                });
+            }
+            catch (Exception ex) { return Error(ex); }
+        }
+
+        [HttpGet]
+        public ActionResult ExportarAvances(string empresa, string moneda, string rangos)
+        {
+            Response.Cache.SetNoStore();
+            try
+            {
+                empresa = (empresa ?? "").Trim().ToUpperInvariant();
+                moneda = (moneda ?? "").Trim().ToUpperInvariant();
+                if (empresa != "BOLIK" && empresa != "FAES" && empresa != "GRACO") throw new ArgumentException("Seleccione una empresa.");
+                if (moneda != "GTQ" && moneda != "USD") throw new ArgumentException("Seleccione GTQ o USD.");
+                var periodos = PeriodosAvance(rangos);
+                var datos = _datos.AvancesAgentes(empresa, moneda, periodos);
+                if (datos.Ventas.Rows.Count > MaximoExportacion) return new HttpStatusCodeResult(400, "La exportación supera 10,000 filas de origen.");
+                try { Clasificar(datos.Ventas, _datos.OperadoresComerciales()); }
+                catch (Exception ex) { Trace.TraceError("[GerenciaComercial] Usuario_Empresa en Excel: {0}", ex); Clasificar(datos.Ventas, null); }
+                using (var paquete = new ExcelPackage())
+                {
+                    var hoja = paquete.Workbook.Worksheets.Add("Avances por agente");
+                    var titulos = new List<string> { "Código SAP", "Agente", "Frente" };
+                    titulos.AddRange(periodos.Select(p => p.Desde.ToString("yyyy-MM-dd") + " al " + p.Hasta.ToString("yyyy-MM-dd") + " (" + moneda + ")"));
+                    titulos.AddRange(new[] { "Cambio absoluto", "Variación %", "Participación último %" });
+                    for (int c = 0; c < titulos.Count; c++) hoja.Cells[1, c + 1].Value = titulos[c];
+                    var totales = new decimal[periodos.Count];
+                    var grupos = datos.Ventas.AsEnumerable().GroupBy(r => Convert.ToString(r["Codigo"])).OrderBy(g => Convert.ToString(g.First()["Nombre"]));
+                    int fila = 2;
+                    foreach (var grupo in grupos)
+                    {
+                        var primero = grupo.First();
+                        hoja.Cells[fila, 1].Value = CeldaSegura(grupo.Key);
+                        hoja.Cells[fila, 2].Value = CeldaSegura(primero["Nombre"]);
+                        hoja.Cells[fila, 3].Value = CeldaSegura(primero["Frente"]);
+                        var valores = new decimal[periodos.Count];
+                        foreach (var registro in grupo)
+                        {
+                            int indice = Convert.ToInt32(registro["Periodo"]);
+                            valores[indice] = registro["Neto"] == DBNull.Value ? 0 : Convert.ToDecimal(registro["Neto"]);
+                            totales[indice] += valores[indice];
+                        }
+                        for (int i = 0; i < valores.Length; i++) { hoja.Cells[fila, i + 4].Value = valores[i]; hoja.Cells[fila, i + 4].Style.Numberformat.Format = "#,##0.00;[Red](#,##0.00)"; }
+                        int ultimo = valores.Length - 1;
+                        hoja.Cells[fila, ultimo + 5].Value = valores[ultimo] - valores[ultimo - 1];
+                        if (valores[ultimo - 1] != 0) { hoja.Cells[fila, ultimo + 6].Value = (double)((valores[ultimo] - valores[ultimo - 1]) / Math.Abs(valores[ultimo - 1])); hoja.Cells[fila, ultimo + 6].Style.Numberformat.Format = "0.0%"; }
+                        else hoja.Cells[fila, ultimo + 6].Value = "Sin base";
+                        fila++;
+                    }
+                    hoja.Cells[fila, 2].Value = "TOTAL " + empresa;
+                    for (int i = 0; i < totales.Length; i++) { hoja.Cells[fila, i + 4].Value = totales[i]; hoja.Cells[fila, i + 4].Style.Numberformat.Format = "#,##0.00;[Red](#,##0.00)"; }
+                    hoja.Cells[fila, totales.Length + 4].Value = totales[totales.Length - 1] - totales[totales.Length - 2];
+                    if (totales[totales.Length - 2] != 0)
+                    {
+                        hoja.Cells[fila, totales.Length + 5].Value = (double)((totales[totales.Length - 1] - totales[totales.Length - 2]) / Math.Abs(totales[totales.Length - 2]));
+                        hoja.Cells[fila, totales.Length + 5].Style.Numberformat.Format = "0.0%";
+                    }
+                    else hoja.Cells[fila, totales.Length + 5].Value = "Sin base";
+                    if (totales[totales.Length - 1] != 0) { hoja.Cells[fila, totales.Length + 6].Value = 1; hoja.Cells[fila, totales.Length + 6].Style.Numberformat.Format = "0.0%"; }
+                    for (int r = 2; r < fila; r++) if (totales[totales.Length - 1] != 0) { hoja.Cells[r, totales.Length + 6].Value = (double)(Convert.ToDecimal(hoja.Cells[r, totales.Length + 3].Value) / totales[totales.Length - 1]); hoja.Cells[r, totales.Length + 6].Style.Numberformat.Format = "0.0%"; }
+                    using (var encabezado = hoja.Cells[1, 1, 1, titulos.Count])
+                    {
+                        encabezado.Style.Font.Bold = true;
+                        encabezado.Style.Font.Color.SetColor(System.Drawing.Color.White);
+                        encabezado.Style.Fill.PatternType = ExcelFillStyle.Solid;
+                        encabezado.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(20, 46, 76));
+                    }
+                    hoja.Cells[fila, 1, fila, titulos.Count].Style.Font.Bold = true;
+                    hoja.View.FreezePanes(2, 4);
+                    hoja.Cells[1, 1, Math.Max(2, fila - 1), titulos.Count].AutoFilter = true;
+                    hoja.Cells[hoja.Dimension.Address].AutoFitColumns();
+
+                    var unidad = paquete.Workbook.Worksheets.Add("Unidades por medida");
+                    unidad.Cells[1, 1].Value = "Unidad";
+                    for (int i = 0; i < periodos.Count; i++) unidad.Cells[1, i + 2].Value = periodos[i].Desde.ToString("yyyy-MM-dd") + " al " + periodos[i].Hasta.ToString("yyyy-MM-dd");
+                    int uFila = 2;
+                    foreach (var grupo in datos.Unidades.AsEnumerable().GroupBy(r => Convert.ToString(r["Unidad"])).OrderBy(g => g.Key))
+                    {
+                        unidad.Cells[uFila, 1].Value = CeldaSegura(grupo.Key);
+                        foreach (var registro in grupo)
+                        {
+                            int indice = Convert.ToInt32(registro["Periodo"]);
+                            decimal cantidad = registro["Cantidad"] == DBNull.Value ? 0 : Convert.ToDecimal(registro["Cantidad"]);
+                            unidad.Cells[uFila, indice + 2].Value = Convert.ToDecimal(unidad.Cells[uFila, indice + 2].Value ?? 0) + cantidad;
+                        }
+                        uFila++;
+                    }
+                    unidad.Cells[1, 1, 1, periodos.Count + 1].Style.Font.Bold = true;
+                    unidad.View.FreezePanes(2, 2);
+                    unidad.Cells[unidad.Dimension.Address].AutoFitColumns();
+                    return File(paquete.GetAsByteArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "avances-" + empresa.ToLowerInvariant() + "-" + DateTime.Today.ToString("yyyyMMdd") + ".xlsx");
+                }
+            }
+            catch (Exception ex) { return Error(ex); }
+        }
+
         [HttpGet]
         public ActionResult Historico(string dimension, string empresa, string codigo, string hasta, string moneda)
         {

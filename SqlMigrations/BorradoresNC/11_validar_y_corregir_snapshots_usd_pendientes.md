@@ -1,9 +1,9 @@
 # Corrección puntual de pagos históricos en borradores USD
 
-**SUSPENDIDA:** las filas y valores de este documento provienen de
-`POS-SmartK66_DEV`. Antes de preparar o ejecutar una corrección hay que
-confirmar qué base utiliza la pantalla reportada y consultar allí los datos.
-El script SQL tiene una excepción deliberada que impide ejecutarlo.
+Las filas y valores de este documento provienen de `POS-SmartK66_DEV`. El
+usuario confirmó el 04/11/2026 que `BorradorNcContext` de la aplicación
+publicada usa esa base. El script comprueba el nombre de la base antes de
+simular o aplicar cualquier cambio.
 
 La migración HANA 10 corrigió la fuente para borradores nuevos. Al guardar,
 `BorradorNcBLL` vuelve a consultar HANA y copia el importe a `BORR_NC_DET.PAGADO`.
@@ -49,7 +49,7 @@ corrección. No sustituirlo por el pagado actual.
    sus importes guardados no cambiaron. El script también comprueba esto y
    aborta sin actualizar si alguna fila difiere.
 3. Ejecutar
-   [`11_corregir_snapshots_usd_pendientes_20261104.sql`](11_corregir_snapshots_usd_pendientes_20261104.sql)
+   [`11_corregir_snapshots_usd_pendientes_20261104_DEV.sql`](11_corregir_snapshots_usd_pendientes_20261104_DEV.sql)
    con `@Aplicar = 0`. Debe mostrar seis filas propuestas y
    `SIMULADO_SIN_CAMBIOS`; después del `ROLLBACK` no habrá respaldo ni cambios.
 4. Si las seis filas son correctas, cambiar `@Aplicar = 1` y ejecutar el script

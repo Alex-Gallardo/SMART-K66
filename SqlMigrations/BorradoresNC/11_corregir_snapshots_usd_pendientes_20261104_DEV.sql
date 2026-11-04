@@ -1,8 +1,6 @@
 /*
-  SUSPENDIDO: los seis registros se identificaron en POS-SmartK66_DEV.
-  No está confirmado que esa sea la base de la aplicación reportada.
-  Este archivo no debe ejecutarse hasta identificar la base correcta y
-  preparar una nueva corrección con sus datos verificados.
+  Base de datos: POS-SmartK66_DEV. El usuario confirmó el 04/11/2026 que
+  BorradorNcContext de la aplicación publicada apunta a esta base.
 
   Corrección puntual de seis borradores USD pendientes creados el 28/10/2026.
   La vista HANA ya fue corregida por la migración 10. Esta operación corrige
@@ -22,13 +20,11 @@
   todos los campos originales antes de actualizar. Reejecutar después de
   aplicar produce un error de seguridad; no repite los cambios.
 */
-USE [POS-SmartK66];
+USE [POS-SmartK66_DEV];
 GO
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
 SET LOCK_TIMEOUT 5000;
-
-THROW 58107, 'SUSPENDIDO: valores obtenidos de POS-SmartK66_DEV; identificar base de la aplicación.', 1;
 
 DECLARE @Aplicar bit = 0; -- 0 = solo lectura; 1 = respaldo y corrección
 DECLARE @Correcciones TABLE
@@ -56,8 +52,8 @@ VALUES
     (213, N'GRACO', N'BWG-00013', '2026-10-28T16:10:49', N'CE0016', N'2001324', 18236.000, 134237.060, 17571.170);
 
 BEGIN TRY
-    IF DB_NAME() <> N'POS-SmartK66'
-        THROW 58100, 'Base incorrecta: se requiere POS-SmartK66.', 1;
+    IF DB_NAME() <> N'POS-SmartK66_DEV'
+        THROW 58100, 'Base incorrecta: se requiere POS-SmartK66_DEV.', 1;
     IF OBJECT_ID(N'dbo.BORR_NC_ENC', N'U') IS NULL
        OR OBJECT_ID(N'dbo.BORR_NC_DET', N'U') IS NULL
         THROW 58101, 'Faltan tablas de BorradoresNC.', 1;

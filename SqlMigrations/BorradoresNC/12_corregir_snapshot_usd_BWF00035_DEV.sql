@@ -1,6 +1,8 @@
 /*
   Corrección puntual de BWF-00035 en POS-SmartK66_DEV, base utilizada por
   BorradoresNC en la aplicación publicada. Ejecutar el archivo completo.
+  ESTADO: APLICADO el 04/11/2026; fila y respaldo verificados. No volver a
+  ejecutar. El control del respaldo también impide una repetición.
 
   La fotografía del 28/10/2026 a las 12:08:31 guardó PAGADO = 119520.970
   en moneda local contra TOTAL_FACT = 20249.250 USD. SAP OITR/ITR1 para la

@@ -57,6 +57,11 @@ comprueba esa única fila y crea un respaldo distinto. Debe simularse con
 al crear era 4571.12 USD; el borrador solicita 5278.45 USD, por lo que la
 aplicación del excedente de 707.33 USD requiere revisión de Autorizaciones.
 
+**Estado de BWF-00035: aplicado el 04/11/2026.** La lectura posterior confirmó
+`PAGADO = 15678.130`, estado `PENDIENTE`, una fila en
+`dbo.BORR_NC_DET_RESPALDO_PAGADO_BWF00035_20261104` y la desaparición del
+aviso falso en Autorizaciones. No volver a ejecutar el script 12.
+
 ## Antes de ejecutar
 
 1. Confirmar en SAP que, para los seis documentos de la tabla, `DocTotalFC`,

@@ -16,7 +16,7 @@
         <div class="search-detail-row"><div><span class="step">RUTA EN REVISIÓN</span><h2>Ruta @Model.Id</h2><p>Placa @Model.PlacaBusqueda</p></div><a class="search-back-link" href="@urlPlaca">← Volver a rutas de esta placa</a></div>
         <a class="search-other-link" href="@urlInicio">Buscar otra placa</a>
     } else {
-        <span class="step">1 · BUSCAR</span>
+        <span class="step">BUSCAR</span>
         <h1>Control de vehículos</h1>
         <p>Escribe la placa o escanea su QR para revisar rutas abiertas, salidas y regresos.</p>
         using(Html.BeginForm("Index","Garita",FormMethod.Get,new{@class="search-form",id="plate-search-form"})) {
@@ -39,7 +39,7 @@
 @if(TempData["Garita.Mensaje"]!=null) {<div class="notice success" role="status">✓ @TempData["Garita.Mensaje"]</div>}
 @if(Model.BusquedaRealizada && !encontrada) {
     <section class="results-card open-results" aria-label="Rutas abiertas de la placa">
-        <div class="section-head"><div><span class="step">2 · POR SALIR</span><h2>Abiertas · @Model.PlacaBusqueda</h2></div><strong>@Model.TotalAbiertas @(Model.TotalAbiertas==1?"ruta":"rutas") pendientes</strong></div>
+        <div class="section-head"><div><span class="step">POR SALIR</span><h2>Abiertas · @Model.PlacaBusqueda</h2></div><strong>@Model.TotalAbiertas @(Model.TotalAbiertas==1?"ruta":"rutas") pendientes</strong></div>
         @if(Model.TotalAbiertas==0) {<div class="notice info" role="status">No hay rutas Abiertas sin liquidar para esta placa en tus centros autorizados.</div>}
         else {
             <p>Revisa la ruta y el cargamento antes de registrar la salida. Esto pondrá la ruta En ruta.</p>
@@ -58,7 +58,7 @@
         }
     </section>
     <section class="results-card" aria-label="Rutas en ruta de la placa">
-        <div class="section-head"><div><span class="step">3 · EN RUTA</span><h2>En ruta · @Model.PlacaBusqueda</h2></div><strong>@Model.TotalRutas @(Model.TotalRutas==1?"ruta":"rutas") En ruta</strong></div>
+        <div class="section-head"><div><span class="step">EN RUTA</span><h2>En ruta · @Model.PlacaBusqueda</h2></div><strong>@Model.TotalRutas @(Model.TotalRutas==1?"ruta":"rutas") En ruta</strong></div>
         @if(Model.TotalRutas==0) {<div class="notice info" role="status">No hay rutas En ruta sin liquidar para esta placa en tus centros autorizados.</div>}
         else {
             <p>Compara el número, la fecha y el piloto antes de abrir una ruta.</p>
@@ -77,7 +77,7 @@
         }
     </section>
     <section class="results-card closed-results" aria-label="Rutas cerradas sin hora de entrada">
-        <div class="section-head"><div><span class="step">4 · REGRESOS</span><h2>Cerradas sin entrada</h2><p>Rutas de hoy y los 3 días anteriores.</p></div><strong>@Model.TotalCerradas @(Model.TotalCerradas==1?"ruta":"rutas") pendientes</strong></div>
+        <div class="section-head"><div><span class="step">REGRESOS</span><h2>Cerradas sin entrada</h2><p>Rutas de hoy y los 3 días anteriores.</p></div><strong>@Model.TotalCerradas @(Model.TotalCerradas==1?"ruta":"rutas") pendientes</strong></div>
         @if(Model.TotalCerradas==0) {<div class="notice info" role="status">No hay rutas cerradas sin hora de entrada de hoy o los 3 días anteriores para esta placa.</div>}
         else {
             <p>Selecciona la ruta que regresó y verifica la placa y el cargamento antes de registrar la hora.</p>
@@ -99,12 +99,12 @@
 @if(encontrada) {
     <section class="route-header">
         <div class="route-review-intro"><span class="step">@(cerrada?"REVISAR REGRESO":"REVISAR SALIDA")</span><h2>@(cerrada?"Comprueba el regreso":"Comprueba la carga")</h2><p>Compara la placa, el piloto y los documentos de la ruta con el vehículo.</p></div>
-        <span class="state @(cerrada?(Model.HoraEntradaApk.HasValue?"state-done":"state-entry-pending"):Model.HoraSalidaApk.HasValue||Model.SalidaUtc.HasValue?"state-done":Model.Diferencia!=null?"state-stop":puedeRegistrar?"state-ready":"state-stop")">@(cerrada?(Model.HoraEntradaApk.HasValue?"Cerrada · entrada registrada":"Cerrada · sin hora de entrada en APK66"):Model.HoraSalidaApk.HasValue||Model.SalidaUtc.HasValue?"En ruta · salida registrada":Model.Diferencia!=null?"Diferencia reportada":puedeRegistrar?(abierta?"Abierta · pendiente de salida":"En ruta · pendiente de salida"):(abierta?"Abierta · revisar datos":"En ruta · revisar datos"))</span>
+        <span class="state @(cerrada?(Model.HoraEntradaApk.HasValue?"state-done":"state-entry-pending"):Model.HoraSalidaApk.HasValue||Model.SalidaUtc.HasValue?"state-done":Model.Diferencia!=null?"state-stop":puedeRegistrar?"state-ready":"state-stop")">@(cerrada?(Model.HoraEntradaApk.HasValue?"Cerrada · entrada registrada":"Cerrada · sin hora de entrada"):Model.HoraSalidaApk.HasValue||Model.SalidaUtc.HasValue?"En ruta · salida registrada":Model.Diferencia!=null?"Diferencia reportada":puedeRegistrar?(abierta?"Abierta · pendiente de salida":"En ruta · pendiente de salida"):(abierta?"Abierta · revisar datos":"En ruta · revisar datos"))</span>
     </section>
-    if(Model.HoraSalidaApk.HasValue || Model.SalidaUtc.HasValue) {<div class="notice success" role="status"><strong>Hora de salida en APK66:</strong> @(Model.HoraSalidaApk.HasValue?Model.HoraSalidaApk.Value.ToString("c"):"Sin hora en APK66") @if(Model.SalidaUtc.HasValue){<span>· Fecha POS: @Model.SalidaLocal.Value.ToString("dd/MM/yyyy HH:mm:ss") · Agente: @Model.Agente</span>} @(string.IsNullOrEmpty(Model.Precinto)?"":" · Precinto: "+Model.Precinto) @if(Model.TieneFotoSalida){<a href="@Url.Action("FotoSalida","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id})" target="_blank" rel="noopener">Ver foto de salida</a>}</div>}
+    if(Model.HoraSalidaApk.HasValue || Model.SalidaUtc.HasValue) {<div class="notice success" role="status"><strong>Hora de salida:</strong> @(Model.HoraSalidaApk.HasValue?Model.HoraSalidaApk.Value.ToString("c"):"Sin hora") @if(Model.SalidaUtc.HasValue){<span>· Fecha: @Model.SalidaLocal.Value.ToString("dd/MM/yyyy") · Usuario: @Model.Agente</span>} @(string.IsNullOrEmpty(Model.Precinto)?"":" · Precinto: "+Model.Precinto) @if(Model.TieneFotoSalida){<a href="@Url.Action("FotoSalida","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id})" target="_blank" rel="noopener">Ver foto de salida</a>}</div>}
     else if(cerrada) {<div class="notice info" role="status">Esta ruta no tiene hora de salida registrada. Verifica cuidadosamente la placa y el número de ruta antes de marcar el regreso.</div>}
-    if(cerrada && Model.HoraEntradaApk.HasValue) {<div class="notice success" role="status"><strong>Hora de entrada en APK66:</strong> @Model.HoraEntradaApk.Value.ToString("c") @if(Model.EntradaUtc.HasValue){<span>· Fecha POS: @Model.EntradaUtc.Value.AddHours(-6).ToString("dd/MM/yyyy HH:mm:ss") · Agente: @Model.AgenteEntrada</span>}</div>}
-    else if(cerrada && Model.EntradaUtc.HasValue) {<div class="notice info" role="status"><strong>Entrada pendiente en APK66.</strong> POS ya tiene una fecha registrada por @Model.AgenteEntrada. Se usará esa misma hora para completar APK66.</div>}
+    if(cerrada && Model.HoraEntradaApk.HasValue) {<div class="notice success" role="status"><strong>Hora de entrada:</strong> @Model.HoraEntradaApk.Value.ToString("c") @if(Model.EntradaUtc.HasValue){<span>· Fecha: @Model.EntradaUtc.Value.AddHours(-6).ToString("dd/MM/yyyy HH:mm:ss") · Agente: @Model.AgenteEntrada</span>}</div>}
+    else if(cerrada && Model.EntradaUtc.HasValue) {<div class="notice info" role="status"><strong>Entrada pendiente.</strong> Ya tiene una fecha registrada por @Model.AgenteEntrada. Se usará esa misma hora para completar.</div>}
     else if((abierta || enRuta) && Model.Diferencia!=null) {<div class="notice stop" role="alert"><strong>Detén la salida.</strong> Se reportó esta diferencia: @Model.Diferencia. Distribución debe resolverla antes de registrar la salida.</div>}
     else if((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue && !Model.SalidaUtc.HasValue) {<div class="notice stop" role="alert"><strong>No registres la salida todavía.</strong> Revisa piloto, vehículo, facturas, bultos y liquidación. Si algo no coincide, reporta la diferencia y contacta a Distribución.</div>}
     else if((abierta || enRuta) && !Model.HoraSalidaApk.HasValue && !Model.SalidaUtc.HasValue) {<div class="notice info" role="status"><strong>Lista para verificar.</strong> Compara los datos con el vehículo y el cargamento. Garita registrará la hora de salida@(abierta?" y pondrá la ruta En ruta":"").</div>}
@@ -117,7 +117,7 @@
         <div class="fact"><span class="fact-icon" aria-hidden="true">🚛</span><span>VEHÍCULO</span><strong>@(Model.Vehiculo??"Sin dato")</strong></div>
     </section>
     if(cerrada && Model.PuedeRegistrarEntrada) {
-        <section class="action-card entry-action"><span class="step">REGISTRAR REGRESO</span><h2>¿Es este el vehículo?</h2><p>Verifica placa, ruta y cargamento. El botón guardará @(Model.EntradaUtc.HasValue?"la hora del registro POS existente":"la hora actual") en APK66.</p>
+        <section class="action-card entry-action"><span class="step">REGISTRAR REGRESO</span><h2>¿Es este el vehículo?</h2><p>Verifica placa, ruta y cargamento. El botón guardará @(Model.EntradaUtc.HasValue?"la hora del registro existente":"la hora actual").</p>
             @using(Html.BeginForm("RegistrarEntrada","Garita",FormMethod.Post,new{id="register-entry-form"})) {
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="RutaId" value="@Model.Id" /><input type="hidden" name="PlacaBusqueda" value="@Model.PlacaBusqueda" /><input type="hidden" name="Version" value="@Model.Version" /><input type="hidden" name="Solicitud" value="@Guid.NewGuid()" />

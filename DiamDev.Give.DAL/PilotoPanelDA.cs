@@ -186,6 +186,7 @@ WHERE e.CatalogoRutas=@catalogo ORDER BY e.Id DESC;")) {
                             using(var r=c.ExecuteReader()) while(r.Read()) {
                                 var ruta=rutas[Texto(r,"Ruta_Id")];var tipo=Texto(r,"Tipo");var fecha=(DateTime)r["FechaUtc"];
                                 if(tipo=="S") {ruta.SalidaGaritaUtc=fecha;ruta.AgenteGarita=Texto(r,"Actor");ruta.PrecintoGarita=Texto(r,"Precinto");if(ruta.DiferenciaGarita==null) ruta.DiferenciaGarita="";}
+                                if(tipo=="I") {ruta.EntradaGaritaUtc=fecha;ruta.AgenteEntradaGarita=Texto(r,"Actor");ruta.ObservacionEntradaGarita=Texto(r,"Observacion");}
                                 if((tipo=="D" || tipo=="R") && ruta.DiferenciaGarita==null) ruta.DiferenciaGarita=tipo=="D"?Texto(r,"Observacion"):"";
                                 if((filtro.Evento=="todos" || filtro.Evento=="Garita") && (id!=null || fecha>=filtro.Inicio.AddHours(6) && fecha<filtro.Fin.AddHours(6)) && (!filtro.Usuario.HasValue || filtro.Usuario.Value==Convert.ToInt64(r["Usuario_Id"])))
                                     modelo.Actividad.Add(new PilotoPanelActividad {Tipo=PilotoPanelReglas.TipoEventoGarita(tipo),Ruta=ruta.Datos.Id,Usuario=Convert.ToInt64(r["Usuario_Id"]),Actor=Texto(r,"Actor"),Descripcion=PilotoPanelReglas.DescripcionEventoGarita(tipo,Texto(r,"Observacion"),Texto(r,"Precinto")),FechaUtc=fecha,Clave="Garita #"+r["Id"]});
@@ -198,6 +199,12 @@ JOIN dbo.GaritaRutaEvento e ON e.Id=i.Evento_Id
 JOIN #PanelRutas r ON r.ID_RUTA=e.Ruta_Id COLLATE DATABASE_DEFAULT
 WHERE e.CatalogoRutas=@catalogo AND e.Tipo=N'S';"))
                     {Param(fotos,"@catalogo",SqlDbType.NVarChar,modelo.Catalogo,128);using(var lector=fotos.ExecuteReader()) while(lector.Read()) rutas[Texto(lector,"Ruta_Id")].FotoSalidaGarita=true;}
+                    using(var instaladaFotoEntrada=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.GaritaEntradaImagen',N'U') IS NULL THEN 0 ELSE 1 END;"))
+                    if((int)instaladaFotoEntrada.ExecuteScalar()==1) using(var fotos=Cmd(cn,tx,@"SELECT e.Ruta_Id FROM dbo.GaritaEntradaImagen i
+JOIN dbo.GaritaRutaEvento e ON e.Id=i.Evento_Id
+JOIN #PanelRutas r ON r.ID_RUTA=e.Ruta_Id COLLATE DATABASE_DEFAULT
+WHERE e.CatalogoRutas=@catalogo AND e.Tipo=N'I';"))
+                    {Param(fotos,"@catalogo",SqlDbType.NVarChar,modelo.Catalogo,128);using(var lector=fotos.ExecuteReader()) while(lector.Read()) rutas[Texto(lector,"Ruta_Id")].FotoEntradaGarita=true;}
                     if(modelo.Actividad.Count>5000) throw new PilotoException(400,"Hay más de 5.000 eventos. Acota el período, usuario o tipo de evento; no se mostraron registros parciales.");
                     tx.Commit();
                 }
@@ -248,16 +255,20 @@ WHERE e.CatalogoRutas=@catalogo AND e.Tipo=N'S';"))
             }
         }
         public PilotoImagen FotoSalidaGarita(string login,string id)
+        { return FotoGarita(login,id,false); }
+        public PilotoImagen FotoEntradaGarita(string login,string id)
+        { return FotoGarita(login,id,true); }
+        private PilotoImagen FotoGarita(string login,string id,bool entrada)
         {
             if(string.IsNullOrWhiteSpace(id) || id.Length>15 || id.Any(char.IsControl)) throw new PilotoException(404,"Foto no disponible.");
             using(var cn=new SqlConnection(conexion)) {
                 cn.Open();using(var c=Cmd(cn,null,"SET LOCK_TIMEOUT 3000;")) c.ExecuteNonQuery();
                 using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted)) {
                     Autorizar(cn,tx,login);
-                    using(var c=Cmd(cn,tx,@"SELECT TOP (1) i.Nombre,i.ContentType,i.Contenido FROM dbo.GaritaSalidaImagen i
+                    using(var c=Cmd(cn,tx,@"SELECT TOP (1) i.Nombre,i.ContentType,i.Contenido FROM dbo."+(entrada?"GaritaEntradaImagen":"GaritaSalidaImagen")+@" i
 JOIN dbo.GaritaRutaEvento e ON e.Id=i.Evento_Id
 JOIN "+apk+@".dbo.RT_RUTAS r ON r.ID_RUTA COLLATE DATABASE_DEFAULT=e.Ruta_Id
-WHERE e.CatalogoRutas=@catalogo AND e.Ruta_Id=@id AND e.Tipo=N'S';")) {
+WHERE e.CatalogoRutas=@catalogo AND e.Ruta_Id=@id AND e.Tipo="+(entrada?"N'I'":"N'S'")+";")) {
                         Param(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);Param(c,"@id",SqlDbType.NVarChar,id,15);
                         using(var r=c.ExecuteReader()) {
                             if(!r.Read()) throw new PilotoException(404,"Foto de garita no disponible.");

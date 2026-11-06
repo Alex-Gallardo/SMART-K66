@@ -288,6 +288,7 @@ if(([regex]::Matches($detallePanel,'class="dist-doc ')).Count -ne 3 -or
    $detallePanel -notmatch 'Observación POS pendiente:' -or $detallePanel -notmatch 'Hora de entrada' -or
    $detallePanel -notmatch 'Observación general' -or $detallePanel -notmatch 'Última actividad POS' -or
    $detallePanel -notmatch 'Volver al panel con mis filtros' -or $detallePanel -notmatch 'Ver foto de garita' -or
+   $detallePanel -notmatch 'Observación de entrada' -or $detallePanel -notmatch 'Ver foto de entrada' -or
    $detallePanel.IndexOf('<strong>Entrada de garita</strong>') -lt 0 -or
    $detallePanel.IndexOf('<strong>Salida de garita</strong>') -lt 0 -or
    $detallePanel.IndexOf('<strong>Entrada de garita</strong>') -ge $detallePanel.IndexOf('<strong>Salida de garita</strong>') -or
@@ -306,6 +307,7 @@ $garitaEmpresaPendiente=Get-Content -LiteralPath (Join-Path $out 'garita-empresa
 $garitaEmpresaAsignada=Get-Content -LiteralPath (Join-Path $out 'garita-empresa-asignada.html') -Raw
 $garitaCerrada=Get-Content -LiteralPath (Join-Path $out 'garita-cerrada.html') -Raw
 $garitaEntrada=Get-Content -LiteralPath (Join-Path $out 'garita-entrada.html') -Raw
+$garitaEntradaTexto=[System.Net.WebUtility]::HtmlDecode($garitaEntrada)
 if($garitaEmpresaPendiente -match 'Conductor pendiente' -or $garitaEmpresaPendiente -notmatch 'id="register-exit-form"' -or
    $garitaEmpresaAsignada -notmatch 'JUAN PEREZ' -or $garitaEmpresaAsignada -notmatch 'L-1234' -or $garitaEmpresaAsignada -notmatch 'id="register-exit-form"') {
     throw 'Garita debe permitir verificar la salida con el piloto de APK66 y mostrar la asignación opcional.'
@@ -320,14 +322,14 @@ if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 
 if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'name="foto"' -or $garitaEnRuta -notmatch 'multipart/form-data' -or $garitaEnRuta -match 'PilotoVehiculoVerificados|name="Precinto"' -or $garitaEnRuta -notmatch 'Registrar hora de salida') {throw 'La ruta E debe mostrar un único check y la foto opcional.'}
 $garitaAbiertaTexto=[System.Net.WebUtility]::HtmlDecode($garitaAbierta)
 if($garitaAbiertaTexto -notmatch 'Abierta · pendiente de salida' -or $garitaAbierta -notmatch 'id="register-exit-form"' -or $garitaAbiertaTexto -notmatch 'pasará de Abierta a En ruta') {throw 'La ruta A debe permitir la salida y explicar el cambio a E.'}
-if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida en APK66:' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"') {throw 'La salida registrada debe mostrar hora, agente y foto sin permitir otra salida.'}
+if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida:' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"') {throw 'La salida registrada debe mostrar hora, agente y foto sin permitir otra salida.'}
 if($garitaVacia -notmatch 'id="qr-open"' -or $garitaVacia -notmatch 'id="qr-dialog"' -or
    $garitaLista -notmatch 'Rutas cerradas sin hora de entrada|Cerradas sin entrada' -or
    $garitaLista -notmatch 'Rutas de hoy y los 3 días anteriores' -or
    $garitaLista -notmatch 'PP26-CERRADA' -or $garitaLista -notmatch 'Sin hora de entrada registrada' -or
    $garitaCerrada -notmatch 'id="register-entry-form"' -or $garitaCerrada -notmatch 'Registrar hora de entrada' -or
    $garitaCerrada -match 'id="register-exit-form"' -or $garitaEntrada -match 'id="register-entry-form"' -or
-   $garitaEntrada -notmatch 'Hora de entrada en APK66' -or
+   $garitaEntrada -notmatch 'Hora de entrada:' -or $garitaEntradaTexto -notmatch 'Regresó con carga' -or $garitaEntrada -notmatch 'Ver foto de entrada' -or
    $garitaCerrada -notmatch 'Volver a rutas de esta placa' -or $garitaCerrada -notmatch 'Buscar otra placa') {
     throw 'La búsqueda QR, las cerradas pendientes, la entrada y los enlaces de regreso deben renderizar correctamente.'
 }
@@ -357,6 +359,7 @@ $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/31_empresa_placas_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/32_indice_rutas_placa_apk66.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/33_garita_entrada_pos.sql'
 $scripts+=Join-Path $repo 'SqlMigrations/Pilotos/34_permiso_liquidacion_pos.sql'
+$scripts+=Join-Path $repo 'SqlMigrations/Pilotos/35_garita_foto_entrada_pos.sql'
 $adminSql=Join-Path $out 'autorizacion-admin.sql'
 & (Join-Path $out 'PilotoTests.exe') sql-admin | Set-Content -LiteralPath $adminSql -Encoding UTF8
 if($LASTEXITCODE -ne 0) { throw 'Fallo obtener la consulta real de autorizacion.' }

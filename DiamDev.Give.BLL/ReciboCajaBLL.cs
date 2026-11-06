@@ -50,10 +50,10 @@ namespace DiamDev.Give.BLL
         // ─── EMPRESAS DISPONIBLES POR USUARIO ─────────
         /// <summary>
         /// Empresas de RECIBOS del usuario + los OPERADORES (códigos) de cada una.
-        /// Cada operador incluye su Depto (Usuario_Empresa.DEPTO_RECIBO), que es el
-        /// DEPTO con el que se numerará el recibo en REC_CAJA_SERIES.
-        /// Solo se devuelven operadores con DEPTO_RECIBO asignado; una empresa sin
-        /// ningún operador válido NO se devuelve (no tendría nada que ofrecer).
+        /// Cada operador incluye el Depto con el que se numerará el recibo:
+        /// el asignado en Usuario_Empresa o el anterior si tiene serie real.
+        /// Una empresa asignada se muestra aunque sus operadores aún no tengan
+        /// serie; la vista impide emitir con un operador sin Depto.
         /// </summary>
         public List<dynamic> ObtenerEmpresasUsuario(long usuarioId)
         {
@@ -82,19 +82,16 @@ namespace DiamDev.Give.BLL
             {
                 string clave = permitidas[grupo.Key];
 
-                var codigos = grupo
-                    .Where(r => !string.IsNullOrWhiteSpace(r.Codigo))
-                    // GroupBy por Codigo = Distinct que conserva el registro completo
-                    // (necesitamos DEPTO_RECIBO, no solo el string del código)
-                    .GroupBy(r => r.Codigo.Trim(), StringComparer.OrdinalIgnoreCase)
+                var codigos = ReciboCajaOperadores.Elegir(grupo)
                    .Select(g =>
                    {
-                       var reg = g.First();
-                       var p = ueBl.ParseCodigo(reg.Codigo);
-                       string depto = (reg.DEPTO_RECIBO ?? "").Trim();
+                       var p = ueBl.ParseCodigo(g.Codigo);
+                       string depto = ReciboCajaDeptoResolver.Resolver(
+                           g.DEPTO_RECIBO, p.AgenteNombre,
+                           candidato => _apk.ExisteSerie(clave, candidato));
                        return new
                        {
-                           Codigo = reg.Codigo.Trim(),
+                           Codigo = g.Codigo.Trim(),
                            SapId = p.SapId,
                            Agente = p.AgenteNombre,
                            Depto = depto,
@@ -106,14 +103,7 @@ namespace DiamDev.Give.BLL
                            EncabezadoEditable = EsEncabezadoEditable(p.AgenteNombre)
                        };
                    })
-                    // Solo operadores habilitados para recibos: DEPTO_RECIBO con valor.
-                    // NULL o vacío = no emite → no aparece en "Operar como".
-                    .Where(c => c.Depto.Length > 0)
                     .ToList();
-
-                // Empresa sin operadores válidos: no se ofrece en el select.
-                // (Elegirla solo llevaría al aviso "no tiene operadores".)
-                if (codigos.Count == 0) continue;
 
                 resultado.Add(new
                 {
@@ -658,12 +648,12 @@ namespace DiamDev.Give.BLL
         ///   1. Que venga un código.
         ///   2. Que el código pertenezca al usuario logueado para ESA empresa
         ///      (seguridad: el POST se puede falsificar; la UI es cosmética).
-        ///   3. Que el operador tenga DEPTO_RECIBO asignado (= habilitado para emitir).
+        ///   3. Que tenga DEPTO_RECIBO, o que el depto anterior derivado del
+        ///      código corresponda a una serie existente para la empresa.
         ///   4. Que exista la serie (EMPRESA, DEPTO) en REC_CAJA_SERIES.
         ///
-        /// El DEPTO viene DECLARADO en Usuario_Empresa.DEPTO_RECIBO. Ya no se
-        /// parsea del Codigo: el parseo daba "RODOLFO DIAZ" y la serie se llama
-        /// "RODOLFO" — nunca empataban. Ahora el vínculo es explícito y por datos.
+        /// El DEPTO declarado tiene prioridad. El derivado del Codigo solo sirve
+        /// para vínculos anteriores sin DEPTO_RECIBO cuando existe su serie exacta.
         /// </summary>
         public string ObtenerDeptoOperador(long usuarioId, string empresa, string codigo)
         {
@@ -678,19 +668,22 @@ namespace DiamDev.Give.BLL
 
             var reg = new UsuarioEmpresaDA()
                 .ObtenerPorUsuarioId(usuarioId)
-                .FirstOrDefault(r => r.EmpresaId == empId &&
-                                     string.Equals((r.Codigo ?? "").Trim(), codigo,
-                                                   StringComparison.OrdinalIgnoreCase));
+                .Where(r => r.EmpresaId == empId &&
+                            string.Equals((r.Codigo ?? "").Trim(), codigo,
+                                          StringComparison.OrdinalIgnoreCase));
+            var operador = ReciboCajaOperadores.Elegir(reg)
+                .FirstOrDefault();
 
-            if (reg == null)
+            if (operador == null)
                 throw new Exception("El operador '" + codigo + "' no está asignado a su usuario " +
                                     "para la empresa " + emp + ".");
 
-            // DEPTO declarado, no derivado.
-            string depto = (reg.DEPTO_RECIBO ?? "").Trim();
+            string depto = ReciboCajaDeptoResolver.Resolver(
+                operador.DEPTO_RECIBO, new UsuarioEmpresaBL().ParseCodigo(operador.Codigo).AgenteNombre,
+                candidato => _apk.ExisteSerie(emp, candidato));
             if (depto.Length == 0)
                 throw new Exception("El operador '" + codigo + "' no tiene DEPTO_RECIBO asignado " +
-                                    "en Usuario_Empresa: no está habilitado para emitir recibos. " +
+                                    "ni una serie compatible con su código en la empresa " + emp + ". " +
                                     "Contacte al administrador.");
 
             if (!_apk.ExisteSerie(emp, depto))

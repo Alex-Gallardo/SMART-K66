@@ -103,8 +103,8 @@
     </section>
     if(Model.HoraSalidaApk.HasValue || Model.SalidaUtc.HasValue) {<div class="notice success" role="status"><strong>Hora de salida:</strong> @(Model.HoraSalidaApk.HasValue?Model.HoraSalidaApk.Value.ToString("c"):"Sin hora") @if(Model.SalidaUtc.HasValue){<span>· Fecha: @Model.SalidaLocal.Value.ToString("dd/MM/yyyy") · Usuario: @Model.Agente</span>} @(string.IsNullOrEmpty(Model.Precinto)?"":" · Precinto: "+Model.Precinto) @if(Model.TieneFotoSalida){<a href="@Url.Action("FotoSalida","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id})" target="_blank" rel="noopener">Ver foto de salida</a>}</div>}
     else if(cerrada) {<div class="notice info" role="status">Esta ruta no tiene hora de salida registrada. Verifica cuidadosamente la placa y el número de ruta antes de marcar el regreso.</div>}
-    if(cerrada && Model.HoraEntradaApk.HasValue) {<div class="notice success" role="status"><strong>Hora de entrada:</strong> @Model.HoraEntradaApk.Value.ToString("c") @if(Model.EntradaUtc.HasValue){<span>· Fecha: @Model.EntradaUtc.Value.AddHours(-6).ToString("dd/MM/yyyy HH:mm:ss") · Agente: @Model.AgenteEntrada</span>}</div>}
-    else if(cerrada && Model.EntradaUtc.HasValue) {<div class="notice info" role="status"><strong>Entrada pendiente.</strong> Ya tiene una fecha registrada por @Model.AgenteEntrada. Se usará esa misma hora para completar.</div>}
+    if(cerrada && Model.HoraEntradaApk.HasValue) {<div class="notice success" role="status"><strong>Hora de entrada:</strong> @Model.HoraEntradaApk.Value.ToString("c") @if(Model.EntradaUtc.HasValue){<span>· Fecha: @Model.EntradaUtc.Value.AddHours(-6).ToString("dd/MM/yyyy HH:mm:ss") · Agente: @Model.AgenteEntrada</span>} @if(!string.IsNullOrWhiteSpace(Model.ObservacionEntrada)){<span>· Observación: @Model.ObservacionEntrada</span>} @if(Model.TieneFotoEntrada){<a href="@Url.Action("FotoEntrada","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id})" target="_blank" rel="noopener">Ver foto de entrada</a>}</div>}
+    else if(cerrada && Model.EntradaUtc.HasValue) {<div class="notice info" role="status"><strong>Entrada pendiente.</strong> Ya tiene una fecha registrada por @Model.AgenteEntrada. Se usará esa misma hora para completar. @if(!string.IsNullOrWhiteSpace(Model.ObservacionEntrada)){<span>· Observación: @Model.ObservacionEntrada</span>} @if(Model.TieneFotoEntrada){<a href="@Url.Action("FotoEntrada","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id})" target="_blank" rel="noopener">Ver foto de entrada</a>}</div>}
     else if((abierta || enRuta) && Model.Diferencia!=null) {<div class="notice stop" role="alert"><strong>Detén la salida.</strong> Se reportó esta diferencia: @Model.Diferencia. Distribución debe resolverla antes de registrar la salida.</div>}
     else if((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue && !Model.SalidaUtc.HasValue) {<div class="notice stop" role="alert"><strong>No registres la salida todavía.</strong> Revisa piloto, vehículo, facturas, bultos y liquidación. Si algo no coincide, reporta la diferencia y contacta a Distribución.</div>}
     else if((abierta || enRuta) && !Model.HoraSalidaApk.HasValue && !Model.SalidaUtc.HasValue) {<div class="notice info" role="status"><strong>Lista para verificar.</strong> Compara los datos con el vehículo y el cargamento. Garita registrará la hora de salida@(abierta?" y pondrá la ruta En ruta":"").</div>}
@@ -118,9 +118,11 @@
     </section>
     if(cerrada && Model.PuedeRegistrarEntrada) {
         <section class="action-card entry-action"><span class="step">REGISTRAR REGRESO</span><h2>¿Es este el vehículo?</h2><p>Verifica placa, ruta y cargamento. El botón guardará @(Model.EntradaUtc.HasValue?"la hora del registro existente":"la hora actual").</p>
-            @using(Html.BeginForm("RegistrarEntrada","Garita",FormMethod.Post,new{id="register-entry-form"})) {
+            @using(Html.BeginForm("RegistrarEntrada","Garita",FormMethod.Post,new{id="register-entry-form",enctype="multipart/form-data"})) {
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="RutaId" value="@Model.Id" /><input type="hidden" name="PlacaBusqueda" value="@Model.PlacaBusqueda" /><input type="hidden" name="Version" value="@Model.Version" /><input type="hidden" name="Solicitud" value="@Guid.NewGuid()" />
+                if(string.IsNullOrWhiteSpace(Model.ObservacionEntrada)) {<div class="optional"><label for="observacion-entrada">Observación del regreso <small>(opcional)</small></label><textarea id="observacion-entrada" name="Observacion" maxlength="250" rows="2" placeholder="Ej. El vehículo regresó con carga pendiente"></textarea></div>}
+                if(!Model.TieneFotoEntrada) {<div class="photo-field"><label for="foto-entrada">Foto de entrada <small>(opcional, JPG, PNG o WebP hasta 10 MB)</small></label><input id="foto-entrada" name="foto" type="file" accept="image/jpeg,image/png,image/webp" /><img id="foto-entrada-preview" alt="Vista previa de la foto de entrada" hidden /><button id="foto-entrada-clear" type="button" hidden>Quitar foto</button></div>}
                 <button class="confirm-button" type="submit">✓ Registrar hora de entrada</button>
             }
         </section>
@@ -152,5 +154,20 @@
 @section scripts {
     <script src="@Url.Content("~/Scripts/qr-scanner/qr-scanner.umd.min.js")"></script>
     <script src="@Url.Content("~/Scripts/garita-qr.js")"></script>
-    <script>(function(){var entry=document.getElementById('register-entry-form');if(entry)entry.addEventListener('submit',function(e){if(!window.confirm('¿La placa, la ruta y el cargamento coinciden? Se registrará la hora de entrada.')){e.preventDefault();return;}var button=entry.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Registrando entrada…';});var form=document.getElementById('register-exit-form');if(!form)return;var file=document.getElementById('foto'),preview=document.getElementById('foto-preview'),clear=document.getElementById('foto-clear'),url;function reset(){if(url)URL.revokeObjectURL(url);url=null;file.value='';preview.hidden=true;preview.removeAttribute('src');clear.hidden=true;}file.addEventListener('change',function(){if(url)URL.revokeObjectURL(url);url=null;var f=file.files[0];if(!f){reset();return;}if(f.size>10485760){alert('La foto supera 10 MB. Elige otra.');reset();return;}url=URL.createObjectURL(f);preview.src=url;preview.hidden=false;clear.hidden=false;});clear.addEventListener('click',reset);var cambiaEstado=@(abierta?"true":"false");form.addEventListener('submit',function(e){var mensaje='¿Ya verificaste clientes, facturas y bultos? Se registrará la hora de salida'+(cambiaEstado?' y la ruta pasará a En ruta.':'.');if(!window.confirm(mensaje)){e.preventDefault();return;}var button=form.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Registrando hora…';});})();</script>
+    <script>(function(){
+        function prepararFoto(id,previewId,clearId){
+            var file=document.getElementById(id),preview=document.getElementById(previewId),clear=document.getElementById(clearId),url;
+            if(!file)return;
+            function reset(){if(url)URL.revokeObjectURL(url);url=null;file.value='';preview.hidden=true;preview.removeAttribute('src');clear.hidden=true;}
+            file.addEventListener('change',function(){if(url)URL.revokeObjectURL(url);url=null;var f=file.files[0];if(!f){reset();return;}if(f.size>10485760){alert('La foto supera 10 MB. Elige otra.');reset();return;}url=URL.createObjectURL(f);preview.src=url;preview.hidden=false;clear.hidden=false;});
+            clear.addEventListener('click',reset);
+        }
+        prepararFoto('foto-entrada','foto-entrada-preview','foto-entrada-clear');
+        prepararFoto('foto','foto-preview','foto-clear');
+        var entry=document.getElementById('register-entry-form');
+        if(entry)entry.addEventListener('submit',function(e){if(!window.confirm('¿La placa, la ruta y el cargamento coinciden? Se registrará la hora de entrada y la evidencia opcional.')){e.preventDefault();return;}var button=entry.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Registrando entrada…';});
+        var form=document.getElementById('register-exit-form');if(!form)return;
+        var cambiaEstado=@(abierta?"true":"false");
+        form.addEventListener('submit',function(e){var mensaje='¿Ya verificaste clientes, facturas y bultos? Se registrará la hora de salida'+(cambiaEstado?' y la ruta pasará a En ruta.':'.');if(!window.confirm(mensaje)){e.preventDefault();return;}var button=form.querySelector('button[type="submit"]');button.disabled=true;button.textContent='Registrando hora…';});
+    })();</script>
 }

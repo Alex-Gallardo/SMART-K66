@@ -127,6 +127,10 @@ namespace DiamDev.Give.Entities
         public string AgenteGarita { get; set; }
         public string PrecintoGarita { get; set; }
         public bool FotoSalidaGarita { get; set; }
+        public DateTime? EntradaGaritaUtc { get; set; }
+        public string AgenteEntradaGarita { get; set; }
+        public string ObservacionEntradaGarita { get; set; }
+        public bool FotoEntradaGarita { get; set; }
         public string DiferenciaGarita { get; set; }
         public PilotoRuta Datos { get; set; }
         public bool Liquidada { get; set; }
@@ -224,7 +228,7 @@ namespace DiamDev.Give.Entities
         public static string DescripcionEventoGarita(string tipo,string observacion,string precinto)
         {
             if(tipo=="S") return "Hora de salida registrada"+(string.IsNullOrWhiteSpace(precinto)?"":" · precinto "+precinto);
-            if(tipo=="I") return "Hora de entrada registrada";
+            if(tipo=="I") return "Hora de entrada registrada"+(string.IsNullOrWhiteSpace(observacion)?"":" · "+observacion);
             return observacion;
         }
         public static List<PilotoPanelActividad> OrdenarActividad(IEnumerable<PilotoPanelActividad> eventos)

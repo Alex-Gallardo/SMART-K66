@@ -67,6 +67,7 @@ internal static class PanelTests
         Check(PilotoPanelReglas.Csv("=1+1")=="\"'=1+1\"","CSV protege fórmulas");Check(PilotoPanelReglas.Csv(" \t@SUM(1)").StartsWith("\"'"),"CSV protege espacios iniciales");Check(PilotoPanelReglas.Csv("a\"b")=="\"a\"\"b\"","CSV codifica comillas");
         Check(PilotoPanelReglas.HoraGuatemala(new DateTime(2026,9,30,1,0,0)).Date==hoy,"UTC al día anterior en Guatemala");
         Check(PilotoPanelReglas.TipoEventoGarita("I")=="Entrada de garita" && PilotoPanelReglas.DescripcionEventoGarita("I",null,null)=="Hora de entrada registrada","evento de entrada no se confunde con diferencia resuelta");
+        Check(PilotoPanelReglas.DescripcionEventoGarita("I","Regresó con carga",null)=="Hora de entrada registrada · Regresó con carga","observación de entrada visible en actividad");
         Check(PilotoPanelReglas.TipoEventoGarita("R")=="Diferencia resuelta" && PilotoPanelReglas.TipoEventoGarita("S")=="Salida de garita","tipos de garita anteriores conservados");
         var eventos=PilotoPanelReglas.OrdenarActividad(new[]{new PilotoPanelActividad{Tipo="Cierre POS",FechaUtc=new DateTime(2026,10,29,19,58,42)},new PilotoPanelActividad{Tipo="Entrada de garita",FechaUtc=new DateTime(2026,10,29,21,11,6)},new PilotoPanelActividad{Tipo="Salida de garita",FechaUtc=new DateTime(2026,10,29,19,56,6)}});
         Check(eventos.Select(e=>e.Tipo).SequenceEqual(new[]{"Entrada de garita","Cierre POS","Salida de garita"}),"actividad POS y Garita en orden cronológico descendente");

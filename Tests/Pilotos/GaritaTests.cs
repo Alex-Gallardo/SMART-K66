@@ -45,6 +45,12 @@ internal static class GaritaTests
         var regreso=Ruta();regreso.Estado="C";regreso.Version=GaritaReglas.Version(regreso);
         var entrada=new GaritaRegistroEntrada{RutaId=regreso.Id,PlacaBusqueda=regreso.Placa,Version=regreso.Version,Solicitud=Guid.NewGuid()};
         Check(regreso.PuedeRegistrarEntrada && !regreso.PuedeRegistrarSalida,"cerrada sin liquidar permite entrada sin cambiar estado");GaritaReglas.ValidarEntrada(entrada,regreso);
+        Check(entrada.Observacion=="","entrada sin observación ni foto es válida");
+        entrada.Observacion="Regresó\ncon carga";entrada.FotoNombre="regreso.png";entrada.FotoContenido=new byte[]{137,80,78,71,13,10,26,10,1};
+        GaritaReglas.ValidarEntrada(entrada,regreso);Check(entrada.Observacion=="Regresó con carga","observación de entrada normalizada y foto válida");
+        entrada.FotoNombre="regreso.exe";Rechaza(()=>GaritaReglas.ValidarEntrada(entrada,regreso),400,"entrada rechaza tipo de foto inválido");
+        entrada.FotoNombre="regreso.png";entrada.FotoContenido=null;entrada.Observacion=new string('x',251);
+        Rechaza(()=>GaritaReglas.ValidarEntrada(entrada,regreso),400,"entrada rechaza observación larga");entrada.Observacion=null;
         entrada.Version="vieja";Rechaza(()=>GaritaReglas.ValidarEntrada(entrada,regreso),409,"entrada rechaza versión antigua");entrada.Version=regreso.Version;
         regreso.EntradaUtc=new DateTime(2026,10,20,23,15,0,DateTimeKind.Utc);Check(regreso.PuedeRegistrarEntrada,"evento POS previo permite completar hora faltante en APK66");GaritaReglas.ValidarEntrada(entrada,regreso);regreso.EntradaUtc=null;
         regreso.HoraEntradaApk=new TimeSpan(16,40,0);Check(!regreso.PuedeRegistrarEntrada && GaritaReglas.Version(regreso)!=entrada.Version,"entrada en APK66 impide duplicado");Rechaza(()=>GaritaReglas.ValidarEntrada(entrada,regreso),409,"no repetir entrada");regreso.HoraEntradaApk=null;
@@ -74,7 +80,9 @@ internal static class GaritaTests
         {var m=typeof(GaritaController).GetMethods().Single(x=>x.Name==method);Check(m.IsDefined(typeof(HttpPostAttribute),true)&&m.IsDefined(typeof(ValidateAntiForgeryTokenAttribute),true),"POST y anti CSRF "+method);}
         Check(typeof(GaritaController).IsDefined(typeof(AuthorizeAttribute),true),"controlador autenticado");
         Check(typeof(GaritaController).GetMethod("FotoSalida").IsDefined(typeof(HttpGetAttribute),true),"foto protegida por controlador autenticado");
+        Check(typeof(GaritaController).GetMethod("FotoEntrada").IsDefined(typeof(HttpGetAttribute),true),"foto de entrada protegida por controlador autenticado");
         Check(typeof(PilotoController).GetMethod("PanelFotoSalida").IsDefined(typeof(HttpGetAttribute),true),"foto de salida consultable en panel administrativo");
+        Check(typeof(PilotoController).GetMethod("PanelFotoEntrada").IsDefined(typeof(HttpGetAttribute),true),"foto de entrada consultable en panel administrativo");
         Console.WriteLine("OK garita: "+checks+" comprobaciones");return 0;
     }
     public static int Sql()
@@ -85,7 +93,7 @@ internal static class GaritaTests
         Check(salidaSql.Contains("SET HR_SALIDA=CONVERT(time(0)") && salidaSql.Contains("STATUS=CASE WHEN STATUS=N'A' THEN N'E' ELSE STATUS END") && salidaSql.Contains("STATUS IN(N'A',N'E')") && salidaSql.Contains("HR_SALIDA IS NULL") && salidaSql.Contains("LIQUIDADO"),"salida cambia A a E y conserva E junto a la hora en APK66");
         var entradaSql=GaritaRutaDA.SqlActualizarHoraEntrada("[TEST_RUTAS]");
         Check(entradaSql.Contains("SET HR_ENTRADA=CONVERT(time(0)") && entradaSql.Contains("STATUS=N'C'") && entradaSql.Contains("LIQUIDADO") && !entradaSql.Contains("HR_SALIDA"),"entrada actualiza HR_ENTRADA sin tocar HR_SALIDA en APK66");
-        Check(GaritaRutaDA.SqlRegistrarEntrada.Contains("Tipo,Solicitud") && GaritaRutaDA.SqlRegistrarEntrada.Contains("N'I'"),"Garita audita entrada en POS");
+        Check(GaritaRutaDA.SqlRegistrarEntrada.Contains("Tipo,Solicitud") && GaritaRutaDA.SqlRegistrarEntrada.Contains("N'I'") && GaritaRutaDA.SqlRegistrarEntrada.Contains("Observacion") && GaritaRutaDA.SqlRegistrarEntrada.Contains("OUTPUT INSERTED.Id"),"Garita audita entrada y obtiene vínculo de foto en POS");
         var lista=GaritaRutaDA.SqlBuscarPorPlaca("[TEST_RUTAS]");
         Check(lista.Contains("r.PLACA=@placa AND r.STATUS=N'E'") && lista.Contains("GaritaCentro") && lista.Contains("FETCH NEXT 50 ROWS ONLY"),"consulta de placa paginada y limitada al centro");
         var abiertas=GaritaRutaDA.SqlBuscarPorPlaca("[TEST_RUTAS]",false,true);

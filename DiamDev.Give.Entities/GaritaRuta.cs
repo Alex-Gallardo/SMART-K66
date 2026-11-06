@@ -29,6 +29,7 @@ namespace DiamDev.Give.Entities
         public TimeSpan? HoraSalidaApk { get; set; }
         public TimeSpan? HoraEntradaApk { get; set; }
         public string AgenteEntrada { get; set; }
+        public string ObservacionEntrada { get; set; }
         public string GuardDecision { get; set; }
         public string Diferencia { get; set; }
         public string Agente { get; set; }
@@ -42,6 +43,7 @@ namespace DiamDev.Give.Entities
         public int TotalCerradas { get; set; }
         public bool BusquedaRealizada { get; set; }
         public bool TieneFotoSalida { get; set; }
+        public bool TieneFotoEntrada { get; set; }
         public List<GaritaRutaResumen> Resultados { get; set; }
         public List<GaritaRutaResumen> ResultadosAbiertas { get; set; }
         public List<GaritaRutaResumen> ResultadosCerradas { get; set; }
@@ -102,6 +104,9 @@ namespace DiamDev.Give.Entities
         public string RutaId { get; set; }
         public string PlacaBusqueda { get; set; }
         public string Version { get; set; }
+        public string Observacion { get; set; }
+        public string FotoNombre { get; set; }
+        public byte[] FotoContenido { get; set; }
         public Guid Solicitud { get; set; }
     }
 
@@ -157,6 +162,8 @@ namespace DiamDev.Give.Entities
             if(c==null || c.RutaId!=r.Id || c.Solicitud==Guid.Empty) throw new PilotoException(400,"Vuelve a abrir la ruta e intenta de nuevo.");
             if(!r.PuedeRegistrarEntrada) throw new PilotoException(409,"La ruta debe estar Cerrada, sin liquidar y sin hora de entrada. Consulta a Distribución.");
             if(c.Version!=r.Version) throw new PilotoException(409,"La ruta cambió. Revísala antes de registrar la entrada.");
+            if(c.FotoContenido!=null) PilotoReglas.ValidarImagen(c.FotoNombre,c.FotoContenido);
+            c.Observacion=Limpiar(c.Observacion,250);
         }
         public static string Limpiar(string valor,int max)
         {

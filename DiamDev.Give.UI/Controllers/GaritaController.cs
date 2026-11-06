@@ -31,11 +31,14 @@ namespace DiamDev.Give.UI.Controllers
             catch(Exception e) { ViewBag.Placa=placa;return Error(e); }
         }
         [HttpPost,ValidateAntiForgeryToken]
-        public ActionResult RegistrarEntrada(GaritaRegistroEntrada modelo)
+        public ActionResult RegistrarEntrada(GaritaRegistroEntrada modelo,HttpPostedFileBase foto)
         {
             try
             {
                 if(modelo==null || !ModelState.IsValid) throw new PilotoException(400,"Revisa la ruta antes de registrar la entrada.");
+                string nombreEntrada;
+                modelo.FotoContenido=LeerFoto(foto,out nombreEntrada);
+                modelo.FotoNombre=nombreEntrada;
                 new GaritaRutaDA().RegistrarEntrada(User.Identity.Name,modelo);
                 TempData["Garita.Mensaje"]="Hora de entrada registrada. La ruta continúa Cerrada.";
                 return RedirectToAction("Index",new{placa=modelo.PlacaBusqueda,id=modelo.RutaId});
@@ -48,19 +51,9 @@ namespace DiamDev.Give.UI.Controllers
             try
             {
                 if(modelo==null || !ModelState.IsValid) throw new PilotoException(400,"Revisa los datos antes de registrar la salida.");
-                if(foto!=null && (foto.ContentLength>0 || !string.IsNullOrWhiteSpace(foto.FileName)))
-                {
-                    if(foto.ContentLength<=0 || foto.ContentLength>PilotoReglas.MaxImagenBytes) throw new PilotoException(400,"La fotografía debe pesar hasta 10 MB.");
-                    modelo.FotoNombre=Path.GetFileName(foto.FileName??"");
-                    using(var memoria=new MemoryStream())
-                    {
-                        var bloque=new byte[81920];int leidos;
-                        while((leidos=foto.InputStream.Read(bloque,0,bloque.Length))>0)
-                        {if(memoria.Length+leidos>PilotoReglas.MaxImagenBytes) throw new PilotoException(400,"La fotografía supera 10 MB.");memoria.Write(bloque,0,leidos);}
-                        modelo.FotoContenido=memoria.ToArray();
-                    }
-                    PilotoReglas.ValidarImagen(modelo.FotoNombre,modelo.FotoContenido);
-                }
+                string nombreSalida;
+                modelo.FotoContenido=LeerFoto(foto,out nombreSalida);
+                modelo.FotoNombre=nombreSalida;
                 new GaritaRutaDA().RegistrarSalida(User.Identity.Name,modelo);
                 TempData["Garita.Mensaje"]="Hora de salida registrada. La ruta está En ruta.";
                 return RedirectToAction("Index",new{placa=modelo.PlacaBusqueda,id=modelo.RutaId});
@@ -72,6 +65,28 @@ namespace DiamDev.Give.UI.Controllers
         {
             try {var foto=new GaritaRutaDA().ObtenerFoto(User.Identity.Name,placa,id);Response.AddHeader("X-Content-Type-Options","nosniff");return File(foto.Contenido,foto.ContentType);}
             catch(Exception e) {ViewBag.Placa=placa;return Error(e);}
+        }
+        [HttpGet]
+        public ActionResult FotoEntrada(string placa,string id)
+        {
+            try {var foto=new GaritaRutaDA().ObtenerFotoEntrada(User.Identity.Name,placa,id);Response.AddHeader("X-Content-Type-Options","nosniff");return File(foto.Contenido,foto.ContentType);}
+            catch(Exception e) {ViewBag.Placa=placa;return Error(e);}
+        }
+        private static byte[] LeerFoto(HttpPostedFileBase foto,out string nombre)
+        {
+            nombre=null;
+            if(foto==null || (foto.ContentLength==0 && string.IsNullOrWhiteSpace(foto.FileName))) return null;
+            if(foto.ContentLength<=0 || foto.ContentLength>PilotoReglas.MaxImagenBytes) throw new PilotoException(400,"La fotografía debe pesar hasta 10 MB.");
+            nombre=Path.GetFileName(foto.FileName??"");
+            using(var memoria=new MemoryStream())
+            {
+                var bloque=new byte[81920];int leidos;
+                while((leidos=foto.InputStream.Read(bloque,0,bloque.Length))>0)
+                {if(memoria.Length+leidos>PilotoReglas.MaxImagenBytes) throw new PilotoException(400,"La fotografía supera 10 MB.");memoria.Write(bloque,0,leidos);}
+                var contenido=memoria.ToArray();
+                PilotoReglas.ValidarImagen(nombre,contenido);
+                return contenido;
+            }
         }
         [HttpPost,ValidateAntiForgeryToken]
         public ActionResult Diferencia(GaritaDiferencia modelo)

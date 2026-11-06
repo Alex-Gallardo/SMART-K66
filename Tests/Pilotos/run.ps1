@@ -299,6 +299,7 @@ Write-Host 'OK: detalle completo de clientes, facturas y datos de ruta.'
 $garitaLista=Get-Content -LiteralPath (Join-Path $out 'garita-lista.html') -Raw
 $garitaDiferencia=Get-Content -LiteralPath (Join-Path $out 'garita-diferencia.html') -Raw
 $garitaSalida=Get-Content -LiteralPath (Join-Path $out 'garita-salida.html') -Raw
+$garitaSalidaPm=Get-Content -LiteralPath (Join-Path $out 'garita-salida-pm.html') -Raw
 $garitaEnRuta=Get-Content -LiteralPath (Join-Path $out 'garita-en-ruta.html') -Raw
 $garitaAbierta=Get-Content -LiteralPath (Join-Path $out 'garita-abierta.html') -Raw
 $garitaVacia=Get-Content -LiteralPath (Join-Path $out 'garita-vacia.html') -Raw
@@ -317,12 +318,13 @@ if($garitaVacia -notmatch 'name="placa"' -or $garitaVacia -match 'class="route-o
     throw 'Garita debe mostrar solo la búsqueda y ofrecer captura nativa y foto guardada para el QR.'
 }
 if($garitaLista -notmatch 'PP26-ABIERTA' -or $garitaLista -notmatch 'PP26-GARITA' -or $garitaLista -notmatch 'PP26-OTRA' -or $garitaLista -notmatch 'OTRO PILOTO' -or $garitaLista -notmatch 'Siguiente' -or $garitaLista -match 'id="register-exit-form"') {throw 'La búsqueda debe listar por separado A, E y C con sus páginas.'}
-if($garitaSinResultados -notmatch 'No hay rutas En ruta' -or $garitaSinResultados -match 'class="route-option"') {throw 'La placa sin rutas debe mostrar un mensaje claro.'}
+if($garitaSinResultados -notmatch 'No hay rutas para esta placa' -or $garitaSinResultados -match 'class="route-option"') {throw 'La placa sin rutas debe mostrar un mensaje claro.'}
 if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 'id="register-exit-form"') {throw 'La diferencia debe bloquear el registro de salida.'}
 if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'name="foto"' -or $garitaEnRuta -notmatch 'multipart/form-data' -or $garitaEnRuta -match 'PilotoVehiculoVerificados|name="Precinto"' -or $garitaEnRuta -notmatch 'Registrar hora de salida') {throw 'La ruta E debe mostrar un único check y la foto opcional.'}
 $garitaAbiertaTexto=[System.Net.WebUtility]::HtmlDecode($garitaAbierta)
 if($garitaAbiertaTexto -notmatch 'Abierta · pendiente de salida' -or $garitaAbierta -notmatch 'id="register-exit-form"' -or $garitaAbiertaTexto -notmatch 'pasará de Abierta a En ruta') {throw 'La ruta A debe permitir la salida y explicar el cambio a E.'}
-if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida:' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"') {throw 'La salida registrada debe mostrar hora, agente y foto sin permitir otra salida.'}
+if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida:</strong> 06:19:48 AM' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"' -or
+   $garitaSalidaPm -notmatch 'Hora de salida:</strong> 06:19:48 PM' -or $garitaSalidaPm -match 'Hora de salida:</strong> 18:19:48') {throw 'La salida registrada debe mostrar la hora en formato de 12 horas con AM/PM, agente y foto sin permitir otra salida.'}
 if($garitaVacia -notmatch 'id="qr-open"' -or $garitaVacia -notmatch 'id="qr-dialog"' -or
    $garitaLista -notmatch 'Rutas cerradas sin hora de entrada|Cerradas sin entrada' -or
    $garitaLista -notmatch 'Rutas de hoy y los 3 días anteriores' -or

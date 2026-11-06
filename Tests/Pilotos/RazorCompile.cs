@@ -101,7 +101,8 @@ internal static class RazorCompile
                             garita.EsRutaEmpresa=true;garita.ConductorReal=null;previews["garita-empresa-pendiente"]=RazorPreview.Render(type,garita);
                             garita.ConductorReal="JUAN PEREZ";garita.DocumentoConductor="L-1234";garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);previews["garita-empresa-asignada"]=RazorPreview.Render(type,garita);
                             garita.EsRutaEmpresa=false;garita.ConductorReal=null;garita.DocumentoConductor=null;
-                            garita.SalidaUtc=new DateTime(2026,10,20,15,30,0,DateTimeKind.Utc);garita.Agente="GUARDIA";garita.TieneFotoSalida=true;previews["garita-salida"]=RazorPreview.Render(type,garita);
+                            garita.SalidaUtc=new DateTime(2026,10,20,15,30,0,DateTimeKind.Utc);garita.Agente="GUARDIA";garita.TieneFotoSalida=true;garita.HoraSalidaApk=new TimeSpan(6,19,48);previews["garita-salida"]=RazorPreview.Render(type,garita);
+                            garita.HoraSalidaApk=new TimeSpan(18,19,48);previews["garita-salida-pm"]=RazorPreview.Render(type,garita);
                             garita.Estado="C";garita.HoraSalidaApk=new TimeSpan(9,30,0);garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);previews["garita-cerrada"]=RazorPreview.Render(type,garita);
                             garita.HoraEntradaApk=new TimeSpan(17,15,0);garita.EntradaUtc=new DateTime(2026,10,20,23,15,0,DateTimeKind.Utc);garita.AgenteEntrada="GUARDIA";garita.ObservacionEntrada="Regresó con carga";garita.TieneFotoEntrada=true;garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);previews["garita-entrada"]=RazorPreview.Render(type,garita);
                         }

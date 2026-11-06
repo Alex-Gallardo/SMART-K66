@@ -136,7 +136,7 @@
     </section>
     if (Model.HoraSalidaApk.HasValue || Model.SalidaUtc.HasValue){
         <div class="notice success" role="status">
-        <strong>Hora de salida:</strong> @(Model.HoraSalidaApk.HasValue?Model.HoraSalidaApk.Value.ToString("c"):"Sin hora") <br/>
+        <strong>Hora de salida:</strong> @(Model.HoraSalidaApk.HasValue?DateTime.Today.Add(Model.HoraSalidaApk.Value).ToString("hh:mm:ss tt",System.Globalization.CultureInfo.InvariantCulture):"Sin hora") <br/>
         @if (Model.SalidaUtc.HasValue){
             <strong>Fecha:</strong> @Model.SalidaLocal.Value.ToString("dd/MM/yyyy") <br/>
             <strong>Autorización:</strong> @Model.Agente

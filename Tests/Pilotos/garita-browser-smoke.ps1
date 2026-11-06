@@ -26,7 +26,7 @@ if('$name'==='abierta' || '$name'==='en-ruta' || '$name'==='empresa-asignada' ||
 else check(!form,'registro de salida disponible en estado no autorizado');
 if('$name'==='vacia') check(!document.querySelector('.route-header') && !document.querySelector('.route-option'),'la pantalla inicial debe mostrar solo la búsqueda');
 if('$name'==='lista') check(document.querySelectorAll('.route-option').length===4 && document.querySelectorAll('.pager').length===3 && document.querySelector('.open-results') && document.querySelector('.closed-results'),'la placa debe mostrar A, E, C y paginación independiente');
-if('$name'==='sin-resultados') check(!document.querySelector('.route-option') && document.body.textContent.indexOf('No hay rutas En ruta')>=0,'debe mostrar placa sin rutas');
+if('$name'==='sin-resultados') check(!document.querySelector('.route-option') && document.body.textContent.indexOf('No hay rutas para esta placa')>=0,'debe mostrar placa sin rutas');
 if('$name'==='en-ruta') check(document.querySelector('.state-ready') && document.body.textContent.indexOf('Registrar hora de salida')>=0,'falta acción de salida en ruta E');
 if('$name'==='abierta') check(document.querySelector('.state-ready') && document.body.textContent.indexOf('pasará de Abierta a En ruta')>=0,'falta acción de salida en ruta A');
 if('$name'==='empresa-pendiente') check(form && document.body.textContent.indexOf('PILOTO DEMO')>=0,'garita debe usar el piloto de APK66');

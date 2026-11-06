@@ -74,8 +74,6 @@
     <Compile Include="ReciboCajaAdminBLL.cs" />
     <Compile Include="ReciboCajaAnalyticsBLL.cs" />
     <Compile Include="ReciboCajaBLL.cs" />
-    <Compile Include="ReciboCajaDeptoResolver.cs" />
-    <Compile Include="ReciboCajaOperadores.cs" />
     <Compile Include="ReciboCajaSyncBL.cs" />
     <Compile Include="ReporteHanaBLL.cs" />
     <Compile Include="UsuarioEmpresaBL.cs" />

@@ -28,6 +28,18 @@ namespace DiamDev.Give.Entities
         public bool PermisoConfirmar { get; set; }
         public string Centro { get; set; }
         public string ObservacionGeneral { get; set; }
+        public string TipoRuta { get; set; }
+        public string Ayudante { get; set; }
+        public string Ayudante2 { get; set; }
+        public string Despacho { get; set; }
+        public string Revisor { get; set; }
+        public bool Custodio { get; set; }
+        public string TipoCustodio { get; set; }
+        public string Observaciones { get; set; }
+        public TimeSpan? HoraEncendido { get; set; }
+        public TimeSpan? HoraSalida { get; set; }
+        public TimeSpan? HoraEntrada { get; set; }
+        public string PlantaDestino { get; set; }
         public string Estado { get; set; }
         public string Version { get; set; }
         public Guid Solicitud { get; set; }

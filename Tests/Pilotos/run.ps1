@@ -12,6 +12,16 @@ if(Get-Command node -ErrorAction SilentlyContinue) {
 $project=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/DiamDev.Give.UI.csproj') -Raw
 $garitaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/GaritaRutaDA.cs') -Raw
 $empresaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoAdministracionRutaDA.cs') -Raw
+$documentoAdminDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoAdministracionDocumentoDA.cs') -Raw
+$pilotoController=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/Controllers/PilotoController.cs') -Raw
+$editarRutaView=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/Views/Piloto/EditarRuta.cshtml') -Raw
+if($documentoAdminDA -match 'INSERT\s+"\+apk\+@?"\.dbo\.RT_RUTAS_DET' -or
+   $documentoAdminDA -match 'UPDATE\s+"\+apk\+@?"\.dbo\.RT_DOC_VARIOS_ENC' -or
+   $documentoAdminDA -match 'DELETE\s+FROM\s+"\+apk\+@?"\.dbo\.RT_RUTAS\s' -or
+   $pilotoController -match 'ActionResult NuevoDocumento' -or
+   $editarRutaView -match 'Agregar documento') {
+    throw 'La administración solo edita o retira detalles existentes; no crea facturas, modifica tablas fuente ni elimina rutas.'
+}
 $rutasDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoRutaDA.cs') -Raw
 if($empresaDA -notmatch 'DELETE dbo\.PilotoConductorRuta WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id' -or
    $empresaDA -notmatch 'PilotoDocumentoImagen WHERE Ruta_Id=@ruta' -or
@@ -43,7 +53,7 @@ if($usuarioBL -notmatch 'UsuarioRolPlan\.Crear\(' -or $usuarioBL -match 'db\.Set
    $rolBL -match 'db\.Set<RolPermiso>\(\)\.RemoveRange\(Permisos\)' -or $rolBL -notmatch 'solicitados\.Where\(x => !existentes\.Contains\(x\)\)') {
     throw 'La edición debe conservar roles y permisos existentes y agregar solo los faltantes.'
 }
-$adminViews=@('Administracion','Configurar','EditarRuta','AdministracionError','Panel','PanelDetalle','PanelError')
+$adminViews=@('Administracion','Configurar','EditarRuta','EditarDocumento','AdministracionError','Panel','PanelDetalle','PanelError')
 foreach($name in $adminViews) {
     $view=Get-Content -LiteralPath (Join-Path $repo ('DiamDev.Give.UI/Views/Piloto/'+$name+'.cshtml')) -Raw
     if($view -notmatch 'Layout\s*=\s*"~/Views/Shared/_Layout\.cshtml"' -or $view -notmatch 'ViewBag\.PilotoBackoffice\s*=\s*true') {
@@ -73,7 +83,7 @@ if(!(Test-Path -LiteralPath $WebPagesDll)) { throw 'Restaurar Microsoft.AspNet.W
 $out=Join-Path $PSScriptRoot 'bin'
 New-Item -ItemType Directory -Force $out | Out-Null
 $compiler=Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
-$sources=@('DiamDev.Give.Entities/PilotoRuta.cs','DiamDev.Give.Entities/PilotoReglas.cs','DiamDev.Give.Entities/PilotoDesafio.cs','DiamDev.Give.Entities/PilotoAdministracion.cs','DiamDev.Give.DAL/PilotoRutaDA.cs','DiamDev.Give.DAL/PilotoAdministracionDA.cs','DiamDev.Give.DAL/PilotoAdministracionRutaDA.cs','DiamDev.Give.BLL/PilotoRutaBL.cs','DiamDev.Give.BLL/PilotoAdministracionBL.cs','DiamDev.Give.UI/Controllers/PilotoController.cs','Tests/Pilotos/PilotoTests.cs') | ForEach-Object { Join-Path $repo $_ }
+$sources=@('DiamDev.Give.Entities/PilotoRuta.cs','DiamDev.Give.Entities/PilotoReglas.cs','DiamDev.Give.Entities/PilotoDesafio.cs','DiamDev.Give.Entities/PilotoAdministracion.cs','DiamDev.Give.DAL/PilotoRutaDA.cs','DiamDev.Give.DAL/PilotoAdministracionDA.cs','DiamDev.Give.DAL/PilotoAdministracionRutaDA.cs','DiamDev.Give.DAL/PilotoAdministracionDocumentoDA.cs','DiamDev.Give.BLL/PilotoRutaBL.cs','DiamDev.Give.BLL/PilotoAdministracionBL.cs','DiamDev.Give.UI/Controllers/PilotoController.cs','Tests/Pilotos/PilotoTests.cs') | ForEach-Object { Join-Path $repo $_ }
 $sources+=@('DiamDev.Give.Entities/PilotoPanel.cs','DiamDev.Give.DAL/PilotoPanelDA.cs','DiamDev.Give.BLL/PilotoPanelBL.cs','Tests/Pilotos/PanelTests.cs') | ForEach-Object { Join-Path $repo $_ }
 $sources+=@('DiamDev.Give.Entities/PilotoLiquidacion.cs','DiamDev.Give.DAL/PilotoLiquidacionDA.cs','DiamDev.Give.BLL/PilotoLiquidacionBL.cs','DiamDev.Give.UI/Controllers/LiquidacionController.cs','DiamDev.Give.UI/Controllers/PilotoLiquidacionExcel.cs','Tests/Pilotos/LiquidacionTests.cs') | ForEach-Object { Join-Path $repo $_ }
 $sources+=@('DiamDev.Give.Entities/GaritaRuta.cs','DiamDev.Give.DAL/GaritaRutaDA.cs','DiamDev.Give.UI/Controllers/GaritaController.cs','Tests/Pilotos/GaritaTests.cs') | ForEach-Object { Join-Path $repo $_ }
@@ -323,8 +333,8 @@ if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 
 if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'name="foto"' -or $garitaEnRuta -notmatch 'multipart/form-data' -or $garitaEnRuta -match 'PilotoVehiculoVerificados|name="Precinto"' -or $garitaEnRuta -notmatch 'Registrar hora de salida') {throw 'La ruta E debe mostrar un único check y la foto opcional.'}
 $garitaAbiertaTexto=[System.Net.WebUtility]::HtmlDecode($garitaAbierta)
 if($garitaAbiertaTexto -notmatch 'Abierta · pendiente de salida' -or $garitaAbierta -notmatch 'id="register-exit-form"' -or $garitaAbiertaTexto -notmatch 'pasará de Abierta a En ruta') {throw 'La ruta A debe permitir la salida y explicar el cambio a E.'}
-if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida:</strong> 06:19:48 AM' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"' -or
-   $garitaSalidaPm -notmatch 'Hora de salida:</strong> 06:19:48 PM' -or $garitaSalidaPm -match 'Hora de salida:</strong> 18:19:48') {throw 'La salida registrada debe mostrar la hora en formato de 12 horas con AM/PM, agente y foto sin permitir otra salida.'}
+if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida:</strong> 06:19 AM' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"' -or
+   $garitaSalidaPm -notmatch 'Hora de salida:</strong> 06:19 PM' -or $garitaSalidaPm -match 'Hora de salida:</strong> 18:19') {throw 'La salida registrada debe mostrar la hora en formato de 12 horas con AM/PM, agente y foto sin permitir otra salida.'}
 if($garitaVacia -notmatch 'id="qr-open"' -or $garitaVacia -notmatch 'id="qr-dialog"' -or
    $garitaLista -notmatch 'Rutas cerradas sin hora de entrada|Cerradas sin entrada' -or
    $garitaLista -notmatch 'Rutas de hoy y los 3 días anteriores' -or

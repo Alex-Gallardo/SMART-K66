@@ -14,7 +14,8 @@ $fixture=Join-Path $PSScriptRoot 'bin/editar-ruta.html'
 if(!(Test-Path -LiteralPath $fixture)) { throw 'Ejecuta Tests/Pilotos/run.ps1 para generar la vista previa.' }
 if(!(Test-Path -LiteralPath $ChromePath)) { throw 'Indica la ruta de Chrome con -ChromePath.' }
 $scriptUri=([Uri](Join-Path $repo 'DiamDev.Give.UI/Scripts/pilotos-admin-ruta.js')).AbsoluteUri
-$html=Get-Content -LiteralPath $fixture -Raw
+$fixtureHtml=Get-Content -LiteralPath $fixture -Raw
+$html=$fixtureHtml
 $marker='<script src="/Scripts/pilotos-admin-ruta.js"></script>'
 if(!$html.Contains($marker)) { throw 'No se encontró el script de edición de rutas.' }
 $probe=@'
@@ -48,6 +49,53 @@ try {
             $failure=[regex]::Match($output,'data-route-admin-smoke="([^"]+)"')
             throw ('Edición administrativa '+$size+': '+$(if($failure.Success){$failure.Groups[1].Value}else{'sin resultado'}))
         }
+    }
+    $routeProbe=@'
+<script src="__SCRIPT_URI__"></script>
+<script>
+(function(){try{
+  var button=document.querySelector('.rwe-delete-trigger'),dialog=document.getElementById('rwe-delete-dialog'),form=document.getElementById('rwe-delete-form');
+  if(!button||!dialog||!form) throw new Error('Faltan controles de documentos');
+  button.click();
+  if(!dialog.open||form.elements.rowId.value!=='101'||!form.elements.version.value||document.getElementById('rwe-delete-number').textContent!=='10001') throw new Error('No se preparó la eliminación del detalle exacto');
+  document.getElementById('rwe-delete-cancel').click();
+  if(dialog.open) throw new Error('Cancelar no cerró el diálogo');
+  document.documentElement.setAttribute('data-rwe-document-smoke','PASS');
+}catch(e){document.documentElement.setAttribute('data-rwe-document-smoke','FAIL: '+e.message);}})();
+</script>
+'@
+    Set-Content -LiteralPath $smoke -Value $fixtureHtml.Replace($marker,$routeProbe.Replace('__SCRIPT_URI__',$scriptUri)) -Encoding UTF8
+    foreach($size in @('425,900','1280,900')) {
+        $output=Invoke-SmokeChrome $size $smoke
+        if($output -notmatch 'data-rwe-document-smoke="PASS"') { $failure=[regex]::Match($output,'data-rwe-document-smoke="([^"]+)"'); throw ('El diálogo de eliminación de documentos no funcionó '+$size+': '+$(if($failure.Success){$failure.Groups[1].Value}else{'sin resultado'})) }
+    }
+    $documentFixture=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'bin/editar-documento.html') -Raw
+    if($documentFixture -notmatch 'id="document-admin-form"') { throw 'No se encontró el formulario del documento.' }
+    $documentProbe=@'
+<script src="__SCRIPT_URI__"></script>
+<script>
+(function(){try{
+  var form=document.getElementById('document-admin-form'),dialog=document.getElementById('document-admin-dialog');
+  if(!form||!dialog) throw new Error('Faltan formulario o diálogo');
+  form.elements.MotivoCambio.value='Corrección de prueba';
+  form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+  if(!dialog.open) throw new Error('No abrió la confirmación');
+  document.getElementById('document-admin-cancel').click();
+  if(dialog.open) throw new Error('Cancelar no funcionó');
+  form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));
+  var sent=0;form.requestSubmit=function(){sent++;};
+  document.getElementById('document-admin-confirm').click();
+  if(sent!==1||dialog.open) throw new Error('No confirmó una sola vez');
+  document.documentElement.setAttribute('data-rwe-edit-smoke','PASS');
+}catch(e){document.documentElement.setAttribute('data-rwe-edit-smoke','FAIL: '+e.message);}})();
+</script>
+'@
+    $injected=$documentProbe.Replace('__SCRIPT_URI__',$scriptUri)
+    $documentHtml=if($documentFixture.Contains($marker)){$documentFixture.Replace($marker,$injected)}else{$documentFixture.Replace('</body>',$injected+'</body>')}
+    Set-Content -LiteralPath $smoke -Value $documentHtml -Encoding UTF8
+    foreach($size in @('425,900','1280,900')) {
+        $output=Invoke-SmokeChrome $size $smoke
+        if($output -notmatch 'data-rwe-edit-smoke="PASS"') { throw 'El diálogo de edición documental no funcionó: '+$size }
     }
     $config=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'bin/configurar.html') -Raw
     $configMarker='<script src="/Scripts/pilotos.js"></script>'

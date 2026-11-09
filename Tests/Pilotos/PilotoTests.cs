@@ -96,7 +96,7 @@ internal static class PilotoTests
                 var da=(PilotoAdministracionDA)System.Runtime.Serialization.FormatterServices.GetUninitializedObject(tipo);
                 tipo.GetField("apk",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(da,"[TEST_RUTAS]");
                 var editarSql=(string)tipo.GetProperty("SqlActualizarRuta",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(da,null);
-                Check(editarSql.Contains("STATUS IN(N'A',N'E')") && editarSql.Contains("ISNULL(LIQUIDADO,0)=0"),"Edición protegida por estado y liquidación");
+                Check(editarSql.Contains("WHERE ID_RUTA=@id") && editarSql.Contains("AYUDANTE2=@ayudante2") && editarSql.Contains("HR_ENTRADA=@entrada") && editarSql.Contains("FECHA_MOD=GETDATE()"),"Edición completa de cabecera con auditoría técnica");
                 Console.WriteLine(editarSql); return 0;
             }
             if(args.Length==1 && args[0]=="sql-rutas") {

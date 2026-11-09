@@ -206,9 +206,9 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
-        public ActionResult EditarRuta(string id)
+        public ActionResult EditarRuta(string id,int paginaDocumento=1,string buscarDocumento=null)
         {
-            try { return View(new PilotoAdministracionBL().ObtenerRuta(User.Identity.Name,id)); }
+            try { return View(new PilotoAdministracionBL().ObtenerRuta(User.Identity.Name,id,paginaDocumento,buscarDocumento)); }
             catch(Exception e) { return ErrorPiloto(e); }
         }
 
@@ -240,6 +240,56 @@ namespace DiamDev.Give.UI.Controllers
                 }
                 return ErrorPiloto(e);
             }
+        }
+
+        [HttpGet]
+        public ActionResult EditarDocumento(string id,int rowId)
+        {
+            try { return View(new PilotoAdministracionBL().ObtenerDocumento(User.Identity.Name,id,rowId)); }
+            catch(Exception e) { return ErrorPiloto(e); }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult GuardarDocumento(PilotoAdminDocumentoGuardar modelo)
+        {
+            try
+            {
+                if(!ModelState.IsValid) throw new PilotoException(400,"Revisa los datos del documento.");
+                var rowId=new PilotoAdministracionBL().GuardarDocumento(User.Identity.Name,modelo);
+                TempData["Piloto.AdminMensaje"]="Documento "+rowId+" guardado y registrado en el historial.";
+                return RedirectToAction("EditarRuta",new{id=modelo.RutaId});
+            }
+            catch(Exception e)
+            {
+                var esperado=e as PilotoException;
+                if(esperado!=null && (esperado.StatusCode==400 || esperado.StatusCode==409) && modelo!=null && !string.IsNullOrWhiteSpace(modelo.RutaId))
+                {
+                    try
+                    {
+                        var vista=new PilotoAdministracionBL().ObtenerDocumento(User.Identity.Name,modelo.RutaId,modelo.RowId);
+                        vista.Formulario=modelo;
+                        ModelState.Clear();ModelState.AddModelError("",esperado.Message);
+                        Response.StatusCode=esperado.StatusCode;Response.TrySkipIisCustomErrors=true;
+                        return View("EditarDocumento",vista);
+                    }
+                    catch { /* El error seguro común cubre rutas que ya no se pueden consultar. */ }
+                }
+                return ErrorPiloto(e);
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public ActionResult EliminarDocumento(string rutaId,int rowId,string version,string motivo)
+        {
+            try
+            {
+                new PilotoAdministracionBL().EliminarDocumento(User.Identity.Name,rutaId,rowId,version,motivo);
+                TempData["Piloto.AdminMensaje"]="El detalle se retiró de la ruta; el documento original se conservó.";
+                return RedirectToAction("EditarRuta",new{id=rutaId});
+            }
+            catch(Exception e) { return ErrorPiloto(e); }
         }
 
         [HttpPost]

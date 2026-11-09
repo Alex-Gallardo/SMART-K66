@@ -1642,6 +1642,7 @@
     <Content Include="Views\Piloto\_PanelContenido.cshtml" />
     <Content Include="Views\Piloto\PanelDetalle.cshtml" />
     <Content Include="Views\Piloto\EditarRuta.cshtml" />
+    <Content Include="Views\Piloto\EditarDocumento.cshtml" />
     <Content Include="Scripts\pilotos-admin-ruta.js" />
     <Content Include="Views\Piloto\PanelError.cshtml" />
     <Content Include="Scripts\pilotos.js" />

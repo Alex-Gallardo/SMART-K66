@@ -1599,5 +1599,6 @@
     <Compile Include="PilotoLiquidacionDA.cs" />
     <Compile Include="PilotoAdministracionDA.cs" />
     <Compile Include="PilotoAdministracionRutaDA.cs" />
+    <Compile Include="PilotoAdministracionDocumentoDA.cs" />
   </ItemGroup>
 </Project>

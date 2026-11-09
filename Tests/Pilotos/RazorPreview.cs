@@ -224,19 +224,25 @@ internal static class RazorPreview
     }
     public static PilotoAdminRutaEdicion AdminRuta()
     {
-        var ruta=new PilotoRuta{Id="DEMO-2026-001",Fecha=new System.DateTime(2026,9,22),Estado="E",Piloto="EMPLEADO DEMO",Centro="CENTRO-1",Placa="C-001",ObservacionGeneral="Entrega prioritaria"};
-        var modelo=new PilotoAdminRutaEdicion{Ruta=ruta,Documentos=3,Formulario=new PilotoAdminRutaGuardar{RutaId=ruta.Id,Version=PilotoAdminRutaReglas.Version(ruta,false,3),Fecha=ruta.Fecha,Estado=ruta.Estado,Piloto=ruta.Piloto,Centro=ruta.Centro,Placa=ruta.Placa,ObservacionGeneral=ruta.ObservacionGeneral}};
+        var ruta=new PilotoRuta{Id="DEMO-2026-001",Fecha=new System.DateTime(2026,9,22),Estado="E",Piloto="EMPLEADO DEMO",Centro="CENTRO-1",Placa="C-001",ObservacionGeneral="Entrega prioritaria",Ayudante="SIN AYUDANTE",Despacho="DESPACHO",Revisor="REVISOR"};
+        var modelo=new PilotoAdminRutaEdicion{Ruta=ruta,Documentos=3,Formulario=new PilotoAdminRutaGuardar{RutaId=ruta.Id,Version=PilotoAdminRutaReglas.Version(ruta,false,3),Fecha=ruta.Fecha,Estado=ruta.Estado,Piloto=ruta.Piloto,Centro=ruta.Centro,Placa=ruta.Placa,ObservacionGeneral=ruta.ObservacionGeneral,Ayudante=ruta.Ayudante,Despacho=ruta.Despacho,Revisor=ruta.Revisor}};
         modelo.Pilotos.Add(new PilotoAdminEmpleado{RowId=101,Nombre=ruta.Piloto,Activo=true,Seleccionado=true});
         modelo.Pilotos.Add(new PilotoAdminEmpleado{RowId=102,Nombre="OTRO PILOTO",Activo=true});
         modelo.Centros.Add(new PilotoAdminOpcion{Codigo=ruta.Centro,Nombre=ruta.Centro,Activo=true,Seleccionado=true});
         modelo.Centros.Add(new PilotoAdminOpcion{Codigo="CENTRO-2",Nombre="CENTRO-2",Activo=true});
         modelo.Vehiculos.Add(new PilotoAdminOpcion{Codigo=ruta.Placa,Nombre="Camión demo",Activo=true,Seleccionado=true});
         modelo.Vehiculos.Add(new PilotoAdminOpcion{Codigo="C-002",Nombre="Panel demo",Activo=true});
+        modelo.Detalles.Add(new PilotoAdminDocumentoGuardar{RutaId=ruta.Id,RowId=101,Tipo="FACTURA",Empresa="GRACO",Documento="10001",Cliente="CLIENTE DEMO",Agente="AGENTE",Bultos=1,Entrega="ENTREGADO",Visito=true});
         return modelo;
     }
     public static PilotoAdminRutaEdicion AdminRutaEmpresa()
     {
         var modelo=AdminRuta();modelo.EsRutaEmpresa=true;modelo.EmpresaUsuarioId=22;modelo.ConductorReal="JUAN PEREZ";modelo.DocumentoConductor="L-1234";modelo.VersionConductor=Guid.NewGuid().ToString();
         return modelo;
+    }
+    public static PilotoAdminDocumentoEdicion AdminDocumento()
+    {
+        var ruta=AdminRuta();var d=ruta.Detalles[0];d.Version=PilotoAdminDocumentoReglas.Version(d,ruta.Formulario.Version);
+        return new PilotoAdminDocumentoEdicion{Formulario=d,EstadoRuta="E"};
     }
 }

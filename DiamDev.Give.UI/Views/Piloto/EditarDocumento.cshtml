@@ -1,0 +1,49 @@
+@model DiamDev.Give.Entities.PilotoAdminDocumentoEdicion
+@using System.Globalization
+@{
+    Layout="~/Views/Shared/_Layout.cshtml";
+    ViewBag.Title="Editar documento · "+Model.Formulario.RutaId;
+    ViewBag.PilotoBackoffice=true;
+    var f=Model.Formulario;
+}
+<div class="pilot-admin-surface route-workspace"><div class="pilot-main">
+    <a class="back-link" href="@Url.Action("EditarRuta","Piloto",new{id=f.RutaId})"><svg class="icon" aria-hidden="true"><use href="#i-back" /></svg>Volver a la ruta</a>
+    <header class="rwe-hero"><span class="rwe-hero-symbol" aria-hidden="true">📄</span><div><p class="rwe-kicker">@f.RutaId · DOCUMENTOS</p><h1>Editar @(f.Documento??"documento")</h1><p>ROWID @f.RowId · Revisa los datos y guarda con un motivo.</p></div></header>
+    @Html.ValidationSummary(false,"Revisa el documento.",new{role="alert",@class="rwe-error"})
+    @using(Html.BeginForm("GuardarDocumento","Piloto",FormMethod.Post,new{id="document-admin-form",@class="rwe-form"})) {
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="RutaId" value="@f.RutaId" /><input type="hidden" name="RowId" value="@f.RowId" /><input type="hidden" name="Version" value="@f.Version" />
+        <section class="rwe-section"><div class="rwe-section-head"><span aria-hidden="true">🧾</span><div><h2>Identificación y cliente</h2><p>Confirma que coincida con el documento original.</p></div></div><div class="rwe-fields">
+            <div><label for="Tipo">Tipo</label><input id="Tipo" name="Tipo" maxlength="15" required value="@f.Tipo" readonly /></div>
+            <div><label for="Empresa">Empresa</label><input id="Empresa" name="Empresa" maxlength="15" required value="@f.Empresa" readonly /></div>
+            <div><label for="Documento">Número de documento</label><input id="Documento" name="Documento" maxlength="15" value="@f.Documento" readonly /></div>
+            <div><label for="FechaDocumento">Fecha del documento</label><input id="FechaDocumento" name="FechaDocumento" type="datetime-local" step="1" value="@(f.FechaDocumento.HasValue?f.FechaDocumento.Value.ToString("yyyy-MM-ddTHH:mm:ss"):"")" /></div>
+            <div><label for="FelSerie">Serie FEL</label><input id="FelSerie" name="FelSerie" maxlength="150" value="@f.FelSerie" /></div>
+            <div><label for="FelNumero">Número FEL</label><input id="FelNumero" name="FelNumero" maxlength="150" value="@f.FelNumero" /></div>
+            <div><label for="Monto">Monto</label><input id="Monto" name="Monto" type="number" min="0" step="any" value="@(f.Monto.HasValue?f.Monto.Value.ToString(CultureInfo.InvariantCulture):"")" /></div>
+            <div><label for="Cliente">Cliente</label><input id="Cliente" name="Cliente" maxlength="350" value="@f.Cliente" /></div>
+            <div><label for="Agente">Agente</label><input id="Agente" name="Agente" maxlength="50" required value="@f.Agente" /></div>
+            <div><label for="NombreDespacho">Nombre de despacho</label><input id="NombreDespacho" name="NombreDespacho" maxlength="250" value="@f.NombreDespacho" /></div>
+            <div class="rwe-wide"><label for="Direccion">Dirección de entrega</label><input id="Direccion" name="Direccion" maxlength="350" value="@f.Direccion" /></div>
+            <div><label for="Bultos">Bultos</label><input id="Bultos" name="Bultos" type="number" min="0" step="any" required value="@f.Bultos.ToString(CultureInfo.InvariantCulture)" /></div>
+            <div><label for="Preparo">Preparó</label><input id="Preparo" name="Preparo" maxlength="150" value="@f.Preparo" /></div>
+            <div><label for="Multientrega">Multientrega</label><select id="Multientrega" name="Multientrega"><option value="">Sin especificar</option><option value="true" selected="@(f.Multientrega==true?"selected":null)">Sí</option><option value="false" selected="@(f.Multientrega==false?"selected":null)">No</option></select></div>
+        </div></section>
+        <section class="rwe-section"><div class="rwe-section-head"><span aria-hidden="true">🚚</span><div><h2>Resultado de entrega</h2><p>Si no se entregó, indica motivo y observación.</p></div></div><div class="rwe-fields">
+            <div><label for="Visito">¿Visitó al cliente?</label><select id="Visito" name="Visito"><option value="">Pendiente</option><option value="true" selected="@(f.Visito==true?"selected":null)">Sí</option><option value="false" selected="@(f.Visito==false?"selected":null)">No</option></select></div>
+            <div><label for="Entrega">Resultado</label><select id="Entrega" name="Entrega"><option value="" selected="@(string.IsNullOrWhiteSpace(f.Entrega)?"selected":null)">Pendiente</option><option value="ENTREGADO" selected="@(f.Entrega=="ENTREGADO"?"selected":null)">Entregado</option><option value="NO ENTREGADO" selected="@(f.Entrega=="NO ENTREGADO"?"selected":null)">No entregado</option><option value="INCIDENCIA" selected="@(f.Entrega=="INCIDENCIA"?"selected":null)">Incidencia</option></select></div>
+            <div><label for="MotivoNoEntrega">Motivo</label><select id="MotivoNoEntrega" name="MotivoNoEntrega"><option value="">Sin motivo</option>@foreach(var motivo in DiamDev.Give.Entities.PilotoReglas.MotivosNoEntrega){<option value="@motivo" selected="@(f.MotivoNoEntrega==motivo?"selected":null)">@motivo</option>}</select></div>
+            <div><label for="HoraEntrada">Hora de entrada al cliente</label><input id="HoraEntrada" name="HoraEntrada" type="time" step="1" value="@(f.HoraEntrada.HasValue?f.HoraEntrada.Value.ToString(@"hh\:mm\:ss"):"")" /></div>
+            <div><label for="HoraSalida">Hora de salida del cliente</label><input id="HoraSalida" name="HoraSalida" type="time" step="1" value="@(f.HoraSalida.HasValue?f.HoraSalida.Value.ToString(@"hh\:mm\:ss"):"")" /></div>
+            <div class="rwe-wide"><label for="Observacion">Observación de entrega</label><textarea id="Observacion" name="Observacion" rows="3">@f.Observacion</textarea></div>
+        </div></section>
+        <section class="rwe-section"><div class="rwe-section-head"><span aria-hidden="true">✅</span><div><h2>Liquidación y cambio</h2><p>El usuario y la fecha de liquidación se conservan como registro técnico.</p></div></div><div class="rwe-fields">
+            <div><span class="rwe-read-label">Liquidado por</span><strong>@(f.UsuarioLiquida??"Sin liquidar")</strong></div>
+            <div><span class="rwe-read-label">Fecha de liquidación</span><strong>@(f.FechaLiquidacion.HasValue?f.FechaLiquidacion.Value.ToString("dd/MM/yyyy"):"Sin registrar")</strong></div>
+            <div class="rwe-wide"><label for="ObservacionLiquidacion">Observación de liquidación</label><textarea id="ObservacionLiquidacion" name="ObservacionLiquidacion" rows="3">@f.ObservacionLiquidacion</textarea></div>
+            <div class="rwe-wide"><label for="MotivoCambio">Motivo de este cambio</label><textarea id="MotivoCambio" name="MotivoCambio" maxlength="250" minlength="5" required rows="2" placeholder="Explica por qué se modifica este documento">@f.MotivoCambio</textarea></div>
+        </div><div class="rwe-actions"><a class="rwe-btn rwe-btn-secondary" href="@Url.Action("EditarRuta","Piloto",new{id=f.RutaId})">Cancelar</a><button class="rwe-btn rwe-btn-primary" type="submit" id="document-admin-submit"><svg class="icon" aria-hidden="true"><use href="#i-save" /></svg>Revisar y guardar</button></div></section>
+    }
+    <dialog class="route-admin-dialog" id="document-admin-dialog" aria-labelledby="document-dialog-title"><h2 id="document-dialog-title">Confirmar documento</h2><p>Se guardará este documento en la ruta @f.RutaId y se registrará el motivo en el historial.</p><div class="modal-actions"><button type="button" id="document-admin-cancel" class="button-secondary">Seguir revisando</button><button type="button" id="document-admin-confirm">Confirmar y guardar</button></div></dialog>
+</div></div>
+@section scripts { <script src="@Url.Content("~/Scripts/pilotos-admin-ruta.js")"></script> }

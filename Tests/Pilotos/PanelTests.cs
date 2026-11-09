@@ -75,10 +75,24 @@ internal static class PanelTests
         var versionAdmin=PilotoAdminRutaReglas.Version(datos,false,1);
         datos.Placa="OTRA";
         Check(versionAdmin!=PilotoAdminRutaReglas.Version(datos,false,1),"La edición detecta asignación obsoleta");
-        var cambio=new PilotoAdminRutaGuardar{RutaId="RUTA",Version=versionAdmin,Fecha=hoy,Piloto="JULIO",Centro="PC",Placa="OTRA",Estado="E",Motivo="Corrección de vehículo"};
+        var cambio=new PilotoAdminRutaGuardar{RutaId="RUTA",Version=versionAdmin,Fecha=hoy,Piloto="JULIO",Centro="PC",Placa="OTRA",Estado="E",Motivo="Corrección de vehículo",Ayudante="SIN AYUDANTE",Despacho="DESPACHO",Revisor="REVISOR"};
         PilotoAdminRutaReglas.Validar(cambio);
-        cambio.Estado="C";Rechaza(()=>PilotoAdminRutaReglas.Validar(cambio),400);
+        cambio.Estado="C";PilotoAdminRutaReglas.Validar(cambio);
         cambio.Estado="E";cambio.Motivo=" ";Rechaza(()=>PilotoAdminRutaReglas.Validar(cambio),400);
+        var documento=new PilotoAdminDocumentoGuardar{RutaId="RUTA",RowId=17,Version="version",Tipo="FACTURA",Empresa="GRACO",Documento="10001",Agente="AGENTE",Bultos=2,Cliente="CLIENTE",MotivoCambio="Corrección administrativa"};
+        PilotoAdminDocumentoReglas.Validar(documento,false);
+        documento.RowId=0;Rechaza(()=>PilotoAdminDocumentoReglas.Validar(documento,false),400);
+        documento.RowId=17;
+        Rechaza(()=>PilotoAdminDocumentoReglas.Validar(documento,true),400);
+        documento.Visito=false;documento.Entrega="NO ENTREGADO";documento.MotivoNoEntrega="TIEMPO RUTA";documento.Observacion="No se visitó por tiempo de ruta";
+        PilotoAdminDocumentoReglas.Validar(documento,true);
+        var versionDocumento=PilotoAdminDocumentoReglas.Version(documento,"ruta1");
+        documento.Bultos=3;Check(versionDocumento!=PilotoAdminDocumentoReglas.Version(documento,"ruta1"),"Cambios del documento invalidan su versión");
+        documento.Bultos=2;Check(versionDocumento!=PilotoAdminDocumentoReglas.Version(documento,"ruta2"),"Cambios de ruta invalidan la versión del documento");
+        documento.HoraEntrada=new TimeSpan(10,0,0);Rechaza(()=>PilotoAdminDocumentoReglas.Validar(documento,true),400);
+        documento.HoraEntrada=null;documento.Entrega="ENTREGADO";Rechaza(()=>PilotoAdminDocumentoReglas.Validar(documento,true),400);
+        documento.Visito=true;PilotoAdminDocumentoReglas.Validar(documento,true);
+        foreach(var nombre in new[]{"GuardarDocumento","EliminarDocumento"}) Check(typeof(PilotoController).GetMethods().Any(x=>x.Name==nombre && x.GetCustomAttributes(typeof(HttpPostAttribute),false).Length==1 && x.GetCustomAttributes(typeof(ValidateAntiForgeryTokenAttribute),false).Length==1),"CRUD documental protegido: "+nombre);
         var acciones=typeof(PilotoController).GetMethods().Where(x=>x.Name=="EditarRuta").ToArray();
         Check(acciones.Length==2 && acciones.Any(x=>x.GetCustomAttributes(typeof(HttpGetAttribute),false).Length==1) &&
               acciones.Any(x=>x.GetCustomAttributes(typeof(HttpPostAttribute),false).Length==1 && x.GetCustomAttributes(typeof(ValidateAntiForgeryTokenAttribute),false).Length==1),

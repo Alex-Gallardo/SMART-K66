@@ -18,7 +18,7 @@ internal static class RazorCompile
             RazorPreview.AssetsRoot=root;
             var previews=new Dictionary<string,string>(); Type layout=null;Type panelContenido=null;
             RouteTable.Routes.MapRoute("Default","{controller}/{action}/{id}",new {action="Index",id=UrlParameter.Optional});
-            foreach(var relative in new[]{"Piloto/Index.cshtml","Piloto/Detalle.cshtml","Piloto/Error.cshtml","Piloto/Administracion.cshtml","Piloto/Configurar.cshtml","Piloto/EditarRuta.cshtml","Piloto/AdministracionError.cshtml","Seguridad/PilotoToken.cshtml","Seguridad/GaritaToken.cshtml","Piloto/_PanelContenido.cshtml","Piloto/Panel.cshtml","Piloto/PanelDetalle.cshtml","Piloto/PanelError.cshtml","Shared/_PilotoLayout.cshtml","Shared/_Layout.cshtml","Garita/Index.cshtml","Garita/Error.cshtml","Garita/Administrar.cshtml","Shared/_GaritaLayout.cshtml","Liquidacion/Index.cshtml","Liquidacion/Detalle.cshtml","Liquidacion/Error.cshtml"}) {
+            foreach(var relative in new[]{"Piloto/Index.cshtml","Piloto/Detalle.cshtml","Piloto/Error.cshtml","Piloto/Administracion.cshtml","Piloto/Configurar.cshtml","Piloto/EditarRuta.cshtml","Piloto/EditarDocumento.cshtml","Piloto/AdministracionError.cshtml","Seguridad/PilotoToken.cshtml","Seguridad/GaritaToken.cshtml","Piloto/_PanelContenido.cshtml","Piloto/Panel.cshtml","Piloto/PanelDetalle.cshtml","Piloto/PanelError.cshtml","Shared/_PilotoLayout.cshtml","Shared/_Layout.cshtml","Garita/Index.cshtml","Garita/Error.cshtml","Garita/Administrar.cshtml","Shared/_GaritaLayout.cshtml","Liquidacion/Index.cshtml","Liquidacion/Detalle.cshtml","Liquidacion/Error.cshtml"}) {
                 string file=Path.Combine(root,"DiamDev.Give.UI/Views/"+relative);
                 var host=new MvcWebPageRazorHost("~/Views/"+relative,file);
                 host.NamespaceImports.Add("System"); host.NamespaceImports.Add("System.Linq");
@@ -31,7 +31,7 @@ internal static class RazorCompile
                 if(args.Length>1 && relative=="Piloto/Panel.cshtml") source=source.Replace("@Html.Partial(\"_PanelContenido\",Model)","@Html.Raw(ViewBag.PanelBody)");
                 if(args.Length>1 && relative.StartsWith("Piloto/Panel")) source=source.Replace("@section scripts { <script src=\"@Url.Content(\"~/Scripts/pilotos-panel.js\")\"></script> }","");
                 if(args.Length>1 && relative=="Piloto/Configurar.cshtml") source=source.Replace("@section scripts { <script src=\"@Url.Content(\"~/Scripts/pilotos.js\")\"></script> }","");
-                if(args.Length>1 && relative=="Piloto/EditarRuta.cshtml") source=source.Replace("@section scripts { <script src=\"@Url.Content(\"~/Scripts/pilotos-admin-ruta.js\")\"></script> }","");
+                if(args.Length>1 && (relative=="Piloto/EditarRuta.cshtml" || relative=="Piloto/EditarDocumento.cshtml")) source=source.Replace("@section scripts { <script src=\"@Url.Content(\"~/Scripts/pilotos-admin-ruta.js\")\"></script> }","");
                 using(var reader=new StringReader(source)) code=engine.GenerateCode(reader);
                 if(!code.Success) { foreach(var e in code.ParserErrors) Console.Error.WriteLine(relative+": "+e); return 1; }
                 using(var compiler=new CSharpCodeProvider()) {
@@ -79,6 +79,7 @@ internal static class RazorCompile
                         if(relative=="Piloto/Administracion.cshtml") previews["administracion"]=RazorPreview.Render(type,RazorPreview.AdminLista());
                         if(relative=="Piloto/Configurar.cshtml") {previews["configurar"]=RazorPreview.Render(type,RazorPreview.AdminEdicion());previews["configurar-empresa"]=RazorPreview.Render(type,RazorPreview.AdminEdicionEmpresa());}
                         if(relative=="Piloto/EditarRuta.cshtml") {previews["editar-ruta"]=RazorPreview.Render(type,RazorPreview.AdminRuta());previews["editar-ruta-empresa"]=RazorPreview.Render(type,RazorPreview.AdminRutaEmpresa());}
+                        if(relative=="Piloto/EditarDocumento.cshtml") previews["editar-documento"]=RazorPreview.Render(type,RazorPreview.AdminDocumento());
                         if(relative=="Piloto/AdministracionError.cshtml") previews["administracion-error"]=RazorPreview.Render(type,null);
                         if(relative=="Piloto/Error.cshtml") previews["error"]=RazorPreview.Render(type,null);
                         if(relative=="Garita/Index.cshtml") {

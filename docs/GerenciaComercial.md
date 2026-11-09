@@ -46,12 +46,14 @@ Las tres empresas se resuelven mediante las claves existentes `HanaSchema.BOLIK`
 - Las unidades netas provienen de `INV1` menos `RIN1` y se agrupan por `unitMsr`. Si existen medidas distintas, no se presenta un total combinado. El Excel contiene una hoja de ventas por agente y otra de unidades por medida.
 - Los KPI, lectura ejecutiva, alertas y panorama se calculan sobre la misma respuesta de SAP. El cambio absoluto y porcentual compara los últimos dos períodos en el orden elegido; también se muestra el último frente al período base. Con base cero se indica «Nuevo / sin base». Si los períodos tienen duraciones distintas se advierte expresamente.
 - Las alertas señalan la mayor caída absoluta, caídas de al menos 20 % con impacto mínimo de 1 % sobre el resultado actual, concentración de los tres mayores agentes de al menos 60 %, y resultados netos no positivos. Son reglas visibles y deterministas para orientar la revisión comercial.
+- La sección de avances separa configuración, períodos, gráfica y resultados. Los KPI se agrupan en ventas por período, variación y volumen por unidad; la lectura y las alertas muestran títulos y estados visuales. La gráfica presenta los 12 agentes completos sin recorte y limita la altura solo al elegir «Todos».
+- **PDF de avances**: requiere una empresa y moneda. El endpoint `PdfAvances` consulta nuevamente SAP en modo lectura, conserva el mismo permiso comercial y descarga un PDF A4 horizontal; la opción de impresión abre el mismo informe en el visor. Incluye indicadores, todas las series de períodos en gráficas de hasta cuatro series por página, lectura, prioridades, unidades separadas y panorama de todos los agentes paginado. No agrega dependencias de terceros ni almacena el archivo en el servidor.
 - El acceso sigue protegido por `Control.GerenciaComercial.Ver`; todas las fuentes se consultan en modo lectura.
 
 Los campos de contraseña y binarios no se envían al navegador. Si una fuente no responde, el resumen muestra una advertencia y conserva los indicadores disponibles. Los errores técnicos se registran en el servidor.
 
 ## Verificación
 
-Ejecutar `Tests/GerenciaComercial/run.ps1` para compilar las clases nuevas y validar filtros, privacidad, exportación, sintaxis Razor y la interfaz de avances. El script también comprueba la sintaxis de los tres archivos JavaScript del módulo.
+Ejecutar `Tests/GerenciaComercial/run.ps1` para compilar las clases nuevas y validar filtros, privacidad, exportación, sintaxis Razor, PDF multipágina y la interfaz de avances. El script también comprueba la sintaxis de los tres archivos JavaScript del módulo. El PDF se puede verificar con `pdfinfo` y `pdftoppm` usando `GC_PDF_SAMPLE` o `GC_PDF_SAMPLE_12` para guardar muestras de la prueba en una ruta temporal.
 
 El panel reutiliza `HanaHelper`, la configuración `HanaSchema.*` y `GiveContext` que ya emplean los módulos existentes. La verificación de datos en un entorno conectado forma parte de la revisión de integración y no requiere instalar componentes adicionales del panel.

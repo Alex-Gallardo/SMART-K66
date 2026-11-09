@@ -601,6 +601,7 @@
     <Content Include="Content\borrador-nc-sap-indicadores.css" />
     <Content Include="Content\borrador-nc-dashboard.css" />
     <Content Include="Content\gerencia-comercial.css" />
+    <Content Include="Content\gerencia-comercial-avances.css" />
     <Content Include="Content\borrador-nc-dashboard-detalle.css" />
     <Content Include="Content\borrador-nc-dashboard-audit.css" />
     <Content Include="Content\cotizaciones.css" />
@@ -874,6 +875,7 @@
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\DashboardController.cs" />
     <Compile Include="Controllers\GerenciaComercialController.cs" />
+    <Compile Include="Controllers\GerenciaComercialAvancesPdf.cs" />
     <Compile Include="Controllers\BacklogController.cs" />
     <Compile Include="Controllers\OTIFController.cs" />
     <Compile Include="Controllers\ProduccionV2Controller.cs" />

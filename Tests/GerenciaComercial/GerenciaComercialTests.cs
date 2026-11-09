@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using System.Security.Principal;
 using System.Web;
@@ -130,6 +131,40 @@ public static class GerenciaComercialTests
         Check(HanaHelper.Parametros[0].Length == 5 && Convert.ToString(HanaHelper.Parametros[0][0].Value) == "GTQ" && HanaHelper.Consultas[0].Contains("? AS \"Desde\""), "Moneda y fechas deben enviarse como parámetros ODBC.");
         Check(typeof(GerenciaComercialController).GetMethod("Avances").GetCustomAttributes(typeof(System.Web.Mvc.HttpGetAttribute), true).Length == 1, "Avances debe conservar el permiso del controlador.");
         Check(typeof(GerenciaComercialController).GetMethod("ExportarAvances").GetCustomAttributes(typeof(System.Web.Mvc.HttpGetAttribute), true).Length == 1, "El Excel de avances debe conservar el permiso del controlador.");
+        Check(typeof(GerenciaComercialController).GetMethod("PdfAvances").GetCustomAttributes(typeof(System.Web.Mvc.HttpGetAttribute), true).Length == 1, "El PDF debe conservar el permiso del controlador.");
+        var ventasPdf = new DataTable();
+        ventasPdf.Columns.Add("Codigo", typeof(string)); ventasPdf.Columns.Add("Nombre", typeof(string)); ventasPdf.Columns.Add("Frente", typeof(string)); ventasPdf.Columns.Add("Periodo", typeof(int)); ventasPdf.Columns.Add("Neto", typeof(decimal));
+        var unidadesPdf = new DataTable();
+        unidadesPdf.Columns.Add("Periodo", typeof(int)); unidadesPdf.Columns.Add("Unidad", typeof(string)); unidadesPdf.Columns.Add("Cantidad", typeof(decimal));
+        var periodosPdf = new List<GerenciaComercialDA.PeriodoAvance>();
+        for (int p = 0; p < 5; p++)
+        {
+            var fecha = DateTime.Today.AddYears(-5 + p);
+            periodosPdf.Add(new GerenciaComercialDA.PeriodoAvance { Indice = p, Desde = fecha, Hasta = fecha.AddDays(25) });
+            unidadesPdf.Rows.Add(p, "UN", 25m + p);
+            for (int a = 1; a <= 8; a++) ventasPdf.Rows.Add(a.ToString(), "Agente " + a, "Agente comercial", p, 100m + p * 15m - a * 5m);
+        }
+        var pdfType = typeof(GerenciaComercialController).Assembly.GetType("DiamDev.Give.UI.Controllers.GerenciaComercialAvancesPdf");
+        var pdfMethod = pdfType.GetMethod("Crear", BindingFlags.NonPublic | BindingFlags.Static);
+        var pdf = (byte[])pdfMethod.Invoke(null, new object[] { "FAES", "GTQ", periodosPdf, ventasPdf, unidadesPdf });
+        var pdfText = System.Text.Encoding.GetEncoding("ISO-8859-1").GetString(pdf);
+        Check(pdfText.StartsWith("%PDF-1.4") && pdfText.Contains("/Count 5") && pdfText.Contains("%%EOF") && pdf.Length > 10000, "PDF multipágina con gráfica, lectura y panorama completo.");
+        string sample = Environment.GetEnvironmentVariable("GC_PDF_SAMPLE");
+        if (!string.IsNullOrEmpty(sample)) System.IO.File.WriteAllBytes(sample, pdf);
+        var periodosDoce = new List<GerenciaComercialDA.PeriodoAvance>();
+        var ventasDoce = ventasPdf.Clone();
+        for (int p = 0; p < 12; p++)
+        {
+            var fecha = DateTime.Today.AddMonths(-12 + p);
+            periodosDoce.Add(new GerenciaComercialDA.PeriodoAvance { Indice = p, Desde = fecha, Hasta = fecha.AddDays(10) });
+            for (int a = 1; a <= 13; a++) ventasDoce.Rows.Add(a.ToString(), "Agente " + a, "Agente comercial", p, 100m + p * 15m - a * 5m);
+        }
+        var pdfDoce = (byte[])pdfMethod.Invoke(null, new object[] { "BOLIK", "USD", periodosDoce, ventasDoce, unidadesPdf });
+        Check(System.Text.Encoding.GetEncoding("ISO-8859-1").GetString(pdfDoce).Contains("/Count 7"), "El PDF de 12 períodos y 13 agentes reparte gráficas y panorama en siete páginas.");
+        string sampleDoce = Environment.GetEnvironmentVariable("GC_PDF_SAMPLE_12");
+        if (!string.IsNullOrEmpty(sampleDoce)) System.IO.File.WriteAllBytes(sampleDoce, pdfDoce);
+        var pdfVacio = (byte[])pdfMethod.Invoke(null, new object[] { "GRACO", "GTQ", periodosPdf.Take(2).ToList(), ventasPdf.Clone(), unidadesPdf.Clone() });
+        Check(System.Text.Encoding.GetEncoding("ISO-8859-1").GetString(pdfVacio).Contains("/Count 3"), "El PDF vacío conserva resumen, lectura y panorama sin fallar.");
         Console.WriteLine("OK: " + _passed + " verificaciones de filtros, privacidad, detalle y avances.");
         return 0;
     }

@@ -443,6 +443,29 @@ namespace DiamDev.Give.UI.Controllers
         }
 
         [HttpGet]
+        public ActionResult PdfAvances(string empresa, string moneda, string rangos, bool inline = false)
+        {
+            Response.Cache.SetNoStore();
+            try
+            {
+                empresa = (empresa ?? "").Trim().ToUpperInvariant();
+                moneda = (moneda ?? "").Trim().ToUpperInvariant();
+                if (empresa != "BOLIK" && empresa != "FAES" && empresa != "GRACO") throw new ArgumentException("Seleccione una empresa.");
+                if (moneda != "GTQ" && moneda != "USD") throw new ArgumentException("Seleccione GTQ o USD.");
+                var periodos = PeriodosAvance(rangos);
+                var datos = _datos.AvancesAgentes(empresa, moneda, periodos);
+                if (datos.Ventas.Rows.Count > MaximoExportacion) return new HttpStatusCodeResult(400, "El informe supera 10,000 filas de origen.");
+                try { Clasificar(datos.Ventas, _datos.OperadoresComerciales()); }
+                catch (Exception ex) { Trace.TraceError("[GerenciaComercial] Usuario_Empresa en PDF: {0}", ex); Clasificar(datos.Ventas, null); }
+                byte[] pdf = GerenciaComercialAvancesPdf.Crear(empresa, moneda, periodos, datos.Ventas, datos.Unidades);
+                string nombre = "avances-" + empresa.ToLowerInvariant() + "-" + DateTime.Today.ToString("yyyyMMdd") + ".pdf";
+                if (inline) { Response.AddHeader("Content-Disposition", "inline; filename=\"" + nombre + "\""); return File(pdf, "application/pdf"); }
+                return File(pdf, "application/pdf", nombre);
+            }
+            catch (Exception ex) { return Error(ex); }
+        }
+
+        [HttpGet]
         public ActionResult Historico(string dimension, string empresa, string codigo, string hasta, string moneda)
         {
             Response.Cache.SetNoStore();

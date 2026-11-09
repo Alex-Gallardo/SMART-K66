@@ -60,7 +60,7 @@ $exe = Join-Path $testDir 'GerenciaComercialTests.exe'
 '@ | Set-Content -LiteralPath ($exe + '.config') -Encoding UTF8
 & $csc /nologo /target:library "/out:$dal" /r:System.Core.dll /r:System.Data.dll /r:System.Configuration.dll (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialDA.cs') (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialAnalisisDA.cs') (Join-Path $project 'DiamDev.Give.DAL\GerenciaComercialAvancesDA.cs') $hanaStub
 if ($LASTEXITCODE -ne 0) { throw 'No compiló la capa de datos.' }
-& $csc /nologo /target:library "/out:$ui" /r:System.Core.dll /r:System.Data.dll /r:System.Drawing.dll /r:System.Web.dll "/r:$dal" "/r:$mvc" "/r:$epplus" (Join-Path $project 'DiamDev.Give.UI\Controllers\GerenciaComercialController.cs') (Join-Path $project 'DiamDev.Give.UI\App_Start\PermisoAttribute.cs') $uiStub
+& $csc /nologo /target:library "/out:$ui" /r:System.Core.dll /r:System.Data.dll /r:System.Drawing.dll /r:System.Web.dll "/r:$dal" "/r:$mvc" "/r:$epplus" (Join-Path $project 'DiamDev.Give.UI\Controllers\GerenciaComercialController.cs') (Join-Path $project 'DiamDev.Give.UI\Controllers\GerenciaComercialAvancesPdf.cs') (Join-Path $project 'DiamDev.Give.UI\App_Start\PermisoAttribute.cs') $uiStub
 if ($LASTEXITCODE -ne 0) { throw 'No compiló el controlador.' }
 & $csc /nologo /target:exe "/out:$exe" /r:System.Core.dll /r:System.Data.dll /r:System.Web.dll "/r:$dal" "/r:$ui" "/r:$mvc" (Join-Path $PSScriptRoot 'GerenciaComercialTests.cs')
 if ($LASTEXITCODE -ne 0) { throw 'No compilaron las pruebas.' }

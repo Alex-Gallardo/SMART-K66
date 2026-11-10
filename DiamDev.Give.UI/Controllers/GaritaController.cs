@@ -72,6 +72,12 @@ namespace DiamDev.Give.UI.Controllers
             try {var foto=new GaritaRutaDA().ObtenerFotoEntrada(User.Identity.Name,placa,id);Response.AddHeader("X-Content-Type-Options","nosniff");return File(foto.Contenido,foto.ContentType);}
             catch(Exception e) {ViewBag.Placa=placa;return Error(e);}
         }
+        [HttpGet]
+        public ActionResult FotoPiloto(string placa,string id,int rowId,bool cliente=false)
+        {
+            try {var foto=new GaritaRutaDA().ObtenerFotoPiloto(User.Identity.Name,placa,id,rowId,cliente);Response.AddHeader("X-Content-Type-Options","nosniff");return File(foto.Contenido,foto.ContentType);}
+            catch(Exception e) {ViewBag.Placa=placa;return Error(e);}
+        }
         private static byte[] LeerFoto(HttpPostedFileBase foto,out string nombre)
         {
             nombre=null;

@@ -23,6 +23,23 @@ internal static class GaritaTests
     {
         var r=Ruta();
         Check(r.PuedeRegistrarSalida && r.PuedeReportarDiferencia && r.Clientes==1 && r.Bultos==5,"ruta en curso con carga y cliente");
+        Check(GaritaReglas.EstadoCliente(r.Documentos)=="pending","cliente sin resultados conserva borde neutral");
+        r.Documentos[0].Entrega="ENTREGADO";r.Documentos[1].Entrega="ENTREGADO";
+        Check(GaritaReglas.EstadoCliente(r.Documentos)=="delivered","todas las facturas entregadas marcan el cliente en verde");
+        r.Documentos[0].Entrega=" entregado ";Check(GaritaReglas.EstadoCliente(r.Documentos)=="delivered","estado histórico con espacios o minúsculas mantiene el color correcto");r.Documentos[0].Entrega="ENTREGADO";
+        r.Documentos[1].Entrega="NO ENTREGADO";
+        Check(GaritaReglas.EstadoCliente(r.Documentos)=="warning","una factura no entregada marca el cliente en naranja");
+        r.Documentos[1].Entrega="INCIDENCIA";
+        Check(GaritaReglas.EstadoCliente(r.Documentos)=="warning","una incidencia marca el cliente en naranja");
+        r.Documentos[0].Entrega=null;r.Documentos[1].Entrega=null;
+        var xml="<documentos><d id=\"1\"><visito>true</visito><entrega>ENTREGADO</entrega><motivo/><observaciones>Foto en recepción</observaciones></d><d id=\"2\"><visito>false</visito><entrega>NO ENTREGADO</entrega><motivo>TIEMPO RUTA</motivo><observaciones>No hubo tiempo</observaciones></d></documentos>";
+        Check(GaritaReglas.AplicarResultadoTemporal(r.Documentos,xml) && GaritaReglas.Resultado(r.Documentos[0])=="ENTREGADO" && GaritaReglas.Resultado(r.Documentos[1])=="NO ENTREGADO" && r.Documentos[1].Entrega==null,"resultado POS se muestra provisional sin alterar APK66");
+        Check(GaritaReglas.EstadoCliente(r.Documentos)=="warning" && r.Documentos[1].ObservacionPiloto=="No hubo tiempo","resultado POS afecta solo la presentación del cliente");
+        var borradorInvalido=Ruta();
+        Check(!GaritaReglas.AplicarResultadoTemporal(borradorInvalido.Documentos,xml.Replace("id=\"2\"","id=\"3\"")) && borradorInvalido.Documentos.All(d=>d.ResultadoPiloto==null),"borrador con otro documento se ignora completo");
+        Check(!GaritaReglas.AplicarResultadoTemporal(borradorInvalido.Documentos,"<mal") && borradorInvalido.Documentos.All(d=>d.ResultadoPiloto==null),"borrador corrupto no rompe la consulta");
+        borradorInvalido.Documentos[0].Entrega="ENTREGADO";
+        Check(!GaritaReglas.AplicarResultadoTemporal(borradorInvalido.Documentos,xml),"APK66 definitivo no se sobreescribe con POS");
         var c=new GaritaRegistroSalida{RutaId=r.Id,Version=r.Version,Solicitud=Guid.NewGuid(),CargaVerificada=true};
         GaritaReglas.ValidarSalida(c,r);Check(c.Observacion=="","observación opcional normalizada");
         c.CargaVerificada=false;Rechaza(()=>GaritaReglas.ValidarSalida(c,r),400,"verificación de carga requerida");c.CargaVerificada=true;
@@ -81,6 +98,7 @@ internal static class GaritaTests
         Check(typeof(GaritaController).IsDefined(typeof(AuthorizeAttribute),true),"controlador autenticado");
         Check(typeof(GaritaController).GetMethod("FotoSalida").IsDefined(typeof(HttpGetAttribute),true),"foto protegida por controlador autenticado");
         Check(typeof(GaritaController).GetMethod("FotoEntrada").IsDefined(typeof(HttpGetAttribute),true),"foto de entrada protegida por controlador autenticado");
+        Check(typeof(GaritaController).GetMethod("FotoPiloto").IsDefined(typeof(HttpGetAttribute),true),"foto del piloto consultable solo por controlador autenticado");
         Check(typeof(PilotoController).GetMethod("PanelFotoSalida").IsDefined(typeof(HttpGetAttribute),true),"foto de salida consultable en panel administrativo");
         Check(typeof(PilotoController).GetMethod("PanelFotoEntrada").IsDefined(typeof(HttpGetAttribute),true),"foto de entrada consultable en panel administrativo");
         Console.WriteLine("OK garita: "+checks+" comprobaciones");return 0;

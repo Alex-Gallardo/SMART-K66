@@ -80,9 +80,9 @@ WHERE ep.Placa=@placa;"))
             {P(c,"@piloto",SqlDbType.NVarChar,ruta.Piloto,90);P(c,"@placa",SqlDbType.NVarChar,ruta.Placa,15);
              P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@id",SqlDbType.NVarChar,ruta.Id,15);
              using(var r=c.ExecuteReader()) if(r.Read()) {ruta.EsRutaEmpresa=true;ruta.ConductorReal=S(r,"Nombre");ruta.DocumentoConductor=S(r,"Documento");if(r.Read()) throw new PilotoException(409,"La ruta coincide con varias empresas. Consulta a Distribución.");}}
-            using(var c=Cmd(cn,tx,@"SELECT TOP (10001) ROWID,TIPO,ID_EMPRESA,ID_DOCUMENTO,CLIENTE,DIR_DESPACHO,NO_BULTOS,MO_VISITO,MO_ENTREGA
+            using(var c=Cmd(cn,tx,@"SELECT TOP (10001) ROWID,TIPO,ID_EMPRESA,ID_DOCUMENTO,F_DOCTO,FEL_SERIE,FEL_NUM,MONTO_DOC,CLIENTE,DIR_DESPACHO,NO_BULTOS,MO_VISITO,MO_ENTREGA,MO_MOTIVO,MO_OBSER,MO_HR_ENTRADA,MO_HR_SALIDA
 FROM "+apk+".dbo.RT_RUTAS_DET"+hint+" WHERE ID_RUTA=@id ORDER BY ROWID;"))
-            {P(c,"@id",SqlDbType.NVarChar,id,15);using(var r=c.ExecuteReader()) while(r.Read()) ruta.Documentos.Add(new PilotoDocumento{RowId=(int)r["ROWID"],Tipo=S(r,"TIPO"),Empresa=S(r,"ID_EMPRESA"),Documento=S(r,"ID_DOCUMENTO"),Cliente=S(r,"CLIENTE"),Direccion=S(r,"DIR_DESPACHO"),Bultos=r["NO_BULTOS"]==DBNull.Value?0:Convert.ToDecimal(r["NO_BULTOS"]),Visito=r["MO_VISITO"]==DBNull.Value?(bool?)null:Convert.ToBoolean(r["MO_VISITO"]),Entrega=S(r,"MO_ENTREGA")});}
+            {P(c,"@id",SqlDbType.NVarChar,id,15);using(var r=c.ExecuteReader()) while(r.Read()) ruta.Documentos.Add(new PilotoDocumento{RowId=(int)r["ROWID"],Tipo=S(r,"TIPO"),Empresa=S(r,"ID_EMPRESA"),Documento=S(r,"ID_DOCUMENTO"),FechaDocumento=r["F_DOCTO"]==DBNull.Value?(DateTime?)null:(DateTime)r["F_DOCTO"],FelSerie=S(r,"FEL_SERIE"),FelNumero=S(r,"FEL_NUM"),Monto=r["MONTO_DOC"]==DBNull.Value?(decimal?)null:Convert.ToDecimal(r["MONTO_DOC"]),Cliente=S(r,"CLIENTE"),Direccion=S(r,"DIR_DESPACHO"),Bultos=r["NO_BULTOS"]==DBNull.Value?0:Convert.ToDecimal(r["NO_BULTOS"]),Visito=r["MO_VISITO"]==DBNull.Value?(bool?)null:Convert.ToBoolean(r["MO_VISITO"]),Entrega=S(r,"MO_ENTREGA"),Motivo=S(r,"MO_MOTIVO"),Observaciones=S(r,"MO_OBSER"),Entrada=r["MO_HR_ENTRADA"]==DBNull.Value?(TimeSpan?)null:(TimeSpan)r["MO_HR_ENTRADA"],Salida=r["MO_HR_SALIDA"]==DBNull.Value?(TimeSpan?)null:(TimeSpan)r["MO_HR_SALIDA"]});}
             if(ruta.Documentos.Count>10000) throw new PilotoException(409,"Ruta demasiado grande para verificar en garita. Consulta a Distribución.");
             using(var c=Cmd(cn,tx,@"SELECT TOP (1) Tipo,FechaUtc,Actor,Precinto FROM dbo.GaritaRutaEvento
 WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo=N'S' ORDER BY Id DESC;"))
@@ -176,14 +176,84 @@ OUTER APPLY (SELECT TOP (1) pc.Nombre FROM dbo.PilotoEmpresaPlaca ep
         public GaritaRuta Detalle(string actor,string placa,string id)
         {
             placa=GaritaReglas.Placa(placa);id=GaritaReglas.Id(id);
-            var ruta=Buscar(actor,id);
-            if((ruta.Estado!="A" && ruta.Estado!="E" && ruta.Estado!="C") || ruta.Liquidada || !string.Equals(ruta.Placa,placa,StringComparison.OrdinalIgnoreCase)) throw new PilotoException(404,"Ruta no disponible para esa placa.");
-            ruta.PlacaBusqueda=placa;return ruta;
+            using(var cn=Abrir()) using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted))
+            {
+                Instalada(cn,tx);var usuario=Autorizar(cn,tx,actor,GaritaReglas.Ver);var ruta=Leer(cn,tx,usuario,id,false);
+                if((ruta.Estado!="A" && ruta.Estado!="E" && ruta.Estado!="C") || ruta.Liquidada || !string.Equals(ruta.Placa,placa,StringComparison.OrdinalIgnoreCase)) throw new PilotoException(404,"Ruta no disponible para esa placa.");
+                CargarConsultaCargo(cn,tx,ruta);
+                ruta.PlacaBusqueda=placa;tx.Commit();return ruta;
+            }
+        }
+        private void CargarConsultaCargo(SqlConnection cn,SqlTransaction tx,GaritaRuta ruta)
+        {
+            if(ruta.Documentos.Count==0) return;
+            var piloto=new PilotoRuta{Id=ruta.Id,Fecha=ruta.Fecha,Estado=ruta.Estado,Placa=ruta.Placa,Piloto=ruta.Piloto,Centro=ruta.Centro,TotalDocumentos=ruta.Documentos.Count};
+            piloto.Documentos.AddRange(ruta.Documentos);
+            var grupos=PilotoReglas.Grupos(piloto);
+            foreach(var grupo in grupos) foreach(var d in grupo) d.PrimerRowIdCliente=grupo[0].RowId;
+            using(var c=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoDocumentoImagen',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
+            if((int)c.ExecuteScalar()==1)
+            {
+                var documentos=ruta.Documentos.ToDictionary(d=>d.RowId);
+                using(var fotos=Cmd(cn,tx,"SELECT Detalle_RowId FROM dbo.PilotoDocumentoImagen WHERE Ruta_Id=@id;"))
+                {P(fotos,"@id",SqlDbType.NVarChar,ruta.Id,15);using(var r=fotos.ExecuteReader()) while(r.Read()) {PilotoDocumento d;if(documentos.TryGetValue((int)r[0],out d)) d.TieneImagen=true;}}
+            }
+            using(var c=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoClienteImagen',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
+            if((int)c.ExecuteScalar()==1)
+            {
+                var clientesConFoto=new HashSet<int>();
+                using(var fotos=Cmd(cn,tx,"SELECT Primer_RowId FROM dbo.PilotoClienteImagen WHERE Ruta_Id=@id;"))
+                {P(fotos,"@id",SqlDbType.NVarChar,ruta.Id,15);using(var r=fotos.ExecuteReader()) while(r.Read()) clientesConFoto.Add((int)r[0]);}
+                foreach(var d in ruta.Documentos) d.TieneImagenCliente=clientesConFoto.Contains(d.PrimerRowIdCliente);
+            }
+            if(ruta.Estado!="E") return;
+            using(var c=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo.PilotoBorradorCliente',N'U') IS NOT NULL AND OBJECT_ID(N'dbo.PilotoClienteEvento',N'U') IS NOT NULL THEN 1 ELSE 0 END;"))
+            if((int)c.ExecuteScalar()!=1) return;
+            var version=PilotoReglas.Version(piloto);
+            var porPrimero=grupos.ToDictionary(g=>g[0].RowId);
+            using(var c=Cmd(cn,tx,@"SELECT b.Primer_RowId,b.Resultados,COUNT(*) OVER(PARTITION BY b.Primer_RowId) Coincidencias
+FROM dbo.PilotoBorradorCliente b WHERE b.Ruta_Id=@id AND b.Version=@version AND b.Completado=1
+AND EXISTS(SELECT 1 FROM dbo.PilotoClienteEvento e WHERE e.CatalogoRutas=@catalogo AND e.Ruta_Id=b.Ruta_Id AND e.Usuario_Id=b.Usuario_Id AND e.Primer_RowId=b.Primer_RowId AND e.Version=b.Version);"))
+            {
+                P(c,"@id",SqlDbType.NVarChar,ruta.Id,15);P(c,"@version",SqlDbType.VarChar,version,44);P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);
+                using(var r=c.ExecuteReader()) while(r.Read())
+                {
+                    List<PilotoDocumento> grupo;
+                    if((int)r["Coincidencias"]==1 && porPrimero.TryGetValue((int)r["Primer_RowId"],out grupo))
+                        GaritaReglas.AplicarResultadoTemporal(grupo,S(r,"Resultados"));
+                }
+            }
         }
         public GaritaFoto ObtenerFoto(string actor,string placa,string id)
         { return ObtenerFotoPorTipo(actor,placa,id,false); }
         public GaritaFoto ObtenerFotoEntrada(string actor,string placa,string id)
         { return ObtenerFotoPorTipo(actor,placa,id,true); }
+        public GaritaFoto ObtenerFotoPiloto(string actor,string placa,string id,int rowId,bool cliente)
+        {
+            placa=GaritaReglas.Placa(placa);id=GaritaReglas.Id(id);
+            if(rowId<=0) throw new PilotoException(404,"Foto no disponible.");
+            using(var cn=Abrir()) using(var tx=cn.BeginTransaction(IsolationLevel.ReadCommitted))
+            {
+                Instalada(cn,tx);var usuario=Autorizar(cn,tx,actor,GaritaReglas.Ver);var ruta=Leer(cn,tx,usuario,id,false);
+                if((ruta.Estado!="A" && ruta.Estado!="E" && ruta.Estado!="C") || ruta.Liquidada || !string.Equals(ruta.Placa,placa,StringComparison.OrdinalIgnoreCase) || !ruta.Documentos.Any(d=>d.RowId==rowId))
+                    throw new PilotoException(404,"Foto no disponible para esta ruta.");
+                var tabla=cliente?"PilotoClienteImagen":"PilotoDocumentoImagen";
+                var columna=cliente?"Primer_RowId":"Detalle_RowId";
+                using(var c=Cmd(cn,tx,"SELECT CASE WHEN OBJECT_ID(N'dbo."+tabla+"',N'U') IS NULL THEN 0 ELSE 1 END;"))
+                if((int)c.ExecuteScalar()!=1) throw new PilotoException(404,"Foto no disponible.");
+                using(var c=Cmd(cn,tx,"SELECT TOP (1) i.ContentType,i.Contenido FROM dbo."+tabla+" i WHERE i.Ruta_Id=@id AND i."+columna+"=@row;"))
+                {
+                    P(c,"@id",SqlDbType.NVarChar,id,15);P(c,"@row",SqlDbType.Int,rowId);
+                    using(var r=c.ExecuteReader())
+                    {
+                        if(!r.Read()) throw new PilotoException(404,"Foto no disponible.");
+                        var foto=new GaritaFoto{ContentType=S(r,"ContentType"),Contenido=(byte[])r["Contenido"]};
+                        if(!new[]{"image/jpeg","image/png","image/webp"}.Contains(foto.ContentType)) throw new PilotoException(409,"El formato de foto no está permitido.");
+                        r.Close();tx.Commit();return foto;
+                    }
+                }
+            }
+        }
         private GaritaFoto ObtenerFotoPorTipo(string actor,string placa,string id,bool entrada)
         {
             placa=GaritaReglas.Placa(placa);id=GaritaReglas.Id(id);

@@ -86,6 +86,14 @@
         } catch (error) { setStatus(error.message, true); }
         finally { button.disabled = false; }
     }
+    function exportPdf(inline) {
+        try { validate(); } catch (error) { setStatus(error.message, true); return; }
+        var query = new URLSearchParams({ empresa: get("gc-advance-company").value, moneda: get("gc-advance-currency").value, rangos: state.periods.map(function (p) { return p.desde + "," + p.hasta; }).join("|"), inline: inline ? "true" : "false" });
+        var address = root.getAttribute("data-pdf-avances") + "?" + query.toString();
+        setStatus(inline ? "Abriendo el PDF para imprimir…" : "Descargando el informe PDF…", false);
+        if (inline) window.open(address, "_blank");
+        else window.location.href = address;
+    }
     function model() {
         var n = state.periods.length, agents = {}, total = Array(n).fill(0);
         (state.data.ventas || []).forEach(function (r) {
@@ -119,22 +127,23 @@
         renderLegend();
         var target = get("gc-advance-chart"); target.replaceChildren();
         var shown = get("gc-advance-count").value === "all" ? allAgents : allAgents.slice(0, 12);
+        get("gc-advance-chart-wrap").classList.toggle("is-scrollable", get("gc-advance-count").value === "all");
         if (!shown.length) { target.appendChild(el("p", "gc-empty", "No hay agentes para estos filtros.")); return; }
         var values = shown.reduce(function (a, r) { return a.concat(r.values); }, []), low = Math.min.apply(null, [0].concat(values)), high = Math.max.apply(null, [0].concat(values));
         if (low === high) high = low + 1;
-        var left = 230, right = 70, width = 1050, plot = width - left - right, rowHeight = state.mode === "bars" ? Math.max(58, 18 + state.periods.length * 7) : 66, top = 42, height = top + shown.length * rowHeight + 34;
+        var left = 250, right = 105, width = 1200, plot = width - left - right, rowHeight = state.mode === "bars" ? Math.max(70, 24 + state.periods.length * 9) : 76, top = 48, height = top + shown.length * rowHeight + 40;
         var x = function (v) { return left + (Number(v) - low) * plot / (high - low); };
         var chart = svg("svg", { viewBox: "0 0 " + width + " " + height, width: width, height: height, role: "img", "aria-label": "Comparativa de ventas netas de " + shown.length + " agentes en " + state.periods.length + " períodos" });
-        shown.forEach(function (_, row) { if (row % 2 === 0) chart.appendChild(svg("rect", { x: 0, y: top + row * rowHeight, width: width, height: rowHeight, fill: "#f7fafc" })); });
-        for (var tick = 0; tick <= 4; tick++) { var val = low + (high - low) * tick / 4, tx = x(val); chart.appendChild(svg("line", { x1: tx, x2: tx, y1: top - 8, y2: height - 25, stroke: "#e1eaf0", "stroke-width": 1 })); chart.appendChild(svg("text", { x: tx, y: 18, "text-anchor": tick === 0 ? "start" : tick === 4 ? "end" : "middle", class: "gc-advance-axis" }, compact(val))); }
-        chart.appendChild(svg("text", { x: width - 3, y: height - 7, "text-anchor": "end", class: "gc-advance-axis" }, get("gc-advance-currency").value + " · venta neta"));
-        chart.appendChild(svg("line", { x1: x(0), x2: x(0), y1: top - 8, y2: height - 25, stroke: "#7c91a4", "stroke-width": 1.5 }));
+        shown.forEach(function (_, row) { if (row % 2 === 0) chart.appendChild(svg("rect", { x: 0, y: top + row * rowHeight, width: width, height: rowHeight, fill: "#f7fafc" })); chart.appendChild(svg("line", { x1: 0, x2: width, y1: top + (row + 1) * rowHeight, y2: top + (row + 1) * rowHeight, stroke: "#edf2f6" })); });
+        for (var tick = 0; tick <= 5; tick++) { var val = low + (high - low) * tick / 5, tx = x(val); chart.appendChild(svg("line", { x1: tx, x2: tx, y1: top - 8, y2: height - 31, stroke: "#e1eaf0", "stroke-width": 1 })); chart.appendChild(svg("text", { x: tx, y: 25, "text-anchor": tick === 0 ? "start" : tick === 5 ? "end" : "middle", class: "gc-advance-axis" }, compact(val))); }
+        chart.appendChild(svg("text", { x: width - 3, y: height - 11, "text-anchor": "end", class: "gc-advance-axis" }, get("gc-advance-currency").value + " · venta neta"));
+        chart.appendChild(svg("line", { x1: x(0), x2: x(0), y1: top - 8, y2: height - 31, stroke: "#7c91a4", "stroke-width": 1.5 }));
         shown.forEach(function (agent, row) {
             var cy = top + row * rowHeight + rowHeight / 2;
             chart.appendChild(svg("text", { x: left - 13, y: cy + 4, "text-anchor": "end", class: "gc-advance-agent" }, agent.name.length > 30 ? agent.name.slice(0, 29) + "…" : agent.name));
             if (state.mode === "bars") {
-                var barHeight = Math.min(12, (rowHeight - 14) / state.periods.length - 1), group = state.periods.length * (barHeight + 1), start = cy - group / 2;
-                agent.values.forEach(function (v, i) { var zero = x(0), end = x(v), y = start + i * (barHeight + 1); chart.appendChild(svg("rect", { x: Math.min(zero, end), y: y, width: Math.max(1.5, Math.abs(end - zero)), height: barHeight, rx: 2, fill: palette[i] }, agent.name + " · " + state.periods[i].label + " · " + money(v))); if (state.periods.length <= 4 && v !== 0) chart.appendChild(svg("text", { x: end + (v > 0 ? 5 : -5), y: y + barHeight - 1, "text-anchor": v > 0 ? "start" : "end", class: "gc-advance-bar-label", fill: palette[i] }, compact(v))); });
+                var barHeight = Math.min(15, (rowHeight - 18) / state.periods.length - 1.5), group = state.periods.length * (barHeight + 1.5), start = cy - group / 2;
+                agent.values.forEach(function (v, i) { var zero = x(0), end = x(v), y = start + i * (barHeight + 1.5); chart.appendChild(svg("rect", { x: Math.min(zero, end), y: y, width: Math.max(1.5, Math.abs(end - zero)), height: barHeight, rx: 3, fill: palette[i] }, agent.name + " · " + state.periods[i].label + " · " + money(v))); if (state.periods.length <= 4 && v !== 0) chart.appendChild(svg("text", { x: end + (v > 0 ? 7 : -7), y: y + barHeight - 2, "text-anchor": v > 0 ? "start" : "end", class: "gc-advance-bar-label", fill: palette[i] }, compact(v))); });
             } else {
                 var spread = Math.min(5, 18 / Math.max(1, state.periods.length - 1)), points = agent.values.map(function (v, i) { return x(v).toFixed(1) + "," + (cy + (i - (state.periods.length - 1) / 2) * spread).toFixed(1); }).join(" ");
                 chart.appendChild(svg("polyline", { points: points, fill: "none", stroke: "#64788b", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }, agent.name + " · trayectoria de ventas"));
@@ -145,13 +154,16 @@
         get("gc-advance-chart").setAttribute("aria-label", "Comparativa " + (state.mode === "bars" ? "en barras" : "en líneas") + " de " + shown.length + " agentes; valores detallados en el panorama por agente.");
     }
     function card(title, figure, help, tone) { var c = el("div", "gc-advance-kpi " + (tone || "")); c.appendChild(el("small", "", title)); c.appendChild(el("strong", "", figure)); c.appendChild(el("span", "", help)); return c; }
+    function kpiGroup(target, title) { var group = el("section", "gc-advance-kpi-group"), body = el("div", "gc-advance-kpi-group-body"); group.appendChild(el("h5", "", title)); group.appendChild(body); target.appendChild(group); return body; }
     function renderKpis(data) {
         var target = get("gc-advance-kpis"), units = get("gc-advance-units"); target.replaceChildren(); units.replaceChildren();
-        state.periods.forEach(function (p, i) { target.appendChild(card(p.label || "Período " + (i + 1), money(data.totals[i]), readable(p.desde) + " al " + readable(p.hasta), "period")); });
+        var periods = kpiGroup(target, "Ventas netas por período"), changes = kpiGroup(target, "Crecimiento y variación");
+        state.periods.forEach(function (p, i) { periods.appendChild(card(p.label || "Período " + (i + 1), money(data.totals[i]), readable(p.desde) + " al " + readable(p.hasta), "period")); });
         var last = data.totals.length - 1, before = last - 1, delta = data.totals[last] - data.totals[before];
-        target.appendChild(card("Variación · último vs. anterior", percent(pct(data.totals[last], data.totals[before])), state.periods[before].label + " → " + state.periods[last].label, delta >= 0 ? "up" : "down"));
-        target.appendChild(card("Cambio absoluto", (delta > 0 ? "+" : "") + money(delta), "Últimos dos períodos", delta >= 0 ? "up" : "down"));
-        if (last > 1) target.appendChild(card("Último vs. período base", percent(pct(data.totals[last], data.totals[0])), state.periods[0].label + " → " + state.periods[last].label, "base"));
+        changes.appendChild(card("Variación · último vs. anterior", percent(pct(data.totals[last], data.totals[before])), state.periods[before].label + " → " + state.periods[last].label, delta >= 0 ? "up" : "down"));
+        changes.appendChild(card("Cambio absoluto", (delta > 0 ? "+" : "") + money(delta), "Últimos dos períodos", delta >= 0 ? "up" : "down"));
+        if (last > 1) changes.appendChild(card("Último vs. período base", percent(pct(data.totals[last], data.totals[0])), state.periods[0].label + " → " + state.periods[last].label, "base"));
+        units.appendChild(el("div", "gc-advance-units-heading", "Volumen · separado por unidad de medida"));
         var unitGroups = {};
         (state.data.unidades || []).forEach(function (r) { var unit = r.Unidad || "Sin unidad", i = Number(r.Periodo); if (!unitGroups[unit]) unitGroups[unit] = Array(state.periods.length).fill(0); unitGroups[unit][i] += Number(r.Cantidad || 0); });
         var names = Object.keys(unitGroups).sort();
@@ -159,7 +171,14 @@
         else if (names.length > 1) { units.appendChild(el("strong", "", "Unidades por medida")); units.appendChild(el("span", "", names.slice(0, 5).map(function (u) { return u + ": " + integer(unitGroups[u][last]); }).join(" · ") + (names.length > 5 ? " · y " + (names.length - 5) + " más" : ""))); units.appendChild(el("small", "", "Se mantienen separadas para evitar sumar medidas distintas.")); }
         else units.appendChild(el("span", "", "Sin cantidades de productos en estos períodos."));
     }
-    function copy(target, messages) { var box = get(target); box.replaceChildren(); messages.forEach(function (m) { box.appendChild(el("p", "", m)); }); }
+    function copy(target, messages) {
+        var box = get(target); box.replaceChildren();
+        messages.forEach(function (item) {
+            var finding = el("div", "gc-advance-finding " + (item.tone || "")), icon = el("span", "gc-advance-finding-icon"), content = el("div");
+            icon.appendChild(el("i", "fa " + (item.icon || "fa-circle-o"))); finding.appendChild(icon);
+            content.appendChild(el("strong", "", item.title)); content.appendChild(el("p", "", item.text)); finding.appendChild(content); box.appendChild(finding);
+        });
+    }
     function renderInsights(data) {
         var n = state.periods.length, previous = n - 2, current = n - 1, a = data.totals[previous], b = data.totals[current], change = b - a;
         var moved = data.agents.filter(function (agent) { return agent.values[previous] !== 0 || agent.values[current] !== 0; });
@@ -174,7 +193,10 @@
         var drivers = moved.slice().sort(function (x, y) { return (y.values[current] - y.values[previous]) - (x.values[current] - x.values[previous]); });
         if (drivers.length && drivers[0].values[current] > drivers[0].values[previous]) readings.push("Mayor impulso: " + drivers[0].name + " (" + money(drivers[0].values[current] - drivers[0].values[previous]) + ").");
         if (days(state.periods[previous]) !== days(state.periods[current])) readings.push("Los dos últimos períodos tienen distinta duración (" + days(state.periods[previous]) + " y " + days(state.periods[current]) + " días). La variación requiere considerar esa diferencia.");
-        copy("gc-advance-reading", readings);
+        copy("gc-advance-reading", readings.map(function (message, index) {
+            var title = index === 0 ? "Resultado general" : index === 1 ? "Cobertura comercial" : message.indexOf("concentran") >= 0 ? "Concentración" : message.indexOf("Mayor impulso") >= 0 ? "Impulso principal" : "Comparabilidad";
+            return { title: title, text: message, tone: index === 0 ? change >= 0 ? "positive" : "critical" : title === "Comparabilidad" ? "warning" : "", icon: index === 0 ? "fa-line-chart" : index === 1 ? "fa-users" : "fa-info-circle" };
+        }));
         var alerts = [];
         if (drivers.length && drivers[0].values[current] > drivers[0].values[previous]) alerts.push("Mayor alza absoluta: " + drivers[0].name + " (" + money(drivers[0].values[current] - drivers[0].values[previous]) + "). Identificar cuentas y productos que impulsaron el avance.");
         var relevantGrowth = grown.filter(function (agent) { return agent.values[previous] > 0 && agent.values[previous] >= Math.abs(a) * .01; }).sort(function (x, y) { return pct(y.values[current], y.values[previous]) - pct(x.values[current], x.values[previous]); });
@@ -187,7 +209,10 @@
         if (b <= 0) alerts.push("El último período registra ventas netas no positivas; revisar facturas y notas de crédito antes de interpretar participaciones.");
         if (share !== null && share >= 60) alerts.push("Concentración elevada: los tres mayores agentes representan " + percent(share).replace(/^\+/, "") + " del resultado. Vigilar la dependencia de estas cuentas.");
         if (!alerts.length) alerts.push("No se detectaron caídas materiales ni concentración superior al umbral definido en estos períodos.");
-        copy("gc-advance-alerts", alerts);
+        copy("gc-advance-alerts", alerts.map(function (message) {
+            var colon = message.indexOf(":"), title = colon > 0 && colon < 42 ? message.slice(0, colon) : message.indexOf("agente") >= 0 ? "Caída material" : message.indexOf("Concentración") >= 0 ? "Concentración" : "Estado general";
+            return { title: title, text: colon > 0 && colon < 42 ? message.slice(colon + 1).trim() : message, tone: /caída|no positivas|Prioridad/i.test(message) ? "critical" : /Concentración|20%/i.test(message) ? "warning" : /alza/i.test(message) ? "positive" : "", icon: /caída|Prioridad/i.test(message) ? "fa-exclamation-triangle" : /alza/i.test(message) ? "fa-arrow-up" : "fa-flag" };
+        }));
     }
     function renderTable(allAgents) {
         var head = get("gc-advance-head"), body = get("gc-advance-rows"); head.replaceChildren(); body.replaceChildren();
@@ -203,6 +228,8 @@
     get("gc-advance-add-custom").addEventListener("click", function () { addPeriod(get("gc-advance-from").value, get("gc-advance-to").value); });
     get("gc-advance-form").addEventListener("submit", function (event) { event.preventDefault(); load(); });
     get("gc-advance-export").addEventListener("click", exportExcel);
+    get("gc-advance-pdf").addEventListener("click", function () { exportPdf(false); });
+    get("gc-advance-print").addEventListener("click", function () { exportPdf(true); });
     ["gc-advance-company", "gc-advance-currency"].forEach(function (id) { get(id).addEventListener("change", load); });
     root.querySelectorAll("[data-advance-mode]").forEach(function (button) { button.addEventListener("click", function () { state.mode = button.getAttribute("data-advance-mode"); root.querySelectorAll("[data-advance-mode]").forEach(function (b) { b.classList.toggle("is-active", b === button); b.setAttribute("aria-pressed", b === button ? "true" : "false"); }); if (state.data) renderChart(filtered(model().agents)); }); });
     ["gc-advance-search", "gc-advance-front", "gc-advance-count"].forEach(function (id) { get(id).addEventListener(id === "gc-advance-search" ? "input" : "change", function () { if (state.data) render(); }); });

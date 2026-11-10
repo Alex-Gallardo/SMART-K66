@@ -3,10 +3,11 @@
     ViewBag.Title = "Gerencia Comercial";
 }
 @section styles {
-    <link href="@Url.Content("~/Content/gerencia-comercial.css?v=4")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/gerencia-comercial.css?v=5")" rel="stylesheet" />
+    <link href="@Url.Content("~/Content/gerencia-comercial-avances.css?v=1")" rel="stylesheet" />
 }
 
-<div class="gc" id="gc" data-resumen="@Url.Action("Resumen")" data-listar="@Url.Action("Listar")" data-detalle="@Url.Action("Detalle")" data-exportar="@Url.Action("Exportar")" data-comparativo="@Url.Action("Comparativo")" data-historico="@Url.Action("Historico")" data-exportar-comparativo="@Url.Action("ExportarComparativo")" data-avances="@Url.Action("Avances")" data-exportar-avances="@Url.Action("ExportarAvances")">
+<div class="gc" id="gc" data-resumen="@Url.Action("Resumen")" data-listar="@Url.Action("Listar")" data-detalle="@Url.Action("Detalle")" data-exportar="@Url.Action("Exportar")" data-comparativo="@Url.Action("Comparativo")" data-historico="@Url.Action("Historico")" data-exportar-comparativo="@Url.Action("ExportarComparativo")" data-avances="@Url.Action("Avances")" data-exportar-avances="@Url.Action("ExportarAvances")" data-pdf-avances="@Url.Action("PdfAvances")">
     <header class="gc-hero">
         <div>
             <div class="gc-eyebrow"><span class="gc-live-dot"></span> Inteligencia comercial · Grupo K66</div>
@@ -48,26 +49,26 @@
         <div id="gc-kpis" class="gc-kpis" aria-live="polite"><div class="gc-skeleton"></div><div class="gc-skeleton"></div><div class="gc-skeleton"></div><div class="gc-skeleton"></div></div>
         <div class="gc-grid-main">
             <article class="gc-panel gc-trend-panel gc-advance-panel">
-                <div class="gc-panel-head gc-advance-heading"><div><span class="gc-kicker">Avances de ventas</span><h3>Comparativa por agente comercial</h3><p>Ventas netas sin impuesto · facturas menos notas de crédito · (Conectado a SAP)</p></div><span class="gc-caption">Cada período es una serie en la misma gráfica</span></div>
+                <div class="gc-panel-head gc-advance-heading"><div><span class="gc-kicker">Avances de ventas</span><h3>Comparativa por agente comercial</h3><p>Explora la evolución de cada agente en una sola gráfica. Ventas netas sin impuesto, facturas menos notas de crédito.</p></div><span class="gc-advance-source"><i class="fa fa-database" aria-hidden="true"></i> Datos de SAP HANA</span></div>
                 <form id="gc-advance-form" autocomplete="off">
-                    <div class="gc-advance-selects">
-                        <label>Empresa <select id="gc-advance-company"><option value="BOLIK">Bolik</option><option value="FAES" selected>Faes</option><option value="GRACO">Graco</option></select></label>
-                        <label>Moneda <select id="gc-advance-currency"><option value="GTQ">GTQ</option><option value="USD">USD</option></select></label>
-                        <span>Se compara una empresa y moneda a la vez.</span>
+                    <div class="gc-advance-setup">
+                        <div class="gc-advance-setup-head"><span class="gc-advance-step">01</span><div><h4>Configura la comparación</h4><p>Selecciona una empresa y una moneda para mantener los importes comparables.</p></div></div>
+                        <div class="gc-advance-selects">
+                            <label>Empresa <select id="gc-advance-company"><option value="BOLIK">Bolik</option><option value="FAES" selected>Faes</option><option value="GRACO">Graco</option></select></label>
+                            <label>Moneda <select id="gc-advance-currency"><option value="GTQ">GTQ</option><option value="USD">USD</option></select></label>
+                        </div>
                     </div>
-                    <div class="gc-advance-period-head"><strong>Períodos a comparar</strong><span>De 2 a 12 · ordenables · fechas inclusivas</span></div>
-                    <div id="gc-advance-periods" class="gc-advance-periods"></div>
-                    <div class="gc-advance-add">
-                        <label>Año <input id="gc-advance-year" type="number" min="2016" max="2100" step="1" /></label>
-                        <button id="gc-advance-add-year" class="gc-btn gc-btn-outline" type="button">Añadir año</button>
-                        <button id="gc-advance-add-cutoff" class="gc-btn gc-btn-outline" type="button">Añadir al mismo corte</button>
-                        <label>Desde <input id="gc-advance-from" type="date" /></label>
-                        <label>Hasta <input id="gc-advance-to" type="date" /></label>
-                        <button id="gc-advance-add-custom" class="gc-btn gc-btn-outline" type="button">Añadir rango</button>
-                        <button id="gc-advance-apply" class="gc-btn gc-btn-primary" type="submit">Comparar períodos</button>
-                        <button id="gc-advance-export" class="gc-btn gc-btn-outline" type="button"><i class="fa fa-file-excel-o" aria-hidden="true"></i> Excel</button>
+                    <div class="gc-advance-period-section">
+                        <div class="gc-advance-period-head"><div><span class="gc-advance-step">02</span><strong>Períodos a comparar</strong></div><span>De 2 a 12 períodos · fechas inclusivas · puedes cambiar su orden</span></div>
+                        <div id="gc-advance-periods" class="gc-advance-periods"></div>
+                        <div class="gc-advance-add">
+                            <div class="gc-advance-add-group"><strong>Agregar por año</strong><div><label>Año <input id="gc-advance-year" type="number" min="2016" max="2100" step="1" /></label><button id="gc-advance-add-year" class="gc-btn gc-btn-outline" type="button">Año completo</button><button id="gc-advance-add-cutoff" class="gc-btn gc-btn-outline" type="button">Mismo corte</button></div></div>
+                            <div class="gc-advance-add-group"><strong>Rango personalizado</strong><div><label>Desde <input id="gc-advance-from" type="date" /></label><label>Hasta <input id="gc-advance-to" type="date" /></label><button id="gc-advance-add-custom" class="gc-btn gc-btn-outline" type="button">Agregar rango</button></div></div>
+                        </div>
                     </div>
+                    <div class="gc-advance-form-actions"><span><i class="fa fa-info-circle" aria-hidden="true"></i> El resultado se actualiza al comparar. La exportación incluye todos los agentes.</span><div><button id="gc-advance-apply" class="gc-btn gc-btn-primary" type="submit"><i class="fa fa-refresh" aria-hidden="true"></i> Comparar períodos</button><button id="gc-advance-export" class="gc-btn gc-btn-outline" type="button"><i class="fa fa-file-excel-o" aria-hidden="true"></i> Excel</button><button id="gc-advance-pdf" class="gc-btn gc-btn-outline" type="button"><i class="fa fa-file-pdf-o" aria-hidden="true"></i> Descargar PDF</button><button id="gc-advance-print" class="gc-btn gc-btn-outline" type="button"><i class="fa fa-print" aria-hidden="true"></i> Abrir para imprimir</button></div></div>
                 </form>
+                <div class="gc-advance-visual-head"><div><span class="gc-advance-step">03</span><div><h4>Ventas netas por agente</h4><p>Cada color representa un período · eje horizontal en la moneda seleccionada</p></div></div><span>Comparación interactiva</span></div>
                 <div class="gc-advance-chart-toolbar">
                     <div class="gc-advance-mode" role="group" aria-label="Tipo de gráfica"><button type="button" data-advance-mode="bars" class="is-active" aria-pressed="true"><i class="fa fa-bar-chart" aria-hidden="true"></i> Barras</button><button type="button" data-advance-mode="lines" aria-pressed="false"><i class="fa fa-line-chart" aria-hidden="true"></i> Líneas</button></div>
                     <label class="gc-advance-search"><i class="fa fa-search" aria-hidden="true"></i><input id="gc-advance-search" type="search" placeholder="Buscar agente" aria-label="Buscar agente en avance" /></label>
@@ -75,12 +76,11 @@
                     <label>Mostrar <select id="gc-advance-count"><option value="12">12 agentes</option><option value="all">Todos</option></select></label>
                 </div>
                 <div id="gc-advance-status" class="gc-advance-status" role="status" aria-live="polite">Preparando comparación…</div>
-                <div id="gc-advance-legend" class="gc-advance-legend"></div>
-                <div class="gc-advance-chart-wrap"><div id="gc-advance-chart" class="gc-advance-chart" role="img" aria-label="Ventas netas por agente y período"></div></div>
+                <div class="gc-advance-plot"><div id="gc-advance-legend" class="gc-advance-legend"></div><div id="gc-advance-chart-wrap" class="gc-advance-chart-wrap"><div id="gc-advance-chart" class="gc-advance-chart" role="img" aria-label="Ventas netas por agente y período"></div></div><p class="gc-advance-chart-note">Pasa el cursor sobre una barra o punto para consultar el importe exacto. El panorama inferior contiene todos los valores.</p></div>
                 <div class="gc-advance-results">
-                    <section class="gc-advance-block"><div class="gc-advance-block-head"><span class="gc-kicker">1 · Resumen ejecutivo</span><h4>KPIs clave</h4></div><div id="gc-advance-kpis" class="gc-advance-kpis"></div><div id="gc-advance-units" class="gc-advance-units"></div></section>
-                    <div class="gc-advance-insights"><section class="gc-advance-block"><div class="gc-advance-block-head"><span class="gc-kicker">2 · Interpretación</span><h4>Lectura ejecutiva</h4></div><div id="gc-advance-reading" class="gc-advance-copy"></div></section><section class="gc-advance-block"><div class="gc-advance-block-head"><span class="gc-kicker">3 · Seguimiento</span><h4>Alertas y prioridades</h4></div><div id="gc-advance-alerts" class="gc-advance-copy"></div></section></div>
-                    <section class="gc-advance-block"><div class="gc-advance-block-head"><span class="gc-kicker">4 · Detalle</span><h4>Panorama por agente</h4></div><p class="gc-analysis-note">Las columnas siguen el orden de los períodos elegidos. La variación compara el último período con el inmediatamente anterior.</p><div class="gc-table-wrap"><table class="gc-table gc-advance-table"><thead id="gc-advance-head"></thead><tbody id="gc-advance-rows"></tbody></table></div><div id="gc-advance-table-note" class="gc-advance-status"></div></section>
+                    <section class="gc-advance-block gc-advance-summary-block"><div class="gc-advance-block-head"><div><span class="gc-kicker">Resumen ejecutivo</span><h4>KPIs clave</h4></div><p>Resultado de todos los períodos y cambio entre los dos últimos.</p></div><div id="gc-advance-kpis" class="gc-advance-kpis"></div><div id="gc-advance-units" class="gc-advance-units"></div></section>
+                    <div class="gc-advance-insights"><section class="gc-advance-block gc-advance-reading-block"><div class="gc-advance-block-head"><div><span class="gc-kicker">Interpretación</span><h4>Lectura ejecutiva</h4></div><i class="fa fa-line-chart" aria-hidden="true"></i></div><div id="gc-advance-reading" class="gc-advance-copy"></div></section><section class="gc-advance-block gc-advance-alert-block"><div class="gc-advance-block-head"><div><span class="gc-kicker">Seguimiento</span><h4>Alertas y prioridades</h4></div><i class="fa fa-flag" aria-hidden="true"></i></div><div id="gc-advance-alerts" class="gc-advance-copy"></div></section></div>
+                    <section class="gc-advance-block"><div class="gc-advance-block-head"><div><span class="gc-kicker">Detalle</span><h4>Panorama por agente</h4></div><p>Valores por período, crecimiento y participación.</p></div><p class="gc-analysis-note">Las columnas siguen el orden elegido. La variación compara el último período con el anterior.</p><div class="gc-table-wrap"><table class="gc-table gc-advance-table"><thead id="gc-advance-head"></thead><tbody id="gc-advance-rows"></tbody></table></div><div id="gc-advance-table-note" class="gc-advance-status"></div></section>
                 </div>
             </article>
         </div>
@@ -173,5 +173,5 @@
 @section scripts {
     <script src="@Url.Content("~/Scripts/App/gerencia-comercial.js?v=4")"></script>
     <script src="@Url.Content("~/Scripts/App/gerencia-comercial-analisis.js?v=1")"></script>
-    <script src="@Url.Content("~/Scripts/App/gerencia-comercial-avances.js?v=1")"></script>
+    <script src="@Url.Content("~/Scripts/App/gerencia-comercial-avances.js?v=2")"></script>
 }

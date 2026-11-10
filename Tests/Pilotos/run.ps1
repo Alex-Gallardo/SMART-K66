@@ -10,6 +10,7 @@ if(Get-Command node -ErrorAction SilentlyContinue) {
     }
 } else { throw 'Node.js es necesario para validar el lector QR de garita.' }
 $project=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/DiamDev.Give.UI.csproj') -Raw
+if($project -notmatch 'Scripts\\garita-cargo\.js') { throw 'El visor de facturas de Garita debe publicarse con la aplicación.' }
 $garitaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/GaritaRutaDA.cs') -Raw
 $empresaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoAdministracionRutaDA.cs') -Raw
 $documentoAdminDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoAdministracionDocumentoDA.cs') -Raw

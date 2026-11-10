@@ -185,3 +185,15 @@ footer{text-align:center;color:#667d88;font-size:13px;padding:25px;border-top:1p
 .state{white-space:normal}
 .topbar{padding:12px}
 }
+
+/* Consulta de facturas en el cargamento de Garita. */
+.customer-delivered{border-color:#16844f}
+.customer-warning{border-color:#d68719}
+.cargo-document{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:70px;padding:3px 0;background:transparent;border:0;border-radius:10px;color:#123c55;text-align:left;cursor:pointer}
+.cargo-document:hover{background:#f1f8fa}.cargo-document-main{min-width:0;overflow-wrap:anywhere}.cargo-document-side{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none;text-align:right}.cargo-document-side small{font-weight:700;color:#155b85}
+.cargo-result{display:inline-block;width:max-content;max-width:100%;padding:6px 9px;border-radius:8px;font-size:12px;font-weight:900;letter-spacing:.02em;white-space:normal;text-align:center}
+.cargo-result-delivered{background:#dcf3e7;color:#08623a}.cargo-result-warning{background:#fff0d3;color:#80500a}.cargo-result-pending{background:#e9f0f4;color:#435d6b}
+.cargo-dialog{width:min(94vw,620px);max-height:86vh;overflow:auto;padding:24px;border:1px solid #bfd5df;border-radius:20px;color:#123c55;box-shadow:0 24px 70px #10384c55}.cargo-dialog::backdrop{background:#0e304ab3}.cargo-dialog-head{display:flex;justify-content:space-between;gap:18px;margin-bottom:16px}.cargo-dialog-head h2{margin:4px 0;font-size:25px}.cargo-dialog-head p{margin:0;color:#526d7b}.cargo-dialog-close{width:44px;height:44px;flex:none;border-radius:11px;background:#eaf3f7;color:#123c55;font-size:29px;line-height:1}.cargo-dialog-source{font-size:13px;color:#536d7a;margin:8px 0 16px}
+.cargo-dialog-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 18px}.cargo-dialog-facts>div{min-width:0;padding:10px 12px;border:1px solid #dce8ed;border-radius:10px;background:#f9fcfd}.cargo-dialog-facts dt{font-size:12px;font-weight:800;color:#526d7b}.cargo-dialog-facts dd{margin:3px 0 0;font-weight:700;overflow-wrap:anywhere}.cargo-dialog-note{border-top:1px solid #dce8ed;padding:12px 0}.cargo-dialog-note p{margin:5px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}.cargo-dialog-photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.cargo-dialog-photos figure{margin:0;padding:8px;border:1px solid #dce8ed;border-radius:10px}.cargo-dialog-photos figure[hidden]{display:none}.cargo-dialog-photos img{display:block;width:100%;max-height:250px;object-fit:contain}.cargo-dialog-photos figcaption{text-align:center;font-size:13px;font-weight:700;margin-top:6px}.cargo-dialog-empty{color:#526d7b}
+@media(max-width:600px){.cargo-document{align-items:start}.cargo-document-side{max-width:45%}.cargo-dialog{padding:17px}.cargo-dialog-facts{grid-template-columns:1fr}.cargo-dialog-photos{grid-template-columns:1fr}}
+.cargo-dialog{box-sizing:border-box}

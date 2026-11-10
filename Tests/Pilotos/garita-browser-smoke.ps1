@@ -4,11 +4,12 @@ if(!(Test-Path -LiteralPath $ChromePath)) { throw 'Chrome no está disponible pa
 $repo=(Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 $bin=Join-Path $PSScriptRoot 'bin'
 $css=([Uri](Join-Path $repo 'DiamDev.Give.UI/Content/garita.css')).AbsoluteUri
+$cargoJs=([Uri](Join-Path $repo 'DiamDev.Give.UI/Scripts/garita-cargo.js')).AbsoluteUri
 $smoke=Join-Path $bin 'garita-browser-smoke.html'
-foreach($name in @('vacia','lista','sin-resultados','diferencia','abierta','en-ruta','salida','empresa-pendiente','empresa-asignada','cerrada','entrada')) {
+foreach($name in @('vacia','lista','sin-resultados','diferencia','abierta','en-ruta','salida','empresa-pendiente','empresa-asignada','cerrada','entrada','cargo')) {
     $body=Get-Content -LiteralPath (Join-Path $bin ('garita-'+$name+'.html')) -Raw
     $probe=@"
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="$css"></head><body><main>$body</main>
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="$css"></head><body><main>$body</main><script src="$cargoJs"></script>
 <script>
 (function(){try{
 function check(x,m){if(!x)throw new Error(m);}
@@ -33,6 +34,18 @@ if('$name'==='empresa-pendiente') check(form && document.body.textContent.indexO
 if('$name'==='empresa-asignada') check(form && document.body.textContent.indexOf('JUAN PEREZ')>=0,'garita no mostró conductor asignado');
 if('$name'==='cerrada') {var entry=document.querySelector('#register-entry-form');check(entry && !form && document.body.textContent.indexOf('Sin hora de entrada')>=0,'cerrada debe poder registrar entrada');check(entry.enctype==='multipart/form-data' && entry.querySelector('textarea[name="Observacion"]') && entry.querySelector('input[type="file"][name="foto"]'),'entrada debe aceptar observación y foto opcionales');}
 if('$name'==='entrada') check(!document.querySelector('#register-entry-form') && !form && document.body.textContent.indexOf('Hora de entrada:')>=0 && document.body.textContent.indexOf('Regresó con carga')>=0 && document.body.textContent.indexOf('Ver foto de entrada')>=0,'entrada duplicada disponible y evidencia visible');
+if('$name'==='cargo') {
+ check(document.querySelectorAll('.customer-delivered').length===1 && document.querySelectorAll('.customer-warning').length===1 && document.querySelectorAll('.customer-pending').length===1,'bordes de clientes incorrectos');
+ var delivered=document.querySelector('.cargo-document[data-documento="FAC-ENTREGADA"]');
+ check(delivered && delivered.querySelector('.cargo-result-delivered') && delivered.dataset.fotoDoc.indexOf('FotoPiloto')>=0 && delivered.dataset.fotoCliente.indexOf('FotoPiloto')>=0,'estado o enlaces de fotos de factura entregada');
+ delivered.click();var modal=document.getElementById('cargo-document-dialog');
+ check(modal.open && document.getElementById('cargo-dialog-observacion').textContent==='Recibió en bodega' && document.getElementById('cargo-dialog-monto').textContent.indexOf('120')>=0,'modal no muestra detalles de factura');
+ check(!document.getElementById('cargo-dialog-photo-doc').hidden && !document.getElementById('cargo-dialog-photo-client').hidden,'modal no muestra fotos disponibles');
+ document.getElementById('cargo-dialog-close').click();check(!modal.open && document.activeElement===delivered,'modal no se cierra o no devuelve el foco');
+ document.querySelector('.cargo-document[data-documento="FAC-NO-ENTREGADA"]').click();
+ check(modal.open && document.getElementById('cargo-dialog-motivo').textContent==='TIEMPO RUTA' && !document.getElementById('cargo-dialog-no-photo').hidden,'modal no muestra motivo o ausencia de fotos');
+ modal.close();
+}
 document.documentElement.setAttribute('data-garita-smoke','PASS');
 }catch(e){document.documentElement.setAttribute('data-garita-smoke','FAIL: '+e.message);}})();
 </script></body></html>

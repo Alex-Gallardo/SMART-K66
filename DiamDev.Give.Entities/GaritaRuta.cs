@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Xml.Linq;
 
 namespace DiamDev.Give.Entities
 {
@@ -136,6 +137,46 @@ namespace DiamDev.Give.Entities
         // El límite de antigüedad aplica solo al listado de cerradas, no al detalle ni al registro de entrada.
         public static DateTime CerradasDesde(DateTime hoyLocal) { return hoyLocal.Date.AddDays(-3); }
         public static DateTime CerradasAntesDe(DateTime hoyLocal) { return hoyLocal.Date.AddDays(1); }
+        public static string Resultado(PilotoDocumento d)
+        {
+            if(d==null) return null;
+            var valor=!string.IsNullOrWhiteSpace(d.ResultadoPiloto)?d.ResultadoPiloto:d.Entrega;
+            return string.IsNullOrWhiteSpace(valor)?null:valor.Trim().ToUpperInvariant();
+        }
+        public static string EstadoCliente(IEnumerable<PilotoDocumento> documentos)
+        {
+            var estados=(documentos??Enumerable.Empty<PilotoDocumento>()).Select(Resultado).ToList();
+            if(estados.Any(e=>!string.IsNullOrWhiteSpace(e) && e!="ENTREGADO")) return "warning";
+            return estados.Count>0 && estados.All(e=>e=="ENTREGADO") ? "delivered" : "pending";
+        }
+        public static bool AplicarResultadoTemporal(IList<PilotoDocumento> grupo,string xml)
+        {
+            if(grupo==null || grupo.Count==0 || grupo.Any(d=>!string.IsNullOrWhiteSpace(d.Entrega)) || string.IsNullOrWhiteSpace(xml)) return false;
+            try
+            {
+                var raiz=XElement.Parse(xml);
+                if(raiz.Name!="documentos") return false;
+                var resultados=raiz.Elements("d").Select(x=>new PilotoResultado {
+                    RowId=int.Parse((string)x.Attribute("id"),CultureInfo.InvariantCulture),
+                    Visito=string.IsNullOrEmpty((string)x.Element("visito"))?(bool?)null:bool.Parse((string)x.Element("visito")),
+                    Entrega=(string)x.Element("entrega"),Motivo=(string)x.Element("motivo"),Observaciones=(string)x.Element("observaciones")
+                }).ToList();
+                if(!resultados.Select(d=>d.RowId).OrderBy(x=>x).SequenceEqual(grupo.Select(d=>d.RowId).OrderBy(x=>x))) return false;
+                foreach(var d in resultados) PilotoReglas.ValidarResultado(d);
+                foreach(var d in grupo)
+                {
+                    var guardado=resultados.Single(x=>x.RowId==d.RowId);
+                    d.ResultadoPiloto=guardado.Entrega;d.VisitoPiloto=guardado.Visito;
+                    d.MotivoPiloto=guardado.Motivo;d.ObservacionPiloto=guardado.Observaciones;
+                }
+                return true;
+            }
+            catch(Exception e)
+            {
+                if(e is FormatException || e is System.Xml.XmlException || e is InvalidOperationException || e is ArgumentException || e is PilotoException || e is OverflowException) return false;
+                throw;
+            }
+        }
         public static string Id(string id)
         {
             id=(id??"").Trim();

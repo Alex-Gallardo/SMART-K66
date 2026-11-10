@@ -64,6 +64,10 @@ namespace DiamDev.Give.Entities
         public string Tipo { get; set; }
         public string Empresa { get; set; }
         public string Documento { get; set; }
+        public DateTime? FechaDocumento { get; set; }
+        public string FelSerie { get; set; }
+        public string FelNumero { get; set; }
+        public decimal? Monto { get; set; }
         public string Cliente { get; set; }
         public string Direccion { get; set; }
         public decimal Bultos { get; set; }
@@ -73,6 +77,12 @@ namespace DiamDev.Give.Entities
         public string Observaciones { get; set; }
         // Valor temporal del formulario; no forma parte del estado persistido ni de la version.
         public string ObservacionPiloto { get; set; }
+        // Consulta de Garita: resultado POS completado antes del cierre en APK66.
+        public string ResultadoPiloto { get; set; }
+        public bool? VisitoPiloto { get; set; }
+        public string MotivoPiloto { get; set; }
+        public int PrimerRowIdCliente { get; set; }
+        public bool TieneImagenCliente { get; set; }
         public TimeSpan? Entrada { get; set; }
         public TimeSpan? Salida { get; set; }
         public bool TieneImagen { get; set; }

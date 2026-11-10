@@ -1631,6 +1631,7 @@
     <Content Include="Views\Liquidacion\Detalle.cshtml" />
     <Content Include="Views\Liquidacion\Error.cshtml" />
     <Content Include="Scripts\garita-qr.js" />
+    <Content Include="Scripts\garita-cargo.js" />
     <Content Include="Scripts\qr-scanner\qr-scanner.umd.min.js" />
     <Content Include="Scripts\qr-scanner\qr-scanner-worker.min.js" />
     <Content Include="Scripts\qr-scanner\LICENSE" />

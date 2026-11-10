@@ -1,4 +1,5 @@
 @using System.Linq
+@using DiamDev.Give.Entities
 @model DiamDev.Give.Entities.GaritaRuta
 @{
     Layout = "~/Views/Shared/_GaritaLayout.cshtml";
@@ -193,13 +194,40 @@ if (cerrada && Model.PuedeRegistrarEntrada)
     {<div class="notice info"><strong>Nota de Distribución:</strong> @Model.Observacion</div>}
     @foreach (var grupo in Model.Documentos.GroupBy(d => new { d.Cliente, d.Direccion }))
     {
-        <div class="customer">
+        <div class="customer customer-@GaritaReglas.EstadoCliente(grupo)">
             <div class="customer-heading"><span class="customer-icon" aria-hidden="true">📦</span><div><h3>@(string.IsNullOrWhiteSpace(grupo.Key.Cliente)?"Cliente sin nombre":grupo.Key.Cliente)</h3><p>@grupo.Key.Direccion</p></div><span class="customer-count">@grupo.Count() doc.</span></div>
             <ul class="documents">@foreach (var d in grupo)
-            {<li><span><strong>@d.Documento</strong><small>@d.Tipo · @d.Empresa</small></span><b>@d.Bultos.ToString("0.###") bultos</b></li>}</ul>
+            {
+                var resultado=GaritaReglas.Resultado(d);
+                var clase=resultado=="ENTREGADO"?"delivered":string.IsNullOrWhiteSpace(resultado)?"pending":"warning";
+                var etiqueta=resultado=="ENTREGADO"?"ENTREGADA":resultado=="NO ENTREGADO"?"NO ENTREGADA":resultado=="INCIDENCIA"?"INCIDENCIA":string.IsNullOrWhiteSpace(resultado)?"PENDIENTE":resultado;
+                var visito=d.ResultadoPiloto!=null?d.VisitoPiloto:d.Visito;
+                var motivo=d.ResultadoPiloto!=null?d.MotivoPiloto:d.Motivo;
+                var observacion=d.ResultadoPiloto!=null?d.ObservacionPiloto:d.Observaciones;
+                <li><button type="button" class="cargo-document" aria-label="Ver factura @d.Documento: @etiqueta"
+                    data-documento="@d.Documento" data-tipo="@d.Tipo" data-empresa="@d.Empresa" data-cliente="@d.Cliente" data-direccion="@d.Direccion"
+                    data-resultado="@etiqueta" data-clase="@clase" data-fuente="@(d.ResultadoPiloto!=null?"POS · pendiente de cierre":string.IsNullOrWhiteSpace(resultado)?"Sin registrar":"APK66")"
+                    data-visito="@(visito.HasValue?(visito.Value?"Sí":"No"):"Sin registrar")" data-motivo="@motivo" data-observacion="@observacion"
+                    data-bultos="@d.Bultos.ToString("0.###")" data-fecha="@(d.FechaDocumento.HasValue?d.FechaDocumento.Value.ToString("dd/MM/yyyy"):"")"
+                    data-fel="@((d.FelSerie??"")+(!string.IsNullOrWhiteSpace(d.FelNumero)?" · "+d.FelNumero:""))" data-monto="@(d.Monto.HasValue?d.Monto.Value.ToString("N2"):"")"
+                    data-entrada="@(d.Entrada.HasValue?d.Entrada.Value.ToString(@"hh\:mm\:ss"):"")" data-salida="@(d.Salida.HasValue?d.Salida.Value.ToString(@"hh\:mm\:ss"):"")"
+                    data-foto-doc="@(d.TieneImagen?Url.Action("FotoPiloto","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id,rowId=d.RowId}):"")"
+                    data-foto-cliente="@(d.TieneImagenCliente?Url.Action("FotoPiloto","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id,rowId=d.PrimerRowIdCliente,cliente=true}):"")">
+                    <span class="cargo-document-main"><strong>@(string.IsNullOrWhiteSpace(d.Documento)?"Documento sin número":d.Documento)</strong><small>@d.Tipo · @d.Empresa</small></span>
+                    <span class="cargo-document-side"><span class="cargo-result cargo-result-@clase">@etiqueta</span><b>@d.Bultos.ToString("0.###") bultos</b><small>Ver detalle →</small></span>
+                </button></li>
+            }</ul>
         </div>
     }
 </section>
+<dialog id="cargo-document-dialog" class="cargo-dialog" aria-labelledby="cargo-dialog-title">
+    <div class="cargo-dialog-head"><div><span class="step">FACTURA · DETALLE</span><h2 id="cargo-dialog-title">Factura</h2><p id="cargo-dialog-subtitle"></p></div><button type="button" id="cargo-dialog-close" class="cargo-dialog-close" aria-label="Cerrar detalle">×</button></div>
+    <span id="cargo-dialog-result" class="cargo-result"></span><p id="cargo-dialog-source" class="cargo-dialog-source"></p>
+    <dl class="cargo-dialog-facts"><div><dt>Cliente</dt><dd id="cargo-dialog-cliente"></dd></div><div><dt>Dirección</dt><dd id="cargo-dialog-direccion"></dd></div><div><dt>Bultos</dt><dd id="cargo-dialog-bultos"></dd></div><div><dt>Visitó</dt><dd id="cargo-dialog-visito"></dd></div><div><dt>Fecha del documento</dt><dd id="cargo-dialog-fecha"></dd></div><div><dt>Serie y número FEL</dt><dd id="cargo-dialog-fel"></dd></div><div><dt>Monto</dt><dd id="cargo-dialog-monto"></dd></div><div><dt>Entrada / salida del cliente</dt><dd id="cargo-dialog-horas"></dd></div></dl>
+    <div class="cargo-dialog-note"><strong>Motivo</strong><p id="cargo-dialog-motivo"></p></div><div class="cargo-dialog-note"><strong>Observaciones</strong><p id="cargo-dialog-observacion"></p></div>
+    <div id="cargo-dialog-photos" class="cargo-dialog-photos"><figure id="cargo-dialog-photo-doc" hidden><img alt="Fotografía de la factura agregada por el piloto" /><figcaption>Foto de la factura</figcaption></figure><figure id="cargo-dialog-photo-client" hidden><img alt="Fotografía del cliente agregada por el piloto" /><figcaption>Foto del cliente</figcaption></figure></div>
+    <p id="cargo-dialog-no-photo" class="cargo-dialog-empty">Sin fotografías adjuntas.</p>
+</dialog>
 if (Model.PuedeReportarDiferencia)
 {
     <section class="action-card">
@@ -227,6 +255,7 @@ if (Model.PuedeReportarDiferencia)
 @section scripts {
     <script src="@Url.Content("~/Scripts/qr-scanner/qr-scanner.umd.min.js")"></script>
     <script src="@Url.Content("~/Scripts/garita-qr.js")"></script>
+    <script src="@Url.Content("~/Scripts/garita-cargo.js")"></script>
     <script>
 (function(){
         function prepararFoto(id,previewId,clearId){

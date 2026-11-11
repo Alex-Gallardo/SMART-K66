@@ -60,6 +60,16 @@ namespace DiamDev.Give.DAL
             return lista;
         }
 
+        /// <summary>Filtra únicamente la búsqueda de clientes de Recibos de Caja.</summary>
+        public List<ClienteHana> FiltrarClientesActivosRecibo(
+            string empresa, IEnumerable<ClienteHana> candidatos)
+        {
+            string schema = ResolverSchema(empresa);
+            if (schema == null) return new List<ClienteHana>();
+            return ReciboCajaClientesActivos.Filtrar(
+                schema, candidatos, HanaHelper.EjecutarConsulta);
+        }
+
         /// <summary>Lectura detallada del cliente seleccionado; nunca modifica SAP.</summary>
         public ClienteSapDetalle ObtenerClienteDetalle(string empresa, string codigo)
         {

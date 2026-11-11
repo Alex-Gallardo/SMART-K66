@@ -66,6 +66,7 @@
     <Compile Include="ClienteCrmDA.cs" />
     <Compile Include="HanaHelper.cs" />
     <Compile Include="HanaRepository.cs" />
+    <Compile Include="ReciboCajaClientesActivos.cs" />
     <Compile Include="GerenciaComercialDA.cs" />
     <Compile Include="GerenciaComercialAnalisisDA.cs" />
     <Compile Include="GerenciaComercialAvancesDA.cs" />

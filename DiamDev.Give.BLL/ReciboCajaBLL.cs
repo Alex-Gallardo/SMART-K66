@@ -135,12 +135,14 @@ namespace DiamDev.Give.BLL
         public List<ClienteHana> BuscarClientes(string empresa, string agente, string filtro)
         {
             var todos = _hana.BuscarClientes(empresa, agente);
-            if (string.IsNullOrWhiteSpace(filtro)) return todos.Take(50).ToList();
-
-            var f = filtro.ToUpper();
-            return todos
+            bool sinFiltro = string.IsNullOrWhiteSpace(filtro);
+            var f = sinFiltro ? "" : filtro.ToUpper();
+            var candidatos = sinFiltro ? todos : todos
                 .Where(c => c.CardCode.ToUpper().Contains(f) || c.CardName.ToUpper().Contains(f))
-                .Take(30)
+                .ToList();
+
+            return _hana.FiltrarClientesActivosRecibo(empresa, candidatos)
+                .Take(sinFiltro ? 50 : 30)
                 .ToList();
         }
 

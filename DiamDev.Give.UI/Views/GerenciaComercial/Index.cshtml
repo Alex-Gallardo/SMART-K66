@@ -1,72 +1,54 @@
 @{ Layout = "~/Views/Shared/_Layout.cshtml"; ViewBag.Title = "Gerencia Comercial · Analytics"; }
-@section styles { <link href="@Url.Content("~/Content/gerencia-comercial-analytics.css?v=1")" rel="stylesheet" /> }
-<div class="ka" id="k66-analytics" data-theme="all" data-panel="@Url.Action("AnalyticsPanel")" data-detail="@Url.Action("AnalyticsDetalle")" data-profile="@Url.Action("AnalyticsPerfil")" data-excel="@Url.Action("AnalyticsExcel")">
-<div class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-        <div class="brand-icon"><i></i><i></i><i></i></div>
-        <div><strong>Analisis de Ventas</strong><small>Reportes de Ventas K66</small></div>
-      </div>
-      <div class="sidebar-caption">ESPACIO DE TRABAJO</div>
-      <nav id="nav">
-        <button class="nav-link active" data-view="dashboard"><span class="nav-icon">▦</span> Dashboard</button>
-        <button class="nav-link" data-view="general"><span class="nav-icon">▥</span> Venta General</button>
-        <button class="nav-link" data-view="agentes"><span class="nav-icon">♙</span> Agentes</button>
-        <button class="nav-link" data-view="perfil-agente"><span class="nav-icon">◉</span> Dashboard de agentes</button>
-        <button class="nav-link" data-view="clientes"><span class="nav-icon">♧</span> Clientes</button>
-        <button class="nav-link" data-view="productos"><span class="nav-icon">◇</span> Productos</button>
-        <button class="nav-link" data-view="producto-agente"><span class="nav-icon">▤</span> Producto–Agente</button>
-      <a class="nav-link" href="@Url.Action("Operaciones")">Consultas operativas y reportes</a></nav>
-      <div class="sidebar-bottom">
-        <div class="system-card">
-          <div class="mini-heading">Estado de la plataforma</div>
-          <div class="system-online"><span class="status-dot"></span> Consulta de SAP HANA <span
-              class="signal">▂ ▄ ▆</span></div>
-        </div>
-        <p>© 2026 · K66 Analytics</p>
-      </div>
-    </aside>
-    <main class="main-content">
-      <header class="topbar">
-        <div class="top-title"><button class="mobile-menu" id="mobileMenu" aria-label="Abrir menú">☰</button>
+@section styles { <link href="@Url.Content("~/Content/gerencia-comercial-analytics.css?v=2")" rel="stylesheet" /> }
+<div class="gca" id="k66-analytics" data-theme="all" data-panel="@Url.Action("AnalyticsPanel")" data-detail="@Url.Action("AnalyticsDetalle")" data-profile="@Url.Action("AnalyticsPerfil")" data-excel="@Url.Action("AnalyticsExcel")">
+<div class="gca-app-shell">
+    <div class="gca-navigation"><nav class="gca-section-nav" aria-label="Vistas comerciales"><button class="gca-nav-link active" type="button" data-view="dashboard" aria-current="page"><i class="icon-dashboard" aria-hidden="true"></i>Resumen</button><button class="gca-nav-link" type="button" data-view="general" aria-current="false"><i class="icon-bar-chart" aria-hidden="true"></i>Venta general</button><button class="gca-nav-link" type="button" data-view="agentes" aria-current="false"><i class="icon-group" aria-hidden="true"></i>Agentes</button><button class="gca-nav-link" type="button" data-view="perfil-agente" aria-current="false"><i class="icon-user" aria-hidden="true"></i>Perfil de agente</button><button class="gca-nav-link" type="button" data-view="clientes" aria-current="false"><i class="icon-user" aria-hidden="true"></i>Clientes</button><button class="gca-nav-link" type="button" data-view="productos" aria-current="false"><i class="icon-th-large" aria-hidden="true"></i>Productos</button><button class="gca-nav-link" type="button" data-view="producto-agente" aria-current="false"><i class="icon-exchange" aria-hidden="true"></i>Producto–agente</button></nav><a class="gca-operations-link" href="@Url.Action("Operaciones")"><i class="icon-folder-open" aria-hidden="true"></i> Consultas y reportes</a></div>
+    <main class="gca-main-content">
+      <header class="gca-topbar">
+        <div class="gca-top-title">
           <div>
-            <div class="eyebrow">INTELIGENCIA DE NEGOCIOS / VENTAS</div>
-            <h1 id="pageTitle">Resumen comercial</h1>
+            <div class="gca-eyebrow">Análisis comercial</div>
+            <h2 id="pageTitle">Resumen comercial</h2>
             <p id="pageSubtitle">Análisis de ventas por empresa, agentes, clientes y productos</p>
           </div>
         </div>
-        <div class="top-actions">
-          <div class="company-tabs" role="group" aria-label="Empresa"><button data-company="all"
+        <div class="gca-top-actions">
+          <div class="gca-company-tabs" role="group" aria-label="Empresa"><button data-company="all"
               class="selected">Todas</button><button data-company="GRACO">GRACO</button><button
               data-company="FAES">FAES</button><button data-company="BOLIK">BOLIK</button></div><button id="exportBtn"
-            class="btn btn-accent"><span>⇩</span> Exportar Excel</button>
+            class="gca-btn gca-btn-accent"><i class="icon-download-alt" aria-hidden="true"></i> Exportar Excel</button>
         </div>
       </header>
-      <div id="printContext" class="print-context"></div><section class="toolbar glass">
-        <div class="toolbar-dates"><span class="calendar-glyph">▣</span><label>Desde<input type="date" id="startDate"
-              value="2026-01-01" /></label><span class="date-separator">—</span><label>Hasta<input type="date"
-              id="endDate" value="2026-10-31" /></label><button class="btn btn-outline" id="applyBtn">Aplicar</button>
+      <div id="printContext" class="gca-print-context"></div>
+      <section class="gca-toolbar" aria-label="Filtros de la comparación">
+        <div class="gca-filter-main">
+          <label class="gca-field">Desde<input type="date" id="startDate" /></label>
+          <label class="gca-field">Hasta<input type="date" id="endDate" /></label>
+          <label class="gca-field">Moneda<select id="currency"><option>GTQ</option><option>USD</option></select></label>
+          <button class="gca-btn gca-btn-primary" id="applyBtn" type="button"><i class="icon-filter" aria-hidden="true"></i> Aplicar filtros</button>
         </div>
-        <div class="toolbar-meta"><label>Moneda <select id="currency"><option>GTQ</option><option>USD</option></select></label><label>Cobertura <select id="coverage"><option value="false">Completa</option><option value="true">Exclusiones Analytics</option></select></label><button id="printBtn" class="btn btn-outline" type="button">PDF / Imprimir vista</button><span class="demo-tag">NETO DE LÍNEAS SAP · MONEDA DOCUMENTAL</span><span
-            id="periodLabel">Comparativo con 2025</span></div>
+        <div class="gca-filter-bottom"><span id="periodLabel" role="status" aria-live="polite">Preparando comparación…</span><div class="gca-filter-tools">
+          <details class="gca-criteria"><summary>Criterios de consulta</summary><div><label class="gca-field">Cobertura<select id="coverage"><option value="false">Completa</option><option value="true">Exclusiones Analytics</option></select></label><p>Ventas netas de artículos sin impuesto, por moneda documental. La cobertura Analytics excluye CL0149, OTROS y EMPLEADOS.</p></div></details>
+          <button id="printBtn" class="gca-btn gca-btn-outline" type="button"><i class="icon-print" aria-hidden="true"></i> PDF / Imprimir</button>
+        </div></div>
       </section>
-      <div id="message" class="message" hidden></div>
-      <section id="dashboardView" class="view active">
-        <div class="kpi-grid" id="kpis"></div>
-        <div class="dash-grid">
-          <article class="glass panel trend-panel">
-            <div class="panel-heading">
+      <div id="message" class="gca-message" role="alert" aria-live="polite" hidden></div>
+      <section id="dashboardView" class="gca-view active">
+        <div class="gca-kpi-grid" id="kpis"></div>
+        <div class="gca-dash-grid">
+          <article class="gca-glass gca-panel gca-trend-panel">
+            <div class="gca-panel-heading">
               <div>
                 <h2>Tendencia de ventas</h2>
                 <p>Comparación mensual · año actual vs. anterior</p>
               </div>
-              <div class="legend"><span><i class="dot accent-dot"></i> Actual</span><span><i
-                    class="dot previous-dot"></i> Anterior</span></div>
+              <div class="gca-legend"><span><i class="gca-dot gca-accent-dot"></i> Actual</span><span><i
+                    class="gca-dot gca-previous-dot"></i> Anterior</span></div>
             </div>
-            <div id="trendChart" class="chart-container"></div>
+            <div id="trendChart" class="gca-chart-container"></div>
           </article>
-          <article class="glass panel companies-panel">
-            <div class="panel-heading">
+          <article class="gca-glass gca-panel gca-companies-panel">
+            <div class="gca-panel-heading">
               <div>
                 <h2>Ventas por empresa</h2>
                 <p>Desempeño en el período seleccionado</p>
@@ -74,79 +56,79 @@
             </div>
             <div id="companyBars"></div>
           </article>
-          <article class="glass panel donut-panel">
-            <div class="panel-heading">
+          <article class="gca-glass gca-panel gca-donut-panel">
+            <div class="gca-panel-heading">
               <h2>Participación por empresa</h2>
             </div>
             <div id="companyDonut"></div>
           </article>
-          <article class="glass panel donut-panel">
-            <div class="panel-heading">
+          <article class="gca-glass gca-panel gca-donut-panel">
+            <div class="gca-panel-heading">
               <h2>Ventas por tipo</h2>
             </div>
             <div id="typeDonut"></div>
           </article>
-          <article class="glass panel agent-panel">
-            <div class="panel-heading">
-              <h2>Top 5 agentes</h2><span class="subtle">Ventas del período</span>
+          <article class="gca-glass gca-panel gca-agent-panel">
+            <div class="gca-panel-heading">
+              <h2>Top 5 agentes</h2><span class="gca-subtle">Ventas del período</span>
             </div>
             <div id="topAgents"></div>
           </article>
-          <article class="glass panel overview-panel">
-            <div class="panel-heading">
-              <h2>Venta general por empresa y tipo</h2><button class="text-button" data-goto="general">Ver detalle
+          <article class="gca-glass gca-panel gca-overview-panel">
+            <div class="gca-panel-heading">
+              <h2>Venta general por empresa y tipo</h2><button class="gca-text-button" data-goto="general">Ver detalle
                 ↗</button>
             </div>
-            <div class="table-scroll">
+            <div class="gca-table-scroll">
               <table id="overviewTable"></table>
             </div>
           </article>
-          <article class="glass panel products-panel">
-            <div class="panel-heading">
-              <h2>Top 5 productos</h2><button class="text-button" data-goto="productos">Ver productos ↗</button>
+          <article class="gca-glass gca-panel gca-products-panel">
+            <div class="gca-panel-heading">
+              <h2>Top 5 productos</h2><button class="gca-text-button" data-goto="productos">Ver productos ↗</button>
             </div>
             <div id="topProducts"></div>
           </article>
         </div>
       </section>
-      <section id="agentProfileView" class="view">
-        <div class="glass agent-profile-toolbar">
+      <section id="agentProfileView" class="gca-view">
+        <div class="gca-glass gca-agent-profile-toolbar">
           <div>
-            <div class="eyebrow">PERFIL COMERCIAL</div>
-            <h2>Dashboard individual de agente</h2>
-            <p>Ventas netas, clientes y productos · comparativo interanual</p>
+            <div class="gca-eyebrow">PERFIL COMERCIAL</div>
+            <h2>Selecciona el agente</h2>
+            <p>Consulta sus ventas, clientes y productos del período.</p>
           </div>
-          <label class="agent-select-label">Agente con movimientos en los períodos
+          <label class="gca-agent-select-label">Agente con movimientos en los períodos
             <select id="profileAgent" aria-label="Agente para analizar">
               <option value="">Seleccionar agente</option>
             </select>
           </label>
-          <button class="btn btn-accent" id="profileExport">⇩ Exportar perfil</button>
+          <button class="gca-btn gca-btn-accent" id="profileExport">⇩ Exportar perfil</button>
         </div>
-        <div id="profileEmpty" class="glass empty-profile">Seleccioná un agente para mostrar sus resultados.</div>
+        <div id="profileEmpty" class="gca-glass gca-empty-profile">Seleccioná un agente para mostrar sus resultados.</div>
         <div id="profileContent" hidden>
-          <div class="profile-heading glass">
-            <div class="profile-avatar">AG</div>
+          <div class="gca-profile-heading gca-glass">
+            <div class="gca-profile-avatar">AG</div>
             <div>
-              <div class="eyebrow">RESUMEN POR AGENTE</div>
-              <h2 id="profileName">—</h2><span id="profilePeriod" class="subtle"></span>
+              <div class="gca-eyebrow">RESUMEN POR AGENTE</div>
+              <h2 id="profileName">—</h2><span id="profilePeriod" class="gca-subtle"></span>
             </div>
           </div>
-          <div id="profileKpis" class="kpi-grid profile-kpis"></div>
-          <div class="profile-grid">
-            <article class="glass panel profile-trend">
-              <div class="panel-heading">
+          <div id="profileKpis" class="gca-kpi-grid gca-profile-kpis"></div>
+          <div class="gca-profile-grid">
+            <article class="gca-glass gca-panel gca-profile-trend">
+              <div class="gca-panel-heading">
                 <div>
                   <h2>Tendencia mensual del agente</h2>
                   <p>Comparación de ventas por mes</p>
                 </div>
-                <div class="legend"><span><i class="dot accent-dot"></i> Actual</span><span><i
-                      class="dot previous-dot"></i> Anterior</span></div>
+                <div class="gca-legend"><span><i class="gca-dot gca-accent-dot"></i> Actual</span><span><i
+                      class="gca-dot gca-previous-dot"></i> Anterior</span></div>
               </div>
-              <div id="profileTrend" class="chart-container"></div>
+              <div id="profileTrend" class="gca-chart-container"></div>
             </article>
-            <article class="glass panel">
-              <div class="panel-heading">
+            <article class="gca-glass gca-panel">
+              <div class="gca-panel-heading">
                 <div>
                   <h2>Ventas por empresa</h2>
                   <p>Contribución del agente</p>
@@ -154,8 +136,8 @@
               </div>
               <div id="profileCompanies"></div>
             </article>
-            <article class="glass panel">
-              <div class="panel-heading">
+            <article class="gca-glass gca-panel">
+              <div class="gca-panel-heading">
                 <div>
                   <h2>Top 10 clientes</h2>
                   <p>Mayor facturación neta del período</p>
@@ -163,8 +145,8 @@
               </div>
               <div id="profileCustomers"></div>
             </article>
-            <article class="glass panel">
-              <div class="panel-heading">
+            <article class="gca-glass gca-panel">
+              <div class="gca-panel-heading">
                 <div>
                   <h2>Top 10 productos</h2>
                   <p>Ventas y unidades por producto</p>
@@ -173,32 +155,32 @@
               <div id="profileProducts"></div>
             </article>
           </div>
-          <article class="glass panel profile-detail">
-            <div class="panel-heading">
+          <article class="gca-glass gca-panel gca-profile-detail">
+            <div class="gca-panel-heading">
               <div>
                 <h2>Detalle de productos del agente</h2>
                 <p>Podés ordenar haciendo clic en los encabezados</p>
-              </div><span class="subtle" id="profileRowCount"></span><button id="profileDetails" class="text-button" type="button">Explorar todos los productos ↗</button>
+              </div><span class="gca-subtle" id="profileRowCount"></span><button id="profileDetails" class="gca-text-button" type="button">Explorar todos los productos ↗</button>
             </div>
-            <div class="table-scroll">
+            <div class="gca-table-scroll">
               <table id="profileProductsTable"></table>
             </div>
           </article>
         </div>
       </section>
-      <section id="detailView" class="view">
-        <div class="glass detail-wrap">
-          <div class="detail-toolbar">
+      <section id="detailView" class="gca-view">
+        <div class="gca-glass gca-detail-wrap">
+          <div class="gca-detail-toolbar">
             <div>
               <h2 id="detailTitle">Detalle de ventas</h2>
               <p id="detailDesc">Información comparativa del período seleccionado</p>
             </div>
-            <div class="detail-actions">
-              <div class="search-box"><span>⌕</span><input id="searchInput" placeholder="Buscar en esta vista..."
-                  aria-label="Buscar" /></div><span class="row-count" id="rowCount"></span>
+            <div class="gca-detail-actions">
+              <div class="gca-search-box"><i class="icon-search" aria-hidden="true"></i><input id="searchInput" placeholder="Buscar en esta vista..."
+                  aria-label="Buscar" /></div><span class="gca-row-count" id="rowCount"></span>
             </div>
           </div>
-          <div class="advanced-filters" id="advancedFilters">
+          <details class="gca-detail-filters" id="detailFilters"><summary><i class="icon-filter" aria-hidden="true"></i> Filtros avanzados y orden</summary><div class="gca-advanced-filters" id="advancedFilters">
             <label>Agente<select id="filterAgent">
                 <option value="">Todos los agentes</option>
               </select></label>
@@ -210,21 +192,21 @@
                 <option value="desc">Mayor a menor / Z–A</option>
                 <option value="asc">Menor a mayor / A–Z</option>
               </select></label>
-            <button class="btn btn-outline" id="clearFilters">Limpiar filtros</button>
+            <button class="gca-btn gca-btn-outline" id="clearFilters">Limpiar filtros</button>
           </div>
-          <div id="filtersHint" class="filters-hint"></div>
-          <div class="table-scroll detail-table-wrap">
+          </details><div id="filtersHint" class="gca-filters-hint"></div>
+          <div class="gca-table-scroll gca-detail-table-wrap">
             <table id="detailTable"></table>
           </div>
-          <div class="table-footer"><span id="tableInfo"></span>
-            <div class="pagination"><button id="prevPage" class="btn btn-outline">← Anterior</button><span
-                id="pageIndicator"></span><button id="nextPage" class="btn btn-outline">Siguiente →</button></div>
+          <div class="gca-table-footer"><span id="tableInfo"></span>
+            <div class="gca-pagination"><button id="prevPage" class="gca-btn gca-btn-outline">← Anterior</button><span
+                id="pageIndicator"></span><button id="nextPage" class="gca-btn gca-btn-outline">Siguiente →</button></div>
           </div>
         </div>
       </section>
-      <footer class="page-footer">Las cantidades se mantienen por unidad de venta. Local/Exportación se clasifica por prefijo CL del cliente. Cobertura Analytics excluye CL0149, OTROS y EMPLEADOS. Ventas netas calculadas desde SAP HANA · Uso interno autorizado.</footer>
+      <footer class="gca-page-footer">Las cantidades se mantienen por unidad de venta. Local/Exportación se clasifica por prefijo CL del cliente. Cobertura Analytics excluye CL0149, OTROS y EMPLEADOS. Ventas netas calculadas desde SAP HANA · Uso interno autorizado.</footer>
     </main>
   </div>
 
 </div>
-@section scripts { <script src="@Url.Content("~/Scripts/App/gerencia-comercial-analytics.js?v=1")"></script> }
+@section scripts { <script src="@Url.Content("~/Scripts/App/gerencia-comercial-analytics.js?v=2")"></script> }

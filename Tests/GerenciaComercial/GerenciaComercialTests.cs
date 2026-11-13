@@ -165,7 +165,22 @@ public static class GerenciaComercialTests
         if (!string.IsNullOrEmpty(sampleDoce)) System.IO.File.WriteAllBytes(sampleDoce, pdfDoce);
         var pdfVacio = (byte[])pdfMethod.Invoke(null, new object[] { "GRACO", "GTQ", periodosPdf.Take(2).ToList(), ventasPdf.Clone(), unidadesPdf.Clone() });
         Check(System.Text.Encoding.GetEncoding("ISO-8859-1").GetString(pdfVacio).Contains("/Count 3"), "El PDF vacío conserva resumen, lectura y panorama sin fallar.");
-        Console.WriteLine("OK: " + _passed + " verificaciones de filtros, privacidad, detalle y avances.");
+        var analyticsFiltro = (GerenciaComercialDA.Filtro)Invoke("AnalyticsFiltro", "all", desdeAvance, hastaAvance, "USD", 2, 25, "CLIENTE");
+        Check(analyticsFiltro.Empresa == "" && analyticsFiltro.Moneda == "USD", "Analytics valida empresa y moneda antes de consultar.");
+        HanaHelper.Consultas.Clear(); HanaHelper.Parametros.Clear();
+        new GerenciaComercialDA().Analytics(analyticsFiltro, "producto-agente", "FAES|2", "", "P1", "", "current", true, false);
+        var analyticsSql = HanaHelper.Consultas[0];
+        Check(analyticsSql.Contains("\"OINV\"") && analyticsSql.Contains("\"ORIN\"") && analyticsSql.Contains("\"TotalFrgn\""), "Analytics resta créditos y distingue moneda documental.");
+        Check(analyticsSql.Contains("\"agentKey\"") && analyticsSql.Contains("\"SlpCode\"") && analyticsSql.Contains("\"unitMsr\""), "Agentes por empresa y código; cantidades por unidad.");
+        Check(analyticsSql.Contains("ROW_NUMBER()") && analyticsSql.Contains("COUNT(*) OVER()") && analyticsSql.Contains("\"rowNumber\">?"), "Paginación y conteo en SAP.");
+        Check(analyticsSql.Contains("PARTITION BY \"company\"") && !analyticsSql.Contains("CL0149"), "Participación por empresa y cobertura completa predeterminada.");
+        Check(HanaHelper.Parametros[0].Length == 13 && Convert.ToString(HanaHelper.Parametros[0][5].Value) == "FAES|2" && Convert.ToInt32(HanaHelper.Parametros[0][11].Value) == 25, "Filtros e índices de página parametrizados.");
+        HanaHelper.Consultas.Clear();
+        new GerenciaComercialDA().Analytics(analyticsFiltro, "general", orden:"current;DROP TABLE X", origen:true);
+        Check(HanaHelper.Consultas[0].Contains("CL0149") && !HanaHelper.Consultas[0].Contains("DROP TABLE"), "Exclusiones explícitas y orden restringido.");
+        foreach (string endpoint in new[] { "AnalyticsPanel", "AnalyticsDetalle", "AnalyticsPerfil", "AnalyticsExcel", "Operaciones" })
+            Check(typeof(GerenciaComercialController).GetMethod(endpoint).GetCustomAttributes(typeof(System.Web.Mvc.HttpGetAttribute), true).Length == 1, "Endpoint Analytics bajo el permiso comercial: " + endpoint);
+        Console.WriteLine("OK: " + _passed + " verificaciones de filtros, privacidad, detalle, avances y Analytics.");
         return 0;
     }
 }

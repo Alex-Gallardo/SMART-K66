@@ -1,5 +1,7 @@
 # Panel de Gerencia Comercial
 
+La entrada principal ahora usa la [adaptación de Analytics](GerenciaComercialAnalytics.md). El panel descrito a continuación, sus consultas operativas SAP/SQL, avances y reportes siguen en `/GerenciaComercial/Operaciones`.
+
 Ruta: `/GerenciaComercial`. El menú y todos los endpoints del controlador exigen `[Authorize]` y el permiso existente `Control.GerenciaComercial.Ver`. El permiso se administra con los roles actuales; este módulo no crea permisos adicionales. Todas las consultas son `SELECT` sobre SAP HANA y `POS-SmartK66_DEV`.
 
 ## Fuentes y alcance

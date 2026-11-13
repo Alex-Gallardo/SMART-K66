@@ -17,7 +17,7 @@ namespace DiamDev.Give.UI.Controllers
     /// <summary>Panel de consulta protegido por el permiso de Gerencia Comercial.</summary>
     [Authorize]
     [Permiso("Control.GerenciaComercial.Ver")]
-    public sealed class GerenciaComercialController : Controller
+    public sealed partial class GerenciaComercialController : Controller
     {
         private readonly GerenciaComercialDA _datos = new GerenciaComercialDA();
         private const int MaximoExportacion = 10000;

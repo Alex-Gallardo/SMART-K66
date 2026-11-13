@@ -770,6 +770,9 @@
     </Content>
     <Content Include="Views\Dashboard\Index.cshtml" />
     <Content Include="Views\GerenciaComercial\Index.cshtml" />
+    <Content Include="Views\GerenciaComercial\Operaciones.cshtml" />
+    <Content Include="Content\gerencia-comercial-analytics.css" />
+    <Content Include="Scripts\App\gerencia-comercial-analytics.js" />
     <Content Include="Views\Backlog\Index.cshtml" />
     <Content Include="Views\OTIF\Index.cshtml" />
     <Content Include="Views\ProduccionV2\Index.cshtml" />
@@ -875,6 +878,7 @@
     <Compile Include="App_Start\WebApiConfig.cs" />
     <Compile Include="Controllers\DashboardController.cs" />
     <Compile Include="Controllers\GerenciaComercialController.cs" />
+    <Compile Include="Controllers\GerenciaComercialAnalyticsController.cs" />
     <Compile Include="Controllers\GerenciaComercialAvancesPdf.cs" />
     <Compile Include="Controllers\BacklogController.cs" />
     <Compile Include="Controllers\OTIFController.cs" />

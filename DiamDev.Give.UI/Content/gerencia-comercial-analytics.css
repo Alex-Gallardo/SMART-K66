@@ -97,14 +97,14 @@
 .gca .gca-company-info .gca-money { color: #244d70; font-weight: 700; }
 .gca .gca-bar-wrap { display: flex; align-items: center; gap: 10px; }
 .gca .gca-bar-track { flex: 1; overflow: hidden; height: 8px; border-radius: 6px; background: #eaf0f6; }
-.gca .gca-bar-fill { height: 100%; border-radius: 6px; background: #4387c5; }
+.gca .gca-bar-fill { height: 100%; border-radius: 6px; background: #4387c5; }   
 .gca .gca-pct-tag { color: var(--positive); min-width: 61px; text-align: right; font-size: 11px; font-weight: 700; }
 .gca .gca-pct-tag.negative { color: var(--negative); }
 .gca .gca-donut-content { display: flex; align-items: center; gap: 14px; min-height: 150px; }
 .gca .gca-donut { flex: 0 0 135px; height: 135px; width: 135px; display: grid; place-items: center; border-radius: 50%; }
-.gca .gca-donut-hole { width: 94px; height: 94px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #fff; }
+.gca .gca-donut-hole { width: 94px; height: 94px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-direction: column; background: #fff; text-align: center !important;}
 .gca .gca-donut-hole strong { font-size: 16px; color: #244d70; }
-.gca .gca-donut-hole span { color: var(--muted); font-size: 10px; }
+.gca .gca-donut-hole span { color: var(--muted); font-size: 10px; text-align:center }
 .gca .gca-donut-legend { flex: 1; min-width: 0; }
 .gca .gca-donut-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 11px 0; font-size: 11px; }
 .gca .gca-legend-name { display: flex; align-items: center; gap: 5px; min-width: 0; }

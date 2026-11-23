@@ -338,7 +338,7 @@ if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida
    $garitaSalidaPm -notmatch 'Hora de salida:</strong> 06:19 PM' -or $garitaSalidaPm -match 'Hora de salida:</strong> 18:19') {throw 'La salida registrada debe mostrar la hora en formato de 12 horas con AM/PM, agente y foto sin permitir otra salida.'}
 if($garitaVacia -notmatch 'id="qr-open"' -or $garitaVacia -notmatch 'id="qr-dialog"' -or
    $garitaLista -notmatch 'Rutas cerradas sin hora de entrada|Cerradas sin entrada' -or
-   $garitaLista -notmatch 'Rutas de hoy y los 3 días anteriores' -or
+   $garitaLista -notmatch 'Rutas de hoy y los 30 días anteriores' -or
    $garitaLista -notmatch 'PP26-CERRADA' -or $garitaLista -notmatch 'Sin hora de entrada registrada' -or
    $garitaCerrada -notmatch 'id="register-entry-form"' -or $garitaCerrada -notmatch 'Registrar hora de entrada' -or
    $garitaCerrada -match 'id="register-exit-form"' -or $garitaEntrada -match 'id="register-entry-form"' -or

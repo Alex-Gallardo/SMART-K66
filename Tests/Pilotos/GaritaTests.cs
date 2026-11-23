@@ -75,9 +75,9 @@ internal static class GaritaTests
         regreso.Estado="E";Check(!regreso.PuedeRegistrarEntrada,"en ruta no permite registrar entrada");
         var hoyLocal=new DateTime(2026,10,29);
         var desde=GaritaReglas.CerradasDesde(hoyLocal);var hasta=GaritaReglas.CerradasAntesDe(hoyLocal);
-        Check(desde==new DateTime(2026,10,26) && hasta==new DateTime(2026,10,30),"listado C abarca hoy y tres días anteriores");
-        Check(new DateTime(2026,10,26)>=desde && new DateTime(2026,10,29,23,59,59)<hasta,"días 0 a 3 incluidos");
-        Check(new DateTime(2026,10,25,23,59,59)<desde && new DateTime(2026,10,30)>=hasta,"día 4 y fechas futuras fuera del listado");
+        Check(desde==new DateTime(2026,9,29) && hasta==new DateTime(2026,10,30),"listado C abarca hoy y treinta días anteriores");
+        Check(new DateTime(2026,9,29)>=desde && new DateTime(2026,10,29,23,59,59)<hasta,"días 0 a 30 incluidos");
+        Check(new DateTime(2026,9,28,23,59,59)<desde && new DateTime(2026,10,30)>=hasta,"día 31 y fechas futuras fuera del listado");
         regreso.Estado="C";regreso.Fecha=new DateTime(2026,10,20);regreso.Version=GaritaReglas.Version(regreso);entrada.Version=regreso.Version;
         Check(regreso.PuedeRegistrarEntrada,"ruta C antigua admite entrada por enlace directo");GaritaReglas.ValidarEntrada(entrada,regreso);
         Rechaza(()=>GaritaReglas.Id(" "),400,"id vacío");Rechaza(()=>GaritaReglas.Id(new string('A',16)),400,"id largo");
@@ -120,7 +120,7 @@ internal static class GaritaTests
         var conteoCerradas=GaritaRutaDA.SqlContarPorPlaca("[TEST_RUTAS]",true);
         Check(cerradas.Contains("r.STATUS=N'C'") && cerradas.Contains("r.HR_ENTRADA IS NULL") && cerradas.Contains("LIQUIDADO") && cerradas.Contains("FETCH NEXT 50 ROWS ONLY") &&
               conteoCerradas.Contains("r.FECHA_RUTA>=@desdeCerradas AND r.FECHA_RUTA<@hastaCerradas") &&
-              cerradas.Contains("r.FECHA_RUTA>=@desdeCerradas AND r.FECHA_RUTA<@hastaCerradas"),"conteo y página C usan el mismo límite de 0 a 3 días");
+              cerradas.Contains("r.FECHA_RUTA>=@desdeCerradas AND r.FECHA_RUTA<@hastaCerradas"),"conteo y página C usan el mismo límite de 0 a 30 días");
         Check(!lista.Contains("@desdeCerradas") && !abiertas.Contains("@desdeCerradas") && !GaritaRutaDA.SqlContarPorPlaca("[TEST_RUTAS]").Contains("@desdeCerradas") && !GaritaRutaDA.SqlContarPorPlaca("[TEST_RUTAS]",false,true).Contains("@desdeCerradas"),"A y E conservan el alcance actual");
         Check(GaritaRutaDA.SqlHoyGuatemala.Contains("SYSUTCDATETIME()") && GaritaRutaDA.SqlHoyGuatemala.Contains("HOUR,-6") && !GaritaRutaDA.SqlActualizarHoraEntrada("[TEST_RUTAS]").Contains("@desdeCerradas"),"hora Guatemala para listado sin limitar la entrada directa");
         Check(lista.Contains("ConductorReal") && lista.Contains("PilotoConductorRuta") && lista.Contains("PilotoEmpresa"),"Garita muestra conductor real únicamente desde la asignación de empresa");

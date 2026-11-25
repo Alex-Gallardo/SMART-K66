@@ -40,9 +40,15 @@ internal static class GaritaTests
         Check(!GaritaReglas.AplicarResultadoTemporal(borradorInvalido.Documentos,"<mal") && borradorInvalido.Documentos.All(d=>d.ResultadoPiloto==null),"borrador corrupto no rompe la consulta");
         borradorInvalido.Documentos[0].Entrega="ENTREGADO";
         Check(!GaritaReglas.AplicarResultadoTemporal(borradorInvalido.Documentos,xml),"APK66 definitivo no se sobreescribe con POS");
-        var c=new GaritaRegistroSalida{RutaId=r.Id,Version=r.Version,Solicitud=Guid.NewGuid(),CargaVerificada=true};
+        var c=new GaritaRegistroSalida{RutaId=r.Id,Version=r.Version,Solicitud=Guid.NewGuid(),CargaVerificada=true,IdentidadVerificada=true};
         GaritaReglas.ValidarSalida(c,r);Check(c.Observacion=="","observación opcional normalizada");
+        c.IdentidadVerificada=false;Rechaza(()=>GaritaReglas.ValidarSalida(c,r),400,"verificación de placa y piloto requerida");c.IdentidadVerificada=true;
         c.CargaVerificada=false;Rechaza(()=>GaritaReglas.ValidarSalida(c,r),400,"verificación de carga requerida");c.CargaVerificada=true;
+        Check(GaritaReglas.Seccion("salidas")=="salidas" && GaritaReglas.Seccion("en-ruta")=="en-ruta" && GaritaReglas.Seccion("regresos")=="regresos" && GaritaReglas.Seccion("otra")=="","sección validada");
+        Check(GaritaReglas.DescripcionDiferencia(new GaritaDiferencia{MotivoRapido="BULTOS"})=="Los bultos no coinciden con la ruta.","motivo rápido de bultos");
+        Check(GaritaReglas.DescripcionDiferencia(new GaritaDiferencia{MotivoRapido="PILOTO",Descripcion="  Licencia distinta  "})=="El piloto no coincide con la ruta. Licencia distinta","motivo y nota limpios");
+        Rechaza(()=>GaritaReglas.DescripcionDiferencia(new GaritaDiferencia{MotivoRapido="OTRO",Descripcion="breve"}),400,"otro exige detalle");
+        Rechaza(()=>GaritaReglas.DescripcionDiferencia(new GaritaDiferencia{MotivoRapido="INVALIDO"}),400,"motivo desconocido rechazado");
         c.FotoNombre="salida.jpg";c.FotoContenido=new byte[]{0xff,0xd8,0xff,0x01};GaritaReglas.ValidarSalida(c,r);Check(c.FotoContenido.Length==4,"foto opcional válida");
         c.FotoNombre="salida.exe";Rechaza(()=>GaritaReglas.ValidarSalida(c,r),400,"foto con extensión inválida");c.FotoContenido=null;c.FotoNombre=null;
         c.Version="vieja";Rechaza(()=>GaritaReglas.ValidarSalida(c,r),409,"versión vieja");c.Version=r.Version;

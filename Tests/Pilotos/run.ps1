@@ -11,6 +11,9 @@ if(Get-Command node -ErrorAction SilentlyContinue) {
 } else { throw 'Node.js es necesario para validar el lector QR de garita.' }
 $project=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/DiamDev.Give.UI.csproj') -Raw
 if($project -notmatch 'Scripts\\garita-cargo\.js') { throw 'El visor de facturas de Garita debe publicarse con la aplicación.' }
+if($project -notmatch 'Scripts\\garita-ui\.js' -or $project -notmatch 'Content\\garita-refresh\.css') { throw 'Los estilos y controles de Garita deben publicarse con la aplicación.' }
+$garitaLayout=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.UI/Views/Shared/_GaritaLayout.cshtml') -Raw
+if($garitaLayout -notmatch 'href="tel:137"' -or $garitaLayout -notmatch 'theme-toggle') { throw 'Garita debe ofrecer llamada al 137 y cambio de tema.' }
 $garitaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/GaritaRutaDA.cs') -Raw
 $empresaDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoAdministracionRutaDA.cs') -Raw
 $documentoAdminDA=Get-Content -LiteralPath (Join-Path $repo 'DiamDev.Give.DAL/PilotoAdministracionDocumentoDA.cs') -Raw
@@ -331,7 +334,7 @@ if($garitaVacia -notmatch 'name="placa"' -or $garitaVacia -match 'class="route-o
 if($garitaLista -notmatch 'PP26-ABIERTA' -or $garitaLista -notmatch 'PP26-GARITA' -or $garitaLista -notmatch 'PP26-OTRA' -or $garitaLista -notmatch 'OTRO PILOTO' -or $garitaLista -notmatch 'Siguiente' -or $garitaLista -match 'id="register-exit-form"') {throw 'La búsqueda debe listar por separado A, E y C con sus páginas.'}
 if($garitaSinResultados -notmatch 'No hay rutas para esta placa' -or $garitaSinResultados -match 'class="route-option"') {throw 'La placa sin rutas debe mostrar un mensaje claro.'}
 if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 'id="register-exit-form"') {throw 'La diferencia debe bloquear el registro de salida.'}
-if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'name="foto"' -or $garitaEnRuta -notmatch 'multipart/form-data' -or $garitaEnRuta -match 'PilotoVehiculoVerificados|name="Precinto"' -or $garitaEnRuta -notmatch 'Registrar hora de salida') {throw 'La ruta E debe mostrar un único check y la foto opcional.'}
+if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'name="IdentidadVerificada"' -or $garitaEnRuta -notmatch 'name="foto"' -or $garitaEnRuta -notmatch 'multipart/form-data' -or $garitaEnRuta -match 'name="Precinto"' -or $garitaEnRuta -notmatch 'Autorizar salida') {throw 'La ruta E debe exigir dos verificaciones y permitir foto opcional.'}
 $garitaAbiertaTexto=[System.Net.WebUtility]::HtmlDecode($garitaAbierta)
 if($garitaAbiertaTexto -notmatch 'Abierta · pendiente de salida' -or $garitaAbierta -notmatch 'id="register-exit-form"' -or $garitaAbiertaTexto -notmatch 'pasará de Abierta a En ruta') {throw 'La ruta A debe permitir la salida y explicar el cambio a E.'}
 if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida:</strong> 06:19 AM' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"' -or
@@ -340,10 +343,10 @@ if($garitaVacia -notmatch 'id="qr-open"' -or $garitaVacia -notmatch 'id="qr-dial
    $garitaLista -notmatch 'Rutas cerradas sin hora de entrada|Cerradas sin entrada' -or
    $garitaLista -notmatch 'Rutas de hoy y los 30 días anteriores' -or
    $garitaLista -notmatch 'PP26-CERRADA' -or $garitaLista -notmatch 'Sin hora de entrada registrada' -or
-   $garitaCerrada -notmatch 'id="register-entry-form"' -or $garitaCerrada -notmatch 'Registrar hora de entrada' -or
+   $garitaCerrada -notmatch 'id="register-entry-form"' -or $garitaCerrada -notmatch 'Registrar entrada' -or
    $garitaCerrada -match 'id="register-exit-form"' -or $garitaEntrada -match 'id="register-entry-form"' -or
    $garitaEntrada -notmatch 'Hora de entrada:' -or $garitaEntradaTexto -notmatch 'Regresó con carga' -or $garitaEntrada -notmatch 'Ver foto de entrada' -or
-   $garitaCerrada -notmatch 'Volver a rutas de esta placa' -or $garitaCerrada -notmatch 'Buscar otra placa') {
+   $garitaCerrada -notmatch 'Volver a rutas de la placa' -or $garitaCerrada -notmatch 'Buscar otra placa') {
     throw 'La búsqueda QR, las cerradas pendientes, la entrada y los enlaces de regreso deben renderizar correctamente.'
 }
 $garitaAdmin=Get-Content -LiteralPath (Join-Path $out 'garita-admin.html') -Raw

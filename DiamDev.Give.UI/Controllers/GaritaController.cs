@@ -1,6 +1,7 @@
 using System;
 using System.Data.SqlClient;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Web;
 using System.Web.Mvc;
@@ -19,14 +20,14 @@ namespace DiamDev.Give.UI.Controllers
             base.OnActionExecuting(context);
         }
         [HttpGet]
-        public ActionResult Index(string placa,string id,int pagina=1,int paginaCerradas=1,int paginaAbiertas=1)
+        public ActionResult Index(string placa,string id,int pagina=1,int paginaCerradas=1,int paginaAbiertas=1,string seccion=null)
         {
             try
             {
                 var da=new GaritaRutaDA();
                 if(string.IsNullOrWhiteSpace(placa) && string.IsNullOrWhiteSpace(id)) {da.Preparar(User.Identity.Name);return View(new GaritaRuta());}
-                if(string.IsNullOrWhiteSpace(id)) return View(da.BuscarPorPlaca(User.Identity.Name,placa,pagina,paginaCerradas,paginaAbiertas));
-                return View(da.Detalle(User.Identity.Name,placa,id));
+                if(string.IsNullOrWhiteSpace(id)) {var lista=da.BuscarPorPlaca(User.Identity.Name,placa,pagina,paginaCerradas,paginaAbiertas);lista.Seccion=GaritaReglas.Seccion(seccion);if(lista.Seccion=="") lista.Seccion=lista.TotalAbiertas>0?"salidas":lista.TotalRutas>0?"en-ruta":"regresos";return View(lista);}
+                var detalle=da.Detalle(User.Identity.Name,placa,id);detalle.Seccion=GaritaReglas.Seccion(seccion);detalle.Pagina=Math.Max(1,pagina);detalle.PaginaAbiertas=Math.Max(1,paginaAbiertas);detalle.PaginaCerradas=Math.Max(1,paginaCerradas);return View(detalle);
             }
             catch(Exception e) { ViewBag.Placa=placa;return Error(e); }
         }
@@ -39,9 +40,11 @@ namespace DiamDev.Give.UI.Controllers
                 string nombreEntrada;
                 modelo.FotoContenido=LeerFoto(foto,out nombreEntrada);
                 modelo.FotoNombre=nombreEntrada;
-                new GaritaRutaDA().RegistrarEntrada(User.Identity.Name,modelo);
+                var fechaUtc=new GaritaRutaDA().RegistrarEntrada(User.Identity.Name,modelo);
+                var destino=Url.Action("Index",new{placa=modelo.PlacaBusqueda,id=modelo.RutaId,seccion=GaritaReglas.Seccion(modelo.Seccion),pagina=modelo.Pagina,paginaAbiertas=modelo.PaginaAbiertas,paginaCerradas=modelo.PaginaCerradas});
+                if(Request.IsAjaxRequest()) return Json(new{ok=true,tipo="entrada",hora=fechaUtc.AddHours(-6).ToString("hh:mm tt",CultureInfo.InvariantCulture),url=destino});
                 TempData["Garita.Mensaje"]="Hora de entrada registrada. La ruta continúa Cerrada.";
-                return RedirectToAction("Index",new{placa=modelo.PlacaBusqueda,id=modelo.RutaId});
+                return Redirect(destino);
             }
             catch(Exception e) {ViewBag.Placa=modelo==null?null:modelo.PlacaBusqueda;return Error(e);}
         }
@@ -54,9 +57,11 @@ namespace DiamDev.Give.UI.Controllers
                 string nombreSalida;
                 modelo.FotoContenido=LeerFoto(foto,out nombreSalida);
                 modelo.FotoNombre=nombreSalida;
-                new GaritaRutaDA().RegistrarSalida(User.Identity.Name,modelo);
+                var fechaUtc=new GaritaRutaDA().RegistrarSalida(User.Identity.Name,modelo);
+                var destino=Url.Action("Index",new{placa=modelo.PlacaBusqueda,id=modelo.RutaId,seccion=GaritaReglas.Seccion(modelo.Seccion),pagina=modelo.Pagina,paginaAbiertas=modelo.PaginaAbiertas,paginaCerradas=modelo.PaginaCerradas});
+                if(Request.IsAjaxRequest()) return Json(new{ok=true,tipo="salida",hora=fechaUtc.AddHours(-6).ToString("hh:mm tt",CultureInfo.InvariantCulture),url=destino});
                 TempData["Garita.Mensaje"]="Hora de salida registrada. La ruta está En ruta.";
-                return RedirectToAction("Index",new{placa=modelo.PlacaBusqueda,id=modelo.RutaId});
+                return Redirect(destino);
             }
             catch(Exception e) { ViewBag.Placa=modelo==null?null:modelo.PlacaBusqueda;return Error(e); }
         }
@@ -101,8 +106,10 @@ namespace DiamDev.Give.UI.Controllers
             {
                 if(!ModelState.IsValid) throw new PilotoException(400,"Revisa la descripción de la diferencia.");
                 new GaritaRutaDA().Reportar(User.Identity.Name,modelo);
+                var destino=Url.Action("Index",new{placa=modelo.PlacaBusqueda,id=modelo.RutaId,seccion=GaritaReglas.Seccion(modelo.Seccion),pagina=modelo.Pagina,paginaAbiertas=modelo.PaginaAbiertas,paginaCerradas=modelo.PaginaCerradas});
+                if(Request.IsAjaxRequest()) return Json(new{ok=true,tipo="diferencia",url=destino});
                 TempData["Garita.Mensaje"]="Diferencia registrada. No permitas la salida; contacta a Distribución.";
-                return RedirectToAction("Index",new{placa=modelo.PlacaBusqueda,id=modelo.RutaId});
+                return Redirect(destino);
             }
             catch(Exception e) { ViewBag.Placa=modelo==null?null:modelo.PlacaBusqueda;return Error(e); }
         }
@@ -133,6 +140,7 @@ namespace DiamDev.Give.UI.Controllers
                 sql!=null && (sql.Number==-2 || sql.Number==1222 || sql.Number==1205)?"La ruta está ocupada. Espera unos segundos y busca la placa otra vez.":
                 "No se pudo completar la operación. Busca de nuevo la placa o contacta a Distribución.";
             if(esperado==null) {var referencia=Guid.NewGuid().ToString("N");ViewBag.Referencia=referencia;Trace.TraceError("Garita referencia={0}, tipo={1}, numeroSQL={2}",referencia,e.GetType().Name,sql==null?0:sql.Number);}
+            if(Request.IsAjaxRequest()) return Json(new{ok=false,mensaje=ViewBag.Mensaje});
             return View("Error");
         }
     }

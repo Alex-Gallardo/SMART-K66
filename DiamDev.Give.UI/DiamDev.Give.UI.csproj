@@ -1629,12 +1629,14 @@
     <Compile Include="Controllers\PilotoLiquidacionExcel.cs" />
     <Content Include="Content\pilotos.css" />
     <Content Include="Content\garita.css" />
+    <Content Include="Content\garita-refresh.css" />
     <Content Include="Content\pilotos-liquidacion.css" />
     <Content Include="Scripts\pilotos-liquidacion.js" />
     <Content Include="Views\Liquidacion\Index.cshtml" />
     <Content Include="Views\Liquidacion\Detalle.cshtml" />
     <Content Include="Views\Liquidacion\Error.cshtml" />
     <Content Include="Scripts\garita-qr.js" />
+    <Content Include="Scripts\garita-ui.js" />
     <Content Include="Scripts\garita-cargo.js" />
     <Content Include="Scripts\qr-scanner\qr-scanner.umd.min.js" />
     <Content Include="Scripts\qr-scanner\qr-scanner-worker.min.js" />

@@ -275,7 +275,7 @@ JOIN dbo.GaritaRutaEvento e ON e.Id=i.Evento_Id WHERE e.CatalogoRutas=@catalogo 
                 tx.Commit();
             }
         }
-        public void RegistrarSalida(string actor,GaritaRegistroSalida modelo)
+        public DateTime RegistrarSalida(string actor,GaritaRegistroSalida modelo)
         {
             if(modelo==null) throw new PilotoException(400,"Vuelve a abrir la ruta.");
             var id=GaritaReglas.Id(modelo.RutaId);
@@ -285,7 +285,7 @@ JOIN dbo.GaritaRutaEvento e ON e.Id=i.Evento_Id WHERE e.CatalogoRutas=@catalogo 
                 var ruta=Leer(cn,tx,usuario,id,true);
                 if(ruta.SalidaUtc.HasValue || ruta.HoraSalidaApk.HasValue) {
                     using(var c=Cmd(cn,tx,"SELECT COUNT(*) FROM dbo.GaritaRutaEvento WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo=N'S' AND Solicitud=@solicitud AND Usuario_Id=@usuario;"))
-                    {P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@id",SqlDbType.NVarChar,id,15);P(c,"@solicitud",SqlDbType.UniqueIdentifier,modelo.Solicitud);P(c,"@usuario",SqlDbType.BigInt,usuario);if(ruta.SalidaUtc.HasValue && ruta.HoraSalidaApk.HasValue && (int)c.ExecuteScalar()==1) {tx.Commit();return;}}
+                    {P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@id",SqlDbType.NVarChar,id,15);P(c,"@solicitud",SqlDbType.UniqueIdentifier,modelo.Solicitud);P(c,"@usuario",SqlDbType.BigInt,usuario);if(ruta.SalidaUtc.HasValue && ruta.HoraSalidaApk.HasValue && (int)c.ExecuteScalar()==1) {tx.Commit();return ruta.SalidaUtc.Value;}}
                     throw new PilotoException(409,"La salida ya fue registrada. Consulta a Distribución.");
                 }
                 GaritaReglas.ValidarSalida(modelo,ruta);
@@ -309,9 +309,10 @@ VALUES(@evento,@nombre,@tipo,@tamano,@contenido,@hash);"))
                     {P(c,"@evento",SqlDbType.BigInt,evento);P(c,"@nombre",SqlDbType.NVarChar,modelo.FotoNombre,255);P(c,"@tipo",SqlDbType.NVarChar,PilotoReglas.ValidarImagen(modelo.FotoNombre,modelo.FotoContenido),50);P(c,"@tamano",SqlDbType.Int,modelo.FotoContenido.Length);P(c,"@contenido",SqlDbType.VarBinary,modelo.FotoContenido,-1);P(c,"@hash",SqlDbType.Binary,hash,32);c.ExecuteNonQuery();}
                 }
                 tx.Commit();
+                return fechaUtc;
             }
         }
-        public void RegistrarEntrada(string actor,GaritaRegistroEntrada modelo)
+        public DateTime RegistrarEntrada(string actor,GaritaRegistroEntrada modelo)
         {
             if(modelo==null) throw new PilotoException(400,"Vuelve a abrir la ruta.");
             var id=GaritaReglas.Id(modelo.RutaId);var placa=GaritaReglas.Placa(modelo.PlacaBusqueda);
@@ -324,7 +325,7 @@ VALUES(@evento,@nombre,@tipo,@tamano,@contenido,@hash);"))
                 {
                     using(var c=Cmd(cn,tx,"SELECT COUNT(*) FROM dbo.GaritaRutaEvento WHERE CatalogoRutas=@catalogo AND Ruta_Id=@id AND Tipo=N'I' AND Solicitud=@solicitud AND Usuario_Id=@usuario;"))
                     {P(c,"@catalogo",SqlDbType.NVarChar,catalogo,128);P(c,"@id",SqlDbType.NVarChar,id,15);P(c,"@solicitud",SqlDbType.UniqueIdentifier,modelo.Solicitud);P(c,"@usuario",SqlDbType.BigInt,usuario);
-                     if(ruta.HoraEntradaApk.HasValue && ruta.EntradaUtc.HasValue && (int)c.ExecuteScalar()==1) {tx.Commit();return;}}
+                     if(ruta.HoraEntradaApk.HasValue && ruta.EntradaUtc.HasValue && (int)c.ExecuteScalar()==1) {tx.Commit();return ruta.EntradaUtc.Value;}}
                     throw new PilotoException(409,"La hora de entrada ya fue registrada. Busca la placa de nuevo.");
                 }
                 GaritaReglas.ValidarEntrada(modelo,ruta);
@@ -354,13 +355,14 @@ VALUES(@evento,@nombre,@tipo,@tamano,@contenido,@hash);"))
                     {P(c,"@evento",SqlDbType.BigInt,evento);P(c,"@nombre",SqlDbType.NVarChar,modelo.FotoNombre,255);P(c,"@tipo",SqlDbType.NVarChar,PilotoReglas.ValidarImagen(modelo.FotoNombre,modelo.FotoContenido),50);P(c,"@tamano",SqlDbType.Int,modelo.FotoContenido.Length);P(c,"@contenido",SqlDbType.VarBinary,modelo.FotoContenido,-1);P(c,"@hash",SqlDbType.Binary,hash,32);c.ExecuteNonQuery();}
                 }
                 tx.Commit();
+                return fechaUtc;
             }
         }
         public void Reportar(string actor,GaritaDiferencia modelo)
         {
             if(modelo==null) throw new PilotoException(400,"Vuelve a abrir la ruta.");
-            var id=GaritaReglas.Id(modelo.RutaId);var nota=GaritaReglas.Limpiar(modelo.Descripcion,250);
-            if(nota.Length<10 || modelo.Solicitud==Guid.Empty) throw new PilotoException(400,"Describe la diferencia con al menos 10 caracteres.");
+            var id=GaritaReglas.Id(modelo.RutaId);var nota=GaritaReglas.DescripcionDiferencia(modelo);
+            if(modelo.Solicitud==Guid.Empty) throw new PilotoException(400,"Vuelve a abrir la ruta antes de reportar la diferencia.");
             using(var cn=Abrir()) using(var tx=cn.BeginTransaction(IsolationLevel.Serializable))
             {Instalada(cn,tx);Autorizar(cn,tx,actor,GaritaReglas.Ver);var usuario=Autorizar(cn,tx,actor,GaritaReglas.RegistrarSalida);var ruta=Leer(cn,tx,usuario,id,true);
                 using(var repetida=Cmd(cn,tx,"SELECT COUNT(*) FROM dbo.GaritaRutaEvento WHERE Solicitud=@solicitud AND Tipo=N'D' AND Usuario_Id=@usuario AND CatalogoRutas=@catalogo AND Ruta_Id=@id;"))

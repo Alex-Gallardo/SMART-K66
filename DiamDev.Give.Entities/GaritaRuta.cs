@@ -42,6 +42,7 @@ namespace DiamDev.Give.Entities
         public int TotalAbiertas { get; set; }
         public int PaginaCerradas { get; set; }
         public int TotalCerradas { get; set; }
+        public string Seccion { get; set; }
         public bool BusquedaRealizada { get; set; }
         public bool TieneFotoSalida { get; set; }
         public bool TieneFotoEntrada { get; set; }
@@ -85,6 +86,11 @@ namespace DiamDev.Give.Entities
         public string Version { get; set; }
         public string PlacaBusqueda { get; set; }
         public bool CargaVerificada { get; set; }
+        public bool IdentidadVerificada { get; set; }
+        public string Seccion { get; set; }
+        public int Pagina { get; set; }
+        public int PaginaAbiertas { get; set; }
+        public int PaginaCerradas { get; set; }
         public string Observacion { get; set; }
         public string FotoNombre { get; set; }
         public byte[] FotoContenido { get; set; }
@@ -97,6 +103,11 @@ namespace DiamDev.Give.Entities
         public string PlacaBusqueda { get; set; }
         public string Version { get; set; }
         public string Descripcion { get; set; }
+        public string MotivoRapido { get; set; }
+        public string Seccion { get; set; }
+        public int Pagina { get; set; }
+        public int PaginaAbiertas { get; set; }
+        public int PaginaCerradas { get; set; }
         public Guid Solicitud { get; set; }
     }
 
@@ -106,6 +117,10 @@ namespace DiamDev.Give.Entities
         public string PlacaBusqueda { get; set; }
         public string Version { get; set; }
         public string Observacion { get; set; }
+        public string Seccion { get; set; }
+        public int Pagina { get; set; }
+        public int PaginaAbiertas { get; set; }
+        public int PaginaCerradas { get; set; }
         public string FotoNombre { get; set; }
         public byte[] FotoContenido { get; set; }
         public Guid Solicitud { get; set; }
@@ -137,6 +152,27 @@ namespace DiamDev.Give.Entities
         // El límite de antigüedad aplica solo al listado de cerradas, no al detalle ni al registro de entrada.
         public static DateTime CerradasDesde(DateTime hoyLocal) { return hoyLocal.Date.AddDays(-30); }
         public static DateTime CerradasAntesDe(DateTime hoyLocal) { return hoyLocal.Date.AddDays(1); }
+        public static string Seccion(string valor)
+        { return valor=="salidas" || valor=="en-ruta" || valor=="regresos" ? valor : ""; }
+        public static string DescripcionDiferencia(GaritaDiferencia diferencia)
+        {
+            if(diferencia==null) throw new PilotoException(400,"Selecciona una diferencia.");
+            var nota=Limpiar(diferencia.Descripcion,250);
+            string motivo;
+            switch(diferencia.MotivoRapido)
+            {
+                case "BULTOS": motivo="Los bultos no coinciden con la ruta.";break;
+                case "PILOTO": motivo="El piloto no coincide con la ruta.";break;
+                case "FACTURA": motivo="Falta una factura del cargamento.";break;
+                case "OTRO": motivo="Otra diferencia en la revisión.";break;
+                case null: case "": motivo="";break;
+                default: throw new PilotoException(400,"Selecciona un motivo válido.");
+            }
+            var texto=motivo+(nota.Length>0?(motivo.Length>0?" ":"")+nota:"");
+            if(texto.Length<10 || texto.Length>250 || (diferencia.MotivoRapido=="OTRO" && nota.Length<10))
+                throw new PilotoException(400,"Selecciona un motivo o describe la diferencia con al menos 10 caracteres.");
+            return texto;
+        }
         public static string Resultado(PilotoDocumento d)
         {
             if(d==null) return null;
@@ -194,6 +230,7 @@ namespace DiamDev.Give.Entities
             if(c==null || c.RutaId!=r.Id || c.Solicitud==Guid.Empty) throw new PilotoException(400,"Vuelve a abrir la ruta e intenta de nuevo.");
             if(!r.PuedeRegistrarSalida) throw new PilotoException(409,"La ruta debe estar Abierta o En ruta, sin salida previa ni diferencias y lista para salir. Consulta a Distribución.");
             if(c.Version!=r.Version) throw new PilotoException(409,"Los datos de la ruta cambiaron. Revísalos antes de registrar la hora de salida.");
+            if(!c.IdentidadVerificada) throw new PilotoException(400,"Marca la verificación de placa y piloto antes de registrar la hora de salida.");
             if(!c.CargaVerificada) throw new PilotoException(400,"Marca la verificación de clientes, facturas y bultos antes de registrar la hora de salida.");
             if(c.FotoContenido!=null) PilotoReglas.ValidarImagen(c.FotoNombre,c.FotoContenido);
             c.Observacion=Limpiar(c.Observacion,250);

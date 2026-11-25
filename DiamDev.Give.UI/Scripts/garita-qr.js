@@ -60,9 +60,11 @@
         }
         submitted = true;
         input.value = value;
+        if (input.blur) input.blur();
         release();
         dialog.hidden = true;
-        form.submit();
+        if (window.GaritaUI && window.GaritaUI.qrAccepted) window.GaritaUI.qrAccepted(value, function () { form.submit(); });
+        else form.submit();
     }
     open.addEventListener('click', function () {
         if (!window.QrScanner) {

@@ -12,6 +12,8 @@
     function put(id,value){document.getElementById(id).textContent=value || 'Sin registrar';}
     Array.prototype.forEach.call(document.querySelectorAll('.cargo-document'),function(button){
         button.addEventListener('click',function(){
+            var details=button.closest('details');
+            if(details && !details.open) details.open=true;
             var d=button.dataset;
             lastTrigger=button;
             put('cargo-dialog-title',d.documento || 'Documento sin número');

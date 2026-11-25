@@ -11,29 +11,34 @@
     var cerrada = Model.Estado == "C";
     var urlInicio = Url.Content("~/Garita/Index");
     var seccion = string.IsNullOrEmpty(Model.Seccion) ? (cerrada ? "regresos" : abierta ? "salidas" : "en-ruta") : Model.Seccion;
-    var urlPlaca = Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion=seccion,pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas});
-    var totalDocumentos = Model.Documentos == null ? 0 : Model.Documentos.Count;
-}
-<section class="search-card @(encontrada?"search-card-detail":"")" aria-label="Buscar ruta por placa">
-    @if (encontrada)
+    if (encontrada)
     {
-        <div class="search-detail-row"><a class="search-back-link" href="@urlPlaca" aria-label="Volver a rutas de la placa @Model.PlacaBusqueda">← Rutas</a><strong>Ruta @Model.Id</strong></div>
-        <a class="search-other-link" href="@urlInicio">Buscar otra placa</a>
+        var consulta = System.Web.HttpUtility.ParseQueryString(string.Empty);
+        consulta["placa"] = Model.PlacaBusqueda;
+        consulta["seccion"] = seccion;
+        consulta["pagina"] = Model.Pagina.ToString();
+        consulta["paginaAbiertas"] = Model.PaginaAbiertas.ToString();
+        consulta["paginaCerradas"] = Model.PaginaCerradas.ToString();
+        ViewBag.GaritaRutaId = Model.Id;
+        ViewBag.GaritaUrlRutas = urlInicio + "?" + consulta;
+        ViewBag.Title = "Ruta " + Model.Id;
     }
-    else
-    {
+    var totalDocumentos = Model.Documentos == null ? 0 : Model.Documentos.Count;
+    var etiquetaFacturas = totalDocumentos > 0 && Model.Documentos.All(d => string.Equals(d.Tipo, "FACTURA", StringComparison.OrdinalIgnoreCase));
+    var etiquetaDocumento = etiquetaFacturas ? (totalDocumentos == 1 ? "factura" : "facturas") : (totalDocumentos == 1 ? "documento" : "documentos");
+}
+@if (!encontrada)
+{
+    <section class="search-card" aria-label="Buscar ruta por placa">
         <span class="step">BUSCAR · CONTROL DE VEHÍCULOS</span>
         <h1 class="visually-hidden">Control de vehículos</h1>
-        using (Html.BeginForm("Index", "Garita", FormMethod.Get, new { @class = "search-form", id = "plate-search-form" }))
+        @using (Html.BeginForm("Index", "Garita", FormMethod.Get, new { @class = "search-form", id = "plate-search-form" }))
         {
-            <button id="qr-open" class="qr-open-button" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#garita-qr"></use></svg> Escanear QR</button>
+            <button id="qr-open" class="qr-open-button" type="button"><span aria-hidden="true">📷</span> Escanear QR</button>
             <label for="placa">Placa del vehículo</label>
             <div class="search-row"><input id="placa" name="placa" value="@Model.PlacaBusqueda" maxlength="15" autocomplete="off" autocapitalize="characters" placeholder="Ej. C-123ABC" required /><button type="submit">Buscar</button></div>
         }
-    }
-</section>
-@if (!encontrada)
-{
+    </section>
     <div id="qr-dialog" class="qr-dialog" role="dialog" aria-modal="true" aria-labelledby="qr-title" hidden>
         <div class="qr-backdrop"></div><div class="qr-dialog-panel">
             <div class="qr-dialog-head"><h2 id="qr-title">Escanear placa</h2><button id="qr-close" type="button" aria-label="Cerrar lector QR">✕</button></div>
@@ -66,7 +71,7 @@
                 {
                     <a class="route-option route-option-active" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,id=ruta.Id,seccion="salidas",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})" aria-label="Revisar ruta abierta @ruta.Id, piloto @(ruta.ConductorReal??ruta.Piloto)">
                         <span class="route-option-main"><strong>Ruta @ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small></span>
-                        <span class="route-option-pilot"><svg class="ui-icon" aria-hidden="true"><use href="#garita-person"></use></svg> @(ruta.ConductorReal??ruta.Piloto??"Piloto sin dato")</span>
+                        <span class="route-option-pilot"><span aria-hidden="true">👨‍✈️</span> @(ruta.ConductorReal??ruta.Piloto??"Piloto sin dato")</span>
                         <span class="route-option-counts"><span><b>@ruta.Bultos.ToString("0.###")</b> @(ruta.Bultos==1?"bulto":"bultos")</span><span><b>@ruta.Documentos</b> @(ruta.Documentos==1?"documento":"documentos")</span><span><b>@ruta.Clientes</b> @(ruta.Clientes==1?"cliente":"clientes")</span></span>
                         <span class="state @(ruta.DiferenciaPendiente?"state-stop":"state-open")">@(ruta.DiferenciaPendiente?"Diferencia pendiente":"Abierta · pendiente de salida")</span>
                         <span class="route-option-arrow" aria-hidden="true">Revisar salida →</span>
@@ -91,7 +96,7 @@
                 {
                     <a class="route-option route-option-transit" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,id=ruta.Id,seccion="en-ruta",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})" aria-label="Revisar ruta @ruta.Id, piloto @(ruta.ConductorReal??ruta.Piloto)">
                         <span class="route-option-main"><strong>Ruta @ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small></span>
-                        <span class="route-option-pilot"><svg class="ui-icon" aria-hidden="true"><use href="#garita-person"></use></svg> @(ruta.ConductorReal??ruta.Piloto??"Piloto sin dato")</span>
+                        <span class="route-option-pilot"><span aria-hidden="true">👨‍✈️</span> @(ruta.ConductorReal??ruta.Piloto??"Piloto sin dato")</span>
                         <span class="route-option-counts"><span><b>@ruta.Bultos.ToString("0.###")</b> @(ruta.Bultos==1?"bulto":"bultos")</span><span><b>@ruta.Documentos</b> @(ruta.Documentos==1?"documento":"documentos")</span><span><b>@ruta.Clientes</b> @(ruta.Clientes==1?"cliente":"clientes")</span></span>
                         <span class="state @(ruta.DiferenciaPendiente?"state-stop":ruta.SalidaRegistrada?"state-done":"state-info")">@(ruta.DiferenciaPendiente?"Diferencia pendiente":ruta.SalidaRegistrada?"Salida registrada":"Sin salida registrada")</span>
                         <span class="route-option-arrow" aria-hidden="true">Ver ruta →</span>
@@ -121,7 +126,7 @@
                 {
                     <a class="route-option route-option-closed" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,id=ruta.Id,seccion="regresos",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})" aria-label="Revisar ruta cerrada @ruta.Id, sin hora de entrada registrada">
                         <span class="route-option-main"><strong>Ruta @ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small></span>
-                        <span class="route-option-pilot"><svg class="ui-icon" aria-hidden="true"><use href="#garita-person"></use></svg> @(ruta.ConductorReal??ruta.Piloto??"Piloto sin dato")</span>
+                        <span class="route-option-pilot"><span aria-hidden="true">👨‍✈️</span> @(ruta.ConductorReal??ruta.Piloto??"Piloto sin dato")</span>
                         <span class="route-option-counts"><span><b>@ruta.Bultos.ToString("0.###")</b> @(ruta.Bultos==1?"bulto":"bultos")</span><span><b>@ruta.Documentos</b> @(ruta.Documentos==1?"documento":"documentos")</span><span><b>@ruta.Clientes</b> @(ruta.Clientes==1?"cliente":"clientes")</span></span>
                         <span class="closed-badges"><span class="state state-closed">Cerrada</span><span class="state state-entry-pending">Sin hora de entrada registrada</span>@if (!ruta.SalidaRegistrada)
                         {<small>Sin hora de salida registrada</small>}</span>
@@ -138,11 +143,12 @@
 }
 @if (encontrada)
 {
-    <section class="route-header">
-        <div class="route-review-intro"><span class="step">@(cerrada?"REVISAR REGRESO":"REVISAR SALIDA")</span><h1>Ruta @Model.Id</h1><p>Comprueba el vehículo y la carga antes de continuar.</p></div>
-        <span class="state @(cerrada?(Model.HoraEntradaApk.HasValue?"state-done":"state-entry-pending"):Model.HoraSalidaApk.HasValue||Model.SalidaUtc.HasValue?"state-done":Model.Diferencia!=null?"state-stop":puedeRegistrar?"state-open":"state-stop")">@(cerrada?(Model.HoraEntradaApk.HasValue?"Cerrada · entrada registrada":"Cerrada · sin hora de entrada"):Model.HoraSalidaApk.HasValue||Model.SalidaUtc.HasValue?"En ruta · salida registrada":Model.Diferencia!=null?"Diferencia reportada":puedeRegistrar?(abierta?"Abierta · pendiente de salida":"En ruta · pendiente de salida"):(abierta?"Abierta · revisar datos":"En ruta · revisar datos"))</span>
-    </section>
-    if (Model.HoraSalidaApk.HasValue || Model.SalidaUtc.HasValue){
+    var salidaRegistrada = Model.HoraSalidaApk.HasValue || Model.SalidaUtc.HasValue;
+    var estadoClase = cerrada ? (Model.HoraEntradaApk.HasValue ? "state-done" : "state-entry-pending") : salidaRegistrada ? "state-done" : puedeRegistrar ? "state-open" : "state-stop";
+    var estadoTexto = cerrada ? (Model.HoraEntradaApk.HasValue ? "Cerrada · entrada registrada" : "Cerrada · sin hora de entrada") : salidaRegistrada ? "En ruta · salida registrada" : Model.Diferencia != null ? "Diferencia reportada" : puedeRegistrar ? "Pendiente de salida · revisar carga" : "Salida pendiente de revisión";
+    <div class="garita-detail-content" role="region" aria-labelledby="garita-route-title" tabindex="0">
+    <div class="route-status"><span class="state @estadoClase">@estadoTexto</span></div>
+    @if (salidaRegistrada){
         <div class="notice success" role="status">
         <strong>Hora de salida:</strong> @(Model.HoraSalidaApk.HasValue?DateTime.Today.Add(Model.HoraSalidaApk.Value).ToString("hh:mm tt",System.Globalization.CultureInfo.InvariantCulture):"Sin hora") <br/>
         @if (Model.SalidaUtc.HasValue){
@@ -155,7 +161,7 @@
             }
     else if (cerrada)
     {<div class="notice info" role="status">Esta ruta no tiene hora de salida registrada. Verifica cuidadosamente la placa y el número de ruta antes de marcar el regreso.</div>}
-    if (cerrada && Model.HoraEntradaApk.HasValue)
+    @if (cerrada && Model.HoraEntradaApk.HasValue)
     {<div class="notice success" role="status"><strong>Hora de entrada:</strong> @Model.HoraEntradaApk.Value.ToString("c") @if (Model.EntradaUtc.HasValue)
     {<span>· Fecha: @Model.EntradaUtc.Value.AddHours(-6).ToString("dd/MM/yyyy HH:mm:ss") · Agente: @Model.AgenteEntrada</span>} @if (!string.IsNullOrWhiteSpace(Model.ObservacionEntrada))
     {<span>· Observación: @Model.ObservacionEntrada</span>} @if (Model.TieneFotoEntrada)
@@ -168,25 +174,39 @@ else if ((abierta || enRuta) && Model.Diferencia != null)
 {<div class="notice stop" role="alert"><strong>Detén la salida.</strong> Se reportó esta diferencia: @Model.Diferencia. Distribución debe resolverla antes de registrar la salida.</div>}
 else if ((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue && !Model.SalidaUtc.HasValue)
 {<div class="notice stop" role="alert"><strong>No registres la salida todavía.</strong> Revisa piloto, vehículo, facturas, bultos y liquidación. Si algo no coincide, reporta la diferencia y contacta a Distribución.</div>}
-else if ((abierta || enRuta) && !Model.HoraSalidaApk.HasValue && !Model.SalidaUtc.HasValue)
-{<!--<div class="notice info" role="status"><strong>Lista para verificar.</strong> Compara los datos con el vehículo y el cargamento. Garita registrará la hora de salida@@(abierta?" y pondrá la ruta En ruta":"").</div>-->}
 <section class="facts" aria-label="Datos del vehículo y la ruta">
     <h2>Datos del vehículo</h2>
-    <div class="vehicle-identity"><span class="plate-number"><svg class="ui-icon" aria-hidden="true"><use href="#garita-truck"></use></svg> @Model.Placa</span>@if (!string.IsNullOrWhiteSpace(Model.Vehiculo)){<span class="vehicle-type">@Model.Vehiculo</span>}</div>
-    <div class="vehicle-driver"><svg class="ui-icon" aria-hidden="true"><use href="#garita-person"></use></svg><div><span>Piloto</span><strong>@(Model.EsRutaEmpresa?(Model.ConductorReal??Model.Piloto):Model.Piloto)</strong>@if (Model.EsRutaEmpresa && !string.IsNullOrWhiteSpace(Model.DocumentoConductor)){<small>Documento/licencia: @Model.DocumentoConductor</small>}@if(!string.IsNullOrWhiteSpace(Model.Transporte)){<small>@Model.Transporte</small>}</div></div>
+    <div class="vehicle-identity"><span class="plate-number">@Model.Placa</span>@if (!string.IsNullOrWhiteSpace(Model.Vehiculo)){<span class="vehicle-type">@Model.Vehiculo</span>}</div>
+    <div class="vehicle-driver"><span class="vehicle-driver-icon" aria-hidden="true">👨‍✈️</span><div>Piloto: <strong>@(Model.EsRutaEmpresa?(Model.ConductorReal??Model.Piloto):Model.Piloto)</strong>@if(!string.IsNullOrWhiteSpace(Model.Transporte)){<small>@Model.Transporte</small>}@if (Model.EsRutaEmpresa && !string.IsNullOrWhiteSpace(Model.DocumentoConductor)){<small>Documento/licencia: @Model.DocumentoConductor</small>}</div></div>
     <div class="vehicle-meta"><span>Centro: <strong>@Model.Centro</strong></span><span>Fecha: <strong>@Model.Fecha.ToString("dd/MM/yyyy")</strong></span></div>
 </section>
 <section class="cargo-card">
-    <div class="section-head"><div><span class="step">CARGAMENTO</span><h2>Carga a verificar</h2></div><div class="totals"><span><strong>@Model.Bultos.ToString("0.###")</strong> @(Model.Bultos==1?"bulto":"bultos")</span><span><strong>@totalDocumentos</strong> @(totalDocumentos==1?"documento":"documentos")</span><span><strong>@Model.Clientes</strong> @(Model.Clientes==1?"cliente":"clientes")</span></div></div>
-    @if (!string.IsNullOrWhiteSpace(Model.Observacion))
-    {<div class="notice info"><strong>Nota de Distribución:</strong> @Model.Observacion</div>}
     @if (totalDocumentos > 0)
     {
-    <details class="cargo-expand"><summary><span><strong>@(string.IsNullOrWhiteSpace(Model.Documentos[0].Cliente)?"Cliente sin nombre":Model.Documentos[0].Cliente)</strong><small>@Model.Documentos[0].Direccion · @(string.IsNullOrWhiteSpace(Model.Documentos[0].Documento)?"Documento sin número":Model.Documentos[0].Documento)</small></span><b>Ver detalle ›</b></summary>
+    <details class="cargo-expand">
+        <summary>
+            <span class="cargo-summary-heading">
+                <strong role="heading" aria-level="2">Carga a verificar</strong>
+                <span class="cargo-show">Ver detalle <span aria-hidden="true">›</span></span>
+                <span class="cargo-hide">Ocultar detalle <span aria-hidden="true">⌃</span></span>
+            </span>
+            <span class="cargo-metrics">
+                <strong>@Model.Bultos.ToString("0.###") @(Model.Bultos == 1 ? "bulto" : "bultos")</strong>
+                <span>@totalDocumentos @etiquetaDocumento · @Model.Clientes @(Model.Clientes == 1 ? "cliente" : "clientes")</span>
+            </span>
+            <span class="cargo-preview">
+                <span aria-hidden="true">📦</span>
+                <span>
+                    <strong>@(string.IsNullOrWhiteSpace(Model.Documentos[0].Cliente) ? "Cliente sin nombre" : Model.Documentos[0].Cliente)</strong>
+                    <small>@Model.Documentos[0].Direccion · @(string.IsNullOrWhiteSpace(Model.Documentos[0].Documento) ? "Documento sin número" : Model.Documentos[0].Documento)</small>
+                </span>
+                <span aria-hidden="true">›</span>
+            </span>
+        </summary>
     @foreach (var grupo in Model.Documentos.GroupBy(d => new { d.Cliente, d.Direccion }))
     {
         <div class="customer customer-@GaritaReglas.EstadoCliente(grupo)">
-            <div class="customer-heading"><span class="customer-icon" aria-hidden="true"><svg class="ui-icon"><use href="#garita-box"></use></svg></span><div><h3>@(string.IsNullOrWhiteSpace(grupo.Key.Cliente)?"Cliente sin nombre":grupo.Key.Cliente)</h3><p>@grupo.Key.Direccion</p></div><span class="customer-count">@grupo.Count() @(grupo.Count()==1?"documento":"documentos")</span></div>
+            <div class="customer-heading"><span class="customer-icon" aria-hidden="true">📦</span><div><h3>@(string.IsNullOrWhiteSpace(grupo.Key.Cliente)?"Cliente sin nombre":grupo.Key.Cliente)</h3><p>@grupo.Key.Direccion</p></div><span class="customer-count">@grupo.Count() @(grupo.Count()==1?"documento":"documentos")</span></div>
             <ul class="documents">@foreach (var d in grupo)
             {
                 var resultado=GaritaReglas.Resultado(d);
@@ -212,6 +232,15 @@ else if ((abierta || enRuta) && !Model.HoraSalidaApk.HasValue && !Model.SalidaUt
     }
     </details>
     }
+    else
+    {
+        <h2>Carga a verificar</h2>
+        <p>Esta ruta no tiene documentos.</p>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.Observacion))
+    {
+        <div class="notice info"><strong>Nota de Distribución:</strong> @Model.Observacion</div>
+    }
 </section>
 <dialog id="cargo-document-dialog" class="cargo-dialog" aria-labelledby="cargo-dialog-title">
     <div class="cargo-dialog-head"><div><span class="step">FACTURA · DETALLE</span><h2 id="cargo-dialog-title">Factura</h2><p id="cargo-dialog-subtitle"></p></div><button type="button" id="cargo-dialog-close" class="cargo-dialog-close" aria-label="Cerrar detalle">×</button></div>
@@ -221,7 +250,7 @@ else if ((abierta || enRuta) && !Model.HoraSalidaApk.HasValue && !Model.SalidaUt
     <div id="cargo-dialog-photos" class="cargo-dialog-photos"><figure id="cargo-dialog-photo-doc" hidden><img alt="Fotografía de la factura agregada por el piloto" /><figcaption>Foto de la factura</figcaption></figure><figure id="cargo-dialog-photo-client" hidden><img alt="Fotografía del cliente agregada por el piloto" /><figcaption>Foto del cliente</figcaption></figure></div>
     <p id="cargo-dialog-no-photo" class="cargo-dialog-empty">Sin fotografías adjuntas.</p>
 </dialog>
-if (cerrada && Model.PuedeRegistrarEntrada)
+@if (cerrada && Model.PuedeRegistrarEntrada)
 {
     <section class="action-card entry-action">
         <span class="step">REGISTRAR REGRESO</span><h2>¿Es este el vehículo?</h2><p>Verifica placa, ruta y cargamento. El botón guardará @(Model.EntradaUtc.HasValue?"la hora del registro existente":"la hora actual").</p>
@@ -233,15 +262,15 @@ if (cerrada && Model.PuedeRegistrarEntrada)
             if (string.IsNullOrWhiteSpace(Model.ObservacionEntrada))
             {<div class="optional"><label for="observacion-entrada">Observación del regreso <small>(opcional)</small></label><textarea id="observacion-entrada" name="Observacion" maxlength="250" rows="2" placeholder="Ej. El vehículo regresó con carga pendiente"></textarea></div>}
             if (!Model.TieneFotoEntrada)
-            {<div class="photo-field"><span>Foto de entrada <small>(opcional · JPG, PNG o WebP hasta 10 MB)</small></span><div class="photo-buttons"><button type="button" data-photo-camera="foto-entrada"><svg class="ui-icon" aria-hidden="true"><use href="#garita-camera"></use></svg> Tomar foto</button><button type="button" data-photo-gallery="foto-entrada">Elegir archivo</button></div><input id="foto-entrada" name="foto" type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden" /><img id="foto-entrada-preview" alt="Vista previa de la foto de entrada" hidden /><button id="foto-entrada-clear" type="button" hidden>Quitar foto</button></div>}
-            <button class="confirm-button" type="submit">✓ Registrar entrada</button>
+            {<div class="photo-field"><span>Foto de entrada <small>(opcional · JPG, PNG o WebP hasta 10 MB)</small></span><div class="photo-buttons"><button type="button" data-photo-camera="foto-entrada"><span aria-hidden="true">📸</span> Tomar foto</button><button type="button" data-photo-gallery="foto-entrada">Elegir archivo</button></div><input id="foto-entrada" name="foto" type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden" /><img id="foto-entrada-preview" alt="Vista previa de la foto de entrada" hidden /><button id="foto-entrada-clear" type="button" hidden>Quitar foto</button></div>}
+            <button class="confirm-button" type="submit"><span aria-hidden="true">✅</span> Registrar entrada</button>
         }
     </section>
 }
-if (Model.PuedeReportarDiferencia)
+@if (Model.PuedeReportarDiferencia)
 {
     <section class="action-card exit-action">
-        <span class="step">CONFIRMAR SALIDA</span><h2>¿Todo coincide?</h2><p>@(puedeRegistrar?"Marca ambas verificaciones después de comparar el vehículo y las facturas.":"Hay datos que impiden registrar la salida. Reporta la diferencia a Distribución.") @if(abierta && puedeRegistrar){<span>Al autorizar, la ruta pasará de Abierta a En ruta.</span>}</p>
+        <h2>Confirmar salida</h2>
         @if (puedeRegistrar)
         {
             using (Html.BeginForm("RegistrarSalida", "Garita", FormMethod.Post, new { id = "register-exit-form", enctype = "multipart/form-data" }))
@@ -250,13 +279,30 @@ if (Model.PuedeReportarDiferencia)
                 <input type="hidden" name="RutaId" value="@Model.Id" /><input type="hidden" name="PlacaBusqueda" value="@Model.PlacaBusqueda" /><input type="hidden" name="Version" value="@Model.Version" /><input type="hidden" name="Solicitud" value="@Guid.NewGuid()" />
                 <input type="hidden" name="Seccion" value="@seccion" /><input type="hidden" name="Pagina" value="@Model.Pagina" /><input type="hidden" name="PaginaAbiertas" value="@Model.PaginaAbiertas" /><input type="hidden" name="PaginaCerradas" value="@Model.PaginaCerradas" />
                 <label class="check"><input type="checkbox" name="IdentidadVerificada" value="true" required /><span>Placa y piloto verificados</span></label>
-                <label class="check"><input type="checkbox" name="CargaVerificada" value="true" required /><span>Facturas y @Model.Bultos.ToString("0.###") bultos verificados</span></label>
-                <div class="optional"><label for="observacion">Observación <small>(opcional)</small></label><textarea id="observacion" name="Observacion" maxlength="250" rows="2"></textarea></div>
-                <div class="photo-field"><span>Foto de salida <small>(opcional · JPG, PNG o WebP hasta 10 MB)</small></span><div class="photo-buttons"><button type="button" data-photo-camera="foto"><svg class="ui-icon" aria-hidden="true"><use href="#garita-camera"></use></svg> Tomar foto</button><button type="button" data-photo-gallery="foto">Elegir archivo</button></div><input id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden" /><img id="foto-preview" alt="Vista previa de la foto elegida" hidden /><button id="foto-clear" type="button" hidden>Quitar foto</button></div>
-                <button class="confirm-button" type="submit">✓ Autorizar salida</button>
+                <label class="check"><input type="checkbox" name="CargaVerificada" value="true" required /><span>@(char.ToUpperInvariant(etiquetaDocumento[0]) + etiquetaDocumento.Substring(1)) y @Model.Bultos.ToString("0.###") @(Model.Bultos == 1 ? "bulto" : "bultos") verificados</span></label>
+                <div class="photo-field exit-photo">
+                    <div class="photo-buttons">
+                        <button type="button" data-photo-camera="foto"><span aria-hidden="true">📸</span> Tomar foto de evidencia (opcional)</button>
+                        <button type="button" data-photo-gallery="foto">Elegir archivo</button>
+                    </div>
+                    <input id="foto" name="foto" type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden" tabindex="-1" />
+                    <img id="foto-preview" alt="Vista previa de la foto elegida" hidden />
+                    <button id="foto-clear" type="button" hidden>Quitar foto</button>
+                </div>
+                <div class="optional">
+                    <label class="visually-hidden" for="observacion">Observación (opcional)</label>
+                    <textarea id="observacion" name="Observacion" maxlength="250" rows="2" placeholder="Agregar observación (opcional)…"></textarea>
+                </div>
+                if (abierta)
+                {
+                    <p class="exit-transition">Al autorizar, la ruta pasará de Abierta a En ruta.</p>
+                }
             }
         }
-        <button id="difference-open" class="stop-open" type="button">⚠ Detener salida</button>
+        else
+        {
+            <p>Hay datos que impiden registrar la salida. Reporta la diferencia a Distribución.</p>
+        }
     </section>
     <dialog id="difference-dialog" class="difference-dialog" aria-labelledby="difference-title">
         <div class="difference-head"><div><span class="step">DIFERENCIA</span><h2 id="difference-title">Detener salida</h2></div><button type="button" id="difference-close" aria-label="Cerrar" class="cargo-dialog-close">×</button></div>
@@ -279,6 +325,19 @@ if (Model.PuedeReportarDiferencia)
         }
     </dialog>
 }
+    <a class="search-other-link" href="@urlInicio"><span aria-hidden="true">🔎</span> Buscar otra placa</a>
+    </div>
+    if (Model.PuedeReportarDiferencia)
+    {
+        <div class="garita-detail-actions">
+            @if (puedeRegistrar)
+            {
+                <p id="register-exit-form-error" class="form-error" role="alert"></p>
+                <button class="confirm-button" type="submit" form="register-exit-form"><span aria-hidden="true">✅</span> Autorizar salida</button>
+            }
+            <button id="difference-open" class="stop-open" type="button"><span aria-hidden="true">⚠️</span> Detener salida</button>
+        </div>
+    }
 }
 @section scripts {
     <script src="@Url.Content("~/Scripts/qr-scanner/qr-scanner.umd.min.js")"></script>

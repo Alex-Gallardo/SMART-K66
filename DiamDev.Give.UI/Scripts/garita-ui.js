@@ -139,18 +139,26 @@
     }
 
     var exitForm = document.getElementById('register-exit-form');
+    function submitButton(form) {
+        return Array.prototype.find.call(form.elements, function (control) {
+            return control.tagName === 'BUTTON' && control.type === 'submit';
+        });
+    }
+
+    var updateChecklist;
     if (exitForm) {
-        var authorize = exitForm.querySelector('button[type="submit"]');
+        var authorize = submitButton(exitForm);
         var checks = exitForm.querySelectorAll('input[type="checkbox"][required]');
-        function updateChecklist() {
-            authorize.disabled = !Array.prototype.every.call(checks, function (check) { return check.checked; });
-            authorize.setAttribute('aria-disabled', String(authorize.disabled));
-        }
+        updateChecklist = function () {
+            authorize.disabled = exitForm.getAttribute('aria-busy') === 'true' ||
+                !Array.prototype.every.call(checks, function (check) { return check.checked; });
+        };
         checks.forEach(function (check) { check.addEventListener('change', updateChecklist); });
         updateChecklist();
     }
 
     function showReceipt(data) {
+        if (data.tipo === 'diferencia' && differenceDialog && differenceDialog.open) differenceDialog.close();
         var overlay = document.createElement('div');
         overlay.className = 'garita-receipt garita-receipt-' + data.tipo;
         overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
@@ -173,11 +181,12 @@
         form.addEventListener('submit', function (event) {
             if (!form.checkValidity()) return;
             event.preventDefault(); dismissKeyboard(); readyAudio();
-            var button = form.querySelector('button[type="submit"]');
+            var button = submitButton(form);
             if (button.disabled) return;
-            var original = button.textContent;
+            var original = Array.from(button.childNodes);
+            form.setAttribute('aria-busy', 'true');
             button.disabled = true; button.textContent = 'Guardando…';
-            var alertBox = form.querySelector('.form-error');
+            var alertBox = document.getElementById(form.id + '-error') || form.querySelector('.form-error');
             if (!alertBox) { alertBox = document.createElement('p'); alertBox.className = 'form-error'; alertBox.setAttribute('role', 'alert'); form.insertBefore(alertBox, button); }
             alertBox.textContent = '';
             fetch(form.action, { method: 'POST', body: new FormData(form), credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
@@ -187,7 +196,14 @@
                     return response.json().then(function (data) { if (!response.ok || !data.ok) throw new Error(data.mensaje || 'No se pudo guardar. Intenta de nuevo.'); return data; });
                 })
                 .then(showReceipt)
-                .catch(function (error) { alertBox.textContent = error.message || 'No se pudo confirmar el registro. Intenta de nuevo.'; button.disabled = false; button.textContent = original; });
+                .catch(function (error) {
+                    alertBox.textContent = error.message || 'No se pudo confirmar el registro. Intenta de nuevo.';
+                    form.removeAttribute('aria-busy');
+                    button.textContent = '';
+                    original.forEach(function (node) { button.appendChild(node); });
+                    button.disabled = false;
+                    if (form === exitForm) updateChecklist();
+                });
         });
     });
 }());

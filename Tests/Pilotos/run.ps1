@@ -327,16 +327,16 @@ if($garitaEmpresaPendiente -match 'Conductor pendiente' -or $garitaEmpresaPendie
    $garitaEmpresaAsignada -notmatch 'JUAN PEREZ' -or $garitaEmpresaAsignada -notmatch 'L-1234' -or $garitaEmpresaAsignada -notmatch 'id="register-exit-form"') {
     throw 'Garita debe permitir verificar la salida con el piloto de APK66 y mostrar la asignación opcional.'
 }
-if($garitaVacia -notmatch 'name="placa"' -or $garitaVacia -match 'class="route-option"' -or $garitaVacia -match 'class="route-header"' -or
+if($garitaVacia -notmatch 'name="placa"' -or $garitaVacia -match 'class="route-option"' -or $garitaVacia -match 'class="route-status"' -or
    $garitaVacia -notmatch 'id="qr-file"[^>]*capture="environment"' -or $garitaVacia -notmatch 'id="qr-gallery"') {
     throw 'Garita debe mostrar solo la búsqueda y ofrecer captura nativa y foto guardada para el QR.'
 }
 if($garitaLista -notmatch 'PP26-ABIERTA' -or $garitaLista -notmatch 'PP26-GARITA' -or $garitaLista -notmatch 'PP26-OTRA' -or $garitaLista -notmatch 'OTRO PILOTO' -or $garitaLista -notmatch 'Siguiente' -or $garitaLista -match 'id="register-exit-form"') {throw 'La búsqueda debe listar por separado A, E y C con sus páginas.'}
 if($garitaSinResultados -notmatch 'No hay rutas para esta placa' -or $garitaSinResultados -match 'class="route-option"') {throw 'La placa sin rutas debe mostrar un mensaje claro.'}
 if($garitaDiferencia -notmatch 'Faltan dos bultos' -or $garitaDiferencia -match 'id="register-exit-form"') {throw 'La diferencia debe bloquear el registro de salida.'}
-if($garitaEnRuta -notmatch 'En ruta' -or $garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'name="IdentidadVerificada"' -or $garitaEnRuta -notmatch 'name="foto"' -or $garitaEnRuta -notmatch 'multipart/form-data' -or $garitaEnRuta -match 'name="Precinto"' -or $garitaEnRuta -notmatch 'Autorizar salida') {throw 'La ruta E debe exigir dos verificaciones y permitir foto opcional.'}
+if($garitaEnRuta -notmatch 'id="register-exit-form"' -or $garitaEnRuta -notmatch 'name="CargaVerificada"' -or $garitaEnRuta -notmatch 'name="IdentidadVerificada"' -or $garitaEnRuta -notmatch 'name="foto"' -or $garitaEnRuta -notmatch 'multipart/form-data' -or $garitaEnRuta -match 'name="Precinto"' -or $garitaEnRuta -notmatch 'Autorizar salida') {throw 'La ruta E debe exigir dos verificaciones y permitir foto opcional.'}
 $garitaAbiertaTexto=[System.Net.WebUtility]::HtmlDecode($garitaAbierta)
-if($garitaAbiertaTexto -notmatch 'Abierta · pendiente de salida' -or $garitaAbierta -notmatch 'id="register-exit-form"' -or $garitaAbiertaTexto -notmatch 'pasará de Abierta a En ruta') {throw 'La ruta A debe permitir la salida y explicar el cambio a E.'}
+if($garitaAbiertaTexto -notmatch 'Pendiente de salida · revisar carga' -or $garitaAbierta -notmatch 'id="register-exit-form"' -or $garitaAbiertaTexto -notmatch 'pasará de Abierta a En ruta') {throw 'La ruta A debe permitir la salida y explicar el cambio a E.'}
 if($garitaSalida -notmatch 'GUARDIA' -or $garitaSalida -notmatch 'Hora de salida:</strong> 06:19 AM' -or $garitaSalida -notmatch 'Ver foto de salida' -or $garitaSalida -match 'id="register-exit-form"' -or
    $garitaSalidaPm -notmatch 'Hora de salida:</strong> 06:19 PM' -or $garitaSalidaPm -match 'Hora de salida:</strong> 18:19') {throw 'La salida registrada debe mostrar la hora en formato de 12 horas con AM/PM, agente y foto sin permitir otra salida.'}
 if($garitaVacia -notmatch 'id="qr-open"' -or $garitaVacia -notmatch 'id="qr-dialog"' -or
@@ -346,12 +346,16 @@ if($garitaVacia -notmatch 'id="qr-open"' -or $garitaVacia -notmatch 'id="qr-dial
    $garitaCerrada -notmatch 'id="register-entry-form"' -or $garitaCerrada -notmatch 'Registrar entrada' -or
    $garitaCerrada -match 'id="register-exit-form"' -or $garitaEntrada -match 'id="register-entry-form"' -or
    $garitaEntrada -notmatch 'Hora de entrada:' -or $garitaEntradaTexto -notmatch 'Regresó con carga' -or $garitaEntrada -notmatch 'Ver foto de entrada' -or
-   $garitaCerrada -notmatch 'Volver a rutas de la placa' -or $garitaCerrada -notmatch 'Buscar otra placa') {
+   $garitaCerrada -notmatch 'Volver al listado de rutas' -or $garitaCerrada -notmatch 'Buscar otra placa') {
     throw 'La búsqueda QR, las cerradas pendientes, la entrada y los enlaces de regreso deben renderizar correctamente.'
 }
 $garitaAdmin=Get-Content -LiteralPath (Join-Path $out 'garita-admin.html') -Raw
 if($garitaAdmin -notmatch 'Faltan dos bultos' -or $garitaAdmin -notmatch 'name="asignar"' -or $garitaAdmin -notmatch 'ResolverDiferencia') {throw 'La administración debe mostrar incidentes y permitir centros y resolución.'}
 Write-Host 'OK: búsqueda, carga, bloqueo por diferencia y salida registrada en la vista de garita.'
+if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {
+    & node (Join-Path $PSScriptRoot 'garita-navegacion.test.js') 'C:\Program Files\Google\Chrome\Application\chrome.exe'
+    if($LASTEXITCODE -ne 0) {throw 'Falló la navegación de regreso al listado de Garita.'}
+}
 if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {& (Join-Path $PSScriptRoot 'garita-browser-smoke.ps1'); if($LASTEXITCODE -ne 0) {throw 'Falló la prueba de navegador de garita.'}}
 if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {& (Join-Path $PSScriptRoot 'empresa-browser-smoke.ps1'); if($LASTEXITCODE -ne 0) {throw 'Falló la prueba de navegador de transportistas.'}}
 if(Test-Path -LiteralPath 'C:\Program Files\Google\Chrome\Application\chrome.exe') {& (Join-Path $PSScriptRoot 'route-admin-browser-smoke.ps1'); if($LASTEXITCODE -ne 0) {throw 'Falló la prueba de formularios administrativos.'}}

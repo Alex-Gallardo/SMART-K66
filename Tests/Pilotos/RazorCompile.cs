@@ -17,6 +17,8 @@ internal static class RazorCompile
             string root=args[0], bin=Path.GetDirectoryName(typeof(RazorCompile).Assembly.Location);
             RazorPreview.AssetsRoot=root;
             var previews=new Dictionary<string,string>(); Type layout=null;Type panelContenido=null;
+            var garitaViewData=new Dictionary<string,ViewDataDictionary>();
+            Type garitaLayout=null;
             RouteTable.Routes.MapRoute("Default","{controller}/{action}/{id}",new {action="Index",id=UrlParameter.Optional});
             foreach(var relative in new[]{"Piloto/Index.cshtml","Piloto/Detalle.cshtml","Piloto/Error.cshtml","Piloto/Administracion.cshtml","Piloto/Configurar.cshtml","Piloto/EditarRuta.cshtml","Piloto/EditarDocumento.cshtml","Piloto/AdministracionError.cshtml","Seguridad/PilotoToken.cshtml","Seguridad/GaritaToken.cshtml","Piloto/_PanelContenido.cshtml","Piloto/Panel.cshtml","Piloto/PanelDetalle.cshtml","Piloto/PanelError.cshtml","Shared/_PilotoLayout.cshtml","Shared/_Layout.cshtml","Garita/Index.cshtml","Garita/Error.cshtml","Garita/Administrar.cshtml","Shared/_GaritaLayout.cshtml","Liquidacion/Index.cshtml","Liquidacion/Detalle.cshtml","Liquidacion/Error.cshtml"}) {
                 string file=Path.Combine(root,"DiamDev.Give.UI/Views/"+relative);
@@ -27,6 +29,7 @@ internal static class RazorCompile
                 System.Web.Razor.GeneratorResults code;
                 var source=File.ReadAllText(file);
                 if(args.Length>1 && relative=="Shared/_PilotoLayout.cshtml") source=source.Replace("@RenderBody()","@Html.Raw(ViewBag.PreviewBody)").Replace("@RenderSection(\"scripts\", required: false)","");
+                if(args.Length>1 && relative=="Shared/_GaritaLayout.cshtml") source=source.Replace("@RenderBody()","@Html.Raw(ViewBag.PreviewBody)").Replace("@RenderSection(\"scripts\",required:false)","");
                 if(relative=="Shared/_Layout.cshtml") source=source.Replace("DiamDev.Give.UI.App_Start.CustomHelper.getAgenciaNombre()","\"Demo\"");
                 if(args.Length>1 && relative=="Piloto/Panel.cshtml") source=source.Replace("@Html.Partial(\"_PanelContenido\",Model)","@Html.Raw(ViewBag.PanelBody)");
                 if(args.Length>1 && relative.StartsWith("Piloto/Panel")) source=source.Replace("@section scripts { <script src=\"@Url.Content(\"~/Scripts/pilotos-panel.js\")\"></script> }","");
@@ -43,6 +46,7 @@ internal static class RazorCompile
                     if(args.Length>1) {
                         var type=result.CompiledAssembly.GetTypes().First(t=>typeof(WebViewPage).IsAssignableFrom(t));
                         if(relative=="Shared/_PilotoLayout.cshtml") layout=type;
+                        if(relative=="Shared/_GaritaLayout.cshtml") garitaLayout=type;
                         if(relative=="Piloto/_PanelContenido.cshtml") panelContenido=type;
                         if(relative=="Piloto/Panel.cshtml") foreach(var seccion in new[]{"resumen","rutas","pilotos","documentos","actividad","alertas"}) {
                             var modelo=RazorPreview.Panel(seccion);previews["panel-"+seccion]=RazorPreview.Render(type,modelo,RazorPreview.Render(panelContenido,modelo));
@@ -83,35 +87,44 @@ internal static class RazorCompile
                         if(relative=="Piloto/AdministracionError.cshtml") previews["administracion-error"]=RazorPreview.Render(type,null);
                         if(relative=="Piloto/Error.cshtml") previews["error"]=RazorPreview.Render(type,null);
                         if(relative=="Garita/Index.cshtml") {
-                            previews["garita-vacia"]=RazorPreview.Render(type,new DiamDev.Give.Entities.GaritaRuta());
+                            Action<string,DiamDev.Give.Entities.GaritaRuta> renderGarita=(nombre,modelo)=>{
+                                var datos=new ViewDataDictionary(modelo);
+                                previews[nombre]=RazorPreview.Render(type,modelo,sharedViewData:datos);
+                                garitaViewData[nombre]=datos;
+                            };
+                            renderGarita("garita-vacia",new DiamDev.Give.Entities.GaritaRuta());
                             var busqueda=new DiamDev.Give.Entities.GaritaRuta{PlacaBusqueda="C-123ABC",BusquedaRealizada=true,Pagina=1,TotalRutas=51,TotalCerradas=51,PaginaCerradas=1,TotalAbiertas=51,PaginaAbiertas=1};
                             busqueda.ResultadosAbiertas.Add(new DiamDev.Give.Entities.GaritaRutaResumen{Id="PP26-ABIERTA",Placa="C-123ABC",Centro="PALIN",Piloto="PILOTO DEMO",Fecha=new DateTime(2026,10,21),Documentos=1,Clientes=1,Bultos=4});
                             busqueda.Resultados.Add(new DiamDev.Give.Entities.GaritaRutaResumen{Id="PP26-GARITA",Placa="C-123ABC",Centro="PALIN",Piloto="PILOTO DEMO",Fecha=new DateTime(2026,10,20),Documentos=1,Clientes=1,Bultos=4});
                             busqueda.Resultados.Add(new DiamDev.Give.Entities.GaritaRutaResumen{Id="PP26-OTRA",Placa="C-123ABC",Centro="PALIN",Piloto="OTRO PILOTO",Fecha=new DateTime(2026,10,19),Documentos=2,Clientes=1,Bultos=8,SalidaRegistrada=true});
                             busqueda.ResultadosCerradas.Add(new DiamDev.Give.Entities.GaritaRutaResumen{Id="PP26-CERRADA",Placa="C-123ABC",Centro="PALIN",Piloto="PILOTO DEMO",Fecha=new DateTime(2026,10,18),Documentos=2,Clientes=1,Bultos=8,SalidaRegistrada=true});
-                            previews["garita-lista"]=RazorPreview.Render(type,busqueda);
-                            previews["garita-sin-resultados"]=RazorPreview.Render(type,new DiamDev.Give.Entities.GaritaRuta{PlacaBusqueda="X-000",BusquedaRealizada=true,Pagina=1});
+                            renderGarita("garita-lista",busqueda);
+                            busqueda.Pagina=2;
+                            busqueda.Seccion="en-ruta";
+                            renderGarita("garita-lista-regreso",busqueda);
+                            renderGarita("garita-sin-resultados",new DiamDev.Give.Entities.GaritaRuta{PlacaBusqueda="X-000",BusquedaRealizada=true,Pagina=1});
                             var garita=new DiamDev.Give.Entities.GaritaRuta{Id="PP26-GARITA",Estado="E",Centro="PALIN",Piloto="PILOTO DEMO",Placa="C-123ABC",PlacaBusqueda="C-123ABC",Fecha=new DateTime(2026,10,20),VehiculoDisponible=true};
                             garita.Documentos.Add(new DiamDev.Give.Entities.PilotoDocumento{RowId=1,Tipo="FACTURA",Empresa="GRACO",Documento="FAC-001",Cliente="CLIENTE UNO",Direccion="GUATEMALA",Bultos=4});
                             garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);
                             garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);
-                            garita.Diferencia="Faltan dos bultos";previews["garita-diferencia"]=RazorPreview.Render(type,garita);
-                            garita.Diferencia=null;previews["garita-en-ruta"]=RazorPreview.Render(type,garita);
-                            garita.Estado="A";garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);previews["garita-abierta"]=RazorPreview.Render(type,garita);
+                            garita.Pagina=2;garita.PaginaAbiertas=1;garita.PaginaCerradas=1;
+                            garita.Diferencia="Faltan dos bultos";renderGarita("garita-diferencia",garita);
+                            garita.Diferencia=null;renderGarita("garita-en-ruta",garita);
+                            garita.Estado="A";garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);renderGarita("garita-abierta",garita);
                             garita.Estado="E";garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);
-                            garita.EsRutaEmpresa=true;garita.ConductorReal=null;previews["garita-empresa-pendiente"]=RazorPreview.Render(type,garita);
-                            garita.ConductorReal="JUAN PEREZ";garita.DocumentoConductor="L-1234";garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);previews["garita-empresa-asignada"]=RazorPreview.Render(type,garita);
+                            garita.EsRutaEmpresa=true;garita.ConductorReal=null;renderGarita("garita-empresa-pendiente",garita);
+                            garita.ConductorReal="JUAN PEREZ";garita.DocumentoConductor="L-1234";garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);renderGarita("garita-empresa-asignada",garita);
                             garita.EsRutaEmpresa=false;garita.ConductorReal=null;garita.DocumentoConductor=null;
-                            garita.SalidaUtc=new DateTime(2026,10,20,15,30,0,DateTimeKind.Utc);garita.Agente="GUARDIA";garita.TieneFotoSalida=true;garita.HoraSalidaApk=new TimeSpan(6,19,48);previews["garita-salida"]=RazorPreview.Render(type,garita);
-                            garita.HoraSalidaApk=new TimeSpan(18,19,48);previews["garita-salida-pm"]=RazorPreview.Render(type,garita);
-                            garita.Estado="C";garita.HoraSalidaApk=new TimeSpan(9,30,0);garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);previews["garita-cerrada"]=RazorPreview.Render(type,garita);
-                            garita.HoraEntradaApk=new TimeSpan(17,15,0);garita.EntradaUtc=new DateTime(2026,10,20,23,15,0,DateTimeKind.Utc);garita.AgenteEntrada="GUARDIA";garita.ObservacionEntrada="Regresó con carga";garita.TieneFotoEntrada=true;garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);previews["garita-entrada"]=RazorPreview.Render(type,garita);
+                            garita.SalidaUtc=new DateTime(2026,10,20,15,30,0,DateTimeKind.Utc);garita.Agente="GUARDIA";garita.TieneFotoSalida=true;garita.HoraSalidaApk=new TimeSpan(6,19,48);renderGarita("garita-salida",garita);
+                            garita.HoraSalidaApk=new TimeSpan(18,19,48);renderGarita("garita-salida-pm",garita);
+                            garita.Estado="C";garita.HoraSalidaApk=new TimeSpan(9,30,0);garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);renderGarita("garita-cerrada",garita);
+                            garita.HoraEntradaApk=new TimeSpan(17,15,0);garita.EntradaUtc=new DateTime(2026,10,20,23,15,0,DateTimeKind.Utc);garita.AgenteEntrada="GUARDIA";garita.ObservacionEntrada="Regresó con carga";garita.TieneFotoEntrada=true;garita.Version=DiamDev.Give.Entities.GaritaReglas.Version(garita);renderGarita("garita-entrada",garita);
                             var cargo=new DiamDev.Give.Entities.GaritaRuta{Id="PP26-CARGA",Estado="C",Centro="PALIN",Piloto="PILOTO DEMO",Placa="C-123ABC",PlacaBusqueda="C-123ABC",Fecha=new DateTime(2026,10,20),VehiculoDisponible=true};
                             cargo.Documentos.Add(new DiamDev.Give.Entities.PilotoDocumento{RowId=11,Tipo="FACTURA",Empresa="GRACO",Documento="FAC-ENTREGADA",Cliente="CLIENTE ENTREGADO",Direccion="GUATEMALA",Bultos=2,Entrega="ENTREGADO",Visito=true,Observaciones="Recibió en bodega",FechaDocumento=new DateTime(2026,10,19),FelSerie="A",FelNumero="100",Monto=120,Entrada=new TimeSpan(10,30,0),Salida=new TimeSpan(10,45,0),TieneImagen=true,TieneImagenCliente=true,PrimerRowIdCliente=11});
                             cargo.Documentos.Add(new DiamDev.Give.Entities.PilotoDocumento{RowId=12,Tipo="FACTURA",Empresa="GRACO",Documento="FAC-OTRA",Cliente="CLIENTE ENTREGADO",Direccion="GUATEMALA",Bultos=1,Entrega="ENTREGADO",Visito=true,PrimerRowIdCliente=11});
                             cargo.Documentos.Add(new DiamDev.Give.Entities.PilotoDocumento{RowId=13,Tipo="FACTURA",Empresa="GRACO",Documento="FAC-NO-ENTREGADA",Cliente="CLIENTE CON NOVEDAD",Direccion="PALIN",Bultos=3,Entrega="NO ENTREGADO",Visito=false,Motivo="TIEMPO RUTA",Observaciones="No hubo tiempo",PrimerRowIdCliente=13});
                             cargo.Documentos.Add(new DiamDev.Give.Entities.PilotoDocumento{RowId=14,Tipo="FACTURA",Empresa="GRACO",Documento="FAC-PENDIENTE",Cliente="CLIENTE PENDIENTE",Direccion="PALIN",Bultos=4,PrimerRowIdCliente=14});
-                            cargo.Version=DiamDev.Give.Entities.GaritaReglas.Version(cargo);previews["garita-cargo"]=RazorPreview.Render(type,cargo);
+                            cargo.Version=DiamDev.Give.Entities.GaritaReglas.Version(cargo);renderGarita("garita-cargo",cargo);
                         }
                         if(relative=="Liquidacion/Index.cshtml") {previews["liq-index"]=RazorPreview.Render(type,RazorPreview.LiquidacionLista());previews["liq-con-historial"]=RazorPreview.Render(type,RazorPreview.LiquidacionLista(true));}
                         if(relative=="Liquidacion/Detalle.cshtml") {previews["liq-detalle"]=RazorPreview.Render(type,RazorPreview.LiquidacionRuta());previews["liq-lista"]=RazorPreview.Render(type,RazorPreview.LiquidacionRuta(true));previews["liq-liquidada"]=RazorPreview.Render(type,RazorPreview.LiquidacionRuta(true,true));}
@@ -130,6 +143,9 @@ internal static class RazorCompile
                 object model=preview.Key.StartsWith("panel-") ? (object)RazorPreview.Panel() : preview.Key=="administracion" ? (object)RazorPreview.AdminLista() : preview.Key=="configurar" ? (object)RazorPreview.AdminEdicion() : preview.Key=="configurar-empresa" ? (object)RazorPreview.AdminEdicionEmpresa() : preview.Key=="editar-ruta" ? (object)RazorPreview.AdminRuta() : preview.Key=="editar-ruta-empresa" ? (object)RazorPreview.AdminRutaEmpresa() : null;
                 bool backoffice=preview.Key.StartsWith("panel-") || preview.Key.StartsWith("liq-") || preview.Key=="administracion" || preview.Key.StartsWith("configurar") || preview.Key.StartsWith("editar-ruta") || preview.Key=="administracion-error";
                 var html=preview.Key.StartsWith("garita-") ? preview.Value : backoffice ? RazorPreview.Backoffice(preview.Value,preview.Key.StartsWith("panel-"),preview.Key.StartsWith("liq-")) : RazorPreview.Render(layout,model,preview.Value,"activas",preview.Key=="detalle-cierre" || preview.Key=="detalle-borrador" || preview.Key.StartsWith("detalle-empresa-"));
+                ViewDataDictionary garitaDatos;
+                if(garitaViewData.TryGetValue(preview.Key,out garitaDatos))
+                    html=RazorPreview.Render(garitaLayout,garitaDatos.Model,preview.Value,sharedViewData:garitaDatos);
                 if(preview.Key.StartsWith("liq-")) html=html.Replace("</body>","<script src=\""+new Uri(Path.Combine(root,"DiamDev.Give.UI/Scripts/pilotos-liquidacion.js")).AbsoluteUri+"\"></script></body>");
                 if(preview.Key.StartsWith("editar-ruta")) html=html.Replace("/Scripts/pilotos.js","/Scripts/pilotos-admin-ruta.js");
                 File.WriteAllText(Path.Combine(bin,preview.Key+".html"),html);

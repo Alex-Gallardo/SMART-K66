@@ -40,34 +40,45 @@ internal static class RazorPreview
     private sealed class PreviewController : Controller {}
     private sealed class PreviewView : IView { public void Render(ViewContext context, TextWriter writer) {} }
     private sealed class PreviewRequest : HttpRequestWrapper {
-        public PreviewRequest(HttpRequest r):base(r) {}
-        public override string ApplicationPath { get { return "/"; } }
-        public override string AppRelativeCurrentExecutionFilePath {get{return "~/Piloto/Index";}}
+        private readonly string applicationPath;
+        private readonly string currentPath;
+        public PreviewRequest(HttpRequest r,string applicationPath,string currentPath):base(r)
+        { this.applicationPath=applicationPath; this.currentPath=currentPath; }
+        public override string ApplicationPath { get { return applicationPath; } }
+        public override string AppRelativeCurrentExecutionFilePath {get{return currentPath;}}
     }
     private sealed class PreviewContext : HttpContextWrapper {
         readonly HttpRequestBase request;
-        public PreviewContext(HttpContext c):base(c){request=new PreviewRequest(c.Request);}
+        public PreviewContext(HttpContext c,string applicationPath,string currentPath):base(c)
+        {request=new PreviewRequest(c.Request,applicationPath,currentPath);}
         public override HttpRequestBase Request {get{return request;}}
     }
-    public static string Render(Type type, object model, string body = null, string vista = "activas", bool editable = false)
+    public static string Render(Type type, object model, string body = null, string vista = "activas", bool editable = false, ViewDataDictionary sharedViewData = null)
     {
         // Standalone renderer has no IIS header pipeline; production uses its normal antiforgery setup.
         System.Web.Helpers.AntiForgeryConfig.SuppressXFrameOptionsHeader=true;
         using(var writer=new StringWriter()) {
-            var raw=new HttpContext(new HttpRequest("","http://localhost/Piloto/Index",""),new HttpResponse(writer));
+            var garita=model as GaritaRuta;
+            var controllerName=garita==null?"Piloto":"Garita";
+            var applicationPath=garita==null?"/":"/pedidosap";
+            var currentPath="/"+controllerName+"/Index";
+            if(garita!=null && !string.IsNullOrEmpty(garita.Id)) currentPath+="/"+garita.Id;
+            var raw=new HttpContext(new HttpRequest("","http://localhost"+applicationPath.TrimEnd('/')+currentPath,""),new HttpResponse(writer));
             raw.User=new GenericPrincipal(new GenericIdentity("piloto_demo","Forms"),new string[0]);
             HttpContext.Current=raw;
-            var http=new PreviewContext(raw);
-            var route=new RouteData(); route.Values["controller"]="Piloto"; route.Values["action"]="Index";
+            var http=new PreviewContext(raw,applicationPath,"~"+currentPath);
+            var route=new RouteData(); route.Values["controller"]=controllerName; route.Values["action"]="Index";
+            if(garita!=null && !string.IsNullOrEmpty(garita.Id)) route.Values["id"]=garita.Id;
             var controller=new PreviewController();
             controller.ControllerContext=new ControllerContext(http,route,controller);
             var ruta=model as PilotoRuta; if(ruta!=null && vista=="historial") ruta.Estado="C";
-            var viewData=new ViewDataDictionary(model);
+            var viewData=sharedViewData??new ViewDataDictionary(model);
             viewData["PruebasSoloLectura"]=!(model is PilotoPanelModelo) && !editable; viewData["PreviewBody"]=body; viewData["PaginaRutas"]=1; viewData["Vista"]=vista;
             viewData["EsAdministracion"]=model is PilotoAdminLista || model is PilotoAdminEdicion || model is PilotoAdminRutaEdicion;
             viewData["EsPanel"]=model is PilotoPanelModelo;
             viewData["PanelBody"]=body;
-            viewData["Title"]="Pilotos · Demo"; viewData["Desde"]="2026-09-08"; viewData["Hasta"]="2026-09-21";
+            if(!viewData.ContainsKey("Title")) viewData["Title"]="Pilotos · Demo";
+            viewData["Desde"]="2026-09-08"; viewData["Hasta"]="2026-09-21";
             viewData["Mensaje"]="La ruta no está disponible. Consulta a Distribución.";
             if(model is PilotoLiquidacionRuta) {var filtro=new PilotoLiquidacionFiltro();filtro.Validar(new DateTime(2026,10,28));viewData["Filtro"]=filtro;}
             var page=(WebViewPage)Activator.CreateInstance(type);
@@ -75,7 +86,11 @@ internal static class RazorPreview
             page.ViewData=viewData; page.InitHelpers();
             page.PushContext(new WebPageContext(http,page,null),writer);
             page.ViewContext.Writer=page.Output;
-            page.Execute(); page.Layout=null; page.PopContext();
+            page.Execute();
+            // The standalone layout runs separately. In MVC it inherits the view data.
+            if(sharedViewData!=null && garita!=null && body==null)
+                foreach(var key in new[]{"Title","GaritaRutaId","GaritaUrlRutas"}) sharedViewData[key]=page.ViewData[key];
+            page.Layout=null; page.PopContext();
             return writer.ToString();
         }
     }

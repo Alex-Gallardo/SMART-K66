@@ -70,8 +70,8 @@ if('$name'==='en-ruta') {
  check(authorize.disabled,'autorizar debe esperar dos verificaciones');
  var actions=authorize.closest('.garita-detail-actions');
  check(Math.abs(actions.getBoundingClientRect().bottom-footer.getBoundingClientRect().top)<=1,'acciones separadas del pie de página');
- var cargo=document.querySelector('.cargo-expand');
- cargo.querySelector('summary').click();check(cargo.open,'no se puede abrir el detalle de la carga');
+ var cargo=document.querySelector('.cargo-customer');
+ cargo.querySelector('summary').click();check(cargo.open,'no se puede abrir el detalle del cliente');
  scrollArea.scrollTop=scrollArea.scrollHeight;
  if(innerWidth<=750)check(scrollArea.scrollTop>0,'la prueba debe desplazar el detalle móvil');
  checkFooter();
@@ -86,27 +86,60 @@ if('$name'==='empresa-asignada') check(form && document.body.textContent.indexOf
 if('$name'==='cerrada') {var entry=document.querySelector('#register-entry-form');check(entry && !form && document.body.textContent.indexOf('Sin hora de entrada')>=0,'cerrada debe poder registrar entrada');check(entry.enctype==='multipart/form-data' && entry.querySelector('textarea[name="Observacion"]') && entry.querySelector('input[type="file"][name="foto"]'),'entrada debe aceptar observación y foto opcionales');}
 if('$name'==='entrada') check(!document.querySelector('#register-entry-form') && !form && document.body.textContent.indexOf('Hora de entrada:')>=0 && document.body.textContent.indexOf('Regresó con carga')>=0 && document.body.textContent.indexOf('Ver foto de entrada')>=0,'entrada duplicada disponible y evidencia visible');
 if('$name'==='cargo') {
- var cargoDetails=document.querySelector('.cargo-expand');
- var cargoSummary=cargoDetails.querySelector('summary');
- var compactList=document.querySelector('.cargo-preview-list');
- cargoSummary.click();
- check(cargoDetails.open && !compactList.getClientRects().length,'al abrir el detalle no debe repetirse la lista compacta');
- check(cargoDetails.querySelectorAll('.customer').length===4 && cargoDetails.querySelectorAll('.cargo-document').length===5,'faltan clientes o facturas en el detalle');
+ var customerList=document.querySelector('.cargo-preview-list');
+ var customers=Array.from(customerList.querySelectorAll('.cargo-customer'));
+ check(customers.length===4 && customers.every(customer=>!customer.open),'cada cliente debe comenzar colapsado');
+ check(customerList.querySelectorAll('.cargo-document').length===5,'faltan facturas en el detalle');
  check(document.querySelectorAll('.customer-delivered').length===1 && document.querySelectorAll('.customer-warning').length===1 && document.querySelectorAll('.customer-pending').length===2,'bordes de clientes incorrectos');
  var delivered=document.querySelector('.cargo-document[data-documento="FAC-ENTREGADA"]');
+ var firstCustomer=delivered.closest('details');
+ var firstSummary=firstCustomer.querySelector('summary');
+ firstSummary.click();
+ check(firstCustomer.open && firstCustomer.querySelectorAll('.cargo-document').length===2 && customers.filter(customer=>customer.open).length===1,'abrir un cliente debe desplegar únicamente sus documentos');
+ var modal=document.getElementById('cargo-document-dialog');
+ var closeCargo=document.getElementById('cargo-dialog-close');
+ var modalBody=modal.querySelector('.cargo-dialog-body');
+ function checkDialogLayout(expectScroll) {
+  var box=modal.getBoundingClientRect();
+  check(box.top>=0 && box.bottom<=innerHeight+1 && modalBody.scrollWidth<=modalBody.clientWidth+1,'el modal excede la pantalla');
+  if(innerWidth<=750 && expectScroll){
+   var closeTop=closeCargo.getBoundingClientRect().top;
+   modalBody.scrollTop=modalBody.scrollHeight;
+   check(modalBody.scrollTop>0 && Math.abs(closeCargo.getBoundingClientRect().top-closeTop)<=1,'el cierre debe seguir visible al desplazar el contenido');
+  }
+ }
  check(delivered && delivered.querySelector('.cargo-result-delivered') && delivered.dataset.fotoDoc.indexOf('FotoPiloto')>=0 && delivered.dataset.fotoCliente.indexOf('FotoPiloto')>=0,'estado o enlaces de fotos de factura entregada');
- delivered.click();var modal=document.getElementById('cargo-document-dialog');
+ delivered.click();
  check(modal.open && document.getElementById('cargo-dialog-observacion').textContent==='Recibió en bodega' && document.getElementById('cargo-dialog-monto').textContent.indexOf('120')>=0,'modal no muestra detalles de factura');
- check(!document.getElementById('cargo-dialog-photo-doc').hidden && !document.getElementById('cargo-dialog-photo-client').hidden,'modal no muestra fotos disponibles');
- document.getElementById('cargo-dialog-close').click();check(!modal.open && document.activeElement===delivered,'modal no se cierra o no devuelve el foco');
- document.querySelector('.cargo-document[data-documento="FAC-NO-ENTREGADA"]').click();
- check(modal.open && document.getElementById('cargo-dialog-motivo').textContent==='TIEMPO RUTA' && !document.getElementById('cargo-dialog-no-photo').hidden,'modal no muestra motivo o ausencia de fotos');
- modal.close();
- cargoDetails.querySelector('[data-documento="FAC-SUCURSAL"]').click();
- check(modal.open && document.getElementById('cargo-dialog-direccion').textContent==='VILLA NUEVA, ZONA 4','el modal debe abrir la factura de la sucursal seleccionada');
- document.getElementById('cargo-dialog-close').click();
- cargoSummary.click();
- check(!cargoDetails.open,'no se pudo cerrar el detalle de la carga');
+ check(modal.querySelector('.cargo-dialog-head .cargo-result-delivered').textContent==='ENTREGADA' && document.activeElement===closeCargo,'el encabezado debe mostrar el estado y enfocar el cierre');
+ checkDialogLayout(true);
+ var originalSurface=getComputedStyle(modal).backgroundColor;
+ var photoDoc=document.getElementById('cargo-dialog-photo-doc');
+ var photoClient=document.getElementById('cargo-dialog-photo-client');
+ var photoMessage=document.getElementById('cargo-dialog-no-photo');
+ check(!photoDoc.hidden && !photoClient.hidden && photoMessage.hidden,'modal no muestra fotos disponibles');
+ photoDoc.querySelector('img').dispatchEvent(new Event('error'));
+ check(photoDoc.hidden && !photoClient.hidden && photoMessage.textContent.includes('No se pudo cargar') && !photoMessage.hidden,'un error de foto debe conservar la otra evidencia');
+ closeCargo.click();
+ check(!modal.open && document.activeElement===delivered,'el botón de cierre debe devolver el foco a la factura');
+ var failed=document.querySelector('.cargo-document[data-documento="FAC-NO-ENTREGADA"]');
+ var failedCustomer=failed.closest('details');
+ failedCustomer.querySelector('summary').click();
+ check(firstCustomer.open && failedCustomer.open && customers.filter(customer=>customer.open).length===2,'abrir otra fila no debe cambiar las anteriores');
+ failed.click();
+ check(modal.open && document.getElementById('cargo-dialog-motivo').textContent==='TIEMPO RUTA' && photoMessage.textContent.includes('Sin fotografías') && photoDoc.hidden && photoClient.hidden && !photoClient.querySelector('img').hasAttribute('src'),'el modal debe limpiar la evidencia del documento anterior');
+ modal.dispatchEvent(new Event('cancel',{cancelable:true}));
+ check(!modal.open && document.activeElement===failed,'cancelar el modal debe devolver el foco');
+ firstSummary.click();
+ check(!firstCustomer.open && failedCustomer.open,'cerrar una fila no debe cambiar las demás');
+ var branch=customerList.querySelector('[data-documento="FAC-SUCURSAL"]');
+ branch.closest('details').querySelector('summary').click();
+ theme.click();
+ branch.click();
+ check(modal.open && document.getElementById('cargo-dialog-direccion').textContent==='VILLA NUEVA, ZONA 4' && document.getElementById('cargo-dialog-title').textContent==='FAC-SUCURSAL','el modal debe abrir la factura de la sucursal seleccionada');
+ check(getComputedStyle(modal).backgroundColor!==originalSurface,'el diálogo debe adoptar ambos temas');
+ checkDialogLayout(false);
+ closeCargo.click();
  checkCargoSummary();
 }
 if('$name'==='en-ruta') {

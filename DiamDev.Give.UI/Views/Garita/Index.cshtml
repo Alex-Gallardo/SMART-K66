@@ -180,71 +180,72 @@ else if ((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue
     <div class="vehicle-driver"><span class="vehicle-driver-icon" aria-hidden="true">👨‍✈️</span><div>Piloto: <strong>@(Model.EsRutaEmpresa?(Model.ConductorReal??Model.Piloto):Model.Piloto)</strong>@if(!string.IsNullOrWhiteSpace(Model.Transporte)){<small>@Model.Transporte</small>}@if (Model.EsRutaEmpresa && !string.IsNullOrWhiteSpace(Model.DocumentoConductor)){<small>Documento/licencia: @Model.DocumentoConductor</small>}</div></div>
     <div class="vehicle-meta"><span>Centro: <strong>@Model.Centro</strong></span><span>Fecha: <strong>@Model.Fecha.ToString("dd/MM/yyyy")</strong></span></div>
 </section>
-<section class="cargo-card">
+<section class="cargo-card" aria-labelledby="cargo-heading">
+    <h2 id="cargo-heading">Carga a verificar</h2>
     @if (totalDocumentos > 0)
     {
-    var clientesPorDireccion = Model.Documentos.GroupBy(d => new { d.Cliente, d.Direccion }).ToList();
-    <details class="cargo-expand">
-        <summary>
-            <span class="cargo-summary-heading">
-                <strong role="heading" aria-level="2">Carga a verificar</strong>
-                <span class="cargo-show">Ver detalle <span aria-hidden="true">›</span></span>
-                <span class="cargo-hide">Ocultar detalle <span aria-hidden="true">⌃</span></span>
-            </span>
-            <span class="cargo-metrics">
-                <strong>@Model.Bultos.ToString("0.###") @(Model.Bultos == 1 ? "bulto" : "bultos")</strong>
-                <span>@totalDocumentos @etiquetaDocumento · @Model.Clientes @(Model.Clientes == 1 ? "cliente" : "clientes")</span>
-            </span>
-        </summary>
-    @foreach (var grupo in clientesPorDireccion)
-    {
-        <div class="customer customer-@GaritaReglas.EstadoCliente(grupo)">
-            <div class="customer-heading"><span class="customer-icon" aria-hidden="true">📦</span><div><h3>@(string.IsNullOrWhiteSpace(grupo.Key.Cliente)?"Cliente sin nombre":grupo.Key.Cliente)</h3><p>@grupo.Key.Direccion</p></div><span class="customer-count">@grupo.Count() @(grupo.Count()==1?"documento":"documentos")</span></div>
-            <ul class="documents">@foreach (var d in grupo)
-            {
-                var resultado=GaritaReglas.Resultado(d);
-                var clase=resultado=="ENTREGADO"?"delivered":string.IsNullOrWhiteSpace(resultado)?"pending":"warning";
-                var etiqueta=resultado=="ENTREGADO"?"ENTREGADA":resultado=="NO ENTREGADO"?"NO ENTREGADA":resultado=="INCIDENCIA"?"INCIDENCIA":string.IsNullOrWhiteSpace(resultado)?"PENDIENTE":resultado;
-                var visito=d.ResultadoPiloto!=null?d.VisitoPiloto:d.Visito;
-                var motivo=d.ResultadoPiloto!=null?d.MotivoPiloto:d.Motivo;
-                var observacion=d.ResultadoPiloto!=null?d.ObservacionPiloto:d.Observaciones;
-                <li><button type="button" class="cargo-document" aria-label="Ver factura @d.Documento: @etiqueta"
-                    data-documento="@d.Documento" data-tipo="@d.Tipo" data-empresa="@d.Empresa" data-cliente="@d.Cliente" data-direccion="@d.Direccion"
-                    data-resultado="@etiqueta" data-clase="@clase" data-fuente="@(d.ResultadoPiloto!=null?"POS · pendiente de cierre":string.IsNullOrWhiteSpace(resultado)?"Sin registrar":"APK66")"
-                    data-visito="@(visito.HasValue?(visito.Value?"Sí":"No"):"Sin registrar")" data-motivo="@motivo" data-observacion="@observacion"
-                    data-bultos="@d.Bultos.ToString("0.###")" data-fecha="@(d.FechaDocumento.HasValue?d.FechaDocumento.Value.ToString("dd/MM/yyyy"):"")"
-                    data-fel="@((d.FelSerie??"")+(!string.IsNullOrWhiteSpace(d.FelNumero)?" · "+d.FelNumero:""))" data-monto="@(d.Monto.HasValue?d.Monto.Value.ToString("N2"):"")"
-                    data-entrada="@(d.Entrada.HasValue?d.Entrada.Value.ToString(@"hh\:mm\:ss"):"")" data-salida="@(d.Salida.HasValue?d.Salida.Value.ToString(@"hh\:mm\:ss"):"")"
-                    data-foto-doc="@(d.TieneImagen?Url.Action("FotoPiloto","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id,rowId=d.RowId}):"")"
-                    data-foto-cliente="@(d.TieneImagenCliente?Url.Action("FotoPiloto","Garita",new{placa=Model.PlacaBusqueda,id=Model.Id,rowId=d.PrimerRowIdCliente,cliente=true}):"")">
-                    <span class="cargo-document-main"><strong>@(string.IsNullOrWhiteSpace(d.Documento)?"Documento sin número":d.Documento)</strong><small>@d.Tipo · @d.Empresa</small></span>
-                    <span class="cargo-document-side"><span class="cargo-result cargo-result-@clase">@etiqueta</span><b>@d.Bultos.ToString("0.###") bultos</b><small>Ver detalle →</small></span>
-                </button></li>
-            }</ul>
+        <div class="cargo-metrics">
+            <strong>@Model.Bultos.ToString("0.###") @(Model.Bultos == 1 ? "bulto" : "bultos")</strong>
+            <span>@totalDocumentos @etiquetaDocumento · @Model.Clientes @(Model.Clientes == 1 ? "cliente" : "clientes")</span>
         </div>
-    }
-    </details>
-    <ul class="cargo-preview-list" role="list" aria-label="Clientes por dirección">
-        @foreach (var grupo in clientesPorDireccion)
-        {
-            var cantidad = grupo.Count();
-            var documento = cantidad == 1 ? grupo.First().Documento : null;
-            var referencia = cantidad > 1 ? cantidad + " documentos" :
-                string.IsNullOrWhiteSpace(documento) ? "Documento sin número" : documento;
-            var ubicacion = string.IsNullOrWhiteSpace(grupo.Key.Direccion) ? "" : grupo.Key.Direccion + " · ";
-            <li class="cargo-preview">
-                <span class="cargo-preview-icon" aria-hidden="true">📦</span>
-                <span class="cargo-preview-text">
-                    <strong>@(string.IsNullOrWhiteSpace(grupo.Key.Cliente) ? "Cliente sin nombre" : grupo.Key.Cliente)</strong>
-                    <small>@(ubicacion + referencia)</small>
-                </span>
-            </li>
-        }
-    </ul>
+        <ul class="cargo-preview-list" role="list" aria-label="Clientes por dirección">
+            @foreach (var grupo in Model.Documentos.GroupBy(d => new { d.Cliente, d.Direccion }))
+            {
+                var cliente = string.IsNullOrWhiteSpace(grupo.Key.Cliente) ? "Cliente sin nombre" : grupo.Key.Cliente;
+                var cantidad = grupo.Count();
+                var documento = cantidad == 1 ? grupo.First().Documento : null;
+                var referencia = cantidad > 1 ? cantidad + " documentos" :
+                    string.IsNullOrWhiteSpace(documento) ? "Documento sin número" : documento;
+                var ubicacion = string.IsNullOrWhiteSpace(grupo.Key.Direccion) ? "" : grupo.Key.Direccion + " · ";
+                <li>
+                    <details class="customer cargo-customer customer-@GaritaReglas.EstadoCliente(grupo)">
+                        <summary class="cargo-preview">
+                            <span class="cargo-preview-icon" aria-hidden="true">📦</span>
+                            <span class="cargo-preview-text">
+                                <strong>@cliente</strong>
+                                <small>@(ubicacion + referencia)</small>
+                            </span>
+                            <span class="cargo-preview-arrow" aria-hidden="true">›</span>
+                        </summary>
+                        <ul class="documents">
+                            @foreach (var d in grupo)
+                            {
+                                var resultado = GaritaReglas.Resultado(d);
+                                var clase = resultado == "ENTREGADO" ? "delivered" : string.IsNullOrWhiteSpace(resultado) ? "pending" : "warning";
+                                var etiqueta = resultado == "ENTREGADO" ? "ENTREGADA" : resultado == "NO ENTREGADO" ? "NO ENTREGADA" : string.IsNullOrWhiteSpace(resultado) ? "PENDIENTE" : resultado;
+                                var visito = d.ResultadoPiloto != null ? d.VisitoPiloto : d.Visito;
+                                var motivo = d.ResultadoPiloto != null ? d.MotivoPiloto : d.Motivo;
+                                var observacion = d.ResultadoPiloto != null ? d.ObservacionPiloto : d.Observaciones;
+                                <li>
+                                    <button type="button" class="cargo-document" aria-label="Ver documento @d.Documento: @etiqueta"
+                                        data-documento="@d.Documento" data-tipo="@d.Tipo" data-empresa="@d.Empresa" data-cliente="@d.Cliente" data-direccion="@d.Direccion"
+                                        data-resultado="@etiqueta" data-clase="@clase" data-fuente="@(d.ResultadoPiloto != null ? "POS · pendiente de cierre" : string.IsNullOrWhiteSpace(resultado) ? "Sin registrar" : "APK66")"
+                                        data-visito="@(visito.HasValue ? (visito.Value ? "Sí" : "No") : "Sin registrar")" data-motivo="@motivo" data-observacion="@observacion"
+                                        data-bultos="@d.Bultos.ToString("0.###")" data-fecha="@(d.FechaDocumento.HasValue ? d.FechaDocumento.Value.ToString("dd/MM/yyyy") : "")"
+                                        data-fel="@((d.FelSerie ?? "") + (!string.IsNullOrWhiteSpace(d.FelNumero) ? " · " + d.FelNumero : ""))" data-monto="@(d.Monto.HasValue ? d.Monto.Value.ToString("N2") : "")"
+                                        data-entrada="@(d.Entrada.HasValue ? d.Entrada.Value.ToString(@"hh\:mm\:ss") : "")" data-salida="@(d.Salida.HasValue ? d.Salida.Value.ToString(@"hh\:mm\:ss") : "")"
+                                        data-foto-doc="@(d.TieneImagen ? Url.Action("FotoPiloto", "Garita", new { placa = Model.PlacaBusqueda, id = Model.Id, rowId = d.RowId }) : "")"
+                                        data-foto-cliente="@(d.TieneImagenCliente ? Url.Action("FotoPiloto", "Garita", new { placa = Model.PlacaBusqueda, id = Model.Id, rowId = d.PrimerRowIdCliente, cliente = true }) : "")">
+                                        <span class="cargo-document-main">
+                                            <strong>@(string.IsNullOrWhiteSpace(d.Documento) ? "Documento sin número" : d.Documento)</strong>
+                                            <small>@d.Tipo · @d.Empresa</small>
+                                        </span>
+                                        <span class="cargo-document-side">
+                                            <span class="cargo-result cargo-result-@clase">@etiqueta</span>
+                                            <b>@d.Bultos.ToString("0.###") @(d.Bultos == 1 ? "bulto" : "bultos")</b>
+                                            <small>Ver detalle →</small>
+                                        </span>
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    </details>
+                </li>
+            }
+        </ul>
     }
     else
     {
-        <h2>Carga a verificar</h2>
         <p>Esta ruta no tiene documentos.</p>
     }
     @if (!string.IsNullOrWhiteSpace(Model.Observacion))
@@ -252,13 +253,46 @@ else if ((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue
         <div class="notice info"><strong>Nota de Distribución:</strong> @Model.Observacion</div>
     }
 </section>
-<dialog id="cargo-document-dialog" class="cargo-dialog" aria-labelledby="cargo-dialog-title">
-    <div class="cargo-dialog-head"><div><span class="step">FACTURA · DETALLE</span><h2 id="cargo-dialog-title">Factura</h2><p id="cargo-dialog-subtitle"></p></div><button type="button" id="cargo-dialog-close" class="cargo-dialog-close" aria-label="Cerrar detalle">×</button></div>
-    <span id="cargo-dialog-result" class="cargo-result"></span><p id="cargo-dialog-source" class="cargo-dialog-source"></p>
-    <dl class="cargo-dialog-facts"><div><dt>Cliente</dt><dd id="cargo-dialog-cliente"></dd></div><div><dt>Dirección</dt><dd id="cargo-dialog-direccion"></dd></div><div><dt>Bultos</dt><dd id="cargo-dialog-bultos"></dd></div><div><dt>Visitó</dt><dd id="cargo-dialog-visito"></dd></div><div><dt>Fecha del documento</dt><dd id="cargo-dialog-fecha"></dd></div><div><dt>Serie y número FEL</dt><dd id="cargo-dialog-fel"></dd></div><div><dt>Monto</dt><dd id="cargo-dialog-monto"></dd></div><div><dt>Entrada / salida del cliente</dt><dd id="cargo-dialog-horas"></dd></div></dl>
-    <div class="cargo-dialog-note"><strong>Motivo</strong><p id="cargo-dialog-motivo"></p></div><div class="cargo-dialog-note"><strong>Observaciones</strong><p id="cargo-dialog-observacion"></p></div>
-    <div id="cargo-dialog-photos" class="cargo-dialog-photos"><figure id="cargo-dialog-photo-doc" hidden><img alt="Fotografía de la factura agregada por el piloto" /><figcaption>Foto de la factura</figcaption></figure><figure id="cargo-dialog-photo-client" hidden><img alt="Fotografía del cliente agregada por el piloto" /><figcaption>Foto del cliente</figcaption></figure></div>
-    <p id="cargo-dialog-no-photo" class="cargo-dialog-empty">Sin fotografías adjuntas.</p>
+<dialog id="cargo-document-dialog" class="cargo-dialog" aria-labelledby="cargo-dialog-title" aria-describedby="cargo-dialog-subtitle">
+    <header class="cargo-dialog-head">
+        <div class="cargo-dialog-title-group">
+            <p id="cargo-dialog-subtitle"></p>
+            <h2 id="cargo-dialog-title">Documento</h2>
+            <span id="cargo-dialog-result" class="cargo-result"></span>
+        </div>
+        <button type="button" id="cargo-dialog-close" class="cargo-dialog-close" aria-label="Cerrar detalle" autofocus>×</button>
+    </header>
+    <div class="cargo-dialog-body" role="region" aria-label="Información del documento" tabindex="0">
+        <section class="cargo-dialog-card" aria-labelledby="cargo-dialog-delivery">
+            <h3 id="cargo-dialog-delivery"><span aria-hidden="true">📦</span> Entrega</h3>
+            <p id="cargo-dialog-source" class="cargo-dialog-source"></p>
+            <dl class="cargo-dialog-facts">
+                <div class="cargo-dialog-fact-wide"><dt>Cliente</dt><dd id="cargo-dialog-cliente"></dd></div>
+                <div class="cargo-dialog-fact-wide"><dt>Dirección</dt><dd id="cargo-dialog-direccion"></dd></div>
+                <div><dt>Bultos</dt><dd id="cargo-dialog-bultos"></dd></div>
+                <div><dt>Visitó</dt><dd id="cargo-dialog-visito"></dd></div>
+                <div class="cargo-dialog-fact-wide"><dt>Entrada / salida del cliente</dt><dd id="cargo-dialog-horas"></dd></div>
+            </dl>
+            <div class="cargo-dialog-note"><strong>Motivo</strong><p id="cargo-dialog-motivo"></p></div>
+            <div class="cargo-dialog-note"><strong>Observaciones</strong><p id="cargo-dialog-observacion"></p></div>
+        </section>
+        <section class="cargo-dialog-card" aria-labelledby="cargo-dialog-document">
+            <h3 id="cargo-dialog-document"><span aria-hidden="true">📄</span> Datos del documento</h3>
+            <dl class="cargo-dialog-facts">
+                <div><dt>Fecha del documento</dt><dd id="cargo-dialog-fecha"></dd></div>
+                <div><dt>Monto</dt><dd id="cargo-dialog-monto"></dd></div>
+                <div class="cargo-dialog-fact-wide"><dt>Serie y número FEL</dt><dd id="cargo-dialog-fel"></dd></div>
+            </dl>
+        </section>
+        <section class="cargo-dialog-card" aria-labelledby="cargo-dialog-evidence">
+            <h3 id="cargo-dialog-evidence"><span aria-hidden="true">📸</span> Evidencia</h3>
+            <div id="cargo-dialog-photos" class="cargo-dialog-photos">
+                <figure id="cargo-dialog-photo-doc" hidden><img alt="Fotografía del documento agregada por el piloto" /><figcaption>Foto del documento</figcaption></figure>
+                <figure id="cargo-dialog-photo-client" hidden><img alt="Fotografía del cliente agregada por el piloto" /><figcaption>Foto del cliente</figcaption></figure>
+            </div>
+            <p id="cargo-dialog-no-photo" class="cargo-dialog-empty" role="status">Sin fotografías adjuntas.</p>
+        </section>
+    </div>
 </dialog>
 @if (cerrada && Model.PuedeRegistrarEntrada)
 {

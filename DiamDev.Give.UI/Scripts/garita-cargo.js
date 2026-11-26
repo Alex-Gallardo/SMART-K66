@@ -1,52 +1,74 @@
 (function () {
     'use strict';
-    var dialog=document.getElementById('cargo-document-dialog');
-    if(!dialog) return;
-    var close=document.getElementById('cargo-dialog-close');
-    var noPhoto=document.getElementById('cargo-dialog-no-photo');
-    var photos=[
-        {figure:document.getElementById('cargo-dialog-photo-doc'),key:'fotoDoc'},
-        {figure:document.getElementById('cargo-dialog-photo-client'),key:'fotoCliente'}
+    var dialog = document.getElementById('cargo-document-dialog');
+    if (!dialog) return;
+
+    var close = document.getElementById('cargo-dialog-close');
+    var body = dialog.querySelector('.cargo-dialog-body');
+    var photoMessage = document.getElementById('cargo-dialog-no-photo');
+    var photos = [
+        { figure: document.getElementById('cargo-dialog-photo-doc'), key: 'fotoDoc' },
+        { figure: document.getElementById('cargo-dialog-photo-client'), key: 'fotoCliente' }
     ];
-    var lastTrigger=null;
-    function put(id,value){document.getElementById(id).textContent=value || 'Sin registrar';}
-    Array.prototype.forEach.call(document.querySelectorAll('.cargo-document'),function(button){
-        button.addEventListener('click',function(){
-            var details=button.closest('details');
-            if(details && !details.open) details.open=true;
-            var d=button.dataset;
-            lastTrigger=button;
-            put('cargo-dialog-title',d.documento || 'Documento sin número');
-            put('cargo-dialog-subtitle',(d.tipo || 'Documento')+' · '+(d.empresa || 'Empresa sin registrar'));
-            var result=document.getElementById('cargo-dialog-result');
-            result.textContent=d.resultado || 'PENDIENTE';
-            result.className='cargo-result cargo-result-'+(['delivered','warning'].indexOf(d.clase)>=0?d.clase:'pending');
-            put('cargo-dialog-source',d.fuente);
-            ['cliente','direccion','bultos','visito','fecha','fel','monto','motivo','observacion'].forEach(function(field){
-                put('cargo-dialog-'+field,d[field]);
+    var lastTrigger;
+
+    function put(field, value) {
+        document.getElementById('cargo-dialog-' + field).textContent = value || 'Sin registrar';
+    }
+
+    function closeDocument() {
+        dialog.close();
+        photos.forEach(function (photo) {
+            photo.figure.hidden = true;
+            photo.image.removeAttribute('src');
+        });
+        if (lastTrigger) lastTrigger.focus({ preventScroll: true });
+        lastTrigger = null;
+    }
+
+    document.querySelectorAll('.cargo-document').forEach(function (button) {
+        button.addEventListener('click', function () {
+            var data = button.dataset;
+            lastTrigger = button;
+            put('title', data.documento || 'Documento sin número');
+            put('subtitle', (data.tipo || 'Documento') + ' · ' + (data.empresa || 'Empresa sin registrar'));
+            put('source', data.fuente);
+            var result = document.getElementById('cargo-dialog-result');
+            result.textContent = data.resultado || 'PENDIENTE';
+            var state = ['delivered', 'warning'].indexOf(data.clase) >= 0 ? data.clase : 'pending';
+            result.className = 'cargo-result cargo-result-' + state;
+            ['cliente', 'direccion', 'bultos', 'visito', 'fecha', 'fel', 'monto', 'motivo', 'observacion'].forEach(function (field) {
+                put(field, data[field]);
             });
-            put('cargo-dialog-horas',(d.entrada || 'Sin registrar')+' / '+(d.salida || 'Sin registrar'));
-            photos.forEach(function(photo){
-                var image=photo.figure.querySelector('img');
-                photo.figure.hidden=!d[photo.key];
-                if(d[photo.key]) image.src=d[photo.key]; else image.removeAttribute('src');
+            put('horas', (data.entrada || 'Sin registrar') + ' / ' + (data.salida || 'Sin registrar'));
+            photoMessage.textContent = 'Sin fotografías adjuntas.';
+            photoMessage.hidden = photos.some(function (photo) { return !!data[photo.key]; });
+            photos.forEach(function (photo) {
+                var url = data[photo.key];
+                photo.figure.hidden = !url;
+                if (url) photo.image.src = url;
             });
-            noPhoto.hidden=photos.some(function(photo){return !photo.figure.hidden;});
-            noPhoto.textContent='Sin fotografías adjuntas.';
-            dialog.showModal();close.focus();
+            dialog.showModal();
+            body.scrollTop = 0;
+            close.focus({ preventScroll: true });
         });
     });
-    photos.forEach(function(photo){
-        photo.figure.querySelector('img').addEventListener('error',function(){
-            photo.figure.hidden=true;
-            noPhoto.hidden=photos.some(function(item){return !item.figure.hidden;});
-            noPhoto.textContent='No se pudo cargar la fotografía. Vuelve a abrir la ruta.';
+
+    photos.forEach(function (photo) {
+        photo.image = photo.figure.querySelector('img');
+        photo.image.addEventListener('error', function () {
+            if (!dialog.open || photo.figure.hidden) return;
+            photo.figure.hidden = true;
+            photoMessage.hidden = false;
+            photoMessage.textContent = 'No se pudo cargar una fotografía. Vuelve a abrir la ruta.';
         });
     });
-    close.addEventListener('click',function(){dialog.close();if(lastTrigger) lastTrigger.focus();});
-    dialog.addEventListener('click',function(event){if(event.target===dialog){dialog.close();if(lastTrigger) lastTrigger.focus();}});
-    dialog.addEventListener('close',function(){
-        photos.forEach(function(photo){photo.figure.querySelector('img').removeAttribute('src');});
-        if(lastTrigger) lastTrigger.focus();
+    close.addEventListener('click', closeDocument);
+    dialog.addEventListener('cancel', function (event) {
+        event.preventDefault();
+        closeDocument();
+    });
+    dialog.addEventListener('click', function (event) {
+        if (event.target === dialog) closeDocument();
     });
 })();

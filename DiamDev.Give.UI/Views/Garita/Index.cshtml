@@ -183,6 +183,7 @@ else if ((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue
 <section class="cargo-card">
     @if (totalDocumentos > 0)
     {
+    var clientesPorDireccion = Model.Documentos.GroupBy(d => new { d.Cliente, d.Direccion }).ToList();
     <details class="cargo-expand">
         <summary>
             <span class="cargo-summary-heading">
@@ -194,16 +195,8 @@ else if ((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue
                 <strong>@Model.Bultos.ToString("0.###") @(Model.Bultos == 1 ? "bulto" : "bultos")</strong>
                 <span>@totalDocumentos @etiquetaDocumento · @Model.Clientes @(Model.Clientes == 1 ? "cliente" : "clientes")</span>
             </span>
-            <span class="cargo-preview">
-                <span aria-hidden="true">📦</span>
-                <span>
-                    <strong>@(string.IsNullOrWhiteSpace(Model.Documentos[0].Cliente) ? "Cliente sin nombre" : Model.Documentos[0].Cliente)</strong>
-                    <small>@Model.Documentos[0].Direccion · @(string.IsNullOrWhiteSpace(Model.Documentos[0].Documento) ? "Documento sin número" : Model.Documentos[0].Documento)</small>
-                </span>
-                <span aria-hidden="true">›</span>
-            </span>
         </summary>
-    @foreach (var grupo in Model.Documentos.GroupBy(d => new { d.Cliente, d.Direccion }))
+    @foreach (var grupo in clientesPorDireccion)
     {
         <div class="customer customer-@GaritaReglas.EstadoCliente(grupo)">
             <div class="customer-heading"><span class="customer-icon" aria-hidden="true">📦</span><div><h3>@(string.IsNullOrWhiteSpace(grupo.Key.Cliente)?"Cliente sin nombre":grupo.Key.Cliente)</h3><p>@grupo.Key.Direccion</p></div><span class="customer-count">@grupo.Count() @(grupo.Count()==1?"documento":"documentos")</span></div>
@@ -231,6 +224,23 @@ else if ((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue
         </div>
     }
     </details>
+    <ul class="cargo-preview-list" role="list" aria-label="Clientes por dirección">
+        @foreach (var grupo in clientesPorDireccion)
+        {
+            var cantidad = grupo.Count();
+            var documento = cantidad == 1 ? grupo.First().Documento : null;
+            var referencia = cantidad > 1 ? cantidad + " documentos" :
+                string.IsNullOrWhiteSpace(documento) ? "Documento sin número" : documento;
+            var ubicacion = string.IsNullOrWhiteSpace(grupo.Key.Direccion) ? "" : grupo.Key.Direccion + " · ";
+            <li class="cargo-preview">
+                <span class="cargo-preview-icon" aria-hidden="true">📦</span>
+                <span class="cargo-preview-text">
+                    <strong>@(string.IsNullOrWhiteSpace(grupo.Key.Cliente) ? "Cliente sin nombre" : grupo.Key.Cliente)</strong>
+                    <small>@(ubicacion + referencia)</small>
+                </span>
+            </li>
+        }
+    </ul>
     }
     else
     {

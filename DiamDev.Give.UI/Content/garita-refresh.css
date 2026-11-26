@@ -274,11 +274,16 @@ footer a{display:inline-flex;align-items:center;justify-content:center;gap:8px;c
 .cargo-expand[open] .cargo-hide { display: inline; }
 .cargo-metrics { flex-wrap: wrap; font-size: 14px; }
 .cargo-metrics strong { padding: 2px 7px; border-radius: 5px; background: #075b91; color: #fff; }
-.cargo-preview { line-height: 1.2; }
-.cargo-preview > span:first-child { font-size: 25px; }
-.cargo-preview > span:last-child { margin-left: auto; padding: 0 3px; }
-.cargo-preview strong { font-size: 15px; }
-.cargo-preview small { font-size: 13px; }
+.cargo-preview-list { list-style: none; margin: 6px 0 0; padding: 0; }
+.cargo-expand[open] + .cargo-preview-list { display: none; }
+.cargo-preview { padding: 6px 0; line-height: 1.2; }
+.cargo-preview + .cargo-preview { border-top: 1px solid #d9e5ea; }
+.cargo-preview-icon { flex: none; font-size: 25px; }
+.cargo-preview-text { min-width: 0; overflow-wrap: anywhere; }
+.cargo-preview strong { display: block; font-size: 15px; }
+.cargo-preview small { display: block; color: #4b6371; font-size: 13px; }
+[data-theme=dark] .cargo-preview + .cargo-preview { border-color: #39566b; }
+[data-theme=dark] .cargo-preview small { color: #d7e4ed; }
 .garita-detail-content .cargo-card > .notice { margin-bottom: 0; }
 
 .exit-action .check,

@@ -8,7 +8,7 @@ $refreshCss=([Uri](Join-Path $repo 'DiamDev.Give.UI/Content/garita-refresh.css')
 $cargoJs=([Uri](Join-Path $repo 'DiamDev.Give.UI/Scripts/garita-cargo.js')).AbsoluteUri
 $uiJs=([Uri](Join-Path $repo 'DiamDev.Give.UI/Scripts/garita-ui.js')).AbsoluteUri
 $smoke=Join-Path $bin 'garita-browser-smoke.html'
-foreach($name in @('vacia','lista','sin-resultados','diferencia','abierta','en-ruta','salida','empresa-pendiente','empresa-asignada','cerrada','entrada','cargo')) {
+foreach($name in @('vacia','lista','sin-resultados','diferencia','abierta','en-ruta','salida','empresa-pendiente','empresa-asignada','cerrada','entrada','cargo-vacio','cargo')) {
     $body=Get-Content -LiteralPath (Join-Path $bin ('garita-'+$name+'.html')) -Raw
     $body=$body.Replace('/pedidosap/Content/garita.css',$css).Replace('/pedidosap/Content/garita-refresh.css',$refreshCss).Replace('/pedidosap/Scripts/garita-ui.js',$uiJs)
     $probe=@"
@@ -28,6 +28,23 @@ function checkFooter() {
  check(footer.querySelector('a').getAttribute('href')==='tel:137','falta llamada al 137');
  check(scrollArea.getBoundingClientRect().bottom<=footer.getBoundingClientRect().top+1,'el footer tapa el contenido');
 }
+function checkCargoSummary() {
+ var card=document.querySelector('.cargo-card');
+ var list=card.querySelector('.cargo-preview-list');
+ var rows=card.querySelectorAll('.cargo-preview');
+ if('$name'==='cargo-vacio'){
+  check(!list && !card.querySelector('summary') && card.textContent.includes('Esta ruta no tiene documentos.'),'falta el estado sin documentos');
+ }
+ if('$name'==='en-ruta'){
+  check(rows.length===1 && rows[0].getClientRects().length && rows[0].textContent.includes('FAC-001'),'un cliente debe conservar la referencia al documento');
+ }
+ if('$name'==='cargo'){
+  check(rows.length===4 && Array.from(rows).every(row=>row.getClientRects().length),'el resumen debe mostrar todos los clientes por dirección');
+  var branches=Array.from(rows).filter(row=>row.querySelector('strong').textContent==='CLIENTE ENTREGADO');
+  check(branches.length===2 && branches[0].textContent.includes('GUATEMALA · 2 documentos') && branches[1].textContent.includes('VILLA NUEVA, ZONA 4 · FAC-SUCURSAL'),'las facturas de una dirección se agrupan y otra sucursal queda separada');
+ }
+ if(list && list.getClientRects().length) check(list.scrollWidth<=list.clientWidth+1,'la lista de clientes se desborda');
+}
 checkFooter();
 if(detalle) {
  check(!buscador && document.querySelector('.topbar .search-back-link') && document.querySelector('.topbar h1').textContent.includes('PP26-'),'el detalle debe mostrar un solo encabezado con navegación y ruta');
@@ -39,6 +56,7 @@ for(var mode=0;mode<2;mode++){
  theme.click();
  check(oldTheme!==document.documentElement.getAttribute('data-theme'),'el interruptor de tema no cambia el modo');
  checkFooter();
+ if(['en-ruta','cargo-vacio','cargo'].includes('$name')) checkCargoSummary();
 }
 var form=document.getElementById('register-exit-form');
 var authorize=document.querySelector('button[form="register-exit-form"]');
@@ -68,7 +86,13 @@ if('$name'==='empresa-asignada') check(form && document.body.textContent.indexOf
 if('$name'==='cerrada') {var entry=document.querySelector('#register-entry-form');check(entry && !form && document.body.textContent.indexOf('Sin hora de entrada')>=0,'cerrada debe poder registrar entrada');check(entry.enctype==='multipart/form-data' && entry.querySelector('textarea[name="Observacion"]') && entry.querySelector('input[type="file"][name="foto"]'),'entrada debe aceptar observación y foto opcionales');}
 if('$name'==='entrada') check(!document.querySelector('#register-entry-form') && !form && document.body.textContent.indexOf('Hora de entrada:')>=0 && document.body.textContent.indexOf('Regresó con carga')>=0 && document.body.textContent.indexOf('Ver foto de entrada')>=0,'entrada duplicada disponible y evidencia visible');
 if('$name'==='cargo') {
- check(document.querySelectorAll('.customer-delivered').length===1 && document.querySelectorAll('.customer-warning').length===1 && document.querySelectorAll('.customer-pending').length===1,'bordes de clientes incorrectos');
+ var cargoDetails=document.querySelector('.cargo-expand');
+ var cargoSummary=cargoDetails.querySelector('summary');
+ var compactList=document.querySelector('.cargo-preview-list');
+ cargoSummary.click();
+ check(cargoDetails.open && !compactList.getClientRects().length,'al abrir el detalle no debe repetirse la lista compacta');
+ check(cargoDetails.querySelectorAll('.customer').length===4 && cargoDetails.querySelectorAll('.cargo-document').length===5,'faltan clientes o facturas en el detalle');
+ check(document.querySelectorAll('.customer-delivered').length===1 && document.querySelectorAll('.customer-warning').length===1 && document.querySelectorAll('.customer-pending').length===2,'bordes de clientes incorrectos');
  var delivered=document.querySelector('.cargo-document[data-documento="FAC-ENTREGADA"]');
  check(delivered && delivered.querySelector('.cargo-result-delivered') && delivered.dataset.fotoDoc.indexOf('FotoPiloto')>=0 && delivered.dataset.fotoCliente.indexOf('FotoPiloto')>=0,'estado o enlaces de fotos de factura entregada');
  delivered.click();var modal=document.getElementById('cargo-document-dialog');
@@ -78,6 +102,12 @@ if('$name'==='cargo') {
  document.querySelector('.cargo-document[data-documento="FAC-NO-ENTREGADA"]').click();
  check(modal.open && document.getElementById('cargo-dialog-motivo').textContent==='TIEMPO RUTA' && !document.getElementById('cargo-dialog-no-photo').hidden,'modal no muestra motivo o ausencia de fotos');
  modal.close();
+ cargoDetails.querySelector('[data-documento="FAC-SUCURSAL"]').click();
+ check(modal.open && document.getElementById('cargo-dialog-direccion').textContent==='VILLA NUEVA, ZONA 4','el modal debe abrir la factura de la sucursal seleccionada');
+ document.getElementById('cargo-dialog-close').click();
+ cargoSummary.click();
+ check(!cargoDetails.open,'no se pudo cerrar el detalle de la carga');
+ checkCargoSummary();
 }
 if('$name'==='en-ruta') {
  form.querySelector('[name="IdentidadVerificada"]').checked=true;form.querySelector('[name="IdentidadVerificada"]').dispatchEvent(new Event('change'));

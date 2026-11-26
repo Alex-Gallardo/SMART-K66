@@ -55,17 +55,17 @@
 @if (Model.BusquedaRealizada && !encontrada)
 {
     <nav class="route-tabs" aria-label="Estado de rutas de esta placa">
-        <a class="@(seccion=="salidas"?"active":"")" aria-current="@(seccion=="salidas"?"page":null)" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion="salidas",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})">Por salir <b>@Model.TotalAbiertas</b></a>
-        <a class="@(seccion=="en-ruta"?"active":"")" aria-current="@(seccion=="en-ruta"?"page":null)" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion="en-ruta",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})">En ruta <b>@Model.TotalRutas</b></a>
-        <a class="@(seccion=="regresos"?"active":"")" aria-current="@(seccion=="regresos"?"page":null)" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion="regresos",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})">Regresos <b>@Model.TotalCerradas</b></a>
+        <a class="@(seccion=="salidas"?"active":"")" aria-current="@(seccion=="salidas"?"page":null)" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion="salidas",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})">Por salir ( @Model.TotalAbiertas )</a>
+        <a class="@(seccion=="en-ruta"?"active":"")" aria-current="@(seccion=="en-ruta"?"page":null)" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion="en-ruta",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})">En ruta ( @Model.TotalRutas )</a>
+        <a class="@(seccion=="regresos"?"active":"")" aria-current="@(seccion=="regresos"?"page":null)" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion="regresos",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})">Regresos ( @Model.TotalCerradas )</a>
     </nav>
     <section class="results-card open-results" aria-label="Rutas abiertas de la placa" hidden="@(seccion=="salidas"?null:"hidden")">
-        <div class="section-head"><div><span class="step">POR SALIR</span><h2>Abiertas · @Model.PlacaBusqueda</h2></div><strong>@Model.TotalAbiertas @(Model.TotalAbiertas==1?"ruta":"rutas") pendientes</strong></div>
+        <!-- <div class="section-head"><div><span class="step">POR SALIR</span><h2>Abiertas · @@Model.PlacaBusqueda</h2></div><strong>@@Model.TotalAbiertas @@(Model.TotalAbiertas==1?"ruta":"rutas") pendientes</strong></div> -->
         @if (Model.TotalAbiertas == 0)
         {<div class="notice info" role="status">No hay rutas Abiertas para esta placa.</div>}
         else
         {
-            <p>Revisa la ruta y el cargamento antes de registrar la salida. Esto pondrá la ruta En ruta.</p>
+            <!-- <p>Revisa la ruta y el cargamento antes de registrar la salida. Esto pondrá la ruta En ruta.</p> -->
             <div class="route-list">
                 @foreach (var ruta in Model.ResultadosAbiertas)
                 {
@@ -73,24 +73,26 @@
                         <span class="route-option-main"><strong>Ruta @ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small></span>
                         <span class="route-option-pilot"><span aria-hidden="true">👨‍✈️</span> @(ruta.ConductorReal??ruta.Piloto??"Piloto sin dato")</span>
                         <span class="route-option-counts"><span><b>@ruta.Bultos.ToString("0.###")</b> @(ruta.Bultos==1?"bulto":"bultos")</span><span><b>@ruta.Documentos</b> @(ruta.Documentos==1?"documento":"documentos")</span><span><b>@ruta.Clientes</b> @(ruta.Clientes==1?"cliente":"clientes")</span></span>
-                        <span class="state @(ruta.DiferenciaPendiente?"state-stop":"state-open")">@(ruta.DiferenciaPendiente?"Diferencia pendiente":"Abierta · pendiente de salida")</span>
+                        <span class="state @(ruta.DiferenciaPendiente?"state-stop":"state-open")">@(ruta.DiferenciaPendiente?"DIFERENCIA PENDIENTE":"PENDIENTE DE SALIDA")</span>
                         <span class="route-option-arrow" aria-hidden="true">Revisar salida →</span>
                     </a>
                 }
             </div>
             if (Model.TotalAbiertas > 50)
-            {<nav class="pager" aria-label="Páginas de rutas abiertas">@if (Model.PaginaAbiertas > 1)
-                {<a href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,paginaAbiertas=Model.PaginaAbiertas-1,pagina=Model.Pagina,paginaCerradas=Model.PaginaCerradas,seccion="salidas"})">← Anterior</a>}<span>Página @Model.PaginaAbiertas de @((Model.TotalAbiertas+49)/50)</span>@if (Model.PaginaAbiertas * 50 < Model.TotalAbiertas)
-                {<a href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,paginaAbiertas=Model.PaginaAbiertas+1,pagina=Model.Pagina,paginaCerradas=Model.PaginaCerradas,seccion="salidas"})">Siguiente →</a>}</nav>}
+            {<nav class="pager" aria-label="Páginas de rutas abiertas">
+                    @if (Model.PaginaAbiertas > 1)
+                    {<a href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,paginaAbiertas=Model.PaginaAbiertas-1,pagina=Model.Pagina,paginaCerradas=Model.PaginaCerradas,seccion="salidas"})">← Anterior</a>}<span>Página @Model.PaginaAbiertas de @((Model.TotalAbiertas+49)/50)</span>@if (Model.PaginaAbiertas * 50 < Model.TotalAbiertas)
+                    {<a href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,paginaAbiertas=Model.PaginaAbiertas+1,pagina=Model.Pagina,paginaCerradas=Model.PaginaCerradas,seccion="salidas"})">Siguiente →</a>}
+                </nav>}
         }
     </section>
     <section class="results-card" aria-label="Rutas en ruta de la placa" hidden="@(seccion=="en-ruta"?null:"hidden")">
-        <div class="section-head"><div><span class="step">EN RUTA</span><h2>En ruta · @Model.PlacaBusqueda</h2></div><strong>@Model.TotalRutas @(Model.TotalRutas==1?"ruta":"rutas") En ruta</strong></div>
+        <!-- <div class="section-head"><div><span class="step">EN RUTA</span><h2>En ruta · @@Model.PlacaBusqueda</h2></div><strong>@@Model.TotalRutas @@(Model.TotalRutas==1?"ruta":"rutas") En ruta</strong></div> -->
         @if (Model.TotalRutas == 0)
         {<div class="notice info" role="status">No hay rutas para esta placa.</div>}
         else
         {
-            <p>Compara el número, la fecha y el piloto antes de abrir una ruta.</p>
+            <!-- <p>Compara el número, la fecha y el piloto antes de abrir una ruta.</p> -->
             <div class="route-list">
                 @foreach (var ruta in Model.Resultados)
                 {
@@ -98,7 +100,7 @@
                         <span class="route-option-main"><strong>Ruta @ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small></span>
                         <span class="route-option-pilot"><span aria-hidden="true">👨‍✈️</span> @(ruta.ConductorReal??ruta.Piloto??"Piloto sin dato")</span>
                         <span class="route-option-counts"><span><b>@ruta.Bultos.ToString("0.###")</b> @(ruta.Bultos==1?"bulto":"bultos")</span><span><b>@ruta.Documentos</b> @(ruta.Documentos==1?"documento":"documentos")</span><span><b>@ruta.Clientes</b> @(ruta.Clientes==1?"cliente":"clientes")</span></span>
-                        <span class="state @(ruta.DiferenciaPendiente?"state-stop":ruta.SalidaRegistrada?"state-done":"state-info")">@(ruta.DiferenciaPendiente?"Diferencia pendiente":ruta.SalidaRegistrada?"Salida registrada":"Sin salida registrada")</span>
+                        <span class="state @(ruta.DiferenciaPendiente?"state-stop":ruta.SalidaRegistrada?"state-done":"state-info")">@(ruta.DiferenciaPendiente?"Diferencia pendiente":ruta.SalidaRegistrada?"EN RUTA":"SIN SALIDA")</span>
                         <span class="route-option-arrow" aria-hidden="true">Ver ruta →</span>
                     </a>
                 }
@@ -110,17 +112,17 @@
         }
     </section>
     <section class="results-card closed-results" aria-label="Rutas cerradas sin hora de entrada" hidden="@(seccion=="regresos"?null:"hidden")">
-        <div class="section-head">
-            <div>
-                <span class="step">REGRESOS</span><h2>Cerradas sin entrada</h2>
-                <!--<p>Rutas de hoy y los 30 días anteriores.</p>-->
-            </div><strong>@Model.TotalCerradas @(Model.TotalCerradas==1?"ruta":"rutas") pendientes</strong>
-        </div>
+        <!-- <div class="section-head">
+        <div>
+            <span class="step">REGRESOS</span><h2>Cerradas sin entrada</h2>
+        <p>Rutas de hoy y los 30 días anteriores.</p>
+        </div><strong>@@Model.TotalCerradas @@(Model.TotalCerradas==1?"ruta":"rutas") pendientes</strong>
+        </div> -->
         @if (Model.TotalCerradas == 0)
         {<div class="notice info" role="status">No hay rutas cerradas sin hora de entrada.</div>}
         else
         {
-            <p>Selecciona la ruta que regresó y verifica la placa y el cargamento antes de registrar la hora.</p>
+            <!--<p>Selecciona la ruta que regresó y verifica la placa y el cargamento antes de registrar la hora.</p>-->
             <div class="route-list">
                 @foreach (var ruta in Model.ResultadosCerradas)
                 {
@@ -128,16 +130,20 @@
                         <span class="route-option-main"><strong>Ruta @ruta.Id</strong><small>@ruta.Fecha.ToString("dd/MM/yyyy") · @ruta.Centro · @ruta.Placa</small></span>
                         <span class="route-option-pilot"><span aria-hidden="true">👨‍✈️</span> @(ruta.ConductorReal??ruta.Piloto??"Piloto sin dato")</span>
                         <span class="route-option-counts"><span><b>@ruta.Bultos.ToString("0.###")</b> @(ruta.Bultos==1?"bulto":"bultos")</span><span><b>@ruta.Documentos</b> @(ruta.Documentos==1?"documento":"documentos")</span><span><b>@ruta.Clientes</b> @(ruta.Clientes==1?"cliente":"clientes")</span></span>
-                        <span class="closed-badges"><span class="state state-closed">Cerrada</span><span class="state state-entry-pending">Sin hora de entrada registrada</span>@if (!ruta.SalidaRegistrada)
-                        {<small>Sin hora de salida registrada</small>}</span>
+                        <span class="closed-badges">
+                            <!-- <span class="state state-closed">Cerrada</span> --><span class="state state-entry-pending">PENDIENTE DE ENTRAR</span>@if (!ruta.SalidaRegistrada)
+                            {<small>Sin hora de salida registrada</small>}
+                        </span>
                         <span class="route-option-arrow" aria-hidden="true">Revisar regreso →</span>
                     </a>
                 }
             </div>
             if (Model.TotalCerradas > 50)
-            {<nav class="pager" aria-label="Páginas de rutas cerradas">@if (Model.PaginaCerradas > 1)
-                {<a href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,pagina=Model.Pagina,paginaCerradas=Model.PaginaCerradas-1,paginaAbiertas=Model.PaginaAbiertas,seccion="regresos"})">← Anterior</a>}<span>Página @Model.PaginaCerradas de @((Model.TotalCerradas+49)/50)</span>@if (Model.PaginaCerradas * 50 < Model.TotalCerradas)
-                {<a href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,pagina=Model.Pagina,paginaCerradas=Model.PaginaCerradas+1,paginaAbiertas=Model.PaginaAbiertas,seccion="regresos"})">Siguiente →</a>}</nav>}
+            {<nav class="pager" aria-label="Páginas de rutas cerradas">
+                    @if (Model.PaginaCerradas > 1)
+                    {<a href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,pagina=Model.Pagina,paginaCerradas=Model.PaginaCerradas-1,paginaAbiertas=Model.PaginaAbiertas,seccion="regresos"})">← Anterior</a>}<span>Página @Model.PaginaCerradas de @((Model.TotalCerradas+49)/50)</span>@if (Model.PaginaCerradas * 50 < Model.TotalCerradas)
+                    {<a href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,pagina=Model.Pagina,paginaCerradas=Model.PaginaCerradas+1,paginaAbiertas=Model.PaginaAbiertas,seccion="regresos"})">Siguiente →</a>}
+                </nav>}
         }
     </section>
 }
@@ -265,9 +271,12 @@ else if ((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue
     <div class="cargo-dialog-body" role="region" aria-label="Información del documento" tabindex="0">
         <section class="cargo-dialog-card" aria-labelledby="cargo-dialog-delivery">
             <h3 id="cargo-dialog-delivery"><span aria-hidden="true">📦</span> Entrega</h3>
-            <p id="cargo-dialog-source" class="cargo-dialog-source"></p>
+            <!-- <p id="cargo-dialog-source" class="cargo-dialog-source"></p> -->
             <dl class="cargo-dialog-facts">
-                <div class="cargo-dialog-fact-wide"><dt>Cliente</dt><dd id="cargo-dialog-cliente"></dd></div>
+                <div class="cargo-dialog-fact-wide">
+                <dt>Cliente</dt>
+                <dd id="cargo-dialog-cliente"></dd>
+</div>
                 <div class="cargo-dialog-fact-wide"><dt>Dirección</dt><dd id="cargo-dialog-direccion"></dd></div>
                 <div><dt>Bultos</dt><dd id="cargo-dialog-bultos"></dd></div>
                 <div><dt>Visitó</dt><dd id="cargo-dialog-visito"></dd></div>
@@ -297,7 +306,7 @@ else if ((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue
 @if (cerrada && Model.PuedeRegistrarEntrada)
 {
     <section class="action-card entry-action">
-        <span class="step">REGISTRAR REGRESO</span><h2>¿Es este el vehículo?</h2><p>Verifica placa, ruta y cargamento. El botón guardará @(Model.EntradaUtc.HasValue?"la hora del registro existente":"la hora actual").</p>
+        <span class="step">REGISTRAR REGRESO</span><!-- <h2>¿Es este el vehículo?</h2> --><p>Verifica placa, ruta y cargamento. El botón guardará @(Model.EntradaUtc.HasValue?"la hora del registro existente":"la hora actual").</p>
         @using (Html.BeginForm("RegistrarEntrada", "Garita", FormMethod.Post, new { id = "register-entry-form", enctype = "multipart/form-data" }))
         {
             @Html.AntiForgeryToken()
@@ -306,7 +315,7 @@ else if ((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue
             if (string.IsNullOrWhiteSpace(Model.ObservacionEntrada))
             {<div class="optional"><label for="observacion-entrada">Observación del regreso <small>(opcional)</small></label><textarea id="observacion-entrada" name="Observacion" maxlength="250" rows="2" placeholder="Ej. El vehículo regresó con carga pendiente"></textarea></div>}
             if (!Model.TieneFotoEntrada)
-            {<div class="photo-field"><span>Foto de entrada <small>(opcional · JPG, PNG o WebP hasta 10 MB)</small></span><div class="photo-buttons"><button type="button" data-photo-camera="foto-entrada"><span aria-hidden="true">📸</span> Tomar foto</button><button type="button" data-photo-gallery="foto-entrada">Elegir archivo</button></div><input id="foto-entrada" name="foto" type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden" /><img id="foto-entrada-preview" alt="Vista previa de la foto de entrada" hidden /><button id="foto-entrada-clear" type="button" hidden>Quitar foto</button></div>}
+            {<div class="photo-field"><span>Foto de entrada <!-- <small>(opcional · JPG, PNG o WebP hasta 10 MB)</small> --></span><div class="photo-buttons"><button type="button" data-photo-camera="foto-entrada"><span aria-hidden="true">📸</span> Tomar foto</button><button type="button" data-photo-gallery="foto-entrada">Elegir archivo</button></div><input id="foto-entrada" name="foto" type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden" /><img id="foto-entrada-preview" alt="Vista previa de la foto de entrada" hidden /><button id="foto-entrada-clear" type="button" hidden>Quitar foto</button></div>}
             <button class="confirm-button" type="submit"><span aria-hidden="true">✅</span> Registrar entrada</button>
         }
     </section>

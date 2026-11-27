@@ -13,10 +13,20 @@ foreach($name in @('vacia','lista','sin-resultados','diferencia','abierta','en-r
     $body=$body.Replace('/pedidosap/Content/garita.css',$css).Replace('/pedidosap/Content/garita-refresh.css',$refreshCss).Replace('/pedidosap/Scripts/garita-ui.js',$uiJs)
     $probe=@"
 <script>
-if('$name'==='en-ruta'){window.garitaFetchCount=0;window.fetch=function(){window.garitaFetchCount++;var ok=window.garitaFetchCount>1;return Promise.resolve({ok:ok,headers:{get:function(){return 'application/json';}},json:function(){return Promise.resolve(ok?{ok:true,tipo:'salida',hora:'09:34 AM',url:'#'}:{ok:false,mensaje:'La ruta cambió. Revísala otra vez.'});}});};}
+var receiptTypes={'en-ruta':'salida',cerrada:'entrada',abierta:'diferencia'};
+var receiptType=receiptTypes['$name'];
+if(receiptType){
+ window.garitaFetchCount=0;
+ window.fetch=function(){
+  window.garitaFetchCount++;
+  var ok=receiptType!=='salida' || window.garitaFetchCount>1;
+  var data=ok?{ok:true,tipo:receiptType,hora:'09:34 AM',url:'#'}:{ok:false,mensaje:'La ruta cambió. Revísala otra vez.'};
+  return Promise.resolve(new Response(JSON.stringify(data),{status:ok?200:409,headers:{'Content-Type':'application/json'}}));
+ };
+}
 </script><script src="$cargoJs"></script>
 <script>
-(function(){try{
+(async function(){try{
 function check(x,m){if(!x)throw new Error(m);}
 check(document.documentElement.scrollWidth<=innerWidth+1,'desbordamiento horizontal');
 var detalle=!!document.querySelector('.garita-detail-content');
@@ -27,6 +37,43 @@ function checkFooter() {
  check(Math.abs(footer.getBoundingClientRect().bottom-innerHeight)<=1,'footer separado del borde inferior');
  check(footer.querySelector('a').getAttribute('href')==='tel:137','falta llamada al 137');
  check(scrollArea.getBoundingClientRect().bottom<=footer.getBoundingClientRect().top+1,'el footer tapa el contenido');
+ if(detalle){
+  var root=document.scrollingElement;
+  check(root.scrollHeight<=root.clientHeight+1 && window.scrollY===0,'la página se desplaza por debajo del footer');
+ }
+}
+function scrollToEnd(){
+ scrollArea.scrollTop=scrollArea.scrollHeight;
+ window.scrollTo(0,document.scrollingElement.scrollHeight);
+ checkFooter();
+}
+function luminance(rgb){
+ var values=rgb.match(/[\d.]+/g).slice(0,3).map(function(value){
+  var channel=Number(value)/255;
+  return channel<=0.04045?channel/12.92:Math.pow((channel+0.055)/1.055,2.4);
+ });
+ return values[0]*0.2126+values[1]*0.7152+values[2]*0.0722;
+}
+function contrast(color,background){
+ var a=luminance(color), b=luminance(background);
+ return (Math.max(a,b)+0.05)/(Math.min(a,b)+0.05);
+}
+function checkReceipt(title){
+ var receipt=document.querySelector('.garita-receipt-'+receiptType);
+ check(receipt && receipt.querySelector('h2').textContent===title,'no apareció la confirmación de '+receiptType);
+ var box=receipt.querySelector('.garita-receipt-box');
+ var next=receipt.querySelector('.garita-receipt-next');
+ for(var mode=0;mode<2;mode++){
+  var dark=document.documentElement.dataset.theme==='dark';
+  var background=getComputedStyle(box).backgroundColor;
+  check(dark?luminance(background)<0.2:luminance(background)>0.8,'la confirmación debe adoptar el fondo del tema');
+  ['h2','p'].forEach(function(selector){
+   check(contrast(getComputedStyle(box.querySelector(selector)).color,background)>=4.5,'contraste insuficiente en '+selector+' de la confirmación');
+  });
+  var nextStyle=getComputedStyle(next);
+  check(contrast(nextStyle.color,nextStyle.backgroundColor)>=4.5,'contraste insuficiente en el botón Continuar');
+  theme.click();
+ }
 }
 function checkCargoSummary() {
  var card=document.querySelector('.cargo-card');
@@ -48,9 +95,14 @@ function checkCargoSummary() {
 checkFooter();
 if(detalle) {
  check(!buscador && document.querySelector('.topbar .search-back-link') && document.querySelector('.topbar h1').textContent.includes('PP26-'),'el detalle debe mostrar un solo encabezado con navegación y ruta');
+ check(document.querySelector('.topbar .search-back-link svg'),'falta el icono del enlace Rutas');
  check(document.querySelector('.search-other-link') && document.querySelector('.search-other-link').getAttribute('href').indexOf('placa=')<0 && document.querySelector('.search-other-link').getAttribute('href').indexOf('id=')<0,'falta buscar otra placa');
-} else check(buscador.querySelector('h1') && document.querySelector('input[name="placa"]') && !document.querySelector('.search-back-link'),'búsqueda inicial incompleta');
+} else {
+ check(buscador.querySelector('h1') && document.querySelector('input[name="placa"]') && !document.querySelector('.search-back-link'),'búsqueda inicial incompleta');
+ check(document.querySelector('.topbar .brand-icon svg'),'falta el icono de marca');
+}
 var theme=document.getElementById('theme-toggle');
+check(theme.querySelector('.theme-day').textContent==='☀️' && theme.querySelector('.theme-night').textContent==='🌙','el selector debe conservar los emojis de sol y luna');
 for(var mode=0;mode<2;mode++){
  var oldTheme=document.documentElement.getAttribute('data-theme');
  theme.click();
@@ -72,7 +124,7 @@ if('$name'==='en-ruta') {
  check(Math.abs(actions.getBoundingClientRect().bottom-footer.getBoundingClientRect().top)<=1,'acciones separadas del pie de página');
  var cargo=document.querySelector('.cargo-customer');
  cargo.querySelector('summary').click();check(cargo.open,'no se puede abrir el detalle del cliente');
- scrollArea.scrollTop=scrollArea.scrollHeight;
+ scrollToEnd();
  if(innerWidth<=750)check(scrollArea.scrollTop>0,'la prueba debe desplazar el detalle móvil');
  checkFooter();
  var modal=document.getElementById('difference-dialog');document.getElementById('difference-open').click();check(modal.open,'no abre motivos rápidos');
@@ -83,8 +135,24 @@ if('$name'==='en-ruta') {
 if('$name'==='abierta') check(document.querySelector('.route-status .state-open') && document.body.textContent.indexOf('pasará de Abierta a En ruta')>=0,'falta acción de salida en ruta A');
 if('$name'==='empresa-pendiente') check(form && document.body.textContent.indexOf('PILOTO DEMO')>=0,'garita debe usar el piloto de APK66');
 if('$name'==='empresa-asignada') check(form && document.body.textContent.indexOf('JUAN PEREZ')>=0,'garita no mostró conductor asignado');
-if('$name'==='cerrada') {var entry=document.querySelector('#register-entry-form');check(entry && !form && document.body.textContent.indexOf('Sin hora de entrada')>=0,'cerrada debe poder registrar entrada');check(entry.enctype==='multipart/form-data' && entry.querySelector('textarea[name="Observacion"]') && entry.querySelector('input[type="file"][name="foto"]'),'entrada debe aceptar observación y foto opcionales');}
-if('$name'==='entrada') check(!document.querySelector('#register-entry-form') && !form && document.body.textContent.indexOf('Hora de entrada:')>=0 && document.body.textContent.indexOf('Regresó con carga')>=0 && document.body.textContent.indexOf('Ver foto de entrada')>=0,'entrada duplicada disponible y evidencia visible');
+if('$name'==='cerrada') {
+ var entry=document.querySelector('#register-entry-form');
+ check(entry && !form && document.body.textContent.indexOf('Sin hora de entrada')>=0,'cerrada debe poder registrar entrada');
+ var entryNote=entry.querySelector('textarea[name="Observacion"]');
+ var entryPhoto=entry.querySelector('input[type="file"][name="foto"]');
+ check(entry.enctype==='multipart/form-data' && entryNote && entryPhoto,'entrada debe aceptar observación y foto opcionales');
+ scrollToEnd();
+ entryNote.focus();
+ checkFooter();
+ entryPhoto.focus();
+ scrollToEnd();
+ entry.querySelector('button[type="submit"]').click();
+}
+if('$name'==='entrada') {
+ check(!document.querySelector('#register-entry-form') && !form && document.body.textContent.indexOf('Hora de entrada:')>=0 && document.body.textContent.indexOf('Regresó con carga')>=0 && document.body.textContent.indexOf('Ver foto de entrada')>=0,'entrada duplicada disponible y evidencia visible');
+ check(scrollArea.textContent.includes('Entrada registrada correctamente.'),'la confirmación de retorno debe quedar dentro del área desplazable');
+ scrollToEnd();
+}
 if('$name'==='cargo') {
  var customerList=document.querySelector('.cargo-preview-list');
  var customers=Array.from(customerList.querySelectorAll('.cargo-customer'));
@@ -147,12 +215,25 @@ if('$name'==='en-ruta') {
  check(authorize.disabled,'una verificación no basta');
  form.querySelector('[name="CargaVerificada"]').checked=true;form.querySelector('[name="CargaVerificada"]').dispatchEvent(new Event('change'));
  check(!authorize.disabled,'dos verificaciones deben habilitar la salida');
- authorize.click();setTimeout(function(){try{
-   check(window.garitaFetchCount===1 && !document.querySelector('.garita-receipt') && !authorize.disabled,'respuesta rechazada no debe mostrar éxito ni bloquear reintento');
-   check(document.getElementById('register-exit-form-error').textContent.indexOf('ruta cambió')>=0,'falta mensaje de error');
-   authorize.click();setTimeout(function(){try{check(window.garitaFetchCount===2 && document.querySelector('.garita-receipt').textContent.indexOf('09:34 AM')>=0,'el éxito confirmado debe mostrar hora');document.documentElement.setAttribute('data-garita-smoke','PASS');}catch(e){document.documentElement.setAttribute('data-garita-smoke','FAIL: '+e.message);}},50);
- }catch(e){document.documentElement.setAttribute('data-garita-smoke','FAIL: '+e.message);}},50);
-} else document.documentElement.setAttribute('data-garita-smoke','PASS');
+ authorize.click();
+ await new Promise(function(resolve){setTimeout(resolve,50);});
+ check(window.garitaFetchCount===1 && !document.querySelector('.garita-receipt') && !authorize.disabled,'respuesta rechazada no debe mostrar éxito ni bloquear reintento');
+ check(document.getElementById('register-exit-form-error').textContent.indexOf('ruta cambió')>=0,'falta mensaje de error');
+ authorize.click();
+}
+if('$name'==='abierta'){
+ document.getElementById('difference-open').click();
+ var difference=document.getElementById('difference-form');
+ difference.querySelector('[value="BULTOS"]').click();
+ difference.querySelector('button[type="submit"]').click();
+}
+if(receiptType){
+ await new Promise(function(resolve){setTimeout(resolve,50);});
+ var titles={entrada:'Entrada registrada',salida:'Salida autorizada',diferencia:'Salida detenida'};
+ checkReceipt(titles[receiptType]);
+ if(receiptType==='salida')check(window.garitaFetchCount===2 && document.querySelector('.garita-receipt').textContent.includes('09:34 AM'),'el éxito confirmado debe mostrar hora');
+}
+document.documentElement.setAttribute('data-garita-smoke','PASS');
 }catch(e){document.documentElement.setAttribute('data-garita-smoke','FAIL: '+e.message);}})();
 </script>
 "@

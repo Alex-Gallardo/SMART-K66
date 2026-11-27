@@ -24,6 +24,7 @@
         ViewBag.Title = "Ruta " + Model.Id;
     }
     var totalDocumentos = Model.Documentos == null ? 0 : Model.Documentos.Count;
+    var mensajeGarita = TempData["Garita.Mensaje"];
     var etiquetaFacturas = totalDocumentos > 0 && Model.Documentos.All(d => string.Equals(d.Tipo, "FACTURA", StringComparison.OrdinalIgnoreCase));
     var etiquetaDocumento = etiquetaFacturas ? (totalDocumentos == 1 ? "factura" : "facturas") : (totalDocumentos == 1 ? "documento" : "documentos");
 }
@@ -50,8 +51,8 @@
         </div>
     </div>
 }
-@if (TempData["Garita.Mensaje"] != null)
-{<div class="notice success" role="status">✓ @TempData["Garita.Mensaje"]</div>}
+@if (!encontrada && mensajeGarita != null)
+{<div class="notice success" role="status">✓ @mensajeGarita</div>}
 @if (Model.BusquedaRealizada && !encontrada)
 {
     <nav class="route-tabs" aria-label="Estado de rutas de esta placa">
@@ -153,6 +154,10 @@
     var estadoClase = cerrada ? (Model.HoraEntradaApk.HasValue ? "state-done" : "state-entry-pending") : salidaRegistrada ? "state-done" : puedeRegistrar ? "state-open" : "state-stop";
     var estadoTexto = cerrada ? (Model.HoraEntradaApk.HasValue ? "Cerrada · entrada registrada" : "Cerrada · sin hora de entrada") : salidaRegistrada ? "En ruta · salida registrada" : Model.Diferencia != null ? "Diferencia reportada" : puedeRegistrar ? "Pendiente de salida · revisar carga" : "Salida pendiente de revisión";
     <div class="garita-detail-content" role="region" aria-labelledby="garita-route-title" tabindex="0">
+    @if (mensajeGarita != null)
+    {
+        <div class="notice success" role="status">✓ @mensajeGarita</div>
+    }
     <div class="route-status"><span class="state @estadoClase">@estadoTexto</span></div>
     @if (salidaRegistrada){
         <div class="notice success" role="status">
@@ -315,7 +320,7 @@ else if ((abierta || enRuta) && !puedeRegistrar && !Model.HoraSalidaApk.HasValue
             if (string.IsNullOrWhiteSpace(Model.ObservacionEntrada))
             {<div class="optional"><label for="observacion-entrada">Observación del regreso <small>(opcional)</small></label><textarea id="observacion-entrada" name="Observacion" maxlength="250" rows="2" placeholder="Ej. El vehículo regresó con carga pendiente"></textarea></div>}
             if (!Model.TieneFotoEntrada)
-            {<div class="photo-field"><span>Foto de entrada <!-- <small>(opcional · JPG, PNG o WebP hasta 10 MB)</small> --></span><div class="photo-buttons"><button type="button" data-photo-camera="foto-entrada"><span aria-hidden="true">📸</span> Tomar foto</button><button type="button" data-photo-gallery="foto-entrada">Elegir archivo</button></div><input id="foto-entrada" name="foto" type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden" /><img id="foto-entrada-preview" alt="Vista previa de la foto de entrada" hidden /><button id="foto-entrada-clear" type="button" hidden>Quitar foto</button></div>}
+            {<div class="photo-field"><span>Foto de entrada <!-- <small>(opcional · JPG, PNG o WebP hasta 10 MB)</small> --></span><div class="photo-buttons"><button type="button" data-photo-camera="foto-entrada"><span aria-hidden="true">📸</span> Tomar foto</button><button type="button" data-photo-gallery="foto-entrada">Elegir archivo</button></div><input id="foto-entrada" name="foto" type="file" accept="image/jpeg,image/png,image/webp" class="visually-hidden" tabindex="-1" /><img id="foto-entrada-preview" alt="Vista previa de la foto de entrada" hidden /><button id="foto-entrada-clear" type="button" hidden>Quitar foto</button></div>}
             <button class="confirm-button" type="submit"><span aria-hidden="true">✅</span> Registrar entrada</button>
         }
     </section>

@@ -5,6 +5,7 @@
 
     var close = document.getElementById('cargo-dialog-close');
     var body = dialog.querySelector('.cargo-dialog-body');
+    var source = document.getElementById('cargo-dialog-source');
     var photoMessage = document.getElementById('cargo-dialog-no-photo');
     var photos = [
         { figure: document.getElementById('cargo-dialog-photo-doc'), key: 'fotoDoc' },
@@ -32,7 +33,7 @@
             lastTrigger = button;
             put('title', data.documento || 'Documento sin número');
             put('subtitle', (data.tipo || 'Documento') + ' · ' + (data.empresa || 'Empresa sin registrar'));
-            put('source', data.fuente);
+            if (source) source.textContent = data.fuente || 'Sin registrar';
             var result = document.getElementById('cargo-dialog-result');
             result.textContent = data.resultado || 'PENDIENTE';
             var state = ['delivered', 'warning'].indexOf(data.clase) >= 0 ? data.clase : 'pending';

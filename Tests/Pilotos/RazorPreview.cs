@@ -53,7 +53,7 @@ internal static class RazorPreview
         {request=new PreviewRequest(c.Request,applicationPath,currentPath);}
         public override HttpRequestBase Request {get{return request;}}
     }
-    public static string Render(Type type, object model, string body = null, string vista = "activas", bool editable = false, ViewDataDictionary sharedViewData = null)
+    public static string Render(Type type, object model, string body = null, string vista = "activas", bool editable = false, ViewDataDictionary sharedViewData = null, TempDataDictionary tempData = null)
     {
         // Standalone renderer has no IIS header pipeline; production uses its normal antiforgery setup.
         System.Web.Helpers.AntiForgeryConfig.SuppressXFrameOptionsHeader=true;
@@ -82,7 +82,7 @@ internal static class RazorPreview
             viewData["Mensaje"]="La ruta no está disponible. Consulta a Distribución.";
             if(model is PilotoLiquidacionRuta) {var filtro=new PilotoLiquidacionFiltro();filtro.Validar(new DateTime(2026,10,28));viewData["Filtro"]=filtro;}
             var page=(WebViewPage)Activator.CreateInstance(type);
-            page.ViewContext=new ViewContext(controller.ControllerContext,new PreviewView(),viewData,new TempDataDictionary(),writer);
+            page.ViewContext=new ViewContext(controller.ControllerContext,new PreviewView(),viewData,tempData??new TempDataDictionary(),writer);
             page.ViewData=viewData; page.InitHelpers();
             page.PushContext(new WebPageContext(http,page,null),writer);
             page.ViewContext.Writer=page.Output;

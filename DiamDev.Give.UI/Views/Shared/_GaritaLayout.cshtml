@@ -19,12 +19,24 @@
     <header class="topbar @(esDetalle ? "topbar-detail" : null)">
         @if (esDetalle)
         {
-            <a class="search-back-link" href="@ViewBag.GaritaUrlRutas" aria-label="Volver al listado de rutas"><span aria-hidden="true">⬅️</span> Rutas</a>
+            <a class="search-back-link" href="@ViewBag.GaritaUrlRutas" aria-label="Volver al listado de rutas">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m11 5-7 7 7 7M4 12h16" />
+                </svg>
+                Rutas
+            </a>
             <h1 id="garita-route-title">Ruta @rutaId</h1>
         }
         else
         {
-            <a class="brand" href="@Url.Content("~/Garita/Index")"><span class="brand-icon" aria-hidden="true">✅</span><span><strong>SMART K66</strong><small>Garita · @User.Identity.Name</small></span></a>
+            <a class="brand" href="@Url.Content("~/Garita/Index")">
+                <span class="brand-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m5 12 4 4L19 6" />
+                    </svg>
+                </span>
+                <span><strong>SMART K66</strong><small>Garita · @User.Identity.Name</small></span>
+            </a>
         }
         <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Cambiar entre modo claro y oscuro" aria-pressed="false">
             <span class="theme-day" aria-hidden="true">☀️</span><span class="theme-night" aria-hidden="true">🌙</span>

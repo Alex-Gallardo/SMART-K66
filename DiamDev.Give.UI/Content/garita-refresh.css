@@ -140,6 +140,13 @@ footer a{display:inline-flex;align-items:center;justify-content:center;gap:8px;c
 [data-theme=dark] .state-open,[data-theme=dark] .state-entry-pending{background:#65430e;color:#fff2d4}
 [data-theme=dark] .state-info,[data-theme=dark] .state-closed{background:#20465f;color:#e5f6ff}
 [data-theme=dark] .state-done,[data-theme=dark] .state-ready{background:#1e573e;color:#e8faef}
+[data-theme=dark] .garita-receipt-box {
+    background: #15283a;
+    color: #f5f9fc;
+    border: 1px solid #39566b;
+}
+[data-theme=dark] .garita-receipt-box p { color: #d7e4ed; }
+[data-theme=dark] .garita-receipt-next { background: #0c547d; color: #fff; }
 [data-theme=dark] footer{background:#0b2235;border-color:#34536a}
 [data-theme=dark] footer a{color:#f5f9fc}
 @media(prefers-reduced-motion:reduce){.route-option,.route-tabs a,.confirm-button,.stop-open,.photo-buttons button{transition:none}.route-option:hover,.route-option:focus-visible{transform:none}}
@@ -156,6 +163,8 @@ footer a{display:inline-flex;align-items:center;justify-content:center;gap:8px;c
     padding-top: calc(8px + env(safe-area-inset-top, 0px));
     padding-bottom: 8px;
 }
+.topbar .brand-icon svg { width: 26px; height: 26px; }
+.topbar .search-back-link svg { width: 21px; height: 21px; flex: none; }
 .garita-shell .skip:focus { z-index: 60; }
 .garita-shell > main {
     width: 100%;
@@ -212,7 +221,13 @@ footer a{display:inline-flex;align-items:center;justify-content:center;gap:8px;c
     padding: 0;
     overflow: hidden;
 }
-.garita-detail-content { overflow: auto; padding: 0 clamp(12px, 4vw, 26px) 12px; }
+.garita-detail-content {
+    /* Mantiene los controles absolutos de los formularios en el área desplazable. */
+    position: relative;
+    overflow: auto;
+    overscroll-behavior-y: none;
+    padding: 0 clamp(12px, 4vw, 26px) 12px;
+}
 .garita-detail-content:focus-visible { outline-offset: -4px; }
 .route-status { margin-bottom: 10px; text-align: center; }
 .route-status .state {

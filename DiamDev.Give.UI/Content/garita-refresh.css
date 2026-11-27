@@ -41,7 +41,7 @@ main p{color:#375367}
 .route-option-counts b{display:block;font-size:21px;line-height:1.15}
 .route-option .state{grid-area:state;justify-self:start;border-radius:10px;white-space:normal;text-align:center;padding:10px;font-size:13px}
 .route-option .closed-badges{grid-area:state;gap:5px}
-.route-option-arrow{grid-area:action;display:block;padding:12px;border-radius:10px;background:#07527d;color:#fff;text-align:center;font-size:18px}
+.route-option-arrow{grid-area:action;display:block;padding:12px;border-radius:20px;background:#07527d;color:#fff;text-align:center;font-size:18px}
 .route-option:hover .route-option-arrow,.route-option:focus-visible .route-option-arrow{background:#084c80;color:#fff}
 .route-option,.route-tabs a,.confirm-button,.stop-open,.photo-buttons button{transition:background-color .16s ease,border-color .16s ease,transform .16s ease}
 .route-option:hover,.route-option:focus-visible{transform:translateY(-2px)}
@@ -67,7 +67,9 @@ main p{color:#375367}
 .photo-buttons{display:flex;gap:8px;margin-top:10px}
 .photo-buttons button{flex:1;min-height:50px;padding:10px;border:1px solid #83a9bc;background:#e7f2f7;color:#0b3553}
 .photo-buttons button:first-child{background:#0b5d84;color:#fff;border-color:#0b5d84}
-.confirm-button{background:#005c36}
+.confirm-button {
+    background: #1EBD41;
+}
 .confirm-button:hover{background:#00462a}
 .confirm-button:disabled{background:#405565;color:#fff;cursor:not-allowed}
 .stop-open{display:block;width:100%;min-height:58px;margin-top:12px;padding:12px;border:2px solid #9e2b27;background:#fff;color:#81201d;font-size:18px}

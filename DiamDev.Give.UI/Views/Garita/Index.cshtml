@@ -56,8 +56,8 @@
 @if (Model.BusquedaRealizada && !encontrada)
 {
     <nav class="route-tabs" aria-label="Estado de rutas de esta placa">
-        <a class="@(seccion=="salidas"?"active":"")" aria-current="@(seccion=="salidas"?"page":null)" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion="salidas",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})">Por salir ( @Model.TotalAbiertas )</a>
-        <a class="@(seccion=="en-ruta"?"active":"")" aria-current="@(seccion=="en-ruta"?"page":null)" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion="en-ruta",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})">En ruta ( @Model.TotalRutas )</a>
+        <a class="@(seccion=="salidas"?"active":"")" aria-current="@(seccion=="salidas"?"page":null)" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion="salidas",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})">Por salir (  @Model.TotalAbiertas )</a>
+        <a class="@(seccion=="en-ruta"?"active":"")" aria-current="@(seccion=="en-ruta"?"page":null)" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion="en-ruta",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})">En ruta (  @Model.TotalRutas )</a>
         <a class="@(seccion=="regresos"?"active":"")" aria-current="@(seccion=="regresos"?"page":null)" href="@Url.Action("Index","Garita",new{placa=Model.PlacaBusqueda,seccion="regresos",pagina=Model.Pagina,paginaAbiertas=Model.PaginaAbiertas,paginaCerradas=Model.PaginaCerradas})">Regresos ( @Model.TotalCerradas )</a>
     </nav>
     <section class="results-card open-results" aria-label="Rutas abiertas de la placa" hidden="@(seccion=="salidas"?null:"hidden")">
